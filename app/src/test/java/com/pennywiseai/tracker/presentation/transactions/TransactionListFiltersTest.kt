@@ -109,6 +109,16 @@ class TransactionListFiltersTest {
     }
 
     @Test
+    fun `sort and search use the split share the row shows`() {
+        val shopping = CategorySplitShares(setOf("Shopping"), splitRows)
+        val plain = tx(2, "Shopping").copy(amount = BigDecimal("5000"))
+        val rows = listOf(splitTx, plain)
+        assertEquals(listOf(2L, 1L), ids(sortTransactions(rows, SortOption.AMOUNT_HIGHEST, shopping::shownAmount)))
+        assertEquals(listOf(1L), ids(filterBySearch(rows, "3000", emptyMap(), emptyMap(), shopping::shownAmount)))
+        assertEquals(emptyList<Long>(), ids(filterBySearch(rows, "10000", emptyMap(), emptyMap(), shopping::shownAmount)))
+    }
+
+    @Test
     fun `an unsplit row keeps its full amount`() {
         val shares = CategorySplitShares(setOf("Food"), splitRows)
         val plain = tx(2, "Food")

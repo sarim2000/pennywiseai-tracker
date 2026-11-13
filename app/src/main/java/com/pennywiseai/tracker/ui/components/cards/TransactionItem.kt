@@ -91,6 +91,8 @@ fun TransactionItem(
     val categoryText = categoryLabel(transaction.category)
     val subtitle = remember(transaction, splitShare, categoryText, dateTimeText, isEffectivelyBusiness, AmountPrivacy.hidden) {
         buildList {
+            // First, so a long description can't truncate it out of the one-line subtitle.
+            if (splitShare != null) add(resources.getString(R.string.txn_item_tag_split_of, transaction.formatAmount()))
             if (description != null) add(CurrencyFormatter.maskAmountsIn(description))
             add(dateTimeText)
             if (transaction.category.isNotBlank() &&
@@ -116,7 +118,6 @@ fun TransactionItem(
             // Mark rows the user excluded from analytics so it's visible in the
             // list which ones are skipped by spending stats (#451).
             if (transaction.excludedFromAnalytics) add(resources.getString(R.string.txn_item_tag_excluded))
-            if (splitShare != null) add(resources.getString(R.string.txn_item_tag_split_of, transaction.formatAmount()))
             transaction.balanceAfter?.let { balance ->
                 add(resources.getString(R.string.txn_item_balance_after, CurrencyFormatter.formatCurrency(balance, transaction.currency)))
             }

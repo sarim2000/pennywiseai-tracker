@@ -830,7 +830,7 @@ class TransactionsViewModel @Inject constructor(
                         )
                         val sorted = if (isUnified) {
                             // Show all transactions regardless of currency
-                            sortTransactions(transactions, sort)
+                            sortTransactions(transactions, sort, splitShares.amountOf())
                         } else {
                             // Calculate available currencies from ALL filtered transactions (before currency filtering)
                             val allAvailableCurrencies = CurrencyUtils.sortCurrencies(
@@ -865,7 +865,7 @@ class TransactionsViewModel @Inject constructor(
                                 it.currency.equals(finalCurrency, ignoreCase = true)
                             }
 
-                            sortTransactions(currencyFilteredTransactions, sort)
+                            sortTransactions(currencyFilteredTransactions, sort, splitShares.amountOf())
                         }
                         ComputedList(
                             transactions = sorted,
@@ -1374,7 +1374,7 @@ class TransactionsViewModel @Inject constructor(
         // Apply type, then search filter. Tags and aliases are read per list, so the
         // re-run a change to either one triggers sees it.
         return categoriesFilteredFlow.map { (rows, splitShares) ->
-            filterBySearch(filterByType(rows, typeFilter), searchQuery, transactionTagsMap.value, merchantAliases.value) to splitShares
+            filterBySearch(filterByType(rows, typeFilter), searchQuery, transactionTagsMap.value, merchantAliases.value, splitShares.amountOf()) to splitShares
         }
     }
 
@@ -1542,3 +1542,6 @@ internal fun computeSelfTransferPairs(
 /** Rows as the totals should count them under [this] category filter; unchanged without one. */
 private fun CategorySplitShares?.forTotals(rows: List<TransactionEntity>): List<TransactionEntity> =
     this?.let { rows.mapNotNull(it::forTotals) } ?: rows
+
+/** The amount each row shows, for sort and search: its split share under [this] filter. */
+private fun CategorySplitShares?.amountOf(): (TransactionEntity) -> BigDecimal = this?.let { it::shownAmount } ?: { it.amount }

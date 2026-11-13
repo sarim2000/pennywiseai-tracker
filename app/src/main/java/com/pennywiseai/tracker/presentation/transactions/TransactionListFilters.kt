@@ -47,6 +47,9 @@ class CategorySplitShares(
     fun shareOf(tx: TransactionEntity): BigDecimal? =
         splitsByTxId[tx.id]?.filter { it.category in categories }?.sumOf { it.amount }
 
+    /** The amount [tx] shows: its share when split, else its own amount. */
+    fun shownAmount(tx: TransactionEntity): BigDecimal = shareOf(tx) ?: tx.amount
+
     /**
      * [tx] as the totals should count it: [forTotals] on the whole row, splits cut in
      * proportion, then only the splits in the filter. Null when none of it counts.
@@ -67,15 +70,19 @@ internal fun filterByType(
     return transactions.filter { it.transactionType in types }
 }
 
-/** Rows matching [query]; a blank query is no search at all. See [matchesSearch]. */
+/**
+ * Rows matching [query]; a blank query is no search at all. See [matchesSearch]. [amountOf] is
+ * the amount the row shows, its split share under a category filter (#1192).
+ */
 internal fun filterBySearch(
     transactions: List<TransactionEntity>,
     query: String,
     tagsById: Map<Long, List<String>>,
     aliasByMerchant: Map<String, String>,
+    amountOf: (TransactionEntity) -> BigDecimal = { it.amount },
 ): List<TransactionEntity> {
     if (query.isBlank()) return transactions
-    return transactions.filter { it.matchesSearch(query, tagsById[it.id], aliasByMerchant[it.merchantName]) }
+    return transactions.filter { it.matchesSearch(query, tagsById[it.id], aliasByMerchant[it.merchantName], amountOf(it)) }
 }
 
 /**
@@ -86,6 +93,7 @@ internal fun TransactionEntity.matchesSearch(
     query: String,
     tags: List<String>?,
     merchantAlias: String?,
+    shownAmount: BigDecimal = amount,
 ): Boolean =
     merchantName.contains(query, ignoreCase = true) ||
         description?.contains(query, ignoreCase = true) == true ||
@@ -93,10 +101,10 @@ internal fun TransactionEntity.matchesSearch(
         tags?.any { it.contains(query, ignoreCase = true) } == true ||
         merchantAlias?.contains(query, ignoreCase = true) == true ||
         smsBody?.contains(query, ignoreCase = true) == true ||
-        amountMatchesSearch(query)
+        amountMatchesSearch(query, shownAmount)
 
 /** Partial match on the plain amount, so "1,000" finds 1000.00. Non-numeric queries never match. */
-private fun TransactionEntity.amountMatchesSearch(query: String): Boolean {
+private fun amountMatchesSearch(query: String, amount: BigDecimal): Boolean {
     val cleanedQuery = query.replace(",", "").replace(" ", "").trim()
     return cleanedQuery.isNotEmpty() &&
         cleanedQuery.all { it.isDigit() || it == '.' } &&
@@ -152,15 +160,17 @@ internal fun filterableCategories(
     return (present + present.mapNotNull { parentOf[it] }).distinct().sorted()
 }
 
+/** [amountOf] is the amount the row shows, its split share under a category filter (#1192). */
 internal fun sortTransactions(
     transactions: List<TransactionEntity>,
     sortOption: SortOption,
+    amountOf: (TransactionEntity) -> BigDecimal = { it.amount },
 ): List<TransactionEntity> =
     when (sortOption) {
         SortOption.DATE_NEWEST -> transactions.sortedByDescending { it.dateTime }
         SortOption.DATE_OLDEST -> transactions.sortedBy { it.dateTime }
-        SortOption.AMOUNT_HIGHEST -> transactions.sortedByDescending { it.amount }
-        SortOption.AMOUNT_LOWEST -> transactions.sortedBy { it.amount }
+        SortOption.AMOUNT_HIGHEST -> transactions.sortedByDescending(amountOf)
+        SortOption.AMOUNT_LOWEST -> transactions.sortedBy(amountOf)
         SortOption.MERCHANT_AZ -> transactions.sortedBy { it.merchantName.lowercase() }
         SortOption.MERCHANT_ZA -> transactions.sortedByDescending { it.merchantName.lowercase() }
     }

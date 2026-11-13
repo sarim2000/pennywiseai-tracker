@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.ui.components
 
 import android.Manifest
 import android.content.Context
+import android.content.pm.PackageManager
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -14,6 +15,7 @@ import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.app.ActivityCompat
+import androidx.core.content.ContextCompat
 import androidx.core.content.edit
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.pennywiseai.tracker.utils.canReadSms
@@ -52,8 +54,13 @@ fun rememberSmsAccess(
         // Android also reports "no rationale" before the first ask, so only a past ask counts.
         // ponytail: a dialog dismissed without an answer also reads as blocked; settings still
         // grants it, so the user is never stuck.
-        blocked = !now && prefs.getBoolean(KEY_ASKED, false) && activity != null &&
-            !ActivityCompat.shouldShowRequestPermissionRationale(activity, Manifest.permission.READ_SMS)
+        // Either permission counts: a permanently denied RECEIVE_SMS next to a granted
+        // READ_SMS would otherwise keep re-asking a dialog Android never shows.
+        blocked = prefs.getBoolean(KEY_ASKED, false) && activity != null &&
+            SMS_PERMISSIONS.any { permission ->
+                ContextCompat.checkSelfPermission(context, permission) != PackageManager.PERMISSION_GRANTED &&
+                    !ActivityCompat.shouldShowRequestPermissionRationale(activity, permission)
+            }
     }
 
     val launcher = rememberLauncherForActivityResult(
@@ -70,10 +77,11 @@ fun rememberSmsAccess(
             context.startFirstAvailable()
         } else {
             prefs.edit { putBoolean(KEY_ASKED, true) }
-            launcher.launch(arrayOf(Manifest.permission.READ_SMS, Manifest.permission.RECEIVE_SMS))
+            launcher.launch(SMS_PERMISSIONS)
         }
     }
 }
 
+private val SMS_PERMISSIONS = arrayOf(Manifest.permission.READ_SMS, Manifest.permission.RECEIVE_SMS)
 private const val PREFS = "sms_access"
 private const val KEY_ASKED = "asked"

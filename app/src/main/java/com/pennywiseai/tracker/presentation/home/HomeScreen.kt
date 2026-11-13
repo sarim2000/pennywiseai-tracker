@@ -129,14 +129,17 @@ fun HomeScreen(
     val backgroundAccess: BackgroundAccessViewModel = hiltViewModel()
     val backgroundState by backgroundAccess.state.collectAsStateWithLifecycle()
     var canReceiveSms by remember { mutableStateOf(context.canReceiveSms()) }
+    // Read on resume too, so a snooze that ran out while Home sat in the background ends.
+    var resumedAtMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
     androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
         backgroundAccess.refresh()
         canReceiveSms = context.canReceiveSms()
+        resumedAtMillis = System.currentTimeMillis()
         onPauseOrDispose { }
     }
     val trackingCardSnoozedUntil by viewModel.trackingCardSnoozedUntil.collectAsStateWithLifecycle()
     val trackingIssue = trackingProblem(smsAccess.granted && canReceiveSms, backgroundState)
-        .takeIf { System.currentTimeMillis() >= trackingCardSnoozedUntil }
+        .takeIf { resumedAtMillis >= trackingCardSnoozedUntil }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()

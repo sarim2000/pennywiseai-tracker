@@ -103,6 +103,30 @@ class SBIBankParserTest {
                     isFromCard = true,
                     creditLimit = BigDecimal("48355.45")
                 )
+            ),
+            ParserTestCase(
+                name = "SBI Card Bill Pay Alert reminder is not a transaction (#1255)",
+                message = "SBI Card Bill Pay Alert! Dear Cardholder, you have a new Jio Postpaid Fetch and Pay bill with account no. XXXXXXXXXX for Rs. 1234.56 due by 20-Nov-2026. Click here to pay now: https://ila.sbicard.com/d/ebp - SBI Card",
+                sender = "JD-SBICRD-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal.ZERO,
+                    currency = "INR",
+                    type = TransactionType.CREDIT
+                ),
+                shouldParse = false
+            ),
+            ParserTestCase(
+                name = "SBI Card spend from JD-SBICRD-S still parses",
+                message = "Rs.499.00 spent on your SBI Credit Card ending with 1234 at JIOPOSTPAID on 15/11/26. Trxn. not done by you? Report at https://sbicard.com/Dispute",
+                sender = "JD-SBICRD-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("499.00"),
+                    currency = "INR",
+                    type = TransactionType.CREDIT,
+                    merchant = "JIOPOSTPAID",
+                    accountLast4 = "1234",
+                    isFromCard = true
+                )
             )
         )
 

@@ -1156,13 +1156,13 @@
       "balance": "1500000.00"
     },
     "State Bank of India": {
-      "sender": "SBI CARDS AND PAYMENT SERVICES",
-      "message": "Rs.90.00 spent on your SBI Credit Card ending 5667 at SUPREMEGOURMET on 13/02/26.",
+      "sender": "JD-SBICRD-S",
+      "message": "Rs.499.00 spent on your SBI Credit Card ending with 1234 at JIOPOSTPAID on 15/11/26. Trxn. not done by you? Report at https://sbicard.com/Dispute",
       "currency": "INR",
-      "amount": "90.00",
+      "amount": "499.00",
       "type": "CREDIT",
-      "merchant": "SUPREMEGOURMET",
-      "accountLast4": "5667",
+      "merchant": "JIOPOSTPAID",
+      "accountLast4": "1234",
       "reference": null,
       "balance": null
     },

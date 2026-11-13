@@ -1,6 +1,7 @@
 # Resolves the Gradle dependency graph and saves it as an artifact.
-# GitHub's own graph doesn't read libs.versions.toml, so without this the
-# Dependency Review below sees no Gradle dependencies at all.
+# GitHub's own graph doesn't read libs.versions.toml, so without this
+# Dependency Review sees no Gradle dependencies at all. The review of a PR's
+# Gradle changes runs from dependency-graph-submit.yml once its snapshot is in.
 #
 # Fork PRs get a read-only token and can't submit a snapshot, so this workflow
 # only uploads it; dependency-graph-submit.yml (workflow_run) submits it. Main

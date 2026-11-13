@@ -39,9 +39,14 @@ class MicAccess(
 /**
  * Microphone permission for dictation. [onGranted] runs when access arrives
  * (from the dialog or from settings), not when it was already granted.
+ * [onDenied] runs when the dialog is refused. Its argument is true when Android
+ * will not ask again, so the explanation can open app settings.
  */
 @Composable
-fun rememberMicAccess(onGranted: () -> Unit): MicAccess {
+fun rememberMicAccess(
+    onGranted: () -> Unit,
+    onDenied: (blocked: Boolean) -> Unit,
+): MicAccess {
     val context = LocalContext.current
     val activity = LocalActivity.current
     val prefs = remember { context.getSharedPreferences(PREFS, Context.MODE_PRIVATE) }
@@ -50,6 +55,7 @@ fun rememberMicAccess(onGranted: () -> Unit): MicAccess {
     // Set only by a mic tap. A grant from system settings with no tap must not start listening.
     var awaitingGrant by remember { mutableStateOf(false) }
     val currentOnGranted by rememberUpdatedState(onGranted)
+    val currentOnDenied by rememberUpdatedState(onDenied)
 
     fun refresh() {
         val now = context.canRecordAudio()
@@ -59,8 +65,11 @@ fun rememberMicAccess(onGranted: () -> Unit): MicAccess {
         blocked = context.isMicBlocked(activity, prefs)
     }
 
-    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
+    val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) { grantedNow ->
+        // The ask is over. A later grant, from Quick Settings or app info, must not listen by itself.
+        if (!grantedNow) awaitingGrant = false
         refresh()
+        if (!grantedNow) currentOnDenied(blocked)
     }
 
     val lifecycleOwner = LocalLifecycleOwner.current

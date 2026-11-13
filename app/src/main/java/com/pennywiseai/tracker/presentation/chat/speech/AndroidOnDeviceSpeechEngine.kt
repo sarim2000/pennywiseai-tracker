@@ -54,6 +54,19 @@ class AndroidOnDeviceSpeechEngine(context: Context) : SpeechEngine {
         }
     }
 
+    override fun stopListening(): Boolean {
+        val current = recognizer ?: return false
+        return try {
+            // Leave the recognizer alive. onResults or onError destroys it.
+            Log.i(TAG, "Stopping, waiting for the final result")
+            current.stopListening()
+            true
+        } catch (error: RuntimeException) {
+            Log.w(TAG, "stopListening failed", error)
+            false
+        }
+    }
+
     override fun cancel() {
         generation++
         val current = recognizer ?: return

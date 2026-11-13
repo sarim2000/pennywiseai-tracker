@@ -110,6 +110,144 @@ class SpeechInputTest {
     }
 
     @Test
+    fun finishKeepsTheFinalTheRecognizerStillOwes() {
+        val engine = FakeEngine()
+        val speech = SpeechInput(engine)
+        speech.start("")
+        val callbacks = engine.callbacks!!
+        callbacks.onPartial("fifty")
+        speech.finish()
+        callbacks.onPartial("fifty thou")
+        callbacks.onFinal("fifty thousand")
+
+        assertEquals("fifty thousand", speech.draft.display())
+        assertFalse(speech.listening)
+        assertEquals(1, engine.stops)
+        assertEquals(0, engine.cancels)
+        assertNull(speech.failure)
+    }
+
+    @Test
+    fun finishBeforeAPartialStillKeepsTheFinal() {
+        val engine = FakeEngine()
+        val speech = SpeechInput(engine)
+        speech.start("rent ")
+        speech.finish()
+        engine.callbacks!!.onFinal("five thousand")
+
+        assertEquals("rent five thousand", speech.draft.display())
+        assertFalse(speech.listening)
+        assertEquals(0, engine.cancels)
+    }
+
+    @Test
+    fun finishFallsBackToThePartialWhenStoppingFails() {
+        val engine = FakeEngine(stopListeningSucceeds = false)
+        val speech = SpeechInput(engine)
+        speech.start("")
+        val callbacks = engine.callbacks!!
+        callbacks.onPartial("fifty")
+        speech.finish()
+        callbacks.onFinal("fifty thousand")
+
+        assertEquals("fifty", speech.draft.display())
+        assertFalse(speech.listening)
+        assertEquals(1, engine.cancels)
+    }
+
+    @Test
+    fun aSecondFinishWhileWaitingCancels() {
+        val engine = FakeEngine()
+        val speech = SpeechInput(engine)
+        speech.start("")
+        val callbacks = engine.callbacks!!
+        callbacks.onPartial("fifty")
+        speech.finish()
+        speech.finish()
+        callbacks.onFinal("fifty thousand")
+
+        assertEquals("fifty", speech.draft.display())
+        assertFalse(speech.listening)
+        assertEquals(1, engine.stops)
+        assertEquals(1, engine.cancels)
+    }
+
+    @Test
+    fun typingWhileFinishIsWaitingWins() {
+        val engine = FakeEngine()
+        val speech = SpeechInput(engine)
+        speech.start("")
+        val callbacks = engine.callbacks!!
+        callbacks.onPartial("fifty")
+        speech.finish()
+        speech.keepTyped("fif")
+        callbacks.onFinal("fifty thousand")
+
+        assertEquals("fif", speech.draft.display())
+        assertFalse(speech.listening)
+        assertEquals(1, engine.cancels)
+    }
+
+    @Test
+    fun clientErrorAfterFinishIsNotShownWhenWordsWereHeard() {
+        val engine = FakeEngine()
+        val speech = SpeechInput(engine)
+        speech.start("")
+        val callbacks = engine.callbacks!!
+        callbacks.onPartial("fifty")
+        speech.finish()
+        callbacks.onError(SpeechErrorCode.CLIENT)
+
+        assertEquals("fifty", speech.draft.display())
+        assertNull(speech.failure)
+        assertFalse(speech.listening)
+    }
+
+    @Test
+    fun leavingWhileFinishIsWaitingKeepsThePartial() {
+        val engine = FakeEngine()
+        val speech = SpeechInput(engine)
+        speech.start("")
+        val callbacks = engine.callbacks!!
+        callbacks.onPartial("fifty")
+        speech.finish()
+        speech.stop()
+        callbacks.onFinal("fifty thousand")
+
+        assertEquals("fifty", speech.draft.display())
+        assertFalse(speech.listening)
+        assertEquals(1, engine.cancels)
+    }
+
+    @Test
+    fun audioErrorAfterFinishIsStillShown() {
+        val engine = FakeEngine()
+        val speech = SpeechInput(engine)
+        speech.start("")
+        val callbacks = engine.callbacks!!
+        callbacks.onPartial("fifty")
+        speech.finish()
+        callbacks.onError(SpeechErrorCode.AUDIO)
+
+        assertEquals("fifty", speech.draft.display())
+        assertEquals(SpeechFailure.AUDIO, speech.failure)
+        assertFalse(speech.listening)
+    }
+
+    @Test
+    fun finishWithNothingHeardStillReportsNoMatch() {
+        val engine = FakeEngine()
+        val speech = SpeechInput(engine)
+        speech.start("keep me")
+        speech.finish()
+        engine.callbacks!!.onError(SpeechErrorCode.NO_MATCH)
+
+        assertEquals("keep me", speech.draft.display())
+        assertEquals(SpeechFailure.NO_MATCH, speech.failure)
+        assertFalse(speech.listening)
+    }
+
+    @Test
     fun stopKeepsThePartialAndIgnoresALateCallback() {
         val engine = FakeEngine()
         val speech = SpeechInput(engine)
@@ -175,9 +313,13 @@ class SpeechInputTest {
     }
 }
 
-private class FakeEngine(private val available: Boolean = true) : SpeechEngine {
+private class FakeEngine(
+    private val available: Boolean = true,
+    private val stopListeningSucceeds: Boolean = true,
+) : SpeechEngine {
     var callbacks: SpeechCallbacks? = null
     var starts = 0
+    var stops = 0
     var cancels = 0
 
     override fun available(): Boolean = available
@@ -185,6 +327,11 @@ private class FakeEngine(private val available: Boolean = true) : SpeechEngine {
     override fun start(callbacks: SpeechCallbacks) {
         starts++
         this.callbacks = callbacks
+    }
+
+    override fun stopListening(): Boolean {
+        stops++
+        return stopListeningSucceeds
     }
 
     override fun cancel() {

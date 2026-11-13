@@ -95,7 +95,23 @@ fun ChatScreen(
 
     var input by remember { mutableStateOf(TextFieldValue("")) }
     val speech = rememberSpeechInput()
-    val mic = rememberMicAccess { speech.start(input.text) }
+    val mic = rememberMicAccess(
+        onGranted = { speech.start(input.text) },
+        onDenied = { blocked ->
+            speech.fail(if (blocked) SpeechFailure.BLOCKED else SpeechFailure.PERMISSION)
+        },
+    )
+    // A cursor or selection change reports through the same callback as typing.
+    // Only a real edit retires dictation; the next partial still moves the caret to the end.
+    val onComposerChange: (TextFieldValue) -> Unit = { updated ->
+        val textChanged = updated.text != input.text
+        input = updated
+        if (speech.listening) {
+            if (textChanged) speech.keepTyped(updated.text)
+        } else if (speech.failure != null) {
+            speech.clearFailure()
+        }
+    }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val focusRequester = remember { FocusRequester() }
@@ -354,11 +370,7 @@ fun ChatScreen(
                         }
                         ChatComposer(
                             input = input,
-                            onInputChange = { updated ->
-                                input = updated
-                                if (speech.listening) speech.keepTyped(updated.text)
-                                else if (speech.failure != null) speech.clearFailure()
-                            },
+                            onInputChange = onComposerChange,
                             speech = speech,
                             micGranted = mic.granted,
                             micBlocked = mic.blocked,
@@ -368,7 +380,11 @@ fun ChatScreen(
                             focusRequester = focusRequester,
                             onSend = viewModel::sendMessage,
                         )
-                        Spacer(modifier = Modifier.height(Dimensions.Component.bottomBarHeight))
+                        // The bottom nav hides while the keyboard is up, so its
+                        // clearance would just leave a gap above the keyboard.
+                        if (!WindowInsets.isImeVisible) {
+                            Spacer(modifier = Modifier.height(Dimensions.Component.bottomBarHeight))
+                        }
                     }
                 }
 
@@ -528,11 +544,7 @@ fun ChatScreen(
                             QuickActionChips(enabled = !uiState.isLoading && !isConfirming, onClick = viewModel::runQuickAction)
                             ChatComposer(
                                 input = input,
-                                onInputChange = { updated ->
-                                    input = updated
-                                    if (speech.listening) speech.keepTyped(updated.text)
-                                    else if (speech.failure != null) speech.clearFailure()
-                                },
+                                onInputChange = onComposerChange,
                                 speech = speech,
                                 micGranted = mic.granted,
                                 micBlocked = mic.blocked,
@@ -609,7 +621,7 @@ private fun ChatComposer(
                 FilledTonalIconButton(
                     onClick = {
                         when {
-                            speech.listening -> speech.stop()
+                            speech.listening -> speech.finish()
                             !speech.available() -> speech.fail(SpeechFailure.UNAVAILABLE)
                             !micGranted -> {
                                 if (micBlocked) speech.fail(SpeechFailure.BLOCKED)

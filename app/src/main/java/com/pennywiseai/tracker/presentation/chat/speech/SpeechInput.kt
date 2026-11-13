@@ -12,17 +12,24 @@ class SpeechCallbacks(
     val onError: (Int) -> Unit,
 )
 
-/** On-device recognizer. [cancel] drops any callback still in flight. */
+/**
+ * On-device recognizer. [stopListening] ends capture and still delivers a final
+ * result. [cancel] drops any callback still in flight.
+ */
 interface SpeechEngine {
     fun available(): Boolean
     fun start(callbacks: SpeechCallbacks)
+
+    /** @return false when there is no live recognizer to end, or ending it threw. */
+    fun stopListening(): Boolean
     fun cancel()
 }
 
 /**
- * One dictation at a time. A newer [start], [stop] or [keepTyped] ignores callbacks
- * from the recognizer session it replaced, so a late partial cannot overwrite what
- * the user just typed.
+ * One dictation at a time. [finish] keeps the session until the recognizer's final
+ * result, so the last words are not thrown away. [start], [stop], [discard] and
+ * [keepTyped] retire the session, and a late partial cannot overwrite what the user
+ * just typed.
  */
 class SpeechInput(private val engine: SpeechEngine) {
     var draft by mutableStateOf(SpeechDraft("", ""))
@@ -39,6 +46,9 @@ class SpeechInput(private val engine: SpeechEngine) {
     private var session = 0
     private var published = ""
 
+    /** User tapped Stop and the recognizer has not answered yet. */
+    private var awaitingFinal = false
+
     fun available(): Boolean = engine.available()
 
     fun start(currentText: String) {
@@ -47,6 +57,7 @@ class SpeechInput(private val engine: SpeechEngine) {
             return
         }
         val mine = ++session
+        awaitingFinal = false
         failure = null
         draft = SpeechDraft(currentText, "")
         listening = true
@@ -61,28 +72,57 @@ class SpeechInput(private val engine: SpeechEngine) {
                     // Retire the session before applying, so a callback queued behind
                     // this result cannot append the phrase or replace the failure.
                     session++
+                    awaitingFinal = false
                     val next = if (text.isBlank()) draft.commit() else draft.withHeard(text).commit()
                     publish(next)
                     listening = false
                 },
                 onError = { code ->
                     if (session != mine) return@SpeechCallbacks
+                    val askedToStop = awaitingFinal
                     session++
+                    awaitingFinal = false
                     val kind = speechFailure(code)
                     val kept = draft.heard.isNotBlank()
                     if (kept) publish(draft.commit())
                     listening = false
                     // A timeout after we already have words is a normal end, not a failure.
-                    failure = if (kept && kind.isBenignEnd()) null else kind
+                    // stopListening() before the recognizer is ready reports CLIENT, which
+                    // is the Stop tap itself, not a failure the user needs to read.
+                    failure = when {
+                        kept && kind.isBenignEnd() -> null
+                        askedToStop && kind == SpeechFailure.UNKNOWN -> null
+                        else -> kind
+                    }
                 },
             ),
         )
     }
 
-    /** User tapped stop. Keep whatever was heard. */
+    /**
+     * User tapped Stop. Ask the recognizer to finish so audio it has not reported
+     * yet is still transcribed. A second tap gives up and keeps the last partial.
+     * The heard phrase is not folded into the base yet: the final result is the
+     * whole phrase, and committing first would append it twice.
+     */
+    fun finish() {
+        if (!listening) return
+        if (awaitingFinal) {
+            stop()
+            return
+        }
+        awaitingFinal = true
+        if (!engine.stopListening()) stop()
+    }
+
+    /**
+     * Drop the recognizer now and keep the last partial. Leaving the screen,
+     * covering the composer, and a Stop that cannot finish use this.
+     */
     fun stop() {
         if (!listening) return
         session++
+        awaitingFinal = false
         engine.cancel()
         if (draft.heard.isNotBlank()) {
             val next = draft.commit()
@@ -95,6 +135,7 @@ class SpeechInput(private val engine: SpeechEngine) {
     /** Send is taking the text. Drop the recognizer and do not write the field again. */
     fun discard() {
         session++
+        awaitingFinal = false
         engine.cancel()
         draft = SpeechDraft("", "")
         published = ""
@@ -105,6 +146,7 @@ class SpeechInput(private val engine: SpeechEngine) {
     fun keepTyped(text: String) {
         if (!listening) return
         session++
+        awaitingFinal = false
         engine.cancel()
         draft = SpeechDraft(text, "")
         listening = false
@@ -120,6 +162,7 @@ class SpeechInput(private val engine: SpeechEngine) {
 
     fun release() {
         session++
+        awaitingFinal = false
         engine.cancel()
         listening = false
     }

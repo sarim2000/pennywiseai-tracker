@@ -1,15 +1,15 @@
 package com.pennywiseai.tracker.data.preferences
 
-import com.pennywiseai.parser.core.bank.PNBBankParser
 import com.pennywiseai.parser.core.TransactionType
+import com.pennywiseai.parser.core.bank.PNBBankParser
 import com.pennywiseai.tracker.data.backup.AppPreferences
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
-import java.math.BigDecimal
-import java.time.LocalDateTime
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import org.junit.Assert.*
 import org.junit.Test
+import java.math.BigDecimal
+import java.time.LocalDateTime
 
 class BankAccountMergeStoreTest {
     private fun account(bank: String, suffix: String, currency: String = "INR", card: Boolean = false) =
@@ -62,6 +62,42 @@ class BankAccountMergeStoreTest {
             assertEquals("1000", invalidated[otherKey])
             assertEquals("000", BankAccountMergeStore.resolveSuffix("Example Bank", "INR", "000", invalidated))
         }
+    }
+
+    @Test fun `two digit merge is remembered and redirects later two digit SMS`() {
+        val short = account("Example Bank", "00")
+        val full = account("Example Bank", "1000")
+        val mappings = BankAccountMergeStore.mappingsAfterMerge(emptyMap(), short, full)
+        val key = BankAccountMergeStore.mappingKey("Example Bank", "INR", "00")
+        assertEquals(mapOf(key to "1000"), mappings)
+        assertEquals("1000", BankAccountMergeStore.resolveSuffix("Example Bank", "INR", "00", mappings))
+        assertEquals("00", BankAccountMergeStore.resolveSuffix("Another Bank", "INR", "00", mappings))
+        assertEquals("00", BankAccountMergeStore.resolveSuffix("Example Bank", "USD", "00", mappings))
+        assertEquals("10", BankAccountMergeStore.resolveSuffix("Example Bank", "INR", "10", mappings))
+        // 3-digit behaviour is unchanged alongside it.
+        val withThree = BankAccountMergeStore.mappingsAfterMerge(mappings, account("Example Bank", "000"), full)
+        assertEquals("1000", BankAccountMergeStore.resolveSuffix("Example Bank", "INR", "000", withThree))
+        assertEquals("1000", BankAccountMergeStore.resolveSuffix("Example Bank", "INR", "00", withThree))
+    }
+
+    @Test fun `two digit merge is not remembered across bank currency or non matching suffix`() {
+        val short = account("Example Bank", "00")
+        for (target in listOf(account("Another Bank", "1000"), account("Example Bank", "1000", currency = "USD"),
+            account("Example Bank", "1001"), account("Example Bank", "1000", card = true))) {
+            assertTrue(BankAccountMergeStore.mappingsAfterMerge(emptyMap(), short, target).isEmpty())
+        }
+        assertTrue(BankAccountMergeStore.mappingsAfterMerge(emptyMap(), account("Example Bank", "0"),
+            account("Example Bank", "1000")).isEmpty())
+        // Stored entries that do not end-match are ignored rather than redirected.
+        val bad = mapOf(BankAccountMergeStore.mappingKey("Example Bank", "INR", "00") to "1001")
+        assertEquals("00", BankAccountMergeStore.resolveSuffix("Example Bank", "INR", "00", bad))
+    }
+
+    @Test fun `two digit duplicate suggestion requires exactly one matching account`() {
+        val short = account("Example Bank", "00")
+        val full = account("Example Bank", "1000")
+        assertEquals(listOf(short to full), BankAccountMergeStore.duplicatePairs(listOf(short, full)))
+        assertTrue(BankAccountMergeStore.duplicatePairs(listOf(short, full, account("Example Bank", "2000"))).isEmpty())
     }
 
     @Test fun `merge mappings roundtrip in backup and older backups have no mappings`() {

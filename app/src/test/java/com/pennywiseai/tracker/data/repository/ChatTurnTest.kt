@@ -8,6 +8,7 @@ import com.pennywiseai.tracker.data.database.entity.ChatMessage
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.model.PendingChatAction
+import com.pennywiseai.tracker.data.model.SpendingComparison
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.service.PennyWiseTools
 import com.pennywiseai.tracker.domain.service.LlmEvent
@@ -26,7 +27,6 @@ import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import com.pennywiseai.tracker.data.model.SpendingComparison
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -231,6 +231,37 @@ class ChatTurnTest {
         }
         events = listOf(LlmEvent.Text("أنفقت 50 هذا الشهر"))
         assertFalse(send("coffee").contains("NOTHING_CHANGED"))
+    }
+
+    @Test
+    fun `a claim after a cancelled card is replaced by what happened`() = runTest {
+        every { context.getString(R.string.chat_line_expense, any(), any()) } answers { (args[1] as Array<*>).joinToString(" at ") }
+        every { context.getString(R.string.chat_reply_card_cancelled, any()) } answers { "No — you cancelled ${(args[1] as Array<*>)[0]}." }
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.ADD_TRANSACTIONS, mapOf("items" to listOf(mapOf("amount" to 220.0, "merchant" to "TasteHouse")))))
+        send("add 220 for lunch at TasteHouse")
+        repository.clearPendingAction()
+        events = listOf(LlmEvent.Text("Yes, I added lunch at TasteHouse for ₹220."))
+        val reply = send("did you add the lunch?")
+        assertTrue(reply, reply.startsWith("No — you cancelled ") && reply.contains("220") && reply.contains("TasteHouse"))
+        assertFalse(reply, reply.contains("Yes") || reply.contains("NOTHING_CHANGED"))
+        assertEquals(reply, saved.last().message)
+        // The live conversation holds the claim: the next turn rebuilds from the save.
+        coVerify { llmService.closeConversation() }
+    }
+
+    @Test
+    fun `a claim with no card is replaced by the note alone`() = runTest {
+        events = listOf(LlmEvent.Text("Yes, I added lunch."))
+        assertEquals("NOTHING_CHANGED", send("did you add the lunch?"))
+    }
+
+    @Test
+    fun `a claim after a confirmed card stands`() = runTest {
+        events = listOf(add(220.0))
+        send("lunch 220")
+        repository.completePendingAction("Added ₹220 at shop (Food).")
+        events = listOf(LlmEvent.Text("Yes, I added lunch for ₹220."))
+        assertEquals("Yes, I added lunch for ₹220.", send("did you add the lunch?"))
     }
 
     @Test

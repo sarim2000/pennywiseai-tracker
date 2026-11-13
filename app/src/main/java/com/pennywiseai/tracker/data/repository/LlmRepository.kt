@@ -2,37 +2,37 @@ package com.pennywiseai.tracker.data.repository
 
 import android.content.Context
 import android.util.Log
+import com.pennywiseai.shared.domain.mapping.SharedCategoryMapping
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.dao.ChatDao
 import com.pennywiseai.tracker.data.database.entity.ChatMessage
-import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.data.model.MonthSummary
-import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
-import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
-import com.pennywiseai.tracker.domain.service.LlmService
-import com.pennywiseai.shared.domain.mapping.SharedCategoryMapping
-import com.pennywiseai.tracker.data.model.ChatMessageFacts
-import com.pennywiseai.tracker.data.model.TransactionDraft
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
-import com.pennywiseai.tracker.data.model.TransactionFinder
+import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.model.ChatMessageFacts
+import com.pennywiseai.tracker.data.model.MonthSummary
 import com.pennywiseai.tracker.data.model.PendingChatAction
 import com.pennywiseai.tracker.data.model.ReviewRow
 import com.pennywiseai.tracker.data.model.SpendingComparison
+import com.pennywiseai.tracker.data.model.TransactionDraft
+import com.pennywiseai.tracker.data.model.TransactionFinder
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.service.PennyWiseTools
 import com.pennywiseai.tracker.domain.service.LlmEvent
-import com.pennywiseai.tracker.domain.service.isContextFull
+import com.pennywiseai.tracker.domain.service.LlmService
 import com.pennywiseai.tracker.domain.service.TOOL_CALL_PARSE_FAILURE
+import com.pennywiseai.tracker.domain.service.isContextFull
+import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.utils.TokenUtils
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
-import com.pennywiseai.tracker.utils.CurrencyFormatter
-import com.pennywiseai.tracker.utils.TokenUtils
-import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
-import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import java.math.BigDecimal
@@ -67,6 +67,10 @@ class LlmRepository @Inject constructor(
     // No amount or merchant in it: told "Added ₹90 at Tea Stall", Qwen2.5 records that again.
     private var cardOutcome: String? = null
 
+    // The last card the user answered: what it showed, and whether it was saved. Checked against
+    // a reply that claims a change, so "did you add it?" after a cancel gets the facts (#1083).
+    private var lastCard: Pair<String, Boolean>? = null
+
     // One build of the live conversation at a time: the warm-up on open and a send can race.
     private val conversationLock = Mutex()
 
@@ -90,12 +94,16 @@ class LlmRepository @Inject constructor(
 
     /** The card was cancelled, left or superseded: nothing changed, and the model hears that. */
     fun clearPendingAction() {
-        if (_pendingAction.value != null) cardOutcome = "The user cancelled the last card. Nothing was changed."
+        _pendingAction.value?.let {
+            cardOutcome = "The user cancelled the last card. Nothing was changed."
+            lastCard = describe(it) to false
+        }
         _pendingAction.value = null
     }
 
     /** The user's tap went through: [line] (e.g. "Added ₹120 at Starbucks") joins the chat. */
     suspend fun completePendingAction(line: String) {
+        lastCard = line to true
         _pendingAction.value = null
         cardOutcome = "The user confirmed the last card. It is saved."
         // The save already happened. A lost line must not read as a failed save worth repeating.
@@ -157,42 +165,44 @@ class LlmRepository @Inject constructor(
         var conversationBroken = false
         var shownUpTo = 0
         var retried = false
-        while (true) try {
-        llmService.sendMessageEvents(prompt)
-            .catch { e ->
-                if (e.message?.contains(TOOL_CALL_PARSE_FAILURE, ignoreCase = true) != true) throw e
-                Log.w(TAG, "The model wrote a tool call that doesn't parse")
-                conversationBroken = true
-                TransactionDraft.itemsInBrokenCall(e.message.orEmpty())?.let { toolCalls.add(addCall(it)) } ?: run { unreadableToolCall = true }
-            }
-            .collect { event ->
-                when (event) {
-                    is LlmEvent.Text -> {
-                        // The model can open with bare newlines before a tool call: no empty lines on top.
-                        val text = if (responseBuilder.isEmpty()) event.delta.trimStart() else event.delta
-                        if (text.isNotEmpty()) {
-                            responseBuilder.append(text)
-                            // A tool call the runtime didn't catch: never show its JSON, or the start of its tag.
-                            val written = responseBuilder.toString()
-                            if (!written.startsWith(TOOL_CALL_TAG) && !TOOL_CALL_TAG.startsWith(written)) {
-                                emit(written.substring(shownUpTo))
-                                shownUpTo = written.length
+        while (true) {
+            try {
+                llmService.sendMessageEvents(prompt)
+                    .catch { e ->
+                        if (e.message?.contains(TOOL_CALL_PARSE_FAILURE, ignoreCase = true) != true) throw e
+                        Log.w(TAG, "The model wrote a tool call that doesn't parse")
+                        conversationBroken = true
+                        TransactionDraft.itemsInBrokenCall(e.message.orEmpty())?.let { toolCalls.add(addCall(it)) } ?: run { unreadableToolCall = true }
+                    }
+                    .collect { event ->
+                        when (event) {
+                            is LlmEvent.Text -> {
+                                // The model can open with bare newlines before a tool call: no empty lines on top.
+                                val text = if (responseBuilder.isEmpty()) event.delta.trimStart() else event.delta
+                                if (text.isNotEmpty()) {
+                                    responseBuilder.append(text)
+                                    // A tool call the runtime didn't catch: never show its JSON, or the start of its tag.
+                                    val written = responseBuilder.toString()
+                                    if (!written.startsWith(TOOL_CALL_TAG) && !TOOL_CALL_TAG.startsWith(written)) {
+                                        emit(written.substring(shownUpTo))
+                                        shownUpTo = written.length
+                                    }
+                                }
                             }
+                            is LlmEvent.ToolCall -> toolCalls.add(event)
                         }
                     }
-                    is LlmEvent.ToolCall -> toolCalls.add(event)
-                }
+                break
+            } catch (e: Exception) {
+                // The history plus this message overflowed the model's window before it said
+                // anything: drop the older half of what it sees, once, and ask again.
+                if (retried || e is CancellationException || !e.isContextFull() ||
+                    responseBuilder.isNotEmpty() || toolCalls.isNotEmpty()
+                ) throw e
+                retried = true
+                Log.w(TAG, "Context window full; retrying with the older turns dropped")
+                ensureConversation(pending = userChatMessage, incoming = prompt, shrink = true)
             }
-            break
-        } catch (e: Exception) {
-            // The history plus this message overflowed the model's window before it said
-            // anything: drop the older half of what it sees, once, and ask again.
-            if (retried || e is CancellationException || !e.isContextFull() ||
-                responseBuilder.isNotEmpty() || toolCalls.isNotEmpty()
-            ) throw e
-            retried = true
-            Log.w(TAG, "Context window full; retrying with the older turns dropped")
-            ensureConversation(pending = userChatMessage, incoming = prompt, shrink = true)
         }
         // A broken wrapper can also come through as plain text. It's no reply, so it isn't saved as one.
         val written = responseBuilder.toString()
@@ -234,13 +244,19 @@ class LlmRepository @Inject constructor(
             }
         }
         if (skippedCards > 0) addLine(context.getString(R.string.chat_reply_one_card_at_a_time))
+        // A small model sometimes narrates a change instead of calling the tool. Unless the last
+        // card was saved, nothing happened: the facts replace the claim, or the user reads
+        // "Yes, I added it" above the correction and walks away believing it (#1083).
+        val card = lastCard
+        if (toolCalls.isEmpty() && card?.second != true && CLAIMS_A_CHANGE.containsMatchIn(responseBuilder)) {
+            responseBuilder.clear()
+            emit(RESET_REPLY)
+            // The live conversation still holds the claim; the next turn rebuilds from the save.
+            conversationBroken = true
+            addLine(card?.let { context.getString(R.string.chat_reply_card_cancelled, it.first) } ?: context.getString(R.string.chat_reply_nothing_changed))
+        }
         // Its state after a failed turn is unknown; the next message rebuilds it from the saved chat.
         if (conversationBroken) llmService.closeConversation()
-        // A small model sometimes narrates a change instead of calling the tool.
-        // Nothing happened — say so, or the user walks away believing it did.
-        if (toolCalls.isEmpty() && CLAIMS_A_CHANGE.containsMatchIn(responseBuilder)) {
-            addLine(context.getString(R.string.chat_reply_nothing_changed))
-        }
         // Last, so the check above doesn't take this line's "Nothing was changed" for a claim.
         // Also when the model said nothing at all, rather than leaving an empty bubble.
         if (unreadableToolCall || responseBuilder.isBlank()) addLine(context.getString(R.string.chat_reply_unreadable))
@@ -366,6 +382,7 @@ class LlmRepository @Inject constructor(
             llmService.closeConversation()
             chatDao.deleteMessagesBefore(asked)
             cardOutcome = null
+            lastCard = null
             droppedIds.clear()
             replayedIds = emptySet()
             _contextTokens.value = 0
@@ -524,7 +541,7 @@ class LlmRepository @Inject constructor(
         // A day the user stated beats the model's reading of it.
         val dayStated = ChatMessageFacts.statesADay(userMessage)
         val daysAgo = if (dayStated) ChatMessageFacts.daysAgo(userMessage, args.arg("daysAgo"))
-            else (args.arg("daysAgo") as? Number)?.toInt()?.takeIf { it >= 0 }
+        else (args.arg("daysAgo") as? Number)?.toInt()?.takeIf { it >= 0 }
         val now = java.time.LocalDateTime.now()
         val recent = transactionRepository.getTransactionsBetweenDates(now.minusDays(30), now).first()
         return TransactionFinder.findWithFallback(recent, words, amount, daysAgo, dayStated = dayStated)
@@ -580,7 +597,7 @@ class LlmRepository @Inject constructor(
         val now = range(result.current)
         val before = range(result.previous)
         if (rows.isEmpty()) return if (category == null) context.getString(R.string.chat_reply_compare_nothing, now, before)
-            else context.getString(R.string.chat_reply_compare_nothing_category, category, now, before)
+        else context.getString(R.string.chat_reply_compare_nothing_category, category, now, before)
         val money = { amount: BigDecimal, currency: String -> CurrencyFormatter.formatCurrency(amount, currency, maskIfHidden = false) }
         return buildList {
             add(
@@ -599,6 +616,13 @@ class LlmRepository @Inject constructor(
                 add(if (change == null) pair else "$pair ($change)")
             }
         }.joinToString("\n")
+    }
+
+    /** What a card showed, each amount in its own currency. */
+    private fun describe(card: PendingChatAction): String = when (card) {
+        is PendingChatAction.Add -> card.rows.joinToString(", ") { amountLine(it.draft.amount, it.draft.currency, it.draft.type, it.draft.merchant) }
+        is PendingChatAction.Delete -> describe(card.transaction)
+        is PendingChatAction.Update -> describe(card.transaction)
     }
 
     /** An existing row is shown in ITS currency, never relabelled with the base one. */
@@ -686,9 +710,8 @@ class LlmRepository @Inject constructor(
             Every amount the user states is its own transaction: never add amounts together and never merge items.
             Money received, such as salary, is a transaction too: call addTransactions, don't just acknowledge it.
             Leave account empty unless the user names a bank, card or cash in this message.
-            """.trimIndent()
+        """.trimIndent()
 
-        /** The newer half of [history], from a user turn so the model never starts mid-exchange. */
         /**
          * Marks a quick-action question and reply. They stay out of the model's window: replayed,
          * they made Qwen2.5 copy their figures as the answer to the next question ("what about last
@@ -697,6 +720,7 @@ class LlmRepository @Inject constructor(
          */
         internal const val QUICK_ID = "quick-"
 
+        /** The newer half of [history], from a user turn so the model never starts mid-exchange. */
         internal fun dropOlderHalf(history: List<ChatMessage>): List<ChatMessage> =
             history.drop((history.size + 1) / 2).dropWhile { !it.isUser }
 

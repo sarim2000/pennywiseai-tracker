@@ -868,6 +868,61 @@ open class AccountBalanceRepository @Inject constructor(
         accountBalanceDao.deleteTransactionDerivedBalances()
 
     /**
+     * Before an edit is written: pin the OPENING anchor of every manual account
+     * (own account and both transfer legs) of each version, from the PRE-update
+     * snapshot. Pinned after the update, an opening would absorb the edit and the
+     * balance would never move (#913). No-op for SMS accounts.
+     */
+    suspend fun pinManualOpenings(vararg transactions: TransactionEntity?) {
+        for (t in transactions.filterNotNull()) {
+            for ((bank, acct) in listOf(
+                t.bankName to t.accountNumber,
+                t.fromBankName to t.fromAccount,
+                t.toBankName to t.toAccount
+            )) {
+                if (bank != null && acct != null) ensureManualOpening(bank, acct)
+            }
+        }
+    }
+
+    /**
+     * After an edit replacing [original] with [updated] is written (call
+     * [pinManualOpenings] before the write): shift SMS-account balances for any
+     * type/amount/account/transfer-leg change (#636), then re-derive the own
+     * manual account(s), whose balance [applyTransactionBalanceShift] skips.
+     */
+    suspend fun reflectTransactionEdit(original: TransactionEntity?, updated: TransactionEntity) {
+        val oldBank = original?.bankName
+        val oldAccount = original?.accountNumber
+        val newBank = updated.bankName
+        val newAccount = updated.accountNumber
+        val accountChanged = oldBank != newBank || oldAccount != newAccount
+        val balanceRelevantChange = original != null && (
+            accountChanged ||
+                original.transactionType != updated.transactionType ||
+                original.amount.compareTo(updated.amount) != 0 ||
+                original.fromBankName != updated.fromBankName ||
+                original.toBankName != updated.toBankName ||
+                original.fromAccount != updated.fromAccount ||
+                original.toAccount != updated.toAccount
+            )
+        // A merchant/category-only edit moves no balance; skipping the recompute keeps a
+        // batch rule run from re-summing an account once per row.
+        if (original != null && !balanceRelevantChange &&
+            original.currency == updated.currency &&
+            original.isDeleted == updated.isDeleted &&
+            original.dateTime == updated.dateTime &&
+            original.transferPairId == updated.transferPairId
+        ) {
+            return
+        }
+        if (balanceRelevantChange) applyTransactionBalanceShift(original, updated)
+        // Also covers amount/date edits on an unchanged manual account.
+        if (newBank != null && newAccount != null) recomputeManualBalance(newBank, newAccount)
+        if (accountChanged && oldBank != null && oldAccount != null) recomputeManualBalance(oldBank, oldAccount)
+    }
+
+    /**
      * Ensures a manual account has an OPENING anchor, deriving it once so the
      * currently-displayed balance is preserved: opening = currentBalance − Σtxns.
      * No-op if an anchor already exists or the account has no balance row yet.

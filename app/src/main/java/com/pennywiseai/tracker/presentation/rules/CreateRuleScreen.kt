@@ -4,28 +4,28 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import com.pennywiseai.tracker.ui.effects.overScrollVertical
-import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.stringResource
-import com.pennywiseai.tracker.R
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.domain.model.rule.*
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.Spacing
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
-import com.pennywiseai.tracker.ui.theme.Spacing
 import java.util.UUID
-import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 /**
  * Transaction-type options for rule condition/action pickers: stored enum name → display label.
@@ -258,10 +258,10 @@ fun CreateRuleScreen(
                             }
                         },
                         enabled = ruleName.isNotBlank() &&
-                                 conditions.isNotEmpty() &&
-                                 conditions.all { it.validate() } &&
-                                 actions.isNotEmpty() &&
-                                 actions.all { it.validate() },
+                            conditions.isNotEmpty() &&
+                            conditions.all { it.validate() } &&
+                            actions.isNotEmpty() &&
+                            actions.all { it.validate() },
                         shapes = ButtonDefaults.shapes()
                     ) {
                         Text(stringResource(R.string.rules_save))
@@ -533,6 +533,7 @@ fun CreateRuleScreen(
                                 // Per-action editor
                                 ActionEditor(
                                     action = action,
+                                    allAccounts = allAccounts,
                                     onActionChange = { updated ->
                                         // BLOCK is terminal — it drops the transaction, so the other
                                         // actions can't run. If the user switches to BLOCK while other
@@ -553,10 +554,10 @@ fun CreateRuleScreen(
 
             // Preview
             val showPreview = ruleName.isNotBlank() &&
-                             conditions.isNotEmpty() &&
-                             conditions.all { it.validate() } &&
-                             actions.isNotEmpty() &&
-                             actions.all { it.validate() }
+                conditions.isNotEmpty() &&
+                conditions.all { it.validate() } &&
+                actions.isNotEmpty() &&
+                actions.all { it.validate() }
             if (showPreview) {
                 Card(
                     colors = CardDefaults.cardColors(
@@ -591,6 +592,8 @@ fun CreateRuleScreen(
                                             TransactionField.TRANSACTION_DATE -> R.string.rules_preview_field_date
                                             TransactionField.ACCOUNT -> R.string.rules_preview_field_account
                                             TransactionField.TAGS -> R.string.rules_preview_field_tags
+                                            TransactionField.TRANSFER_FROM_ACCOUNT -> R.string.rules_preview_field_transfer_from_account
+                                            TransactionField.TRANSFER_TO_ACCOUNT -> R.string.rules_preview_field_transfer_to_account
                                         }
                                     )
                                     val operatorText = stringResource(
@@ -599,16 +602,16 @@ fun CreateRuleScreen(
                                             condition.field == TransactionField.AMOUNT && condition.operator == ConditionOperator.LESS_THAN -> R.string.rules_preview_op_less_than
                                             condition.field == TransactionField.AMOUNT && condition.operator == ConditionOperator.GREATER_THAN -> R.string.rules_preview_op_greater_than
                                             else -> when (condition.operator) {
-                                            ConditionOperator.LESS_THAN -> R.string.rules_preview_op_before
-                                            ConditionOperator.GREATER_THAN -> R.string.rules_preview_op_after
-                                            ConditionOperator.LESS_THAN_OR_EQUAL -> R.string.rules_preview_op_at_or_before
-                                            ConditionOperator.GREATER_THAN_OR_EQUAL -> R.string.rules_preview_op_at_or_after
-                                            ConditionOperator.EQUALS -> R.string.rules_preview_op_is
-                                            ConditionOperator.CONTAINS -> R.string.rules_preview_op_contains
-                                            ConditionOperator.STARTS_WITH -> R.string.rules_preview_op_starts_with
-                                            ConditionOperator.IN -> R.string.rules_preview_op_is_any_of
-                                            ConditionOperator.NOT_EQUALS -> R.string.rules_preview_op_is_not
-                                            else -> R.string.rules_preview_op_matches
+                                                ConditionOperator.LESS_THAN -> R.string.rules_preview_op_before
+                                                ConditionOperator.GREATER_THAN -> R.string.rules_preview_op_after
+                                                ConditionOperator.LESS_THAN_OR_EQUAL -> R.string.rules_preview_op_at_or_before
+                                                ConditionOperator.GREATER_THAN_OR_EQUAL -> R.string.rules_preview_op_at_or_after
+                                                ConditionOperator.EQUALS -> R.string.rules_preview_op_is
+                                                ConditionOperator.CONTAINS -> R.string.rules_preview_op_contains
+                                                ConditionOperator.STARTS_WITH -> R.string.rules_preview_op_starts_with
+                                                ConditionOperator.IN -> R.string.rules_preview_op_is_any_of
+                                                ConditionOperator.NOT_EQUALS -> R.string.rules_preview_op_is_not
+                                                else -> R.string.rules_preview_op_matches
                                             }
                                         }
                                     )
@@ -649,6 +652,8 @@ fun CreateRuleScreen(
                                                 TransactionField.TYPE -> R.string.rules_preview_field_type
                                                 TransactionField.NARRATION -> R.string.rules_preview_field_description
                                                 TransactionField.BANK_NAME -> R.string.rules_preview_field_account
+                                                TransactionField.TRANSFER_FROM_ACCOUNT -> R.string.rules_preview_field_transfer_from_account
+                                                TransactionField.TRANSFER_TO_ACCOUNT -> R.string.rules_preview_field_transfer_to_account
                                                 else -> R.string.rules_preview_field_generic
                                             }
                                         )
@@ -657,6 +662,12 @@ fun CreateRuleScreen(
                                             ruleTransactionTypeLabel(action.value)
                                         } else if (action.field == TransactionField.CATEGORY) {
                                             categoryLabel(action.value)
+                                        } else if (action.field == TransactionField.TRANSFER_FROM_ACCOUNT ||
+                                            action.field == TransactionField.TRANSFER_TO_ACCOUNT
+                                        ) {
+                                            parseRuleAccountKey(action.value)
+                                                ?.let { (bank, last4) -> AccountBalanceEntity.accountLabel(bank, last4) }
+                                                ?: action.value
                                         } else {
                                             action.value
                                         }

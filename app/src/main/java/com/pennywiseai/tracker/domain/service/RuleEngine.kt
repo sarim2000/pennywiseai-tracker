@@ -3,11 +3,11 @@ package com.pennywiseai.tracker.domain.service
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.domain.model.rule.*
+import com.pennywiseai.tracker.utils.toLatinDigits
 import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import kotlinx.serialization.json.Json
 import java.math.BigDecimal
-import com.pennywiseai.tracker.utils.toLatinDigits
 import java.time.LocalDateTime
 import java.util.Locale
 import java.util.UUID
@@ -208,6 +208,10 @@ class RuleEngine @Inject constructor() {
             }
             // Tags aren't on the entity; the engine can't see them.
             TransactionField.TAGS -> ""
+            TransactionField.TRANSFER_FROM_ACCOUNT ->
+                transaction.fromAccount?.let { "${transaction.fromBankName.orEmpty()}||$it" } ?: ""
+            TransactionField.TRANSFER_TO_ACCOUNT ->
+                transaction.toAccount?.let { "${transaction.toBankName.orEmpty()}||$it" } ?: ""
         }
     }
 
@@ -226,7 +230,9 @@ class RuleEngine @Inject constructor() {
         var modifiedTransaction = transaction
         val modifications = mutableListOf<FieldModification>()
 
-        for (action in actions) {
+        // A transfer-leg action only applies to a transfer, so let a TYPE action in
+        // the same rule land first regardless of the order the user listed them.
+        for (action in actions.sortedBy { it.field != TransactionField.TYPE }) {
             // Skip BLOCK actions as they don't modify the transaction
             if (action.actionType == ActionType.BLOCK) {
                 continue
@@ -319,6 +325,22 @@ class RuleEngine @Inject constructor() {
                     else -> transaction.bankName ?: ""
                 }
                 transaction.copy(bankName = newValue.takeIf { it.isNotBlank() }) to newValue
+            }
+            TransactionField.TRANSFER_FROM_ACCOUNT,
+            TransactionField.TRANSFER_TO_ACCOUNT -> {
+                val account = parseRuleAccountKey(action.value)
+                if (action.actionType != ActionType.SET || account == null ||
+                    transaction.transactionType != TransactionType.TRANSFER
+                ) {
+                    return transaction to getFieldValue(transaction, null, action.field)
+                }
+                val (bank, last4) = account
+                val updated = if (action.field == TransactionField.TRANSFER_TO_ACCOUNT) {
+                    transaction.copy(toAccount = last4, toBankName = bank)
+                } else {
+                    transaction.copy(fromAccount = last4, fromBankName = bank)
+                }
+                updated to action.value
             }
             else -> transaction to getFieldValue(transaction, null, action.field)
         }

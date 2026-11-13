@@ -1,42 +1,39 @@
 package com.pennywiseai.tracker.data.manager
 
-import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
-
 import android.content.Context
 import android.util.Log
-import com.pennywiseai.tracker.domain.spending.MoneyAlertRules
-import com.pennywiseai.tracker.worker.MoneyAlertWorker
-import com.pennywiseai.tracker.worker.MoneyAlertNotifications
-import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.bank.BankParserFactory
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
-import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.CardType
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.mapper.toEntity
 import com.pennywiseai.tracker.data.mapper.toEntityType
-import com.pennywiseai.tracker.utils.BalanceCalculator
+import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CardRepository
-import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
-import com.pennywiseai.tracker.data.repository.mappingFits
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.data.repository.mappingFits
 import com.pennywiseai.tracker.domain.model.rule.tagChanges
 import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.domain.service.RuleEngine
+import com.pennywiseai.tracker.domain.spending.MoneyAlertRules
+import com.pennywiseai.tracker.receiver.BankNotificationConfig
+import com.pennywiseai.tracker.utils.BalanceCalculator
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.sync.withLock
 import java.math.BigDecimal
 import java.time.Instant
-import com.pennywiseai.tracker.receiver.BankNotificationConfig
-import kotlinx.coroutines.sync.withLock
 import java.time.LocalDateTime
 import java.time.ZoneId
-import dagger.hilt.android.qualifiers.ApplicationContext
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -58,7 +55,8 @@ class SmsTransactionProcessor @Inject constructor(
     private val ruleEngine: RuleEngine,
     private val tagRepository: TagRepository,
     private val ignoredAccountsStore: IgnoredAccountsStore,
-    private val database: PennyWiseDatabase
+    private val database: PennyWiseDatabase,
+    private val moneyAlerts: MoneyAlerts
 ) {
     private val bankAccountMerges = BankAccountMergeStore(appContext)
     companion object {
@@ -301,7 +299,7 @@ class SmsTransactionProcessor @Inject constructor(
                 // Trigger widget refresh for the transaction-derived widgets
                 com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(appContext)
                 // Every live path saves here (SMS, bank notifications, their retries); the inbox scan doesn't.
-                MoneyAlertWorker.enqueue(appContext)
+                moneyAlerts.onTransactionSaved()
 
                 return ProcessingResult(
                     true,
@@ -382,9 +380,9 @@ class SmsTransactionProcessor @Inject constructor(
 
         if (targetAccountLast4 != null) {
             val isCreditCard = (parsedTransaction.type.toEntityType() == TransactionType.CREDIT) ||
-                    parsedTransaction.accountLast4?.let {
-                        cardRepository.getCard(parsedTransaction.bankName, it)?.cardType
-                    } == CardType.CREDIT
+                parsedTransaction.accountLast4?.let {
+                    cardRepository.getCard(parsedTransaction.bankName, it)?.cardType
+                } == CardType.CREDIT
 
             val existingAccount = accountBalanceRepository.getLatestBalance(
                 parsedTransaction.bankName,
@@ -505,7 +503,7 @@ class SmsTransactionProcessor @Inject constructor(
         if (latest != null && saved.timestamp.isBefore(latest.timestamp)) return
         if (!MoneyAlertRules.crossedLowBalance(before, saved.balance, saved.lowBalanceThreshold)) return
         // Apart from the save: a notification that fails mustn't report the SMS as failed.
-        runCatching { MoneyAlertNotifications.showLowBalance(appContext, saved) }
+        runCatching { moneyAlerts.showLowBalance(saved) }
             .onFailure { Log.e(TAG, "Low-balance alert failed", it) }
     }
 }

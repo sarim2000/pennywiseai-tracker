@@ -18,11 +18,12 @@ import java.math.BigDecimal
 object LoanMath {
     /**
      * True when a [type] row adds to a [direction] loan's principal; any other linked row repays it.
-     * The row that opened the loan ([isOriginal]) is always principal: a transfer has no money
-     * direction, so a borrowed one would otherwise repay itself (#1043).
+     * A TRANSFER that opened the loan ([isOriginal]) is principal: a transfer has no money
+     * direction, so a borrowed one would otherwise repay itself (#1043). Income and expense
+     * keep their own direction, so a back-dated repayment can't become the "original".
      */
     fun isPrincipal(direction: LoanDirection, type: TransactionType, isOriginal: Boolean): Boolean =
-        isOriginal || (type == TransactionType.INCOME) == (direction == LoanDirection.BORROWED)
+        (isOriginal && type == TransactionType.TRANSFER) || (type == TransactionType.INCOME) == (direction == LoanDirection.BORROWED)
 
     /** What [linked] adds to a [direction] loan's principal; [originalId] is the row that opened it. */
     fun principal(direction: LoanDirection, linked: List<TransactionEntity>, originalId: Long?): BigDecimal =

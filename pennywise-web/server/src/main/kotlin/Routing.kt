@@ -63,7 +63,9 @@ fun Application.configureRouting() {
             // Orange Money (Jordan) — the web tester advertises its samples.
             OrangeMoneyJordanParser(),
             // Mobily Pay (Saudi Arabia, #1134)
-            MobilyPayParser()
+            MobilyPayParser(),
+            // Barq wallet (Saudi Arabia, #1135).
+            BarqParser()
         )
     )
 

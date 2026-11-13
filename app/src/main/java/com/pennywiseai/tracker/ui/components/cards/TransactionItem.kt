@@ -37,6 +37,8 @@ import java.time.format.DateTimeFormatter
 fun TransactionItem(
     transaction: TransactionEntity,
     convertedAmount: BigDecimal? = null,
+    /** The part of a split row shown in a category-filtered list (#1192); shown instead of its amount. */
+    splitShare: BigDecimal? = null,
     displayCurrency: String? = null,
     showDate: Boolean = true,
     showTypeLabel: Boolean = true,
@@ -87,8 +89,10 @@ fun TransactionItem(
 
     val resources = LocalContext.current.resources
     val categoryText = categoryLabel(transaction.category)
-    val subtitle = remember(transaction, categoryText, dateTimeText, isEffectivelyBusiness, AmountPrivacy.hidden) {
+    val subtitle = remember(transaction, splitShare, categoryText, dateTimeText, isEffectivelyBusiness, AmountPrivacy.hidden) {
         buildList {
+            // First, so a long description can't truncate it out of the one-line subtitle.
+            if (splitShare != null) add(resources.getString(R.string.txn_item_tag_split_of, transaction.formatAmount()))
             if (description != null) add(CurrencyFormatter.maskAmountsIn(description))
             add(dateTimeText)
             if (transaction.category.isNotBlank() &&
@@ -128,10 +132,12 @@ fun TransactionItem(
         }
     }
 
+    val nativeAmount = splitShare?.let { CurrencyFormatter.formatCurrency(it, transaction.currency) }
+        ?: transaction.formatAmount()
     val formattedAmount = if (convertedAmount != null && displayCurrency != null) {
         CurrencyFormatter.formatCurrency(convertedAmount, displayCurrency)
     } else {
-        transaction.formatAmount()
+        nativeAmount
     }
 
     val sharedTransitionScope = LocalSharedTransitionScope.current
@@ -191,7 +197,7 @@ fun TransactionItem(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "(${transaction.formatAmount()})",
+                        text = "($nativeAmount)",
                         style = PennyWiseText.amountSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,

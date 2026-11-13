@@ -4,10 +4,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.unit.TextUnit
-import androidx.compose.ui.unit.sp
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.TextUnit
+import androidx.compose.ui.unit.sp
 
 private const val TABULAR = "tnum"
 
@@ -134,6 +134,18 @@ object PennyWiseText {
     val fieldLabel: TextStyle
         @Composable @ReadOnlyComposable
         get() = MaterialTheme.typography.labelMedium
+
+    /**
+     * One or two characters drawn inside a control, such as the language on a mic.
+     * [labelSmall] is the floor of the type scale. The line height matches the
+     * font size so the mark sits under the glyph instead of overflowing the control.
+     */
+    val compactBadge: TextStyle
+        @Composable @ReadOnlyComposable
+        get() = MaterialTheme.typography.labelSmall.copy(
+            fontWeight = FontWeight.Bold,
+            lineHeight = MaterialTheme.typography.labelSmall.fontSize,
+        )
 
     /**
      * Axis ticks, value labels and legends drawn *inside* a chart.

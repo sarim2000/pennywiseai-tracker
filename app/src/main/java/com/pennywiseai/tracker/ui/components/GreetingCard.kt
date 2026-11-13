@@ -11,14 +11,12 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -52,7 +50,7 @@ import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
-import com.pennywiseai.tracker.presentation.chat.speech.SpeechLanguageMark
+import com.pennywiseai.tracker.presentation.chat.speech.SpeechMicGlyph
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.yellow_dark
@@ -260,19 +258,10 @@ fun GreetingCard(
                     .semantics { contentDescription = voiceDescription },
                 contentAlignment = Alignment.Center,
             ) {
-                Icon(
-                    imageVector = Icons.Default.Mic,
-                    contentDescription = null,
+                SpeechMicGlyph(
+                    languageTag = voiceLanguageTag,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.offset(y = if (voiceLanguageTag.isBlank()) 0.dp else (-4).dp),
                 )
-                if (voiceLanguageTag.isNotBlank()) {
-                    SpeechLanguageMark(
-                        tag = voiceLanguageTag,
-                        color = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.align(Alignment.BottomCenter),
-                    )
-                }
             }
         }
 

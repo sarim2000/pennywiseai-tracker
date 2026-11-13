@@ -29,6 +29,7 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.TextFieldValue
@@ -606,7 +607,7 @@ private fun ChatComposer(
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surface,
-        tonalElevation = 3.dp,
+        tonalElevation = Dimensions.Elevation.bottomBar,
     ) {
         Column {
             val voiceFailure = speech.failure
@@ -624,7 +625,9 @@ private fun ChatComposer(
                         .padding(horizontal = Dimensions.Padding.content)
                         .then(
                             if (voiceFailure.opensSettings) {
-                                Modifier.clickable { context.openSpeechFailureSettings(voiceFailure) }
+                                Modifier.clickable(role = Role.Button) {
+                                    context.openSpeechFailureSettings(voiceFailure)
+                                }
                             } else {
                                 Modifier
                             },
@@ -704,7 +707,7 @@ private fun ChatComposer(
                     },
                     enabled = canSend && !sendBusy &&
                         textToSend(input.text, speech.draft.display(), speech.listening).isNotBlank(),
-                    modifier = Modifier.size(48.dp),
+                    modifier = Modifier.size(Dimensions.Component.minTouchTarget),
                     shapes = IconButtonDefaults.shapes(),
                 ) {
                     if (sendBusy) {

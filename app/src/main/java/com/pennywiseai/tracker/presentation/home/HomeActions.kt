@@ -11,7 +11,6 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.*
@@ -29,10 +28,9 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
-import com.pennywiseai.tracker.presentation.chat.speech.SpeechLanguageMark
+import com.pennywiseai.tracker.presentation.chat.speech.SpeechMicGlyph
 import com.pennywiseai.tracker.ui.components.ProfileFilterDropdown
 import com.pennywiseai.tracker.ui.components.profileFilterIcon
 import com.pennywiseai.tracker.ui.components.spotlightTarget
@@ -99,21 +97,10 @@ internal fun HomeTopBarActions(
                     .semantics { contentDescription = voiceDescription },
                 contentAlignment = Alignment.Center
             ) {
-                Icon(
-                    imageVector = Icons.Default.Mic,
-                    contentDescription = null,
+                SpeechMicGlyph(
+                    languageTag = voiceLanguageTag,
                     tint = MaterialTheme.colorScheme.inverseSurface,
-                    modifier = Modifier
-                        .size(Dimensions.Icon.medium)
-                        .offset(y = if (voiceLanguageTag.isBlank()) 0.dp else (-3).dp),
                 )
-                if (voiceLanguageTag.isNotBlank()) {
-                    SpeechLanguageMark(
-                        tag = voiceLanguageTag,
-                        color = MaterialTheme.colorScheme.inverseSurface,
-                        modifier = Modifier.align(Alignment.BottomCenter),
-                    )
-                }
             }
         }
         // Subtle Pro discovery chip — yellow sparkle that ties

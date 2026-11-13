@@ -5,16 +5,20 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.selectable
+import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Stop
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -43,15 +47,16 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import kotlinx.coroutines.delay
 import java.util.Locale
@@ -140,7 +145,9 @@ fun SpeechLanguageSheet(
         ) {
             Text(
                 text = stringResource(R.string.chat_voice_language_title),
-                modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                modifier = Modifier
+                    .padding(horizontal = Dimensions.Padding.content)
+                    .semantics { heading() },
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold,
             )
@@ -161,32 +168,38 @@ fun SpeechLanguageSheet(
                         .align(Alignment.CenterHorizontally),
                 )
             } else if (languages.menu.ready.isNotEmpty()) {
-                SectionLabel(
-                    stringResource(
+                SectionHeaderV2(
+                    title = stringResource(
                         if (languages.known) {
                             R.string.chat_voice_language_ready
                         } else {
                             R.string.chat_voice_language_yours
                         },
                     ),
+                    modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                 )
-                languages.menu.ready.forEach { choice ->
-                    val native = speechLanguageName(choice.tag)
-                    val collision = languages.menu.ready.count {
-                        speechLanguageName(it.tag).equals(native, ignoreCase = true)
-                    } > 1
-                    ReadyRow(
-                        choice,
-                        selected = choice.tag == languages.menu.selected,
-                        detail = if (collision) speechPackDetail(choice.tag) else null,
-                    ) {
-                        languages.select(choice.tag)
-                        onDismiss()
+                Column(Modifier.selectableGroup()) {
+                    languages.menu.ready.forEach { choice ->
+                        val native = speechLanguageName(choice.tag)
+                        val collision = languages.menu.ready.count {
+                            speechLanguageName(it.tag).equals(native, ignoreCase = true)
+                        } > 1
+                        ReadyRow(
+                            choice,
+                            selected = choice.tag == languages.menu.selected,
+                            detail = if (collision) speechPackDetail(choice.tag) else null,
+                        ) {
+                            languages.select(choice.tag)
+                            onDismiss()
+                        }
                     }
                 }
             }
             if (languages.settled && languages.menu.suggestions.isNotEmpty()) {
-                SectionLabel(stringResource(R.string.chat_voice_language_suggest))
+                SectionHeaderV2(
+                    title = stringResource(R.string.chat_voice_language_suggest),
+                    modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                )
                 languages.menu.suggestions.forEach { choice ->
                     DownloadRow(languages, choice)
                 }
@@ -195,6 +208,7 @@ fun SpeechLanguageSheet(
                 TextButton(
                     onClick = { showCatalog = !showCatalog },
                     modifier = Modifier.padding(horizontal = Spacing.sm),
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(
                         stringResource(
@@ -240,25 +254,13 @@ fun SpeechLanguageSheet(
                 TextButton(
                     onClick = { context.openSpeechFailureSettings(SpeechFailure.LANGUAGE) },
                     modifier = Modifier.padding(horizontal = Spacing.sm),
+                    shapes = ButtonDefaults.shapes(),
                 ) {
                     Text(stringResource(R.string.chat_voice_language_settings))
                 }
             }
         }
     }
-}
-
-@Composable
-private fun SectionLabel(text: String) {
-    Text(
-        text = text,
-        modifier = Modifier.padding(
-            horizontal = Dimensions.Padding.content,
-            vertical = Spacing.xs,
-        ),
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.primary,
-    )
 }
 
 @Composable
@@ -271,14 +273,14 @@ private fun ReadyRow(
     val (native, ui) = languageNames(choice.tag)
     val supporting = listOfNotNull(ui, detail).joinToString(" · ").ifBlank { null }
     ListItem(
-        modifier = Modifier.clickable(onClick = onSelect),
+        modifier = Modifier.selectable(
+            selected = selected,
+            role = Role.RadioButton,
+            onClick = onSelect,
+        ),
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         leadingContent = {
-            RadioButton(
-                selected = selected,
-                onClick = null,
-                modifier = Modifier.clearAndSetSemantics {},
-            )
+            RadioButton(selected = selected, onClick = null)
         },
         headlineContent = { Text(native) },
         supportingContent = supporting?.let { name -> { Text(name) } },
@@ -317,7 +319,7 @@ private fun SuggestionRow(
     val (native, ui) = languageNames(choice.tag)
     val supporting = listOfNotNull(ui, detail).joinToString(" · ").ifBlank { null }
     ListItem(
-        modifier = Modifier.clickable(enabled = enabled, onClick = onDownload),
+        modifier = Modifier.clickable(enabled = enabled, onClick = onDownload, role = Role.Button),
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         headlineContent = { Text(native) },
         supportingContent = supporting?.let { name -> { Text(name) } },
@@ -358,11 +360,39 @@ fun SpeechLanguageMark(
         text = badge,
         modifier = modifier.clearAndSetSemantics {},
         color = color,
-        fontSize = 9.sp,
-        lineHeight = 9.sp,
-        fontWeight = FontWeight.Bold,
+        style = PennyWiseText.compactBadge,
         textAlign = TextAlign.Center,
     )
+}
+
+/** Glyph shared by the composer mic and the Home mics. The badge is not its own control. */
+@Composable
+fun SpeechMicGlyph(
+    languageTag: String,
+    tint: Color,
+    modifier: Modifier = Modifier,
+    listening: Boolean = false,
+) {
+    val showBadge = !listening && languageTag.isNotBlank()
+    Box(modifier = modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+        Icon(
+            imageVector = if (listening) Icons.Filled.Stop else Icons.Filled.Mic,
+            contentDescription = null,
+            tint = tint,
+            modifier = Modifier
+                .size(Dimensions.Icon.medium)
+                .offset(y = if (showBadge) -Spacing.xs else Spacing.none),
+        )
+        if (showBadge) {
+            SpeechLanguageMark(
+                tag = languageTag,
+                color = tint,
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .padding(bottom = Spacing.xxs),
+            )
+        }
+    }
 }
 
 /**
@@ -379,7 +409,7 @@ fun DictationMicButton(
     onClick: () -> Unit,
     onLongClick: () -> Unit,
     modifier: Modifier = Modifier,
-    size: Dp = 48.dp,
+    size: Dp = Dimensions.Component.minTouchTarget,
 ) {
     val colors = IconButtonDefaults.filledTonalIconButtonColors()
     val background = if (enabled) colors.containerColor else colors.disabledContainerColor
@@ -400,22 +430,10 @@ fun DictationMicButton(
             .semantics { this.contentDescription = spokenDescription },
         contentAlignment = Alignment.Center,
     ) {
-        Icon(
-            imageVector = if (listening) Icons.Filled.Stop else Icons.Filled.Mic,
-            contentDescription = null,
+        SpeechMicGlyph(
+            languageTag = languageTag,
             tint = tint,
-            modifier = Modifier
-                .size(Dimensions.Icon.medium)
-                .offset(y = if (!listening && languageTag.isNotBlank()) (-5).dp else 0.dp),
+            listening = listening,
         )
-        if (!listening && languageTag.isNotBlank()) {
-            SpeechLanguageMark(
-                tag = languageTag,
-                color = tint,
-                modifier = Modifier
-                    .align(Alignment.BottomCenter)
-                    .padding(bottom = 4.dp),
-            )
-        }
     }
 }

@@ -1,7 +1,9 @@
 package com.pennywiseai.tracker.domain.usecase
 
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
+import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.model.rule.ActionType
 import com.pennywiseai.tracker.domain.model.rule.RuleApplication
 import com.pennywiseai.tracker.domain.model.rule.TransactionField
@@ -10,11 +12,10 @@ import com.pennywiseai.tracker.domain.model.rule.applyTagActions
 import com.pennywiseai.tracker.domain.model.rule.tagChanges
 import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.domain.service.RuleEngine
-import com.pennywiseai.tracker.data.repository.TransactionRepository
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import javax.inject.Inject
-import kotlinx.coroutines.flow.first
 
 data class BatchApplyResult(
     val totalProcessed: Int,
@@ -27,8 +28,16 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val ruleRepository: RuleRepository,
     private val ruleEngine: RuleEngine,
-    private val tagRepository: TagRepository
+    private val tagRepository: TagRepository,
+    private val accountBalanceRepository: AccountBalanceRepository
 ) {
+    /** Writes a rule-edited row and moves the balances it touches, as a manual edit does. */
+    private suspend fun updateWithBalances(original: TransactionEntity, updated: TransactionEntity) {
+        accountBalanceRepository.pinManualOpenings(original, updated)
+        transactionRepository.updateTransaction(updated)
+        accountBalanceRepository.reflectTransactionEdit(original, updated)
+    }
+
     /**
      * ADD_TAG / REMOVE_TAG live in the tag table, not on the row (#748).
      * @return true when a tag was actually added or removed.
@@ -115,7 +124,7 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
                     val updatedTransaction = com.pennywiseai.tracker.domain.loan.LoanMath.keepLoanDirection(transaction, com.pennywiseai.tracker.domain.loan.SplitRules.keepSplitBill(transaction, ruleResult))
                     val ruleApplications = rawApplications.landedOn(updatedTransaction, ruleResult)
                     val entityChanged = ruleApplications.isNotEmpty() && updatedTransaction != transaction
-                    if (entityChanged) transactionRepository.updateTransaction(updatedTransaction)
+                    if (entityChanged) updateWithBalances(transaction, updatedTransaction)
                     val tagsChanged = persistTagActions(transaction.id, ruleApplications)
                     if (entityChanged || tagsChanged) {
                         ruleRepository.saveRuleApplications(ruleApplications)
@@ -185,7 +194,7 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
                     val updatedTransaction = com.pennywiseai.tracker.domain.loan.LoanMath.keepLoanDirection(transaction, com.pennywiseai.tracker.domain.loan.SplitRules.keepSplitBill(transaction, ruleResult))
                     val ruleApplications = rawApplications.landedOn(updatedTransaction, ruleResult)
                     val entityChanged = ruleApplications.isNotEmpty() && updatedTransaction != transaction
-                    if (entityChanged) transactionRepository.updateTransaction(updatedTransaction)
+                    if (entityChanged) updateWithBalances(transaction, updatedTransaction)
                     val tagsChanged = persistTagActions(transaction.id, ruleApplications)
                     if (entityChanged || tagsChanged) {
                         ruleRepository.saveRuleApplications(ruleApplications)

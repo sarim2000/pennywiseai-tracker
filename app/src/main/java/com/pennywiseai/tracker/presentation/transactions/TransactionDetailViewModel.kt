@@ -1009,62 +1009,16 @@ class TransactionDetailViewModel @Inject constructor(
                     lentSharesTotal = if (persisted != null) persisted.lentSharesTotal else toSave.lentSharesTotal
                 )
 
-                // Pin opening anchors from the PRE-update snapshot for the affected
-                // manual accounts, so the recompute after the edit reflects the change
-                // (amount/date/account). No-op for SMS accounts. Transfer legs too:
-                // pinned after the update, a leg's opening would absorb the edit and
-                // its balance would never move (#913).
-                listOfNotNull(_transaction.value, normalizedTransaction).forEach { t ->
-                    for ((bank, acct) in listOf(t.bankName to t.accountNumber,
-                        t.fromBankName to t.fromAccount, t.toBankName to t.toAccount)) {
-                        if (bank != null && acct != null) accountBalanceRepository.ensureManualOpening(bank, acct)
-                    }
-                }
+                accountBalanceRepository.pinManualOpenings(_transaction.value, normalizedTransaction)
 
                 transactionRepository.updateTransaction(normalizedTransaction)
 
                 // Persist the edited tag set (create-or-select handled in repo).
                 tagRepository.setTagsForTransaction(normalizedTransaction.id, _editableTags.value)
 
-                // Reflect the edit on account balances (#636). One repository
-                // call owns every shape of change — type or amount edits on the
-                // same account, account moves (revert the old account, apply to
-                // the new), and TRANSFER conversions in either direction. It
-                // skips manual/cash accounts, whose derived balances the
-                // recompute below re-derives.
-                val originalTxn = _transaction.value
-                val oldBank = originalTxn?.bankName
-                val oldAccount = originalTxn?.accountNumber
-                val newBank = normalizedTransaction.bankName
-                val newAccount = normalizedTransaction.accountNumber
-                val accountChanged = oldBank != newBank || oldAccount != newAccount
-
-                val balanceRelevantChange = originalTxn != null && (
-                    accountChanged ||
-                        originalTxn.transactionType != normalizedTransaction.transactionType ||
-                        originalTxn.amount.compareTo(normalizedTransaction.amount) != 0 ||
-                        originalTxn.fromBankName != normalizedTransaction.fromBankName ||
-                        originalTxn.toBankName != normalizedTransaction.toBankName ||
-                        originalTxn.fromAccount != normalizedTransaction.fromAccount ||
-                        originalTxn.toAccount != normalizedTransaction.toAccount
-                    )
-                if (balanceRelevantChange) {
-                    accountBalanceRepository.applyTransactionBalanceShift(
-                        original = originalTxn,
-                        updated = normalizedTransaction
-                    )
-                }
-
-                // Manual/cash accounts derive their balance from their transactions, so
-                // recompute the affected account(s) — this also covers amount/date edits
-                // that don't change the account (the incremental paths above only fire on
-                // an account change). No-op for SMS accounts.
-                if (newBank != null && newAccount != null) {
-                    accountBalanceRepository.recomputeManualBalance(newBank, newAccount)
-                }
-                if (accountChanged && oldBank != null && oldAccount != null) {
-                    accountBalanceRepository.recomputeManualBalance(oldBank, oldAccount)
-                }
+                // Reflect the edit on account balances (#636): SMS-account shifts and
+                // manual-account recomputes, owned by the repository.
+                accountBalanceRepository.reflectTransactionEdit(_transaction.value, normalizedTransaction)
 
                 // Save or remove splits
                 val currentSplits = _splits.value

@@ -1,10 +1,11 @@
-package com.pennywiseai.tracker.data.webhook
+package com.pennywiseai.tracker.worker
 
 import android.content.Context
-import com.pennywiseai.tracker.billing.EntitlementGate
 import androidx.work.*
+import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.data.repository.WebhookRepository
-import com.pennywiseai.tracker.worker.WebhookSyncWorker
+import com.pennywiseai.tracker.data.webhook.WebhookPreferences
+import com.pennywiseai.tracker.data.webhook.WebhookSyncReason
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged

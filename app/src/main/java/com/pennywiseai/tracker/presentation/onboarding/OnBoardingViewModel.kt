@@ -11,7 +11,6 @@ import androidx.work.Data
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
-import com.pennywiseai.tracker.data.manager.SmsScanManager
 import com.pennywiseai.tracker.data.preferences.UserPreferences
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
@@ -19,6 +18,7 @@ import com.pennywiseai.tracker.ui.components.AvatarHelper
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.CurrencyUtils
 import com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker
+import com.pennywiseai.tracker.worker.SmsScanManager
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers

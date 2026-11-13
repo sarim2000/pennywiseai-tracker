@@ -1,14 +1,16 @@
-package com.pennywiseai.tracker.data.webhook
+package com.pennywiseai.tracker.worker
 
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.work.Configuration
+import androidx.work.NetworkType
 import androidx.work.WorkInfo
 import androidx.work.WorkManager
 import androidx.work.testing.WorkManagerTestInitHelper
 import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.data.database.entity.WebhookProfileEntity
 import com.pennywiseai.tracker.data.repository.WebhookRepository
+import com.pennywiseai.tracker.data.webhook.WebhookPreferences
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.cancelAndJoin
@@ -18,8 +20,10 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.util.concurrent.TimeUnit
 
 @RunWith(AndroidJUnit4::class)
 class WebhookSyncSchedulerTest {
@@ -27,8 +31,7 @@ class WebhookSyncSchedulerTest {
         val context = InstrumentationRegistry.getInstrumentation().targetContext
         WorkManagerTestInitHelper.initializeTestWorkManager(context, Configuration.Builder().build())
         val work = WorkManager.getInstance(context)
-        val profiles = MutableStateFlow(listOf(WebhookProfileEntity(
-            id = "schedule-test", name = "Test", url = "https://example.com/hook")))
+        val profiles = MutableStateFlow(listOf(WebhookProfileEntity(id = "schedule-test", name = "Test", url = "https://example.com/hook")))
         val pro = MutableStateFlow<Boolean?>(true)
         val repository = mockk<WebhookRepository> { every { observeProfiles() } returns profiles }
         val preferences = mockk<WebhookPreferences> { every { intervalHours } returns MutableStateFlow(6) }
@@ -46,6 +49,9 @@ class WebhookSyncSchedulerTest {
         }
         try {
             val original = awaitWork(WorkInfo.State.ENQUEUED)
+            assertTrue("com.pennywiseai.tracker.worker.WebhookSyncWorker" in original.tags)
+            assertEquals(TimeUnit.HOURS.toMillis(6), original.periodicityInfo?.repeatIntervalMillis)
+            assertEquals(NetworkType.CONNECTED, original.constraints.requiredNetworkType)
             pro.value = null
             delay(100)
             assertEquals(original.id, awaitWork(WorkInfo.State.ENQUEUED).id)

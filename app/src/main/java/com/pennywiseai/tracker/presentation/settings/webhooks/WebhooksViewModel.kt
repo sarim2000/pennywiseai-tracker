@@ -1,21 +1,22 @@
 package com.pennywiseai.tracker.presentation.settings.webhooks
 
-import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.billing.EntitlementGate
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.data.database.entity.*
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.repository.WebhookRepository
 import com.pennywiseai.tracker.data.webhook.*
 import com.pennywiseai.tracker.ui.UiText
+import com.pennywiseai.tracker.worker.WebhookSyncScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
-import java.time.LocalDate
-import javax.inject.Inject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import java.time.LocalDate
+import javax.inject.Inject
 
 data class WebhookEditorState(
     val id: String? = null,
@@ -139,10 +140,15 @@ class WebhooksViewModel @Inject constructor(
         if (_state.value.busy || (requiresPro && !isProEntitled.value)) return
         viewModelScope.launch {
             _state.update { it.copy(busy = true) }
-            try { if (!requiresPro || isProEntitled.value) block() }
-            catch (e: CancellationException) { throw e }
-            catch (e: Exception) { message(UiText.Res(R.string.webhooks_msg_action_failed)) }
-            finally { _state.update { it.copy(busy = false) } }
+            try {
+                if (!requiresPro || isProEntitled.value) block()
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                message(UiText.Res(R.string.webhooks_msg_action_failed))
+            } finally {
+                _state.update { it.copy(busy = false) }
+            }
         }
     }
 }

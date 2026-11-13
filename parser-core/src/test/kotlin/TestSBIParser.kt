@@ -116,6 +116,28 @@ class SBIBankParserTest {
                 shouldParse = false
             ),
             ParserTestCase(
+                name = "Bill Pay Alert wording alone is not a transaction",
+                message = "SBI Card Bill Pay Alert! Dear Cardholder, you have a new Jio Postpaid bill with account no. XXXXXXXXXX for Rs. 850.00 due by 22-Nov-2026. Click here to pay now. - SBI Card",
+                sender = "JD-SBICRD-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal.ZERO,
+                    currency = "INR",
+                    type = TransactionType.CREDIT
+                ),
+                shouldParse = false
+            ),
+            ParserTestCase(
+                name = "Fetch and Pay bill wording alone is not a transaction",
+                message = "Dear Cardholder, you have a new Jio Postpaid Fetch and Pay bill for Rs. 640.00 due by 25-Nov-2026. - SBI Card",
+                sender = "JD-SBICRD-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal.ZERO,
+                    currency = "INR",
+                    type = TransactionType.CREDIT
+                ),
+                shouldParse = false
+            ),
+            ParserTestCase(
                 name = "SBI Card spend from JD-SBICRD-S still parses",
                 message = "Rs.499.00 spent on your SBI Credit Card ending with 1234 at JIOPOSTPAID on 15/11/26. Trxn. not done by you? Report at https://sbicard.com/Dispute",
                 sender = "JD-SBICRD-S",

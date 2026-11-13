@@ -165,8 +165,8 @@ class GPayPdfParserTest {
      * #1100: a synthetic two-page statement in the current "Date & time |
      * Transaction details | Amount" layout. Times carry a narrow no-break space
      * before AM/PM (as ICU formats them), the account is "State Bank of India
-     * 1234" (bank keyword not right before the digits), and one row is a
-     * Google Pay rewards credit. `cells` is the text in cell order (date, time,
+     * 1234" (bank keyword not right before the digits), one row is a Google
+     * Pay rewards credit, and two payees end in 4 digits. `cells` is the text in cell order (date, time,
      * details, amount on their own lines); `rows` is one visual line per row.
      */
     private fun assertIssue1100Fixture(name: String) {
@@ -174,30 +174,35 @@ class GPayPdfParserTest {
         assertTrue(parser.canHandle(text))
         val txs = parser.parse(text)
 
-        assertEquals(6, txs.size)
+        // "CARD SHOP 2024" and "BANK CAFE 1234" look like account lines but are
+        // payees: the first "Paid to" of a row is always the transaction.
+        assertEquals(8, txs.size)
         assertEquals(
-            listOf("SAMPLE CAFE", "Google Pay rewards", "SAMPLE GROCERY", "SAMPLE FRIEND", "SAMPLE STORE 2024", "SAMPLE PHARMACY"),
+            listOf(
+                "SAMPLE CAFE", "Google Pay rewards", "SAMPLE GROCERY", "SAMPLE FRIEND",
+                "CARD SHOP 2024", "SAMPLE PHARMACY", "SAMPLE FRIEND", "BANK CAFE 1234"
+            ),
             txs.map { it.merchant }
         )
         assertEquals(
             listOf(
-                TransactionType.EXPENSE, TransactionType.INCOME, TransactionType.EXPENSE,
-                TransactionType.INCOME, TransactionType.EXPENSE, TransactionType.EXPENSE
+                TransactionType.EXPENSE, TransactionType.INCOME, TransactionType.EXPENSE, TransactionType.INCOME,
+                TransactionType.EXPENSE, TransactionType.EXPENSE, TransactionType.INCOME, TransactionType.EXPENSE
             ),
             txs.map { it.type }
         )
         assertEquals(
-            listOf("500", "2", "1250.50", "3000", "99", "245.75").map(::BigDecimal),
+            listOf("500", "2", "1250.50", "3000", "99", "245.75", "150", "80").map(::BigDecimal),
             txs.map { it.amount }
         )
         assertEquals(
             listOf(
-                "01 Nov, 2025 10:15 AM", "02 Nov, 2025 06:40 PM", "03 Nov, 2025 09:05 AM",
-                "04 Nov, 2025 08:30 PM", "05 Nov, 2025 12:00 PM", "06 Nov, 2025 07:10 AM"
+                "01 Nov, 2025 10:15 AM", "02 Nov, 2025 06:40 PM", "03 Nov, 2025 09:05 AM", "04 Nov, 2025 08:30 PM",
+                "05 Nov, 2025 12:00 PM", "06 Nov, 2025 07:10 AM", "07 Nov, 2025 01:45 PM", "08 Nov, 2025 05:30 PM"
             ).map(::epochForIstDate),
             txs.map { it.timestamp }
         )
-        assertEquals((1..6).map { "10000000000$it" }, txs.map { it.reference })
+        assertEquals((1..8).map { "10000000000$it" }, txs.map { it.reference })
         txs.forEach {
             assertEquals("1234", it.accountLast4)
             assertEquals("State Bank of India", it.bankName)

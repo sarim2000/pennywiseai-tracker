@@ -1,8 +1,8 @@
 Google Pay
 Transaction statement period
-01 Nov, 2025 - 06 Nov, 2025
-Sent ₹2,095.25
-Received ₹3,002
+01 Nov, 2025 - 08 Nov, 2025
+Sent ₹2,175.25
+Received ₹3,152
 Date & time Transaction details Amount
 01 Nov, 2025 Paid to SAMPLE CAFE ₹500
 10:15 AM UPI Transaction ID: 100000000001
@@ -19,10 +19,16 @@ Date & time Transaction details Amount
 04 Nov, 2025 Received from SAMPLE FRIEND ₹3,000
 08:30 PM UPI Transaction ID: 100000000004
 Paid to State Bank of India 1234
-05 Nov, 2025 Paid to SAMPLE STORE 2024 ₹99
+05 Nov, 2025 Paid to CARD SHOP 2024 ₹99
 12:00 PM UPI Transaction ID: 100000000005
 Paid by State Bank of India 1234
 06 Nov, 2025 Paid to SAMPLE PHARMACY ₹245.75
 07:10 AM UPI Transaction ID: 100000000006
+Paid by State Bank of India 1234
+07 Nov, 2025 Received from SAMPLE FRIEND ₹150
+01:45 PM UPI Transaction ID: 100000000007
+Paid to State Bank of India 1234
+08 Nov, 2025 Paid to BANK CAFE 1234 ₹80
+05:30 PM UPI Transaction ID: 100000000008
 Paid by State Bank of India 1234
 Page 2 of 2

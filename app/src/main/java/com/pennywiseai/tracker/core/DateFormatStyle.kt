@@ -1,4 +1,4 @@
-package com.pennywiseai.tracker.data.preferences
+package com.pennywiseai.tracker.core
 
 /**
  * How dates are shown. [full] has the year, [short] is day + month; null means

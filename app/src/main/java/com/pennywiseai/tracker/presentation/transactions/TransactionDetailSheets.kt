@@ -1,11 +1,8 @@
 package com.pennywiseai.tracker.presentation.transactions
 
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.ui.draw.clip
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
@@ -15,27 +12,30 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.FolderOpen
-import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.pennywiseai.tracker.ui.components.CategoryMenuItems
-import com.pennywiseai.tracker.ui.components.SelectedCategoryIcon
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.ui.theme.*
-import com.pennywiseai.tracker.utils.CurrencyFormatter
-import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.ui.theme.Dimensions
-import java.math.BigDecimal
+import com.pennywiseai.tracker.ui.components.CategoryMenuItems
+import com.pennywiseai.tracker.ui.components.SelectedCategoryIcon
 import com.pennywiseai.tracker.ui.icons.categoryLabel
+import com.pennywiseai.tracker.ui.theme.*
+import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.money
+import com.pennywiseai.tracker.utils.CurrencyFormatter
+import java.math.BigDecimal
 
 // ==================== Mark as Loan Bottom Sheet ====================
 
@@ -250,7 +250,7 @@ internal fun MarkAsLoanBottomSheet(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 internal fun BalanceAdjustmentSheet(
-    discrepancy: com.pennywiseai.tracker.utils.BalanceDiscrepancy,
+    discrepancy: com.pennywiseai.tracker.data.ledger.BalanceDiscrepancy,
     viewModel: TransactionDetailViewModel,
     onDismiss: () -> Unit
 ) {

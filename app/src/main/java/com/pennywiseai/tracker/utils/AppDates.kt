@@ -4,7 +4,7 @@ import android.text.format.DateFormat
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.setValue
-import com.pennywiseai.tracker.data.preferences.DateFormatStyle
+import com.pennywiseai.tracker.core.DateFormatStyle
 import java.time.format.DateTimeFormatter
 import java.util.Locale
 

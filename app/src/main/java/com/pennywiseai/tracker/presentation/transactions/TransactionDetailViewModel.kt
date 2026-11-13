@@ -1,25 +1,25 @@
 package com.pennywiseai.tracker.presentation.transactions
 
-import com.pennywiseai.shared.domain.money.MinorUnits
-import com.pennywiseai.tracker.data.mapper.withTransferAccount
-
-import com.pennywiseai.tracker.ui.UiText
-import com.pennywiseai.tracker.R
-import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import android.net.Uri
 import androidx.core.net.toUri
+import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
+import com.pennywiseai.shared.domain.money.MinorUnits
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
-import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.ui.components.SplitItem
+import com.pennywiseai.tracker.data.ledger.BalanceDiscrepancy
+import com.pennywiseai.tracker.data.mapper.withTransferAccount
+import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.receipt.ReceiptManager
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
@@ -27,28 +27,27 @@ import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.LoanRepository
 import com.pennywiseai.tracker.data.repository.MerchantAliasRepository
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
+import com.pennywiseai.tracker.data.repository.TagRepository
+import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
+import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.repository.mappingFits
-import com.pennywiseai.tracker.ui.components.pickerDefault
-import com.pennywiseai.tracker.utils.BalanceDiscrepancy
-import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.domain.loan.LoanCurrencyRules
 import com.pennywiseai.tracker.domain.model.rule.ActionType
 import com.pennywiseai.tracker.domain.model.rule.ConditionOperator
 import com.pennywiseai.tracker.domain.model.rule.RuleAction
 import com.pennywiseai.tracker.domain.model.rule.RuleCondition
 import com.pennywiseai.tracker.domain.model.rule.TransactionField
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
-import com.pennywiseai.tracker.data.repository.TagRepository
-import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
-import com.pennywiseai.tracker.data.repository.TransactionRepository
-import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
-import com.pennywiseai.tracker.domain.loan.LoanCurrencyRules
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
-import com.pennywiseai.tracker.core.Constants
+import com.pennywiseai.tracker.ui.UiText
+import com.pennywiseai.tracker.ui.components.SplitItem
+import com.pennywiseai.tracker.ui.components.pickerDefault
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Job
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
@@ -76,7 +75,7 @@ class TransactionDetailViewModel @Inject constructor(
     private val goalRepository: com.pennywiseai.tracker.data.repository.GoalRepository,
     @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
 ) : ViewModel() {
-    
+
     private val _transaction = MutableStateFlow<TransactionEntity?>(null)
     val transaction: StateFlow<TransactionEntity?> = _transaction.asStateFlow()
 
@@ -96,7 +95,7 @@ class TransactionDetailViewModel @Inject constructor(
 
     private val _isEditMode = MutableStateFlow(false)
     val isEditMode: StateFlow<Boolean> = _isEditMode.asStateFlow()
-    
+
     private val _editableTransaction = MutableStateFlow<TransactionEntity?>(null)
     val editableTransaction: StateFlow<TransactionEntity?> = _editableTransaction.asStateFlow()
 
@@ -116,16 +115,16 @@ class TransactionDetailViewModel @Inject constructor(
     // Working copy of tags while in edit mode (persisted on save).
     private val _editableTags = MutableStateFlow<List<String>>(emptyList())
     val editableTags: StateFlow<List<String>> = _editableTags.asStateFlow()
-    
+
     private val _isSaving = MutableStateFlow(false)
     val isSaving: StateFlow<Boolean> = _isSaving.asStateFlow()
-    
+
     private val _saveSuccess = MutableStateFlow(false)
     val saveSuccess: StateFlow<Boolean> = _saveSuccess.asStateFlow()
-    
+
     private val _errorMessage = MutableStateFlow<UiText?>(null)
     val errorMessage: StateFlow<UiText?> = _errorMessage.asStateFlow()
-    
+
     private val _applyToAllFromMerchant = MutableStateFlow(false)
     val applyToAllFromMerchant: StateFlow<Boolean> = _applyToAllFromMerchant.asStateFlow()
 
@@ -133,7 +132,7 @@ class TransactionDetailViewModel @Inject constructor(
     // as a rule (MERCHANT = name → ADD_TAG …) so the SMS paths handle it.
     private val _applyTagsToAllFromMerchant = MutableStateFlow(false)
     val applyTagsToAllFromMerchant: StateFlow<Boolean> = _applyTagsToAllFromMerchant.asStateFlow()
-    
+
     private val _updateExistingTransactions = MutableStateFlow(false)
     val updateExistingTransactions: StateFlow<Boolean> = _updateExistingTransactions.asStateFlow()
 
@@ -155,12 +154,12 @@ class TransactionDetailViewModel @Inject constructor(
             val raw = txn?.merchantName ?: return@combine null
             aliases.firstOrNull { it.merchantName == raw }?.alias?.takeIf { it.isNotBlank() }
         }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
-    
+
     private val _existingTransactionCount = MutableStateFlow(0)
-    
+
     private val _showDeleteDialog = MutableStateFlow(false)
     val showDeleteDialog: StateFlow<Boolean> = _showDeleteDialog.asStateFlow()
-    
+
     private val _isDeleting = MutableStateFlow(false)
     val isDeleting: StateFlow<Boolean> = _isDeleting.asStateFlow()
 
@@ -266,14 +265,14 @@ class TransactionDetailViewModel @Inject constructor(
     val showSplitEditor: StateFlow<Boolean> = _showSplitEditor.asStateFlow()
 
     // Bank-reported balance vs. what the ledger predicts (#734/#135); null = consistent.
-    private val _balanceDiscrepancy = MutableStateFlow<com.pennywiseai.tracker.utils.BalanceDiscrepancy?>(null)
-    val balanceDiscrepancy: StateFlow<com.pennywiseai.tracker.utils.BalanceDiscrepancy?> = _balanceDiscrepancy.asStateFlow()
+    private val _balanceDiscrepancy = MutableStateFlow<com.pennywiseai.tracker.data.ledger.BalanceDiscrepancy?>(null)
+    val balanceDiscrepancy: StateFlow<com.pennywiseai.tracker.data.ledger.BalanceDiscrepancy?> = _balanceDiscrepancy.asStateFlow()
     private val _isAddingAdjustment = MutableStateFlow(false)
     val isAddingAdjustment: StateFlow<Boolean> = _isAddingAdjustment.asStateFlow()
 
     private val _hasSplits = MutableStateFlow(false)
     val hasSplits: StateFlow<Boolean> = _hasSplits.asStateFlow()
-    
+
     // Categories should be based on transaction type
     val categories: StateFlow<List<CategoryEntity>> = combine(
         _editableTransaction,
@@ -293,7 +292,7 @@ class TransactionDetailViewModel @Inject constructor(
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = emptyList()
     )
-    
+
     // Available accounts for linking (excluding hidden accounts)
     private val sharedPrefs = context.getSharedPreferences("account_prefs", android.content.Context.MODE_PRIVATE)
 
@@ -320,14 +319,14 @@ class TransactionDetailViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyList()
         )
-    
+
     data class AccountInfo(
         val bankName: String,
         val accountLast4: String,
         val displayName: String,
         val isCreditCard: Boolean
     )
-    
+
     fun loadTransaction(transactionId: Long) {
         viewModelScope.launch {
             val transaction = transactionRepository.getTransactionById(transactionId)
@@ -498,7 +497,7 @@ class TransactionDetailViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun exitEditMode() {
         _editableTransaction.value = null
         _isEditMode.value = false
@@ -565,18 +564,18 @@ class TransactionDetailViewModel @Inject constructor(
     fun updateMerchantAlias(alias: String) {
         _merchantAlias.value = alias
     }
-    
+
     fun toggleUpdateExistingTransactions() {
         _updateExistingTransactions.value = !_updateExistingTransactions.value
     }
-    
+
     fun updateMerchantName(name: String) {
         _editableTransaction.update { current ->
             current?.copy(merchantName = name)
         }
         validateMerchantName(name)
     }
-    
+
     fun updateAmount(amountStr: String) {
         val amount = amountStr.toBigDecimalOrNull()
         if (amount != null && amount > BigDecimal.ZERO) {
@@ -588,7 +587,7 @@ class TransactionDetailViewModel @Inject constructor(
             _errorMessage.value = UiText.Res(R.string.txn_detail_error_amount_positive_number)
         }
     }
-    
+
     private var existingCountJob: Job? = null
 
     /**
@@ -619,14 +618,14 @@ class TransactionDetailViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun updateCategory(category: String) {
         _editableTransaction.update { current ->
             current?.copy(category = category.ifEmpty { "Others" })
         }
     }
 
-    /**
+    /*
      * Creates a category on the fly from the transaction edit flow (#584) and
      * selects it. If a category with the same name already exists it is reused
      * rather than duplicated, so the action is safe to repeat.
@@ -685,13 +684,13 @@ class TransactionDetailViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun updateDateTime(dateTime: LocalDateTime) {
         _editableTransaction.update { current ->
             current?.copy(dateTime = dateTime)
         }
     }
-    
+
     fun updateDescription(description: String?) {
         _editableTransaction.update { current ->
             current?.copy(description = if (description.isNullOrEmpty()) null else description)
@@ -717,13 +716,13 @@ class TransactionDetailViewModel @Inject constructor(
             current.filterNot { it.equals(name, ignoreCase = true) }
         }
     }
-    
+
     fun updateRecurringStatus(isRecurring: Boolean) {
         _editableTransaction.update { current ->
             current?.copy(isRecurring = isRecurring)
         }
     }
-    
+
     fun updateAccountNumber(accountNumber: String?) {
         _editableTransaction.update { current ->
             current?.copy(accountNumber = if (accountNumber.isNullOrEmpty()) null else accountNumber)
@@ -1042,13 +1041,13 @@ class TransactionDetailViewModel @Inject constructor(
 
                 val balanceRelevantChange = originalTxn != null && (
                     accountChanged ||
-                    originalTxn.transactionType != normalizedTransaction.transactionType ||
-                    originalTxn.amount.compareTo(normalizedTransaction.amount) != 0 ||
-                    originalTxn.fromBankName != normalizedTransaction.fromBankName ||
-                    originalTxn.toBankName != normalizedTransaction.toBankName ||
-                    originalTxn.fromAccount != normalizedTransaction.fromAccount ||
-                    originalTxn.toAccount != normalizedTransaction.toAccount
-                )
+                        originalTxn.transactionType != normalizedTransaction.transactionType ||
+                        originalTxn.amount.compareTo(normalizedTransaction.amount) != 0 ||
+                        originalTxn.fromBankName != normalizedTransaction.fromBankName ||
+                        originalTxn.toBankName != normalizedTransaction.toBankName ||
+                        originalTxn.fromAccount != normalizedTransaction.fromAccount ||
+                        originalTxn.toAccount != normalizedTransaction.toAccount
+                    )
                 if (balanceRelevantChange) {
                     accountBalanceRepository.applyTransactionBalanceShift(
                         original = originalTxn,
@@ -1164,15 +1163,15 @@ class TransactionDetailViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun cancelEdit() {
         exitEditMode()
     }
-    
+
     fun clearSaveSuccess() {
         _saveSuccess.value = false
     }
-    
+
     private fun validateMerchantName(name: String) {
         if (name.isBlank()) {
             _errorMessage.value = UiText.Res(R.string.txn_detail_error_merchant_required)
@@ -1180,7 +1179,7 @@ class TransactionDetailViewModel @Inject constructor(
             _errorMessage.value = null
         }
     }
-    
+
     fun getReportUrl(): String {
         val txn = _transaction.value ?: return ""
         val smsBody = txn.smsBody ?: "Transaction: ${txn.merchantName} - ${txn.amount}"
@@ -1189,15 +1188,15 @@ class TransactionDetailViewModel @Inject constructor(
         android.util.Log.d("TransactionDetailVM", "Report URL: ${url.take(200)}...")
         return url
     }
-    
+
     fun showDeleteDialog() {
         _showDeleteDialog.value = true
     }
-    
+
     fun hideDeleteDialog() {
         _showDeleteDialog.value = false
     }
-    
+
     fun deleteTransaction() {
         viewModelScope.launch {
             _transaction.value?.let { txn ->
@@ -1361,7 +1360,6 @@ class TransactionDetailViewModel @Inject constructor(
         }
     }
 
-
     companion object {
         /** Types a transaction can be split across categories (#750). */
         val SPLITTABLE_TYPES = setOf(TransactionType.EXPENSE, TransactionType.CREDIT)
@@ -1412,7 +1410,6 @@ internal fun aliasWriteOnSave(
         else -> null
     }
 }
-
 
 /** A shortfall is money that left untracked; a surplus is money that came in. */
 internal fun balanceAdjustmentType(d: BalanceDiscrepancy): TransactionType =

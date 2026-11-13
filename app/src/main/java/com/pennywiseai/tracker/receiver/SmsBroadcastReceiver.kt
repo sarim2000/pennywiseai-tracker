@@ -19,6 +19,7 @@ import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
+import com.pennywiseai.tracker.data.ledger.BalanceDiscrepancy
 import com.pennywiseai.tracker.data.manager.ConscienceManager
 import com.pennywiseai.tracker.data.manager.SmsTransactionProcessor
 import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
@@ -34,7 +35,6 @@ import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
 import com.pennywiseai.tracker.domain.usecase.TrackRepeatChargeUseCase
 import com.pennywiseai.tracker.ui.components.forPicker
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
-import com.pennywiseai.tracker.utils.BalanceDiscrepancy
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.bidiIsolate
 import dagger.hilt.EntryPoint

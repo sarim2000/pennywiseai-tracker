@@ -18,6 +18,7 @@ import com.pennywiseai.tracker.core.QuickAddIntent
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
@@ -29,7 +30,6 @@ import com.pennywiseai.tracker.domain.model.filterTransactionsByProfile
 import com.pennywiseai.tracker.receiver.QuickCategoryPickerActivity
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.Money
-import com.pennywiseai.tracker.utils.forTotals
 import com.pennywiseai.tracker.utils.sumByCurrency
 import com.pennywiseai.tracker.utils.withLatinDigits
 import dagger.assisted.Assisted

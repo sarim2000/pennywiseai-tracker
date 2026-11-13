@@ -1,4 +1,4 @@
-package com.pennywiseai.tracker.utils
+package com.pennywiseai.tracker.data.ledger
 
 import com.pennywiseai.shared.domain.money.MinorUnits
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity

@@ -12,7 +12,7 @@ import com.pennywiseai.shared.data.bootstrap.DefaultCategoryData
 import com.pennywiseai.tracker.data.database.converter.Converters
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.utils.findUnlinkedTransferPairs
+import com.pennywiseai.tracker.data.ledger.findUnlinkedTransferPairs
 import java.math.BigDecimal
 import java.util.UUID
 
@@ -33,7 +33,7 @@ object PennyWiseMigrations {
             // db.execSQL("ALTER TABLE transactions ADD COLUMN tags TEXT")
         }
     }
-    
+
     /**
      * Manual migration from version 13 to 14.
      * Adds is_deleted column and unique constraint, handling existing duplicates.
@@ -42,20 +42,20 @@ object PennyWiseMigrations {
         override suspend fun migrate(db: SQLiteConnection) {
             // Check if sms_sender column already exists in transactions table
             val hasSenderColumn = db.hasColumn("transactions", "sms_sender")
-            
+
             // Add sms_sender column to transactions table only if it doesn't exist
             if (!hasSenderColumn) {
                 db.execSQL("ALTER TABLE transactions ADD COLUMN sms_sender TEXT")
             }
-            
+
             // Check if is_deleted column already exists in unrecognized_sms table
             val hasIsDeletedColumn = db.hasColumn("unrecognized_sms", "is_deleted")
-            
+
             // Only proceed with unrecognized_sms migration if needed
             if (!hasIsDeletedColumn) {
                 // First, add the is_deleted column with default value
                 db.execSQL("ALTER TABLE unrecognized_sms ADD COLUMN is_deleted INTEGER NOT NULL DEFAULT 0")
-                
+
                 // Create a temporary table with the new schema (including unique constraint)
                 db.execSQL("""
                         CREATE TABLE unrecognized_sms_new (
@@ -68,7 +68,7 @@ object PennyWiseMigrations {
                             created_at TEXT NOT NULL
                         )
                     """)
-                
+
                 // Copy data from old table, keeping only the most recent of duplicates
                 db.execSQL("""
                         INSERT INTO unrecognized_sms_new (id, sender, sms_body, received_at, reported, is_deleted, created_at)
@@ -80,19 +80,19 @@ object PennyWiseMigrations {
                             GROUP BY sender, sms_body
                         )
                     """)
-                
+
                 // Drop the old table
                 db.execSQL("DROP TABLE unrecognized_sms")
-                
+
                 // Rename the new table to the original name
                 db.execSQL("ALTER TABLE unrecognized_sms_new RENAME TO unrecognized_sms")
-                
+
                 // Create the unique index
                 db.execSQL("CREATE UNIQUE INDEX index_unrecognized_sms_sender_sms_body ON unrecognized_sms (sender, sms_body)")
             }
         }
     }
-    
+
     /**
      * Manual migration from version 12 to 14.
      * Handles direct upgrade from 12 to 14, combining migrations 12->13 and 13->14.
@@ -103,7 +103,7 @@ object PennyWiseMigrations {
             MIGRATION_13_14.migrate(db)
         }
     }
-    
+
     /**
      * Manual migration from version 14 to 15.
      * Adds sms_body column to subscriptions table.
@@ -114,7 +114,7 @@ object PennyWiseMigrations {
             db.execSQL("ALTER TABLE subscriptions ADD COLUMN sms_body TEXT")
         }
     }
-    
+
     /**
      * Manual migration from version 20 to 21.
      * Makes next_payment_date nullable in subscriptions table.
@@ -139,17 +139,17 @@ object PennyWiseMigrations {
                         updated_at TEXT NOT NULL
                     )
                 """)
-            
+
             // Step 2: Copy data from old table to new table
             db.execSQL("""
                     INSERT INTO subscriptions_new (id, merchant_name, amount, next_payment_date, state, bank_name, umn, category, sms_body, created_at, updated_at)
                     SELECT id, merchant_name, amount, next_payment_date, state, bank_name, umn, category, sms_body, created_at, updated_at
                     FROM subscriptions
                 """)
-            
+
             // Step 3: Drop old table
             db.execSQL("DROP TABLE subscriptions")
-            
+
             // Step 4: Rename new table to original name
             db.execSQL("ALTER TABLE subscriptions_new RENAME TO subscriptions")
         }
@@ -514,7 +514,7 @@ object PennyWiseMigrations {
                                     AND b.currency = transactions.currency)
                         END
                         WHERE transaction_type = 'TRANSFER' AND ${leg}_account IS NOT NULL
-                    """.trimIndent())
+                """.trimIndent())
             }
         }
     }
@@ -542,7 +542,7 @@ object PennyWiseMigrations {
                            from_account, to_account, from_bank_name, to_bank_name, is_deleted
                     FROM transactions
                     WHERE transaction_type = 'TRANSFER' AND (from_account IS NOT NULL OR to_account IS NOT NULL)
-                """.trimIndent()).use { stmt ->
+            """.trimIndent()).use { stmt ->
                 fun text(column: Int) = if (stmt.isNull(column)) null else stmt.getText(column)
                 buildList {
                     while (stmt.step()) {
@@ -618,14 +618,14 @@ object PennyWiseMigrations {
     )
 }
 
-/**
+/*
  * Example AutoMigrationSpec for renaming tables or columns.
  * Uncomment and modify when needed.
  */
 // @RenameTable(fromTableName = "transactions", toTableName = "user_transactions")
 // @RenameColumn(
 //     tableName = "transactions",
-//     fromColumnName = "merchant_name", 
+//     fromColumnName = "merchant_name",
 //     toColumnName = "vendor_name"
 // )
 // class Migration1To2 : AutoMigrationSpec {
@@ -634,7 +634,6 @@ object PennyWiseMigrations {
 //         // Example: Update default values, create indexes, etc.
 //     }
 // }
-
 
 /**
  * Migration from version 4 to 5.
@@ -656,7 +655,7 @@ class Migration4To5 : AutoMigrationSpec
 class Migration7To8 : AutoMigrationSpec {
     override suspend fun onPostMigrate(db: SQLiteConnection) {
         super.onPostMigrate(db)
-        
+
         // Insert default categories
         val categories = DefaultCategoryData.ALL
 

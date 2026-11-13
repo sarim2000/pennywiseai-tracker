@@ -7,12 +7,12 @@ import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.database.entity.currentNameFor
+import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.manager.TransactionDeduplication
 import com.pennywiseai.tracker.data.notification.BankNotificationConfig
 import com.pennywiseai.tracker.data.preferences.BudgetPreferences
 import com.pennywiseai.tracker.data.statement.StatementTransactionEnricher
 import com.pennywiseai.tracker.domain.model.BudgetCycle
-import com.pennywiseai.tracker.utils.forTotals
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map

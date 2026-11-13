@@ -1,4 +1,4 @@
-package com.pennywiseai.tracker.data.preferences
+package com.pennywiseai.tracker.core
 
 /**
  * How numeric amounts are grouped for display.

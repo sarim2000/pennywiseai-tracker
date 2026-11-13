@@ -8,11 +8,11 @@ import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.*
 import com.pennywiseai.tracker.data.database.entity.builtinKey
 import com.pennywiseai.tracker.data.database.withTransaction
+import com.pennywiseai.tracker.data.ledger.findUnlinkedTransferPairs
 import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.TaughtTemplatesStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
-import com.pennywiseai.tracker.utils.findUnlinkedTransferPairs
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first

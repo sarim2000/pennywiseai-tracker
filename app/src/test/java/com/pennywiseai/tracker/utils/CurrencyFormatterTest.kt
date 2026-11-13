@@ -1,6 +1,6 @@
 package com.pennywiseai.tracker.utils
 
-import com.pennywiseai.tracker.data.preferences.NumberFormatStyle
+import com.pennywiseai.tracker.core.NumberFormatStyle
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

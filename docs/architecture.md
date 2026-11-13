@@ -167,7 +167,7 @@ graph as a whole.
 | `ui/viewmodel`, `ui` root | App-wide ViewModels (main, theme, spotlight) and small app-wide UI helpers (`UiText`, the shared-transition locals) | `presentation`, `navigation` (a feature's ViewModel goes in its `presentation/<feature>`) |
 | `domain` | Use cases, business rules, models, service interfaces | `presentation`, `ui`, Compose, Activities or other Android UI |
 | `data` | Room (`database`), repositories, DataStore (`preferences`), backup, SMS processing (`manager`) | `presentation`, `ui`, `worker`, `widget`, `receiver`, root classes but `R`/`BuildConfig` (declare a contract in `data` that `worker` or `receiver` implements, like `data/manager/MoneyAlerts` or `data/manager/ConscienceNotificationActions`; refresh widgets through `core/TransactionWidgets`; ask `core/AppForegroundState` rather than casting `PennyWiseApplication`) |
-| `utils`, `core` | Small helpers used across layers: money, currency, dates, the app language (`utils/AppLanguage.kt`); `core` also holds contracts that several layers call and an entry point implements (`TransactionWidgets`, `QuickAddIntent`, `AppForegroundState`) | `presentation`, `ui`, Android entry points |
+| `utils`, `core` | Small helpers used across layers: money, currency, dates, the app language (`utils/AppLanguage.kt`). Helpers that need Room entities live in `data` (`data/ledger`); `core` also holds contracts that several layers call and an entry point implements (`TransactionWidgets`, `QuickAddIntent`, `AppForegroundState`) | `data`, `domain`, `presentation`, `ui`, Android entry points |
 | `worker`, `receiver`, `widget`, `tile`, `aiaccess` | Android entry points | Feature screen internals. Use `domain`/`data` instead |
 | `di`, `navigation`, root (`MainActivity`, `PennyWiseApp`, `PennyWiseApplication`) | Wiring and the composition root. `navigation` also holds the app shell: `MainScreen`, `PennyWiseBottomNavigation` and `BottomNavItem` | (may import anything) |
 
@@ -268,7 +268,7 @@ tests, so `./init.sh app` and CI fail on a new violation:
 |---|---|
 | `domain` | `presentation`, `ui`, Compose, Activity/Fragment, Room |
 | `data` | `presentation`, `ui` |
-| `utils`, `core` | `presentation`, `ui`, `worker`, `receiver`, `widget`, `tile`, `aiaccess` |
+| `utils`, `core` | `presentation`, `ui`, `worker`, `receiver`, `widget`, `tile`, `aiaccess`; and `data`, `domain` (`UtilsLeafBoundaryTest`) |
 | `worker`, `widget`, `receiver`, `tile`, `aiaccess` (one rule each) | `presentation` (launch an Activity by class name through a `core` intent contract such as `core/QuickAddIntent`; don't import it) |
 | `ui.components`, `ui.icons`, `ui.animations`, `ui.effects` | `presentation`, `worker` |
 | `ui` and every package under it (`UiBoundaryTest`) | `presentation`, `navigation` |

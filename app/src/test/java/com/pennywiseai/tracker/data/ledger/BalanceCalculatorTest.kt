@@ -1,4 +1,4 @@
-package com.pennywiseai.tracker.utils
+package com.pennywiseai.tracker.data.ledger
 
 import com.pennywiseai.tracker.data.database.dao.BalanceSourceRow
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity

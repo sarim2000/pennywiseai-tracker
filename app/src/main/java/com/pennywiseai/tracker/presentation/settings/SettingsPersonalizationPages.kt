@@ -16,10 +16,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.core.DateFormatStyle
+import com.pennywiseai.tracker.core.NumberFormatStyle
 import com.pennywiseai.tracker.data.manager.ConscienceText
 import com.pennywiseai.tracker.data.preferences.DAILY_SUMMARY_DEFAULT
-import com.pennywiseai.tracker.data.preferences.DateFormatStyle
-import com.pennywiseai.tracker.data.preferences.NumberFormatStyle
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.theme.green_dark
 import com.pennywiseai.tracker.ui.theme.green_light

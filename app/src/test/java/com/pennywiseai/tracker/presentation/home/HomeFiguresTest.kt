@@ -3,8 +3,8 @@ package com.pennywiseai.tracker.presentation.home
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.repository.TransactionRepository.MonthlyBreakdown
-import com.pennywiseai.tracker.utils.forTotals
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

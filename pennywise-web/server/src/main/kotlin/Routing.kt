@@ -61,7 +61,9 @@ fun Application.configureRouting() {
             JordanIslamicBankParser(), IslamicInternationalArabBankParser(),
             BankAlEtihadParser(), SafwaIslamicBankParser(),
             // Orange Money (Jordan) — the web tester advertises its samples.
-            OrangeMoneyJordanParser()
+            OrangeMoneyJordanParser(),
+            // Mobily Pay (Saudi Arabia, #1134)
+            MobilyPayParser()
         )
     )
 

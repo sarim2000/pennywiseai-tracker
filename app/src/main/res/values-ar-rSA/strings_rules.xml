@@ -302,6 +302,9 @@
     <string name="chat_voice_language_unknown">تعذر التحقق من اللغات المنزّلة. يمكنك اختيار لغة رغم ذلك.</string>
     <string name="chat_voice_language_none">لا توجد لغة جاهزة على الجهاز للغات التي تستخدمها.</string>
     <string name="chat_voice_language_settings">إعدادات الصوت</string>
+    <string name="chat_voice_language_more">تنزيل لغة أخرى</string>
+    <string name="chat_voice_language_more_hide">إخفاء اللغات الأخرى</string>
+    <string name="chat_voice_language_more_body">تظهر هنا فقط اللغات التي يستطيع هذا الهاتف تنزيلها على الجهاز.</string>
     <string name="chat_voice_mic_language">إملاء رسالة بـ%1$s. اضغط مطولاً لتغيير اللغة.</string>
     <plurals name="chat_stats_model_messages">
         <item quantity="zero">Qwen 2.5 1.5B • %1$d رسالة</item>

@@ -16,6 +16,13 @@ import androidx.core.content.ContextCompat
 
 private const val TAG = "PennyWiseSpeech"
 
+/** How a pack download ended. [REPLACED] means a newer download took the recognizer. */
+internal enum class PackDownloadResult {
+    ACCEPTED,
+    FAILED,
+    REPLACED,
+}
+
 /**
  * Asks the on-device recognizer which language packs are installed, pending,
  * or available to download, and starts a download. A separate recognizer from
@@ -25,6 +32,7 @@ internal class AndroidSpeechPackClient(context: Context) {
     private val appContext = context.applicationContext
     private var queryRecognizer: SpeechRecognizer? = null
     private var downloadRecognizer: SpeechRecognizer? = null
+    private var downloadListener: ((PackDownloadResult) -> Unit)? = null
     private var queryGeneration = 0
     private var downloadGeneration = 0
 
@@ -68,38 +76,44 @@ internal class AndroidSpeechPackClient(context: Context) {
         }
     }
 
-    fun download(tag: String, onFinished: (Boolean) -> Unit) {
+    fun download(tag: String, onFinished: (PackDownloadResult) -> Unit) {
         val gen = ++downloadGeneration
+        val replaced = downloadListener
+        downloadListener = onFinished
         releaseDownload()
+        // The recognizer can run one download. Tell the previous caller so its row
+        // does not stay on "Downloading…" after this one takes over.
+        replaced?.invoke(PackDownloadResult.REPLACED)
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) {
-            onFinished(false)
+            finishDownload(gen, PackDownloadResult.FAILED)
             return
         }
         val created = open() ?: run {
-            onFinished(false)
+            finishDownload(gen, PackDownloadResult.FAILED)
             return
         }
         downloadRecognizer = created
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
-                downloadWithListener(created, tag, gen, onFinished)
+                downloadWithListener(created, tag, gen)
             } else {
                 created.triggerModelDownload(packIntent(tag))
-                releaseDownload()
-                onFinished(true)
+                finishDownload(gen, PackDownloadResult.ACCEPTED)
             }
         } catch (error: RuntimeException) {
             Log.w(TAG, "triggerModelDownload failed", error)
-            releaseDownload()
-            onFinished(false)
+            finishDownload(gen, PackDownloadResult.FAILED)
         }
     }
 
     fun close() {
         queryGeneration++
         downloadGeneration++
+        val replaced = downloadListener
+        downloadListener = null
         releaseQuery()
         releaseDownload()
+        replaced?.invoke(PackDownloadResult.REPLACED)
     }
 
     @RequiresApi(Build.VERSION_CODES.UPSIDE_DOWN_CAKE)
@@ -107,7 +121,6 @@ internal class AndroidSpeechPackClient(context: Context) {
         created: SpeechRecognizer,
         tag: String,
         gen: Int,
-        onFinished: (Boolean) -> Unit,
     ) {
         created.triggerModelDownload(
             packIntent(tag),
@@ -115,23 +128,25 @@ internal class AndroidSpeechPackClient(context: Context) {
             object : ModelDownloadListener {
                 override fun onProgress(completedPercent: Int) = Unit
 
-                override fun onSuccess() = finish(true)
+                override fun onSuccess() = finishDownload(gen, PackDownloadResult.ACCEPTED)
 
-                override fun onScheduled() = finish(true)
+                override fun onScheduled() = finishDownload(gen, PackDownloadResult.ACCEPTED)
 
                 override fun onError(error: Int) {
                     Log.i(TAG, "Language download error $error")
-                    finish(false)
-                }
-
-                private fun finish(ok: Boolean) {
-                    if (gen != downloadGeneration) return
-                    // Drop this recognizer before the caller starts a fresh query.
-                    releaseDownload()
-                    onFinished(ok)
+                    finishDownload(gen, PackDownloadResult.FAILED)
                 }
             },
         )
+    }
+
+    private fun finishDownload(gen: Int, result: PackDownloadResult) {
+        if (gen != downloadGeneration) return
+        val listener = downloadListener
+        downloadListener = null
+        // Drop this recognizer before the caller opens another one.
+        releaseDownload()
+        listener?.invoke(result)
     }
 
     private fun open(): SpeechRecognizer? {

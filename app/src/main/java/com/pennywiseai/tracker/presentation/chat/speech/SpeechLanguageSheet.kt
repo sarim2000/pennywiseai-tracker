@@ -30,7 +30,10 @@ import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -50,6 +53,7 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import kotlinx.coroutines.delay
 import java.util.Locale
 
 /** Dictation language for the mic buttons. Home and Chat share one store. */
@@ -78,13 +82,9 @@ fun rememberSpeechLanguages(): SpeechLanguages {
     val saved = store.saved
     val report = store.report
     val userTags = store.userTags
-    // Until the recognizer answers, offer the person's own languages so the
-    // first tap is not stuck on the app language.
-    val menu = if (report.known) {
-        speechLanguageMenu(report.installed, report.pending, report.downloadable, userTags, saved)
-    } else {
-        speechLanguageMenu(userTags, emptyList(), emptyList(), userTags, saved)
-    }
+    // Until the recognizer answers, keep a saved choice and otherwise offer the
+    // person's own languages, so the first tap is not stuck on the app language.
+    val menu = speechMenuFor(report, userTags, saved)
     val listening = listeningLanguage(menu, saved, Locale.getDefault().toLanguageTag())
     return SpeechLanguages(
         listeningTag = listening,
@@ -110,7 +110,20 @@ fun SpeechLanguageSheet(
     onDismiss: () -> Unit,
 ) {
     val context = LocalContext.current
+    var showCatalog by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { languages.dismissHint() }
+    val waitingOnPack = languages.downloading.isNotEmpty() ||
+        languages.menu.suggestions.any { it.pending } ||
+        languages.menu.catalog.any { it.pending }
+    // A scheduled pack stays pending after the system dialog closes. Keep asking
+    // until it is installed, so the row can be selected without leaving the sheet.
+    LaunchedEffect(waitingOnPack) {
+        if (!waitingOnPack) return@LaunchedEffect
+        while (true) {
+            delay(2_000)
+            languages.refresh()
+        }
+    }
     LifecycleResumeEffect(Unit) {
         languages.refresh()
         onPauseOrDispose { }
@@ -167,17 +180,42 @@ fun SpeechLanguageSheet(
             if (languages.settled && languages.menu.suggestions.isNotEmpty()) {
                 SectionLabel(stringResource(R.string.chat_voice_language_suggest))
                 languages.menu.suggestions.forEach { choice ->
-                    val busy = choice.pending || languageOf(choice.tag) in languages.downloading
-                    SuggestionRow(choice, busy = busy) {
-                        if (!busy) languages.download(choice.tag)
-                    }
+                    DownloadRow(languages, choice)
+                }
+            }
+            if (languages.settled && languages.known && languages.menu.catalog.isNotEmpty()) {
+                TextButton(
+                    onClick = { showCatalog = !showCatalog },
+                    modifier = Modifier.padding(horizontal = Spacing.sm),
+                ) {
+                    Text(
+                        stringResource(
+                            if (showCatalog) {
+                                R.string.chat_voice_language_more_hide
+                            } else {
+                                R.string.chat_voice_language_more
+                            },
+                        ),
+                    )
+                }
+                if (showCatalog) {
+                    Text(
+                        text = stringResource(R.string.chat_voice_language_more_body),
+                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content, vertical = Spacing.xs),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    languages.menu.catalog
+                        .sortedBy { speechLanguageName(it.tag) }
+                        .forEach { choice -> DownloadRow(languages, choice) }
                 }
             }
             val showUnknown = languages.settled && !languages.known
             val showEmpty = languages.settled &&
                 languages.known &&
                 languages.menu.ready.isEmpty() &&
-                languages.menu.suggestions.isEmpty()
+                languages.menu.suggestions.isEmpty() &&
+                languages.menu.catalog.isEmpty()
             if (showUnknown || showEmpty || languages.downloadFailed) {
                 Text(
                     text = stringResource(
@@ -238,26 +276,50 @@ private fun ReadyRow(
 }
 
 @Composable
+private fun DownloadRow(languages: SpeechLanguages, choice: SpeechLanguageChoice) {
+    val group = packGroup(choice.tag)
+    val busy = choice.pending || group in languages.downloading
+    // The recognizer downloads one pack at a time. Other rows wait, and they
+    // keep the Download label so they do not look like the one in progress.
+    val anotherInProgress = languages.downloading.isNotEmpty() && group !in languages.downloading
+    val native = speechLanguageName(choice.tag)
+    val collision = languages.menu.catalog.count {
+        speechLanguageName(it.tag).equals(native, ignoreCase = true)
+    } > 1
+    SuggestionRow(
+        choice,
+        busy = busy,
+        enabled = !busy && !anotherInProgress,
+        detail = if (collision) speechPackDetail(choice.tag) else null,
+    ) {
+        languages.download(choice.tag)
+    }
+}
+
+@Composable
 private fun SuggestionRow(
     choice: SpeechLanguageChoice,
     busy: Boolean,
+    enabled: Boolean,
+    detail: String? = null,
     onDownload: () -> Unit,
 ) {
     val (native, ui) = languageNames(choice.tag)
+    val supporting = listOfNotNull(ui, detail).joinToString(" · ").ifBlank { null }
     ListItem(
-        modifier = Modifier.clickable(enabled = !busy, onClick = onDownload),
+        modifier = Modifier.clickable(enabled = enabled, onClick = onDownload),
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
         headlineContent = { Text(native) },
-        supportingContent = ui?.let { name -> { Text(name) } },
+        supportingContent = supporting?.let { name -> { Text(name) } },
         trailingContent = {
             Text(
                 text = stringResource(
                     if (busy) R.string.chat_voice_language_downloading else R.string.chat_voice_language_download,
                 ),
-                color = if (busy) {
-                    MaterialTheme.colorScheme.onSurfaceVariant
-                } else {
+                color = if (enabled) {
                     MaterialTheme.colorScheme.primary
+                } else {
+                    MaterialTheme.colorScheme.onSurfaceVariant
                 },
                 style = MaterialTheme.typography.labelLarge,
             )

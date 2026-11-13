@@ -14,11 +14,13 @@ data class SpeechLanguageChoice(
 /**
  * What the mic offers. [selected] is the tag to listen in, or null when nothing
  * is installed. [suggestions] are the user's languages that still need a download.
+ * [catalog] is every other pack this phone can download, one row per language.
  */
 data class SpeechLanguageMenu(
     val selected: String?,
     val ready: List<SpeechLanguageChoice>,
     val suggestions: List<SpeechLanguageChoice>,
+    val catalog: List<SpeechLanguageChoice> = emptyList(),
 )
 
 /** What [android.speech.SpeechRecognizer.checkRecognitionSupport] reported. */
@@ -33,7 +35,8 @@ data class SpeechPackReport(
  * Dictation language is not the app language. A saved choice wins when that
  * language is installed. Otherwise [userTags] win, in order: phone languages,
  * then the app language, then keyboards. Suggestions are user languages the
- * recognizer can download and has not installed yet.
+ * recognizer can download and has not installed yet. The catalog is the rest
+ * of the packs the recognizer can download.
  */
 internal fun speechLanguageMenu(
     installed: List<String>,
@@ -44,12 +47,82 @@ internal fun speechLanguageMenu(
 ): SpeechLanguageMenu {
     val ready = readyChoices(installed, userTags)
     val readyLanguages = ready.map { languageOf(it.tag) }.toSet()
+    val suggestions = suggestionChoices(userTags, readyLanguages, pending, downloadable)
+    val excluded = buildSet {
+        for (raw in installed) {
+            val group = packGroup(raw)
+            if (group.isNotEmpty()) add(group)
+        }
+        for (choice in suggestions) add(packGroup(choice.tag))
+    }
     return SpeechLanguageMenu(
         selected = selectTag(ready, userTags, saved),
         ready = ready,
-        suggestions = suggestionChoices(userTags, readyLanguages, pending, downloadable),
+        suggestions = suggestions,
+        catalog = catalogChoices(pending, downloadable, excluded),
     )
 }
+
+/**
+ * Menu while the recognizer has not answered. The saved tag stays selectable,
+ * so a failed pack query cannot switch dictation to a different language.
+ */
+internal fun speechMenuFor(
+    report: SpeechPackReport,
+    userTags: List<String>,
+    saved: String?,
+): SpeechLanguageMenu {
+    if (report.known) {
+        return speechLanguageMenu(
+            installed = report.installed,
+            pending = report.pending,
+            downloadable = report.downloadable,
+            userTags = userTags,
+            saved = saved,
+        )
+    }
+    val assumed = buildList {
+        if (!saved.isNullOrBlank()) add(saved)
+        addAll(userTags)
+    }
+    return speechLanguageMenu(
+        installed = assumed,
+        pending = emptyList(),
+        downloadable = emptyList(),
+        userTags = userTags,
+        saved = saved,
+    )
+}
+
+/**
+ * Whether a download we started is installed, still worth waiting for, or done
+ * without a pack. A pending pack keeps waiting past [graceMs]. Simplified and
+ * Traditional Chinese are different packs.
+ */
+internal fun watchDownload(
+    report: SpeechPackReport,
+    group: String,
+    elapsedMs: Long,
+    graceMs: Long = DOWNLOAD_GRACE_MS,
+): DownloadWatch {
+    if (report.known) {
+        val match = report.installed.mapNotNull { normalizeTag(it) }.firstOrNull { packGroup(it) == group }
+        if (match != null) return DownloadWatch(installedTag = match, keepWaiting = false)
+        val pending = report.pending.any { raw ->
+            val tag = normalizeTag(raw)
+            tag != null && packGroup(tag) == group
+        }
+        if (pending) return DownloadWatch(installedTag = null, keepWaiting = true)
+    }
+    return DownloadWatch(installedTag = null, keepWaiting = elapsedMs < graceMs)
+}
+
+internal data class DownloadWatch(
+    val installedTag: String?,
+    val keepWaiting: Boolean,
+)
+
+internal const val DOWNLOAD_GRACE_MS = 20_000L
 
 /** Phone, app, then keyboard tags. One entry per language, blanks dropped. */
 internal fun userLanguageTags(
@@ -92,6 +165,16 @@ internal fun speechLanguageUiName(tag: String, ui: Locale = Locale.getDefault())
         .replaceFirstChar { if (it.isLowerCase()) it.titlecase(ui) else it.toString() }
 }
 
+/** Script and country in [ui], so two packs that share a name stay distinguishable. */
+internal fun speechPackDetail(tag: String, ui: Locale = Locale.getDefault()): String? {
+    val locale = localeOf(tag)
+    val script = locale.getDisplayScript(ui).takeUnless { name ->
+        name.isBlank() || name.equals(locale.script, ignoreCase = true)
+    }
+    val country = locale.getDisplayCountry(ui).takeUnless { it.isBlank() }
+    return listOfNotNull(script, country).distinct().joinToString(", ").ifBlank { null }
+}
+
 /** Short mark on the mic. Latin languages use the code. Others use the autonym's first letter. */
 internal fun speechLanguageBadge(tag: String): String {
     val locale = localeOf(tag)
@@ -122,6 +205,68 @@ private fun readyChoices(installed: List<String>, userTags: List<String>): List<
         val tag = if (wanted == null) variants.first() else bestVariant(wanted, variants)
         SpeechLanguageChoice(tag, pending = false)
     }
+}
+
+private fun catalogChoices(
+    pending: List<String>,
+    downloadable: List<String>,
+    excludedGroups: Set<String>,
+): List<SpeechLanguageChoice> {
+    val groups = linkedMapOf<String, MutableList<String>>()
+    val pendingGroups = mutableSetOf<String>()
+    fun add(raw: String, isPending: Boolean) {
+        val tag = normalizeTag(raw) ?: return
+        val group = packGroup(tag)
+        if (group.isEmpty() || group in excludedGroups) return
+        groups.getOrPut(group) { mutableListOf() }.add(tag)
+        if (isPending) pendingGroups.add(group)
+    }
+    pending.forEach { add(it, isPending = true) }
+    downloadable.forEach { add(it, isPending = false) }
+    return groups.map { (group, tags) ->
+        SpeechLanguageChoice(pickCatalogTag(tags), pending = group in pendingGroups)
+    }.sortedBy { it.tag.lowercase(Locale.ROOT) }
+}
+
+/** Language plus script, so zh-Hans and zh-Hant stay different packs. */
+internal fun packGroup(tag: String): String {
+    val normalized = normalizeTag(tag) ?: return ""
+    val locale = localeOf(normalized)
+    val language = locale.language.lowercase(Locale.ROOT)
+    if (language.isEmpty() || language == "und") return ""
+    val script = locale.script.lowercase(Locale.ROOT)
+    return if (script.isEmpty()) language else "$language-$script"
+}
+
+private fun pickCatalogTag(candidates: List<String>): String {
+    val distinct = candidates.distinct()
+    val preferred = distinct.firstOrNull { tag ->
+        val locale = localeOf(tag)
+        locale.country.equals(preferredRegion(locale.language, locale.script), ignoreCase = true)
+    }
+    return preferred ?: distinct.minBy { it.lowercase(Locale.ROOT) }
+}
+
+/** Tie-break when several regions of one language can be downloaded. */
+private fun preferredRegion(language: String, script: String): String = when (language.lowercase(Locale.ROOT)) {
+    "zh", "cmn" -> if (script.equals("Hant", ignoreCase = true)) "TW" else "CN"
+    "ja" -> "JP"
+    "ko" -> "KR"
+    "ar" -> "SA"
+    "hi" -> "IN"
+    "pt" -> "BR"
+    "en" -> "US"
+    "sv" -> "SE"
+    "da" -> "DK"
+    "nb", "no" -> "NO"
+    "uk" -> "UA"
+    "he", "iw" -> "IL"
+    "el" -> "GR"
+    "cs" -> "CZ"
+    "ms" -> "MY"
+    "fa" -> "IR"
+    "ur" -> "PK"
+    else -> language.uppercase(Locale.ROOT)
 }
 
 private fun suggestionChoices(

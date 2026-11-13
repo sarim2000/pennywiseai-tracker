@@ -288,6 +288,9 @@
     <string name="chat_voice_language_unknown">Could not check which languages are downloaded. You can still pick one.</string>
     <string name="chat_voice_language_none">No on-device language is ready for the languages you use.</string>
     <string name="chat_voice_language_settings">Voice settings</string>
+    <string name="chat_voice_language_more">Download another language</string>
+    <string name="chat_voice_language_more_hide">Hide other languages</string>
+    <string name="chat_voice_language_more_body">Only languages this phone can download on device are listed.</string>
     <string name="chat_voice_mic_language">Dictate a message in %1$s. Hold to change language.</string>
     <plurals name="chat_stats_model_messages">
         <item quantity="one">Qwen 2.5 1.5B • %1$d message</item>

@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.*
@@ -48,6 +49,7 @@ internal fun HomeTopBarActions(
     onProfileSelected: (Long?) -> Unit,
     onDismissProfileFilter: () -> Unit,
     onNavigateToAddScreen: () -> Unit,
+    onVoiceAsk: (() -> Unit)? = null,
     onMoreClick: () -> Unit
 ) {
     val containerColor = MaterialTheme.colorScheme.surfaceContainer
@@ -56,6 +58,30 @@ internal fun HomeTopBarActions(
         modifier = Modifier.padding(end = Dimensions.Padding.content),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
+        if (onVoiceAsk != null) {
+            Box(
+                modifier = Modifier
+                    .size(Dimensions.Component.iconButton)
+                    .clip(CircleShape)
+                    .background(
+                        color = if (blurEffects) containerColor.copy(0.5f) else containerColor,
+                        shape = CircleShape
+                    )
+                    .clickable(
+                        onClick = onVoiceAsk,
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Mic,
+                    contentDescription = stringResource(R.string.home_voice_ask),
+                    tint = MaterialTheme.colorScheme.inverseSurface,
+                    modifier = Modifier.size(Dimensions.Icon.medium)
+                )
+            }
+        }
         // Subtle Pro discovery chip — yellow sparkle that ties
         // back to the Settings → PennyWise Pro entry. Hidden
         // for already-entitled users so it's never pushy.

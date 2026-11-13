@@ -80,7 +80,8 @@ fun HomeScreen(
     onGroupClick: (Long) -> Unit = {},
     onGoalClick: (Long) -> Unit = {},
     onTransactionTypeClick: (String?) -> Unit = {},
-    onFabPositioned: (Rect) -> Unit = {}
+    onFabPositioned: (Rect) -> Unit = {},
+    onVoiceAsk: (() -> Unit)? = null,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     // Time to full display: the balance and recent list show data, not skeletons.
@@ -260,6 +261,7 @@ fun HomeScreen(
                         onProfileSelected = { viewModel.updateSelectedProfile(it) },
                         onDismissProfileFilter = { showProfileFilterMenu = false },
                         onNavigateToAddScreen = onNavigateToAddScreen,
+                        onVoiceAsk = onVoiceAsk,
                         onMoreClick = { showMenuSheet = true }
                     )
                 },
@@ -271,6 +273,7 @@ fun HomeScreen(
                         onAvatarClick = onNavigateToSettings,
                         onMenuClick = { showMenuSheet = true },
                         onAddClick = onNavigateToAddScreen.takeIf { navDock != null },
+                        onVoiceAsk = onVoiceAsk,
                         profiles = uiState.profiles,
                         selectedProfileId = uiState.selectedProfileId,
                         onProfileSelected = { viewModel.updateSelectedProfile(it) },

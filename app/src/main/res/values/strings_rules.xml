@@ -266,6 +266,17 @@
     <string name="chat_dismiss">Dismiss</string>
     <string name="chat_input_placeholder">Ask, or tell me what you spent…</string>
     <string name="chat_send">Send</string>
+    <string name="chat_voice_mic">Dictate a message</string>
+    <string name="chat_voice_stop">Stop dictation</string>
+    <string name="chat_voice_listening">Listening…</string>
+    <string name="chat_voice_unavailable">On-device speech isn’t available on this phone, so nothing was recorded.</string>
+    <string name="chat_voice_blocked">Microphone access is off. Turn it on in Settings to dictate.</string>
+    <string name="chat_voice_no_match">Didn’t catch that. Try again.</string>
+    <string name="chat_voice_timeout">No speech heard. Try again.</string>
+    <string name="chat_voice_language">Download this language for on-device speech in system settings, then try again.</string>
+    <string name="chat_voice_audio">The microphone couldn’t be used. Try again.</string>
+    <string name="chat_voice_busy">Speech recognition is busy. Try again in a moment.</string>
+    <string name="chat_voice_error">Couldn’t turn that into text. Try again.</string>
     <plurals name="chat_stats_model_messages">
         <item quantity="one">Qwen 2.5 1.5B • %1$d message</item>
         <item quantity="other">Qwen 2.5 1.5B • %1$d messages</item>

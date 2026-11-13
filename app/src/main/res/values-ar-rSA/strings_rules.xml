@@ -280,6 +280,17 @@
     <string name="chat_dismiss">تجاهل</string>
     <string name="chat_input_placeholder">اسأل أو أخبرني بما أنفقته…</string>
     <string name="chat_send">إرسال</string>
+    <string name="chat_voice_mic">إملاء رسالة</string>
+    <string name="chat_voice_stop">إيقاف الإملاء</string>
+    <string name="chat_voice_listening">جارٍ الاستماع…</string>
+    <string name="chat_voice_unavailable">التعرف على الكلام على الجهاز غير متاح على هذا الهاتف، ولم يُسجَّل شيء.</string>
+    <string name="chat_voice_blocked">الميكروفون متوقف. فعّله من الإعدادات للإملاء.</string>
+    <string name="chat_voice_no_match">لم أسمع ذلك بوضوح. حاول مرة أخرى.</string>
+    <string name="chat_voice_timeout">لم يُسمع كلام. حاول مرة أخرى.</string>
+    <string name="chat_voice_language">نزّل هذه اللغة للتعرف على الكلام على الجهاز من إعدادات النظام، ثم حاول مرة أخرى.</string>
+    <string name="chat_voice_audio">تعذر استخدام الميكروفون. حاول مرة أخرى.</string>
+    <string name="chat_voice_busy">التعرف على الكلام مشغول. حاول بعد لحظة.</string>
+    <string name="chat_voice_error">تعذر تحويل ذلك إلى نص. حاول مرة أخرى.</string>
     <plurals name="chat_stats_model_messages">
         <item quantity="zero">Qwen 2.5 1.5B • %1$d رسالة</item>
         <item quantity="one">Qwen 2.5 1.5B • رسالة %1$d</item>

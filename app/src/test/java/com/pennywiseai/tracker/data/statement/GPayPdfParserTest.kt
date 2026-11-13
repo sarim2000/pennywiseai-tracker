@@ -2,8 +2,8 @@ package com.pennywiseai.tracker.data.statement
 
 import com.pennywiseai.parser.core.TransactionType
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
@@ -160,6 +160,57 @@ class GPayPdfParserTest {
         assertEquals("323456789012", txs[2].reference)
         assertEquals(epochForIstDate("16 Oct, 2025 11:13 AM"), txs[2].timestamp)
     }
+
+    /**
+     * #1100: a synthetic two-page statement in the current "Date & time |
+     * Transaction details | Amount" layout. Times carry a narrow no-break space
+     * before AM/PM (as ICU formats them), the account is "State Bank of India
+     * 1234" (bank keyword not right before the digits), and one row is a
+     * Google Pay rewards credit. `cells` is the text in cell order (date, time,
+     * details, amount on their own lines); `rows` is one visual line per row.
+     */
+    private fun assertIssue1100Fixture(name: String) {
+        val text = javaClass.getResource("/statements/$name")!!.readText()
+        assertTrue(parser.canHandle(text))
+        val txs = parser.parse(text)
+
+        assertEquals(6, txs.size)
+        assertEquals(
+            listOf("SAMPLE CAFE", "Google Pay rewards", "SAMPLE GROCERY", "SAMPLE FRIEND", "SAMPLE STORE 2024", "SAMPLE PHARMACY"),
+            txs.map { it.merchant }
+        )
+        assertEquals(
+            listOf(
+                TransactionType.EXPENSE, TransactionType.INCOME, TransactionType.EXPENSE,
+                TransactionType.INCOME, TransactionType.EXPENSE, TransactionType.EXPENSE
+            ),
+            txs.map { it.type }
+        )
+        assertEquals(
+            listOf("500", "2", "1250.50", "3000", "99", "245.75").map(::BigDecimal),
+            txs.map { it.amount }
+        )
+        assertEquals(
+            listOf(
+                "01 Nov, 2025 10:15 AM", "02 Nov, 2025 06:40 PM", "03 Nov, 2025 09:05 AM",
+                "04 Nov, 2025 08:30 PM", "05 Nov, 2025 12:00 PM", "06 Nov, 2025 07:10 AM"
+            ).map(::epochForIstDate),
+            txs.map { it.timestamp }
+        )
+        assertEquals((1..6).map { "10000000000$it" }, txs.map { it.reference })
+        txs.forEach {
+            assertEquals("1234", it.accountLast4)
+            assertEquals("State Bank of India", it.bankName)
+        }
+    }
+
+    @Test
+    fun `issue 1100 - cell-ordered statement keeps dates, payees and received rows`() =
+        assertIssue1100Fixture("gpay_statement_cells.txt")
+
+    @Test
+    fun `issue 1100 - row-per-line statement keeps dates, payees and received rows`() =
+        assertIssue1100Fixture("gpay_statement_rows.txt")
 
     @Test
     fun `middle transactions do not borrow next transaction's date`() {

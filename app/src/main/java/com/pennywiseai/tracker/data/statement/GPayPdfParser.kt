@@ -36,11 +36,11 @@ class GPayPdfParser : PdfStatementParser {
     private val receivedAnchorRegex = Regex(
         """^Received\s+from\s+(.+)$""", RegexOption.IGNORE_CASE
     )
-    // Stricter version for anchor detection and account extraction: only matches
-    // if the name before the 4 digits contains a known account keyword (Bank, Card, A/c).
-    // This prevents "Paid to Store 2024" from being misclassified as an account line.
+    // Account line: "Paid by/to <name> 1234" where the name contains an account
+    // keyword (Bank, Card, A/c) anywhere: "HDFC Bank 1234" and "State Bank of
+    // India 1234" alike (#1100). "Paid to Store 2024" stays a merchant.
     private val bankAccountLineRegex = Regex(
-        """^Paid\s+(?:by|to)\s+(.+)\s+(Bank|Card|A/c)\s+(\d{4})$""", RegexOption.IGNORE_CASE
+        """^Paid\s+(?:by|to)\s+(.*\b(?:Bank|Card|A/c)\b.*?)\s+(\d{4})$""", RegexOption.IGNORE_CASE
     )
     private val upiIdRegex = Regex(
         """UPI\s+Transaction\s+ID[:\s]+(\d+)""", RegexOption.IGNORE_CASE
@@ -68,7 +68,9 @@ class GPayPdfParser : PdfStatementParser {
     override fun parse(text: String): List<ParsedTransaction> {
         Log.i(TAG, "Starting parse — text length=${text.length}")
 
-        val blocks = splitIntoBlocks(text)
+        // PDF text can carry no-break spaces (e.g. U+202F before "AM") that
+        // `\s` doesn't match; without this every date fell back to now (#1100).
+        val blocks = splitIntoBlocks(text.replace(Regex("""\p{Zs}"""), " "))
         Log.i(TAG, "Split into ${blocks.size} blocks")
 
         val transactions = blocks.mapIndexedNotNull { index, block ->
@@ -284,7 +286,7 @@ class GPayPdfParser : PdfStatementParser {
 
         if (dateLine == null || timeLine == null || (yearLine == null && !fullDateLineRegex.matches(dateLine))) {
             Log.e(TAG, "Incomplete timestamp for '$merchant' — " +
-                    "date='$dateLine' year='$yearLine' time='$timeLine' | lines=$lines")
+                "date='$dateLine' year='$yearLine' time='$timeLine' | lines=$lines")
             return null
         }
 
@@ -339,12 +341,8 @@ class GPayPdfParser : PdfStatementParser {
         }
 
         val match    = bankAccountLineRegex.find(accountLine)
-        val bankName = if (match != null) {
-            val first = match.groupValues.getOrNull(1)?.trim()
-            val second = match.groupValues.getOrNull(2)?.trim()
-            listOfNotNull(first, second).joinToString(" ").takeIf { it.isNotBlank() }
-        } else null
-        val last4    = match?.groupValues?.getOrNull(3)?.trim()
+        val bankName = match?.groupValues?.getOrNull(1)?.trim()?.takeIf { it.isNotBlank() }
+        val last4    = match?.groupValues?.getOrNull(2)?.trim()
 
         Log.d(TAG, "Account — bank='$bankName' last4='$last4' from '$accountLine'")
         return AccountInfo(bankName, last4)

@@ -45,15 +45,18 @@ class BarqParser : BankParser() {
 
     override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {
         val parsed = super.parse(smsBody, sender, timestamp) ?: return null
-        if (parsed.type == TransactionType.TRANSFER && isWalletFunding(smsBody.lowercase())) {
-            // The funding instrument is separate from the wallet that owns the balance.
-            return parsed.copy(accountLast4 = null, isFromCard = false, isMobileWallet = true)
+        // Barq has one wallet balance: the card spends from it and top-ups fund it.
+        // Whenever the message carries that balance, route it to the single wallet
+        // account so funding and spending never split it across a card and a wallet.
+        // Funding instruments and counterparty A/Cs are never the user's account either.
+        val walletOwned = parsed.balance != null ||
+            (parsed.type == TransactionType.TRANSFER && isWalletFunding(smsBody.lowercase())) ||
+            COUNTERPARTY_ACCOUNT_FIELD.containsMatchIn(smsBody)
+        return if (walletOwned) {
+            parsed.copy(accountLast4 = null, isFromCard = false, isMobileWallet = true)
+        } else {
+            parsed
         }
-
-        if (COUNTERPARTY_ACCOUNT_FIELD.containsMatchIn(smsBody)) {
-            return parsed.copy(accountLast4 = null, isFromCard = false, isMobileWallet = true)
-        }
-        return parsed
     }
 
     override fun extractTransactionType(message: String): TransactionType? {

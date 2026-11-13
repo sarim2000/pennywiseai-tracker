@@ -22,7 +22,22 @@ class BarqParserTest {
                 "Incoming Local Transfer\nAmount: SAR 12.50\nFrom: Example Sender\nSender A/C: **1234", "BARQAPP",
                 ExpectedTransaction(BigDecimal("12.50"), "SAR", TransactionType.INCOME,
                     isFromCard = false, expectNullAccountLast4 = true)),
-            ParserTestCase("Reject verification code", "OTP: 000000 for Online Purchase\nAmount: SAR 12.50", "BARQAPP", shouldParse = false)
-        )
+            ParserTestCase("Reject verification code", "OTP: 000000 for Online Purchase\nAmount: SAR 12.50", "BARQAPP", shouldParse = false),
+            ParserTestCase("Foreign purchase uses the parenthesised SAR settlement",
+                "Online Purchase\nAmount: USD 10.00 (SAR 37.60)\nFees: SAR 0.94\nAt: Example Store\nCard: **1234\nBalance: SAR 12.40", "BARQAPP",
+                ExpectedTransaction(BigDecimal("37.60"), "SAR", TransactionType.EXPENSE, merchant = "Example Store",
+                    balance = BigDecimal("12.40"), isFromCard = false, isMobileWallet = true, expectNullAccountLast4 = true)),
+            // Same wallet identity as the top-up case above: one Barq balance, one account.
+            ParserTestCase("Card purchase with balance lands on the wallet account",
+                "Online Purchase\nAmount: SAR 12.50\nAt: Example Store\nCard: **1234\nBalance: SAR 37.50", "BARQAPP-AD",
+                ExpectedTransaction(BigDecimal("12.50"), "SAR", TransactionType.EXPENSE, merchant = "Example Store",
+                    balance = BigDecimal("37.50"), isFromCard = false, isMobileWallet = true, expectNullAccountLast4 = true)),
+            ParserTestCase("Card purchase without balance keeps the card",
+                "Online Purchase\nAmount: SAR 12.50\nAt: Example Store\nCard: **1234", "BARQAPP",
+                ExpectedTransaction(BigDecimal("12.50"), "SAR", TransactionType.EXPENSE, merchant = "Example Store",
+                    accountLast4 = "1234", isFromCard = true, isMobileWallet = false))
+        ),
+        listOf("BARQAPP" to true, "barqapp-AD" to true, "BARQ" to false, "UNKNOWN" to false),
+        "Barq Parser"
     )
 }

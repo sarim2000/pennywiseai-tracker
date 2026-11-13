@@ -17,7 +17,7 @@ import java.math.BigDecimal
 class IFICBangladeshParserTest {
     private val parser = IFICBangladeshParser()
     private fun sms(action: String, balance: String? = "BDT 27,900.00 Balance",
-                    date: String = "18/07/2026 at 18:42", joint: Boolean = true): String =
+        date: String = "18/07/2026 at 18:42", joint: Boolean = true): String =
         listOfNotNull(date, action,
             if (action.contains("Automatic Loan Repayment")) balance else null,
             if (joint) "Joint A/C 00003***1234" else "A/C 00006***5678",

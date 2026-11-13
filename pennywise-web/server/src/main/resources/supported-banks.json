@@ -1,5 +1,5 @@
 {
-  "totalBanks": 175,
+  "totalBanks": 176,
   "totalCountries": 26,
   "countries": [
     {
@@ -99,20 +99,20 @@
       "banks": ["Commercial Bank of Ceylon", "National Development Bank", "National Savings Bank", "Nations Trust Bank", "Sampath Bank"]
     },
     {
+      "country": "Bangladesh",
+      "flag": "🇧🇩",
+      "currency": "BDT",
+      "symbol": "৳",
+      "bankCount": 4,
+      "banks": ["BRAC Bank", "City Bank (Bangladesh)", "IFIC Bank (Bangladesh)", "bKash"]
+    },
+    {
       "country": "Mozambique",
       "flag": "🇲🇿",
       "currency": "MZN",
       "symbol": "MT",
       "bankCount": 4,
       "banks": ["M-Pesa Mozambique", "Millennium BIM", "Standard Bank Mozambique", "eMola"]
-    },
-    {
-      "country": "Bangladesh",
-      "flag": "🇧🇩",
-      "currency": "BDT",
-      "symbol": "৳",
-      "bankCount": 3,
-      "banks": ["BRAC Bank", "City Bank (Bangladesh)", "bKash"]
     },
     {
       "country": "Egypt",

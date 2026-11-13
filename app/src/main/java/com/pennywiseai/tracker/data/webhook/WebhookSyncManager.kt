@@ -1,13 +1,13 @@
 package com.pennywiseai.tracker.data.webhook
 
-import com.pennywiseai.tracker.billing.EntitlementGate
+import com.pennywiseai.tracker.core.entitlement.ProEntitlement
 import com.pennywiseai.tracker.data.database.entity.WebhookLogEntity
 import com.pennywiseai.tracker.data.database.entity.WebhookLogStatus
 import com.pennywiseai.tracker.data.repository.WebhookRepository
-import java.time.LocalDateTime
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import kotlinx.coroutines.CancellationException
+import java.time.LocalDateTime
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -18,12 +18,12 @@ class WebhookSyncManager @Inject constructor(
     private val repository: WebhookRepository,
     private val builder: WebhookPayloadBuilder,
     private val delivery: WebhookDeliveryService,
-    private val entitlementGate: EntitlementGate
+    private val proEntitlement: ProEntitlement
 ) {
     private val mutex = Mutex()
 
     suspend fun syncAll(reason: WebhookSyncReason, test: Boolean = false): WebhookSyncRunResult {
-        if (!entitlementGate.isProEntitled.value) return WebhookSyncRunResult(false, false)
+        if (!proEntitlement.isProEntitled.value) return WebhookSyncRunResult(false, false)
         require(!test) { "Test delivery requires a profile" }
         var success = false
         var retry = false
@@ -36,7 +36,7 @@ class WebhookSyncManager @Inject constructor(
     }
 
     suspend fun syncProfile(id: String, reason: WebhookSyncReason, test: Boolean = false): WebhookSyncRunResult = mutex.withLock {
-        if (!entitlementGate.isProEntitled.value) return@withLock WebhookSyncRunResult(false, false)
+        if (!proEntitlement.isProEntitled.value) return@withLock WebhookSyncRunResult(false, false)
         val profile = repository.profile(id) ?: return@withLock WebhookSyncRunResult(false, false)
         if (!profile.enabled && !test) return@withLock WebhookSyncRunResult(false, false)
         val types = repository.decodeDataTypes(profile.dataTypes)
@@ -56,7 +56,7 @@ class WebhookSyncManager @Inject constructor(
         var retry = false
         var completed = batches.isNotEmpty()
         for (batch in batches) {
-            if (!entitlementGate.isProEntitled.value) return@withLock WebhookSyncRunResult(success, false)
+            if (!proEntitlement.isProEntitled.value) return@withLock WebhookSyncRunResult(success, false)
             val attempt = delivery.deliver(profile.url, repository.decodeHeaders(profile.headersJson), batch.envelope)
             repository.appendLog(WebhookLogEntity(
                 profileId = profile.id, profileName = profile.name, syncReason = reason,

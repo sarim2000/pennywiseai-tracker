@@ -1,8 +1,8 @@
-package com.pennywiseai.tracker.billing
+package com.pennywiseai.tracker.core.entitlement
 
 /**
  * Free-tier quotas for Pro-gated features. Constants only — feature modules
- * read these and combine with [EntitlementGate.isProEntitled] to decide
+ * read these and combine with [ProEntitlement.isProEntitled] to decide
  * whether to render the upgrade prompt.
  *
  * Keeping these in a single file makes it cheap to audit "what does the

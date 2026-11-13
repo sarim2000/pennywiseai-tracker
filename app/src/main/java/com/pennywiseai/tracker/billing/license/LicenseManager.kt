@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.billing.license
 import android.os.Build
 import android.util.Log
 import com.pennywiseai.tracker.core.ApplicationScope
+import com.pennywiseai.tracker.core.entitlement.LicenseRestorer
 import com.pennywiseai.tracker.data.preferences.BillingPreferences
 import com.pennywiseai.tracker.data.preferences.StoredLicense
 import kotlinx.coroutines.CoroutineScope
@@ -39,7 +40,7 @@ class LicenseManager @Inject constructor(
     private val client: LicenseClient,
     private val preferences: BillingPreferences,
     @ApplicationScope private val scope: CoroutineScope,
-) {
+) : LicenseRestorer {
 
     sealed class ActivationOutcome {
         data object Activated : ActivationOutcome()
@@ -109,7 +110,7 @@ class LicenseManager @Inject constructor(
      * succeeds the stored license has no instance and grants nothing; the
      * ticker keeps retrying a pending adoption.
      */
-    suspend fun restore(key: String, previousInstanceId: String?) {
+    override suspend fun restore(key: String, previousInstanceId: String?) {
         if (key.isBlank()) return
         mutex.withLock {
             preferences.setStoredLicense(

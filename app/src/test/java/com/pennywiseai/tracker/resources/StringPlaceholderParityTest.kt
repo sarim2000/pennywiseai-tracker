@@ -2,9 +2,9 @@ package com.pennywiseai.tracker.resources
 
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import org.w3c.dom.Element
 import java.io.File
 import javax.xml.parsers.DocumentBuilderFactory
-import org.w3c.dom.Element
 
 /**
  * Every translated string must use the same format placeholders as the English
@@ -119,6 +119,10 @@ class StringPlaceholderParityTest {
                     .orEmpty().sortedBy { it.name }
                     .forEach { file ->
                         val source = english[file.name] ?: return@forEach
+                        // Crowdin writes an empty <resources/> for a file with no
+                        // translations yet. A raw text check (not the parser) keeps
+                        // those out of the count without hiding a parsing break.
+                        if (!file.readText().contains("<string")) return@forEach
                         localeFiles++
                         stringsIn(file).forEach { (key, translated) ->
                             val expected = source[key]?.let(::placeholders) ?: return@forEach

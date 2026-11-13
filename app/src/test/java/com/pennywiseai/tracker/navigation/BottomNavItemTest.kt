@@ -1,4 +1,4 @@
-package com.pennywiseai.tracker.presentation.navigation
+package com.pennywiseai.tracker.navigation
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -8,6 +8,16 @@ import org.junit.Test
 class BottomNavItemTest {
 
     private val allRoutes = BottomNavItem.all.map { it.route }.toSet()
+
+    @Test
+    fun `tab routes keep their stored values`() {
+        // The hidden-tabs preference and MainScreen's saved current tab hold these
+        // strings. Renaming one would lose that state on update.
+        assertEquals(
+            listOf("home", "transactions", "analytics", "chat"),
+            BottomNavItem.all.map { it.route },
+        )
+    }
 
     @Test
     fun `nothing hidden by default shows every tab in order`() {

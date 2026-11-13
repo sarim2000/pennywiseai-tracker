@@ -906,6 +906,16 @@ open class AccountBalanceRepository @Inject constructor(
                 original.fromAccount != updated.fromAccount ||
                 original.toAccount != updated.toAccount
             )
+        // A merchant/category-only edit moves no balance; skipping the recompute keeps a
+        // batch rule run from re-summing an account once per row.
+        if (original != null && !balanceRelevantChange &&
+            original.currency == updated.currency &&
+            original.isDeleted == updated.isDeleted &&
+            original.dateTime == updated.dateTime &&
+            original.transferPairId == updated.transferPairId
+        ) {
+            return
+        }
         if (balanceRelevantChange) applyTransactionBalanceShift(original, updated)
         // Also covers amount/date edits on an unchanged manual account.
         if (newBank != null && newAccount != null) recomputeManualBalance(newBank, newAccount)

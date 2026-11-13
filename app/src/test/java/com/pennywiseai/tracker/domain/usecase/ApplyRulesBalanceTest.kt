@@ -1,7 +1,9 @@
 package com.pennywiseai.tracker.domain.usecase
 
+import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
@@ -15,12 +17,18 @@ import io.mockk.coEvery
 import io.mockk.coVerifyOrder
 import io.mockk.every
 import io.mockk.mockk
+import io.mockk.mockkStatic
+import io.mockk.unmockkStatic
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
+import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Before
 import org.junit.Test
 import java.math.BigDecimal
 import java.time.LocalDateTime
+
+private const val ROOM_COMPAT = "com.pennywiseai.tracker.data.database.RoomCompatKt"
 
 /** A rule moving a past transfer's leg moves the balances too, as a manual edit does (#1068). */
 class ApplyRulesBalanceTest {
@@ -28,13 +36,26 @@ class ApplyRulesBalanceTest {
     private val engine = mockk<RuleEngine>()
     private val tags = mockk<TagRepository>(relaxed = true)
     private val balances = mockk<AccountBalanceRepository>(relaxed = true)
+    private val database = mockk<PennyWiseDatabase>()
     private val useCase = ApplyRulesToPastTransactionsUseCase(
         transactions,
         mockk<RuleRepository>(relaxed = true),
         engine,
         tags,
-        balances
+        balances,
+        database
     )
+
+    @Before
+    fun setUp() {
+        mockkStatic(ROOM_COMPAT)
+        coEvery { database.withTransaction(any<suspend () -> Any?>()) } coAnswers {
+            secondArg<suspend () -> Any?>().invoke()
+        }
+    }
+
+    @After
+    fun tearDown() = unmockkStatic(ROOM_COMPAT)
 
     @Test
     fun ruleChangingTransferLegShiftsBalances() = runBlocking {
@@ -69,6 +90,7 @@ class ApplyRulesBalanceTest {
 
         assertEquals(1, result.totalUpdated)
         coVerifyOrder {
+            database.withTransaction(any<suspend () -> Any?>())
             balances.pinManualOpenings(original, updated)
             transactions.updateTransaction(updated)
             balances.reflectTransactionEdit(original, updated)

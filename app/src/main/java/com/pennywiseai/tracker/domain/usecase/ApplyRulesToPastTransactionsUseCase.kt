@@ -1,6 +1,8 @@
 package com.pennywiseai.tracker.domain.usecase
 
+import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
@@ -29,13 +31,20 @@ class ApplyRulesToPastTransactionsUseCase @Inject constructor(
     private val ruleRepository: RuleRepository,
     private val ruleEngine: RuleEngine,
     private val tagRepository: TagRepository,
-    private val accountBalanceRepository: AccountBalanceRepository
+    private val accountBalanceRepository: AccountBalanceRepository,
+    private val database: PennyWiseDatabase
 ) {
-    /** Writes a rule-edited row and moves the balances it touches, as a manual edit does. */
+    /**
+     * Writes a rule-edited row and moves the balances it touches, as a manual edit
+     * does. One transaction: a row that commits without its balance shift can't be
+     * repaired by re-applying the rule, which then sees nothing to change.
+     */
     private suspend fun updateWithBalances(original: TransactionEntity, updated: TransactionEntity) {
-        accountBalanceRepository.pinManualOpenings(original, updated)
-        transactionRepository.updateTransaction(updated)
-        accountBalanceRepository.reflectTransactionEdit(original, updated)
+        database.withTransaction {
+            accountBalanceRepository.pinManualOpenings(original, updated)
+            transactionRepository.updateTransaction(updated)
+            accountBalanceRepository.reflectTransactionEdit(original, updated)
+        }
     }
 
     /**

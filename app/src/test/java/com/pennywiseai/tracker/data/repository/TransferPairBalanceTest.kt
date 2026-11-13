@@ -8,6 +8,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.withTransaction
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.mockk
 import io.mockk.mockkStatic
 import io.mockk.unmockkStatic
@@ -125,6 +126,14 @@ class TransferPairBalanceTest {
         val before = time.minusDays(1)
         assertEquals(0, BigDecimal("1000").compareTo(repo.balanceAsOf(bank(SOURCE), SOURCE, before)))
         assertEquals(0, BigDecimal("0").compareTo(repo.balanceAsOf(bank(DESTINATION), DESTINATION, before)))
+    }
+
+    @Test
+    fun `a merchant-only edit doesn't recompute balances`() = runBlocking {
+        manual = true
+        repo.reflectTransactionEdit(source, source.copy(merchantName = "Renamed", category = "Food"))
+        coVerify(exactly = 0) { transactionDao.getTransfersForAccount(any()) }
+        coVerify(exactly = 0) { balanceDao.insertBalance(any()) }
     }
 
     private companion object {

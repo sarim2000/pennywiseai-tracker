@@ -29,7 +29,7 @@ class ApplyRulesSplitBillTest {
     private val rules = mockk<RuleRepository>(relaxed = true)
     private val engine = mockk<RuleEngine>()
     private val tags = mockk<TagRepository>(relaxed = true)
-    private val useCase = ApplyRulesToPastTransactionsUseCase(transactions, rules, engine, tags, mockk(relaxed = true))
+    private val useCase = ApplyRulesToPastTransactionsUseCase(transactions, rules, engine, tags, mockk(relaxed = true), mockk(relaxed = true))
     private val rule = mockk<TransactionRule>(relaxed = true)
 
     private val bill = TransactionEntity(

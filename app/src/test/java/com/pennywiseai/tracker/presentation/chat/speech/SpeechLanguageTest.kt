@@ -23,6 +23,18 @@ class SpeechLanguageTest {
     }
 
     @Test
+    fun phoneLanguageWithoutAScriptBeatsALaterExactPack() {
+        val menu = speechLanguageMenu(
+            installed = listOf("zh-Hans-CN", "en-US"),
+            pending = emptyList(),
+            downloadable = emptyList(),
+            userTags = listOf("zh", "en-US"),
+            saved = null,
+        )
+        assertEquals("zh-Hans-CN", menu.selected)
+    }
+
+    @Test
     fun savedLanguageWinsWhenItsPackIsInstalled() {
         val menu = speechLanguageMenu(
             installed = listOf("en-US", "ar-SA"),
@@ -313,17 +325,30 @@ class SpeechLanguageTest {
     @Test
     fun openDownloadDialogDoesNotSaveBeforeTheRecognizerAcceptsIt() {
         val report = SpeechPackReport(installed = listOf("fr-FR"), known = true)
-        val waiting = stepDownload(
-            DownloadTrack(tag = "fr-FR", autoSelect = true, accepted = false, elapsedMs = 1_000),
-            report,
+        assertNull(
+            stepDownload(
+                DownloadTrack(tag = "fr-FR", autoSelect = true, accepted = false, elapsedMs = 1_000),
+                report,
+            ),
         )
-        assertNull(waiting)
-        val abandoned = stepDownload(
-            DownloadTrack(tag = "fr-FR", autoSelect = true, accepted = false, elapsedMs = DOWNLOAD_DIALOG_MS),
-            report,
+        assertNull(
+            stepDownload(
+                DownloadTrack(tag = "fr-FR", autoSelect = true, accepted = false, elapsedMs = DOWNLOAD_DIALOG_MS),
+                report,
+            ),
         )
-        assertNull(abandoned?.saveTag)
-        assertTrue(abandoned!!.done)
+    }
+
+    @Test
+    fun dialogTimeoutHidesTheRowAndLeavesTheRequestOpen() {
+        assertTrue(downloadRowVisible(accepted = false, elapsedMs = 1_000))
+        assertFalse(downloadRowVisible(accepted = false, elapsedMs = DOWNLOAD_DIALOG_MS))
+        assertTrue(downloadRowVisible(accepted = true, elapsedMs = DOWNLOAD_DIALOG_MS))
+        val lateSuccess = stepDownload(
+            DownloadTrack(tag = "fr-FR", autoSelect = true, accepted = true, elapsedMs = DOWNLOAD_DIALOG_MS),
+            SpeechPackReport(installed = listOf("en-US", "fr-FR"), known = true),
+        )
+        assertEquals("fr-FR", lateSuccess?.saveTag)
     }
 
     @Test

@@ -145,16 +145,24 @@ internal data class DownloadTrackStep(
     val saveTag: String?,
 )
 
-/** Null while the download should keep waiting. */
+/**
+ * The spinner gives up when the system dialog sits unanswered. The request
+ * itself stays open until the recognizer calls back, so a late success
+ * can still save the pack.
+ */
+internal fun downloadRowVisible(
+    accepted: Boolean,
+    elapsedMs: Long,
+    dialogMs: Long = DOWNLOAD_DIALOG_MS,
+): Boolean = accepted || elapsedMs < dialogMs
+
+/** Null while the download should keep waiting. An unaccepted request never ends here. */
 internal fun stepDownload(
     track: DownloadTrack,
     report: SpeechPackReport,
-    dialogMs: Long = DOWNLOAD_DIALOG_MS,
 ): DownloadTrackStep? {
     if (packGroup(track.tag).isEmpty()) return DownloadTrackStep(done = true, saveTag = null)
-    if (!track.accepted) {
-        return if (track.elapsedMs >= dialogMs) DownloadTrackStep(done = true, saveTag = null) else null
-    }
+    if (!track.accepted) return null
     val decision = watchDownload(report, packGroup(track.tag), track.elapsedMs)
     return when {
         decision.installedTag != null -> DownloadTrackStep(
@@ -369,9 +377,10 @@ private fun selectTag(
         ready.firstOrNull { sameLanguage(it.tag, saved) }?.let { return it.tag }
     }
     for (user in userTags) {
+        // A bare "zh" is not the "zh-hans" group. Finish this user, including the
+        // same-language pack, before the next tag. Otherwise a later exact match
+        // such as en-US wins over the phone's Chinese.
         ready.firstOrNull { packGroup(it.tag) == packGroup(user) }?.let { return it.tag }
-    }
-    for (user in userTags) {
         ready.firstOrNull { sameLanguage(it.tag, user) }?.let { return it.tag }
     }
     return ready.first().tag

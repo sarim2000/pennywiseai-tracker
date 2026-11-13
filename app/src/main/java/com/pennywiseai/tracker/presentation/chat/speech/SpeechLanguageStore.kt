@@ -101,12 +101,19 @@ internal class SpeechLanguageStore(
         report = next
         settled = true
         val tag = activeTag ?: return
+        val elapsed = SystemClock.elapsedRealtime() - downloadArmedAt
+        if (!downloadAccepted) {
+            // The dialog can outlast the spinner, and onSuccess can be the first
+            // callback once a slow pack finishes. Hide the row, keep the request.
+            if (!downloadRowVisible(accepted = false, elapsedMs = elapsed)) downloading = emptySet()
+            return
+        }
         val step = stepDownload(
             track = DownloadTrack(
                 tag = tag,
                 autoSelect = autoSelect,
-                accepted = downloadAccepted,
-                elapsedMs = SystemClock.elapsedRealtime() - downloadArmedAt,
+                accepted = true,
+                elapsedMs = elapsed,
             ),
             report = next,
         ) ?: return

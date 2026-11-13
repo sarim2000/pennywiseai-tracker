@@ -122,7 +122,8 @@ class StringPlaceholderParityTest {
                         // Crowdin writes an empty <resources/> for a file with no
                         // translations yet. A raw text check (not the parser) keeps
                         // those out of the count without hiding a parsing break.
-                        if (!file.readText().contains("<string")) return@forEach
+                        val text = file.readText()
+                        if (!text.contains("<string") && !text.contains("<plurals")) return@forEach
                         localeFiles++
                         stringsIn(file).forEach { (key, translated) ->
                             val expected = source[key]?.let(::placeholders) ?: return@forEach

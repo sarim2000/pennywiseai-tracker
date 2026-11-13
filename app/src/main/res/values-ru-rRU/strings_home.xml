@@ -312,6 +312,8 @@
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">Сохранено как %1$s</string>
     <string name="notif_txn_learned_text">Платежи здесь теперь будут распределяться автоматически.</string>
+    <!-- Learned-note action: keep this pick, but don't remember the merchant -->
+    <string name="notif_txn_learned_only_this_one">Только эту</string>
     <plurals name="notif_txn_learned_moved">
         <item quantity="one">Также перенесена %d прежняя транзакция.</item>
         <item quantity="few">Также перенесены %d прежние транзакции.</item>

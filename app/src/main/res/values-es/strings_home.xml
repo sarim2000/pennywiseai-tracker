@@ -281,6 +281,8 @@
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">Guardado como %1$s</string>
     <string name="notif_txn_learned_text">A partir de ahora, los pagos aquí se clasificarán automáticamente.</string>
+    <!-- Learned-note action: keep this pick, but don't remember the merchant -->
+    <string name="notif_txn_learned_only_this_one">Solo esta</string>
     <plurals name="notif_txn_learned_moved">
         <item quantity="one">También se movió %d anterior.</item>
         <item quantity="other">También se movieron %d anteriores.</item>

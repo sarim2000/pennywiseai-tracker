@@ -50,7 +50,7 @@ class IFICBangladeshParser : BankParser() {
             (BALANCE_AFTER.matchEntire(line) ?: BALANCE_BEFORE.matchEntire(line))
                 ?.groupValues?.get(1)?.let(::money)
         }
-        val description = action.groupValues[2].lowercase()
+        val description = action.groupValues[2].lowercase().replace(Regex("\\s+"), " ")
         val (type, merchant) = when {
             description.startsWith("automatic loan repayment") -> TransactionType.EXPENSE to "Loan Principal Repayment"
             description.startsWith("cash deposit") -> TransactionType.INCOME to "Cash Deposit"

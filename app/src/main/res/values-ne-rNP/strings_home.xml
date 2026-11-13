@@ -284,7 +284,6 @@
     <string name="notif_txn_learned_title">%1$s को रूपमा सुरक्षित भयो</string>
     <string name="notif_txn_learned_text">अबदेखि यहाँका भुक्तानीहरू आफैं मिलाइनेछन्।</string>
     <!-- Learned-note action: keep this pick, but don't remember the merchant -->
-    <string name="notif_txn_learned_only_this_one">यो मात्र</string>
     <plurals name="notif_txn_learned_moved">
         <item quantity="one">पहिलेको %d वटा पनि सारियो।</item>
         <item quantity="other">पहिलेका %d वटा पनि सारिए।</item>

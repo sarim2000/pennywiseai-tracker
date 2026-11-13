@@ -272,7 +272,6 @@
     <string name="notif_txn_learned_title">บันทึกเป็น %1$s แล้ว</string>
     <string name="notif_txn_learned_text">ต่อจากนี้รายการจ่ายที่นี่จะถูกจัดหมวดหมู่ให้อัตโนมัติ</string>
     <!-- Learned-note action: keep this pick, but don't remember the merchant -->
-    <string name="notif_txn_learned_only_this_one">เฉพาะรายการนี้</string>
     <plurals name="notif_txn_learned_moved">
         <item quantity="other">ย้ายรายการก่อนหน้า %d รายการไปด้วยแล้ว</item>
     </plurals>

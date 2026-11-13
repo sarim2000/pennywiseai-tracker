@@ -342,7 +342,6 @@
     <string name="notif_txn_learned_title">حُفظت في %1$s</string>
     <string name="notif_txn_learned_text">ستُصنَّف المدفوعات هنا تلقائياً من الآن.</string>
     <!-- Learned-note action: keep this pick, but don't remember the merchant -->
-    <string name="notif_txn_learned_only_this_one">هذه فقط</string>
     <plurals name="notif_txn_learned_moved">
         <item quantity="zero">لم تُنقل أي عملية سابقة.</item>
         <item quantity="one">ونُقلت %d عملية سابقة أيضاً.</item>

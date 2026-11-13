@@ -308,7 +308,6 @@
     <string name="notif_txn_learned_title">Захавана як %1$s</string>
     <string name="notif_txn_learned_text">Цяпер плацяжы сюды будуць сартавацца аўтаматычна.</string>
     <!-- Learned-note action: keep this pick, but don't remember the merchant -->
-    <string name="notif_txn_learned_only_this_one">Толькі гэтую</string>
     <plurals name="notif_txn_learned_moved">
         <item quantity="one">Таксама перанесена %d ранейшая транзакцыя.</item>
         <item quantity="few">Таксама перанесены %d ранейшыя транзакцыі.</item>

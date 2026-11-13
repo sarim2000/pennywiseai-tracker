@@ -211,6 +211,7 @@
     <string name="txn_item_tag_recurring">เกิดซ้ำ</string>
     <string name="txn_item_tag_business">ธุรกิจ</string>
     <string name="txn_item_tag_excluded">ไม่นับรวม</string>
+    <!-- A split row in a category-filtered list: its full amount, e.g. "Split of ₹10,000" -->
     <string name="txn_item_balance_after">คงเหลือ %1$s</string>
     <!-- %1$s is the last 4 digits of the other account -->
     <string name="txn_item_transfer_to">โอน → %1$s</string>

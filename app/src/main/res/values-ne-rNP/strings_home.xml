@@ -223,6 +223,7 @@
     <string name="txn_item_tag_recurring">पुनरावृत्ती हुने</string>
     <string name="txn_item_tag_business">व्यवसाय</string>
     <string name="txn_item_tag_excluded">बाहेक गरिएको</string>
+    <!-- A split row in a category-filtered list: its full amount, e.g. "Split of ₹10,000" -->
     <string name="txn_item_balance_after">बालान्स %1$s</string>
     <!-- %1$s is the last 4 digits of the other account -->
     <string name="txn_item_transfer_to">स्थानान्तरण → %1$s</string>

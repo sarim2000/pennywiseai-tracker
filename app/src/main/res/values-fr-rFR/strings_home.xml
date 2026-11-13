@@ -225,6 +225,7 @@
     <string name="txn_item_tag_recurring">Récurrents</string>
     <string name="txn_item_tag_business">Entreprise</string>
     <string name="txn_item_tag_excluded">Exclus</string>
+    <!-- A split row in a category-filtered list: its full amount, e.g. "Split of ₹10,000" -->
     <string name="txn_item_balance_after">Solde %1$s</string>
     <!-- %1$s is the last 4 digits of the other account -->
     <string name="txn_item_transfer_to">Transfert → %1$s</string>

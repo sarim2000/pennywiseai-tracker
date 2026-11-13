@@ -277,6 +277,7 @@
     <string name="txn_item_tag_recurring">متكرر</string>
     <string name="txn_item_tag_business">الأعمال</string>
     <string name="txn_item_tag_excluded">مستبعد</string>
+    <!-- A split row in a category-filtered list: its full amount, e.g. "Split of ₹10,000" -->
     <string name="txn_item_balance_after">الرصيد %1$s</string>
     <!-- %1$s is the last 4 digits of the other account -->
     <string name="txn_item_transfer_to">نقل → %1$s</string>

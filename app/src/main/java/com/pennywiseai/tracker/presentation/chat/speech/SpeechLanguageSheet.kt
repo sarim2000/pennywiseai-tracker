@@ -171,7 +171,15 @@ fun SpeechLanguageSheet(
                     ),
                 )
                 languages.menu.ready.forEach { choice ->
-                    ReadyRow(choice, selected = choice.tag == languages.menu.selected) {
+                    val native = speechLanguageName(choice.tag)
+                    val collision = languages.menu.ready.count {
+                        speechLanguageName(it.tag).equals(native, ignoreCase = true)
+                    } > 1
+                    ReadyRow(
+                        choice,
+                        selected = choice.tag == languages.menu.selected,
+                        detail = if (collision) speechPackDetail(choice.tag) else null,
+                    ) {
                         languages.select(choice.tag)
                         onDismiss()
                     }
@@ -257,9 +265,11 @@ private fun SectionLabel(text: String) {
 private fun ReadyRow(
     choice: SpeechLanguageChoice,
     selected: Boolean,
+    detail: String? = null,
     onSelect: () -> Unit,
 ) {
     val (native, ui) = languageNames(choice.tag)
+    val supporting = listOfNotNull(ui, detail).joinToString(" · ").ifBlank { null }
     ListItem(
         modifier = Modifier.clickable(onClick = onSelect),
         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
@@ -271,7 +281,7 @@ private fun ReadyRow(
             )
         },
         headlineContent = { Text(native) },
-        supportingContent = ui?.let { name -> { Text(name) } },
+        supportingContent = supporting?.let { name -> { Text(name) } },
     )
 }
 

@@ -14,7 +14,8 @@ data class SpeechLanguageChoice(
 /**
  * What the mic offers. [selected] is the tag to listen in, or null when nothing
  * is installed. [suggestions] are the user's languages that still need a download.
- * [catalog] is every other pack this phone can download, one row per language.
+ * [catalog] is every other pack this phone can download, one row per language
+ * and script.
  */
 data class SpeechLanguageMenu(
     val selected: String?,
@@ -124,6 +125,47 @@ internal data class DownloadWatch(
 
 internal const val DOWNLOAD_GRACE_MS = 20_000L
 
+/** How long the system download dialog may stay open before the row gives up. */
+internal const val DOWNLOAD_DIALOG_MS = 60_000L
+
+/**
+ * A pack download after the latest report. [autoSelect] is cleared when the
+ * person picks a language themselves, so a pack that finishes later does not
+ * replace that choice.
+ */
+internal data class DownloadTrack(
+    val tag: String,
+    val autoSelect: Boolean,
+    val accepted: Boolean,
+    val elapsedMs: Long,
+)
+
+internal data class DownloadTrackStep(
+    val done: Boolean,
+    val saveTag: String?,
+)
+
+/** Null while the download should keep waiting. */
+internal fun stepDownload(
+    track: DownloadTrack,
+    report: SpeechPackReport,
+    dialogMs: Long = DOWNLOAD_DIALOG_MS,
+): DownloadTrackStep? {
+    if (packGroup(track.tag).isEmpty()) return DownloadTrackStep(done = true, saveTag = null)
+    if (!track.accepted) {
+        return if (track.elapsedMs >= dialogMs) DownloadTrackStep(done = true, saveTag = null) else null
+    }
+    val decision = watchDownload(report, packGroup(track.tag), track.elapsedMs)
+    return when {
+        decision.installedTag != null -> DownloadTrackStep(
+            done = true,
+            saveTag = decision.installedTag.takeIf { track.autoSelect },
+        )
+        !decision.keepWaiting -> DownloadTrackStep(done = true, saveTag = null)
+        else -> null
+    }
+}
+
 /** Phone, app, then keyboard tags. One entry per language, blanks dropped. */
 internal fun userLanguageTags(
     system: List<String>,
@@ -184,24 +226,33 @@ internal fun speechLanguageBadge(tag: String): String {
 }
 
 private fun readyChoices(installed: List<String>, userTags: List<String>): List<SpeechLanguageChoice> {
-    val byLanguage = linkedMapOf<String, MutableList<String>>()
+    // One row per script. zh-Hans and zh-Hant are different packs, and collapsing
+    // them would hide whichever script the person did not already prefer.
+    val byGroup = linkedMapOf<String, MutableList<String>>()
     for (raw in installed) {
         val tag = normalizeTag(raw) ?: continue
-        val language = languageOf(tag)
-        if (language.isEmpty()) continue
-        byLanguage.getOrPut(language) { mutableListOf() }.add(tag)
+        val group = packGroup(tag)
+        if (group.isEmpty()) continue
+        byGroup.getOrPut(group) { mutableListOf() }.add(tag)
     }
     val order = mutableListOf<String>()
     for (user in userTags) {
+        val group = packGroup(user)
+        if (group in byGroup && group !in order) order.add(group)
+    }
+    for (user in userTags) {
         val language = languageOf(user)
-        if (language in byLanguage && language !in order) order.add(language)
+        for (group in byGroup.keys) {
+            if (group in order) continue
+            if (languageOf(byGroup.getValue(group).first()) == language) order.add(group)
+        }
     }
-    for (language in byLanguage.keys) {
-        if (language !in order) order.add(language)
+    for (group in byGroup.keys) {
+        if (group !in order) order.add(group)
     }
-    return order.map { language ->
-        val variants = byLanguage.getValue(language)
-        val wanted = userTags.firstOrNull { languageOf(it) == language }
+    return order.map { group ->
+        val variants = byGroup.getValue(group)
+        val wanted = userTags.firstOrNull { languageOf(it) == languageOf(variants.first()) }
         val tag = if (wanted == null) variants.first() else bestVariant(wanted, variants)
         SpeechLanguageChoice(tag, pending = false)
     }
@@ -228,14 +279,28 @@ private fun catalogChoices(
     }.sortedBy { it.tag.lowercase(Locale.ROOT) }
 }
 
-/** Language plus script, so zh-Hans and zh-Hant stay different packs. */
+/**
+ * Language plus script, so zh-Hans and zh-Hant stay different packs.
+ * `cmn` is Mandarin, the same language as `zh`. A region with no script subtag
+ * still splits China from Taiwan.
+ */
 internal fun packGroup(tag: String): String {
     val normalized = normalizeTag(tag) ?: return ""
     val locale = localeOf(normalized)
-    val language = locale.language.lowercase(Locale.ROOT)
+    val language = canonicalLanguage(locale)
     if (language.isEmpty() || language == "und") return ""
-    val script = locale.script.lowercase(Locale.ROOT)
+    val script = locale.script.lowercase(Locale.ROOT).ifEmpty { impliedChineseScript(locale) }
     return if (script.isEmpty()) language else "$language-$script"
+}
+
+private fun impliedChineseScript(locale: Locale): String {
+    val language = locale.language.lowercase(Locale.ROOT)
+    if (language != "zh" && language != "cmn") return ""
+    return when (locale.country.uppercase(Locale.ROOT)) {
+        "TW", "HK", "MO" -> "hant"
+        "CN", "SG" -> "hans"
+        else -> ""
+    }
 }
 
 private fun pickCatalogTag(candidates: List<String>): String {
@@ -300,7 +365,11 @@ private fun selectTag(
 ): String? {
     if (ready.isEmpty()) return null
     if (!saved.isNullOrBlank()) {
+        ready.firstOrNull { packGroup(it.tag) == packGroup(saved) }?.let { return it.tag }
         ready.firstOrNull { sameLanguage(it.tag, saved) }?.let { return it.tag }
+    }
+    for (user in userTags) {
+        ready.firstOrNull { packGroup(it.tag) == packGroup(user) }?.let { return it.tag }
     }
     for (user in userTags) {
         ready.firstOrNull { sameLanguage(it.tag, user) }?.let { return it.tag }
@@ -342,7 +411,12 @@ private fun sameLanguage(left: String, right: String): Boolean {
     return language.isNotEmpty() && language == languageOf(right)
 }
 
-internal fun languageOf(tag: String): String = localeOf(tag).language.lowercase(Locale.ROOT)
+internal fun languageOf(tag: String): String = canonicalLanguage(localeOf(tag))
+
+private fun canonicalLanguage(locale: Locale): String {
+    val language = locale.language.lowercase(Locale.ROOT)
+    return if (language == "cmn") "zh" else language
+}
 
 internal fun normalizeTag(raw: String?): String? {
     if (raw.isNullOrBlank()) return null

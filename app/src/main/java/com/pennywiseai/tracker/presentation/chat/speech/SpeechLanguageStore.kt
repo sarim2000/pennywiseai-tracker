@@ -9,8 +9,9 @@ import androidx.core.content.edit
 
 /**
  * The dictation language, shared by Home and Chat. The pack list is read from
- * the on-device recognizer. A choice is written only when the person picks one
- * or a download they started becomes installed.
+ * the on-device recognizer. A choice is written when the person picks one, or
+ * when a download they started finishes and they have not picked another
+ * language in the meantime.
  */
 internal class SpeechLanguageStore(
     context: Context,
@@ -35,7 +36,11 @@ internal class SpeechLanguageStore(
     var downloadFailed by mutableStateOf(false)
         private set
 
-    private var requestedTag: String? = null
+    /** Pack the recognizer is still fetching. Independent of [autoSelect]. */
+    private var activeTag: String? = null
+
+    /** When false, a finished download must not replace the language the person picked. */
+    private var autoSelect = false
     private var downloadArmedAt = 0L
     private var downloadAccepted = false
 
@@ -49,6 +54,8 @@ internal class SpeechLanguageStore(
         prefs.edit { putString(KEY_TAG, normalized) }
         saved = normalized
         downloadFailed = false
+        // The in-flight pack may still finish. It must not become the saved language.
+        autoSelect = false
     }
 
     fun markHintSeen() {
@@ -65,23 +72,22 @@ internal class SpeechLanguageStore(
         if (group.isEmpty() || downloading.isNotEmpty()) return
         downloadFailed = false
         downloadAccepted = false
-        requestedTag = normalized
+        activeTag = normalized
+        autoSelect = true
         downloadArmedAt = SystemClock.elapsedRealtime()
         downloading = setOf(group)
         packs.download(normalized) { result ->
+            if (activeTag != normalized) return@download
             when (result) {
-                // A newer download() already published its own busy row before the
-                // client reports that this one lost the recognizer.
+                // A newer download() already owns the busy row.
                 PackDownloadResult.REPLACED -> Unit
                 PackDownloadResult.FAILED -> {
-                    if (requestedTag != normalized) return@download
-                    downloading = downloading - group
-                    requestedTag = null
-                    downloadAccepted = false
+                    clearDownload()
                     downloadFailed = true
                 }
                 PackDownloadResult.ACCEPTED -> {
-                    requestedTag = normalized
+                    // Do not arm autoSelect again. save() may have cleared it
+                    // while the system dialog was open.
                     downloadAccepted = true
                     downloadArmedAt = SystemClock.elapsedRealtime()
                     downloading = setOf(group)
@@ -94,43 +100,32 @@ internal class SpeechLanguageStore(
     private fun applyReport(next: SpeechPackReport) {
         report = next
         settled = true
-        val tag = requestedTag ?: return
-        val group = packGroup(tag)
-        if (group !in downloading) return
-        // The system dialog can sit open for a while. The grace clock starts
-        // only once the recognizer accepts the download.
-        if (!downloadAccepted) {
-            if (SystemClock.elapsedRealtime() - downloadArmedAt >= DOWNLOAD_DIALOG_MS) {
-                downloading = emptySet()
-                requestedTag = null
-            }
-            return
-        }
-        val decision = watchDownload(
+        val tag = activeTag ?: return
+        val step = stepDownload(
+            track = DownloadTrack(
+                tag = tag,
+                autoSelect = autoSelect,
+                accepted = downloadAccepted,
+                elapsedMs = SystemClock.elapsedRealtime() - downloadArmedAt,
+            ),
             report = next,
-            group = group,
-            elapsedMs = SystemClock.elapsedRealtime() - downloadArmedAt,
-        )
-        when {
-            decision.installedTag != null -> {
-                downloading = emptySet()
-                requestedTag = null
-                downloadAccepted = false
-                save(decision.installedTag)
-            }
-            !decision.keepWaiting -> {
-                downloading = emptySet()
-                requestedTag = null
-                downloadAccepted = false
-            }
-        }
+        ) ?: return
+        val saveTag = step.saveTag
+        clearDownload()
+        if (saveTag != null) save(saveTag)
+    }
+
+    private fun clearDownload() {
+        downloading = emptySet()
+        activeTag = null
+        autoSelect = false
+        downloadAccepted = false
     }
 
     companion object {
         private const val PREFS = "speech_language"
         private const val KEY_TAG = "tag"
         private const val KEY_HINT = "hint_seen"
-        private const val DOWNLOAD_DIALOG_MS = 60_000L
 
         @Volatile
         private var instance: SpeechLanguageStore? = null

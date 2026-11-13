@@ -250,6 +250,83 @@ class SpeechLanguageTest {
     }
 
     @Test
+    fun installedChineseScriptsStaySeparateAndTheSavedOneWins() {
+        val menu = speechLanguageMenu(
+            installed = listOf("zh-Hans-CN", "zh-Hant-TW"),
+            pending = emptyList(),
+            downloadable = listOf("zh-Hans-CN", "zh-Hant-TW"),
+            userTags = listOf("zh-Hans-CN"),
+            saved = "zh-Hant-TW",
+        )
+        assertEquals(setOf("zh-Hans-CN", "zh-Hant-TW"), menu.ready.map { it.tag }.toSet())
+        assertEquals("zh-Hant-TW", menu.selected)
+        assertTrue(menu.catalog.isEmpty())
+    }
+
+    @Test
+    fun mandarinTagsAndBareRegionsStaySeparateScripts() {
+        assertEquals(packGroup("zh-Hans-CN"), packGroup("cmn-Hans-CN"))
+        assertEquals(packGroup("zh-Hant-TW"), packGroup("zh-TW"))
+        assertFalse(packGroup("zh-CN") == packGroup("zh-TW"))
+        val menu = speechLanguageMenu(
+            installed = listOf("cmn-Hans-CN", "cmn-Hant-TW"),
+            pending = emptyList(),
+            downloadable = emptyList(),
+            userTags = listOf("zh-CN"),
+            saved = "zh-TW",
+        )
+        assertEquals(2, menu.ready.size)
+        assertEquals(packGroup("cmn-Hant-TW"), packGroup(menu.selected!!))
+    }
+
+    @Test
+    fun traditionalChineseStaysDownloadableWhileSimplifiedIsInstalled() {
+        val menu = speechLanguageMenu(
+            installed = listOf("zh-Hans-CN"),
+            pending = emptyList(),
+            downloadable = listOf("zh-Hans-CN", "zh-Hant-TW"),
+            userTags = listOf("zh-Hans-CN"),
+            saved = "zh-Hans-CN",
+        )
+        assertEquals(listOf("zh-Hans-CN"), menu.ready.map { it.tag })
+        assertTrue(menu.catalog.any { packGroup(it.tag) == packGroup("zh-Hant-TW") })
+    }
+
+    @Test
+    fun explicitChoiceBeatsADownloadThatFinishesLater() {
+        val installed = SpeechPackReport(installed = listOf("en-US", "fr-FR"), known = true)
+        val armed = stepDownload(
+            DownloadTrack(tag = "fr-FR", autoSelect = true, accepted = true, elapsedMs = 5_000),
+            installed,
+        )
+        assertEquals("fr-FR", armed?.saveTag)
+        assertTrue(armed!!.done)
+
+        val pickedSomethingElse = stepDownload(
+            DownloadTrack(tag = "fr-FR", autoSelect = false, accepted = true, elapsedMs = 5_000),
+            installed,
+        )
+        assertNull(pickedSomethingElse?.saveTag)
+        assertTrue(pickedSomethingElse!!.done)
+    }
+
+    @Test
+    fun openDownloadDialogDoesNotSaveBeforeTheRecognizerAcceptsIt() {
+        val report = SpeechPackReport(installed = listOf("fr-FR"), known = true)
+        val waiting = stepDownload(
+            DownloadTrack(tag = "fr-FR", autoSelect = true, accepted = false, elapsedMs = 1_000),
+            report,
+        )
+        assertNull(waiting)
+        val abandoned = stepDownload(
+            DownloadTrack(tag = "fr-FR", autoSelect = true, accepted = false, elapsedMs = DOWNLOAD_DIALOG_MS),
+            report,
+        )
+        assertNull(abandoned?.saveTag)
+        assertTrue(abandoned!!.done)
+    }
+
+    @Test
     fun watchDoesNotTreatAnotherScriptAsTheRequestedPack() {
         val hans = packGroup("cmn-Hans-CN")
         val hant = packGroup("cmn-Hant-TW")

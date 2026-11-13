@@ -71,7 +71,7 @@ class LlmRepository @Inject constructor(
     // a reply that claims a change, so "did you add it?" after a cancel gets the facts (#1083).
     private var lastCard: AnsweredCard? = null
 
-    /** [mentions]: the merchants and amounts a cancelled card showed, to catch a claim about it in any wording. */
+    /** [mentions]: the merchants and amounts the card showed, to tell a reply about it from one about something else. */
     private class AnsweredCard(val shown: String, val saved: Boolean, val mentions: List<String> = emptyList())
 
     // One build of the live conversation at a time: the warm-up on open and a send can race.
@@ -106,7 +106,7 @@ class LlmRepository @Inject constructor(
 
     /** The user's tap went through: [line] (e.g. "Added ₹120 at Starbucks") joins the chat. */
     suspend fun completePendingAction(line: String) {
-        lastCard = AnsweredCard(line, saved = true)
+        lastCard = AnsweredCard(line, saved = true, mentions = _pendingAction.value?.let(::mentionsOf).orEmpty())
         _pendingAction.value = null
         cardOutcome = "The user confirmed the last card. It is saved."
         // The save already happened. A lost line must not read as a failed save worth repeating.
@@ -153,6 +153,7 @@ class LlmRepository @Inject constructor(
         }
 
         val prompt = cardOutcome?.let { "($it)\n$userMessage" } ?: userMessage
+        val cardJustAnswered = cardOutcome != null
 
         // Ensure engine is initialized and conversation is active, with room for this turn
         ensureConversation(pending = userChatMessage, incoming = prompt)
@@ -247,16 +248,24 @@ class LlmRepository @Inject constructor(
             }
         }
         if (skippedCards > 0) addLine(context.getString(R.string.chat_reply_one_card_at_a_time))
-        // A small model sometimes narrates a change instead of calling the tool. Unless the last
-        // card was saved, nothing happened: the facts replace the claim, or the user reads
+        // A small model sometimes narrates a change instead of calling the tool. Unless it's about
+        // the card just saved, nothing happened: the facts replace the claim, or the user reads
         // "Yes, I added it" above the correction and walks away believing it (#1083).
         val card = lastCard
-        if (toolCalls.isEmpty() && card?.saved != true && claimsAChange(responseBuilder.toString(), card?.mentions.orEmpty())) {
+        val reply = responseBuilder.toString()
+        // An earlier card says nothing about a later request.
+        val aboutCard = card != null && (cardJustAnswered || mentions("$userMessage\n$reply", card.mentions))
+        if (toolCalls.isEmpty() && !(aboutCard && card?.saved == true) &&
+            claimsAChange(reply, card?.takeIf { !it.saved }?.mentions.orEmpty())
+        ) {
             responseBuilder.clear()
             emit(RESET_REPLY)
             // The live conversation still holds the claim; the next turn rebuilds from the save.
             conversationBroken = true
-            addLine(card?.let { context.getString(R.string.chat_reply_card_cancelled, it.shown) } ?: context.getString(R.string.chat_reply_nothing_changed))
+            addLine(
+                if (aboutCard && card?.saved == false) context.getString(R.string.chat_reply_card_cancelled, card.shown)
+                else context.getString(R.string.chat_reply_nothing_changed)
+            )
         }
         // Its state after a failed turn is unknown; the next message rebuilds it from the saved chat.
         if (conversationBroken) llmService.closeConversation()
@@ -759,23 +768,31 @@ class LlmRepository @Inject constructor(
                 "|जोड़ दिया|जोड़ दी|हटा दिया|हटा दी|बदल दिया|बदल दी|दर्ज कर",
             RegexOption.IGNORE_CASE
         )
-        // A sentence with one of these says what didn't happen: "nothing was added" isn't a claim.
-        private val NEGATION = Regex("\\b(no|not|nothing|never|cancell?ed)\\b|n['’]t\\b|لم |لا |ليس|नहीं", RegexOption.IGNORE_CASE)
+        // Just before a claim, these deny it ("nothing was added"); "I couldn't find an account, but I've added it" still claims.
+        private val NEGATION = Regex("\\b(no|not|nothing|never|cancell?ed)\\b|n['’]t\\b|لم |لا |ليس|नहीं ", RegexOption.IGNORE_CASE)
         private val AFFIRMATIVE = Regex("\\b(yes|yeah|yep|sure|done|added|saved|recorded|logged)\\b|نعم|हाँ|हां", RegexOption.IGNORE_CASE)
         // Not every ".": "₹220.50" is one figure.
         private val SENTENCE_END = Regex("[!?؟।\n]|\\.(?=\\s|$)")
+        private val WHITESPACE = Regex("\\s+")
 
         /**
-         * Whether [reply] says a change happened. Wording varies without end, so after a cancelled
-         * card a "yes" that names its merchant or amount ([cancelled]) counts too, however it's put.
+         * Whether [reply] says a change happened. Wording varies without end, so a "yes" in the
+         * same sentence as a cancelled card's merchant or amount ([cancelled]) counts too.
          */
-        internal fun claimsAChange(reply: String, cancelled: List<String>): Boolean {
-            val affirming = reply.split(SENTENCE_END).filterNot { NEGATION.containsMatchIn(it) }
-            if (affirming.any { CLAIMS_A_CHANGE.containsMatchIn(it) }) return true
-            if (affirming.none { AFFIRMATIVE.containsMatchIn(it) }) return false
+        internal fun claimsAChange(reply: String, cancelled: List<String>): Boolean = reply.split(SENTENCE_END).any { s ->
+            CLAIMS_A_CHANGE.findAll(s).any { !negated(s, it.range.first) } ||
+                (AFFIRMATIVE.findAll(s).any { !negated(s, it.range.first) } && mentions(s, cancelled))
+        }
+
+        // ponytail: only the three words before count as denying; a negation further back is about something else.
+        private fun negated(sentence: String, at: Int) =
+            NEGATION.containsMatchIn(sentence.substring(0, at).trim().split(WHITESPACE).takeLast(3).joinToString(" ", postfix = " "))
+
+        /** Whether [text] names one of [of]: a merchant, or an amount as a whole number. */
+        internal fun mentions(text: String, of: List<String>): Boolean {
             // ponytail: "₹1,220" is read as 1220, but "220.50" misses a card of 220.5; the merchant usually catches it.
-            val flat = reply.replace(",", "")
-            return cancelled.any { m ->
+            val flat = text.replace(",", "")
+            return of.any { m ->
                 if (m.toBigDecimalOrNull() != null) Regex("(?<![\\d.])${Regex.escape(m)}(?!\\d)").containsMatchIn(flat)
                 else m.length >= 3 && flat.contains(m, ignoreCase = true)
             }

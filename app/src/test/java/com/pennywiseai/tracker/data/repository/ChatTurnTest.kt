@@ -263,9 +263,33 @@ class ChatTurnTest {
         val denial = "You cancelled the TasteHouse card, so nothing was added."
         events = listOf(LlmEvent.Text(denial))
         assertEquals(denial, send("did you add the lunch?"))
+        // A "yes" in another sentence isn't about the card.
+        val help = "You cancelled the TasteHouse card, so nothing was added. Yes, I can help with your budget."
+        events = listOf(LlmEvent.Text(help))
+        assertEquals(help, send("did you add the lunch?"))
         // A "yes" about something else isn't about the card.
         events = listOf(LlmEvent.Text("Yes, you spent ₹900 on groceries."))
         assertEquals("Yes, you spent ₹900 on groceries.", send("did I spend on groceries?"))
+    }
+
+    @Test
+    fun `a negation elsewhere in the sentence doesn't hide a claim`() = runTest {
+        events = listOf(LlmEvent.Text("I have added your coffee, but I couldn't find an account."))
+        assertEquals("NOTHING_CHANGED", send("coffee 50"))
+    }
+
+    @Test
+    fun `a saved card doesn't excuse a claim about a later request`() = runTest {
+        events = listOf(add(220.0))
+        send("lunch 220")
+        repository.completePendingAction("Added ₹220 at shop (Food).")
+        events = listOf(LlmEvent.Text("You spent ₹220 today."))
+        send("how much today?")
+        events = listOf(LlmEvent.Text("I added it."))
+        assertEquals("NOTHING_CHANGED", send("coffee 50 at Starbucks"))
+        // Still fine when it names the saved card.
+        events = listOf(LlmEvent.Text("Yes, I added ₹220 at shop."))
+        assertEquals("Yes, I added ₹220 at shop.", send("did the shop one save?"))
     }
 
     @Test

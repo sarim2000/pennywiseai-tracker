@@ -276,6 +276,14 @@ class ChatTurnTest {
     fun `a negation elsewhere in the sentence doesn't hide a claim`() = runTest {
         events = listOf(LlmEvent.Text("I have added your coffee, but I couldn't find an account."))
         assertEquals("NOTHING_CHANGED", send("coffee 50"))
+        // A denial anywhere earlier in the claim's own clause stands.
+        for (denial in listOf(
+            "No transactions from your message were added because the amount is missing. Please tell me the amount.",
+            "Sorry, nothing was added.",
+        )) {
+            events = listOf(LlmEvent.Text(denial))
+            assertEquals(denial, send("coffee"))
+        }
     }
 
     @Test

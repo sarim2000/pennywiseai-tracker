@@ -768,12 +768,13 @@ class LlmRepository @Inject constructor(
                 "|जोड़ दिया|जोड़ दी|हटा दिया|हटा दी|बदल दिया|बदल दी|दर्ज कर",
             RegexOption.IGNORE_CASE
         )
-        // Just before a claim, these deny it ("nothing was added"); "I couldn't find an account, but I've added it" still claims.
+        // Earlier in a claim's clause, these deny it ("nothing was added"); "I've added it, but I couldn't find an account" still claims.
         private val NEGATION = Regex("\\b(no|not|nothing|never|cancell?ed)\\b|n['’]t\\b|لم |لا |ليس|नहीं ", RegexOption.IGNORE_CASE)
         private val AFFIRMATIVE = Regex("\\b(yes|yeah|yep|sure|done|added|saved|recorded|logged)\\b|نعم|हाँ|हां", RegexOption.IGNORE_CASE)
         // Not every ".": "₹220.50" is one figure.
         private val SENTENCE_END = Regex("[!?؟।\n]|\\.(?=\\s|$)")
-        private val WHITESPACE = Regex("\\s+")
+        // ponytail: Arabic "و" is left out: it's a prefix, so it can't be told from a word starting with it.
+        private val CLAUSE_BREAK = Regex("[,;،]|\\b(but|and|so|because|however|although|while)\\b|لكن|लेकिन|और", RegexOption.IGNORE_CASE)
 
         /**
          * Whether [reply] says a change happened. Wording varies without end, so a "yes" in the
@@ -784,9 +785,12 @@ class LlmRepository @Inject constructor(
                 (AFFIRMATIVE.findAll(s).any { !negated(s, it.range.first) } && mentions(s, cancelled))
         }
 
-        // ponytail: only the three words before count as denying; a negation further back is about something else.
-        private fun negated(sentence: String, at: Int) =
-            NEGATION.containsMatchIn(sentence.substring(0, at).trim().split(WHITESPACE).takeLast(3).joinToString(" ", postfix = " "))
+        /** A negation earlier in the claim's own clause: "No transactions from your message were added because…". */
+        private fun negated(sentence: String, at: Int): Boolean {
+            val before = sentence.substring(0, at)
+            val start = CLAUSE_BREAK.findAll(before).lastOrNull()?.range?.last?.plus(1) ?: 0
+            return NEGATION.containsMatchIn(before.substring(start) + " ")
+        }
 
         /** Whether [text] names one of [of]: a merchant, or an amount as a whole number. */
         internal fun mentions(text: String, of: List<String>): Boolean {

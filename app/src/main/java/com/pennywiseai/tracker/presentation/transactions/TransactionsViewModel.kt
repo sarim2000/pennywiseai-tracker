@@ -1,41 +1,41 @@
 package com.pennywiseai.tracker.presentation.transactions
 
-import com.pennywiseai.tracker.ui.UiText
-import com.pennywiseai.tracker.R
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.core.Constants
+import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.expandWithChildren
 import com.pennywiseai.tracker.data.database.entity.parentNameOf
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
+import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.MerchantAliasRepository
-import com.pennywiseai.tracker.data.repository.TagRepository
-import com.pennywiseai.tracker.data.repository.TransactionRepository
-import com.pennywiseai.tracker.presentation.common.TimePeriod
-import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
-import com.pennywiseai.tracker.presentation.common.getCycleAwareDateRange
-import com.pennywiseai.tracker.presentation.common.getDateRangeForPeriod
-import com.pennywiseai.tracker.presentation.common.CurrencyGroupedTotals
-import com.pennywiseai.tracker.presentation.common.AccountOption
-import com.pennywiseai.tracker.presentation.common.accountOptions
-import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
-import com.pennywiseai.tracker.presentation.common.filterTransactionsByAccount
-import com.pennywiseai.tracker.core.Constants
-import com.pennywiseai.tracker.data.currency.CurrencyConversionService
-import com.pennywiseai.tracker.data.database.entity.ProfileEntity
-import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.ProfileRepository
+import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
-import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
+import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
+import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.RestoreTransactionUseCase
-import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
+import com.pennywiseai.tracker.presentation.common.AccountOption
+import com.pennywiseai.tracker.presentation.common.CurrencyGroupedTotals
+import com.pennywiseai.tracker.presentation.common.TimePeriod
+import com.pennywiseai.tracker.presentation.common.accountOptions
+import com.pennywiseai.tracker.presentation.common.filterTransactionsByAccount
+import com.pennywiseai.tracker.presentation.common.getCycleAwareDateRange
+import com.pennywiseai.tracker.presentation.common.getDateRangeForPeriod
+import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.utils.CurrencyUtils
-import com.pennywiseai.tracker.utils.dateQueryWindow
 import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
+import com.pennywiseai.tracker.utils.dateQueryWindow
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -87,14 +87,14 @@ class TransactionsViewModel @Inject constructor(
         merchantAliasRepository.getAllAliases()
             .map { list -> list.associate { it.merchantName to it.alias } }
             .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyMap())
-    
+
     private val _selectedPeriod = MutableStateFlow(TimePeriod.THIS_MONTH)
     val selectedPeriod: StateFlow<TimePeriod> = _selectedPeriod.asStateFlow()
 
     /** Drives the period chip's date label (#686). */
     val budgetCycleStartDay: StateFlow<Int> = userPreferencesRepository.budgetCycleStartDay
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 1)
-    
+
     private val _categoryFilter = MutableStateFlow<String?>(null)
     val categoryFilter: StateFlow<String?> = _categoryFilter.asStateFlow()
 
@@ -172,7 +172,7 @@ class TransactionsViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(TransactionsUiState())
     val uiState: StateFlow<TransactionsUiState> = _uiState.asStateFlow()
-    
+
     private val _currencyGroupedTotals = MutableStateFlow(CurrencyGroupedTotals())
     val currencyGroupedTotals: StateFlow<CurrencyGroupedTotals> = _currencyGroupedTotals.asStateFlow()
 
@@ -266,7 +266,7 @@ class TransactionsViewModel @Inject constructor(
         _isUnifiedMode
     ) { ids, state, currency, isUnified ->
         val selected = state.transactions.filter { it.id in ids }
-        Triple(selected, currency, isUnified)
+        Triple(state.splitShares.forTotals(selected), currency, isUnified)
     }.mapLatest { (selected, currency, isUnified) ->
         resolveTotals(calculateCurrencyGroupedTotals(selected), currency, isUnified)
     }.stateIn(
@@ -356,8 +356,7 @@ class TransactionsViewModel @Inject constructor(
             initialValue = emptyMap()
         )
 
-
-    /**
+    /*
      * User-confirmed self-transfer: flip both rows to TRANSFER and populate
      * their `fromAccount` / `toAccount` so the detail screen can render the
      * "From → To" account flow (it falls back to `accountNumber` otherwise).
@@ -577,7 +576,7 @@ class TransactionsViewModel @Inject constructor(
 
     // Track budget navigation params similarly
     private var appliedBudgetParams: BudgetParams? = null
-    
+
     // Categories flow - will be used to map category names to colors
     val categories: StateFlow<Map<String, CategoryEntity>> = categoryRepository.getAllCategories()
         .map { categoryList ->
@@ -588,7 +587,7 @@ class TransactionsViewModel @Inject constructor(
             started = SharingStarted.WhileSubscribed(5000),
             initialValue = emptyMap()
         )
-    
+
     // Available categories for the current period (before category filter is applied)
     // Used for the category filter chips row
     private val _availableCategories = MutableStateFlow<List<String>>(emptyList())
@@ -664,7 +663,7 @@ class TransactionsViewModel @Inject constructor(
 
         return LocalDate.now().minusMonths(smsScanMonths.value.toLong())
     }
-    
+
     init {
         // Observe selected profile from preferences and cache profile account keys
         viewModelScope.launch {
@@ -743,7 +742,7 @@ class TransactionsViewModel @Inject constructor(
                 }
                 // Get all transactions without category filter applied
                 getFilteredTransactions("", period, null, categories, TransactionTypeFilter.ALL, cycleRange)
-                    .flatMapLatest { transactions ->
+                    .flatMapLatest { (transactions) ->
                         // Include split categories, not just each row's parent: a
                         // category that exists only inside a split is still one the
                         // user can filter on, and the auto-clear below must not
@@ -819,7 +818,7 @@ class TransactionsViewModel @Inject constructor(
                 // The list is computed off the main thread and published whole below;
                 // transformLatest cancels a stale computation before starting the next.
                 getFilteredTransactions(query, period, category, categories, typeFilter, cycleRange)
-                    .map { allTransactions ->
+                    .map { (allTransactions, splitShares) ->
                         // Apply profile, account, then tag filters
                         val tracked = filterTrackedByProfile(
                             allTransactions, profileId, _ignoredAccountKeys.value, _profileAccountKeys.value
@@ -872,7 +871,8 @@ class TransactionsViewModel @Inject constructor(
                             transactions = sorted,
                             grouped = groupTransactionsByDate(sorted),
                             // Calculate totals for filtered transactions
-                            totals = calculateCurrencyGroupedTotals(sorted)
+                            totals = calculateCurrencyGroupedTotals(splitShares.forTotals(sorted)),
+                            splitShares = splitShares
                         )
                     }
                     .flowOn(Dispatchers.Default)
@@ -882,6 +882,7 @@ class TransactionsViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(
                     transactions = computed.transactions,
                     groupedTransactions = computed.grouped,
+                    splitShares = computed.splitShares,
                     isLoading = false
                 )
                 _currencyGroupedTotals.value = computed.totals
@@ -900,7 +901,7 @@ class TransactionsViewModel @Inject constructor(
                     // currency it was built for, so a switch meanwhile discards it.
                     val displayCurrency = _selectedCurrency.value
                     val converted = withContext(Dispatchers.Default) {
-                        convertedAmountsFor(computed.transactions, displayCurrency)
+                        convertedAmountsFor(computed.transactions, displayCurrency, computed.splitShares)
                     }
                     if (_selectedCurrency.value == displayCurrency) {
                         _convertedAmounts.value = converted
@@ -909,7 +910,7 @@ class TransactionsViewModel @Inject constructor(
             }
             .launchIn(viewModelScope)
     }
-    
+
     fun updateSearchQuery(query: String) {
         _searchQuery.value = query
     }
@@ -924,15 +925,15 @@ class TransactionsViewModel @Inject constructor(
     fun selectPeriod(period: TimePeriod) {
         _selectedPeriod.value = period
     }
-    
+
     fun setCategoryFilter(category: String) {
         _categoryFilter.value = category
     }
-    
+
     fun clearCategoryFilter() {
         _categoryFilter.value = null
     }
-    
+
     fun setTransactionTypeFilter(filter: TransactionTypeFilter) {
         _transactionTypeFilter.value = filter
     }
@@ -950,7 +951,7 @@ class TransactionsViewModel @Inject constructor(
     fun clearTagFilter() {
         _tagFilter.value = null
     }
-    
+
     fun setSelectedProfile(profileId: Long?) {
         _selectedProfileId.value = profileId
         viewModelScope.launch {
@@ -1051,7 +1052,7 @@ class TransactionsViewModel @Inject constructor(
             refreshWidgets()
         }
     }
-    
+
     fun clearDeletedTransaction() {
         _deletedTransaction.value = null
     }
@@ -1079,7 +1080,7 @@ class TransactionsViewModel @Inject constructor(
             }
         }
     }
-    
+
     /** A navigated type name, or All when absent, unknown or not listable (Spending). */
     private fun navigatedType(type: String?): TransactionTypeFilter =
         TransactionTypeFilter.entries.firstOrNull { it.name == type && it.inTransactionsList }
@@ -1219,7 +1220,7 @@ class TransactionsViewModel @Inject constructor(
         startDateEpochDay: Long,
         endDateEpochDay: Long,
         currency: String?,
-        categories: String?,  // Comma-separated
+        categories: String?, // Comma-separated
         transactionType: String?
     ) {
         // Create current params to compare
@@ -1304,7 +1305,8 @@ class TransactionsViewModel @Inject constructor(
     /** Converted amounts for transactions in foreign currencies (unified mode). */
     private suspend fun convertedAmountsFor(
         transactions: List<TransactionEntity>,
-        displayCurrency: String
+        displayCurrency: String,
+        splitShares: CategorySplitShares?
     ): Map<Long, BigDecimal> {
         val converted = mutableMapOf<Long, BigDecimal>()
         for (tx in transactions) {
@@ -1313,7 +1315,7 @@ class TransactionsViewModel @Inject constructor(
                 // its native amount + currency instead of a mislabeled
                 // face-value figure in the display currency (#670).
                 currencyConversionService.convertAmountOrNull(
-                    tx.amount, tx.currency, displayCurrency
+                    splitShares?.shareOf(tx) ?: tx.amount, tx.currency, displayCurrency
                 )?.let { converted[tx.id] = it }
             }
         }
@@ -1330,7 +1332,7 @@ class TransactionsViewModel @Inject constructor(
         // (non-suspend) Flow builder can branch on THIS_MONTH. For other
         // periods this is ignored.
         cycleRange: Pair<LocalDate, LocalDate>
-    ): Flow<List<TransactionEntity>> {
+    ): Flow<Pair<List<TransactionEntity>, CategorySplitShares?>> {
         // Start with the base flow based on category filter
         // A single category (the Analytics tap-through) is just the one-element case
         // of the budget filter below, and has to share its split handling: a
@@ -1360,22 +1362,22 @@ class TransactionsViewModel @Inject constructor(
                 // Observe the splits rather than snapshot them, so editing a split while
                 // this list is open re-evaluates the filter instead of leaving it stale.
                 transactionRepository.observeSplitsForActiveTransactions()
-                    .map { allSplits -> filterByCategories(transactions, effectiveCategories, allSplits) }
+                    .map { allSplits ->
+                        filterByCategories(transactions, effectiveCategories, allSplits) to
+                            CategorySplitShares(effectiveCategories, allSplits)
+                    }
             }
         } else {
-            baseFlow
+            baseFlow.map { it to null }
         }
-        
-        // Apply transaction type filter
-        val typeFilteredFlow = categoriesFilteredFlow.map { filterByType(it, typeFilter) }
 
-        // Apply search filter. Tags and aliases are read per list, so the re-run a change
-        // to either one triggers sees it.
-        return typeFilteredFlow.map {
-            filterBySearch(it, searchQuery, transactionTagsMap.value, merchantAliases.value)
+        // Apply type, then search filter. Tags and aliases are read per list, so the
+        // re-run a change to either one triggers sees it.
+        return categoriesFilteredFlow.map { (rows, splitShares) ->
+            filterBySearch(filterByType(rows, typeFilter), searchQuery, transactionTagsMap.value, merchantAliases.value) to splitShares
         }
     }
-    
+
     /** The inclusive date-time range [period] covers, or null when it covers all history. */
     private fun periodRange(
         period: TimePeriod,
@@ -1401,12 +1403,13 @@ class TransactionsViewModel @Inject constructor(
     fun getReportUrl(transaction: TransactionEntity): String {
         return SmsReportUrlBuilder.buildUrl(context, transaction.smsBody, transaction.smsSender)
     }
-    
 }
 
 data class TransactionsUiState(
     val transactions: List<TransactionEntity> = emptyList(),
     val groupedTransactions: Map<DateGroup, List<TransactionEntity>> = emptyMap(),
+    /** Set while a category filter is on: split rows count only their share in it (#1192). */
+    val splitShares: CategorySplitShares? = null,
     val isLoading: Boolean = true
 )
 
@@ -1414,7 +1417,8 @@ data class TransactionsUiState(
 private class ComputedList(
     val transactions: List<TransactionEntity>,
     val grouped: Map<DateGroup, List<TransactionEntity>>,
-    val totals: CurrencyGroupedTotals
+    val totals: CurrencyGroupedTotals,
+    val splitShares: CategorySplitShares?
 )
 
 enum class DateGroup(@StringRes val labelRes: Int) {
@@ -1534,3 +1538,7 @@ internal fun computeSelfTransferPairs(
     }
     return pair
 }
+
+/** Rows as the totals should count them under [this] category filter; unchanged without one. */
+private fun CategorySplitShares?.forTotals(rows: List<TransactionEntity>): List<TransactionEntity> =
+    this?.let { rows.mapNotNull(it::forTotals) } ?: rows

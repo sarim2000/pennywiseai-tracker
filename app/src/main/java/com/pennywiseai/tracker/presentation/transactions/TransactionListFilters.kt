@@ -2,9 +2,12 @@ package com.pennywiseai.tracker.presentation.transactions
 
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
+import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
 import com.pennywiseai.tracker.domain.model.filterTransactionsByProfile
+import java.math.BigDecimal
 import java.time.LocalDate
 
 /*
@@ -14,7 +17,10 @@ import java.time.LocalDate
  * date groups.
  */
 
-/** Rows whose own category, or the category of one of their splits, is in [categories]. */
+/**
+ * Rows in [categories]: a split row by its splits' categories, any other by its own, the same
+ * match Analytics makes through [TransactionWithSplits.getAmountByCategory].
+ */
 internal fun filterByCategories(
     transactions: List<TransactionEntity>,
     categories: Set<String>,
@@ -22,8 +28,34 @@ internal fun filterByCategories(
 ): List<TransactionEntity> {
     val splitsByTxId = splits.groupBy { it.transactionId }
     return transactions.filter { tx ->
-        tx.category in categories ||
-            splitsByTxId[tx.id]?.any { it.category in categories } == true
+        splitsByTxId[tx.id]?.any { it.category in categories } ?: (tx.category in categories)
+    }
+}
+
+/**
+ * The part of each split row that falls in a category filter (#1192). Without it a ₹10,000
+ * row split ₹7,000 Others + ₹3,000 Shopping showed at ₹10,000 under both categories, while
+ * Analytics counted ₹7,000 and ₹3,000.
+ */
+class CategorySplitShares(
+    private val categories: Set<String>,
+    splits: List<TransactionSplitEntity>,
+) {
+    private val splitsByTxId = splits.groupBy { it.transactionId }
+
+    /** The amount of [tx]'s splits in the filter, or null when [tx] isn't split. For display. */
+    fun shareOf(tx: TransactionEntity): BigDecimal? =
+        splitsByTxId[tx.id]?.filter { it.category in categories }?.sumOf { it.amount }
+
+    /**
+     * [tx] as the totals should count it: [forTotals] on the whole row, splits cut in
+     * proportion, then only the splits in the filter. Null when none of it counts.
+     */
+    fun forTotals(tx: TransactionEntity): TransactionEntity? {
+        val splits = splitsByTxId[tx.id] ?: return tx.forTotals()
+        val counted = TransactionWithSplits(tx, splits).forTotals() ?: return null
+        val share = counted.splits.filter { it.category in categories }.sumOf { it.amount }
+        return tx.copy(amount = share, loanId = null, loanContribution = null, lentSharesTotal = null).forTotals()
     }
 }
 

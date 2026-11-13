@@ -74,4 +74,27 @@ class BackgroundAccessTest {
         assertFalse(state.showKeepAccess)
         assertEquals(0, state.stepsLeft)
     }
+
+    @Test
+    fun `tracking problem is the worst readable blocker, or null once fixed`() {
+        val fine = BackgroundAccessState(batteryUnrestricted = true, backgroundRestricted = false)
+        assertEquals(null, trackingProblem(smsGranted = true, access = fine))
+        assertEquals(TrackingProblem.SMS_ACCESS, trackingProblem(smsGranted = false, access = null))
+        assertEquals(null, trackingProblem(smsGranted = true, access = null))
+
+        val restricted = fine.copy(batteryUnrestricted = false, backgroundRestricted = true)
+        assertEquals(TrackingProblem.SMS_ACCESS, trackingProblem(false, restricted))
+        assertEquals(TrackingProblem.BACKGROUND_RESTRICTED, trackingProblem(true, restricted))
+        assertEquals(TrackingProblem.BATTERY_OPTIMIZED, trackingProblem(true, fine.copy(batteryUnrestricted = false)))
+
+        // Unused-app and manufacturer steps can't be read back, so they never raise it.
+        val unverifiable = fine.copy(
+            unusedRestrictionsStatus = UnusedAppRestrictionsConstants.API_31,
+            oem = DeviceOem.XIAOMI
+        )
+        assertEquals(null, trackingProblem(true, unverifiable))
+        // Samsung's confirmed Never-sleeping step stands in for the battery exemption.
+        val samsung = fine.copy(batteryUnrestricted = false, oem = DeviceOem.SAMSUNG, oemConfirmed = true)
+        assertEquals(null, trackingProblem(true, samsung))
+    }
 }

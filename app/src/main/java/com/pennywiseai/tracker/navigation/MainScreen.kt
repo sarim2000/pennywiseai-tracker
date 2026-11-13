@@ -301,6 +301,9 @@ fun MainScreen(
                 onNavigateToManageAccounts = {
                     open(tab, ManageAccounts)
                 },
+                onNavigateToBackgroundAccess = {
+                    openRoot(BackgroundAccess)
+                },
                 onNavigateToAddScreen = {
                     openRoot(AddTransaction())
                 },

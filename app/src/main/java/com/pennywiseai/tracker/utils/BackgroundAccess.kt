@@ -178,6 +178,26 @@ data class BackgroundAccessState(
         ).count { it }
 }
 
+/** What stops automatic tracking, worst first. Drives the Home warning card. */
+enum class TrackingProblem(@param:StringRes val bodyRes: Int) {
+    SMS_ACCESS(R.string.home_tracking_card_sms),
+    BACKGROUND_RESTRICTED(R.string.home_tracking_card_background),
+    BATTERY_OPTIMIZED(R.string.home_tracking_card_battery)
+}
+
+/**
+ * Null when tracking works, or while [access] hasn't been read yet. Only the checks that
+ * can be read back count: unused-app restrictions take months to bite and the
+ * manufacturer step is unverifiable, so neither raises the card.
+ */
+fun trackingProblem(smsGranted: Boolean, access: BackgroundAccessState?): TrackingProblem? = when {
+    !smsGranted -> TrackingProblem.SMS_ACCESS
+    access == null -> null
+    access.backgroundRestricted == true -> TrackingProblem.BACKGROUND_RESTRICTED
+    access.showBatteryStep && !access.batteryUnrestricted -> TrackingProblem.BATTERY_OPTIMIZED
+    else -> null
+}
+
 fun Context.isBatteryUnrestricted(): Boolean =
     getSystemService<PowerManager>()?.isIgnoringBatteryOptimizations(packageName) == true
 
@@ -197,6 +217,10 @@ fun Context.batteryUnrestrictedIntents(): List<Intent> = listOf(
 
 fun Context.canReadSms(): Boolean =
     ContextCompat.checkSelfPermission(this, Manifest.permission.READ_SMS) == PackageManager.PERMISSION_GRANTED
+
+/** Needed for live capture on its own: a revoke can drop it while READ_SMS stays. */
+fun Context.canReceiveSms(): Boolean =
+    ContextCompat.checkSelfPermission(this, Manifest.permission.RECEIVE_SMS) == PackageManager.PERMISSION_GRANTED
 
 fun Context.appInfoIntent(): Intent =
     Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS, "package:$packageName".toUri())

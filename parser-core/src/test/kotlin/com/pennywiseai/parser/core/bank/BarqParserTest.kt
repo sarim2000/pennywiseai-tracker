@@ -35,7 +35,21 @@ class BarqParserTest {
             ParserTestCase("Card purchase without balance keeps the card",
                 "Online Purchase\nAmount: SAR 12.50\nAt: Example Store\nCard: **1234", "BARQAPP",
                 ExpectedTransaction(BigDecimal("12.50"), "SAR", TransactionType.EXPENSE, merchant = "Example Store",
-                    accountLast4 = "1234", isFromCard = true, isMobileWallet = false))
+                    accountLast4 = "1234", isFromCard = true, isMobileWallet = false)),
+            ParserTestCase("Refund wording in the merchant field stays a purchase",
+                "Online Purchase\nAmount: SAR 12.50\nAt: Refund Services", "BARQAPP",
+                ExpectedTransaction(BigDecimal("12.50"), "SAR", TransactionType.EXPENSE, merchant = "Refund Services")),
+            ParserTestCase("Purchase reversal is income",
+                "Reversal\nOnline Purchase\nAmount: SAR 12.50\nAt: Example Store", "BARQAPP",
+                ExpectedTransaction(BigDecimal("12.50"), "SAR", TransactionType.INCOME, merchant = "Example Store")),
+            ParserTestCase("Modern purchase never takes a field after Balance as the merchant",
+                "Online Purchase\nAmount: SAR 12.50\nBalance: SAR 37.50\nCard: **1234", "BARQAPP",
+                ExpectedTransaction(BigDecimal("12.50"), "SAR", TransactionType.EXPENSE,
+                    balance = BigDecimal("37.50"), expectNullMerchant = true)),
+            ParserTestCase("Historical purchase reads the merchant after Balance",
+                "Online Purchase\nSAR 12.50\nBalance: SAR 37.50\nExample Store", "BARQAPP",
+                ExpectedTransaction(BigDecimal("12.50"), "SAR", TransactionType.EXPENSE,
+                    merchant = "Example Store", balance = BigDecimal("37.50")))
         ),
         listOf("BARQAPP" to true, "barqapp-AD" to true, "BARQ" to false, "UNKNOWN" to false),
         "Barq Parser"

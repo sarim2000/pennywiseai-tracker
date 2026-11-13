@@ -60,9 +60,11 @@ class BarqParser : BankParser() {
     }
 
     override fun extractTransactionType(message: String): TransactionType? {
-        val lower = message.lowercase()
+        // Classify by the title line only: field values such as "At: Refund Services"
+        // must not turn a purchase into a refund.
+        val lower = titleLine(message)
         return when {
-            // Return wording must take precedence because reversal notices often
+            // Return wording must take precedence because reversal titles often
             // repeat the original purchase or transfer description.
             lower.contains("refund") || lower.contains("reversal") || lower.contains("reverse transaction") -> TransactionType.INCOME
 
@@ -88,7 +90,7 @@ class BarqParser : BankParser() {
     }
 
     override fun extractMerchant(message: String, sender: String): String? {
-        val lower = message.lowercase()
+        val lower = titleLine(message)
         return when {
             lower.contains("credit transfer internal") || lower.contains("incoming local transfer") ||
                 (lower.contains("barq wallet transfer") &&
@@ -102,7 +104,7 @@ class BarqParser : BankParser() {
                 lower.contains("refund") || lower.contains("reversal") || lower.contains("reverse transaction") ||
                 lower.contains("atm withdrawal") ->
                 extractFieldMerchant(message, "At")
-                    ?: extractLineValue(HISTORICAL_MERCHANT_AFTER_BALANCE, message)
+                    ?: historicalMerchant(message)
 
             else -> null
         }
@@ -129,6 +131,20 @@ class BarqParser : BankParser() {
         return lower.contains("visa card") ||
             lower.contains("online purchase") || lower.contains("pos purchase") ||
             super.detectIsCard(message)
+    }
+
+    private fun titleLine(message: String): String =
+        message.lineSequence().map { it.trim() }.firstOrNull { it.isNotEmpty() }.orEmpty().lowercase()
+
+    // Older purchase alerts carry no Amount label: a standalone SAR line under the title,
+    // then Balance, then the merchant. Modern layouts never use this fallback, and a
+    // following "Label: value" field is never taken as the merchant.
+    private fun historicalMerchant(message: String): String? {
+        if (FinancialMessageFields.labelledValue(message, listOf("Amount")) != null) return null
+        if (!HISTORICAL_DIRECT_SAR_AMOUNT.containsMatchIn(message)) return null
+        val raw = HISTORICAL_MERCHANT_AFTER_BALANCE.find(message)?.groupValues?.get(1)?.trim() ?: return null
+        if (LABELLED_FIELD_LINE.containsMatchIn(raw)) return null
+        return cleanMerchantName(raw).takeIf { isValidMerchantName(it) }
     }
 
     private fun isHistoricalPurchase(message: String): Boolean {
@@ -176,11 +192,6 @@ class BarqParser : BankParser() {
             cleanMerchantName(raw).takeIf { isValidMerchantName(it) }
         }
 
-    private fun extractLineValue(pattern: Regex, message: String): String? =
-        pattern.find(message)?.groupValues?.get(1)?.trim()?.let { raw ->
-            cleanMerchantName(raw).takeIf { isValidMerchantName(it) }
-        }
-
     private companion object {
         private val HISTORICAL_DIRECT_SAR_AMOUNT = Regex(
             """(?im)^\s*(?:SAR|SR)\s*:?[ \t]*([0-9][0-9,]*(?:\.\d{1,2})?)\s*$""",
@@ -190,6 +201,7 @@ class BarqParser : BankParser() {
             """(?m)^Balance\s*:?[^\n]*\n([^\n]+)""",
             RegexOption.IGNORE_CASE
         )
+        private val LABELLED_FIELD_LINE = Regex("""^[A-Za-z][A-Za-z /]{0,24}:""")
         private val CARD_MASK = Regex("""(?:VISA\s+)?card\s*:?\s*\*+(\d{4})\b""", RegexOption.IGNORE_CASE)
         private val STANDALONE_CARD_MASK = Regex("""(?m)^\*+(\d{4})\b""")
         private val ACCOUNT_MASK = Regex("""(?:Sender\s+A/C|A/C)\s*:?\s*\*+(\d{4})\b""", RegexOption.IGNORE_CASE)

@@ -229,22 +229,20 @@ class NotificationActionReceiver : BroadcastReceiver() {
                         SmsBroadcastReceiver.undoLearnedNotification(context, notificationId)
                     }
                     ACTION_ONLY_THIS_ONE -> {
-                        val learned = intent.toLearned(transactionId)
-                        val forgot = runCatching {
-                            (learned?.let { entryPoint.learnCategoryUseCase().forget(it) } == true)
-                                .also { WidgetRefresher.refreshTransactionWidgets(context) }
-                        }.onFailure { Log.e(TAG, "Error forgetting a learned category", it) }.getOrDefault(false)
-                        if (forgot && learned != null) {
-                            // The pick stands as a one-off: the note stays, minus the lesson. Its Undo
-                            // now reverts just this row, and a pending bill action carries over.
-                            SmsBroadcastReceiver.showLearnedNotification(
-                                context,
-                                notificationId,
-                                learned.copy(merchant = null, previousMapping = null, mappedAt = null, movedIds = emptyList())
-                            )
-                        } else {
-                            SmsBroadcastReceiver.undoLearnedNotification(context, notificationId)
-                        }
+                        // The pick stands as a one-off: the note stays, minus the lesson. Its Undo
+                        // now reverts just this row, and a pending bill action carries over. Posted
+                        // under the pick lock; on a stale tap a newer note owns the slot, so leave it.
+                        runCatching {
+                            val learned = intent.toLearned(transactionId) ?: return@runCatching
+                            entryPoint.learnCategoryUseCase().forget(learned) {
+                                SmsBroadcastReceiver.showLearnedNotification(
+                                    context,
+                                    notificationId,
+                                    learned.copy(merchant = null, previousMapping = null, mappedAt = null, movedIds = emptyList())
+                                )
+                            }
+                            refreshWidgets(context)
+                        }.onFailure { Log.e(TAG, "Error forgetting a learned category", it) }
                     }
                     ACTION_TRACK_RECURRING -> {
                         val cycle = intent.getStringExtra(EXTRA_BILLING_CYCLE)

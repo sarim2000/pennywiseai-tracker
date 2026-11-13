@@ -42,9 +42,15 @@ class LearnCategoryUseCaseTest {
     @After
     fun tearDown() = unmockkStatic("com.pennywiseai.tracker.data.database.RoomCompatKt")
 
-    private fun given(merchant: String, type: TransactionType = TransactionType.EXPENSE, deleted: Boolean = false, id: Long = 1) =
+    private fun given(
+        merchant: String,
+        type: TransactionType = TransactionType.EXPENSE,
+        deleted: Boolean = false,
+        id: Long = 1,
+        category: String = "Others"
+    ) =
         coEvery { transactions.getTransactionById(id) } returns TransactionEntity(
-            id = id, amount = BigDecimal("4.25"), merchantName = merchant, category = "Others",
+            id = id, amount = BigDecimal("4.25"), merchantName = merchant, category = category,
             transactionType = type, dateTime = LocalDateTime.now(), currency = "JOD",
             transactionHash = "h$id", isDeleted = deleted
         )
@@ -182,6 +188,7 @@ class LearnCategoryUseCaseTest {
         coEvery { transactions.getMovableMerchantRowIds(any(), any(), any()) } returns listOf(7L)
         val learned = learn(1, "Shopping")!!
         stored(learned)
+        given("Shein", category = "Shopping")
 
         assertTrue(learn.forget(learned))
 
@@ -202,5 +209,36 @@ class LearnCategoryUseCaseTest {
 
         coVerify(exactly = 0) { mappings.removeMapping(any()) }
         coVerify(exactly = 0) { transactions.moveCategory(any(), from = "Shopping", to = any()) }
+    }
+
+    @Test
+    fun `only this one leaves a newer save on the row alone`() = runBlocking {
+        given("Shein")
+        val learned = learn(1, "Shopping")!!
+        stored(learned)
+        given("Shein", category = "Others") // a later pick of Others: no new lesson, but a newer save
+        var announced = false
+
+        assertFalse(learn.forget(learned) { announced = true })
+
+        assertFalse(announced)
+        coVerify(exactly = 0) { mappings.removeMapping(any()) }
+    }
+
+    @Test
+    fun `only this one announces under the lock, before a later pick's note`() = runBlocking {
+        given("Shein")
+        val learned = learn(1, "Shopping")!!
+        stored(learned)
+        given("Shein", category = "Shopping")
+        val order = java.util.Collections.synchronizedList(mutableListOf<String>())
+        kotlinx.coroutines.coroutineScope {
+            launch(kotlinx.coroutines.Dispatchers.Default) {
+                learn.forget(learned) { order += "one-off start"; Thread.sleep(100); order += "one-off end" }
+            }
+            Thread.sleep(20)
+            launch(kotlinx.coroutines.Dispatchers.Default) { learn(1, "Groceries") { order += "newer pick" } }
+        }
+        assertEquals(listOf("one-off start", "one-off end", "newer pick"), order)
     }
 }

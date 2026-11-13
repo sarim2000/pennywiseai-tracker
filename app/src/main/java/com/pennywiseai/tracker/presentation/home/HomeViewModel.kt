@@ -78,6 +78,7 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
 import java.time.YearMonth
+import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 
 /**
@@ -1400,6 +1401,17 @@ class HomeViewModel @Inject constructor(
         viewModelScope.launch {
             userPreferencesRepository.markPaydaySuggestionHandled()
             userPreferencesRepository.updateBudgetCycleStartDay(day)
+        }
+    }
+
+    /** Epoch ms the "tracking may miss transactions" card is hidden until; starts hidden, no flash. */
+    val trackingCardSnoozedUntil: StateFlow<Long> = userPreferencesRepository.trackingCardSnoozedUntil
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), Long.MAX_VALUE)
+
+    /** ✕ on the tracking card: back in a week if tracking is still blocked. */
+    fun snoozeTrackingCard() {
+        viewModelScope.launch {
+            userPreferencesRepository.snoozeTrackingCard(System.currentTimeMillis() + TimeUnit.DAYS.toMillis(7))
         }
     }
 

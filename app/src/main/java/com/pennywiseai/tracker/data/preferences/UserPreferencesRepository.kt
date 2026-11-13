@@ -137,6 +137,8 @@ open class UserPreferencesRepository internal constructor(
         // not within 30 days. Device-local.
         val RECURRING_HOME_CARD_SEEN = stringSetPreferencesKey("recurring_home_card_seen")
         val RECURRING_HOME_CARD_DISMISSED_AT = longPreferencesKey("recurring_home_card_dismissed_at")
+        // The Home "tracking may miss transactions" card stays hidden until this epoch ms. Device-local.
+        val TRACKING_CARD_SNOOZED_UNTIL = longPreferencesKey("tracking_card_snoozed_until")
         // "Track as … bill" on transaction alerts: "key|epochDay" per merchant
         // offered, to cap how often it's offered. Device-local.
         val RECURRING_OFFER_LOG = stringSetPreferencesKey("recurring_offer_log")
@@ -723,6 +725,14 @@ open class UserPreferencesRepository internal constructor(
     /** Marked on the user's action, not on display — same reasoning as [markSharePromptHandled]. */
     suspend fun markPaydaySuggestionHandled() {
         dataStore.edit { it[PreferencesKeys.PAYDAY_SUGGESTION_HANDLED] = true }
+    }
+
+    /** Epoch ms until which the Home tracking warning stays hidden; 0 = not snoozed. */
+    val trackingCardSnoozedUntil: Flow<Long> = dataStore.data
+        .map { it[PreferencesKeys.TRACKING_CARD_SNOOZED_UNTIL] ?: 0L }
+
+    suspend fun snoozeTrackingCard(untilMillis: Long) {
+        dataStore.edit { it[PreferencesKeys.TRACKING_CARD_SNOOZED_UNTIL] = untilMillis }
     }
 
     /** Recurring-bill suggestions marked "Not recurring"; they never come back. */

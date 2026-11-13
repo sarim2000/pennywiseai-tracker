@@ -39,4 +39,10 @@
     <string name="background_access_oem_howto_transsion">Allow PennyWise under Auto-start in the Phone Master app.</string>
     <string name="background_access_oem_howto_asus">Allow PennyWise under Auto-start Manager in the Mobile Manager app.</string>
     <string name="background_access_oem_howto_other">Some phones have their own background controls. In App info, turn on anything like Auto launch or Run in background for PennyWise.</string>
+
+    <string name="home_tracking_card_title">Tracking may miss transactions</string>
+    <string name="home_tracking_card_sms">PennyWise can\'t read your bank SMS. Allow SMS access to keep tracking.</string>
+    <string name="home_tracking_card_background">Android has restricted PennyWise in the background.</string>
+    <string name="home_tracking_card_fix">Fix</string>
+    <string name="home_tracking_card_dismiss">Hide for a week</string>
 </resources>

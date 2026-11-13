@@ -161,6 +161,7 @@ class UserPreferencesKeysGoldenTest {
             "support_nudge_last_shown_epoch_day" to "Long",
             "system_prompt" to "String",
             "theme_style" to "String",
+            "tracking_card_snoozed_until" to "Long",
             "unified_currency_mode" to "Boolean",
             "upi_id" to "String",
             "use_contacts_for_vpa" to "Boolean",

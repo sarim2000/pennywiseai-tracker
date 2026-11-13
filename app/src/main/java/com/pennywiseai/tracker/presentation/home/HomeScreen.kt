@@ -18,6 +18,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
@@ -30,6 +31,7 @@ import com.pennywiseai.tracker.data.preferences.HomeSection
 import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
 import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.presentation.review.ReviewPromptBanner
+import com.pennywiseai.tracker.presentation.settings.BackgroundAccessViewModel
 import com.pennywiseai.tracker.presentation.share.ShareCardSheet
 import com.pennywiseai.tracker.ui.animations.StaggeredEntrance
 import com.pennywiseai.tracker.ui.animations.rememberEntranceDone
@@ -46,6 +48,7 @@ import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.components.ProHomeCard
 import com.pennywiseai.tracker.ui.components.RecurringSuggestionsCard
 import com.pennywiseai.tracker.ui.components.SmsAccessCard
+import com.pennywiseai.tracker.ui.components.TrackingProblemCard
 import com.pennywiseai.tracker.ui.components.cards.CashFlowCard
 import com.pennywiseai.tracker.ui.components.rememberSmsAccess
 import com.pennywiseai.tracker.ui.components.skeleton.BalanceCardSkeleton
@@ -53,6 +56,9 @@ import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.*
+import com.pennywiseai.tracker.utils.TrackingProblem
+import com.pennywiseai.tracker.utils.canReceiveSms
+import com.pennywiseai.tracker.utils.trackingProblem
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
@@ -76,6 +82,7 @@ fun HomeScreen(
     onLoanClick: (Long) -> Unit = {},
     onNavigateToAddScreen: () -> Unit = {},
     onNavigateToManageAccounts: () -> Unit = {},
+    onNavigateToBackgroundAccess: () -> Unit = {},
     onTransactionClick: (Long) -> Unit = {},
     onGroupClick: (Long) -> Unit = {},
     onGoalClick: (Long) -> Unit = {},
@@ -116,6 +123,23 @@ fun HomeScreen(
             smsAccess.request()
         }
     }
+
+    // Fixes happen in system Settings, so every check reruns on return.
+    val context = LocalContext.current
+    val backgroundAccess: BackgroundAccessViewModel = hiltViewModel()
+    val backgroundState by backgroundAccess.state.collectAsStateWithLifecycle()
+    var canReceiveSms by remember { mutableStateOf(context.canReceiveSms()) }
+    // Read on resume too, so a snooze that ran out while Home sat in the background ends.
+    var resumedAtMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
+        backgroundAccess.refresh()
+        canReceiveSms = context.canReceiveSms()
+        resumedAtMillis = System.currentTimeMillis()
+        onPauseOrDispose { }
+    }
+    val trackingCardSnoozedUntil by viewModel.trackingCardSnoozedUntil.collectAsStateWithLifecycle()
+    val trackingIssue = trackingProblem(smsAccess.granted && canReceiveSms, backgroundState)
+        .takeIf { resumedAtMillis >= trackingCardSnoozedUntil }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -359,6 +383,22 @@ fun HomeScreen(
                         SmsAccessCard(
                             access = smsAccess,
                             onRequest = { viewModel.scanSmsMessages() },
+                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                        )
+                    }
+                } else if (trackingIssue != null && !uiState.isLoading) {
+                    // Tracking was set up but something now blocks it (#1052).
+                    item(key = "tracking_problem") {
+                        TrackingProblemCard(
+                            problem = trackingIssue,
+                            onFix = {
+                                if (trackingIssue == TrackingProblem.SMS_ACCESS) {
+                                    smsAccess.request()
+                                } else {
+                                    onNavigateToBackgroundAccess()
+                                }
+                            },
+                            onDismiss = { viewModel.snoozeTrackingCard() },
                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                         )
                     }

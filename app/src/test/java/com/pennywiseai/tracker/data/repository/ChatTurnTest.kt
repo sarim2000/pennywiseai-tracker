@@ -250,6 +250,25 @@ class ChatTurnTest {
     }
 
     @Test
+    fun `any wording of a claim about a cancelled card is replaced, a denial isn't`() = runTest {
+        every { context.getString(R.string.chat_line_expense, any(), any()) } answers { (args[1] as Array<*>).joinToString(" at ") }
+        every { context.getString(R.string.chat_reply_card_cancelled, any()) } answers { "CANCELLED" }
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.ADD_TRANSACTIONS, mapOf("items" to listOf(mapOf("amount" to 220.0, "merchant" to "TasteHouse")))))
+        send("add 220 for lunch at TasteHouse")
+        repository.clearPendingAction()
+        for (claim in listOf("Yes, the lunch at TasteHouse for ₹220 was added this month.", "Done! I've logged ₹220 at TasteHouse.", "Yes, TasteHouse is in your spending.")) {
+            events = listOf(LlmEvent.Text(claim))
+            assertEquals(claim, "CANCELLED", send("did you add the lunch?"))
+        }
+        val denial = "You cancelled the TasteHouse card, so nothing was added."
+        events = listOf(LlmEvent.Text(denial))
+        assertEquals(denial, send("did you add the lunch?"))
+        // A "yes" about something else isn't about the card.
+        events = listOf(LlmEvent.Text("Yes, you spent ₹900 on groceries."))
+        assertEquals("Yes, you spent ₹900 on groceries.", send("did I spend on groceries?"))
+    }
+
+    @Test
     fun `a claim with no card is replaced by the note alone`() = runTest {
         events = listOf(LlmEvent.Text("Yes, I added lunch."))
         assertEquals("NOTHING_CHANGED", send("did you add the lunch?"))

@@ -69,7 +69,10 @@ class LlmRepository @Inject constructor(
 
     // The last card the user answered: what it showed, and whether it was saved. Checked against
     // a reply that claims a change, so "did you add it?" after a cancel gets the facts (#1083).
-    private var lastCard: Pair<String, Boolean>? = null
+    private var lastCard: AnsweredCard? = null
+
+    /** [mentions]: the merchants and amounts a cancelled card showed, to catch a claim about it in any wording. */
+    private class AnsweredCard(val shown: String, val saved: Boolean, val mentions: List<String> = emptyList())
 
     // One build of the live conversation at a time: the warm-up on open and a send can race.
     private val conversationLock = Mutex()
@@ -96,14 +99,14 @@ class LlmRepository @Inject constructor(
     fun clearPendingAction() {
         _pendingAction.value?.let {
             cardOutcome = "The user cancelled the last card. Nothing was changed."
-            lastCard = describe(it) to false
+            lastCard = AnsweredCard(describe(it), saved = false, mentions = mentionsOf(it))
         }
         _pendingAction.value = null
     }
 
     /** The user's tap went through: [line] (e.g. "Added ₹120 at Starbucks") joins the chat. */
     suspend fun completePendingAction(line: String) {
-        lastCard = line to true
+        lastCard = AnsweredCard(line, saved = true)
         _pendingAction.value = null
         cardOutcome = "The user confirmed the last card. It is saved."
         // The save already happened. A lost line must not read as a failed save worth repeating.
@@ -248,12 +251,12 @@ class LlmRepository @Inject constructor(
         // card was saved, nothing happened: the facts replace the claim, or the user reads
         // "Yes, I added it" above the correction and walks away believing it (#1083).
         val card = lastCard
-        if (toolCalls.isEmpty() && card?.second != true && CLAIMS_A_CHANGE.containsMatchIn(responseBuilder)) {
+        if (toolCalls.isEmpty() && card?.saved != true && claimsAChange(responseBuilder.toString(), card?.mentions.orEmpty())) {
             responseBuilder.clear()
             emit(RESET_REPLY)
             // The live conversation still holds the claim; the next turn rebuilds from the save.
             conversationBroken = true
-            addLine(card?.let { context.getString(R.string.chat_reply_card_cancelled, it.first) } ?: context.getString(R.string.chat_reply_nothing_changed))
+            addLine(card?.let { context.getString(R.string.chat_reply_card_cancelled, it.shown) } ?: context.getString(R.string.chat_reply_nothing_changed))
         }
         // Its state after a failed turn is unknown; the next message rebuilds it from the saved chat.
         if (conversationBroken) llmService.closeConversation()
@@ -625,6 +628,14 @@ class LlmRepository @Inject constructor(
         is PendingChatAction.Update -> describe(card.transaction)
     }
 
+    private fun mentionsOf(card: PendingChatAction): List<String> = when (card) {
+        is PendingChatAction.Add -> card.rows.flatMap { listOf(it.draft.merchant, plain(it.draft.amount)) }
+        is PendingChatAction.Delete -> listOf(card.transaction.merchantName, plain(card.transaction.amount))
+        is PendingChatAction.Update -> listOfNotNull(card.transaction.merchantName, card.newMerchant, plain(card.transaction.amount))
+    }
+
+    private fun plain(amount: BigDecimal) = amount.stripTrailingZeros().toPlainString()
+
     /** An existing row is shown in ITS currency, never relabelled with the base one. */
     private fun describe(tx: TransactionEntity): String =
         "${amountLine(tx.amount, tx.currency, tx.transactionType, tx.merchantName)} · ${tx.category} · ${tx.dateTime.format(DAY_MONTH)}"
@@ -740,14 +751,35 @@ class LlmRepository @Inject constructor(
         private const val MAX_ACCOUNT_CHARS = 500
         // The model replies in the user's language, so a false claim comes in it too.
         private val CLAIMS_A_CHANGE = Regex(
-            // ponytail: "the rate has been changed by the bank" matches too. That adds one harmless line, and a missed claim is worse.
-            "\\b(I(?:'ve| have)?|has been|have been|is now) (added|updated|changed|deleted|removed|recorded)\\b" +
-                "|\\b(transaction|expense|income|payment|purchase|amount|it)s? (is|are|was|were) (added|updated|changed|deleted|removed|recorded)\\b" +
-                "|\\b(added|recorded) successfully\\b" +
+            // Passive too: "the lunch at TasteHouse for ₹220 was added" (#1083). "Changed by the bank" is the bank's doing, not a claim.
+            "\\b(I(?:['’]ve| have)?|has been|have been|is now|was|were|got) (added|saved|recorded|logged|created|deleted|removed|updated|changed)\\b(?! by (?:the|your|a|an)\\b)" +
+                "|\\b(transaction|expense|income|payment|purchase|amount|it)s? (is|are) (added|saved|recorded|logged|created|deleted|removed|updated|changed)\\b" +
+                "|\\b(added|recorded|saved|logged) successfully\\b" +
                 "|أضفت|اضفت|سجلت|حذفت|عدلت|غيرت|تمت? (?:إضافة|اضافة|تسجيل|حذف|تعديل|تغيير)" +
                 "|जोड़ दिया|जोड़ दी|हटा दिया|हटा दी|बदल दिया|बदल दी|दर्ज कर",
             RegexOption.IGNORE_CASE
         )
+        // A sentence with one of these says what didn't happen: "nothing was added" isn't a claim.
+        private val NEGATION = Regex("\\b(no|not|nothing|never|cancell?ed)\\b|n['’]t\\b|لم |لا |ليس|नहीं", RegexOption.IGNORE_CASE)
+        private val AFFIRMATIVE = Regex("\\b(yes|yeah|yep|sure|done|added|saved|recorded|logged)\\b|نعم|हाँ|हां", RegexOption.IGNORE_CASE)
+        // Not every ".": "₹220.50" is one figure.
+        private val SENTENCE_END = Regex("[!?؟।\n]|\\.(?=\\s|$)")
+
+        /**
+         * Whether [reply] says a change happened. Wording varies without end, so after a cancelled
+         * card a "yes" that names its merchant or amount ([cancelled]) counts too, however it's put.
+         */
+        internal fun claimsAChange(reply: String, cancelled: List<String>): Boolean {
+            val affirming = reply.split(SENTENCE_END).filterNot { NEGATION.containsMatchIn(it) }
+            if (affirming.any { CLAIMS_A_CHANGE.containsMatchIn(it) }) return true
+            if (affirming.none { AFFIRMATIVE.containsMatchIn(it) }) return false
+            // ponytail: "₹1,220" is read as 1220, but "220.50" misses a card of 220.5; the merchant usually catches it.
+            val flat = reply.replace(",", "")
+            return cancelled.any { m ->
+                if (m.toBigDecimalOrNull() != null) Regex("(?<![\\d.])${Regex.escape(m)}(?!\\d)").containsMatchIn(flat)
+                else m.length >= 3 && flat.contains(m, ignoreCase = true)
+            }
+        }
         private val DAY_MONTH = java.time.format.DateTimeFormatter.ofPattern("d MMM")
         private val MONTH_LOOKUPS = setOf(PennyWiseTools.MONTH_SUMMARY, PennyWiseTools.SPENDING_BY_CATEGORY)
         private val CARD_TOOLS = setOf(PennyWiseTools.ADD_TRANSACTIONS, PennyWiseTools.DELETE_TRANSACTION, PennyWiseTools.UPDATE_TRANSACTION)

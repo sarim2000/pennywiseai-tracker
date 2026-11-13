@@ -102,6 +102,31 @@ class MobilyPayParserTest {
                 )
             ),
             ParserTestCase(
+                name = "Merchant named like a refund stays a purchase",
+                message = "Card Purchase\nAmount: SAR 30.00\nCard Number: MADA *1234\nAt: Refund Services",
+                sender = "MOBILYPAY",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("30.00"),
+                    currency = "SAR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "Refund Services",
+                    accountLast4 = "1234"
+                )
+            ),
+            ParserTestCase(
+                name = "Counterparty named like a reversal keeps transfer direction",
+                message = "Local Transfer\nAmount: SAR 20.00\nTo: Reversal Traders\nCurrent Balance: SAR 90.00",
+                sender = "MOBILYPAY",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("20.00"),
+                    currency = "SAR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "Reversal Traders",
+                    balance = BigDecimal("90.00"),
+                    isMobileWallet = true
+                )
+            ),
+            ParserTestCase(
                 name = "Reject verification code",
                 message = "OTP: 000000 for Card Purchase\nAmount: SAR 12.50",
                 sender = "MOBILYPAY",

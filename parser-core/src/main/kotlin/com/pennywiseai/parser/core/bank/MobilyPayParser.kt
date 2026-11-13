@@ -27,7 +27,7 @@ class MobilyPayParser : BankParser() {
 
     override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {
         val parsed = super.parse(smsBody, sender, timestamp) ?: return null
-        if (parsed.type == TransactionType.TRANSFER && isWalletTopUp(smsBody.lowercase())) {
+        if (parsed.type == TransactionType.TRANSFER && isWalletTopUp(title(smsBody))) {
             // The funding instrument is separate from the wallet that owns the balance.
             return parsed.copy(accountLast4 = null, isFromCard = false, isMobileWallet = true)
         }
@@ -38,7 +38,9 @@ class MobilyPayParser : BankParser() {
     }
 
     override fun extractTransactionType(message: String): TransactionType? {
-        val lower = message.lowercase()
+        // Classify from the title line only: field values such as "At: Refund Services" or
+        // "From: <NAME> Reversals" must not change the transaction kind.
+        val lower = title(message)
         return when {
             isWalletTopUp(lower) ->
                 // Funding the user's own Mobily Pay wallet from their card is an internal movement.
@@ -70,7 +72,7 @@ class MobilyPayParser : BankParser() {
 
     override fun extractMerchant(message: String, sender: String): String? {
         // A funding source labelled "From Card" is not a transfer counterparty.
-        if (message.contains("Wallet Top", ignoreCase = true)) return "Mobily Pay Wallet"
+        if (isWalletTopUp(title(message))) return "Mobily Pay Wallet"
 
         listOf("At", "From", "To").forEach { label ->
             FinancialMessageFields.labelledValue(message, listOf(label))?.let { rawValue ->
@@ -109,6 +111,10 @@ class MobilyPayParser : BankParser() {
         }
         return super.detectIsCard(message)
     }
+
+    /** First non-blank line, lowercased: the alert's title, e.g. "card purchase". */
+    private fun title(message: String): String =
+        message.lineSequence().map { it.trim() }.firstOrNull { it.isNotEmpty() }.orEmpty().lowercase()
 
     private fun isWalletTopUp(lower: String): Boolean =
         lower.contains("mobily pay wallet top-up") || lower.contains("mobily pay wallet top up") ||

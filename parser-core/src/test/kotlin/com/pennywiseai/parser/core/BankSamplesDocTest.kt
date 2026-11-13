@@ -224,8 +224,12 @@ class BankSamplesDocTest {
                 val current = best[sample.bank]
                 val better = current == null ||
                     sample.richness > current.richness ||
-                    // Tie-break deterministically so the generated file is stable.
-                    (sample.richness == current.richness && sample.message < current.message)
+                    // Tie-break deterministically so the generated file is stable. The sender
+                    // breaks message ties too: the same message under two senders would otherwise
+                    // depend on filesystem walk order, which differs between macOS and Linux CI.
+                    (sample.richness == current.richness &&
+                        (sample.message < current.message ||
+                            (sample.message == current.message && sample.sender < current.sender)))
                 if (better) best[sample.bank] = sample
             }
         }

@@ -1301,6 +1301,23 @@ class TransactionDetailViewModel @Inject constructor(
         }
         viewModelScope.launch {
             try {
+                // A transfer has no money direction, so the user picks one (#1043). Loan
+                // math reads TRANSFER as money out (LoanMath), so a borrowed transfer
+                // would count as its own repayment: it's money in, retype it INCOME the
+                // way the edit form would (balances included).
+                if (txn.transactionType == TransactionType.TRANSFER && direction == LoanDirection.BORROWED) {
+                    val retyped = txn.copy(transactionType = TransactionType.INCOME, updatedAt = LocalDateTime.now())
+                    for ((bank, acct) in listOf(txn.bankName to txn.accountNumber,
+                        txn.fromBankName to txn.fromAccount, txn.toBankName to txn.toAccount)) {
+                        if (bank != null && acct != null) accountBalanceRepository.ensureManualOpening(bank, acct)
+                    }
+                    transactionRepository.updateTransaction(retyped)
+                    accountBalanceRepository.applyTransactionBalanceShift(original = txn, updated = retyped)
+                    if (txn.bankName != null && txn.accountNumber != null) {
+                        accountBalanceRepository.recomputeManualBalance(txn.bankName, txn.accountNumber)
+                    }
+                }
+
                 // Check for existing loan in the OPPOSITE direction first (this is a repayment)
                 val oppositeDirection = if (direction == LoanDirection.LENT) LoanDirection.BORROWED else LoanDirection.LENT
                 // Only while something is still owed: an active loan left at zero (the

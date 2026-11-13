@@ -28,6 +28,7 @@ import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.ui.components.CategoryMenuItems
+import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.SelectedCategoryIcon
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.*
@@ -44,11 +45,13 @@ import java.math.BigDecimal
 internal fun MarkAsLoanBottomSheet(
     transactionAmount: BigDecimal,
     transactionCurrency: String,
-    direction: LoanDirection,
+    initialDirection: LoanDirection,
+    askDirection: Boolean,
     recentPersonNames: List<String>,
     onDismiss: () -> Unit,
-    onConfirm: (personName: String, note: String?, loanAmount: BigDecimal?) -> Unit
+    onConfirm: (personName: String, direction: LoanDirection, note: String?, loanAmount: BigDecimal?) -> Unit
 ) {
+    var direction by remember { mutableStateOf(initialDirection) }
     var personName by remember { mutableStateOf("") }
     var isAddingNew by remember { mutableStateOf(recentPersonNames.isEmpty()) }
     var note by remember { mutableStateOf("") }
@@ -92,6 +95,16 @@ internal fun MarkAsLoanBottomSheet(
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.SemiBold
             )
+            if (askDirection) {
+                ConnectedChoiceRow(
+                    options = listOf(LoanDirection.LENT, LoanDirection.BORROWED),
+                    selected = direction,
+                    onSelect = { direction = it },
+                    label = {
+                        stringResource(if (it == LoanDirection.LENT) R.string.loans_direction_lent else R.string.loans_direction_borrowed)
+                    }
+                )
+            }
             Text(
                 text = if (direction == LoanDirection.LENT) stringResource(R.string.txn_detail_loan_sheet_who_lent) else stringResource(R.string.txn_detail_loan_sheet_who_borrowed),
                 style = MaterialTheme.typography.bodyMedium,
@@ -220,6 +233,7 @@ internal fun MarkAsLoanBottomSheet(
                 onClick = {
                     onConfirm(
                         personName.trim(),
+                        direction,
                         note.trim().ifEmpty { null },
                         parsedLoanAmount
                     )

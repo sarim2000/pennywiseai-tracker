@@ -1,7 +1,43 @@
 package com.pennywiseai.tracker.presentation.transactions
 
 import android.animation.ValueAnimator
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.CallSplit
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.FolderOpen
+import androidx.compose.material.icons.outlined.Savings
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.database.entity.LoanDirection
+import com.pennywiseai.tracker.data.database.entity.LoanEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.presentation.goals.AddToGoalSheet
 import com.pennywiseai.tracker.presentation.goals.TowardGoalsSection
 import com.pennywiseai.tracker.presentation.goals.TransactionGoalsViewModel
@@ -9,50 +45,14 @@ import com.pennywiseai.tracker.presentation.split.SplitBillSheet
 import com.pennywiseai.tracker.presentation.split.SplitBillViewModel
 import com.pennywiseai.tracker.presentation.split.SplitSection
 import com.pennywiseai.tracker.presentation.split.canSplit
-import androidx.compose.ui.res.stringResource
-import android.content.Intent
-import android.net.Uri
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-import coil3.compose.AsyncImage
-import com.pennywiseai.tracker.ui.effects.overScrollVertical
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.CallSplit
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.FolderOpen
-import androidx.compose.material.icons.outlined.Savings
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LifecycleEventEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.pennywiseai.tracker.data.database.entity.LoanDirection
-import com.pennywiseai.tracker.data.database.entity.LoanEntity
-import com.pennywiseai.tracker.data.database.entity.TransactionEntity
-import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.ui.components.SETTLED_HOLD_MILLIS
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
+import com.pennywiseai.tracker.ui.components.SETTLED_HOLD_MILLIS
 import com.pennywiseai.tracker.ui.components.SplitItem
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.Spacing
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
-import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.ui.theme.Dimensions
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
@@ -130,7 +130,7 @@ fun TransactionDetailScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    
+
     // Show success snackbar
     val updatedMessage = stringResource(R.string.txn_detail_updated)
     // "Receipt settled": only the user's own Save gets the check + haptic.
@@ -153,7 +153,7 @@ fun TransactionDetailScreen(
             try { delay(SETTLED_HOLD_MILLIS) } finally { settled = false }
         }
     }
-    
+
     // Show error snackbar
     val errorText = errorMessage?.asString()
     LaunchedEffect(errorText) {
@@ -163,20 +163,20 @@ fun TransactionDetailScreen(
             }
         }
     }
-    
+
     // Reload on every resume so external changes — e.g. the linked loan being
     // deleted from the Loan screen — are reflected when returning here (#444).
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.loadTransaction(transactionId)
     }
-    
+
     // Handle delete success
     LaunchedEffect(deleteSuccess) {
         if (deleteSuccess) {
             onNavigateBack()
         }
     }
-    
+
     val context = LocalContext.current
     var showActionsMenu by remember { mutableStateOf(false) }
 
@@ -377,13 +377,13 @@ fun TransactionDetailScreen(
             )
         }
     }
-    
+
     // Delete Confirmation Dialog
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { viewModel.hideDeleteDialog() },
             title = { Text(stringResource(R.string.txn_detail_delete_title)) },
-            text = { 
+            text = {
                 Text(stringResource(R.string.txn_detail_delete_message))
             },
             confirmButton = {
@@ -433,11 +433,13 @@ fun TransactionDetailScreen(
         MarkAsLoanBottomSheet(
             transactionAmount = transaction?.amount ?: BigDecimal.ZERO,
             transactionCurrency = transaction?.currency ?: "INR",
-            direction = inferredDirection,
+            initialDirection = inferredDirection,
+            // A transfer's direction is ambiguous: let the user pick (#1043).
+            askDirection = txType == TransactionType.TRANSFER,
             recentPersonNames = recentPersonNames,
             onDismiss = { viewModel.hideMarkAsLoanSheet() },
-            onConfirm = { personName, note, loanAmount ->
-                viewModel.createLoanFromTransaction(personName, inferredDirection, note, loanAmount)
+            onConfirm = { personName, direction, note, loanAmount ->
+                viewModel.createLoanFromTransaction(personName, direction, note, loanAmount)
             }
         )
     }
@@ -559,7 +561,6 @@ private fun TransactionDetailContent(
                 splits = splits,
                 showSplitEditor = showSplitEditor
             )
-
         } else {
             TransactionReceipt(
                 transaction = transaction,

@@ -85,7 +85,8 @@ class BackgroundAccessTest {
         val restricted = fine.copy(batteryUnrestricted = false, backgroundRestricted = true)
         assertEquals(TrackingProblem.SMS_ACCESS, trackingProblem(false, restricted))
         assertEquals(TrackingProblem.BACKGROUND_RESTRICTED, trackingProblem(true, restricted))
-        assertEquals(TrackingProblem.BATTERY_OPTIMIZED, trackingProblem(true, fine.copy(batteryUnrestricted = false)))
+        // Battery optimisation alone is the default, not a block.
+        assertEquals(null, trackingProblem(true, fine.copy(batteryUnrestricted = false)))
 
         // Unused-app and manufacturer steps can't be read back, so they never raise it.
         val unverifiable = fine.copy(

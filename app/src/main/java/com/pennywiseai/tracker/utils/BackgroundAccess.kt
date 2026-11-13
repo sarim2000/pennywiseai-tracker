@@ -181,20 +181,19 @@ data class BackgroundAccessState(
 /** What stops automatic tracking, worst first. Drives the Home warning card. */
 enum class TrackingProblem(@param:StringRes val bodyRes: Int) {
     SMS_ACCESS(R.string.home_tracking_card_sms),
-    BACKGROUND_RESTRICTED(R.string.home_tracking_card_background),
-    BATTERY_OPTIMIZED(R.string.home_tracking_card_battery)
+    BACKGROUND_RESTRICTED(R.string.home_tracking_card_background)
 }
 
 /**
- * Null when tracking works, or while [access] hasn't been read yet. Only the checks that
- * can be read back count: unused-app restrictions take months to bite and the
- * manufacturer step is unverifiable, so neither raises the card.
+ * Null when tracking works, or while [access] hasn't been read yet. Only hard blocks count:
+ * battery optimisation is every app's default and SMS broadcasts still arrive in Doze, so
+ * warning on it would nag nearly everyone; unused-app restrictions take months to bite and
+ * the manufacturer step is unverifiable. The checklist still covers all of them.
  */
 fun trackingProblem(smsGranted: Boolean, access: BackgroundAccessState?): TrackingProblem? = when {
     !smsGranted -> TrackingProblem.SMS_ACCESS
     access == null -> null
     access.backgroundRestricted == true -> TrackingProblem.BACKGROUND_RESTRICTED
-    access.showBatteryStep && !access.batteryUnrestricted -> TrackingProblem.BATTERY_OPTIMIZED
     else -> null
 }
 

@@ -43,7 +43,6 @@
     <string name="home_tracking_card_title">Tracking may miss transactions</string>
     <string name="home_tracking_card_sms">PennyWise can\'t read your bank SMS. Allow SMS access to keep tracking.</string>
     <string name="home_tracking_card_background">Android has restricted PennyWise in the background.</string>
-    <string name="home_tracking_card_battery">Battery optimisation can pause PennyWise in the background.</string>
     <string name="home_tracking_card_fix">Fix</string>
     <string name="home_tracking_card_dismiss">Hide for a week</string>
 </resources>

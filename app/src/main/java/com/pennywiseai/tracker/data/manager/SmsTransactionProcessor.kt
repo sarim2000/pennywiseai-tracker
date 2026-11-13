@@ -4,6 +4,7 @@ import android.content.Context
 import android.util.Log
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.bank.BankParserFactory
+import com.pennywiseai.tracker.core.TransactionWidgets
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.CardType
@@ -56,7 +57,8 @@ class SmsTransactionProcessor @Inject constructor(
     private val tagRepository: TagRepository,
     private val ignoredAccountsStore: IgnoredAccountsStore,
     private val database: PennyWiseDatabase,
-    private val moneyAlerts: MoneyAlerts
+    private val moneyAlerts: MoneyAlerts,
+    private val transactionWidgets: TransactionWidgets
 ) {
     private val bankAccountMerges = BankAccountMergeStore(appContext)
     companion object {
@@ -297,7 +299,7 @@ class SmsTransactionProcessor @Inject constructor(
                 processBalanceUpdate(parsedTransaction, finalEntity, rowId)
 
                 // Trigger widget refresh for the transaction-derived widgets
-                com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(appContext)
+                transactionWidgets.refresh()
                 // Every live path saves here (SMS, bank notifications, their retries); the inbox scan doesn't.
                 moneyAlerts.onTransactionSaved()
 

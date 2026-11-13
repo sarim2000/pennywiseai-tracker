@@ -166,8 +166,8 @@ graph as a whole.
 | `ui/components`, `ui/theme`, `ui/icons`, `ui/animations`, `ui/effects` | Components and design tokens used by more than one feature | `presentation`, `worker` |
 | `ui/viewmodel`, `ui` root | App-wide ViewModels (main, theme, spotlight) and small app-wide UI helpers (`UiText`, the shared-transition locals) | `presentation`, `navigation` (a feature's ViewModel goes in its `presentation/<feature>`) |
 | `domain` | Use cases, business rules, models, service interfaces | `presentation`, `ui`, Compose, Activities or other Android UI |
-| `data` | Room (`database`), repositories, DataStore (`preferences`), backup, SMS processing (`manager`) | `presentation`, `ui`, `worker` (declare a contract in `data` that `worker` implements, like `data/manager/MoneyAlerts`) |
-| `utils`, `core` | Small helpers used across layers: money, currency, dates | `presentation`, `ui`, Android entry points |
+| `data` | Room (`database`), repositories, DataStore (`preferences`), backup, SMS processing (`manager`) | `presentation`, `ui`, `worker`, `widget` (declare a contract in `data` that `worker` implements, like `data/manager/MoneyAlerts`; refresh widgets through `core/TransactionWidgets`) |
+| `utils`, `core` | Small helpers used across layers: money, currency, dates, the app language (`utils/AppLanguage.kt`); `core` also holds contracts that several layers call and an entry point implements (`TransactionWidgets`, `QuickAddIntent`) | `presentation`, `ui`, Android entry points |
 | `worker`, `receiver`, `widget`, `tile`, `aiaccess` | Android entry points | Feature screen internals. Use `domain`/`data` instead |
 | `di`, `navigation`, root (`MainActivity`, `PennyWiseApp`, `PennyWiseApplication`) | Wiring and the composition root. `navigation` also holds the app shell: `MainScreen`, `PennyWiseBottomNavigation` and `BottomNavItem` | (may import anything) |
 
@@ -277,7 +277,9 @@ tests, so `./init.sh app` and CI fail on a new violation:
 `ui.theme` needs no rule: `:core:designsystem` can't see `:app`'s code.
 
 `SchedulerPlacementBoundaryTest` and `MoneyAlertsBoundaryTest` keep `data` from
-importing `worker` or WorkManager, with no allowlist.
+importing `worker` or WorkManager, with no allowlist. `WidgetRefreshBoundaryTest`
+keeps `data` and `receiver` from importing `widget`: they refresh widgets through
+`core/TransactionWidgets`, which `widget/WorkManagerTransactionWidgets` implements.
 
 Two more rules check where files live rather than what they import: no file in
 any source set may be in the retired `ui.screens` package (by path or by

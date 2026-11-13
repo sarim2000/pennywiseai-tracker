@@ -1,8 +1,5 @@
 package com.pennywiseai.tracker.widget
 
-import com.pennywiseai.tracker.utils.AppDates
-
-import com.pennywiseai.tracker.R
 import android.content.Context
 import android.text.format.DateFormat
 import androidx.compose.ui.graphics.toArgb
@@ -15,21 +12,24 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.nameForBuiltin
-import com.pennywiseai.tracker.data.repository.CategoryRepository
-import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
+import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.LoanRepository
-import com.pennywiseai.tracker.data.currency.CurrencyConversionService
+import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
 import com.pennywiseai.tracker.domain.model.filterTransactionsByProfile
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
+import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.forTotals
+import com.pennywiseai.tracker.utils.inAppLanguage
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first

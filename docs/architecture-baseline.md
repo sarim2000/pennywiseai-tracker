@@ -28,6 +28,64 @@ scripts/arch/package-deps.sh                            # top-level matrix + cyc
 scripts/arch/package-deps.sh 2 | sed -n '/^Cycles/,$p'  # one level deeper, cycles only
 ```
 
+## Current snapshot (round 5, 2026-11-12)
+
+The rest of this file is the original baseline and stays as recorded. This
+section tracks progress. Counts come from `scripts/arch/package-deps.sh` (import
+lines only), which counts the feature and core modules too.
+
+| | Commit | Cycles, depth 1 | Cycles, depth 2 |
+|---|---|---:|---:|
+| Baseline | `74248cd5` | 23 | 37 |
+| `main` before round 5 | `c8f6e741` | 15 | 25 |
+| Round 5 merged (integration branch) | `a6f15ff8` | 7 | 14 |
+
+**23 → 15.** Ten cycles went: `backup` ↔ `worker`, `billing` ↔ `di`, `data` ↔
+`di`, `di` ↔ `domain`, `data` ↔ `presentation`, `data` ↔ `ui`, `domain` ↔
+`presentation`, `presentation` ↔ `widget`, `presentation` ↔ `worker` and
+`receiver` ↔ `ui`. Two new pairs showed up, `(root)` ↔ `presentation` and
+`navigation` ↔ `presentation`, once the screens left `ui`. The work was folding
+`ui/screens` into `presentation`, extracting `:core:designsystem`, and PRs #1228
+(Quick Add intent contract), #1229 (SMS suggestions to `domain`), #1230 (shared
+goal ring), #1231 (share card and scan dialog back to their features), #1232
+(`ApplicationScope` to `core`) and #1233 (`ScheduledFolderBackupScheduler` beside
+its worker).
+
+**15 → 7.** The round-5 PRs remove nine more:
+
+| Cycle removed | PR |
+|---|---|
+| `presentation` ↔ `ui`, `navigation` ↔ `ui` | refactor(arch): move the app shell into navigation |
+| `data` ↔ `worker` | refactor(arch): move SmsScanManager and WebhookSyncScheduler beside their workers; refactor(arch): raise money alerts from SMS processing through a data contract |
+| `data` ↔ `widget`, `receiver` ↔ `widget` | refactor(arch): refresh widgets from data and receivers through a core contract |
+| `(root)` ↔ `data`, `data` ↔ `receiver` | refactor(arch): reach receiver and the application from data through contracts |
+| `billing` ↔ `data` | refactor(arch): reach billing through core.entitlement contracts (with the scheduler move) |
+| `data` ↔ `utils` | refactor(arch): make utils a leaf package |
+
+`(root)` ↔ `worker` is new in the script's output but not a new dependency.
+`PennyWiseApplication` already named a worker class by its fully qualified name,
+which the script doesn't count. Once the scheduler move adds an import, it does.
+
+What remains after round 5:
+
+| Pair | Imports (a→b / b→a) |
+|---|---:|
+| `data` ↔ `domain` | 51 / 136 |
+| `navigation` ↔ `presentation` | 13 / 23 |
+| `(root)` ↔ `widget` | 1 / 6 |
+| `(root)` ↔ `worker` | 1 / 4 |
+| `(root)` ↔ `receiver` | 1 / 2 |
+| `(root)` ↔ `presentation` | 1 / 1 |
+| `receiver` ↔ `worker` | 2 / 2 |
+
+`data` ↔ `domain` is treated as one layer for now
+([ADR-0003](adr/0003-incremental-architecture-modernization.md#data-and-domain-stay-one-layer-for-now)).
+The `(root)` and `navigation` pairs are the composition root, which may import
+anything. `PackageEdgeRatchetTest` now stops the graph from growing back
+([architecture.md](architecture.md#package-edge-ratchet)). Its allowlist holds
+the directed edges between top-level packages, fully qualified names included:
+81 on `main`, 78 after round 5, and 87 in the union it was seeded with.
+
 ## Size
 
 `:app` has 505 production Kotlin files (495 in `main`, 5 each in `standard` and

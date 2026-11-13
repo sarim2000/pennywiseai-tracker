@@ -1,0 +1,108 @@
+# Allowed edges between top-level packages of com.pennywiseai.tracker, one
+# "from -> to" per line. "(root)" is the root package (MainActivity,
+# PennyWiseApplication). PackageEdgeRatchetTest fails on an edge that is not
+# listed here, so the package graph can only shrink.
+#
+# An edge exists when a file in package "from" imports, or names by its fully
+# qualified name, something in package "to". Scanned: app/src/main,
+# app/src/standard, app/src/fdroid, feature/*/src/main and core/*/src/main.
+# Comments, strings, R and BuildConfig don't count.
+#
+# Updating it (see docs/architecture.md, "Package-edge ratchet"):
+# - The test prints entries that no longer match an edge. Delete them.
+# - Don't add an edge to make a build pass. Move the code instead. Add one only
+#   when the dependency points the right way (docs/architecture.md, "Ownership &
+#   dependency rules") and the PR says why.
+#
+# Seeded in November 2026 with the union of the edges on main (c8f6e741) and
+# on the merged round-5 refactor PRs, so those PRs pass in any merge order.
+# Until all of them land, the test lists a few edges they add as stale (for
+# example worker -> billing). Keep those; delete the ones they remove.
+
+(root) -> billing
+(root) -> data
+(root) -> navigation
+(root) -> presentation
+(root) -> receiver
+(root) -> ui
+(root) -> utils
+(root) -> widget
+(root) -> worker
+aiaccess -> (root)
+aiaccess -> billing
+aiaccess -> data
+aiaccess -> domain
+aiaccess -> utils
+billing -> core
+billing -> data
+data -> (root)
+data -> billing
+data -> core
+data -> domain
+data -> receiver
+data -> utils
+data -> widget
+data -> worker
+di -> (root)
+di -> billing
+di -> core
+di -> data
+di -> domain
+di -> presentation
+di -> receiver
+di -> widget
+di -> worker
+domain -> core
+domain -> data
+domain -> utils
+navigation -> data
+navigation -> domain
+navigation -> presentation
+navigation -> ui
+navigation -> utils
+presentation -> (root)
+presentation -> aiaccess
+presentation -> backup
+presentation -> billing
+presentation -> core
+presentation -> data
+presentation -> domain
+presentation -> navigation
+presentation -> receiver
+presentation -> ui
+presentation -> utils
+presentation -> widget
+presentation -> worker
+receiver -> (root)
+receiver -> core
+receiver -> data
+receiver -> domain
+receiver -> ui
+receiver -> utils
+receiver -> widget
+receiver -> worker
+tile -> (root)
+ui -> core
+ui -> data
+ui -> domain
+ui -> navigation
+ui -> presentation
+ui -> utils
+utils -> core
+utils -> data
+widget -> (root)
+widget -> core
+widget -> data
+widget -> domain
+widget -> receiver
+widget -> ui
+widget -> utils
+worker -> (root)
+worker -> backup
+worker -> billing
+worker -> core
+worker -> data
+worker -> domain
+worker -> receiver
+worker -> utils
+worker -> widget

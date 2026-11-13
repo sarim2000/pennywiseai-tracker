@@ -42,7 +42,7 @@ jobs:
         # sdkmanager now rejects (exit 1). Everything else is fetched by Gradle.
         packages: platform-tools
 
-    - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
+    - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
 
     - name: Run parser-core tests
       run: ./gradlew :parser-core:test --continue
@@ -76,7 +76,7 @@ jobs:
         # sdkmanager now rejects (exit 1). Everything else is fetched by Gradle.
         packages: platform-tools
 
-    - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
+    - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
 
     - name: Compile standard debug app
       run: ./gradlew :app:compileStandardDebugKotlin --build-cache --configuration-cache
@@ -127,7 +127,7 @@ jobs:
         # sdkmanager now rejects (exit 1). Everything else is fetched by Gradle.
         packages: platform-tools
 
-    - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
+    - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
 
     - name: Run standard debug unit tests
       run: ./gradlew :app:testStandardDebugUnitTest :core:designsystem:testDebugUnitTest :feature:exchangerates:testDebugUnitTest :feature:learnedcategories:testDebugUnitTest :shared:testAndroidHostTest --build-cache --continue
@@ -167,7 +167,7 @@ jobs:
         # sdkmanager now rejects (exit 1). Everything else is fetched by Gradle.
         packages: platform-tools
 
-    - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
+    - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
 
     - name: Lint standard debug app
       run: ./gradlew :app:lintStandardDebug --build-cache
@@ -210,7 +210,7 @@ jobs:
         # sdkmanager now rejects (exit 1). Everything else is fetched by Gradle.
         packages: platform-tools
 
-    - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
+    - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
 
     - name: Check formatting of changed files
       run: ./gradlew spotlessCheck --continue

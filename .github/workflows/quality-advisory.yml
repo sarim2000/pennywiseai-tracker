@@ -58,7 +58,7 @@ jobs:
         # sdkmanager now rejects (exit 1). Everything else is fetched by Gradle.
         packages: platform-tools
 
-    - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
+    - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
 
     # The step may fail (new findings) without failing the job; the next step turns a
     # failure into a warning annotation and a summary line so it is not silently green.
@@ -134,7 +134,7 @@ jobs:
         # sdkmanager now rejects (exit 1). Everything else is fetched by Gradle.
         packages: platform-tools
 
-    - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
+    - uses: gradle/actions/setup-gradle@8da46b539cd8fe6ab27ca75128919a18d757604c # v6.4.1
 
     - name: Unit tests with Kover reports
       run: >-

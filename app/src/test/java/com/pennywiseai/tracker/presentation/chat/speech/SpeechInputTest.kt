@@ -92,6 +92,24 @@ class SpeechInputTest {
     }
 
     @Test
+    fun aCallbackAfterTheFinalResultDoesNotChangeThePhrase() {
+        val engine = FakeEngine()
+        val speech = SpeechInput(engine)
+        speech.start("")
+        val callbacks = engine.callbacks!!
+        callbacks.onFinal("coffee 20")
+        val revision = speech.revision
+        callbacks.onPartial("coffee 20")
+        callbacks.onError(SpeechErrorCode.CLIENT)
+
+        assertEquals("coffee 20", speech.draft.display())
+        assertEquals("", speech.draft.heard)
+        assertNull(speech.failure)
+        assertFalse(speech.listening)
+        assertEquals(revision, speech.revision)
+    }
+
+    @Test
     fun stopKeepsThePartialAndIgnoresALateCallback() {
         val engine = FakeEngine()
         val speech = SpeechInput(engine)

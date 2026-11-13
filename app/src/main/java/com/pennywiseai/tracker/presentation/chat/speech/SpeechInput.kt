@@ -58,12 +58,16 @@ class SpeechInput(private val engine: SpeechEngine) {
                 },
                 onFinal = { text ->
                     if (session != mine) return@SpeechCallbacks
+                    // Retire the session before applying, so a callback queued behind
+                    // this result cannot append the phrase or replace the failure.
+                    session++
                     val next = if (text.isBlank()) draft.commit() else draft.withHeard(text).commit()
                     publish(next)
                     listening = false
                 },
                 onError = { code ->
                     if (session != mine) return@SpeechCallbacks
+                    session++
                     val kind = speechFailure(code)
                     val kept = draft.heard.isNotBlank()
                     if (kept) publish(draft.commit())

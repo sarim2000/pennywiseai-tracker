@@ -35,6 +35,8 @@ import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.repository.ModelState
@@ -114,17 +116,28 @@ fun ChatScreen(
     // only for Adds made since this screen came up, not ones from an earlier visit.
     val haptics = LocalHapticFeedback.current
     // Home's mic lands here and listens once. Dictation does not need the chat model.
-    // Mark the tap handled before waiting: leaving Chat cancels this effect, and a
-    // later visit must not start the microphone. The loading overlay covers the field.
+    // The token is consumed before the wait, so leaving Chat or backgrounding during
+    // model load does not start the microphone later. The loading overlay covers the field.
+    val lifecycle = LocalLifecycleOwner.current.lifecycle
     val startDictation by rememberUpdatedState {
-        if (mic.granted) speech.start(input.text) else mic.request()
+        when {
+            mic.granted -> speech.start(input.text)
+            mic.blocked -> {
+                speech.fail(SpeechFailure.BLOCKED)
+                mic.request()
+            }
+            else -> mic.request()
+        }
     }
     LaunchedEffect(voiceAsk?.token) {
         val ask = voiceAsk ?: return@LaunchedEffect
         if (ask.token == 0 || ask.token == ask.handled) return@LaunchedEffect
         ask.handled = ask.token
         viewModel.modelState.first { it != ModelState.LOADING }
-        startDictation()
+        if (lifecycle.currentState.isAtLeast(Lifecycle.State.STARTED)) startDictation()
+    }
+    LaunchedEffect(modelState) {
+        if (modelState == ModelState.LOADING) speech.stop()
     }
     // Partials replace the field and leave the cursor at the end. A finished phrase confirms.
     LaunchedEffect(speech.revision) {

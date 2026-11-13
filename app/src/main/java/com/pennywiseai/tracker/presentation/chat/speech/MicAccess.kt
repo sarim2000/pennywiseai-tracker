@@ -1,8 +1,10 @@
 package com.pennywiseai.tracker.presentation.chat.speech
 
 import android.Manifest
+import android.app.Activity
 import android.content.Context
 import android.content.Intent
+import android.content.SharedPreferences
 import android.content.pm.PackageManager
 import android.provider.Settings
 import androidx.activity.compose.LocalActivity
@@ -44,20 +46,34 @@ fun rememberMicAccess(onGranted: () -> Unit): MicAccess {
     val activity = LocalActivity.current
     val prefs = remember { context.getSharedPreferences(PREFS, Context.MODE_PRIVATE) }
     var granted by remember { mutableStateOf(context.canRecordAudio()) }
-    var blocked by remember { mutableStateOf(false) }
+    var blocked by remember { mutableStateOf(context.isMicBlocked(activity, prefs)) }
+    // Set only by a mic tap. A grant from system settings with no tap must not start listening.
+    var awaitingGrant by remember { mutableStateOf(false) }
     val currentOnGranted by rememberUpdatedState(onGranted)
 
     fun refresh() {
         val now = context.canRecordAudio()
-        if (now && !granted) currentOnGranted()
+        if (now && !granted && awaitingGrant) currentOnGranted()
+        if (now) awaitingGrant = false
         granted = now
-        // Android also reports "no rationale" before the first ask, so only a past ask counts.
-        blocked = !now && prefs.getBoolean(KEY_ASKED, false) && activity != null &&
-            !ActivityCompat.shouldShowRequestPermissionRationale(activity, Manifest.permission.RECORD_AUDIO)
+        blocked = context.isMicBlocked(activity, prefs)
     }
 
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         refresh()
+    }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            // Settings covers the activity. Drop the ask so returning does not listen by itself.
+            if (event == Lifecycle.Event.ON_STOP) awaitingGrant = false
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+            awaitingGrant = false
+        }
     }
 
     LifecycleResumeEffect(Unit) {
@@ -66,7 +82,9 @@ fun rememberMicAccess(onGranted: () -> Unit): MicAccess {
     }
 
     return MicAccess(granted, blocked) {
-        if (blocked) {
+        awaitingGrant = true
+        if (context.isMicBlocked(activity, prefs)) {
+            blocked = true
             context.startFirstAvailable()
         } else {
             prefs.edit { putBoolean(KEY_ASKED, true) }
@@ -110,6 +128,16 @@ fun Context.openSpeechFailureSettings(failure: SpeechFailure) {
 private fun Context.canRecordAudio(): Boolean =
     ContextCompat.checkSelfPermission(this, Manifest.permission.RECORD_AUDIO) ==
         PackageManager.PERMISSION_GRANTED
+
+/** True only after a denial Android will not ask about again. The first visit is not blocked. */
+private fun Context.isMicBlocked(activity: Activity?, prefs: SharedPreferences): Boolean {
+    if (canRecordAudio()) return false
+    if (!prefs.getBoolean(KEY_ASKED, false) || activity == null) return false
+    return !ActivityCompat.shouldShowRequestPermissionRationale(
+        activity,
+        Manifest.permission.RECORD_AUDIO,
+    )
+}
 
 private const val PREFS = "mic_access"
 private const val KEY_ASKED = "asked"

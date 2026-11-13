@@ -99,6 +99,8 @@ class AndroidOnDeviceSpeechEngine(context: Context) : SpeechEngine {
     }
 
     private fun finish() {
+        // destroy() can deliver another error on this listener. Retire it first.
+        generation++
         val current = recognizer ?: return
         recognizer = null
         try {

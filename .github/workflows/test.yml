@@ -181,17 +181,15 @@ jobs:
         retention-days: 7
 
   format-check:
-    name: Format Check (advisory)
+    name: Format Check
     # A push to main has nothing past origin/main to check.
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    # Advisory while the codebase is brought in line: a failure is reported
-    # here but never fails the workflow. Fix locally with ./gradlew spotlessApply.
-    # ponytail: ~480 of ~1230 Kotlin files still fail ktlint and the ratchet is
-    # per file, so blocking now forces whole-file reformats on any touch. Drop
-    # continue-on-error once the cleanup PRs land.
-    continue-on-error: true
+    # Blocking (it feeds the required Check job), but only for files the PR
+    # changes (ratchet): untouched legacy files never fail it. Same check as
+    # ./init.sh and the opt-in .githooks/pre-push hook; fix with
+    # ./gradlew spotlessApply.
 
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1

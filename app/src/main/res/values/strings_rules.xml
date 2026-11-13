@@ -519,6 +519,9 @@
     <string name="rules_field_account">Account</string>
     <string name="rules_field_description">Description</string>
     <string name="rules_field_tags">Tags</string>
+    <string name="rules_field_transfer_from_account">Transfer from account</string>
+    <string name="rules_field_transfer_to_account">Transfer to account</string>
+    <string name="rules_transfer_account_hint">Only applies to transfers. To make one, also set Transaction Type to Transfer in this rule.</string>
 
     <!-- Rule operators (condition chips) -->
     <string name="rules_op_less_than_symbol" translatable="false">&lt;</string>
@@ -614,6 +617,8 @@
     <string name="rules_preview_field_date">date</string>
     <string name="rules_preview_field_account">account</string>
     <string name="rules_preview_field_tags">tags</string>
+    <string name="rules_preview_field_transfer_from_account">transfer from account</string>
+    <string name="rules_preview_field_transfer_to_account">transfer to account</string>
     <string name="rules_preview_field_generic">field</string>
     <string name="rules_preview_op_before">is before</string>
     <string name="rules_preview_op_after">is after</string>

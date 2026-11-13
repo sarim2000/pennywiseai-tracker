@@ -5,8 +5,8 @@ import com.pennywiseai.tracker.domain.model.rule.ConditionOperator
 import com.pennywiseai.tracker.domain.model.rule.RuleAction
 import com.pennywiseai.tracker.domain.model.rule.RuleCondition
 import com.pennywiseai.tracker.domain.model.rule.TransactionField
-import com.pennywiseai.tracker.domain.model.rule.supportedOperators
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
+import com.pennywiseai.tracker.domain.model.rule.supportedOperators
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertThrows
@@ -214,9 +214,14 @@ class RuleSharingCodecTest {
         // operator per field must be one the importer would also accept.
         for (field in TransactionField.entries) {
             val operators = supportedOperators(field)
-            if (field == TransactionField.TAGS) {
-                // Action-only: the engine has no tag value to compare against.
-                assertTrue("TAGS must not be offered as a condition", operators.isEmpty())
+            val actionOnly = setOf(
+                TransactionField.TAGS,
+                TransactionField.TRANSFER_FROM_ACCOUNT,
+                TransactionField.TRANSFER_TO_ACCOUNT
+            )
+            if (field in actionOnly) {
+                // Action-only fields must not be offered as a condition.
+                assertTrue("$field must not be offered as a condition", operators.isEmpty())
             } else {
                 assertTrue("$field offers no operators", operators.isNotEmpty())
             }

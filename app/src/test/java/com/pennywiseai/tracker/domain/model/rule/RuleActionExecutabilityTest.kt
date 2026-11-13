@@ -37,11 +37,15 @@ class RuleActionExecutabilityTest {
         bankName = "Kotak"
     )
 
+    // Transfer-leg actions only apply to a transfer, so probe them on one.
+    private val transferLegFields = setOf(TransactionField.TRANSFER_FROM_ACCOUNT, TransactionField.TRANSFER_TO_ACCOUNT)
+
     /** A value that would be a visible change for [field], so a no-op is detectable. */
     private fun probeValue(field: TransactionField, actionType: ActionType): String =
         when {
             actionType == ActionType.CLEAR -> ""
             field == TransactionField.TYPE -> TransactionType.INCOME.name
+            field in transferLegFields -> "Bank||1234"
             else -> "CHANGED"
         }
 
@@ -58,8 +62,13 @@ class RuleActionExecutabilityTest {
                     actionType = actionType,
                     value = probeValue(field, actionType)
                 )
+                val probed = if (field in transferLegFields) {
+                    transaction.copy(transactionType = TransactionType.TRANSFER)
+                } else {
+                    transaction
+                }
                 val (result, applications) = engine.evaluateRules(
-                    transaction = transaction,
+                    transaction = probed,
                     smsText = null,
                     rules = listOf(
                         TransactionRule(
@@ -79,7 +88,7 @@ class RuleActionExecutabilityTest {
                 val recordedTagMod = applications.flatMap { it.fieldsModified }.any {
                     it.field == TransactionField.TAGS && it.actionType == actionType
                 }
-                val engineCarriedOut = result != transaction || recordedTagMod
+                val engineCarriedOut = result != probed || recordedTagMod
                 assertEquals(
                     "$field + $actionType: supportedActionTypes says " +
                         "${actionType in supportedActionTypes(field)} but the engine " +

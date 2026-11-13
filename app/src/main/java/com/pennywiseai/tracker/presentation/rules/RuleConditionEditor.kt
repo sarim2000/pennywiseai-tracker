@@ -301,85 +301,12 @@ internal fun ConditionFieldSelector(
             )
         }
 
-        TransactionField.ACCOUNT -> {
-            // Account dropdown picker
-            var accountDropdownExpanded by remember { mutableStateOf(false) }
-
-            val selectedAccount = allAccounts.firstOrNull {
-                "${it.bankName}||${it.accountLast4}" == condition.value
-            }
-
-            val displayText = selectedAccount?.let {
-                it.displayName
-            } ?: if (condition.value.isNotBlank()) {
-                // Show raw value if account no longer exists
-                condition.value
-            } else {
-                stringResource(R.string.rules_select_account)
-            }
-
-            Column {
-                ExposedDropdownMenuBox(
-                    expanded = accountDropdownExpanded,
-                    onExpandedChange = { accountDropdownExpanded = !accountDropdownExpanded }
-                ) {
-                    TextField(
-                        value = displayText,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text(stringResource(R.string.rules_field_account)) },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = accountDropdownExpanded) },
-                        modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
-                    )
-                    ExposedDropdownMenu(
-                        expanded = accountDropdownExpanded,
-                        onDismissRequest = { accountDropdownExpanded = false }
-                    ) {
-                        allAccounts.forEach { account ->
-                            val key = "${account.bankName}||${account.accountLast4}"
-                            val accountTypeLabel = when {
-                                account.isCreditCard -> stringResource(R.string.rules_account_type_credit)
-                                account.accountType != null -> account.accountType
-                                else -> ""
-                            }
-                            DropdownMenuItem(
-                                text = {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                                    ) {
-                                        FinancialAccountIdentity(
-                                            bankName = account.bankName,
-                                            accountLast4 = account.accountLast4
-                                        )
-                                        if (accountTypeLabel.isNotBlank()) {
-                                            AssistChip(
-                                                onClick = {},
-                                                label = { Text(accountTypeLabel, style = MaterialTheme.typography.labelSmall) },
-                                                modifier = Modifier.height(24.dp)
-                                            )
-                                        }
-                                    }
-                                },
-                                onClick = {
-                                    onConditionChange(condition.copy(value = key))
-                                    accountDropdownExpanded = false
-                                }
-                            )
-                        }
-                    }
-                }
-
-                if (allAccounts.isEmpty()) {
-                    Text(
-                        text = stringResource(R.string.rules_no_accounts),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(top = Spacing.xs)
-                    )
-                }
-            }
-        }
+        TransactionField.ACCOUNT -> RuleAccountPicker(
+            value = condition.value,
+            allAccounts = allAccounts,
+            label = stringResource(R.string.rules_field_account),
+            onSelect = { onConditionChange(condition.copy(value = it)) }
+        )
 
         else -> {
             TextField(
@@ -407,6 +334,94 @@ internal fun ConditionFieldSelector(
                 },
                 modifier = Modifier.fillMaxWidth(),
                 singleLine = true
+            )
+        }
+    }
+}
+
+/** Dropdown of the user's accounts; [value] and the selection are "BankName||Last4" keys. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun RuleAccountPicker(
+    value: String,
+    allAccounts: List<RulesViewModel.AccountInfo>,
+    label: String,
+    onSelect: (String) -> Unit
+) {
+    // Account dropdown picker
+    var accountDropdownExpanded by remember { mutableStateOf(false) }
+
+    val selectedAccount = allAccounts.firstOrNull {
+        "${it.bankName}||${it.accountLast4}" == value
+    }
+
+    val displayText = selectedAccount?.let {
+        it.displayName
+    } ?: if (value.isNotBlank()) {
+        // Show raw value if account no longer exists
+        value
+    } else {
+        stringResource(R.string.rules_select_account)
+    }
+
+    Column {
+        ExposedDropdownMenuBox(
+            expanded = accountDropdownExpanded,
+            onExpandedChange = { accountDropdownExpanded = !accountDropdownExpanded }
+        ) {
+            TextField(
+                value = displayText,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text(label) },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = accountDropdownExpanded) },
+                modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+            )
+            ExposedDropdownMenu(
+                expanded = accountDropdownExpanded,
+                onDismissRequest = { accountDropdownExpanded = false }
+            ) {
+                allAccounts.forEach { account ->
+                    val key = "${account.bankName}||${account.accountLast4}"
+                    val accountTypeLabel = when {
+                        account.isCreditCard -> stringResource(R.string.rules_account_type_credit)
+                        account.accountType != null -> account.accountType
+                        else -> ""
+                    }
+                    DropdownMenuItem(
+                        text = {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                            ) {
+                                FinancialAccountIdentity(
+                                    bankName = account.bankName,
+                                    accountLast4 = account.accountLast4
+                                )
+                                if (accountTypeLabel.isNotBlank()) {
+                                    AssistChip(
+                                        onClick = {},
+                                        label = { Text(accountTypeLabel, style = MaterialTheme.typography.labelSmall) },
+                                        modifier = Modifier.height(24.dp)
+                                    )
+                                }
+                            }
+                        },
+                        onClick = {
+                            onSelect(key)
+                            accountDropdownExpanded = false
+                        }
+                    )
+                }
+            }
+        }
+
+        if (allAccounts.isEmpty()) {
+            Text(
+                text = stringResource(R.string.rules_no_accounts),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = Spacing.xs)
             )
         }
     }

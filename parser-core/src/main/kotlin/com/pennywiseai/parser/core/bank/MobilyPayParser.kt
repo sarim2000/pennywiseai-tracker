@@ -31,6 +31,9 @@ class MobilyPayParser : BankParser() {
             // The funding instrument is separate from the wallet that owns the balance.
             return parsed.copy(accountLast4 = null, isFromCard = false, isMobileWallet = true)
         }
+        // No card/account number means the movement hit the wallet itself, so it must land on
+        // the same wallet account (and balance) as top-ups rather than a separate one.
+        if (parsed.accountLast4 == null) return parsed.copy(isMobileWallet = true)
         return parsed
     }
 
@@ -40,8 +43,9 @@ class MobilyPayParser : BankParser() {
             isWalletTopUp(lower) ->
                 // Funding the user's own Mobily Pay wallet from their card is an internal movement.
                 TransactionType.TRANSFER
-            lower.contains("purchase reversal") || lower.contains("international purchase reversal") ||
-                lower.contains("cashback reversal") || lower.contains("refund") || lower.contains("reversal") -> TransactionType.INCOME
+            // Cashback taken back is money leaving the wallet; must precede the generic reversal branch.
+            lower.contains("cashback reversal") -> TransactionType.EXPENSE
+            lower.contains("refund") || lower.contains("reversal") -> TransactionType.INCOME
             lower.contains("local transfer") -> when (FinancialMessageFields.transferDirection(message)) {
                 FinancialMessageFields.TransferDirection.INCOMING -> TransactionType.INCOME
                 FinancialMessageFields.TransferDirection.OUTGOING -> TransactionType.EXPENSE
@@ -124,12 +128,11 @@ class MobilyPayParser : BankParser() {
         if (FinancialMessageSafety.isSecurityCode(message)) return false
 
         return lower.contains("card purchase") ||
-                lower.contains("wallet top-up") || lower.contains("wallet top up") ||
-                lower.contains("refund") || lower.contains("reversal") ||
-                lower.contains("local transfer") ||
-                lower.contains("transfer received") || lower.contains("transfer sent") ||
-                (lower.contains("adjustment") &&
-                    (lower.contains("credit") || lower.contains("debit")))
+            lower.contains("wallet top-up") || lower.contains("wallet top up") ||
+            lower.contains("refund") || lower.contains("reversal") ||
+            lower.contains("local transfer") ||
+            lower.contains("transfer received") || lower.contains("transfer sent") ||
+            (lower.contains("adjustment") &&
+                (lower.contains("credit") || lower.contains("debit")))
     }
-
 }

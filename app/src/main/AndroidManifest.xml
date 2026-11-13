@@ -30,14 +30,23 @@
          Opt-in via Settings; the app degrades gracefully if denied. -->
     <uses-permission android:name="android.permission.READ_CONTACTS" />
 
+    <!-- Dictation into PennyWise AI. Asked the first time the mic is tapped.
+         Recognition stays on-device; this does not grant a cloud speech upload. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+
     <!-- Explicitly remove AD_ID permission to ensure privacy -->
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
 
     <!-- #994 step 4: list launchable apps for "Track Other Apps" (no QUERY_ALL_PACKAGES needed). -->
+    <!-- RecognitionService: so the on-device speech check can see the system recognizer. -->
     <queries>
         <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
         </intent>
     </queries>
 

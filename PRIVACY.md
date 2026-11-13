@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last Updated: October 2026**
+**Last Updated: November 2026**
 
 ## Our Commitment to Privacy
 
@@ -51,6 +51,12 @@ PennyWise AI is built with privacy as the core principle. We believe your financ
 - PennyWise ships this permission for one opt-in feature: contact lookup, which can resolve a UPI VPA like `merchant@ybl` into a name from your address book so merchant lists read naturally
 - The lookup runs on-device and the feature stays dormant until you enable it in Settings
 
+### Microphone (`RECORD_AUDIO`, asked when you tap the mic)
+- Dictation on Home and in PennyWise AI. The first tap asks for the microphone; until then it is unused
+- Speech is recognized by the phone's on-device speech service. The recording is not uploaded, stored, or sent to PennyWise
+- If that on-device service is missing, dictation stays off. PennyWise does not fall back to a cloud recognizer
+- The transcript is placed in the message field so you can edit it before it is sent to the on-device model
+
 ### Internet Permission
 - **Model Download**: One-time download of the ~1.5GB Qwen 2.5 model from a public Cloudflare R2 bucket, verified against a SHA-256 checksum before use
 - **Exchange Rates**: Multi-currency features fetch current rates from open.er-api.com; only the currency code is sent
@@ -59,7 +65,7 @@ PennyWise AI is built with privacy as the core principle. We believe your financ
 - **App Updates**: Google Play Store variant uses Play Services for app updates (F-Droid variant does not)
 - **After Model Download**: AI works completely offline, no internet required for core features
 
-No location, camera, or microphone permission is requested.
+No location or camera permission is requested. The microphone is requested only when you tap the mic to dictate a message.
 
 ## Third-Party Services
 

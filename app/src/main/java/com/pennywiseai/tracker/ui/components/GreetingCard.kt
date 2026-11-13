@@ -1,13 +1,9 @@
 package com.pennywiseai.tracker.ui.components
 
-import com.pennywiseai.tracker.utils.AppDates
-
-import androidx.compose.ui.res.pluralStringResource
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -23,8 +19,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -32,7 +28,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -40,15 +35,26 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import coil3.compose.AsyncImage
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
+import com.pennywiseai.tracker.presentation.chat.speech.SpeechMicGlyph
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.yellow_dark
-import coil3.compose.AsyncImage
+import com.pennywiseai.tracker.utils.AppDates
 import java.time.LocalDate
 import java.time.LocalTime
 import java.time.temporal.ChronoUnit
@@ -64,6 +70,10 @@ fun GreetingCard(
     // Shows an Add button when set (the floating nav bar docks Sync instead
     // of Home keeping an Add FAB).
     onAddClick: (() -> Unit)? = null,
+    onVoiceAsk: (() -> Unit)? = null,
+    onVoiceLanguage: (() -> Unit)? = null,
+    voiceLanguageTag: String = "",
+    voiceLanguageName: String = "",
     profiles: List<ProfileEntity> = emptyList(),
     selectedProfileId: Long? = null,
     onProfileSelected: (Long?) -> Unit = {},
@@ -133,46 +143,46 @@ fun GreetingCard(
                 .clickable(onClick = if (isProEntitled) onAvatarClick else onUpgradeClick),
             contentAlignment = Alignment.Center
         ) {
-        Box(
-            modifier = Modifier
-                .size(44.dp)
-                .clip(CircleShape)
-                .background(avatarBackground),
-            contentAlignment = Alignment.Center
-        ) {
-            val avatarResId = profileImageUri?.let { AvatarHelper.resolveAvatarDrawable(it) }
-            if (avatarResId != null) {
-                Image(
-                    painter = painterResource(id = avatarResId),
-                    contentDescription = userName,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            } else if (profileImageUri != null) {
-                AsyncImage(
-                    model = profileImageUri,
-                    contentDescription = userName,
-                    modifier = Modifier.fillMaxSize(),
-                    contentScale = ContentScale.Crop
-                )
-            } else {
-                val initials = remember(userName) {
-                    val parts = userName.trim().split("\\s+".toRegex())
-                    if (parts.size >= 2) {
-                        "${parts.first().first()}${parts.last().first()}".uppercase()
-                    } else {
-                        userName.trim().take(2).uppercase()
+            Box(
+                modifier = Modifier
+                    .size(44.dp)
+                    .clip(CircleShape)
+                    .background(avatarBackground),
+                contentAlignment = Alignment.Center
+            ) {
+                val avatarResId = profileImageUri?.let { AvatarHelper.resolveAvatarDrawable(it) }
+                if (avatarResId != null) {
+                    Image(
+                        painter = painterResource(id = avatarResId),
+                        contentDescription = userName,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else if (profileImageUri != null) {
+                    AsyncImage(
+                        model = profileImageUri,
+                        contentDescription = userName,
+                        modifier = Modifier.fillMaxSize(),
+                        contentScale = ContentScale.Crop
+                    )
+                } else {
+                    val initials = remember(userName) {
+                        val parts = userName.trim().split("\\s+".toRegex())
+                        if (parts.size >= 2) {
+                            "${parts.first().first()}${parts.last().first()}".uppercase()
+                        } else {
+                            userName.trim().take(2).uppercase()
+                        }
                     }
+                    Text(
+                        text = initials,
+                        style = MaterialTheme.typography.titleSmall.copy(
+                            fontWeight = FontWeight.Bold
+                        ),
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
+                    )
                 }
-                Text(
-                    text = initials,
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontWeight = FontWeight.Bold
-                    ),
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                )
             }
-        }
         }
 
         Spacer(modifier = Modifier.width(Spacing.sm))
@@ -223,6 +233,38 @@ fun GreetingCard(
             }
         }
 
+        if (onVoiceAsk != null) {
+            val haptics = LocalHapticFeedback.current
+            val voiceDescription = if (voiceLanguageName.isBlank()) {
+                stringResource(R.string.home_voice_ask)
+            } else {
+                stringResource(R.string.home_voice_ask_language, voiceLanguageName)
+            }
+            val holdLabel = stringResource(R.string.chat_voice_language_hold)
+            Box(
+                modifier = Modifier
+                    .size(Dimensions.Component.minTouchTarget)
+                    .combinedClickable(
+                        role = Role.Button,
+                        onClick = onVoiceAsk,
+                        onLongClick = onVoiceLanguage?.let { open ->
+                            {
+                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                open()
+                            }
+                        },
+                        onLongClickLabel = holdLabel,
+                    )
+                    .semantics { contentDescription = voiceDescription },
+                contentAlignment = Alignment.Center,
+            ) {
+                SpeechMicGlyph(
+                    languageTag = voiceLanguageTag,
+                    tint = MaterialTheme.colorScheme.primary,
+                )
+            }
+        }
+
         if (onAddClick != null) {
             IconButton(
                 onClick = onAddClick,
@@ -251,4 +293,3 @@ fun GreetingCard(
         }
     }
 }
-

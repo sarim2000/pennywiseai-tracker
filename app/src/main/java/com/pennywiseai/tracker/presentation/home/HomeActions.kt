@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.presentation.home
 import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -18,14 +19,18 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
+import com.pennywiseai.tracker.presentation.chat.speech.SpeechMicGlyph
 import com.pennywiseai.tracker.ui.components.ProfileFilterDropdown
 import com.pennywiseai.tracker.ui.components.profileFilterIcon
 import com.pennywiseai.tracker.ui.components.spotlightTarget
@@ -48,14 +53,56 @@ internal fun HomeTopBarActions(
     onProfileSelected: (Long?) -> Unit,
     onDismissProfileFilter: () -> Unit,
     onNavigateToAddScreen: () -> Unit,
+    onVoiceAsk: (() -> Unit)? = null,
+    onVoiceLanguage: (() -> Unit)? = null,
+    voiceLanguageTag: String = "",
+    voiceLanguageName: String = "",
     onMoreClick: () -> Unit
 ) {
+    val haptics = LocalHapticFeedback.current
     val containerColor = MaterialTheme.colorScheme.surfaceContainer
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(end = Dimensions.Padding.content),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
+        if (onVoiceAsk != null) {
+            val voiceDescription = if (voiceLanguageName.isBlank()) {
+                stringResource(R.string.home_voice_ask)
+            } else {
+                stringResource(R.string.home_voice_ask_language, voiceLanguageName)
+            }
+            val holdLabel = stringResource(R.string.chat_voice_language_hold)
+            Box(
+                modifier = Modifier
+                    .size(Dimensions.Component.iconButton)
+                    .clip(CircleShape)
+                    .background(
+                        color = if (blurEffects) containerColor.copy(0.5f) else containerColor,
+                        shape = CircleShape
+                    )
+                    .combinedClickable(
+                        role = Role.Button,
+                        onClick = onVoiceAsk,
+                        onLongClick = onVoiceLanguage?.let { open ->
+                            {
+                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                open()
+                            }
+                        },
+                        onLongClickLabel = holdLabel,
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                    )
+                    .semantics { contentDescription = voiceDescription },
+                contentAlignment = Alignment.Center
+            ) {
+                SpeechMicGlyph(
+                    languageTag = voiceLanguageTag,
+                    tint = MaterialTheme.colorScheme.inverseSurface,
+                )
+            }
+        }
         // Subtle Pro discovery chip — yellow sparkle that ties
         // back to the Settings → PennyWise Pro entry. Hidden
         // for already-entitled users so it's never pushy.

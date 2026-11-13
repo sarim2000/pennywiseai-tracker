@@ -135,7 +135,7 @@ class ChatTurnTest {
     }
 
     @Test
-    fun `a category only transactions carry is that category, even when it reads like "all"`() = runTest {
+    fun `a category only transactions carry is that category, even when it reads like all`() = runTest {
         val w = SpendingComparison.Window(LocalDateTime.of(2026, 10, 1, 0, 0), LocalDateTime.of(2026, 10, 9, 0, 0))
         coEvery { aiContext.compareSpending(any(), any(), any()) } returns
             SpendingComparison.Result.Rows(w, w, listOf(SpendingComparison.Row("INR", BigDecimal("100"), BigDecimal.ZERO, null)))

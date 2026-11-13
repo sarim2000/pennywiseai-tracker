@@ -44,6 +44,7 @@ import com.pennywiseai.tracker.data.preferences.NavBarStyle
 import com.pennywiseai.tracker.presentation.accounts.AddAccountScreen
 import com.pennywiseai.tracker.presentation.accounts.ManageAccountsScreen
 import com.pennywiseai.tracker.presentation.accounts.ManageAccountsViewModel
+import com.pennywiseai.tracker.presentation.chat.VoiceAsk
 import com.pennywiseai.tracker.presentation.home.HomeScreen
 import com.pennywiseai.tracker.presentation.settings.AppearanceScreen
 import com.pennywiseai.tracker.presentation.settings.FAQScreen
@@ -257,6 +258,8 @@ fun MainScreen(
 
     // Home's scan, for the Spotlight tutorial drawn over the bar (set by Home's entry).
     var scanSms by remember { mutableStateOf<(() -> Unit)?>(null) }
+    // Home's mic. Chat consumes each request once, when its model can listen.
+    val voiceAsk = remember { VoiceAsk() }
 
     // Entries read state through State objects (themeState), not captured values:
     // an entry's content is built once per back stack change.
@@ -324,7 +327,15 @@ fun MainScreen(
                 },
                 onFabPositioned = { position ->
                     spotlightViewModel.updateFabPosition(position)
-                }
+                },
+                onVoiceAsk = if (BottomNavItem.Chat.route in themeState.hiddenNavTabs) {
+                    null
+                } else {
+                    {
+                        voiceAsk.request()
+                        selectTab(BottomNavItem.Chat)
+                    }
+                },
             )
         }
 
@@ -406,7 +417,8 @@ fun MainScreen(
                     modifier = Modifier.imePadding(),
                     onNavigateToSettings = {
                         open(tab, SettingsPage(SettingsSection.AI))
-                    }
+                    },
+                    voiceAsk = voiceAsk,
                 )
             }
         }

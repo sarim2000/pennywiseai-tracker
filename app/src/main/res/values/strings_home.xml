@@ -7,6 +7,7 @@
     <string name="home_profile_filter">Profile filter</string>
     <string name="home_more_options">More options</string>
     <string name="home_voice_ask">Ask PennyWise by voice</string>
+    <string name="home_voice_ask_language">Ask PennyWise by voice in %1$s. Hold to change language.</string>
     <string name="home_view_all">View All</string>
     <string name="home_view">View</string>
     <string name="home_manage">Manage</string>

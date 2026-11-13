@@ -41,11 +41,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.repository.ModelState
 import com.pennywiseai.tracker.data.repository.QuickAction
+import com.pennywiseai.tracker.presentation.chat.speech.DictationMicButton
 import com.pennywiseai.tracker.presentation.chat.speech.SpeechFailure
 import com.pennywiseai.tracker.presentation.chat.speech.SpeechInput
+import com.pennywiseai.tracker.presentation.chat.speech.SpeechLanguageSheet
 import com.pennywiseai.tracker.presentation.chat.speech.openSpeechFailureSettings
 import com.pennywiseai.tracker.presentation.chat.speech.rememberMicAccess
 import com.pennywiseai.tracker.presentation.chat.speech.rememberSpeechInput
+import com.pennywiseai.tracker.presentation.chat.speech.rememberSpeechLanguages
 import com.pennywiseai.tracker.presentation.chat.speech.textToSend
 import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.ui.animations.pwExpand
@@ -95,8 +98,10 @@ fun ChatScreen(
 
     var input by remember { mutableStateOf(TextFieldValue("")) }
     val speech = rememberSpeechInput()
+    val languages = rememberSpeechLanguages()
+    var showLanguageSheet by remember { mutableStateOf(false) }
     val mic = rememberMicAccess(
-        onGranted = { speech.start(input.text) },
+        onGranted = { speech.start(input.text, languages.listeningTag) },
         onDenied = { blocked ->
             speech.fail(if (blocked) SpeechFailure.BLOCKED else SpeechFailure.PERMISSION)
         },
@@ -137,7 +142,7 @@ fun ChatScreen(
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val startDictation by rememberUpdatedState {
         when {
-            mic.granted -> speech.start(input.text)
+            mic.granted -> speech.start(input.text, languages.listeningTag)
             mic.blocked -> {
                 speech.fail(SpeechFailure.BLOCKED)
                 mic.request()
@@ -379,6 +384,10 @@ fun ChatScreen(
                             sendBusy = uiState.isLoading || isConfirming,
                             focusRequester = focusRequester,
                             onSend = viewModel::sendMessage,
+                            languageTag = languages.listeningTag,
+                            languageName = languages.spokenName,
+                            showLanguageHint = !languages.hintSeen,
+                            onLanguage = { showLanguageSheet = true },
                         )
                         // The bottom nav hides while the keyboard is up, so its
                         // clearance would just leave a gap above the keyboard.
@@ -553,6 +562,10 @@ fun ChatScreen(
                                 sendBusy = uiState.isLoading || isConfirming,
                                 focusRequester = focusRequester,
                                 onSend = viewModel::sendMessage,
+                                languageTag = languages.listeningTag,
+                                languageName = languages.spokenName,
+                                showLanguageHint = !languages.hintSeen,
+                                onLanguage = { showLanguageSheet = true },
                             )
                             // The bottom nav hides while the keyboard is up, so its
                             // clearance would just leave a gap above the keyboard.
@@ -564,6 +577,9 @@ fun ChatScreen(
                 }
             }
         }
+    }
+    if (showLanguageSheet) {
+        SpeechLanguageSheet(languages) { showLanguageSheet = false }
     }
 }
 
@@ -580,8 +596,13 @@ private fun ChatComposer(
     sendBusy: Boolean,
     focusRequester: FocusRequester,
     onSend: (String) -> Unit,
+    languageTag: String,
+    languageName: String,
+    showLanguageHint: Boolean,
+    onLanguage: () -> Unit,
 ) {
     val context = LocalContext.current
+    val haptics = LocalHapticFeedback.current
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surface,
@@ -611,6 +632,15 @@ private fun ChatComposer(
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.error,
                 )
+            } else if (showLanguageHint) {
+                Text(
+                    text = stringResource(R.string.chat_voice_language_hold),
+                    modifier = Modifier
+                        .padding(horizontal = Dimensions.Padding.content)
+                        .clickable(onClick = onLanguage),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
             }
             Row(
                 modifier = Modifier
@@ -618,7 +648,15 @@ private fun ChatComposer(
                     .padding(Dimensions.Padding.content),
                 verticalAlignment = Alignment.Bottom,
             ) {
-                FilledTonalIconButton(
+                DictationMicButton(
+                    listening = speech.listening,
+                    languageTag = languageTag,
+                    contentDescription = if (speech.listening) {
+                        stringResource(R.string.chat_voice_stop)
+                    } else {
+                        stringResource(R.string.chat_voice_mic_language, languageName)
+                    },
+                    enabled = speech.listening || !sendBusy,
                     onClick = {
                         when {
                             speech.listening -> speech.finish()
@@ -627,20 +665,16 @@ private fun ChatComposer(
                                 if (micBlocked) speech.fail(SpeechFailure.BLOCKED)
                                 onRequestMic()
                             }
-                            else -> speech.start(input.text)
+                            else -> speech.start(input.text, languageTag)
                         }
                     },
-                    enabled = speech.listening || !sendBusy,
-                    modifier = Modifier.size(48.dp),
-                    shapes = IconButtonDefaults.shapes(),
-                ) {
-                    Icon(
-                        if (speech.listening) Icons.Filled.Stop else Icons.Filled.Mic,
-                        contentDescription = stringResource(
-                            if (speech.listening) R.string.chat_voice_stop else R.string.chat_voice_mic,
-                        ),
-                    )
-                }
+                    onLongClick = {
+                        haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                        // The sheet is not a discard. Finish so words still in the audio are kept.
+                        if (speech.listening) speech.finish()
+                        onLanguage()
+                    },
+                )
                 Spacer(modifier = Modifier.width(Spacing.sm))
                 OutlinedTextField(
                     value = input,

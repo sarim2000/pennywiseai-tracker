@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.ui.components
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -10,6 +11,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -35,16 +37,22 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import coil3.compose.AsyncImage
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
+import com.pennywiseai.tracker.presentation.chat.speech.SpeechLanguageMark
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.yellow_dark
@@ -65,6 +73,9 @@ fun GreetingCard(
     // of Home keeping an Add FAB).
     onAddClick: (() -> Unit)? = null,
     onVoiceAsk: (() -> Unit)? = null,
+    onVoiceLanguage: (() -> Unit)? = null,
+    voiceLanguageTag: String = "",
+    voiceLanguageName: String = "",
     profiles: List<ProfileEntity> = emptyList(),
     selectedProfileId: Long? = null,
     onProfileSelected: (Long?) -> Unit = {},
@@ -225,16 +236,43 @@ fun GreetingCard(
         }
 
         if (onVoiceAsk != null) {
-            IconButton(
-                onClick = onVoiceAsk,
-                modifier = Modifier.size(Dimensions.Component.minTouchTarget),
-                shapes = IconButtonDefaults.shapes()
+            val haptics = LocalHapticFeedback.current
+            val voiceDescription = if (voiceLanguageName.isBlank()) {
+                stringResource(R.string.home_voice_ask)
+            } else {
+                stringResource(R.string.home_voice_ask_language, voiceLanguageName)
+            }
+            val holdLabel = stringResource(R.string.chat_voice_language_hold)
+            Box(
+                modifier = Modifier
+                    .size(Dimensions.Component.minTouchTarget)
+                    .combinedClickable(
+                        role = Role.Button,
+                        onClick = onVoiceAsk,
+                        onLongClick = onVoiceLanguage?.let { open ->
+                            {
+                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                open()
+                            }
+                        },
+                        onLongClickLabel = holdLabel,
+                    )
+                    .semantics { contentDescription = voiceDescription },
+                contentAlignment = Alignment.Center,
             ) {
                 Icon(
                     imageVector = Icons.Default.Mic,
-                    contentDescription = stringResource(R.string.home_voice_ask),
-                    tint = MaterialTheme.colorScheme.primary
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.offset(y = if (voiceLanguageTag.isBlank()) 0.dp else (-4).dp),
                 )
+                if (voiceLanguageTag.isNotBlank()) {
+                    SpeechLanguageMark(
+                        tag = voiceLanguageTag,
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.align(Alignment.BottomCenter),
+                    )
+                }
             }
         }
 

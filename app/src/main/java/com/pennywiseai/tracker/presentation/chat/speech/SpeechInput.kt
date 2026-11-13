@@ -18,7 +18,9 @@ class SpeechCallbacks(
  */
 interface SpeechEngine {
     fun available(): Boolean
-    fun start(callbacks: SpeechCallbacks)
+
+    /** [languageTag] empty means the recognizer's own default. */
+    fun start(languageTag: String, callbacks: SpeechCallbacks)
 
     /** @return false when there is no live recognizer to end, or ending it threw. */
     fun stopListening(): Boolean
@@ -51,7 +53,7 @@ class SpeechInput(private val engine: SpeechEngine) {
 
     fun available(): Boolean = engine.available()
 
-    fun start(currentText: String) {
+    fun start(currentText: String, languageTag: String = "") {
         if (!engine.available()) {
             failure = SpeechFailure.UNAVAILABLE
             return
@@ -62,6 +64,7 @@ class SpeechInput(private val engine: SpeechEngine) {
         draft = SpeechDraft(currentText, "")
         listening = true
         engine.start(
+            languageTag,
             SpeechCallbacks(
                 onPartial = { text ->
                     if (session != mine || text.isBlank()) return@SpeechCallbacks

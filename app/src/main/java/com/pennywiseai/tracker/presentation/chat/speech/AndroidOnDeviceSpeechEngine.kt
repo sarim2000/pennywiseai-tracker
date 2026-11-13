@@ -17,9 +17,10 @@ private const val TAG = "PennyWiseSpeech"
  * Dictation for the on-device assistant. Audio is recognized by the system's
  * on-device speech service and is never sent to PennyWise or to a cloud recognizer.
  * A downloaded Whisper/Qwen model would also stay on device, but it is a second
- * large download beside the chat model; the system recognizer is already on an S23
- * and follows the phone's language. Below Android 12, or when that service is
- * missing, dictation is unavailable rather than falling back to a network recognizer.
+ * large download beside the chat model; the system recognizer is already on an S23.
+ * The language passed to [start] is the dictation language, not the app language.
+ * Below Android 12, or when that service is missing, dictation is unavailable
+ * rather than falling back to a network recognizer.
  */
 class AndroidOnDeviceSpeechEngine(context: Context) : SpeechEngine {
     private val appContext = context.applicationContext
@@ -28,7 +29,7 @@ class AndroidOnDeviceSpeechEngine(context: Context) : SpeechEngine {
 
     override fun available(): Boolean = onDeviceSpeechAvailable(appContext)
 
-    override fun start(callbacks: SpeechCallbacks) {
+    override fun start(languageTag: String, callbacks: SpeechCallbacks) {
         cancel()
         if (Build.VERSION.SDK_INT < Build.VERSION_CODES.S || !available()) {
             callbacks.onError(SpeechErrorCode.UNAVAILABLE)
@@ -44,9 +45,10 @@ class AndroidOnDeviceSpeechEngine(context: Context) : SpeechEngine {
         }
         recognizer = created
         created.setRecognitionListener(listener(gen, callbacks))
-        Log.i(TAG, "Listening, language ${Locale.getDefault().toLanguageTag()}")
+        val tag = languageTag.ifBlank { Locale.getDefault().toLanguageTag() }
+        Log.i(TAG, "Listening, language $tag")
         try {
-            created.startListening(listenIntent())
+            created.startListening(listenIntent(languageTag))
         } catch (error: RuntimeException) {
             Log.w(TAG, "startListening failed", error)
             cancel()
@@ -130,14 +132,15 @@ internal fun onDeviceSpeechAvailable(context: Context): Boolean {
 }
 
 @RequiresApi(Build.VERSION_CODES.S)
-private fun create(context: Context): SpeechRecognizer =
+internal fun create(context: Context): SpeechRecognizer =
     SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
 
-private fun listenIntent(): Intent =
+private fun listenIntent(languageTag: String): Intent =
     Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH).apply {
         putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
         putExtra(RecognizerIntent.EXTRA_PARTIAL_RESULTS, true)
-        putExtra(RecognizerIntent.EXTRA_LANGUAGE, Locale.getDefault().toLanguageTag())
+        val tag = languageTag.ifBlank { Locale.getDefault().toLanguageTag() }
+        putExtra(RecognizerIntent.EXTRA_LANGUAGE, tag)
         putExtra(RecognizerIntent.EXTRA_MAX_RESULTS, 3)
         // A short money phrase should not be cut off, and a pause should end the phrase.
         putExtra(RecognizerIntent.EXTRA_SPEECH_INPUT_MINIMUM_LENGTH_MILLIS, 1_500)

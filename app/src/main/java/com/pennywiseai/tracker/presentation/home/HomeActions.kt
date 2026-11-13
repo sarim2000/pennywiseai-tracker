@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.presentation.home
 import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.combinedClickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
@@ -19,14 +20,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Rect
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
+import com.pennywiseai.tracker.presentation.chat.speech.SpeechLanguageMark
 import com.pennywiseai.tracker.ui.components.ProfileFilterDropdown
 import com.pennywiseai.tracker.ui.components.profileFilterIcon
 import com.pennywiseai.tracker.ui.components.spotlightTarget
@@ -50,8 +56,12 @@ internal fun HomeTopBarActions(
     onDismissProfileFilter: () -> Unit,
     onNavigateToAddScreen: () -> Unit,
     onVoiceAsk: (() -> Unit)? = null,
+    onVoiceLanguage: (() -> Unit)? = null,
+    voiceLanguageTag: String = "",
+    voiceLanguageName: String = "",
     onMoreClick: () -> Unit
 ) {
+    val haptics = LocalHapticFeedback.current
     val containerColor = MaterialTheme.colorScheme.surfaceContainer
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -59,6 +69,12 @@ internal fun HomeTopBarActions(
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
         if (onVoiceAsk != null) {
+            val voiceDescription = if (voiceLanguageName.isBlank()) {
+                stringResource(R.string.home_voice_ask)
+            } else {
+                stringResource(R.string.home_voice_ask_language, voiceLanguageName)
+            }
+            val holdLabel = stringResource(R.string.chat_voice_language_hold)
             Box(
                 modifier = Modifier
                     .size(Dimensions.Component.iconButton)
@@ -67,19 +83,37 @@ internal fun HomeTopBarActions(
                         color = if (blurEffects) containerColor.copy(0.5f) else containerColor,
                         shape = CircleShape
                     )
-                    .clickable(
+                    .combinedClickable(
+                        role = Role.Button,
                         onClick = onVoiceAsk,
+                        onLongClick = onVoiceLanguage?.let { open ->
+                            {
+                                haptics.performHapticFeedback(HapticFeedbackType.LongPress)
+                                open()
+                            }
+                        },
+                        onLongClickLabel = holdLabel,
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null,
-                    ),
+                    )
+                    .semantics { contentDescription = voiceDescription },
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
                     imageVector = Icons.Default.Mic,
-                    contentDescription = stringResource(R.string.home_voice_ask),
+                    contentDescription = null,
                     tint = MaterialTheme.colorScheme.inverseSurface,
-                    modifier = Modifier.size(Dimensions.Icon.medium)
+                    modifier = Modifier
+                        .size(Dimensions.Icon.medium)
+                        .offset(y = if (voiceLanguageTag.isBlank()) 0.dp else (-3).dp),
                 )
+                if (voiceLanguageTag.isNotBlank()) {
+                    SpeechLanguageMark(
+                        tag = voiceLanguageTag,
+                        color = MaterialTheme.colorScheme.inverseSurface,
+                        modifier = Modifier.align(Alignment.BottomCenter),
+                    )
+                }
             }
         }
         // Subtle Pro discovery chip — yellow sparkle that ties

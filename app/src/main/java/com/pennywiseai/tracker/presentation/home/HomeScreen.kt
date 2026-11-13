@@ -29,6 +29,8 @@ import com.pennywiseai.tracker.data.preferences.CoverStyle
 import com.pennywiseai.tracker.data.preferences.HomeSection
 import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
 import com.pennywiseai.tracker.domain.review.ReviewKind
+import com.pennywiseai.tracker.presentation.chat.speech.SpeechLanguageSheet
+import com.pennywiseai.tracker.presentation.chat.speech.rememberSpeechLanguages
 import com.pennywiseai.tracker.presentation.review.ReviewPromptBanner
 import com.pennywiseai.tracker.presentation.share.ShareCardSheet
 import com.pennywiseai.tracker.ui.animations.StaggeredEntrance
@@ -89,6 +91,9 @@ fun HomeScreen(
     val isProEntitled by viewModel.isProEntitled.collectAsStateWithLifecycle()
     val currentCycleWindow by viewModel.currentCycleWindow.collectAsStateWithLifecycle()
     var showUpgradeSheet by rememberSaveable { mutableStateOf(false) }
+    val speechLanguages = rememberSpeechLanguages()
+    var showSpeechLanguages by remember { mutableStateOf(false) }
+    val openSpeechLanguages = { showSpeechLanguages = true }
     val deletedTransaction by viewModel.deletedTransaction.collectAsStateWithLifecycle()
     val smsScanWorkInfo by viewModel.smsScanWorkInfo.collectAsStateWithLifecycle()
     val groupSummaries by viewModel.groupSummaries.collectAsStateWithLifecycle()
@@ -262,6 +267,9 @@ fun HomeScreen(
                         onDismissProfileFilter = { showProfileFilterMenu = false },
                         onNavigateToAddScreen = onNavigateToAddScreen,
                         onVoiceAsk = onVoiceAsk,
+                        onVoiceLanguage = onVoiceAsk?.let { openSpeechLanguages },
+                        voiceLanguageTag = speechLanguages.listeningTag,
+                        voiceLanguageName = speechLanguages.spokenName,
                         onMoreClick = { showMenuSheet = true }
                     )
                 },
@@ -274,6 +282,9 @@ fun HomeScreen(
                         onMenuClick = { showMenuSheet = true },
                         onAddClick = onNavigateToAddScreen.takeIf { navDock != null },
                         onVoiceAsk = onVoiceAsk,
+                        onVoiceLanguage = onVoiceAsk?.let { openSpeechLanguages },
+                        voiceLanguageTag = speechLanguages.listeningTag,
+                        voiceLanguageName = speechLanguages.spokenName,
                         profiles = uiState.profiles,
                         selectedProfileId = uiState.selectedProfileId,
                         onProfileSelected = { viewModel.updateSelectedProfile(it) },
@@ -766,5 +777,8 @@ fun HomeScreen(
         com.pennywiseai.tracker.presentation.paywall.UpgradeSheet(
             onDismiss = { showUpgradeSheet = false },
         )
+    }
+    if (showSpeechLanguages) {
+        SpeechLanguageSheet(speechLanguages) { showSpeechLanguages = false }
     }
 }

@@ -311,6 +311,13 @@ class SpeechInputTest {
         assertEquals("chai 15", draft.withHeard("   ").display())
         assertEquals("chai 15 rupees", draft.withHeard("  rupees ").display())
     }
+
+    @Test
+    fun startPassesTheDictationLanguage() {
+        val engine = FakeEngine()
+        SpeechInput(engine).start("hello", "ar-SA")
+        assertEquals("ar-SA", engine.languageTag)
+    }
 }
 
 private class FakeEngine(
@@ -324,8 +331,11 @@ private class FakeEngine(
 
     override fun available(): Boolean = available
 
-    override fun start(callbacks: SpeechCallbacks) {
+    var languageTag: String = ""
+
+    override fun start(languageTag: String, callbacks: SpeechCallbacks) {
         starts++
+        this.languageTag = languageTag
         this.callbacks = callbacks
     }
 

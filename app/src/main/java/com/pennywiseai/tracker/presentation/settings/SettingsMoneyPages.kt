@@ -26,6 +26,7 @@ import com.pennywiseai.tracker.navigation.RecurringTransactions
 import com.pennywiseai.tracker.navigation.Rules
 import com.pennywiseai.tracker.navigation.Subscriptions
 import com.pennywiseai.tracker.navigation.TransactionGroups
+import com.pennywiseai.tracker.presentation.common.budgetCycleRange
 import com.pennywiseai.tracker.presentation.split.UpiIdDialog
 import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.ui.animations.pwExpand
@@ -49,9 +50,7 @@ import com.pennywiseai.tracker.ui.theme.red_dark
 import com.pennywiseai.tracker.ui.theme.red_light
 import com.pennywiseai.tracker.ui.theme.teal_dark
 import com.pennywiseai.tracker.ui.theme.teal_light
-import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
-import java.time.LocalDate
 import com.pennywiseai.feature.learnedcategories.R as LearnedCategoriesR
 
 // ── Accounts & categories ──
@@ -274,13 +273,6 @@ internal fun PlanningPage(
             }
         )
     }
-}
-
-/** The dates of the current cycle if it starts on [startDay], e.g. "Nov 15 – Dec 14". */
-private fun budgetCycleRange(startDay: Int): String {
-    val (start, end) = BudgetCycle.currentCycle(LocalDate.now(), startDay)
-    val formatter = AppDates.dayMonthFormatter()
-    return "${formatter.format(start)} – ${formatter.format(end)}"
 }
 
 // ── Currency ──

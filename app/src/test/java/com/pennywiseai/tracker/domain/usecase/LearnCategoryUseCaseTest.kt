@@ -204,8 +204,11 @@ class LearnCategoryUseCaseTest {
         val learned = learn(1, "Shopping")!!
         coEvery { mappings.getMapping("Shein") } returns
             MerchantMappingEntity("Shein", "Food & Dining", updatedAt = learned.mappedAt!!.plusSeconds(30))
+        given("Shein", category = "Shopping") // the row still holds the pick: only the mapping check can refuse
 
         assertFalse(learn.forget(learned))
+
+        coVerify { mappings.getMapping("Shein") }
 
         coVerify(exactly = 0) { mappings.removeMapping(any()) }
         coVerify(exactly = 0) { transactions.moveCategory(any(), from = "Shopping", to = any()) }
@@ -232,11 +235,17 @@ class LearnCategoryUseCaseTest {
         stored(learned)
         given("Shein", category = "Shopping")
         val order = java.util.Collections.synchronizedList(mutableListOf<String>())
+        val started = java.util.concurrent.CountDownLatch(1)
         kotlinx.coroutines.coroutineScope {
             launch(kotlinx.coroutines.Dispatchers.Default) {
-                learn.forget(learned) { order += "one-off start"; Thread.sleep(100); order += "one-off end" }
+                learn.forget(learned) {
+                    order += "one-off start"
+                    started.countDown()
+                    Thread.sleep(100) // a window for the later pick to slip in, were the lock released
+                    order += "one-off end"
+                }
             }
-            Thread.sleep(20)
+            started.await()
             launch(kotlinx.coroutines.Dispatchers.Default) { learn(1, "Groceries") { order += "newer pick" } }
         }
         assertEquals(listOf("one-off start", "one-off end", "newer pick"), order)

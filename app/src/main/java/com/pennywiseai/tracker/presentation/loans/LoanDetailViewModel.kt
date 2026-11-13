@@ -20,6 +20,7 @@ import javax.inject.Inject
 data class LoanDetailUiState(
     val loan: LoanEntity? = null,
     val linkedTransactions: List<TransactionEntity> = emptyList(),
+    val originalTransactionId: Long? = null,
     val recentUnlinkedTransactions: List<TransactionEntity> = emptyList(),
     val isLoading: Boolean = true,
     val showSettleDialog: Boolean = false,
@@ -54,7 +55,10 @@ class LoanDetailViewModel @Inject constructor(
         }
         viewModelScope.launch {
             loanRepository.getTransactionsForLoan(loanId).collect { txns ->
-                _uiState.value = _uiState.value.copy(linkedTransactions = txns)
+                _uiState.value = _uiState.value.copy(
+                    linkedTransactions = txns,
+                    originalTransactionId = loanRepository.originalTransactionId(loanId)
+                )
             }
         }
     }

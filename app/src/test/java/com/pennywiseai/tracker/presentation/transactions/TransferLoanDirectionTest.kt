@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.presentation.transactions
 
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
+import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.repository.LoanRepository
@@ -21,7 +22,7 @@ import org.junit.Test
 import java.math.BigDecimal
 import java.time.LocalDateTime
 
-/** #1043: a transfer marked as a borrowed loan is money in, so it becomes INCOME; lent stays a transfer. */
+/** #1043: a transfer marked as a loan keeps its type; a borrowed one always opens its own loan, so LoanMath counts it as principal. */
 @OptIn(ExperimentalCoroutinesApi::class)
 class TransferLoanDirectionTest {
     private val txn = TransactionEntity(
@@ -34,7 +35,11 @@ class TransferLoanDirectionTest {
         every { getSplitsForTransaction(1) } returns flowOf(emptyList())
     }
     private val loans = mockk<LoanRepository>(relaxed = true) {
-        coEvery { findActiveLoanForPerson(any(), any(), any()) } returns null
+        // An active loan each way that a borrowed transfer must not merge into or repay.
+        coEvery { findActiveLoanForPerson(any(), any(), any()) } answers {
+            LoanEntity(id = 9, personName = "Friend", direction = secondArg(),
+                originalAmount = BigDecimal("100"), remainingAmount = BigDecimal("100"))
+        }
     }
     private val prefs = mockk<com.pennywiseai.tracker.data.preferences.UserPreferencesRepository>(relaxed = true) {
         every { unifiedCurrencyMode } returns flowOf(false)
@@ -52,16 +57,18 @@ class TransferLoanDirectionTest {
     @After fun tearDown() = Dispatchers.resetMain()
 
     @Test
-    fun `borrowed transfer is retyped income before the loan opens`() {
+    fun `borrowed transfer keeps its type and opens its own loan`() {
         viewModel().createLoanFromTransaction("Friend", LoanDirection.BORROWED, null)
-        coVerify { transactions.updateTransaction(match { it.id == 1L && it.transactionType == TransactionType.INCOME }) }
+        coVerify(exactly = 0) { transactions.updateTransaction(any()) }
+        coVerify(exactly = 0) { loans.recordRepayment(any(), any(), any(), any()) }
+        coVerify(exactly = 0) { loans.addToExistingLoan(any(), any(), any(), any()) }
         coVerify { loans.createLoan("Friend", LoanDirection.BORROWED, BigDecimal("500"), "INR", null, 1) }
     }
 
     @Test
-    fun `lent transfer keeps its type`() {
+    fun `lent transfer keeps today's lookup`() {
         viewModel().createLoanFromTransaction("Friend", LoanDirection.LENT, null)
         coVerify(exactly = 0) { transactions.updateTransaction(any()) }
-        coVerify { loans.createLoan("Friend", LoanDirection.LENT, BigDecimal("500"), "INR", null, 1) }
+        coVerify { loans.recordRepayment(9, 1, BigDecimal("500"), null) }
     }
 }

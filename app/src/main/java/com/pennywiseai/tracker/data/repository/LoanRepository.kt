@@ -1,6 +1,5 @@
 package com.pennywiseai.tracker.data.repository
 
-import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.LoanDao
 import com.pennywiseai.tracker.data.database.dao.SharedTransaction
@@ -11,6 +10,7 @@ import com.pennywiseai.tracker.data.database.entity.LoanShareEntity
 import com.pennywiseai.tracker.data.database.entity.LoanStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.domain.loan.LoanMath
 import com.pennywiseai.tracker.domain.loan.SettledShareException
 import com.pennywiseai.tracker.domain.loan.SplitPerson
@@ -272,13 +272,15 @@ class LoanRepository @Inject constructor(
     }
 
     suspend fun unlinkTransaction(transactionId: Long, loanId: Long) {
+        // Read before the unlink: once the opener is gone, the next row mustn't inherit its role.
+        val originalId = originalTransactionId(loanId)
         loanDao.unlinkTransaction(transactionId)
         val loan = loanDao.getLoanById(loanId) ?: return
         // Recompute the principal from the remaining CONTRIBUTION transactions
         // (the loan's own direction: LENT->money out, BORROWED->money in).
         // Repayments flow the other way and don't count toward principal.
         // Split-bill shares (#346) are principal too.
-        val remainingPrincipal = LoanMath.principal(loan.direction, loanDao.getLinkedTransactions(loanId)) + shareTotal(loanId)
+        val remainingPrincipal = LoanMath.principal(loan.direction, loanDao.getLinkedTransactions(loanId), originalId) + shareTotal(loanId)
         if (remainingPrincipal.compareTo(BigDecimal.ZERO) == 0) {
             // No principal left — the loan is meaningless. Delete it; deleteLoan's
             // unlinkAllTransactions also detaches any leftover repayment rows so
@@ -428,7 +430,7 @@ class LoanRepository @Inject constructor(
         loanDao.deleteShare(share)
         if (loan == null) return
         val left = loan.originalAmount - share.amount
-        val otherPrincipal = LoanMath.principal(loan.direction, loanDao.getLinkedTransactions(loan.id)) + shareTotal(loan.id)
+        val otherPrincipal = LoanMath.principal(loan.direction, loanDao.getLinkedTransactions(loan.id), originalTransactionId(loan.id)) + shareTotal(loan.id)
         val principal = when {
             left.signum() > 0 -> left
             otherPrincipal.signum() > 0 -> otherPrincipal
@@ -457,7 +459,15 @@ class LoanRepository @Inject constructor(
     suspend fun syncLentSharesTotal(transactionId: Long) = transactionDao.syncLentSharesTotal(transactionId)
 
     private suspend fun remainingFor(loan: LoanEntity): BigDecimal =
-        LoanMath.remaining(loan.originalAmount, LoanMath.repaid(loan.direction, loanDao.getLinkedTransactions(loan.id)))
+        LoanMath.remaining(loan.originalAmount, LoanMath.repaid(loan.direction, loanDao.getLinkedTransactions(loan.id), originalTransactionId(loan.id)))
+
+    /**
+     * The row that opened [loanId], which LoanMath always counts as principal (#1043):
+     * its earliest linked row. A split bill's loan opened from its shares (#346), so
+     * every row linked to it is a repayment and it has none.
+     */
+    suspend fun originalTransactionId(loanId: Long): Long? =
+        if (loanDao.getSharesForLoan(loanId).isNotEmpty()) null else loanDao.getOriginalTransactionForLoan(loanId)?.id
 
     /**
      * What a new repayment may repay: recomputed for an active loan, so a

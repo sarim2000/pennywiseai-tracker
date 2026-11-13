@@ -16,17 +16,21 @@ import java.math.BigDecimal
  * linked), so summing them is safe.
  */
 object LoanMath {
-    /** True when a [type] row adds to a [direction] loan's principal; any other linked row repays it. */
-    fun isPrincipal(direction: LoanDirection, type: TransactionType): Boolean =
-        (type == TransactionType.INCOME) == (direction == LoanDirection.BORROWED)
+    /**
+     * True when a [type] row adds to a [direction] loan's principal; any other linked row repays it.
+     * The row that opened the loan ([isOriginal]) is always principal: a transfer has no money
+     * direction, so a borrowed one would otherwise repay itself (#1043).
+     */
+    fun isPrincipal(direction: LoanDirection, type: TransactionType, isOriginal: Boolean): Boolean =
+        isOriginal || (type == TransactionType.INCOME) == (direction == LoanDirection.BORROWED)
 
-    /** What [linked] adds to a [direction] loan's principal. */
-    fun principal(direction: LoanDirection, linked: List<TransactionEntity>): BigDecimal =
-        loanPart(linked) { isPrincipal(direction, it.transactionType) }
+    /** What [linked] adds to a [direction] loan's principal; [originalId] is the row that opened it. */
+    fun principal(direction: LoanDirection, linked: List<TransactionEntity>, originalId: Long?): BigDecimal =
+        loanPart(linked) { isPrincipal(direction, it.transactionType, it.id == originalId) }
 
-    /** What [linked] has repaid of a [direction] loan. */
-    fun repaid(direction: LoanDirection, linked: List<TransactionEntity>): BigDecimal =
-        loanPart(linked) { !isPrincipal(direction, it.transactionType) }
+    /** What [linked] has repaid of a [direction] loan; [originalId] is the row that opened it. */
+    fun repaid(direction: LoanDirection, linked: List<TransactionEntity>, originalId: Long?): BigDecimal =
+        loanPart(linked) { !isPrincipal(direction, it.transactionType, it.id == originalId) }
 
     /**
      * Whether retyping a row from [original] to [edited] crosses the money-in /

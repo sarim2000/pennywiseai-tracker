@@ -30,19 +30,19 @@ class LoanMathTest {
     /** What's still owed on a [direction] loan whose principal is its own linked rows. */
     private fun remaining(direction: LoanDirection, vararg linked: TransactionEntity): BigDecimal {
         val rows = linked.toList()
-        return LoanMath.remaining(LoanMath.principal(direction, rows), LoanMath.repaid(direction, rows))
+        return LoanMath.remaining(LoanMath.principal(direction, rows, null), LoanMath.repaid(direction, rows, null))
     }
 
     private fun assertOwed(expected: String, actual: BigDecimal) = assertEquals(0, BigDecimal(expected).compareTo(actual))
 
     @Test
     fun `money in is principal only on a borrowed loan`() {
-        assertTrue(LoanMath.isPrincipal(BORROWED, INCOME))
-        assertTrue(LoanMath.isPrincipal(LENT, EXPENSE))
-        assertFalse(LoanMath.isPrincipal(LENT, INCOME))
+        assertTrue(LoanMath.isPrincipal(BORROWED, INCOME, isOriginal = false))
+        assertTrue(LoanMath.isPrincipal(LENT, EXPENSE, isOriginal = false))
+        assertFalse(LoanMath.isPrincipal(LENT, INCOME, isOriginal = false))
         for (out in listOf(EXPENSE, CREDIT, TRANSFER, INVESTMENT)) {
-            assertFalse(LoanMath.isPrincipal(BORROWED, out))
-            assertTrue(LoanMath.isPrincipal(LENT, out))
+            assertFalse(LoanMath.isPrincipal(BORROWED, out, isOriginal = false))
+            assertTrue(LoanMath.isPrincipal(LENT, out, isOriginal = false))
         }
     }
 
@@ -110,14 +110,35 @@ class LoanMathTest {
         val repayment = row(INCOME, "300").copy(loanId = 1)
         val kept = LoanMath.keepLoanDirection(repayment, repayment.copy(transactionType = TRANSFER))
         // After unlinking the ₹500, the principal left is the ₹1,000 alone, not ₹1,300.
-        assertOwed("1000", LoanMath.principal(LENT, listOf(row(EXPENSE, "1000"), kept)))
+        assertOwed("1000", LoanMath.principal(LENT, listOf(row(EXPENSE, "1000"), kept), null))
     }
 
     @Test
     fun `only each row's loan part counts and deleted rows count nothing`() {
         // ₹1,000 paid, ₹400 of it lent; ₹100 back; a deleted ₹300 repayment ignored.
         val rows = listOf(row(EXPENSE, "1000", contribution = "400"), row(INCOME, "100"), row(INCOME, "300", deleted = true))
-        assertOwed("400", LoanMath.principal(LENT, rows))
-        assertOwed("100", LoanMath.repaid(LENT, rows))
+        assertOwed("400", LoanMath.principal(LENT, rows, null))
+        assertOwed("100", LoanMath.repaid(LENT, rows, null))
+    }
+
+    @Test
+    fun `a borrowed loan opened by a transfer counts it as principal, not repaid`() {
+        // #1043: a transfer reads as money out, so without its opener role it repaid itself.
+        val opener = row(TRANSFER, "5000")
+        val rows = listOf(opener)
+        assertOwed("5000", LoanMath.principal(BORROWED, rows, opener.id))
+        assertOwed("0", LoanMath.repaid(BORROWED, rows, opener.id))
+        // A later transfer on the same loan is still a repayment (#876).
+        val withRepayment = rows + row(TRANSFER, "1200")
+        assertOwed("5000", LoanMath.principal(BORROWED, withRepayment, opener.id))
+        assertOwed("1200", LoanMath.repaid(BORROWED, withRepayment, opener.id))
+    }
+
+    @Test
+    fun `a later income row on a lent loan still repays it`() {
+        val opener = row(EXPENSE, "1000")
+        val rows = listOf(opener, row(INCOME, "300"))
+        assertOwed("1000", LoanMath.principal(LENT, rows, opener.id))
+        assertOwed("300", LoanMath.repaid(LENT, rows, opener.id))
     }
 }

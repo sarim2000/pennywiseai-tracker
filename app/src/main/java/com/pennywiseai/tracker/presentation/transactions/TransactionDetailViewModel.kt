@@ -1301,29 +1301,17 @@ class TransactionDetailViewModel @Inject constructor(
         }
         viewModelScope.launch {
             try {
-                // A transfer has no money direction, so the user picks one (#1043). Loan
-                // math reads TRANSFER as money out (LoanMath), so a borrowed transfer
-                // would count as its own repayment: it's money in, retype it INCOME the
-                // way the edit form would (balances included).
-                if (txn.transactionType == TransactionType.TRANSFER && direction == LoanDirection.BORROWED) {
-                    val retyped = txn.copy(transactionType = TransactionType.INCOME, updatedAt = LocalDateTime.now())
-                    for ((bank, acct) in listOf(txn.bankName to txn.accountNumber,
-                        txn.fromBankName to txn.fromAccount, txn.toBankName to txn.toAccount)) {
-                        if (bank != null && acct != null) accountBalanceRepository.ensureManualOpening(bank, acct)
-                    }
-                    transactionRepository.updateTransaction(retyped)
-                    accountBalanceRepository.applyTransactionBalanceShift(original = txn, updated = retyped)
-                    if (txn.bankName != null && txn.accountNumber != null) {
-                        accountBalanceRepository.recomputeManualBalance(txn.bankName, txn.accountNumber)
-                    }
-                }
+                // A borrowed transfer (#1043) counts as principal only as the row that
+                // opens its loan (LoanMath): as a repayment or merged into another loan
+                // it would read as money out. So it always opens its own loan.
+                val opensOwnLoan = txn.transactionType == TransactionType.TRANSFER && direction == LoanDirection.BORROWED
 
                 // Check for existing loan in the OPPOSITE direction first (this is a repayment)
                 val oppositeDirection = if (direction == LoanDirection.LENT) LoanDirection.BORROWED else LoanDirection.LENT
                 // Only while something is still owed: an active loan left at zero (the
                 // refresh never settles one, #876) would cap this payment to nothing and
                 // swallow the new debt it should open.
-                val oppositeLoan = loanRepository.findActiveLoanForPerson(personName, oppositeDirection, txn.currency)
+                val oppositeLoan = if (opensOwnLoan) null else loanRepository.findActiveLoanForPerson(personName, oppositeDirection, txn.currency)
                     ?.takeIf { it.remainingAmount.signum() > 0 }
 
                 if (oppositeLoan != null) {
@@ -1338,7 +1326,7 @@ class TransactionDetailViewModel @Inject constructor(
                 }
 
                 // Check if an active loan already exists for this person + same direction
-                val existingLoan = loanRepository.findActiveLoanForPerson(personName, direction, txn.currency)
+                val existingLoan = if (opensOwnLoan) null else loanRepository.findActiveLoanForPerson(personName, direction, txn.currency)
                 val loanId = if (existingLoan != null) {
                     // Merge into existing loan with the user-chosen contribution.
                     loanRepository.addToExistingLoan(existingLoan.id, contribution, txn.id, note)

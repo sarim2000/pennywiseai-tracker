@@ -7,6 +7,7 @@ import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.domain.model.getAccountType
 
 private val ATM = Regex("""\batm\b""")
+private val FEE = Regex("""\b(fee|fees|charges?|chg|gst)\b""")
 
 /** Parsers name a cash withdrawal "ATM Withdrawal", "ATM - <place>", and so on. */
 fun isAtmMerchant(name: String): Boolean = ATM.containsMatchIn(name.lowercase())
@@ -21,7 +22,9 @@ fun List<AccountBalanceEntity>.cashWallets(): List<AccountBalanceEntity> =
  * else, or no such wallet, comes back unchanged.
  */
 fun TransactionEntity.routeAtmToCashWallet(cashWallets: List<AccountBalanceEntity>): TransactionEntity {
-    if (transactionType != TransactionType.EXPENSE || !isAtmMerchant(merchantName)) return this
+    if (transactionType != TransactionType.EXPENSE || !isAtmMerchant(merchantName) ||
+        FEE.containsMatchIn(merchantName.lowercase())
+    ) return this
     val account = accountNumber ?: return this
     val wallet = cashWallets.firstOrNull { it.currency == currency } ?: return this
     return copy(

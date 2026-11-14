@@ -42,6 +42,8 @@ class AtmCashRoutingTest {
     fun `everything else is left alone`() {
         for (r in listOf(
             row(merchant = "Atmosphere Cafe"),
+            row(merchant = "ATM Charges"),
+            row(merchant = "ATM Withdrawal Fee"),
             row(type = TransactionType.INCOME),
             row(currency = "USD"),
             row(account = null),

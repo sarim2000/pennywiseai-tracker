@@ -111,6 +111,10 @@ open class TransactionRepository @Inject constructor(
      */
     suspend fun getCategoriesByUsage(): List<String> = transactionDao.getCategoriesByUsage()
 
+    /** Category names by use in the last 90 days, most first — the pickers' "Most used" (#1058). */
+    fun observeRecentCategoryUsage(): Flow<List<String>> =
+        transactionDao.observeCategoriesByUsageSince(LocalDateTime.now().minusDays(90))
+
     fun getAllMerchants(): Flow<List<String>> =
         transactionDao.getAllMerchants()
 

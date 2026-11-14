@@ -97,6 +97,7 @@ fun TransactionsScreen(
     val transactionTypeFilter by viewModel.transactionTypeFilter.collectAsStateWithLifecycle()
     val deletedTransaction by viewModel.deletedTransaction.collectAsStateWithLifecycle()
     val categoriesMap by viewModel.categories.collectAsStateWithLifecycle()
+    val mostUsedCategories by viewModel.mostUsedCategories.collectAsStateWithLifecycle()
     val filteredTotals by viewModel.filteredTotals.collectAsStateWithLifecycle()
     val availableCurrencies by viewModel.availableCurrencies.collectAsStateWithLifecycle()
     val selectedCurrency by viewModel.selectedCurrency.collectAsStateWithLifecycle()
@@ -758,7 +759,8 @@ fun TransactionsScreen(
                     viewModel.updateCategory(transaction, name)
                     pendingCategoryEditId = null
                 },
-                onDismiss = { pendingCategoryEditId = null }
+                onDismiss = { pendingCategoryEditId = null },
+                mostUsed = mostUsedCategories
             )
         }
     }
@@ -776,7 +778,8 @@ fun TransactionsScreen(
                 viewModel.bulkUpdateCategory(name)
                 showBulkCategorySheet = false
             },
-            onDismiss = { showBulkCategorySheet = false }
+            onDismiss = { showBulkCategorySheet = false },
+            mostUsed = mostUsedCategories
         )
     }
 

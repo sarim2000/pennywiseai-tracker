@@ -273,6 +273,10 @@ class TransactionDetailViewModel @Inject constructor(
     private val _hasSplits = MutableStateFlow(false)
     val hasSplits: StateFlow<Boolean> = _hasSplits.asStateFlow()
 
+    // Category names by recent use, most first — the picker's "Most used" (#1058).
+    val mostUsedCategories: StateFlow<List<String>> = transactionRepository.observeRecentCategoryUsage()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     // Categories should be based on transaction type
     val categories: StateFlow<List<CategoryEntity>> = combine(
         _editableTransaction,

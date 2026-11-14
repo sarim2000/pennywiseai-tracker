@@ -578,6 +578,10 @@ class TransactionsViewModel @Inject constructor(
     private var appliedBudgetParams: BudgetParams? = null
 
     // Categories flow - will be used to map category names to colors
+    // Category names by recent use, most first — the picker's "Most used" (#1058).
+    val mostUsedCategories: StateFlow<List<String>> = transactionRepository.observeRecentCategoryUsage()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val categories: StateFlow<Map<String, CategoryEntity>> = categoryRepository.getAllCategories()
         .map { categoryList ->
             categoryList.associateBy { it.name }

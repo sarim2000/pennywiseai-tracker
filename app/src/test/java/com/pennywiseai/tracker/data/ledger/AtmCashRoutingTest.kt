@@ -37,6 +37,11 @@ class AtmCashRoutingTest {
         assertEquals("1111" to "Test Bank", routed.fromAccount to routed.fromBankName)
         assertEquals("CASH" to "Cash", routed.toAccount to routed.toBankName)
         assertEquals("Cash" to "CASH", routed.walletLeg())
+        // Axis names it just "ATM", with no withdrawal word in the SMS.
+        val axis = row(merchant = "ATM", sms = "INR 2000 debited A/c no. XX1234 on AXIS BANK L")
+        assertEquals(TransactionType.TRANSFER, axis.routeAtmToCashWallet(wallets).transactionType)
+        val generic = row(merchant = "ATM Transaction", sms = "Rs.500 withdrawn at ATM")
+        assertEquals(TransactionType.TRANSFER, generic.routeAtmToCashWallet(wallets).transactionType)
     }
 
     @Test

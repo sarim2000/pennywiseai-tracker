@@ -195,6 +195,8 @@
     </plurals>
     <string name="budget_card_spent_of">Ausgegeben %1$s von %2$s</string>
     <!-- Budget pace: spending compared with an even spend across the period -->
+    <!-- Tap action on the pace status / chart legend: shows the explanation below -->
+    <!-- Shown under the pace status on the budget card -->
     <string name="budget_cadence_weekly">Wöchentlich</string>
     <string name="budget_cadence_monthly">Monatlich</string>
     <string name="budget_cadence_one_time">Einmal</string>

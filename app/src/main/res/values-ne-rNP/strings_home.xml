@@ -193,6 +193,8 @@
     </plurals>
     <string name="budget_card_spent_of">%2$s मध्ये %1$s खर्च</string>
     <!-- Budget pace: spending compared with an even spend across the period -->
+    <!-- Tap action on the pace status / chart legend: shows the explanation below -->
+    <!-- Shown under the pace status on the budget card -->
     <string name="budget_cadence_weekly">साप्ताहिक</string>
     <string name="budget_cadence_monthly">मासिक</string>
     <string name="budget_cadence_one_time">एक पटक</string>

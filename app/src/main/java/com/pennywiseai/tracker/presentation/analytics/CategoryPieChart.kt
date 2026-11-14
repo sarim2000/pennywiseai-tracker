@@ -161,6 +161,7 @@ fun CategoryPieChart(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PieLegendItem(
     label: String,
@@ -214,18 +215,19 @@ private fun PieLegendItem(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            // Each figure stays whole; the percentage moves to the next line when it
+            // doesn't fit. In Arabic "(١٠٠%)" broke before its closing parenthesis (#1057).
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     text = CurrencyFormatter.formatAbbreviated(value, currency),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    softWrap = false
                 )
                 Text(
                     text = stringResource(R.string.analytics_pie_percent, percentage),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    // In Arabic "(١٠٠%)" broke before its closing parenthesis (#1057).
-                    maxLines = 1,
                     softWrap = false
                 )
             }

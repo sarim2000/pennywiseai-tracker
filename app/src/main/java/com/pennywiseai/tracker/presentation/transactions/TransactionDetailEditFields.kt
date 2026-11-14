@@ -1,34 +1,34 @@
 package com.pennywiseai.tracker.presentation.transactions
 
-import com.pennywiseai.tracker.utils.AppDates
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
-import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.presentation.categories.CategoryEditDialog
 import com.pennywiseai.tracker.ui.components.CategoryMenuItems
 import com.pennywiseai.tracker.ui.components.SelectedCategoryIcon
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.*
+import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.CurrencyUtils
-import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.ui.theme.Dimensions
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
-import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -40,11 +40,13 @@ internal fun CategoryDropdown(
 ) {
     val categories by viewModel.categories.collectAsStateWithLifecycle(initialValue = emptyList())
     var expanded by remember { mutableStateOf(false) }
-    var showAddDialog by remember { mutableStateOf(false) }
+    val mostUsed by viewModel.mostUsedCategories.collectAsStateWithLifecycle()
+    // Non-null while the create dialog is open: its pre-filled name (#1058).
+    var addDialogName by remember { mutableStateOf<String?>(null) }
 
     // Find the selected category entity for displaying with color
     val selectedCategoryEntity = categories.find { it.name == selectedCategory }
-    
+
     ExposedDropdownMenuBox(
         expanded = expanded,
         onExpandedChange = { expanded = it }
@@ -62,7 +64,7 @@ internal fun CategoryDropdown(
             shape = editFullShape,
             colors = editFilledColors()
         )
-        
+
         ExposedDropdownMenu(
             expanded = expanded,
             onDismissRequest = { expanded = false }
@@ -77,25 +79,27 @@ internal fun CategoryDropdown(
                 },
                 onAddCategory = {
                     expanded = false
-                    showAddDialog = true
-                }
+                    addDialogName = it
+                },
+                mostUsed = mostUsed
             )
         }
     }
 
-    if (showAddDialog) {
+    addDialogName?.let { initialName ->
         CategoryEditDialog(
             defaultIsIncome = isIncomeTransaction,
             lockType = true,
+            initialName = initialName,
             // Same parent picker as Settings → Categories (#876).
             parentOptions = categories,
-            onDismiss = { showAddDialog = false },
+            onDismiss = { addDialogName = null },
             onSave = { name, color, _, icon, parentId ->
                 // Dismiss only once the category is actually created/selected, so a
                 // failure (e.g. same-name type conflict) keeps the dialog open with
                 // the user's input intact.
                 viewModel.createAndSelectCategory(name, color, icon, parentId) { success ->
-                    if (success) showAddDialog = false
+                    if (success) addDialogName = null
                 }
             }
         )
@@ -110,7 +114,7 @@ internal fun DateTimeField(
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
     var showTimePicker by remember { mutableStateOf(false) }
-    
+
     Row(
         modifier = Modifier.fillMaxWidth(),
         verticalAlignment = Alignment.CenterVertically
@@ -221,7 +225,7 @@ internal fun DateTimeField(
             }
         }
     }
-    
+
     // Date Picker Dialog
     if (showDatePicker) {
         val datePickerState = rememberDatePickerState(
@@ -253,7 +257,7 @@ internal fun DateTimeField(
             DatePicker(state = datePickerState)
         }
     }
-    
+
     // Time Picker Dialog
     if (showTimePicker) {
         val timePickerState = rememberTimePickerState(
@@ -369,7 +373,7 @@ internal fun AccountNumberField(
     var selectedAccount by remember(accountNumber, bankName, availableAccounts) {
         mutableStateOf(availableAccounts.matchFor(accountNumber, bankName)?.displayName ?: accountNumber ?: "")
     }
-    
+
     ExposedDropdownMenuBox(
         expanded = expanded,
         onExpandedChange = { expanded = it }
@@ -424,7 +428,7 @@ internal fun AccountNumberField(
             singleLine = true,
             placeholder = { Text(placeholder) }
         )
-        
+
         if (filteredAccounts.isNotEmpty()) {
             ExposedDropdownMenu(
                 expanded = expanded,
@@ -432,13 +436,13 @@ internal fun AccountNumberField(
             ) {
                 filteredAccounts.forEach { account ->
                     DropdownMenuItem(
-                        text = { 
+                        text = {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 Icon(
-                                    if (account.isCreditCard) Icons.Default.CreditCard 
+                                    if (account.isCreditCard) Icons.Default.CreditCard
                                     else Icons.Default.AccountBalance,
                                     contentDescription = null,
                                     modifier = Modifier.size(Dimensions.Icon.medium),

@@ -410,6 +410,11 @@
 
     <!-- Shared transaction components -->
     <string name="quick_category_title">Change category</string>
+    <string name="category_picker_search">Search categories</string>
+    <string name="category_picker_most_used">Most used</string>
+    <string name="category_picker_all">All</string>
+    <string name="category_picker_create">Create \"%1$s\"</string>
+    <string name="category_picker_no_match">No categories found</string>
     <string name="quick_category_not_expense">Not an expense</string>
     <string name="quick_category_not_income">Not income</string>
     <!-- Walking the recap's unsorted rows: "2 of 3" -->

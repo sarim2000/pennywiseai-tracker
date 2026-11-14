@@ -1,11 +1,5 @@
 package com.pennywiseai.tracker.presentation.add
 
-import com.pennywiseai.tracker.utils.AppDates
-
-import com.pennywiseai.tracker.presentation.transactions.transactionTypeLabel
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.res.stringResource
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -29,34 +23,39 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.domain.model.AccountType
+import com.pennywiseai.tracker.domain.model.getAccountType
+import com.pennywiseai.tracker.presentation.accounts.displayName
+import com.pennywiseai.tracker.presentation.accounts.icon
 import com.pennywiseai.tracker.presentation.categories.CategoryEditDialog
+import com.pennywiseai.tracker.presentation.transactions.transactionTypeLabel
+import com.pennywiseai.tracker.ui.components.CategoryChip
 import com.pennywiseai.tracker.ui.components.CategoryMenuItems
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.SelectedCategoryIcon
-import com.pennywiseai.tracker.ui.components.CategoryChip
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.pennywiseai.tracker.presentation.accounts.displayName
-import com.pennywiseai.tracker.domain.model.getAccountType
-import com.pennywiseai.tracker.presentation.accounts.icon
-import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.ui.components.TagInputField
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.*
-import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.money
+import com.pennywiseai.tracker.utils.AppDates
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import com.pennywiseai.tracker.ui.icons.categoryLabel
-import androidx.compose.ui.platform.LocalDensity
-import com.pennywiseai.tracker.ui.theme.money
 
 // Reusable filled text field colors with no indicator
 @Composable
@@ -168,7 +167,9 @@ fun TransactionTabContent(
 ) {
     val uiState by viewModel.transactionUiState.collectAsStateWithLifecycle()
     val categories by viewModel.transactionCategories.collectAsStateWithLifecycle()
-    var showAddCategoryDialog by remember { mutableStateOf(false) }
+    val mostUsedCategories by viewModel.mostUsedCategories.collectAsStateWithLifecycle()
+    // Non-null while the create dialog is open: its pre-filled name (#1058).
+    var addCategoryName by remember { mutableStateOf<String?>(null) }
     val accounts by viewModel.accounts.collectAsStateWithLifecycle()
 
     var showDatePicker by remember { mutableStateOf(false) }
@@ -521,24 +522,26 @@ fun TransactionTabContent(
                                 },
                                 onAddCategory = {
                                     showCategoryMenu = false
-                                    showAddCategoryDialog = true
-                                }
+                                    addCategoryName = it
+                                },
+                                mostUsed = mostUsedCategories
                             )
                         }
                     }
                 }
             }
 
-            if (showAddCategoryDialog) {
+            addCategoryName?.let { initialName ->
                 CategoryEditDialog(
                     defaultIsIncome = uiState.transactionType == TransactionType.INCOME,
                     lockType = true,
+                    initialName = initialName,
                     parentOptions = categories,
-                    onDismiss = { showAddCategoryDialog = false },
+                    onDismiss = { addCategoryName = null },
                     onSave = { name, color, _, icon, parentId ->
                         // Close only once the category is created and selected, so the
                         // modal dialog blocks Save / type changes until it lands.
-                        viewModel.createAndSelectCategory(name, color, icon, parentId) { showAddCategoryDialog = false }
+                        viewModel.createAndSelectCategory(name, color, icon, parentId) { addCategoryName = null }
                     }
                 )
             }

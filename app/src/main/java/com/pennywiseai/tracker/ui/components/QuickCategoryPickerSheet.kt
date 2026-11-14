@@ -1,10 +1,8 @@
 package com.pennywiseai.tracker.ui.components
 
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -18,23 +16,27 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.Text
 import androidx.compose.material3.SheetValue
+import androidx.compose.material3.Text
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 /**
  * Modal bottom-sheet picker for changing a transaction's category. Used both
@@ -71,8 +73,15 @@ fun QuickCategoryPickerSheet(
     // in place of the generic title — from the recap there's no alert beside it.
     subject: String? = null,
     excludeLabel: String? = null,
-    onExclude: (() -> Unit)? = null
+    onExclude: (() -> Unit)? = null,
+    // Category names by recent use, most first: a "Most used" section above "All" (#1058).
+    mostUsed: List<String> = emptyList()
 ) {
+    var query by rememberSaveable { mutableStateOf("") }
+    val labels = categories.associate { it.id to categoryLabel(it.name) }
+    val shown = categories.matching(query) { labels[it.id] ?: it.name }
+    val top = if (query.isBlank()) categories.mostUsed(mostUsed) else emptyList()
+    val labelPadding = PaddingValues(horizontal = Dimensions.Padding.content)
     val sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -131,6 +140,11 @@ fun QuickCategoryPickerSheet(
                 )
             }
         }
+        CategorySearchField(
+            query = query,
+            onQueryChange = { query = it },
+            modifier = Modifier.padding(start = Dimensions.Padding.content, end = Dimensions.Padding.content, bottom = Spacing.sm)
+        )
         // LazyColumn so long category lists stay reachable when the sheet is
         // fully expanded — a plain Column would render items past the screen
         // bottom unscrollable.
@@ -166,38 +180,53 @@ fun QuickCategoryPickerSheet(
                     HorizontalDivider(modifier = Modifier.padding(horizontal = Dimensions.Padding.content))
                 }
             }
-            items(categories, key = { it.id }) { category ->
-                val selected = currentCategory == category.name
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { onCategorySelected(category.name) }
-                        .padding(
-                            // Sub-categories indent under their parent (#374)
-                            start = Dimensions.Padding.content + (if (category.parentId != null) Spacing.lg else Spacing.none),
-                            end = Dimensions.Padding.content,
-                            top = Spacing.sm,
-                            bottom = Spacing.sm
-                        ),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.md)
-                ) {
-                    CategoryChip(category = category, showText = false)
-                    Text(
-                        text = categoryLabel(category.name),
-                        modifier = Modifier.weight(1f),
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
-                    )
-                    if (selected) {
-                        Icon(
-                            imageVector = Icons.Default.Check,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
+            if (top.isNotEmpty()) {
+                item(key = "most-used") { CategoryPickerLabel(stringResource(R.string.category_picker_most_used), labelPadding) }
+                items(top, key = { "top-${it.id}" }) { category ->
+                    CategoryRow(category, currentCategory == category.name, indent = false) { onCategorySelected(category.name) }
                 }
+                item(key = "all") { CategoryPickerLabel(stringResource(R.string.category_picker_all), labelPadding) }
             }
+            if (shown.isEmpty()) {
+                item(key = "no-match") { CategoryPickerLabel(stringResource(R.string.category_picker_no_match), labelPadding) }
+            }
+            // Matches are a flat list; the parent indent only reads in the full list.
+            items(shown, key = { it.id }) { category ->
+                CategoryRow(category, currentCategory == category.name, indent = query.isBlank()) { onCategorySelected(category.name) }
+            }
+        }
+    }
+}
+
+@Composable
+private fun CategoryRow(category: CategoryEntity, selected: Boolean, indent: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(
+                // Sub-categories indent under their parent (#374)
+                start = Dimensions.Padding.content + (if (indent && category.parentId != null) Spacing.lg else Spacing.none),
+                end = Dimensions.Padding.content,
+                top = Spacing.sm,
+                bottom = Spacing.sm
+            ),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+    ) {
+        CategoryChip(category = category, showText = false)
+        Text(
+            text = categoryLabel(category.name),
+            modifier = Modifier.weight(1f),
+            style = MaterialTheme.typography.bodyLarge,
+            fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal
+        )
+        if (selected) {
+            Icon(
+                imageVector = Icons.Default.Check,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary
+            )
         }
     }
 }
@@ -213,10 +242,12 @@ fun QuickCategoryPickerSheet(
     transaction: TransactionEntity,
     categories: List<CategoryEntity>,
     onCategorySelected: (String) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    mostUsed: List<String> = emptyList()
 ) = QuickCategoryPickerSheet(
     currentCategory = transaction.category,
     categories = categories,
     onCategorySelected = onCategorySelected,
-    onDismiss = onDismiss
+    onDismiss = onDismiss,
+    mostUsed = mostUsed
 )

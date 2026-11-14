@@ -20,6 +20,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -48,8 +49,10 @@ import com.pennywiseai.tracker.ui.animations.rememberEntranceDone
 import com.pennywiseai.tracker.ui.animations.staggerDelayMs
 import com.pennywiseai.tracker.ui.components.CategoryIcon
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
+import com.pennywiseai.tracker.ui.components.cards.PaceInfo
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.budgetStatusColors
+import com.pennywiseai.tracker.ui.components.cards.paceInfoToggle
 import com.pennywiseai.tracker.ui.components.cards.tintedSurface
 import com.pennywiseai.tracker.ui.components.toColorOr
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
@@ -866,6 +869,7 @@ private fun SpendingPaceChart(
         budgetPace.lastOrNull()?.let { pace -> actual > pace }
     } ?: false
     val spendingColor = if (isOverPace) themeColors.error else themeColors.primary
+    var showPaceInfo by rememberSaveable { mutableStateOf(false) }
 
     Column(modifier = modifier.fillMaxWidth()) {
         LineChart(
@@ -943,18 +947,24 @@ private fun SpendingPaceChart(
                 color = themeColors.onSurfaceVariant
             )
             Spacer(modifier = Modifier.width(Spacing.md))
-            Box(
-                modifier = Modifier
-                    .size(8.dp)
-                    .clip(CircleShape)
-                    .background(themeColors.onSurfaceVariant.copy(alpha = 0.4f))
-            )
-            Spacer(modifier = Modifier.width(Spacing.xs))
-            Text(
-                text = stringResource(R.string.budgets_chart_pace),
-                style = MaterialTheme.typography.labelSmall,
-                color = themeColors.onSurfaceVariant
-            )
+            Row(
+                modifier = Modifier.paceInfoToggle { showPaceInfo = !showPaceInfo },
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(8.dp)
+                        .clip(CircleShape)
+                        .background(themeColors.onSurfaceVariant.copy(alpha = 0.4f))
+                )
+                Spacer(modifier = Modifier.width(Spacing.xs))
+                Text(
+                    text = stringResource(R.string.budgets_chart_pace),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = themeColors.onSurfaceVariant
+                )
+            }
         }
+        PaceInfo(visible = showPaceInfo, text = stringResource(R.string.budget_pace_explainer))
     }
 }

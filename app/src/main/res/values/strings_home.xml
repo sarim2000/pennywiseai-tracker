@@ -224,6 +224,11 @@
         <item quantity="one">%1$d day over pace</item>
         <item quantity="other">%1$d days over pace</item>
     </plurals>
+    <!-- Tap action on the pace status / chart legend: shows the explanation below -->
+    <string name="budget_pace_what_is">What is pace?</string>
+    <string name="budget_pace_explainer">Pace compares what you\'ve spent with spending your budget evenly across its period.</string>
+    <!-- Follows budget_pace_explainer on the budget card. "3 days" is a fixed example, not a live value. -->
+    <string name="budget_pace_explainer_days">3 days over pace means you\'ve already spent what an even pace would reach 3 days from now. The tick on the bar marks today\'s even pace.</string>
     <string name="budget_cadence_weekly">Weekly</string>
     <string name="budget_cadence_monthly">Monthly</string>
     <string name="budget_cadence_one_time">One-time</string>

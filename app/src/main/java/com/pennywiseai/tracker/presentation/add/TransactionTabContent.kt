@@ -44,8 +44,8 @@ import com.pennywiseai.tracker.presentation.accounts.icon
 import com.pennywiseai.tracker.presentation.categories.CategoryEditDialog
 import com.pennywiseai.tracker.presentation.transactions.transactionTypeLabel
 import com.pennywiseai.tracker.ui.components.CategoryChip
-import com.pennywiseai.tracker.ui.components.CategoryMenuItems
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
+import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
 import com.pennywiseai.tracker.ui.components.SelectedCategoryIcon
 import com.pennywiseai.tracker.ui.components.TagInputField
 import com.pennywiseai.tracker.ui.icons.categoryLabel
@@ -508,27 +508,26 @@ fun TransactionTabContent(
                             supportingText = uiState.categoryError?.let { { Text(it.asString()) } },
                             colors = filledFieldColors()
                         )
-
-                        ExposedDropdownMenu(
-                            expanded = showCategoryMenu,
-                            onDismissRequest = { showCategoryMenu = false }
-                        ) {
-                            CategoryMenuItems(
-                                categories = categories,
-                                isIncome = uiState.transactionType == TransactionType.INCOME,
-                                onSelected = {
-                                    viewModel.updateTransactionCategory(it.name)
-                                    showCategoryMenu = false
-                                },
-                                onAddCategory = {
-                                    showCategoryMenu = false
-                                    addCategoryName = it
-                                },
-                                mostUsed = mostUsedCategories
-                            )
-                        }
                     }
                 }
+            }
+
+            // A sheet, not the dropdown menu, so its search field can get the keyboard (#1058).
+            if (showCategoryMenu) {
+                QuickCategoryPickerSheet(
+                    currentCategory = uiState.category,
+                    categories = categories,
+                    onCategorySelected = {
+                        viewModel.updateTransactionCategory(it)
+                        showCategoryMenu = false
+                    },
+                    onDismiss = { showCategoryMenu = false },
+                    mostUsed = mostUsedCategories,
+                    onAddCategory = {
+                        showCategoryMenu = false
+                        addCategoryName = it
+                    }
+                )
             }
 
             addCategoryName?.let { initialName ->

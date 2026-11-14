@@ -9,7 +9,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.outlined.VisibilityOff
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
@@ -18,6 +20,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextField
+import androidx.compose.material3.TextFieldDefaults
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -27,6 +31,8 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -75,7 +81,10 @@ fun QuickCategoryPickerSheet(
     excludeLabel: String? = null,
     onExclude: (() -> Unit)? = null,
     // Category names by recent use, most first: a "Most used" section above "All" (#1058).
-    mostUsed: List<String> = emptyList()
+    mostUsed: List<String> = emptyList(),
+    // When set, an "Add category" row leads the list and, while searching, a
+    // "Create '<query>'" row follows the matches. Gets the name to pre-fill (#1058).
+    onAddCategory: ((name: String) -> Unit)? = null
 ) {
     var query by rememberSaveable { mutableStateOf("") }
     val labels = categories.associate { it.id to categoryLabel(it.name) }
@@ -155,28 +164,14 @@ fun QuickCategoryPickerSheet(
         ) {
             if (onExclude != null && excludeLabel != null) {
                 item(key = "exclude") {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable(onClick = onExclude)
-                            .padding(
-                                horizontal = Dimensions.Padding.content,
-                                vertical = Spacing.sm
-                            ),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.VisibilityOff,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = excludeLabel,
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
+                    ActionRow(Icons.Outlined.VisibilityOff, excludeLabel, MaterialTheme.colorScheme.onSurfaceVariant, onExclude)
+                    HorizontalDivider(modifier = Modifier.padding(horizontal = Dimensions.Padding.content))
+                }
+            }
+            // Reachable without scrolling past sub-categories (#584, #835).
+            if (onAddCategory != null && query.isBlank()) {
+                item(key = "add") {
+                    ActionRow(Icons.Default.Add, stringResource(R.string.txn_detail_add_category), MaterialTheme.colorScheme.onSurface) { onAddCategory("") }
                     HorizontalDivider(modifier = Modifier.padding(horizontal = Dimensions.Padding.content))
                 }
             }
@@ -187,14 +182,83 @@ fun QuickCategoryPickerSheet(
                 }
                 item(key = "all") { CategoryPickerLabel(stringResource(R.string.category_picker_all), labelPadding) }
             }
-            if (shown.isEmpty()) {
+            if (shown.isEmpty() && onAddCategory == null) {
                 item(key = "no-match") { CategoryPickerLabel(stringResource(R.string.category_picker_no_match), labelPadding) }
             }
             // Matches are a flat list; the parent indent only reads in the full list.
             items(shown, key = { it.id }) { category ->
                 CategoryRow(category, currentCategory == category.name, indent = query.isBlank()) { onCategorySelected(category.name) }
             }
+            if (onAddCategory != null && query.isNotBlank()) {
+                item(key = "create") {
+                    val name = query.trim()
+                    ActionRow(Icons.Default.Add, stringResource(R.string.category_picker_create, name), MaterialTheme.colorScheme.onSurface) { onAddCategory(name) }
+                }
+            }
         }
+    }
+}
+
+/** The categories whose shown (maybe translated) name or stored name contains [query] (#1058). */
+fun List<CategoryEntity>.matching(query: String, label: (CategoryEntity) -> String): List<CategoryEntity> {
+    val q = query.trim()
+    if (q.isEmpty()) return this
+    return filter { label(it).contains(q, ignoreCase = true) || it.name.contains(q, ignoreCase = true) }
+}
+
+/** Up to [limit] of these categories, in the order of [usage] (names, most used first) (#1058). */
+fun List<CategoryEntity>.mostUsed(usage: List<String>, limit: Int = 8): List<CategoryEntity> {
+    val byName = associateBy { it.name }
+    return usage.mapNotNull { byName[it] }.take(limit)
+}
+
+/**
+ * The picker's name filter. Lives in this sheet, not the dropdown menus: an
+ * ExposedDropdownMenu popup sets FLAG_ALT_FOCUSABLE_IM, so a field in it never
+ * gets the keyboard. Not auto-focused, so the keyboard doesn't cover the list.
+ */
+@Composable
+private fun CategorySearchField(query: String, onQueryChange: (String) -> Unit, modifier: Modifier = Modifier) {
+    TextField(
+        value = query,
+        onValueChange = onQueryChange,
+        placeholder = { Text(stringResource(R.string.category_picker_search)) },
+        leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
+        singleLine = true,
+        shape = MaterialTheme.shapes.large,
+        colors = TextFieldDefaults.colors(
+            focusedIndicatorColor = Color.Transparent,
+            unfocusedIndicatorColor = Color.Transparent
+        ),
+        modifier = modifier.fillMaxWidth()
+    )
+}
+
+/** A small section label ("Most used", "All") inside the picker. */
+@Composable
+private fun CategoryPickerLabel(text: String, padding: PaddingValues) {
+    Text(
+        text = text,
+        style = MaterialTheme.typography.labelMedium,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier
+            .padding(padding)
+            .padding(vertical = Spacing.xs)
+    )
+}
+
+@Composable
+private fun ActionRow(icon: ImageVector, text: String, color: Color, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onClick)
+            .padding(horizontal = Dimensions.Padding.content, vertical = Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+    ) {
+        Icon(imageVector = icon, contentDescription = null, tint = color)
+        Text(text = text, style = MaterialTheme.typography.bodyLarge, color = color)
     }
 }
 

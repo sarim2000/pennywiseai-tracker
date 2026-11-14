@@ -18,8 +18,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.presentation.categories.CategoryEditDialog
-import com.pennywiseai.tracker.ui.components.CategoryMenuItems
+import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
 import com.pennywiseai.tracker.ui.components.SelectedCategoryIcon
+import com.pennywiseai.tracker.ui.components.forPicker
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -64,26 +65,25 @@ internal fun CategoryDropdown(
             shape = editFullShape,
             colors = editFilledColors()
         )
+    }
 
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
-        ) {
+    // A sheet, not the dropdown menu, so its search field can get the keyboard (#1058).
+    if (expanded) {
+        QuickCategoryPickerSheet(
+            currentCategory = selectedCategory,
+            categories = categories.forPicker(isIncomeTransaction),
+            onCategorySelected = {
+                onCategorySelected(it)
+                expanded = false
+            },
+            onDismiss = { expanded = false },
+            mostUsed = mostUsed,
             // Create a new category without leaving the edit flow (#584).
-            CategoryMenuItems(
-                categories = categories,
-                isIncome = isIncomeTransaction,
-                onSelected = {
-                    onCategorySelected(it.name)
-                    expanded = false
-                },
-                onAddCategory = {
-                    expanded = false
-                    addDialogName = it
-                },
-                mostUsed = mostUsed
-            )
-        }
+            onAddCategory = {
+                expanded = false
+                addDialogName = it
+            }
+        )
     }
 
     addDialogName?.let { initialName ->

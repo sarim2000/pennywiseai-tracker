@@ -5,7 +5,9 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
+import com.pennywiseai.tracker.data.repository.AccountShare
 import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
+import com.pennywiseai.tracker.data.repository.accountSharesOf
 import com.pennywiseai.tracker.data.repository.groupTotalsOf
 import com.pennywiseai.tracker.utils.Money
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -26,6 +28,7 @@ data class TransactionGroupDetailUiState(
     val expenseByCurrency: Map<String, Money> = emptyMap(),
     val investedByCurrency: Map<String, Money> = emptyMap(),
     val incomeByCurrency: Map<String, Money> = emptyMap(),
+    val accountShares: List<AccountShare> = emptyList(),
     val isLoading: Boolean = true,
     val showAddSheet: Boolean = false,
     val showDeleteDialog: Boolean = false,
@@ -66,7 +69,8 @@ class TransactionGroupDetailViewModel @Inject constructor(
                     linkedTransactions = txns,
                     expenseByCurrency = totals.expense,
                     incomeByCurrency = totals.income,
-                    investedByCurrency = totals.invested
+                    investedByCurrency = totals.invested,
+                    accountShares = accountSharesOf(txns)
                 )
             }
         }

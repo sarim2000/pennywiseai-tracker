@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.data.repository
 
 import com.pennywiseai.tracker.data.database.dao.TransactionGroupDao
+import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -56,6 +57,26 @@ fun groupTotalsOf(transactions: List<TransactionEntity>): GroupTotals = GroupTot
         .filter { it.transactionType == TransactionType.INVESTMENT }
         .sumByCurrency({ it.currency }, { it.amount })
 )
+
+/** One account's share of a group. [label] is "Bank ••1234", or null for rows with no account. */
+data class AccountShare(val label: String?, val totals: GroupTotals)
+
+/**
+ * A group's totals split per account, by the same [groupTotalsOf] rules as the
+ * group total, largest first. Accounts whose rows count toward no figure (only
+ * transfers) are left out.
+ */
+fun accountSharesOf(transactions: List<TransactionEntity>): List<AccountShare> =
+    transactions
+        .groupBy { it.bankName?.takeIf(String::isNotBlank)?.let { bank -> bank to it.accountNumber } }
+        .map { (key, txns) ->
+            AccountShare(key?.let { (bank, last4) -> AccountBalanceEntity.accountLabel(bank, last4) }, groupTotalsOf(txns))
+        }
+        .filter { share -> share.totals.all().isNotEmpty() }
+        // ponytail: orders by the biggest single figure; currencies aren't converted, which is fine for ordering only.
+        .sortedByDescending { share -> share.totals.all().maxOf { it.amount } }
+
+private fun GroupTotals.all(): List<Money> = expense.values + invested.values + income.values
 
 @Singleton
 class TransactionGroupRepository @Inject constructor(

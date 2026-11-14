@@ -43,4 +43,23 @@ class GroupTotalsTest {
         val totals = groupTotalsOf(listOf(tx("700", TransactionType.TRANSFER)))
         assertTrue(totals.expense.isEmpty() && totals.income.isEmpty() && totals.invested.isEmpty())
     }
+
+    @Test
+    fun `account shares split per account and per currency, largest first`() {
+        fun at(t: TransactionEntity, bank: String?, last4: String?) = t.copy(bankName = bank, accountNumber = last4)
+        val shares = accountSharesOf(listOf(
+            at(tx("200", TransactionType.EXPENSE), "HDFC", "1234"),
+            at(tx("50", TransactionType.EXPENSE, "USD"), "HDFC", "1234"),
+            at(tx("900", TransactionType.EXPENSE), "SBI", "5678"),
+            at(tx("100", TransactionType.INCOME), "SBI", "5678"),
+            at(tx("40", TransactionType.EXPENSE), null, null),
+            at(tx("700", TransactionType.TRANSFER), "Axis", "0001")
+        ))
+
+        assertEquals(listOf("SBI ••5678", "HDFC ••1234", null), shares.map { it.label })
+        assertEquals(0, BigDecimal("100").compareTo(shares[0].totals.income.getValue("INR").amount))
+        assertEquals(setOf("INR", "USD"), shares[1].totals.expense.keys)
+        assertEquals(0, BigDecimal("50").compareTo(shares[1].totals.expense.getValue("USD").amount))
+        assertEquals(0, BigDecimal("40").compareTo(shares[2].totals.expense.getValue("INR").amount))
+    }
 }

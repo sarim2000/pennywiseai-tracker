@@ -17,6 +17,10 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
@@ -25,6 +29,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.repository.GroupTotals
 import com.pennywiseai.tracker.presentation.transactions.ExportTransactionsDialog
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
@@ -34,6 +39,7 @@ import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.ui.theme.investment
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.utils.Money
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import java.time.format.DateTimeFormatter
@@ -250,8 +256,12 @@ fun TransactionGroupDetailScreen(
                             Text(
                                 stringResource(R.string.analytics_group_by_account),
                                 style = MaterialTheme.typography.titleSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.semantics { heading() }
                             )
+                            // With one kind of figure, the summary card above already names it.
+                            val mixedKinds = listOf<(GroupTotals) -> Map<String, Money>>({ it.expense }, { it.invested }, { it.income })
+                                .count { kind -> uiState.accountShares.any { share -> kind(share.totals).values.any { it.isPositive } } } > 1
                             uiState.accountShares.forEach { share ->
                                 Row(
                                     modifier = Modifier.fillMaxWidth(),
@@ -266,16 +276,32 @@ fun TransactionGroupDetailScreen(
                                     )
                                     Column(horizontalAlignment = Alignment.End) {
                                         listOf(
-                                            share.totals.expense to expenseColor,
-                                            share.totals.invested to MaterialTheme.colorScheme.investment,
-                                            share.totals.income to accentColor
-                                        ).forEach { (amounts, color) ->
+                                            Triple(share.totals.expense, expenseColor, R.string.group_detail_expenses),
+                                            Triple(share.totals.invested, MaterialTheme.colorScheme.investment, R.string.group_detail_invested),
+                                            Triple(share.totals.income, accentColor, R.string.group_detail_income)
+                                        ).forEach { (amounts, color, kind) ->
                                             if (amounts.values.any { it.isPositive }) {
-                                                Text(
-                                                    CurrencyFormatter.formatByCurrency(amounts),
-                                                    style = PennyWiseText.amountRow,
-                                                    color = color
-                                                )
+                                                // Named, not only coloured: the kind sits beside each figure.
+                                                val kindLabel = stringResource(kind)
+                                                val figure = CurrencyFormatter.formatByCurrency(amounts)
+                                                Row(
+                                                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.clearAndSetSemantics { contentDescription = "$kindLabel $figure" }
+                                                ) {
+                                                    if (mixedKinds) {
+                                                        Text(
+                                                            kindLabel,
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                    Text(
+                                                        figure,
+                                                        style = PennyWiseText.amountRow,
+                                                        color = color
+                                                    )
+                                                }
                                             }
                                         }
                                     }

@@ -1,9 +1,5 @@
 package com.pennywiseai.tracker.presentation.groups
 
-import com.pennywiseai.tracker.utils.AppDates
-
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -20,11 +16,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.presentation.transactions.ExportTransactionsDialog
@@ -34,6 +32,7 @@ import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.ui.theme.investment
+import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
@@ -232,6 +231,54 @@ fun TransactionGroupDetailScreen(
                                         fontWeight = FontWeight.SemiBold,
                                         color = accentColor
                                     )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Each account's part of the totals above, with the same figures and colours.
+            // One account would just repeat the total, so it shows from two up.
+            if (uiState.accountShares.size > 1) {
+                item {
+                    PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                        ) {
+                            Text(
+                                stringResource(R.string.analytics_group_by_account),
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            uiState.accountShares.forEach { share ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                                    verticalAlignment = Alignment.Top
+                                ) {
+                                    Text(
+                                        share.label ?: stringResource(R.string.add_sub_no_account),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        listOf(
+                                            share.totals.expense to expenseColor,
+                                            share.totals.invested to MaterialTheme.colorScheme.investment,
+                                            share.totals.income to accentColor
+                                        ).forEach { (amounts, color) ->
+                                            if (amounts.values.any { it.isPositive }) {
+                                                Text(
+                                                    CurrencyFormatter.formatByCurrency(amounts),
+                                                    style = PennyWiseText.amountRow,
+                                                    color = color
+                                                )
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }

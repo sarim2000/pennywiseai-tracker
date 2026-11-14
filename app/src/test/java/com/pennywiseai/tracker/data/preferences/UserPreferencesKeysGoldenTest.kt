@@ -89,6 +89,7 @@ class UserPreferencesKeysGoldenTest {
             "app_lock_enabled" to "Boolean",
             "app_lock_no_screen_lock_notice_shown" to "Boolean",
             "app_lock_timeout_minutes" to "Int",
+            "atm_cash_to_wallet" to "Boolean",
             "background_oem_step_confirmed_on" to "String",
             "balance_hidden" to "Boolean",
             "base_currency" to "String",

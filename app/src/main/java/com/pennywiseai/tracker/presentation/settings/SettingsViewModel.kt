@@ -171,6 +171,11 @@ class SettingsViewModel @Inject constructor(
     // Count credit-card spend toward the "Spent this month" total (#705)
     val countCreditCardAsExpense = userPreferencesRepository.countCreditCardAsExpense
 
+    val atmCashToWallet = userPreferencesRepository.atmCashToWallet
+    fun setAtmCashToWallet(enabled: Boolean) {
+        viewModelScope.launch { userPreferencesRepository.setAtmCashToWallet(enabled) }
+    }
+
     val dailySummaryEnabled = userPreferencesRepository.dailySummaryEnabled
     val weeklySummaryEnabled = userPreferencesRepository.weeklySummaryEnabled
 

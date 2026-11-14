@@ -13,11 +13,15 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.ledger.BalanceCalculator
+import com.pennywiseai.tracker.data.ledger.cashWallets
+import com.pennywiseai.tracker.data.ledger.routeAtmToCashWallet
+import com.pennywiseai.tracker.data.ledger.walletLeg
 import com.pennywiseai.tracker.data.mapper.toEntity
 import com.pennywiseai.tracker.data.mapper.toEntityType
 import com.pennywiseai.tracker.data.notification.BankNotificationConfig
 import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
+import com.pennywiseai.tracker.data.preferences.ScanPreferences
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CardRepository
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
@@ -30,6 +34,7 @@ import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.domain.service.RuleEngine
 import com.pennywiseai.tracker.domain.spending.MoneyAlertRules
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.sync.withLock
 import java.math.BigDecimal
 import java.time.Instant
@@ -58,7 +63,8 @@ class SmsTransactionProcessor @Inject constructor(
     private val ignoredAccountsStore: IgnoredAccountsStore,
     private val database: PennyWiseDatabase,
     private val moneyAlerts: MoneyAlerts,
-    private val transactionWidgets: TransactionWidgets
+    private val transactionWidgets: TransactionWidgets,
+    private val scanPreferences: ScanPreferences
 ) {
     private val bankAccountMerges = BankAccountMergeStore(appContext)
     companion object {
@@ -218,11 +224,20 @@ class SmsTransactionProcessor @Inject constructor(
             // Check for custom merchant mapping
             val customCategory = merchantMappingRepository.getCategoryForMerchant(entity.merchantName)
                 ?.takeIf { mappingFits(database.categoryDao().getCategoryByName(it)?.isIncome, entity.transactionType) }
-            val entityWithMapping = if (customCategory != null) {
+            val mapped = if (customCategory != null) {
                 Log.d(TAG, "Found custom category mapping: ${entity.merchantName} -> $customCategory")
                 entity.copy(category = customCategory)
             } else {
                 entity
+            }
+            // Before the rules, so a user rule still has the last word.
+            val entityWithMapping = if (scanPreferences.atmCashToWallet.first()) {
+                mapped.routeAtmToCashWallet(
+                    accountBalanceRepository.getAllLatestBalancesOnce().cashWallets(),
+                    linkedAccountLast4 ?: mapped.accountNumber
+                )
+            } else {
+                mapped
             }
 
             // Apply rule engine to the transaction
@@ -263,6 +278,12 @@ class SmsTransactionProcessor @Inject constructor(
                 entityWithRules
             }
 
+            // The bank leg moves in processBalanceUpdate below. A Cash wallet on the
+            // receiving end is a manual account, derived from its rows: pin its
+            // opening first or the recompute after the insert absorbs this row.
+            val walletLeg = finalEntity.walletLeg()
+            walletLeg?.let { (bank, account) -> accountBalanceRepository.ensureManualOpening(bank, account) }
+
             val rowId = if (matchedSubscription != null) {
                 // Atomicity: advance the billing cycle only if the charge row commits.
                 // Insert returning -1L (duplicate hash) or a throw must leave
@@ -280,6 +301,7 @@ class SmsTransactionProcessor @Inject constructor(
             }
             if (rowId != -1L) {
                 Log.d(TAG, "Saved new transaction with ID: $rowId${if (finalEntity.isRecurring) " (Recurring)" else ""}")
+                walletLeg?.let { (bank, account) -> accountBalanceRepository.recomputeManualBalance(bank, account) }
 
                 // Save rule applications if any rules were applied. The engine ran
                 // before the insert, so each application still carries the entity's

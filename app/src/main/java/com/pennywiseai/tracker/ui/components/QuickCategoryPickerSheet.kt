@@ -178,7 +178,7 @@ fun QuickCategoryPickerSheet(
             if (top.isNotEmpty()) {
                 item(key = "most-used") { CategoryPickerLabel(stringResource(R.string.category_picker_most_used), labelPadding) }
                 items(top, key = { "top-${it.id}" }) { category ->
-                    CategoryRow(category, currentCategory == category.name, indent = false) { onCategorySelected(category.name) }
+                    CategoryRow(category, currentCategory == category.name, indent = false, Modifier.animateItem()) { onCategorySelected(category.name) }
                 }
                 item(key = "all") { CategoryPickerLabel(stringResource(R.string.category_picker_all), labelPadding) }
             }
@@ -187,7 +187,7 @@ fun QuickCategoryPickerSheet(
             }
             // Matches are a flat list; the parent indent only reads in the full list.
             items(shown, key = { it.id }) { category ->
-                CategoryRow(category, currentCategory == category.name, indent = query.isBlank()) { onCategorySelected(category.name) }
+                CategoryRow(category, currentCategory == category.name, indent = query.isBlank(), Modifier.animateItem()) { onCategorySelected(category.name) }
             }
             if (onAddCategory != null && query.isNotBlank()) {
                 item(key = "create") {
@@ -263,9 +263,9 @@ private fun ActionRow(icon: ImageVector, text: String, color: Color, onClick: ()
 }
 
 @Composable
-private fun CategoryRow(category: CategoryEntity, selected: Boolean, indent: Boolean, onClick: () -> Unit) {
+private fun CategoryRow(category: CategoryEntity, selected: Boolean, indent: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
     Row(
-        modifier = Modifier
+        modifier = modifier
             .fillMaxWidth()
             .clickable(onClick = onClick)
             .padding(

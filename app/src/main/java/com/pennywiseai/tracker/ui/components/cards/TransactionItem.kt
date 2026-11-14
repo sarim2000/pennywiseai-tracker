@@ -228,11 +228,14 @@ private fun transferTitleOverride(transaction: TransactionEntity, resources: Res
     val mine = transaction.accountNumber
     val from = transaction.fromAccount
     val to = transaction.toAccount
+    // A Cash wallet saved without an identifier has a blank last4: name it by its bank name instead.
+    val toLabel = to?.takeLast(4)?.ifBlank { transaction.toBankName.orEmpty() }
+    val fromLabel = from?.takeLast(4)?.ifBlank { transaction.fromBankName.orEmpty() }
     return when {
-        from != null && to != null && mine == from -> resources.getString(R.string.txn_item_transfer_to, to.takeLast(4))
-        from != null && to != null && mine == to -> resources.getString(R.string.txn_item_transfer_from, from.takeLast(4))
-        to != null && mine != to -> resources.getString(R.string.txn_item_transfer_to, to.takeLast(4))
-        from != null && mine != from -> resources.getString(R.string.txn_item_transfer_from, from.takeLast(4))
+        from != null && to != null && mine == from -> resources.getString(R.string.txn_item_transfer_to, toLabel)
+        from != null && to != null && mine == to -> resources.getString(R.string.txn_item_transfer_from, fromLabel)
+        to != null && mine != to -> resources.getString(R.string.txn_item_transfer_to, toLabel)
+        from != null && mine != from -> resources.getString(R.string.txn_item_transfer_from, fromLabel)
         else -> null
     }
 }

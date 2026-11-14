@@ -13,6 +13,9 @@ interface ScanPreferences {
     val smsScanUseCustomDate: Flow<Boolean>
     val smsScanCustomDate: Flow<Long?>
 
+    /** Book an SMS ATM withdrawal as a transfer to the Cash wallet (#1062). Default off. */
+    val atmCashToWallet: Flow<Boolean>
+
     suspend fun getSmsScanMonths(): Int
     suspend fun getSmsScanAllTime(): Boolean
     suspend fun getSmsScanUseCustomDate(): Boolean

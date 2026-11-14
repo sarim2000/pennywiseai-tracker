@@ -72,6 +72,7 @@ class SmsTransactionProcessorMoneyAlertsTest {
         database = mockk<PennyWiseDatabase>(),
         moneyAlerts = alerts,
         transactionWidgets = widgets,
+        scanPreferences = mockk { every { atmCashToWallet } returns kotlinx.coroutines.flow.flowOf(false) },
     )
 
     @Before

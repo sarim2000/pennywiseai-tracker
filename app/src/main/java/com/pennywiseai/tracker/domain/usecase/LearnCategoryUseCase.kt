@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.domain.usecase
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.withTransaction
+import com.pennywiseai.tracker.data.ledger.isAtmMerchant
 import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
@@ -137,7 +138,6 @@ class LearnCategoryUseCase @Inject constructor(
          * has no shared constant for these, so they are matched by shape.
          */
         private val PLACEHOLDER_NAMES = setOf("unknown merchant", "transfer", "transaction alert")
-        private val ATM = Regex("""\batm\b""")
         private val CHANNEL = Regex(
             """(upi|neft|imps|rtgs|ibft|raast|tips|npsb|visa|pos|fund|bank|account|cash|wallet|mobile money|mobile banking)""" +
                 """( (transfer|credit|debit|transaction|payment|withdrawal|deposit|load))?|transfer via .*"""
@@ -145,7 +145,7 @@ class LearnCategoryUseCase @Inject constructor(
 
         fun isPlaceholderMerchant(name: String): Boolean {
             val n = name.trim().lowercase()
-            return n.isEmpty() || n in PLACEHOLDER_NAMES || ATM.containsMatchIn(n) || CHANNEL.matches(n)
+            return n.isEmpty() || n in PLACEHOLDER_NAMES || isAtmMerchant(n) || CHANNEL.matches(n)
         }
 
         /**

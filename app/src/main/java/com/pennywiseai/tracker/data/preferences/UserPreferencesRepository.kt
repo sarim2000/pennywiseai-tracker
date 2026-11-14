@@ -99,6 +99,7 @@ open class UserPreferencesRepository internal constructor(
         val HAS_SKIPPED_SMS_PERMISSION = booleanPreferencesKey("has_skipped_sms_permission")
         val DEVELOPER_MODE_ENABLED = booleanPreferencesKey("developer_mode_enabled")
         val COUNT_CREDIT_AS_EXPENSE = booleanPreferencesKey("count_credit_as_expense")
+        val ATM_CASH_TO_WALLET = booleanPreferencesKey("atm_cash_to_wallet")
         val DAILY_SUMMARY_ENABLED = booleanPreferencesKey("daily_summary_enabled")
         val BACKGROUND_OEM_STEP_CONFIRMED_ON = stringPreferencesKey("background_oem_step_confirmed_on")
         val BUDGET_ALERTS_ENABLED = booleanPreferencesKey("budget_alerts_enabled")
@@ -401,6 +402,15 @@ open class UserPreferencesRepository internal constructor(
     suspend fun setDeveloperModeEnabled(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.DEVELOPER_MODE_ENABLED] = enabled
+        }
+    }
+
+    override val atmCashToWallet: Flow<Boolean> = dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.ATM_CASH_TO_WALLET] ?: false }
+
+    suspend fun setAtmCashToWallet(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ATM_CASH_TO_WALLET] = enabled
         }
     }
 

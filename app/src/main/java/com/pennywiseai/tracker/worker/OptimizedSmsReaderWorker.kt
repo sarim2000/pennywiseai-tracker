@@ -1,19 +1,19 @@
 package com.pennywiseai.tracker.worker
 
-import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
-
-import com.pennywiseai.tracker.R
 import android.content.Context
 import android.os.Process
 import android.os.Trace
 import android.util.Log
 import androidx.hilt.work.HiltWorker
 import androidx.work.*
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.core.TimeConstants
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.core.TimeConstants
+import com.pennywiseai.tracker.data.ledger.cashWallets
 import com.pennywiseai.tracker.data.manager.SmsScanParamsCalculator
 import com.pennywiseai.tracker.data.manager.SmsScanParamsInput
+import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.ScanPreferences
 import com.pennywiseai.tracker.data.repository.*
@@ -212,6 +212,9 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                     },
                     accountsBeforeRebuild = accountsBeforeRebuild,
                     rebuildStartedAt = rebuildStartedAt,
+                    atmCashWallets = if (userPreferencesRepository.atmCashToWallet.first()) {
+                        accountBalanceRepository.getAllLatestBalancesOnce().cashWallets()
+                    } else emptyList(),
                 )
             } finally {
                 Trace.endSection()
@@ -294,7 +297,6 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             Result.success(
                 completionData(stats.total, stats.processed.get(), stats.parsed.get(), stats.saved.get())
             )
-
         } catch (e: Exception) {
             Log.e(TAG, "Fatal error in SMS worker", e)
             Result.failure()

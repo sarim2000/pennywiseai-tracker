@@ -183,6 +183,8 @@
     </plurals>
     <string name="budget_card_spent_of">ใช้ไป %1$s จาก %2$s</string>
     <!-- Budget pace: spending compared with an even spend across the period -->
+    <!-- Tap action on the pace status / chart legend: shows the explanation below -->
+    <!-- Shown under the pace status on the budget card -->
     <string name="budget_cadence_weekly">รายสัปดาห์</string>
     <string name="budget_cadence_monthly">รายเดือน</string>
     <string name="budget_cadence_one_time">ครั้งเดียว</string>

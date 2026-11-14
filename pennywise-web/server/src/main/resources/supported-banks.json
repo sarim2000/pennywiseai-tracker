@@ -1,5 +1,5 @@
 {
-  "totalBanks": 176,
+  "totalBanks": 177,
   "totalCountries": 26,
   "countries": [
     {
@@ -83,6 +83,14 @@
       "banks": ["Bankino", "Mellat Bank", "Melli Bank", "Parsian Bank", "Pasargad Bank", "blu Bank"]
     },
     {
+      "country": "Bangladesh",
+      "flag": "🇧🇩",
+      "currency": "BDT",
+      "symbol": "৳",
+      "bankCount": 5,
+      "banks": ["BRAC Bank", "City Bank (Bangladesh)", "IFIC Bank (Bangladesh)", "Standard Chartered Bank (Bangladesh)", "bKash"]
+    },
+    {
       "country": "Jordan",
       "flag": "🇯🇴",
       "currency": "JOD",
@@ -97,14 +105,6 @@
       "symbol": "Rs",
       "bankCount": 5,
       "banks": ["Commercial Bank of Ceylon", "National Development Bank", "National Savings Bank", "Nations Trust Bank", "Sampath Bank"]
-    },
-    {
-      "country": "Bangladesh",
-      "flag": "🇧🇩",
-      "currency": "BDT",
-      "symbol": "৳",
-      "bankCount": 4,
-      "banks": ["BRAC Bank", "City Bank (Bangladesh)", "IFIC Bank (Bangladesh)", "bKash"]
     },
     {
       "country": "Mozambique",

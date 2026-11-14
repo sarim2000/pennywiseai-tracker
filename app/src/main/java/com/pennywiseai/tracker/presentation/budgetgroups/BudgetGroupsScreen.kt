@@ -1,75 +1,77 @@
 package com.pennywiseai.tracker.presentation.budgetgroups
 
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.pennywiseai.tracker.ui.animations.pwExpand
-import com.pennywiseai.tracker.ui.animations.pwCollapse
-import com.pennywiseai.tracker.utils.AppDates
-
-import java.time.format.TextStyle
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.res.pluralStringResource
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.background
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
-import com.pennywiseai.tracker.ui.effects.overScrollVertical
-import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import com.pennywiseai.tracker.ui.animations.StaggeredEntrance
-import com.pennywiseai.tracker.ui.animations.rememberEntranceDone
-import com.pennywiseai.tracker.ui.animations.staggerDelayMs
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
+import com.pennywiseai.tracker.ui.animations.StaggeredEntrance
+import com.pennywiseai.tracker.ui.animations.pwCollapse
+import com.pennywiseai.tracker.ui.animations.pwExpand
+import com.pennywiseai.tracker.ui.animations.rememberEntranceDone
+import com.pennywiseai.tracker.ui.animations.staggerDelayMs
 import com.pennywiseai.tracker.ui.components.CategoryIcon
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
+import com.pennywiseai.tracker.ui.components.cards.PaceInfo
+import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.budgetStatusColors
+import com.pennywiseai.tracker.ui.components.cards.paceInfoToggle
 import com.pennywiseai.tracker.ui.components.cards.tintedSurface
 import com.pennywiseai.tracker.ui.components.toColorOr
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.*
-import dev.chrisbanes.haze.HazeState
-import dev.chrisbanes.haze.hazeSource
-import androidx.compose.ui.graphics.SolidColor
-import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
+import com.pennywiseai.tracker.utils.AppDates
+import com.pennywiseai.tracker.utils.CurrencyFormatter
+import dev.chrisbanes.haze.HazeState
+import dev.chrisbanes.haze.hazeSource
 import ir.ehsannarmani.compose_charts.LineChart
 import ir.ehsannarmani.compose_charts.models.*
-import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import java.math.BigDecimal
 import java.time.YearMonth
 import java.time.format.DateTimeFormatter
-import com.pennywiseai.tracker.ui.icons.categoryLabel
+import java.time.format.TextStyle
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -748,106 +750,106 @@ private fun BudgetCard(
                         Spacer(modifier = Modifier.height(Spacing.xs))
                         HorizontalDivider(
                             color = MaterialTheme.colorScheme.outlineVariant
-                    )
-                    Spacer(modifier = Modifier.height(Spacing.xs))
+                        )
+                        Spacer(modifier = Modifier.height(Spacing.xs))
 
-                    groupSpending.categorySpending.forEach { catSpending ->
-                        val catPctUsed = catSpending.percentageUsed
-                        val catStatusColor: Color = when {
-                            catPctUsed >= 90f -> MaterialTheme.colorScheme.error
-                            catPctUsed >= 70f -> MaterialTheme.colorScheme.tertiary
-                            else -> MaterialTheme.colorScheme.primary
-                        }
-
-                        val categoryInfo = CategoryMapping.categories[catSpending.categoryName]
-                            ?: CategoryMapping.categories["Others"]!!
-
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clip(RoundedCornerShape(Spacing.sm))
-                                .clickable { onCategoryClick(catSpending.categoryName) }
-                                .padding(vertical = Spacing.sm, horizontal = Spacing.xs),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                        ) {
-                            // Category icon in colored circle
-                            Box(
-                                modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(CategoryMapping.colorFor(catSpending.categoryName).copy(alpha = 0.12f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                CategoryIcon(
-                                    category = catSpending.categoryName,
-                                    size = 18.dp,
-                                    tint = CategoryMapping.colorFor(catSpending.categoryName)
-                                )
+                        groupSpending.categorySpending.forEach { catSpending ->
+                            val catPctUsed = catSpending.percentageUsed
+                            val catStatusColor: Color = when {
+                                catPctUsed >= 90f -> MaterialTheme.colorScheme.error
+                                catPctUsed >= 70f -> MaterialTheme.colorScheme.tertiary
+                                else -> MaterialTheme.colorScheme.primary
                             }
 
-                            Column(modifier = Modifier.weight(1f)) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+                            val categoryInfo = CategoryMapping.categories[catSpending.categoryName]
+                                ?: CategoryMapping.categories["Others"]!!
+
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clip(RoundedCornerShape(Spacing.sm))
+                                    .clickable { onCategoryClick(catSpending.categoryName) }
+                                    .padding(vertical = Spacing.sm, horizontal = Spacing.xs),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                            ) {
+                                // Category icon in colored circle
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(CategoryMapping.colorFor(catSpending.categoryName).copy(alpha = 0.12f)),
+                                    contentAlignment = Alignment.Center
                                 ) {
-                                    Text(
-                                        text = categoryLabel(catSpending.categoryName),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        fontWeight = FontWeight.Medium,
-                                        // Explicit: the card's tinted container doesn't supply a
-                                        // content colour, so this inherited black in dark mode.
-                                        color = MaterialTheme.colorScheme.onSurface,
-                                        modifier = Modifier.weight(1f, fill = false)
+                                    CategoryIcon(
+                                        category = catSpending.categoryName,
+                                        size = 18.dp,
+                                        tint = CategoryMapping.colorFor(catSpending.categoryName)
                                     )
-                                    if (catSpending.budgetAmount > BigDecimal.ZERO) {
-                                        Text(
-                                            text = stringResource(R.string.budgets_percent, catPctUsed.toInt()),
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = catStatusColor
-                                        )
-                                    }
                                 }
 
-                                if (catSpending.budgetAmount > BigDecimal.ZERO) {
-                                    Spacer(modifier = Modifier.height(Spacing.xs))
-                                    val catBarShape = RoundedCornerShape(50)
-                                    Box(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .height(4.dp)
-                                            .clip(catBarShape)
-                                            .background(catStatusColor.copy(alpha = 0.15f))
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Row(
+                                        modifier = Modifier.fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        verticalAlignment = Alignment.CenterVertically
                                     ) {
+                                        Text(
+                                            text = categoryLabel(catSpending.categoryName),
+                                            style = MaterialTheme.typography.bodyMedium,
+                                            fontWeight = FontWeight.Medium,
+                                            // Explicit: the card's tinted container doesn't supply a
+                                            // content colour, so this inherited black in dark mode.
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            modifier = Modifier.weight(1f, fill = false)
+                                        )
+                                        if (catSpending.budgetAmount > BigDecimal.ZERO) {
+                                            Text(
+                                                text = stringResource(R.string.budgets_percent, catPctUsed.toInt()),
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = catStatusColor
+                                            )
+                                        }
+                                    }
+
+                                    if (catSpending.budgetAmount > BigDecimal.ZERO) {
+                                        Spacer(modifier = Modifier.height(Spacing.xs))
+                                        val catBarShape = RoundedCornerShape(50)
                                         Box(
                                             modifier = Modifier
-                                                .fillMaxWidth(fraction = (catPctUsed / 100f).coerceIn(0f, 1f))
-                                                .fillMaxHeight()
+                                                .fillMaxWidth()
+                                                .height(4.dp)
                                                 .clip(catBarShape)
-                                                .background(catStatusColor)
+                                                .background(catStatusColor.copy(alpha = 0.15f))
+                                        ) {
+                                            Box(
+                                                modifier = Modifier
+                                                    .fillMaxWidth(fraction = (catPctUsed / 100f).coerceIn(0f, 1f))
+                                                    .fillMaxHeight()
+                                                    .clip(catBarShape)
+                                                    .background(catStatusColor)
+                                            )
+                                        }
+                                        Spacer(modifier = Modifier.height(Spacing.xs))
+                                        Text(
+                                            text = stringResource(
+                                                R.string.budgets_amount_of,
+                                                CurrencyFormatter.formatCurrency(catSpending.actualAmount, currency),
+                                                CurrencyFormatter.formatCurrency(catSpending.budgetAmount, currency)
+                                            ),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    } else {
+                                        Text(
+                                            text = CurrencyFormatter.formatCurrency(catSpending.actualAmount, currency),
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
-                                    Spacer(modifier = Modifier.height(Spacing.xs))
-                                    Text(
-                                        text = stringResource(
-                                            R.string.budgets_amount_of,
-                                            CurrencyFormatter.formatCurrency(catSpending.actualAmount, currency),
-                                            CurrencyFormatter.formatCurrency(catSpending.budgetAmount, currency)
-                                        ),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                } else {
-                                    Text(
-                                        text = CurrencyFormatter.formatCurrency(catSpending.actualAmount, currency),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
                                 }
                             }
                         }
-                    }
                     }
                 }
             }
@@ -867,83 +869,88 @@ private fun SpendingPaceChart(
         budgetPace.lastOrNull()?.let { pace -> actual > pace }
     } ?: false
     val spendingColor = if (isOverPace) themeColors.error else themeColors.primary
+    var showPaceInfo by rememberSaveable { mutableStateOf(false) }
 
     Column(modifier = modifier.fillMaxWidth()) {
-            LineChart(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(120.dp),
-                data = listOf(
-                    Line(
-                        label = stringResource(R.string.budgets_chart_actual),
-                        values = cumulativeSpending,
-                        color = SolidColor(spendingColor),
-                        firstGradientFillColor = spendingColor.copy(alpha = 0.2f),
-                        secondGradientFillColor = Color.Transparent,
-                        strokeAnimationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
-                        gradientAnimationDelay = 600,
-                        drawStyle = DrawStyle.Stroke(width = 2.5.dp),
-                        curvedEdges = true,
-                        dotProperties = DotProperties(
-                            enabled = false
-                        )
-                    ),
-                    Line(
-                        label = stringResource(R.string.budgets_chart_pace),
-                        values = budgetPace,
-                        color = SolidColor(themeColors.onSurfaceVariant.copy(alpha = 0.4f)),
-                        drawStyle = DrawStyle.Stroke(width = 1.5.dp),
-                        strokeAnimationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
-                        curvedEdges = false,
-                        dotProperties = DotProperties(enabled = false)
-                    )
-                ),
-                dividerProperties = DividerProperties(enabled = false),
-                indicatorProperties = HorizontalIndicatorProperties(
-                    enabled = true,
-                    textStyle = PennyWiseText.chartLabel.copy(
-                        color = themeColors.onSurfaceVariant
-                    ),
-                    contentBuilder = { value ->
-                        CurrencyFormatter.formatAbbreviated(value, currency)
-                    }
-                ),
-                labelHelperProperties = LabelHelperProperties(enabled = false),
-                labelProperties = LabelProperties(enabled = false),
-                gridProperties = GridProperties(
-                    enabled = true,
-                    xAxisProperties = GridProperties.AxisProperties(
+        LineChart(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(120.dp),
+            data = listOf(
+                Line(
+                    label = stringResource(R.string.budgets_chart_actual),
+                    values = cumulativeSpending,
+                    color = SolidColor(spendingColor),
+                    firstGradientFillColor = spendingColor.copy(alpha = 0.2f),
+                    secondGradientFillColor = Color.Transparent,
+                    strokeAnimationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
+                    gradientAnimationDelay = 600,
+                    drawStyle = DrawStyle.Stroke(width = 2.5.dp),
+                    curvedEdges = true,
+                    dotProperties = DotProperties(
                         enabled = false
-                    ),
-                    yAxisProperties = GridProperties.AxisProperties(
-                        enabled = true,
-                        style = StrokeStyle.Dashed(),
-                        color = SolidColor(themeColors.onSurface.copy(alpha = 0.08f))
                     )
                 ),
-                animationMode = AnimationMode.Together(delayBuilder = { it * 100L }),
+                Line(
+                    label = stringResource(R.string.budgets_chart_pace),
+                    values = budgetPace,
+                    color = SolidColor(themeColors.onSurfaceVariant.copy(alpha = 0.4f)),
+                    drawStyle = DrawStyle.Stroke(width = 1.5.dp),
+                    strokeAnimationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
+                    curvedEdges = false,
+                    dotProperties = DotProperties(enabled = false)
+                )
+            ),
+            dividerProperties = DividerProperties(enabled = false),
+            indicatorProperties = HorizontalIndicatorProperties(
+                enabled = true,
+                textStyle = PennyWiseText.chartLabel.copy(
+                    color = themeColors.onSurfaceVariant
+                ),
+                contentBuilder = { value ->
+                    CurrencyFormatter.formatAbbreviated(value, currency)
+                }
+            ),
+            labelHelperProperties = LabelHelperProperties(enabled = false),
+            labelProperties = LabelProperties(enabled = false),
+            gridProperties = GridProperties(
+                enabled = true,
+                xAxisProperties = GridProperties.AxisProperties(
+                    enabled = false
+                ),
+                yAxisProperties = GridProperties.AxisProperties(
+                    enabled = true,
+                    style = StrokeStyle.Dashed(),
+                    color = SolidColor(themeColors.onSurface.copy(alpha = 0.08f))
+                )
+            ),
+            animationMode = AnimationMode.Together(delayBuilder = { it * 100L }),
+        )
+
+        Spacer(modifier = Modifier.height(Spacing.xs))
+
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.Center,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(spendingColor)
             )
-
-            Spacer(modifier = Modifier.height(Spacing.xs))
-
+            Spacer(modifier = Modifier.width(Spacing.xs))
+            Text(
+                text = stringResource(R.string.budgets_chart_actual),
+                style = MaterialTheme.typography.labelSmall,
+                color = themeColors.onSurfaceVariant
+            )
+            Spacer(modifier = Modifier.width(Spacing.md))
             Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.Center,
+                modifier = Modifier.paceInfoToggle { showPaceInfo = !showPaceInfo },
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Box(
-                    modifier = Modifier
-                        .size(8.dp)
-                        .clip(CircleShape)
-                        .background(spendingColor)
-                )
-                Spacer(modifier = Modifier.width(Spacing.xs))
-                Text(
-                    text = stringResource(R.string.budgets_chart_actual),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = themeColors.onSurfaceVariant
-                )
-                Spacer(modifier = Modifier.width(Spacing.md))
                 Box(
                     modifier = Modifier
                         .size(8.dp)
@@ -958,4 +965,6 @@ private fun SpendingPaceChart(
                 )
             }
         }
+        PaceInfo(visible = showPaceInfo, text = stringResource(R.string.budget_pace_explainer))
+    }
 }

@@ -16,10 +16,11 @@ class AtmCashRoutingTest {
         merchant: String = "ATM Withdrawal",
         type: TransactionType = TransactionType.EXPENSE,
         currency: String = "INR",
-        account: String? = "1111"
+        account: String? = "1111",
+        sms: String? = "Rs.500 withdrawn at ATM"
     ) = TransactionEntity(
         amount = BigDecimal("500"), merchantName = merchant, category = "Others", transactionType = type,
-        dateTime = now, transactionHash = "h", bankName = "Test Bank", accountNumber = account, currency = currency
+        dateTime = now, transactionHash = "h", bankName = "Test Bank", accountNumber = account, currency = currency, smsBody = sms
     )
 
     private fun account(type: String?, currency: String = "INR", last4: String = "CASH") = AccountBalanceEntity(
@@ -39,11 +40,18 @@ class AtmCashRoutingTest {
     }
 
     @Test
+    fun `a debit card withdrawal leaves its linked account`() {
+        val routed = row().routeAtmToCashWallet(wallets, sourceAccount = "9999")
+        assertEquals("9999", routed.fromAccount)
+    }
+
+    @Test
     fun `everything else is left alone`() {
         for (r in listOf(
             row(merchant = "Atmosphere Cafe"),
             row(merchant = "ATM Charges"),
             row(merchant = "ATM Withdrawal Fee"),
+            row(merchant = "ATM Transaction", sms = "debited with Rs.25.00 through Debitcard on other bank ATM"),
             row(type = TransactionType.INCOME),
             row(currency = "USD"),
             row(account = null),

@@ -232,7 +232,10 @@ class SmsTransactionProcessor @Inject constructor(
             }
             // Before the rules, so a user rule still has the last word.
             val entityWithMapping = if (scanPreferences.atmCashToWallet.first()) {
-                mapped.routeAtmToCashWallet(accountBalanceRepository.getAllLatestBalancesOnce().cashWallets())
+                mapped.routeAtmToCashWallet(
+                    accountBalanceRepository.getAllLatestBalancesOnce().cashWallets(),
+                    linkedAccountLast4 ?: mapped.accountNumber
+                )
             } else {
                 mapped
             }

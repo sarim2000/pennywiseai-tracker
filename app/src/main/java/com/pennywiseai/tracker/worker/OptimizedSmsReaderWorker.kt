@@ -272,6 +272,13 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             // Rows rebuilt from balance-only SMS don't pass through processBalanceUpdate,
             // so put each typed account's type back on the rows that lost it (#792).
             for (row in accountsBeforeRebuild.values) accountBalanceRepository.restoreAccountType(row)
+            // A rebuild drops ATM transfers into Cash wallets (#1062) and may not route
+            // them again (setting since turned off), so re-derive every Cash wallet.
+            if (rebuildStartedAt != null) {
+                accountBalanceRepository.getAllLatestBalancesOnce().cashWallets().forEach {
+                    accountBalanceRepository.recomputeManualBalance(it.bankName, it.accountLast4)
+                }
+            }
             SmsScanCleanup(
                 unrecognizedSmsRepository = unrecognizedSmsRepository,
                 transactionRepository = transactionRepository,

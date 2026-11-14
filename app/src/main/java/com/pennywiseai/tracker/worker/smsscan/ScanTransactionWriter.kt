@@ -177,7 +177,7 @@ internal class ScanTransactionWriter(
                     ?.takeIf { mappingFits(scanContext.categoryIsIncome[it], entity.transactionType) }
                 val unrouted = if (customCategory != null) entity.copy(category = customCategory) else entity
                 // Before the rules, so a user rule still has the last word.
-                val mapped = unrouted.routeAtmToCashWallet(scanContext.atmCashWallets)
+                val mapped = unrouted.routeAtmToCashWallet(scanContext.atmCashWallets, linkedAccountLast4 ?: unrouted.accountNumber)
 
                 val activeRules = scanContext.rulesByType[mapped.transactionType] ?: emptyList()
                 val isBlocked = ruleEngine.shouldBlockTransaction(mapped, sms.body, activeRules) != null

@@ -329,7 +329,7 @@ fun BudgetCard(
         }
         PaceInfo(
             visible = showPaceInfo && pace != null && !pace.isOverBudget,
-            text = stringResource(R.string.budget_pace_explainer) + " " + stringResource(R.string.budget_pace_explainer_days)
+            text = stringResource(R.string.budget_pace_explainer_card)
         )
 
         Spacer(modifier = Modifier.height(Spacing.xs))

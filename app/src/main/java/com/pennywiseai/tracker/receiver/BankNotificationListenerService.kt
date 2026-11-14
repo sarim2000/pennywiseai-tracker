@@ -62,10 +62,7 @@ class BankNotificationListenerService : NotificationListenerService() {
             return
         }
 
-        // Skip group summaries to avoid duplicate processing
-        if ((sbn.notification.flags and android.app.Notification.FLAG_GROUP_SUMMARY) != 0) {
-            return
-        }
+        if (BankNotificationConfig.skipsPost(sbn.notification.flags, trackedApp = !allowed)) return
 
         val body = BankNotificationConfig.extractMessage(sbn.notification)
         if (body.isBlank()) {

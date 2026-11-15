@@ -45,7 +45,7 @@ class StandardCharteredBangladeshParser : BankParser() {
         if (VALID_MONEY.matches(raw)) raw.replace(",", "").toBigDecimalOrNull() else null
 
     override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {
-        if (!canHandle(sender) || isNonTransactionMessage(smsBody)) return null
+        if (!canHandle(sender)) return null
         val body = smsBody.trim()
         val lower = body.lowercase()
         if (lower.contains("etac") || lower.contains("statement of your credit card") ||

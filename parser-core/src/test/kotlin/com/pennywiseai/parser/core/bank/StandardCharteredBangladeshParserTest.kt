@@ -42,6 +42,29 @@ class StandardCharteredBangladeshParserTest {
                     expected = ExpectedTransaction(amount = BigDecimal("1234.50"), type = TransactionType.CREDIT,
                         merchant = "DEMO ELECTRONICS DHAKA BD", currency = "BDT",
                         accountLast4 = "1234", isFromCard = true)),
+                ParserTestCase(
+                    name = "POS merchant with DISCOUNT in name", sender = "StanChartBD",
+                    message = "BDT 1234.50 transaction was made on card ending 1234 at DISCOUNT STORE DHAKA BD on 18-Sep-26. Available credit: BDT 50,000.00. Enquiries:16233",
+                    expected = ExpectedTransaction(
+                        amount = BigDecimal("1234.50"), type = TransactionType.CREDIT,
+                        merchant = "DISCOUNT STORE DHAKA BD", currency = "BDT",
+                        accountLast4 = "1234", isFromCard = true
+                    )
+                ),
+                ParserTestCase(
+                    name = "POS merchant with OFFER in name", sender = "StanChartBD",
+                    message = purchase("250.00", "OFFER MART DHAKA BD"),
+                    expected = ExpectedTransaction(
+                        amount = BigDecimal("250.00"), type = TransactionType.CREDIT,
+                        merchant = "OFFER MART DHAKA BD", currency = "BDT",
+                        accountLast4 = "1234", isFromCard = true
+                    )
+                ),
+                ParserTestCase(
+                    name = "discount promotion alone is not a purchase", sender = "StanChartBD",
+                    message = "Discount offer: Get BDT 500.00 off your next purchase with Standard Chartered card ending 1234.",
+                    shouldParse = false
+                ),
                 ParserTestCase(name = "POS store with ampersand", sender = "StanChartBD", message = purchase("3,207.00", "GADGET & TEST DHAKA BD"),
                     expected = ExpectedTransaction(amount = BigDecimal("3207.00"), type = TransactionType.CREDIT,
                         merchant = "GADGET & TEST DHAKA BD", currency = "BDT", accountLast4 = "1234", isFromCard = true)),

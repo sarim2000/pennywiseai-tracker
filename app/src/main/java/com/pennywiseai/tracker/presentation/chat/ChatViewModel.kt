@@ -6,6 +6,9 @@ import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.data.database.entity.ChatMessage
+import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.events.TransactionEvents
+import com.pennywiseai.tracker.data.events.TransactionOrigin
 import com.pennywiseai.tracker.data.manager.ModelDownloader
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.LlmRepository
@@ -43,6 +46,7 @@ class ChatViewModel @Inject constructor(
     categoryRepository: com.pennywiseai.tracker.data.repository.CategoryRepository,
     private val transactionRepository: com.pennywiseai.tracker.data.repository.TransactionRepository,
     private val modelDownloader: ModelDownloader,
+    private val transactionEvents: TransactionEvents,
     @com.pennywiseai.tracker.core.ApplicationScope private val appScope: kotlinx.coroutines.CoroutineScope,
 ) : ViewModel() {
 
@@ -259,6 +263,13 @@ class ChatViewModel @Inject constructor(
                         // The user tapped Add: leaving the screen now can't undo that, or lose what was saved.
                         if (drafts.isNotEmpty()) withContext(NonCancellable) {
                             addTransactionUseCase.executeAll(drafts)
+                            // The card committed as one: one reaction for it, not one per row.
+                            // A mixed card is a receipt, not one of its rows' shapes.
+                            transactionEvents.onSaved(
+                                type = drafts.map { it.type }.distinct().singleOrNull() ?: TransactionType.EXPENSE,
+                                origin = TransactionOrigin.CHAT,
+                                count = drafts.size
+                            )
                             com.pennywiseai.tracker.worker.MoneyAlertWorker.enqueue(context)
                             // Saved: the card stays drawn with its check for a beat. Its line is
                             // written first, so dying in that beat can't leave a saved transaction

@@ -20,10 +20,12 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.drawWithCache
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.BlendMode
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.CompositingStrategy
+import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.DrawScope
@@ -58,9 +60,14 @@ import kotlin.random.Random
  * Up to 32dp it draws as a two-tone glyph: a [tint] silhouette with the eyes cut out, so
  * whatever is behind it (a nav pill, a bar) shows through. It blinks on a delay-driven
  * clock and draws no frames in between. Larger, it draws the detailed owl from theme
- * roles on a frame clock, with a wandering gaze. Either clock runs only while the mascot
- * is composed, its lifecycle is STARTED and animations are on; otherwise it holds a
- * static pose. Time is read in the draw phase only, so it never recomposes per frame.
+ * roles on a frame clock, with a wandering gaze; other shapes take the tertiary
+ * container roles. Either clock runs only while the mascot is composed, its lifecycle is
+ * STARTED and animations are on; otherwise it holds a static pose. Time is read in the
+ * draw phase only, so it never recomposes per frame.
+ *
+ * A new [shape] crossfades in on the theme's effects spec; a new [mood] blends from the
+ * pose on screen. A [MascotShape.Bubble] that is [MascotMood.Thinking] reads: its eyes
+ * sweep along the lines, on a frame clock that runs only while it does.
  */
 @Composable
 fun Mascot(
@@ -76,15 +83,19 @@ fun Mascot(
         detailed -> MascotMotion.Full
         else -> MascotMotion.Quiet
     }
-    val state = remember { MascotState(mood) }
+    val state = remember { MascotState(mood, shape) }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
-    LaunchedEffect(motion, lifecycle) { state.runClock(motion, lifecycle) }
-    val blendSpec = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
-    // A mood change plays out with the motion in effect when it arrives, not the one at the last change.
+    val sweeping = isSweeping(shape, mood)
+    LaunchedEffect(motion, lifecycle, sweeping) { state.runClock(motion, lifecycle, sweeping) }
+    val motionScheme = MaterialTheme.motionScheme
+    val blendSpec = motionScheme.defaultEffectsSpec<Float>()
+    val swapSpec = motionScheme.slowEffectsSpec<Float>()
+    // A change plays out with the motion in effect when it arrives, not the one at the last change.
     val currentMotion by rememberUpdatedState(motion)
     LaunchedEffect(mood) { state.changeMood(mood, currentMotion, blendSpec, lifecycle) }
+    LaunchedEffect(shape) { state.changeShape(shape, currentMotion, swapSpec) }
 
-    val colors = if (detailed) owlColors(tint) else null
+    val colors = if (detailed) mascotColors(tint) else null
     // The artwork is symmetric and never mirrored; only where it looks and leans is.
     val direction = if (LocalLayoutDirection.current == LayoutDirection.Rtl) -1f else 1f
 
@@ -95,37 +106,55 @@ fun Mascot(
             // The two-tone glyph punches its eyes out, which needs a layer of its own.
             .then(if (detailed) Modifier else Modifier.graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen })
             .drawWithCache {
-                val geometry = shape.geometry()
+                val current = state.shape
+                val currentGeometry = current.geometry()
+                val previous = state.previousShape
+                val previousGeometry = previous?.geometry()
                 val scratch = Path()
+                val layer = Paint()
                 val k = this.size.minDimension / BOX
                 onDrawBehind {
                     val pose = state.pose(motion).let { it.copy(gazeX = it.gazeX * direction, roll = it.roll * direction) }
-                    scale(k, k, pivot = Offset.Zero) {
-                        if (colors != null) drawShadow(pose, colors.shadow)
-                        translate(top = pose.lift) {
-                            rotate(pose.roll, pivot = geometry.pivot) {
-                                if (colors != null) drawDetailedOwl(geometry, pose, colors, scratch)
-                                else drawTwoTone(geometry, pose, tint, scratch)
-                            }
-                        }
+                    if (colors != null) scale(k, k, pivot = Offset.Zero) { drawShadow(pose, colors.shadow) }
+                    // Each body fades in a layer of its own, so one's eye cut-outs never punch the other.
+                    val fade = if (previousGeometry == null) 1f else state.swapProgress
+                    if (previous != null && previousGeometry != null) {
+                        withAlpha(1f - fade, layer) { drawShape(previous, previousGeometry, pose, k, colors, tint, scratch) }
                     }
+                    withAlpha(fade, layer) { drawShape(current, currentGeometry, pose, k, colors, tint, scratch) }
                 }
             }
     )
 }
+
+/** A thinking message bubble is reading: its eyes sweep left and right. */
+private fun isSweeping(shape: MascotShape, mood: MascotMood) = shape == MascotShape.Bubble && mood == MascotMood.Thinking
 
 private const val BOX = 100f
 
 /** Pill eyes are drawn this much larger in the two-tone glyph, so they still read at 24dp. */
 private const val TWO_TONE_EYE_SCALE = 1.5f
 
+/** An object's markings sit this faintly over its body. */
+private const val DETAIL_ALPHA = 0.32f
+
 /** Below this contrast against the body, the face mask falls back to a neutral container. */
 private const val MASK_MIN_CONTRAST = 1.6f
 
 @Stable
-private class MascotState(initialMood: MascotMood) {
+private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
     var mood by mutableStateOf(initialMood)
         private set
+    var shape by mutableStateOf(initialShape)
+        private set
+
+    /** The shape fading out while [shape] fades in, or null. */
+    var previousShape by mutableStateOf<MascotShape?>(null)
+        private set
+    private val swap = Animatable(1f)
+
+    /** How far [shape] has faded in over [previousShape], 0..1. Read it in the draw phase. */
+    val swapProgress: Float get() = swap.value
     private var moodStart = Long.MIN_VALUE / 4
     private var from: MascotPose? = null
     private val blend = Animatable(1f)
@@ -139,7 +168,7 @@ private class MascotState(initialMood: MascotMood) {
     /** Called from the draw phase, so the state reads here invalidate the drawing only. */
     fun pose(motion: MascotMotion): MascotPose {
         val t = time.longValue
-        var pose = moodPose(mood, t, t - moodStart, seed, motion)
+        var pose = moodPose(mood, t, t - moodStart, seed, motion, sweep = isSweeping(shape, mood))
         if (motion == MascotMotion.Quiet) pose = pose.copy(blink = max(pose.blink, quietBlink.floatValue))
         val w = blend.value
         from?.let { if (w < 1f) pose = blendPose(it, pose, w) }
@@ -147,14 +176,20 @@ private class MascotState(initialMood: MascotMood) {
         return pose
     }
 
-    suspend fun runClock(motion: MascotMotion, lifecycle: Lifecycle) {
+    /** [sweeping]: a Quiet mascot also needs frames, for as long as its eyes sweep. */
+    suspend fun runClock(motion: MascotMotion, lifecycle: Lifecycle, sweeping: Boolean) {
         when (motion) {
             MascotMotion.Still -> quietBlink.floatValue = 0f
-            MascotMotion.Quiet -> lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { blinkNowAndThen() }
-            MascotMotion.Full -> lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                while (true) withFrameMillis { time.longValue = it }
+            MascotMotion.Quiet -> lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
+                if (sweeping) launch { tick() }
+                blinkNowAndThen()
             }
+            MascotMotion.Full -> lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { tick() }
         }
+    }
+
+    private suspend fun tick() {
+        while (true) withFrameMillis { time.longValue = it }
     }
 
     /** Waits 4–8s, blinks for 190ms (sometimes twice), repeats. No frames while it waits. */
@@ -172,6 +207,20 @@ private class MascotState(initialMood: MascotMood) {
         } finally {
             quietBlink.floatValue = 0f // stopped mid-blink: don't freeze with the lids half shut
         }
+    }
+
+    /** Crossfades from the shape on screen to [target], on the theme's effects spec. */
+    suspend fun changeShape(target: MascotShape, motion: MascotMotion, spec: FiniteAnimationSpec<Float>) {
+        if (target == shape) return
+        previousShape = shape
+        shape = target
+        if (motion != MascotMotion.Still) {
+            swap.snapTo(0f)
+            swap.animateTo(1f, spec)
+        } else {
+            swap.snapTo(1f)
+        }
+        previousShape = null
     }
 
     /** Blends from the pose on screen to [target]'s, on the theme's effects spec. */
@@ -209,20 +258,23 @@ private class MascotState(initialMood: MascotMood) {
     }
 }
 
-private class OwlColors(
+private class MascotColors(
     val body: Color,
     val mask: Color,
     val disc: Color,
     val iris: Color,
     val pupil: Color,
     val shadow: Color,
+    /** The other shapes: a container body with its ink for eyes and markings. */
+    val objectBody: Color,
+    val objectInk: Color,
 )
 
 @Composable
-private fun owlColors(body: Color): OwlColors {
+private fun mascotColors(body: Color): MascotColors {
     val scheme = MaterialTheme.colorScheme
     val dark = scheme.isDark
-    return OwlColors(
+    return MascotColors(
         body = body,
         // Some branded schemes put primaryContainer right next to primary.
         mask = if (contrastRatio(body, scheme.primaryContainer) < MASK_MIN_CONTRAST) scheme.surfaceContainerHigh
@@ -232,6 +284,8 @@ private fun owlColors(body: Color): OwlColors {
         iris = scheme.tertiary,
         pupil = if (dark) scheme.surface else scheme.onSurface,
         shadow = scheme.onSurface,
+        objectBody = scheme.tertiaryContainer,
+        objectInk = scheme.onTertiaryContainer,
     )
 }
 
@@ -274,42 +328,96 @@ private fun DrawScope.drawCurve(
     drawPath(path, color, style = Stroke(width, cap = StrokeCap.Round), blendMode = blendMode)
 }
 
+/** Draws [content] at [alpha] in a layer of its own: nothing at 0, directly at 1. */
+private inline fun DrawScope.withAlpha(alpha: Float, paint: Paint, content: DrawScope.() -> Unit) {
+    when {
+        alpha >= 1f -> content()
+        alpha > 0f -> {
+            paint.alpha = alpha
+            drawContext.canvas.saveLayer(Rect(Offset.Zero, size), paint)
+            content()
+            drawContext.canvas.restore()
+        }
+    }
+}
+
+/** One shape in the pose, scaled from the 0..100 box: two-tone without [colors], detailed with. */
+private fun DrawScope.drawShape(
+    shape: MascotShape,
+    g: MascotGeometry,
+    pose: MascotPose,
+    k: Float,
+    colors: MascotColors?,
+    tint: Color,
+    scratch: Path,
+) {
+    scale(k, k, pivot = Offset.Zero) {
+        translate(top = pose.lift) {
+            rotate(pose.roll, pivot = g.pivot) {
+                when {
+                    colors == null -> drawTwoTone(g, pose, tint, scratch)
+                    shape == MascotShape.Owl -> drawDetailedOwl(g, pose, colors, scratch)
+                    else -> drawDetailedObject(g, pose, colors, scratch)
+                }
+            }
+        }
+    }
+}
+
 /**
  * The 24/32dp glyph: the silhouette in [tint] and two pill eyes cut out of it. DstOut
  * reads only the paint's alpha, so the cut-outs take the colour of whatever is behind.
+ * No markings: at this size they would only blur the outline.
  */
 private fun DrawScope.drawTwoTone(g: MascotGeometry, pose: MascotPose, tint: Color, scratch: Path) {
     drawPath(g.body, tint)
-    val e = g.eyes
-    val sc = e.scale * TWO_TONE_EYE_SCALE
+    drawPillEyes(g.eyes, TWO_TONE_EYE_SCALE, pose, tint, scratch, BlendMode.DstOut)
+}
+
+/** A shape other than the owl, at the detailed size: container body, faint markings, ink eyes. */
+private fun DrawScope.drawDetailedObject(g: MascotGeometry, pose: MascotPose, c: MascotColors, scratch: Path) {
+    drawPath(g.body, c.objectBody)
+    g.details?.let { drawPath(it, c.objectInk, alpha = DETAIL_ALPHA) }
+    drawPillEyes(g.eyes, 1f, pose, c.objectInk, scratch, DrawScope.DefaultBlendMode)
+}
+
+/** Two pill eyes at [e], [enlarge]d for small sizes, with `^` arcs, closed lids and brows. */
+private fun DrawScope.drawPillEyes(
+    e: EyeSpec,
+    enlarge: Float,
+    pose: MascotPose,
+    color: Color,
+    scratch: Path,
+    blendMode: BlendMode,
+) {
+    val sc = e.scale * enlarge
     val w = 4.6f * sc
     val h = 11f * sc
     val line = 2.6f * sc
-    val cut = BlendMode.DstOut
     for (side in SIDES) {
         val cx = e.x + side * e.spacing / 2 + pose.gazeX * 6f
         val cy = e.y + pose.gazeY * 4f
         when (pose.style) {
-            EyeStyle.Arc -> drawCurve(scratch, cx - w, cy + 2, cx, cy - 5 * sc, cx + w, cy + 2, tint, line, cut)
-            EyeStyle.Closed -> drawCurve(scratch, cx - w, cy - 1, cx, cy + 4 * sc, cx + w, cy - 1, tint, line, cut)
+            EyeStyle.Arc -> drawCurve(scratch, cx - w, cy + 2, cx, cy - 5 * sc, cx + w, cy + 2, color, line, blendMode)
+            EyeStyle.Closed -> drawCurve(scratch, cx - w, cy - 1, cx, cy + 4 * sc, cx + w, cy - 1, color, line, blendMode)
             EyeStyle.Open -> {
                 val open = max(h * max(0.09f, (1 - pose.blink) * (1 - pose.squint * 0.4f)), w * 0.55f)
                 drawRoundRect(
-                    color = tint,
+                    color = color,
                     topLeft = Offset(cx - w / 2, cy - open / 2 + (h - open) * 0.25f),
                     size = Size(w, open),
                     cornerRadius = CornerRadius(min(w, open) / 2),
-                    blendMode = cut,
+                    blendMode = blendMode,
                 )
                 if (pose.brows > 0.01f) {
                     drawLine(
-                        color = tint,
+                        color = color,
                         start = Offset(cx - side * 5 * sc, cy - h / 2 - 3 * sc),
                         end = Offset(cx + side * 4 * sc, cy - h / 2 - 6 * sc),
                         strokeWidth = line,
                         cap = StrokeCap.Round,
                         alpha = pose.brows,
-                        blendMode = cut,
+                        blendMode = blendMode,
                     )
                 }
             }
@@ -318,7 +426,7 @@ private fun DrawScope.drawTwoTone(g: MascotGeometry, pose: MascotPose, tint: Col
 }
 
 /** The 96dp owl: body, face mask, eye discs with iris and pupil, beak and the logo's coin. */
-private fun DrawScope.drawDetailedOwl(g: MascotGeometry, pose: MascotPose, c: OwlColors, scratch: Path) {
+private fun DrawScope.drawDetailedOwl(g: MascotGeometry, pose: MascotPose, c: MascotColors, scratch: Path) {
     drawPath(g.body, c.body)
     g.mask?.let { drawPath(it, c.mask) }
     val ox = pose.gazeX * OwlEye.GAZE_TRAVEL

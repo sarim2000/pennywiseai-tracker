@@ -128,7 +128,8 @@ ui/components/mascot/
   Mascot.kt          // @Composable Mascot(shape, mood, size, modifier, value, tint, interactive)
   MascotShapes.kt    // enum MascotShape + one `when` with Path + EyeSpec per shape
   MascotPose.kt      // pure: mascotPose(mood, from, tMillis, seed, look) -> MascotPose
-core/TransactionEvents.kt   // app-scoped SharedFlow, replay = 0
+  ChatTabReactions.kt // the tab's type -> shape table, hold and coalescing
+data/events/TransactionEvents.kt   // app-scoped SharedFlow, replay = 0
 ```
 
 - **Drawing:** `drawWithCache` caches the paths for each size. Time is read only in the draw phase, so no recomposition happens per frame.
@@ -174,27 +175,28 @@ The smallest visible win: the Chat tab becomes the owl that blinks.
 - [ ] Battery check: no frames between blinks (Layout Inspector / `dumpsys gfxinfo`)
 
 ### M2 — Transaction reactions on the tab
-- [ ] `core/TransactionEvents.kt`: `MutableSharedFlow(replay = 0)`, Hilt `@Singleton`, payload `type`, `count`, `origin`
-- [ ] Emit from:
-  - [ ] Success branch of `SmsTransactionProcessor.saveParsedTransaction`
-  - [ ] `AddTransactionUseCase.execute`
-  - [ ] `executeTransfer` (expose its insert result)
-  - [ ] `ChatViewModel` once after the outer `executeAll`
-- [ ] Emit nothing from imports, backup restore / merge, recurring, autopay or loans (a test asserts no event for an import)
-- [ ] `MascotShapes`: add `Coin`, `Receipt`, `Wallet`, `Jar`, `Bubble`
-- [ ] Tab collector:
-  - [ ] Foreground only (`AppForegroundState`)
-  - [ ] Maps the type to shape and mood (table above)
-  - [ ] ~3s hold, then the owl
-  - [ ] Bursts coalesce, nothing queues, the hold never extends
-  - [ ] Cleared on background or when Chat is hidden
-- [ ] Body swap is an effects crossfade. `Happy` hop is translation only.
-- [ ] SMS bubble while a user-started foreground scan runs (`WorkInfo`). One neutral beat afterwards if new rows were saved.
-- [ ] Tests:
-  - [ ] Type → shape mapping
-  - [ ] Coalescing (three events → one reaction)
-  - [ ] An event while backgrounded is not replayed
-  - [ ] `insert` returning `-1` emits nothing
+- [x] `data/events/TransactionEvents.kt` (not `core`: `core` may not import `TransactionType`): `MutableSharedFlow(replay = 0)`, Hilt `@Singleton`, payload `type`, `count`, `origin`. It drops saves made while the app is in the background (`AppForegroundState`) at the source
+- [x] Emit from:
+  - [x] Success branch of `SmsTransactionProcessor.saveParsedTransaction`
+  - [x] `AddTransactionUseCase.execute`
+  - [x] `executeTransfer` (expose its insert result)
+  - [x] `ChatViewModel` once after the outer `executeAll` (a card of mixed types reacts as a receipt)
+- [x] Emit nothing from imports, backup restore / merge, recurring, autopay or loans (a test asserts no event for an import)
+- [x] `MascotShapes`: add `Coin`, `Receipt`, `Wallet`, `Jar`, `Bubble`
+- [x] Tab collector:
+  - [x] Foreground only (`AppForegroundState`)
+  - [x] Maps the type to shape and mood (table above)
+  - [x] ~3s hold, then the owl
+  - [x] Bursts coalesce, nothing queues, the hold never extends
+  - [x] Cleared on background or when Chat is hidden
+- [x] Body swap is an effects crossfade. `Happy` hop is translation only.
+- [x] SMS bubble while a user-started foreground scan runs (`WorkInfo`). One neutral beat afterwards if new rows were saved.
+- [x] Tests:
+  - [x] Type → shape mapping
+  - [x] Coalescing (three events → one reaction)
+  - [x] An event while backgrounded is not replayed
+  - [x] `insert` returning `-1` emits nothing
+- [ ] On device: each reaction on both bar styles, light and dark, with "Remove animations"; no frames between reactions once the owl is back
 
 ### M3 — Chat surfaces
 - [ ] Empty-chat hero (96dp owl, `Calm`):

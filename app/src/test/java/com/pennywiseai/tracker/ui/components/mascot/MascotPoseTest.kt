@@ -56,11 +56,22 @@ class MascotPoseTest {
     fun `gaze stays inside the eye for every mood and motion`() {
         for (mood in MascotMood.entries) {
             for (motion in MascotMotion.entries) {
-                for (t in 0L until 120_000L step 37) {
-                    assertInsideEye(moodPose(mood, t, t, seed, motion))
+                for (sweep in listOf(false, true)) {
+                    for (t in 0L until 120_000L step 37) {
+                        assertInsideEye(moodPose(mood, t, t, seed, motion, sweep))
+                    }
                 }
             }
         }
+    }
+
+    @Test
+    fun `a reading bubble sweeps its eyes both ways, and holds still without motion`() {
+        val gazes = (0L until 4_000L step 20).map { moodPose(MascotMood.Thinking, it, it, seed, MascotMotion.Quiet, sweep = true).gazeX }
+        assertTrue(gazes.min() < -0.7f)
+        assertTrue(gazes.max() > 0.7f)
+        val still = moodPose(MascotMood.Thinking, 1_234, 1_234, seed, MascotMotion.Still, sweep = true)
+        assertEquals(0f, still.gazeX, 0f)
     }
 
     @Test
@@ -87,6 +98,8 @@ class MascotPoseTest {
             for (t in listOf(95L, 300L, 1_234L, 4_401L, 99_999L)) {
                 for (since in listOf(0L, 95L, 460L, 5_000L)) {
                     assertEquals(still, moodPose(mood, t, since, seed, MascotMotion.Still))
+                    val stillSweep = moodPose(mood, 0, 0, seed, MascotMotion.Still, sweep = true)
+                    assertEquals(stillSweep, moodPose(mood, t, since, seed, MascotMotion.Still, sweep = true))
                 }
             }
             assertEquals(0f, still.blink, 0f)

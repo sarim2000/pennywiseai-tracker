@@ -63,6 +63,9 @@ import com.pennywiseai.tracker.ui.components.DockedActionButton
 import com.pennywiseai.tracker.ui.components.NavDockAction
 import com.pennywiseai.tracker.ui.components.NavDockState
 import com.pennywiseai.tracker.ui.components.mascot.Mascot
+import com.pennywiseai.tracker.ui.components.mascot.MascotMood
+import com.pennywiseai.tracker.ui.components.mascot.MascotReaction
+import com.pennywiseai.tracker.ui.components.mascot.MascotShape
 import com.pennywiseai.tracker.ui.effects.BlurredAnimatedVisibility
 import com.pennywiseai.tracker.ui.effects.frostedBlur
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -84,6 +87,8 @@ fun PennyWiseBottomNavigation(
     blurEffects: Boolean = true,
     visible: Boolean = true,
     hiddenTabs: Set<String> = emptySet(),
+    /** What the Chat tab's owl has turned into for a moment, or null for the owl. */
+    chatReaction: MascotReaction? = null,
     hazeState: HazeState = remember { HazeState() },
     dock: NavDockState? = null,
 ) {
@@ -133,7 +138,8 @@ fun PennyWiseBottomNavigation(
                                         label = stringResource(item.titleRes),
                                         selected = selected,
                                         mutedWhenUnselected = hidePill && hideLabels,
-                                        size = iconSize
+                                        size = iconSize,
+                                        reaction = chatReaction
                                     )
                                 } else {
                                     Icon(
@@ -204,6 +210,7 @@ fun PennyWiseBottomNavigation(
                 ) {
                     FloatingNavPill(
                         items = navigationItems,
+                        chatReaction = chatReaction,
                         selectedIndex = navigationItems.indexOfFirst { it.route == selectedRoute },
                         onSelect = selectTab,
                         blurEffects = blurEffects,
@@ -241,6 +248,7 @@ fun PennyWiseBottomNavigation(
 @Composable
 private fun FloatingNavPill(
     items: List<BottomNavItem>,
+    chatReaction: MascotReaction?,
     selectedIndex: Int,
     onSelect: (BottomNavItem) -> Unit,
     blurEffects: Boolean,
@@ -333,7 +341,8 @@ private fun FloatingNavPill(
                                     label = label,
                                     selected = selected,
                                     mutedWhenUnselected = false,
-                                    size = Dimensions.Icon.medium
+                                    size = Dimensions.Icon.medium,
+                                    reaction = chatReaction
                                 )
                             } else {
                                 Icon(
@@ -352,16 +361,25 @@ private fun FloatingNavPill(
 }
 
 /**
- * The Chat tab's owl. It takes the accent in both states so the assistant stands out,
- * and the pill or indicator marks selection — unless [mutedWhenUnselected] (no pill and
- * no label), when colour is the only cue left and it mutes like its neighbours. It is
- * decoration: the slot keeps the tab's name and the click goes to the tab.
+ * The Chat tab's owl, or the shape of a [reaction] for a moment. It takes the accent in
+ * both states so the assistant stands out, and the pill or indicator marks selection —
+ * unless [mutedWhenUnselected] (no pill and no label), when colour is the only cue left
+ * and it mutes like its neighbours. It is decoration: the slot keeps the tab's name and
+ * the click goes to the tab.
  */
 @Composable
-private fun ChatTabMascot(label: String, selected: Boolean, mutedWhenUnselected: Boolean, size: Dp) {
+private fun ChatTabMascot(
+    label: String,
+    selected: Boolean,
+    mutedWhenUnselected: Boolean,
+    size: Dp,
+    reaction: MascotReaction?,
+) {
     Box(modifier = Modifier.semantics { contentDescription = label }) {
         Mascot(
             size = size,
+            shape = reaction?.shape ?: MascotShape.Owl,
+            mood = reaction?.mood ?: MascotMood.Calm,
             tint = if (selected || !mutedWhenUnselected) MaterialTheme.colorScheme.primary
             else MaterialTheme.colorScheme.onSurfaceVariant
         )

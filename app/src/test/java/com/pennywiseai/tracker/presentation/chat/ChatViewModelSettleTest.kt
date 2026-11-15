@@ -1,6 +1,10 @@
 package com.pennywiseai.tracker.presentation.chat
 
+import com.pennywiseai.tracker.core.AppForegroundState
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.events.TransactionEvent
+import com.pennywiseai.tracker.data.events.TransactionEvents
+import com.pennywiseai.tracker.data.events.TransactionOrigin
 import com.pennywiseai.tracker.data.manager.ModelDownloader
 import com.pennywiseai.tracker.data.model.PendingChatAction
 import com.pennywiseai.tracker.data.model.ReviewRow
@@ -49,6 +53,7 @@ class ChatViewModelSettleTest {
         every { isConfirming } returns MutableStateFlow(false)
     }
     private val addTransaction = mockk<AddTransactionUseCase>(relaxed = true)
+    private val events = TransactionEvents(AppForegroundState { true })
     private val draft = TransactionDraft(
         amount = BigDecimal.TEN,
         currency = "INR",
@@ -88,6 +93,7 @@ class ChatViewModelSettleTest {
         modelDownloader = mockk<ModelDownloader>(relaxed = true) {
             every { progress } returns MutableStateFlow(ModelDownloader.Progress())
         },
+        transactionEvents = events,
         appScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined),
     )
 
@@ -144,5 +150,34 @@ class ChatViewModelSettleTest {
         assertNotNull(viewModel.uiState.value.error)
         assertNotNull(pending.value)
         coVerify(exactly = 0) { llm.completePendingAction(any()) }
+    }
+
+    @Test
+    fun `a saved card announces itself once, with its row count`() {
+        val heard = mutableListOf<TransactionEvent>()
+        val listening = CoroutineScope(main).launch { events.saved.collect { heard += it } }
+        val viewModel = viewModel().apply { animationsEnabled = { false } }
+        val income = draft.copy(type = TransactionType.INCOME)
+        pending.value = PendingChatAction.Add(listOf(ReviewRow(id = 0, draft = income), ReviewRow(id = 1, draft = income)))
+
+        viewModel.confirmPendingAction()
+        main.scheduler.advanceUntilIdle()
+        listening.cancel()
+
+        assertEquals(listOf(TransactionEvent(TransactionType.INCOME, 2, TransactionOrigin.CHAT)), heard)
+    }
+
+    @Test
+    fun `a failed save announces nothing`() {
+        coEvery { addTransaction.executeAll(any()) } throws IllegalStateException()
+        val heard = mutableListOf<TransactionEvent>()
+        val listening = CoroutineScope(main).launch { events.saved.collect { heard += it } }
+        pending.value = PendingChatAction.Add(listOf(ReviewRow(id = 0, draft = draft)))
+
+        viewModel().confirmPendingAction()
+        main.scheduler.advanceUntilIdle()
+        listening.cancel()
+
+        assertTrue(heard.isEmpty())
     }
 }

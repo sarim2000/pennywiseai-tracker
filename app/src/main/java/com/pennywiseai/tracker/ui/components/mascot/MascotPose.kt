@@ -59,6 +59,10 @@ private const val WANDER_CENTRED_CHANCE = 0.4f
 private const val HOP_MS = 920L
 private const val HOP_HEIGHT = 6f
 private const val SHAKE_MS = 700L
+private const val SWEEP_REACH = 0.8f
+
+/** Radians per second: one look across and back in about two seconds. */
+private const val SWEEP_RATE = 3f
 
 /** How long a mood change keeps a Quiet mascot's clock running (the hop, the shake). */
 internal const val MOOD_MOTION_MS = 1000L
@@ -121,7 +125,8 @@ internal fun clampGaze(x: Float, y: Float): Offset {
 
 /**
  * The target pose for [mood] at [tMillis], [sinceMoodMillis] after the mood began.
- * [MascotMotion.Still] returns the same pose for any time.
+ * [MascotMotion.Still] returns the same pose for any time. With [sweep], a Thinking face
+ * reads instead: the eyes sweep left and right along a line, a little above centre.
  */
 internal fun moodPose(
     mood: MascotMood,
@@ -129,6 +134,7 @@ internal fun moodPose(
     sinceMoodMillis: Long,
     seed: Float,
     motion: MascotMotion,
+    sweep: Boolean = false,
 ): MascotPose {
     val moving = motion != MascotMotion.Still
     val full = motion == MascotMotion.Full
@@ -142,8 +148,13 @@ internal fun moodPose(
         )
         // Eyes up and toward line start, a slight tilt, a slower blink.
         MascotMood.Thinking -> MascotPose(
-            gazeX = -0.55f - if (moving) 0.25f * sin(t * 0.9f) else 0f,
-            gazeY = -0.8f,
+            gazeX = when {
+                sweep && moving -> SWEEP_REACH * sin(t * SWEEP_RATE)
+                sweep -> 0f
+                moving -> -0.55f - 0.25f * sin(t * 0.9f)
+                else -> -0.55f
+            },
+            gazeY = if (sweep) -0.5f else -0.8f,
             squint = 0.3f,
             roll = -3f + if (moving) 1.2f * sin(t * 2 * PI.toFloat() / 4.1f) else 0f,
             blink = if (full) scheduledBlink(seed, (tMillis * 0.7f).toLong()) else 0f,

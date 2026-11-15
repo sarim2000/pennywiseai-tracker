@@ -53,12 +53,19 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.pennywiseai.tracker.data.preferences.NavBarStyle
 import com.pennywiseai.tracker.ui.components.DockedActionButton
 import com.pennywiseai.tracker.ui.components.NavDockAction
 import com.pennywiseai.tracker.ui.components.NavDockState
+import com.pennywiseai.tracker.ui.components.mascot.Mascot
+import com.pennywiseai.tracker.ui.components.mascot.MascotMood
+import com.pennywiseai.tracker.ui.components.mascot.MascotReaction
+import com.pennywiseai.tracker.ui.components.mascot.MascotShape
 import com.pennywiseai.tracker.ui.effects.BlurredAnimatedVisibility
 import com.pennywiseai.tracker.ui.effects.frostedBlur
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -80,6 +87,8 @@ fun PennyWiseBottomNavigation(
     blurEffects: Boolean = true,
     visible: Boolean = true,
     hiddenTabs: Set<String> = emptySet(),
+    /** What the Chat tab's owl has turned into for a moment, or null for the owl. */
+    chatReaction: MascotReaction? = null,
     hazeState: HazeState = remember { HazeState() },
     dock: NavDockState? = null,
 ) {
@@ -119,21 +128,30 @@ fun PennyWiseBottomNavigation(
                             selected = selected,
                             onClick = { selectTab(item) },
                             icon = {
-                                Icon(
-                                    imageVector = item.icon,
-                                    contentDescription = stringResource(item.titleRes),
-                                    tint = if (selected) {
-                                        if (hidePill) MaterialTheme.colorScheme.primary
-                                        else MaterialTheme.colorScheme.onPrimaryContainer
-                                    } else MaterialTheme.colorScheme.onSurfaceVariant,
-                                    // Without a pill or a label there is
-                                    // nothing else marking the selected item, so
-                                    // the glyph steps up to carry that weight.
-                                    modifier = Modifier.size(
-                                        if (hidePill && hideLabels) Dimensions.Icon.large
-                                        else Dimensions.Icon.medium
+                                // Without a pill or a label there is nothing
+                                // else marking the selected item, so the glyph
+                                // steps up to carry that weight.
+                                val iconSize = if (hidePill && hideLabels) Dimensions.Icon.large
+                                else Dimensions.Icon.medium
+                                if (item == BottomNavItem.Chat) {
+                                    ChatTabMascot(
+                                        label = stringResource(item.titleRes),
+                                        selected = selected,
+                                        mutedWhenUnselected = hidePill && hideLabels,
+                                        size = iconSize,
+                                        reaction = chatReaction
                                     )
-                                )
+                                } else {
+                                    Icon(
+                                        imageVector = item.icon,
+                                        contentDescription = stringResource(item.titleRes),
+                                        tint = if (selected) {
+                                            if (hidePill) MaterialTheme.colorScheme.primary
+                                            else MaterialTheme.colorScheme.onPrimaryContainer
+                                        } else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        modifier = Modifier.size(iconSize)
+                                    )
+                                }
                             },
                             label = if (hideLabels) null else {
                                 {
@@ -192,6 +210,7 @@ fun PennyWiseBottomNavigation(
                 ) {
                     FloatingNavPill(
                         items = navigationItems,
+                        chatReaction = chatReaction,
                         selectedIndex = navigationItems.indexOfFirst { it.route == selectedRoute },
                         onSelect = selectTab,
                         blurEffects = blurEffects,
@@ -229,6 +248,7 @@ fun PennyWiseBottomNavigation(
 @Composable
 private fun FloatingNavPill(
     items: List<BottomNavItem>,
+    chatReaction: MascotReaction?,
     selectedIndex: Int,
     onSelect: (BottomNavItem) -> Unit,
     blurEffects: Boolean,
@@ -315,17 +335,54 @@ private fun FloatingNavPill(
                                 ),
                             contentAlignment = Alignment.Center
                         ) {
-                            Icon(
-                                imageVector = item.icon,
-                                contentDescription = label,
-                                tint = iconTint,
-                                modifier = Modifier.size(Dimensions.Icon.medium)
-                            )
+                            if (item == BottomNavItem.Chat) {
+                                // The sliding indicator always marks selection here.
+                                ChatTabMascot(
+                                    label = label,
+                                    selected = selected,
+                                    mutedWhenUnselected = false,
+                                    size = Dimensions.Icon.medium,
+                                    reaction = chatReaction
+                                )
+                            } else {
+                                Icon(
+                                    imageVector = item.icon,
+                                    contentDescription = label,
+                                    tint = iconTint,
+                                    modifier = Modifier.size(Dimensions.Icon.medium)
+                                )
+                            }
                         }
                     }
                 }
             }
         }
+    }
+}
+
+/**
+ * The Chat tab's owl, or the shape of a [reaction] for a moment. It takes the accent in
+ * both states so the assistant stands out, and the pill or indicator marks selection —
+ * unless [mutedWhenUnselected] (no pill and no label), when colour is the only cue left
+ * and it mutes like its neighbours. It is decoration: the slot keeps the tab's name and
+ * the click goes to the tab.
+ */
+@Composable
+private fun ChatTabMascot(
+    label: String,
+    selected: Boolean,
+    mutedWhenUnselected: Boolean,
+    size: Dp,
+    reaction: MascotReaction?,
+) {
+    Box(modifier = Modifier.semantics { contentDescription = label }) {
+        Mascot(
+            size = size,
+            shape = reaction?.shape ?: MascotShape.Owl,
+            mood = reaction?.mood ?: MascotMood.Calm,
+            tint = if (selected || !mutedWhenUnselected) MaterialTheme.colorScheme.primary
+            else MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

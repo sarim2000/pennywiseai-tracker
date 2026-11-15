@@ -11,7 +11,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
@@ -28,6 +27,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDirection
@@ -39,9 +39,14 @@ import com.pennywiseai.tracker.data.repository.ModelState
 import com.pennywiseai.tracker.data.repository.QuickAction
 import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.ui.animations.pwExpand
+import com.pennywiseai.tracker.ui.animations.pwFadeIn
 import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.mascot.Mascot
+import com.pennywiseai.tracker.ui.components.mascot.MascotMood
+import com.pennywiseai.tracker.ui.components.mascot.REACTION_HOLD_MS
+import com.pennywiseai.tracker.ui.components.mascot.typingGaze
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.icons.categoryLabel
@@ -50,6 +55,7 @@ import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.TokenUtils
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Date
@@ -114,6 +120,27 @@ fun ChatScreen(
         if (uiState.adds > addsAtEntry) haptics.performHapticFeedback(HapticFeedbackType.Confirm)
     }
 
+    // The owl is happy for a beat after the same saved Adds (the reply's mascot, or the
+    // hero), and never for one from an earlier visit, a rotation or restored history. Each
+    // Add is used up as it arrives, beat or not: without animations it gets none, and
+    // turning them back on later never replays it. That change can only end a beat.
+    val animationsEnabled = rememberAnimationsEnabled()
+    val animate by rememberUpdatedState(animationsEnabled)
+    var savedBeat by remember { mutableStateOf(false) }
+    var addsHandled by remember { mutableIntStateOf(addsAtEntry) }
+    LaunchedEffect(uiState.adds) {
+        if (uiState.adds <= addsHandled) return@LaunchedEffect
+        addsHandled = uiState.adds
+        if (!animate) return@LaunchedEffect
+        savedBeat = true
+        delay(REACTION_HOLD_MS)
+        savedBeat = false
+    }
+    LaunchedEffect(animationsEnabled) { if (!animationsEnabled) savedBeat = false }
+
+    // The model screen's owl sleeps; the first LOADING after it wakes it, once.
+    var modelWasAsleep by remember { mutableStateOf(false) }
+
     // Scroll behaviors for TopAppBar
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = scrollBehaviorSmall
@@ -141,6 +168,7 @@ fun ChatScreen(
             when (modelState) {
                 ModelState.NOT_DOWNLOADED, ModelState.DOWNLOADING, ModelState.ERROR -> {
                     val isDownloading = modelState == ModelState.DOWNLOADING
+                    SideEffect { modelWasAsleep = true }
                     // Show existing messages if any, but disable input
                     Column(
                         modifier = Modifier.fillMaxSize()
@@ -161,12 +189,7 @@ fun ChatScreen(
                                     verticalArrangement = Arrangement.spacedBy(Spacing.md),
                                     modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                                 ) {
-                                    Icon(
-                                        Icons.Default.CloudDownload,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(64.dp),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                    Mascot(size = Dimensions.Icon.extraLarge, mood = MascotMood.Asleep)
                                     Text(
                                         text = stringResource(if (isDownloading) R.string.chat_downloading_model else R.string.chat_model_required_title),
                                         style = MaterialTheme.typography.headlineSmall
@@ -225,7 +248,12 @@ fun ChatScreen(
                                 flingBehavior = rememberOverscrollFlingBehavior { listState }
                             ) {
                                 items(messages, key = { it.id }) { message ->
-                                    ChatMessageItem(message = message, modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null))
+                                    ChatMessageItem(
+                                        message = message,
+                                        modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null),
+                                        topic = uiState.replyTopic?.takeIf { it.messageId == message.id },
+                                        celebrating = savedBeat
+                                    )
                                 }
                             }
                         }
@@ -328,7 +356,19 @@ fun ChatScreen(
                                 horizontalAlignment = Alignment.CenterHorizontally,
                                 verticalArrangement = Arrangement.spacedBy(Spacing.md)
                             ) {
-                                LoadingIndicator()
+                                // Straight from the model screen, the sleeping owl wakes up (the
+                                // lids open through a blink) and gets to work; otherwise, or with
+                                // animations removed, it's already thinking.
+                                val wakes = remember { modelWasAsleep && animationsEnabled }
+                                var awake by remember { mutableStateOf(!wakes) }
+                                LaunchedEffect(Unit) {
+                                    modelWasAsleep = false
+                                    if (!awake) {
+                                        delay(WAKE_DELAY_MS) // asleep on screen first, so the wake reads
+                                        awake = true
+                                    }
+                                }
+                                Mascot(size = Dimensions.Icon.extraLarge, mood = if (awake) MascotMood.Thinking else MascotMood.Asleep)
                                 Text(
                                     text = stringResource(R.string.chat_initializing_model),
                                     style = MaterialTheme.typography.bodyLarge
@@ -372,12 +412,34 @@ fun ChatScreen(
                                 flingBehavior = rememberOverscrollFlingBehavior { listState },
                                 reverseLayout = false
                             ) {
+                                // The empty chat's owl, above the welcome. It isn't a chat row, so it
+                                // fades as it goes (the first request starting) instead of swapping.
+                                if (showsHero(messages, uiState.isLoading)) {
+                                    item(key = HERO_KEY) {
+                                        val motion = MaterialTheme.motionScheme
+                                        ChatHero(
+                                            happy = savedBeat,
+                                            typedLength = inputText.length,
+                                            modifier = Modifier.animateItem(
+                                                fadeInSpec = motion.fastEffectsSpec(),
+                                                placementSpec = motion.defaultSpatialSpec(),
+                                                fadeOutSpec = motion.fastEffectsSpec()
+                                            )
+                                        )
+                                    }
+                                }
+
                                 // Rows only slide (placement), never fade: every row swaps in place —
                                 // the streamed reply for its saved message, the card for its "Added"
                                 // line — and a fading row would draw over or under its replacement.
                                 // On device a fade-in on the card also stuck at alpha 0, hiding it.
                                 items(messages, key = { it.id }) { message ->
-                                    ChatMessageItem(message = message, modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null))
+                                    ChatMessageItem(
+                                        message = message,
+                                        modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null),
+                                        topic = uiState.replyTopic?.takeIf { it.messageId == message.id },
+                                        celebrating = savedBeat
+                                    )
                                 }
 
                                 // A transaction the model proposed — the user confirms it (#170)
@@ -421,7 +483,9 @@ fun ChatScreen(
                                                     timestamp = System.currentTimeMillis()
                                                 ),
                                                 modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null),
-                                                isStreaming = true
+                                                isStreaming = true,
+                                                // The saved reply takes this place with its mascot: no reflow, no jump.
+                                                reserveMascot = true
                                             )
                                         } else {
                                             // One status line per request, picked when the wait starts,
@@ -689,8 +753,41 @@ fun DeveloperInfoCard(
 }
 
 // Keys for the list's non-message rows; message rows key on their saved id.
+private const val HERO_KEY = "chat-hero"
 private const val PENDING_KEY = "chat-pending-card"
 private const val REPLY_KEY = "chat-reply"
+
+/** How long the model screen's owl is seen asleep before it wakes for LOADING. */
+private const val WAKE_DELAY_MS = 400L
+
+/**
+ * The hero shows on an empty chat: once the welcome has loaded (so history still loading
+ * doesn't flash it), while nothing the user asked is in it and no request is running.
+ */
+internal fun showsHero(messages: List<com.pennywiseai.tracker.data.database.entity.ChatMessage>, isLoading: Boolean): Boolean =
+    !isLoading && messages.isNotEmpty() && messages.none { it.isUser }
+
+/**
+ * The empty chat's owl: a tap pokes it, a drag has it look around, and while the user
+ * types it watches the input below. Decorative: TalkBack skips it.
+ */
+@Composable
+private fun ChatHero(happy: Boolean, typedLength: Int, modifier: Modifier = Modifier) {
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(vertical = Spacing.lg),
+        contentAlignment = Alignment.Center
+    ) {
+        Mascot(
+            size = Dimensions.Icon.extraLarge,
+            mood = if (happy) MascotMood.Happy else MascotMood.Calm,
+            look = if (typedLength > 0) typingGaze(typedLength) else null,
+            interactive = true,
+            alive = true
+        )
+    }
+}
 
 private val THINKING_LINES = listOf(
     R.string.chat_thinking_reading,
@@ -716,35 +813,13 @@ fun TypingIndicator(
             )
         ) {
             Row(
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.smd),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // Three pulsing dots; with animations removed they hold still — no loop at all.
-                if (rememberAnimationsEnabled()) {
-                    val infiniteTransition = rememberInfiniteTransition(label = "typing")
-                    for (i in 0..2) {
-                        val alpha by infiniteTransition.animateFloat(
-                            initialValue = 0.3f,
-                            targetValue = 1f,
-                            animationSpec = infiniteRepeatable(
-                                animation = keyframes {
-                                    durationMillis = 1200
-                                    0.3f at 0
-                                    1f at 400
-                                    0.3f at 800
-                                },
-                                repeatMode = RepeatMode.Restart,
-                                initialStartOffset = StartOffset(i * 200)
-                            ),
-                            label = "dot_alpha_$i"
-                        )
-                        TypingDot(alpha)
-                    }
-                } else {
-                    repeat(3) { TypingDot(alpha = 1f) }
-                }
+                // The owl thinks while the reply is on its way; with animations removed it
+                // holds a still thinking pose.
+                Mascot(size = Dimensions.Icon.large, mood = MascotMood.Thinking)
                 if (status != null) {
-                    Spacer(modifier = Modifier.width(Spacing.xs))
                     Text(
                         text = status,
                         style = MaterialTheme.typography.bodySmall,
@@ -756,23 +831,19 @@ fun TypingIndicator(
     }
 }
 
-@Composable
-private fun TypingDot(alpha: Float) {
-    Box(
-        modifier = Modifier
-            .size(8.dp)
-            .background(
-                color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = alpha),
-                shape = RoundedCornerShape(50)
-            )
-    )
-}
-
+/**
+ * One chat message. The latest assistant reply has a [topic]: its mascot stands at the
+ * reply's start, with "Saved" by the time for a confirmed Add. [reserveMascot] keeps that
+ * space for a reply still on its way, so the saved one lands without moving.
+ */
 @Composable
 fun ChatMessageItem(
     message: com.pennywiseai.tracker.data.database.entity.ChatMessage,
     modifier: Modifier = Modifier,
-    isStreaming: Boolean = false
+    isStreaming: Boolean = false,
+    topic: ReplyTopic? = null,
+    reserveMascot: Boolean = false,
+    celebrating: Boolean = false
 ) {
     val timeFormat = remember { SimpleDateFormat("h:mm a", Locale.getDefault()) }
 
@@ -780,6 +851,7 @@ fun ChatMessageItem(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = if (message.isUser) Arrangement.End else Arrangement.Start
     ) {
+        if (!message.isUser) ReplyMascotSlot(visible = reserveMascot || topic != null, topic = topic, celebrating = celebrating)
         PennyWiseCardV2(
             modifier = Modifier
                 .widthIn(max = 280.dp)
@@ -823,8 +895,67 @@ fun ChatMessageItem(
                     else
                         MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
                 )
+                if (topic?.saved == true) SavedBadge()
             }
         }
+    }
+}
+
+/**
+ * The space at a reply's start for its mascot. It closes toward the start when the reply
+ * stops being the latest (a new request), so the bubble slides back instead of jumping.
+ */
+@Composable
+private fun ReplyMascotSlot(visible: Boolean, topic: ReplyTopic?, celebrating: Boolean) {
+    // The mascot leaves with the slot, not before it.
+    var shown by remember { mutableStateOf(topic) }
+    if (topic != null && topic != shown) shown = topic
+    val motion = MaterialTheme.motionScheme
+    AnimatedVisibility(
+        visible = visible,
+        enter = expandHorizontally(motion.fastSpatialSpec(), expandFrom = Alignment.Start) + fadeIn(motion.fastEffectsSpec()),
+        exit = shrinkHorizontally(motion.fastSpatialSpec(), shrinkTowards = Alignment.Start) + fadeOut(motion.fastEffectsSpec())
+    ) {
+        Row {
+            Box(modifier = Modifier.size(Dimensions.Icon.large)) {
+                shown?.let { ReplyMascot(it, celebrating) }
+            }
+            Spacer(modifier = Modifier.width(Spacing.sm))
+        }
+    }
+}
+
+/**
+ * The reply's mascot fades in as the reply lands. It starts calm, so a happy reply's
+ * mood arrives as a change and its hop plays; outside the beat after a save it is calm.
+ */
+@Composable
+private fun ReplyMascot(topic: ReplyTopic, celebrating: Boolean) {
+    val target = if (topic.mood == MascotMood.Happy && !celebrating) MascotMood.Calm else topic.mood
+    var mood by remember { mutableStateOf(MascotMood.Calm) }
+    LaunchedEffect(target) { mood = target }
+    val appear = remember { MutableTransitionState(false) }.apply { targetState = true }
+    AnimatedVisibility(visibleState = appear, enter = pwFadeIn()) {
+        Mascot(size = Dimensions.Icon.large, shape = topic.shape, mood = mood, value = topic.value)
+    }
+}
+
+/** "Saved" by a confirmed Add's time. Silent to TalkBack: the reply's own text says the same. */
+@Composable
+private fun SavedBadge() {
+    val text = stringResource(R.string.chat_badge_saved)
+    val appear = remember { MutableTransitionState(false) }.apply { targetState = true }
+    AnimatedVisibility(visibleState = appear, enter = pwFadeIn()) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.inverseOnSurface,
+            maxLines = 1,
+            modifier = Modifier
+                .clearAndSetSemantics {}
+                .background(MaterialTheme.colorScheme.inverseSurface, CircleShape)
+                .padding(horizontal = Spacing.sm, vertical = Spacing.xxs)
+        )
     }
 }
 

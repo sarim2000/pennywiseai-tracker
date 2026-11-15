@@ -156,6 +156,10 @@ data object Webhooks : NavKey
 @Serializable
 data object AiAccess : NavKey
 
+/** Developer mode's mascot playground. It opens inside the tab, under the bottom bar. */
+@Serializable
+data object MascotPlayground : NavKey
+
 @Serializable
 data object BackgroundAccess : NavKey
 

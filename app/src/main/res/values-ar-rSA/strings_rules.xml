@@ -19,7 +19,6 @@
         <item quantity="other">بياناتك محمية بقفل تلقائي بعد %1$d دقيقة</item>
     </plurals>
     <string name="applock_auth_failed">فشلت المصادقة. حاول مرة أخرى.</string>
-
     <!-- Biometric capability errors (also shown in Settings) -->
     <string name="biometric_error_no_hardware">لا يحتوي هذا الجهاز على مستشعر للمقاييس الحيوية</string>
     <string name="biometric_error_hw_unavailable">مستشعر المقاييس الحيوية غير متاح حاليًا</string>
@@ -163,7 +162,6 @@
     <string name="import_statement_balance_statement">حسب الكشف</string>
     <string name="import_statement_balance_app">حسب PennyWise</string>
     <string name="import_statement_balance_difference">الفرق</string>
-    <string name="import_statement_balance_unknown">—</string>
     <string name="import_statement_balance_unknown_note">لا يملك PennyWise رصيدًا لهذا الحساب في %1$s أو قبله، لذا لا يوجد ما يُقارن به بعد.</string>
     <string name="import_statement_balance_match">الأرصدة متطابقة.</string>
     <string name="import_statement_balance_set">تعيين الرصيد إلى %1$s</string>
@@ -198,7 +196,6 @@
     <string name="upgrade_manage_subscription">إدارة الاشتراك</string>
     <string name="upgrade_error_play_unavailable">تعذّر الوصول إلى متجر Play. حاول مرة أخرى لاحقًا.</string>
     <string name="upgrade_cancel">إلغاء</string>
-
     <!-- License key dialog -->
     <string name="upgrade_license_dialog_title">تفعيل مفتاح الترخيص</string>
     <string name="upgrade_license_dialog_body">الصق المفتاح من رسالة الشراء في بريدك الإلكتروني. يتفعّل Pro على هذا الجهاز فورًا.</string>
@@ -313,7 +310,6 @@
     <string name="chat_thinking_crunching">أحسب الأرقام…</string>
     <string name="chat_thinking_one_moment">لحظة واحدة…</string>
     <!-- Example prompts: tapping one sends it to the on-device model as the user's message. -->
-
     <!-- Chat confirm card for an AI-proposed action -->
     <string name="chat_action_add_income">إضافة دخل؟</string>
     <string name="chat_action_add_expense">إضافة مصروف؟</string>
@@ -325,7 +321,6 @@
     <string name="chat_action_update">تحديث</string>
     <string name="chat_action_change_merchant">التاجر الجديد: %1$s</string>
     <string name="chat_action_change_category">الفئة الجديدة: %1$s</string>
-    <string name="chat_action_add_detail_dated">%1$s · %2$s · %3$s</string>
     <string name="chat_account_none">نقدي / يدوي</string>
     <string name="chat_account_ambiguous">بلا حساب (حدّد أيّها بآخر 4 أرقام)</string>
     <string name="chat_action_check_amount">تحقق من المبلغ: لم أجد هذا الرقم في رسالتك. حدّدها لإضافتها.</string>
@@ -346,7 +341,6 @@
         <item quantity="many">إضافة %1$d</item>
         <item quantity="other">إضافة %1$d</item>
     </plurals>
-
     <!-- Chat replies written by the app, not the model. %1$s in chat_line_* is a formatted amount -->
     <string name="chat_line_expense">%1$s لدى %2$s</string>
     <string name="chat_line_income">%1$s من %2$s</string>
@@ -387,7 +381,6 @@
     <string name="chat_done_deleted">تم حذف %1$s.</string>
     <string name="chat_done_updated">تم تعديل %1$s.</string>
     <string name="chat_welcome">مرحبًا! أنا PennyWise AI.\n\nأخبرني بما صرفته وسأضيفه بعد تأكيدك، مثل \"قهوة 120 في Starbucks\" أو \"استلمت راتب 50000\". واسأل \"كم صرفت على البقالة هذا الشهر؟\" لتعرف الإجمالي.\n\nهذا الشهر حتى الآن: صرفت %2$s، وعدد المعاملات %1$d.\nلا يُحفظ شيء دون ضغطة منك.</string>
-
     <!-- Chat errors -->
     <string name="chat_error_apply_failed">تعذّر تطبيق ذلك: %1$s</string>
     <string name="chat_error_message_too_long">هذه الرسالة طويلة جدًا على الذكاء الاصطناعي. جرّب رسالة أقصر.</string>
@@ -444,7 +437,6 @@
     <string name="rules_delete_title">حذف القاعدة</string>
     <string name="rules_delete_body">حذف \"%1$s\"؟ لا يمكن التراجع عن هذا الإجراء.</string>
     <string name="rules_delete">حذف</string>
-
     <!-- Rule sharing (export / import) results -->
     <string name="rules_export_nothing">ليس لديك أي قواعد مخصصة للتصدير حتى الآن.</string>
     <plurals name="rules_exported">
@@ -489,7 +481,6 @@
         <item quantity="other">%1$d أخرى تحتاج إلى Pro، فقد بلغت الحد المجاني البالغ %2$d.</item>
     </plurals>
     <string name="rules_import_failed">فشل الاستيراد.</string>
-
     <!-- Apply rule to past transactions -->
     <string name="rules_batch_applying">جارٍ تطبيق القاعدة...</string>
     <string name="rules_batch_previewing">جارٍ المعاينة...</string>
@@ -564,7 +555,6 @@
     <string name="rules_block_confirm_body">يمنع الحظر حفظ المعاملة المطابقة، لذا لن تُنفَّذ إجراءات هذه القاعدة الأخرى. هل تريد إزالة الإجراءات الأخرى والإبقاء على الحظر فقط؟</string>
     <string name="rules_block_confirm_action">حظر وإزالة</string>
     <string name="rules_block_explainer">سيتم حظر المعاملات التي تطابق هذه القاعدة ولن تُحفظ</string>
-
     <!-- Rule fields (pickers) -->
     <string name="rules_field_label">الحقل</string>
     <string name="rules_field_amount">المبلغ</string>
@@ -585,7 +575,6 @@
     <string name="rules_field_transfer_from_account">التحويل من حساب</string>
     <string name="rules_field_transfer_to_account">التحويل إلى حساب</string>
     <string name="rules_transfer_account_hint">ينطبق على التحويلات فقط. لإنشاء تحويل، اضبط أيضًا نوع المعاملة على تحويل في هذه القاعدة.</string>
-
     <!-- Rule operators (condition chips) -->
     <string name="rules_op_before">قبل</string>
     <string name="rules_op_after">بعد</string>
@@ -598,7 +587,6 @@
     <string name="rules_op_equals">يساوي</string>
     <string name="rules_op_starts_with">يبدأ بـ</string>
     <string name="rules_op_contains">يحتوي على</string>
-
     <!-- Transaction type labels (stored value stays the enum name) -->
     <string name="rules_type_income">دخل</string>
     <string name="rules_type_expense">مصروف</string>
@@ -606,7 +594,6 @@
     <string name="rules_type_transfer">تحويل</string>
     <string name="rules_type_investment">استثمار</string>
     <string name="rules_select_transaction_type">حدد نوع المعاملة:</string>
-
     <!-- Day-of-week chips (stored value is 1–7, Monday first) -->
     <string name="rules_day_mon">الاثنين</string>
     <string name="rules_day_tue">الثلاثاء</string>
@@ -615,7 +602,6 @@
     <string name="rules_day_fri">الجمعة</string>
     <string name="rules_day_sat">السبت</string>
     <string name="rules_day_sun">الأحد</string>
-
     <!-- Condition value inputs -->
     <string name="rules_day_of_month_label">اليوم (1-31)</string>
     <string name="rules_day_of_month_placeholder">مثلاً: 1</string>
@@ -638,7 +624,6 @@
     <string name="rules_value_placeholder_category">مثال: طعام ومطاعم</string>
     <string name="rules_value_placeholder_bank">مثال: بنك HDFC</string>
     <string name="rules_value_placeholder_generic">أدخل القيمة</string>
-
     <!-- Action editor -->
     <string name="rules_action_type_label">نوع الإجراء</string>
     <string name="rules_action_type_block">حظر المعاملة</string>
@@ -654,7 +639,6 @@
     <string name="rules_description_value_placeholder">مثال: دفعة الاشتراك الشهري</string>
     <string name="rules_account_bank_label">الحساب / اسم البنك</string>
     <string name="rules_tag_name_label">اسم العلامة</string>
-
     <!-- Rule preview sentence: "When <conditions>, <actions>" -->
     <string name="rules_preview_title">معاينة القاعدة</string>
     <string name="rules_preview_sentence">الشروط: %1$s؛ الإجراءات: %2$s</string>

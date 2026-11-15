@@ -32,6 +32,8 @@ import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.repository.mappingFits
 import com.pennywiseai.tracker.domain.loan.LoanCurrencyRules
+import com.pennywiseai.tracker.domain.loan.LoanOverflow
+import com.pennywiseai.tracker.domain.loan.LoanOverflowPrompt
 import com.pennywiseai.tracker.domain.model.effectiveProfileId
 import com.pennywiseai.tracker.domain.model.rule.ActionType
 import com.pennywiseai.tracker.domain.model.rule.ConditionOperator
@@ -1330,6 +1332,41 @@ class TransactionDetailViewModel @Inject constructor(
     val recentPersonNames: StateFlow<List<String>> = loanRepository.getRecentPersonNames()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    private val _loanOverflowPrompt = MutableStateFlow<LoanOverflowPrompt?>(null)
+
+    /** Set while a repayment that overshoots its loan waits for the user to say what the extra is. */
+    val loanOverflowPrompt: StateFlow<LoanOverflowPrompt?> = _loanOverflowPrompt.asStateFlow()
+
+    private data class PendingRepayment(val loanId: Long, val transactionId: Long, val contribution: BigDecimal, val note: String?)
+
+    private var pendingOverflowRepayment: PendingRepayment? = null
+
+    /** Records the waiting repayment with the user's answer for its extra. */
+    fun resolveLoanOverflow(overflow: LoanOverflow) {
+        val pending = pendingOverflowRepayment ?: return
+        pendingOverflowRepayment = null
+        _loanOverflowPrompt.value = null
+        viewModelScope.launch {
+            try {
+                recordRepaymentOn(pending.loanId, pending.transactionId, pending.contribution, pending.note, overflow)
+            } catch (e: Exception) {
+                _errorMessage.value = UiText.Res(R.string.txn_detail_error_create_loan, listOf(e.message.toString()))
+            }
+        }
+    }
+
+    /** Drops the waiting repayment: nothing is recorded. */
+    fun dismissLoanOverflow() {
+        pendingOverflowRepayment = null
+        _loanOverflowPrompt.value = null
+    }
+
+    private suspend fun recordRepaymentOn(loanId: Long, transactionId: Long, contribution: BigDecimal, note: String?, overflow: LoanOverflow) {
+        loanRepository.recordRepayment(loanId, transactionId, contribution, note, overflow)
+        _transaction.value = transactionRepository.getTransactionById(transactionId)
+        _loan.value = loanRepository.getLoanById(loanId)
+    }
+
     fun showMarkAsLoanSheet() { _showMarkAsLoanSheet.value = true }
     fun hideMarkAsLoanSheet() { _showMarkAsLoanSheet.value = false }
 
@@ -1368,11 +1405,16 @@ class TransactionDetailViewModel @Inject constructor(
                 if (oppositeLoan != null) {
                     // Record as repayment on the opposite loan, threading the
                     // user-chosen partial amount so only that portion counts
-                    // toward the loan's remaining balance.
-                    loanRepository.recordRepayment(oppositeLoan.id, txn.id, contribution, note)
-                    _transaction.value = transactionRepository.getTransactionById(txn.id)
-                    _loan.value = loanRepository.getLoanById(oppositeLoan.id)
+                    // toward the loan's remaining balance. Paying more than is
+                    // owed first asks what the extra is.
+                    val extra = loanRepository.flippableOverflow(oppositeLoan.id, txn.id, contribution)
                     _showMarkAsLoanSheet.value = false
+                    if (extra != null) {
+                        pendingOverflowRepayment = PendingRepayment(oppositeLoan.id, txn.id, contribution, note)
+                        _loanOverflowPrompt.value = LoanOverflowPrompt(oppositeLoan.personName, oppositeLoan.direction, extra, oppositeLoan.currency)
+                        return@launch
+                    }
+                    recordRepaymentOn(oppositeLoan.id, txn.id, contribution, note, LoanOverflow.COUNT_AS_OWN)
                     return@launch
                 }
 
@@ -1402,12 +1444,33 @@ class TransactionDetailViewModel @Inject constructor(
         }
     }
 
-    fun unlinkLoan() {
+    private val _unlinkReversal = MutableStateFlow<BigDecimal?>(null)
+
+    /**
+     * What would be owed the other way once this row comes off its loan, e.g.
+     * the advance's debt again after unmarking the bill that turned it around.
+     * Null when unmarking leaves nothing running the other way.
+     */
+    val unlinkReversal: StateFlow<BigDecimal?> = _unlinkReversal.asStateFlow()
+
+    /** Loads [unlinkReversal] for the unmark confirmation. */
+    fun loadUnlinkReversal() {
         val txn = _transaction.value ?: return
         val loanId = txn.loanId ?: return
+        _unlinkReversal.value = null
+        viewModelScope.launch {
+            _unlinkReversal.value = loanRepository.unlinkReversal(txn.id, loanId)
+        }
+    }
+
+    /** Unmarks the loan; [keepReversal] keeps [unlinkReversal] as a loan the other way. */
+    fun unlinkLoan(keepReversal: Boolean = false) {
+        val txn = _transaction.value ?: return
+        val loanId = txn.loanId ?: return
+        _unlinkReversal.value = null
         viewModelScope.launch {
             try {
-                loanRepository.unlinkTransaction(txn.id, loanId)
+                loanRepository.unlinkTransaction(txn.id, loanId, keepReversal)
                 _transaction.value = transactionRepository.getTransactionById(txn.id)
                 _loan.value = null
             } catch (e: Exception) {

@@ -1,13 +1,15 @@
 package com.pennywiseai.tracker.domain.usecase
 
+import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
-import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.withTransaction
-import com.pennywiseai.tracker.data.database.PennyWiseDatabase
+import com.pennywiseai.tracker.data.events.TransactionEvents
+import com.pennywiseai.tracker.data.events.TransactionOrigin
 import com.pennywiseai.tracker.data.model.TransactionDraft
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
@@ -22,9 +24,45 @@ class AddTransactionUseCase @Inject constructor(
     private val database: PennyWiseDatabase,
     private val subscriptionRepository: SubscriptionRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
-    private val tagRepository: TagRepository
+    private val tagRepository: TagRepository,
+    private val transactionEvents: TransactionEvents
 ) {
     suspend fun execute(
+        amount: BigDecimal,
+        merchant: String,
+        category: String,
+        type: TransactionType,
+        date: LocalDateTime,
+        notes: String? = null,
+        reference: String? = null,
+        tags: List<String> = emptyList(),
+        isRecurring: Boolean = false,
+        bankName: String? = null,
+        accountLast4: String? = null,
+        currency: String = "INR",
+        receiptPath: String? = null,
+        budgetCategory: String? = null,
+        budgetImpactType: BudgetImpactType? = null
+    ): Long = insert(
+        amount = amount,
+        merchant = merchant,
+        category = category,
+        type = type,
+        date = date,
+        notes = notes,
+        reference = reference,
+        tags = tags,
+        isRecurring = isRecurring,
+        bankName = bankName,
+        accountLast4 = accountLast4,
+        currency = currency,
+        receiptPath = receiptPath,
+        budgetCategory = budgetCategory,
+        budgetImpactType = budgetImpactType
+    ).also { if (it != -1L) transactionEvents.onSaved(type, TransactionOrigin.MANUAL) }
+
+    /** [execute] without the announcement, for [executeAll], whose caller announces the card once it commits. */
+    private suspend fun insert(
         amount: BigDecimal,
         merchant: String,
         category: String,
@@ -47,7 +85,7 @@ class AddTransactionUseCase @Inject constructor(
             merchant = merchant,
             date = date
         )
-        
+
         // Create the transaction entity
         val transaction = TransactionEntity(
             amount = amount,
@@ -126,7 +164,7 @@ class AddTransactionUseCase @Inject constructor(
     suspend fun executeAll(drafts: List<TransactionDraft>) = database.withTransaction {
         val time = LocalTime.now()
         drafts.forEachIndexed { index, draft ->
-            val id = execute(
+            val id = insert(
                 amount = draft.amount,
                 merchant = draft.merchant,
                 category = draft.category,
@@ -148,7 +186,7 @@ class AddTransactionUseCase @Inject constructor(
      * balance move in [AccountBalanceRepository.insertTransferWithBalance] — and
      * links any tags. Cross-currency transfers are rejected upstream in the
      * ViewModel (we never sum across currencies); this path assumes both legs
-     * share [currency].
+     * share [currency]. Returns the new row's id, or -1 if an identical transfer exists.
      */
     suspend fun executeTransfer(
         amount: BigDecimal,
@@ -161,7 +199,7 @@ class AddTransactionUseCase @Inject constructor(
         fromLast4: String,
         toBankName: String,
         toLast4: String
-    ) {
+    ): Long {
         // Unique hash incorporating both legs — with bank names, not just last4 —
         // so two distinct transfers (e.g. Kotak ••9999 vs HDFC ••9999 to the same
         // destination for the same amount at the same second) never collide on the
@@ -199,7 +237,7 @@ class AddTransactionUseCase @Inject constructor(
         // Insert + both-leg balance move + tag-linking as one atomic unit.
         // Room's withTransaction is reentrant, so the repository's own
         // withTransaction and setTagsForTransaction join this outer one.
-        database.withTransaction {
+        val transactionId = database.withTransaction {
             val transactionId = accountBalanceRepository.insertTransferWithBalance(
                 transaction = transaction,
                 fromBankName = fromBankName,
@@ -211,7 +249,10 @@ class AddTransactionUseCase @Inject constructor(
             if (transactionId != -1L && tags.isNotEmpty()) {
                 tagRepository.setTagsForTransaction(transactionId, tags)
             }
+            transactionId
         }
+        if (transactionId != -1L) transactionEvents.onSaved(TransactionType.TRANSFER, TransactionOrigin.MANUAL)
+        return transactionId
     }
 
     private fun generateManualTransactionHash(
@@ -221,7 +262,7 @@ class AddTransactionUseCase @Inject constructor(
     ): String {
         // Create a unique hash for manual transactions
         // Format: MANUAL_<amount>_<merchant>_<datetime>
-        val data = "MANUAL_${amount}_${merchant}_${date}"
+        val data = "MANUAL_${amount}_${merchant}_$date"
 
         return MessageDigest.getInstance("MD5")
             .digest(data.toByteArray())
@@ -237,7 +278,7 @@ class AddTransactionUseCase @Inject constructor(
         date: LocalDateTime
     ): String {
         // Format: TRANSFER_<amount>_<fromBank>_<from>_<toBank>_<to>_<datetime>
-        val data = "TRANSFER_${amount}_${fromBankName}_${fromLast4}_${toBankName}_${toLast4}_${date}"
+        val data = "TRANSFER_${amount}_${fromBankName}_${fromLast4}_${toBankName}_${toLast4}_$date"
 
         return MessageDigest.getInstance("MD5")
             .digest(data.toByteArray())

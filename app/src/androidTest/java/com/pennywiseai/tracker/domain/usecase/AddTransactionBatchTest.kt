@@ -4,8 +4,10 @@ import androidx.room3.Room
 import androidx.room3.useWriterConnection
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.pennywiseai.tracker.core.AppForegroundState
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.events.TransactionEvents
 import com.pennywiseai.tracker.data.model.TransactionDraft
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
@@ -35,7 +37,8 @@ class AddTransactionBatchTest {
             db.accountBalanceDao(), db.transactionDao(), db,
             UserPreferencesRepository(InstrumentationRegistry.getInstrumentation().targetContext) {}
         ),
-        TagRepository(db, db.tagDao())
+        TagRepository(db, db.tagDao()),
+        TransactionEvents(AppForegroundState { false })
     )
     private val day = LocalDate.of(2026, 1, 15)
 

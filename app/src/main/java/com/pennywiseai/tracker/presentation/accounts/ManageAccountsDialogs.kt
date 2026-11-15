@@ -227,11 +227,13 @@ internal fun UpdateCreditCardDialog(
                                     text = "$utilization%",
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.Medium,
+                                    // Drawn on secondaryContainer, not a neutral surface, so the
+                                    // status colour is made readable on that fill.
                                     color = when {
                                         utilization > 70 -> MaterialTheme.colorScheme.error
                                         utilization > 30 -> MaterialTheme.colorScheme.warning
                                         else -> MaterialTheme.colorScheme.primary
-                                    }
+                                    }.readableOn(listOf(MaterialTheme.colorScheme.secondaryContainer))
                                 )
                             }
                         }

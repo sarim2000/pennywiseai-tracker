@@ -14,9 +14,14 @@ FAILED=0
 
 # Stand-in for `gh run list`: prints $FAKE_CI (default: a passing run) the way
 # release.sh's --jq formats it, or fails like an API error when it's "error".
+# Any other call, e.g. one that drops the push/commit filters, fails, so every
+# passing case also checks the query.
 mkdir -p "$TMP/bin"
 cat > "$TMP/bin/gh" <<'GH'
 #!/bin/bash
+want="run list -R * --workflow test.yml --event push --commit $(git rev-parse HEAD) --json status,conclusion --jq *"
+# shellcheck disable=SC2053  # $want is a glob pattern on purpose
+[[ "$*" == $want ]] || { echo "unexpected gh call: $*" >&2; exit 1; }
 [ "${FAKE_CI-}" = error ] && { echo "HTTP 502" >&2; exit 1; }
 printf '%s\n' "${FAKE_CI-completed success}"
 GH

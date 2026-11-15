@@ -3,26 +3,14 @@ name: Performance Report
 # Report-only: nothing here blocks a merge. Emulator timings are too noisy to gate on;
 # the gate (scripts/perf-report.sh --gate) runs on a calibrated physical device instead.
 # See docs/performance.md.
+#
+# Not on PRs: APK Size prints absolute sizes with no baseline to compare against, so
+# a weekly trend (or a manual run on a branch) says as much for far fewer runner minutes.
 
 on:
-  pull_request:
-    branches: [ main ]
-    paths:
-    - 'app/**'
-    - 'core/**'
-    - 'feature/**'
-    - 'shared/**'
-    - 'parser-core/**'
-    - 'baselineprofile/**'
-    - 'build-logic/**'
-    - 'gradle/libs.versions.toml'
-    - '*.gradle.kts'
-    - 'compose_compiler_config.conf'
-    - 'scripts/perf_report.py'
-    - '.github/workflows/perf-report.yml'
   workflow_dispatch:
   schedule:
-  - cron: '0 3 * * 1' # Mondays: emulator benchmarks
+  - cron: '0 3 * * 1' # Mondays
 
 permissions:
   contents: read
@@ -72,7 +60,6 @@ jobs:
 
   emulator-benchmarks:
     name: Emulator Benchmarks
-    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 60
     continue-on-error: true

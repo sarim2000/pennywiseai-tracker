@@ -70,7 +70,9 @@ for arg in "$@"; do
 done
 
 # 0. Refuse the wrong tree: the script commits to the current branch, tags it
-# and pushes main, so it must run on a clean main that matches origin/main.
+# and pushes main, so it must run on a clean main that matches origin/main,
+# and the Tests workflow must have passed on that commit: main isn't
+# branch-protected, so a PR can merge with red or unfinished CI.
 # Untracked files don't count — the release commit only adds files it writes.
 # A dry run reports the same problems as warnings and carries on.
 # Tested by scripts/test-release-guard.sh (CI: Tests / Release Guard Test).
@@ -86,6 +88,18 @@ elif ! git fetch --quiet origin main; then
     GUARD_PROBLEMS+=("Could not fetch origin/main to check that HEAD is current")
 elif [ "$(git rev-parse HEAD)" != "$(git rev-parse --verify FETCH_HEAD)" ]; then
     GUARD_PROBLEMS+=("HEAD is not origin/main (pull, or push your commits through a PR first)")
+else
+    HEAD_SHA=$(git rev-parse HEAD)
+    # owner/repo from an ssh or https remote URL.
+    ORIGIN_REPO=$(git remote get-url origin | sed -E 's#\.git$##; s#^.*[:/]([^/]+/[^/]+)$#\1#')
+    if ! command -v gh >/dev/null 2>&1; then
+        GUARD_PROBLEMS+=("gh CLI not found; it's needed to check CI on $HEAD_SHA")
+    elif ! CI_RESULT=$(gh run list -R "$ORIGIN_REPO" --workflow test.yml --event push --commit "$HEAD_SHA" \
+                         --json status,conclusion --jq '.[0] // empty | "\(.status) \(.conclusion)"' 2>&1); then
+        GUARD_PROBLEMS+=("Could not read CI for $HEAD_SHA: $CI_RESULT")
+    elif [ "$CI_RESULT" != "completed success" ]; then
+        GUARD_PROBLEMS+=("Tests on $HEAD_SHA: ${CI_RESULT:-no run found}, not 'completed success' (wait, or fix main first)")
+    fi
 fi
 for problem in "${GUARD_PROBLEMS[@]}"; do
     if [ "$DRY_RUN" = "true" ]; then echo -e "${YELLOW}⚠️  $problem${NC}"; else echo -e "${RED}❌ $problem${NC}"; fi

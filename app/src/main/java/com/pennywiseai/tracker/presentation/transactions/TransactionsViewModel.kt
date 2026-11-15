@@ -408,8 +408,6 @@ class TransactionsViewModel @Inject constructor(
             }
 
             val (expense, income) = if (a.transactionType == TransactionType.EXPENSE) a to b else b to a
-            val fromAcct = expense.accountNumber
-            val toAcct = income.accountNumber
 
             // Snapshot for Undo: type + the two account fields per row.
             data class Snapshot(val type: TransactionType, val fromAccount: String?, val toAccount: String?,
@@ -418,30 +416,7 @@ class TransactionsViewModel @Inject constructor(
                 it.id to Snapshot(it.transactionType, it.fromAccount, it.toAccount, it.fromBankName, it.toBankName, it.transferPairId)
             }
 
-            val now = java.time.LocalDateTime.now()
-            val pairId = java.util.UUID.randomUUID().toString()
-            transactionRepository.updateTransaction(
-                a.copy(
-                    transactionType = TransactionType.TRANSFER,
-                    fromAccount = fromAcct,
-                    toAccount = toAcct,
-                    fromBankName = expense.bankName,
-                    toBankName = income.bankName,
-                    transferPairId = pairId,
-                    updatedAt = now
-                )
-            )
-            transactionRepository.updateTransaction(
-                b.copy(
-                    transactionType = TransactionType.TRANSFER,
-                    fromAccount = fromAcct,
-                    toAccount = toAcct,
-                    fromBankName = expense.bankName,
-                    toBankName = income.bankName,
-                    transferPairId = pairId,
-                    updatedAt = now
-                )
-            )
+            transactionRepository.markAsTransferPair(expense, income)
             refreshWidgets()
             _bulkSnack.value = BulkSnack(
                 message = UiText.Res(R.string.txn_list_bulk_marked_transfer),
@@ -1507,7 +1482,8 @@ internal fun computeSelfTransferPairs(
     val incomesByKey = HashMap<Pair<String, BigDecimal>, MutableList<TransactionEntity>>()
     for (tx in txns) {
         if (tx.transactionType == TransactionType.INCOME) {
-            incomesByKey.getOrPut(tx.currency to tx.amount) { mutableListOf() }.add(tx)
+            // Scale-free key: one bank sends 100.00, another 100.000 (3-decimal currencies).
+            incomesByKey.getOrPut(tx.currency to tx.amount.stripTrailingZeros()) { mutableListOf() }.add(tx)
         }
     }
     if (incomesByKey.isEmpty()) return emptyMap()
@@ -1516,7 +1492,7 @@ internal fun computeSelfTransferPairs(
     val claimedIncome = HashSet<Long>()
     for (expense in txns) {
         if (expense.transactionType != TransactionType.EXPENSE) continue
-        val candidates = incomesByKey[expense.currency to expense.amount] ?: continue
+        val candidates = incomesByKey[expense.currency to expense.amount.stripTrailingZeros()] ?: continue
         // Closest in time within the window, not on the same known account, not
         // already claimed by another expense.
         val expenseAcct = acctOf(expense)

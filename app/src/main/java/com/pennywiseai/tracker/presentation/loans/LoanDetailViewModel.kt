@@ -59,7 +59,10 @@ class LoanDetailViewModel @Inject constructor(
         }
         viewModelScope.launch {
             loanRepository.getTransactionsForLoan(loanId).collect { txns ->
-                _uiState.value = _uiState.value.copy(linkedTransactions = txns)
+                // Re-read the loan too: unlinking a row elsewhere (e.g. undoing a turn-around
+                // from the transaction screen) can change its direction and balance.
+                val loan = loanRepository.getLoanById(loanId)
+                _uiState.value = _uiState.value.copy(linkedTransactions = txns, loan = loan ?: _uiState.value.loan)
             }
         }
     }

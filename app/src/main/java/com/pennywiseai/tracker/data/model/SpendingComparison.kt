@@ -78,7 +78,9 @@ object SpendingComparison {
 
     /**
      * Which way spending went: 1 when it rose in every currency, -1 when it fell in every one,
-     * 0 when it held, went both ways, or there is nothing to compare.
+     * 0 when it held, went both ways, or there is nothing to compare. It reads the rounded
+     * [Row.changePercent] the reply prints, so a change that rounds to 0% (shown as "no change")
+     * keeps the mascot's eyes level instead of contradicting the text.
      */
     fun direction(result: Result): Int =
         (result as? Result.Rows)?.rows?.map { it.changePercent?.signum() ?: if (it.current.signum() > 0) 1 else 0 }

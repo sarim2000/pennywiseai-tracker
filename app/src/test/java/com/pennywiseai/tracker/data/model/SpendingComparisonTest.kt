@@ -331,6 +331,9 @@ class SpendingComparisonTest {
         assertEquals(-1, dir(row("80", "100", "-20"), row("5", "10", "-50")))
         assertEquals(0, dir(row("120", "100", "20"), row("5", "10", "-50")))
         assertEquals(0, dir(row("100", "100", "0")))
+        // A change that rounds to 0% reads "no change" in the reply, so the eyes stay level too.
+        val tiny = SpendingComparison.compare(windows, listOf(tx("100.40")), listOf(tx("100")))
+        assertEquals(0, SpendingComparison.direction(tiny))
         // Nothing before and something now: it rose.
         assertEquals(1, dir(row("40", "0", null)))
         assertEquals(0, dir())

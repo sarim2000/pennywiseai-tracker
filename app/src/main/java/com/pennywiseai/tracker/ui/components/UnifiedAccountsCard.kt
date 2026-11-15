@@ -1,8 +1,5 @@
 package com.pennywiseai.tracker.ui.components
 
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -14,9 +11,12 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.*
@@ -34,7 +34,7 @@ fun UnifiedAccountsCard(
     modifier: Modifier = Modifier
 ) {
     var showAllAccounts by remember { mutableStateOf(false) }
-    
+
     PennyWiseCardV2(
         modifier = modifier.fillMaxWidth()
     ) {
@@ -46,9 +46,9 @@ fun UnifiedAccountsCard(
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface
             )
-            
+
             Spacer(modifier = Modifier.height(Spacing.md))
-            
+
             // Summary Row
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -82,7 +82,7 @@ fun UnifiedAccountsCard(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                
+
                 // Divider
                 Box(
                     modifier = Modifier
@@ -90,7 +90,7 @@ fun UnifiedAccountsCard(
                         .height(60.dp)
                         .background(MaterialTheme.colorScheme.surfaceVariant)
                 )
-                
+
                 // Credit Cards Summary
                 Column(
                     modifier = Modifier.weight(1f),
@@ -120,11 +120,11 @@ fun UnifiedAccountsCard(
                     )
                 }
             }
-            
+
             // Show accounts detail if expanded or if there are few accounts
             val totalAccounts = creditCards.size + bankAccounts.size
             val shouldShowDetails = showAllAccounts || totalAccounts <= 4
-            
+
             if (totalAccounts > 0) {
                 Spacer(modifier = Modifier.height(Spacing.sm))
                 HorizontalDivider(
@@ -132,7 +132,7 @@ fun UnifiedAccountsCard(
                     color = MaterialTheme.colorScheme.surfaceVariant
                 )
                 Spacer(modifier = Modifier.height(Spacing.sm))
-                
+
                 if (shouldShowDetails) {
                     // Show Bank Accounts first (to match the icon order)
                     if (bankAccounts.isNotEmpty()) {
@@ -147,7 +147,7 @@ fun UnifiedAccountsCard(
                             )
                         }
                     }
-                    
+
                     // Add separator between bank accounts and credit cards if both exist
                     if (bankAccounts.isNotEmpty() && creditCards.isNotEmpty()) {
                         Spacer(modifier = Modifier.height(Spacing.xs))
@@ -157,7 +157,7 @@ fun UnifiedAccountsCard(
                             modifier = Modifier.padding(vertical = Spacing.xs)
                         )
                     }
-                    
+
                     // Show Credit Cards second (to match the icon order)
                     if (creditCards.isNotEmpty()) {
                         creditCards.forEachIndexed { index, card ->
@@ -179,7 +179,7 @@ fun UnifiedAccountsCard(
                                     } else 0
                                     when {
                                         utilization > 80 -> MaterialTheme.colorScheme.error
-                                        utilization > 50 -> MaterialTheme.colorScheme.tertiary
+                                        utilization > 50 -> MaterialTheme.colorScheme.warning
                                         else -> MaterialTheme.colorScheme.onSurfaceVariant
                                     }
                                 } else MaterialTheme.colorScheme.onSurfaceVariant
@@ -187,7 +187,7 @@ fun UnifiedAccountsCard(
                         }
                     }
                 }
-                
+
                 // Toggle button if there are many accounts
                 if (totalAccounts > 4) {
                     TextButton(

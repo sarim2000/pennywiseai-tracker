@@ -72,7 +72,8 @@ internal fun TransactionReceipt(
     onUnmarkLoanClick: () -> Unit,
     accountProfileId: Long? = null,
     towardGoals: @Composable () -> Unit = {},
-    splitWith: @Composable () -> Unit = {}
+    splitWith: @Composable () -> Unit = {},
+    whatWasThis: @Composable () -> Unit = {}
 ) {
     val typeColor = when (transaction.transactionType) {
         TransactionType.INCOME -> MaterialTheme.colorScheme.income
@@ -242,30 +243,6 @@ internal fun TransactionReceipt(
                         }
                     }
                     LoanPartLine(transaction)
-                } else if (transaction.lentSharesTotal == null) {
-                    // A split bill (#346) is already on Loans, one share per person.
-                    SuggestionChip(
-                        onClick = { viewModel.showMarkAsLoanSheet() },
-                        label = {
-                            Text(
-                                text = stringResource(R.string.txn_detail_mark_as_loan),
-                                style = MaterialTheme.typography.labelMedium
-                            )
-                        },
-                        icon = {
-                            Icon(
-                                Icons.Default.SwapHoriz,
-                                contentDescription = null,
-                                modifier = Modifier.size(Dimensions.Icon.small)
-                            )
-                        },
-                        colors = SuggestionChipDefaults.suggestionChipColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                            labelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                            iconContentColor = MaterialTheme.colorScheme.onSurfaceVariant
-                        ),
-                        border = null as androidx.compose.foundation.BorderStroke?
-                    )
                 }
 
                 Spacer(modifier = Modifier.height(Spacing.sm))
@@ -294,6 +271,8 @@ internal fun TransactionReceipt(
                 }
             }
         }
+
+        whatWasThis()
 
         // ── Exclude from analytics (#451) ── placed above the detail rows so its
         // Switch never sits under the bottom-right floating action buttons.

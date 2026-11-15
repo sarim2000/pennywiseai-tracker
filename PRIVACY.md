@@ -1,6 +1,6 @@
 # Privacy Policy
 
-**Last Updated: October 2026**
+**Last Updated: November 2026**
 
 ## Our Commitment to Privacy
 
@@ -51,15 +51,22 @@ PennyWise AI is built with privacy as the core principle. We believe your financ
 - PennyWise ships this permission for one opt-in feature: contact lookup, which can resolve a UPI VPA like `merchant@ybl` into a name from your address book so merchant lists read naturally
 - The lookup runs on-device and the feature stays dormant until you enable it in Settings
 
+### Microphone (`RECORD_AUDIO`, asked on your first mic tap)
+- Used only while you dictate a chat message. The words fill the message box; nothing is sent until you tap Send
+- PennyWise never records or stores audio. Speech is turned into text by your phone's own speech recognition service
+- By default that service runs **on your phone**. Languages it can recognize offline can be downloaded from the voice language menu (the download comes from your phone's speech service, not from PennyWise)
+- A phone language that can't be recognized offline (for example Arabic on Google's recognizer today) is offered as **online** voice, marked with a cloud. Picking one asks first and names the service. Once you agree, voice in any such online language goes to that service over the internet; languages recognized on your phone stay offline. Switching your phone's default speech service asks again
+
 ### Internet Permission
 - **Model Download**: One-time download of the ~1.5GB Qwen 2.5 model from a public Cloudflare R2 bucket, verified against a SHA-256 checksum before use
 - **Exchange Rates**: Multi-currency features fetch current rates from open.er-api.com; only the currency code is sent
 - **Parse Reports**: The "report a parsing problem" action opens pennywise.zynth.dev with the SMS text and sender ID pre-filled. The link also carries an encrypted device identifier — your Android device ID plus a timestamp, RSA-encrypted on-device before it leaves. Opening the page sends these details to the server right away to generate a parsed preview; submitting the report itself remains a separate user action
 - **AI Access (optional, off by default)**: Only while you have started an AI session, answers to a connected AI app's questions travel from your phone through PennyWise's relay (see "Connected AI Apps" below)
+- **Online voice (optional)**: Only for voice languages marked online, and only after you agreed for that speech service, your speech goes to your phone's default speech service (see Microphone above). PennyWise itself receives nothing
 - **App Updates**: Google Play Store variant uses Play Services for app updates (F-Droid variant does not)
 - **After Model Download**: AI works completely offline, no internet required for core features
 
-No location, camera, or microphone permission is requested.
+No location or camera permission is requested.
 
 ## Third-Party Services
 

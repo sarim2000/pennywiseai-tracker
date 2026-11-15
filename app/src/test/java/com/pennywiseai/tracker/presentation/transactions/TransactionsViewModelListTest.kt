@@ -27,19 +27,19 @@ import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
-import kotlinx.coroutines.cancelAndJoin
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.job
-import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.test.TestScope
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
-import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -85,6 +85,10 @@ class TransactionsViewModelListTest {
     )
 
     private lateinit var viewModel: TransactionsViewModel
+
+    // Main and the ViewModel's background work share this one thread and virtual clock, so
+    // the test decides when work runs and the debounce and every wait use virtual time.
+    private val dispatcher = UnconfinedTestDispatcher()
 
     // Rows wait until the test has set every filter.
     private val filtersSet = MutableStateFlow(false)
@@ -137,28 +141,27 @@ class TransactionsViewModelListTest {
         val groups = mockk<TransactionGroupRepository> { every { getAllGroups() } returns flowOf(emptyList()) }
         viewModel = TransactionsViewModel(
             transactions, categoryRepo, tags, aliasRepo, prefs, conversions, accounts, cards, ignored,
-            profiles, groups, mockk(relaxed = true), mockk(relaxed = true), SavedStateHandle(), mockk<Context>(relaxed = true),
+            profiles, groups, mockk(relaxed = true), mockk(relaxed = true), SavedStateHandle(), mockk<Context>(relaxed = true), dispatcher,
         )
         viewModel.selectPeriod(TimePeriod.ALL)
     }
 
     @Before
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
+        Dispatchers.setMain(dispatcher)
     }
 
     @After
-    fun tearDown() = runBlocking {
-        // Work on Dispatchers.Default resumes on Main: it has to finish before resetMain, or they race.
-        viewModel.viewModelScope.coroutineContext.job.cancelAndJoin()
+    fun tearDown() {
+        viewModel.viewModelScope.cancel()
         Dispatchers.resetMain()
     }
 
-    // A trigger can still be queued when the gate opens, so an older list may publish first; the
-    // pipeline corrects itself, so wait for the expected list and report the last one on timeout.
-    private suspend fun assertListed(expected: List<Long>) {
+    // Idle means every trigger has been handled, so the list shown is the final one.
+    private fun TestScope.assertListed(expected: List<Long>) {
         filtersSet.value = true
-        withTimeoutOrNull(10_000) { viewModel.uiState.first { state -> !state.isLoading && state.transactions.map { it.id } == expected } }
+        advanceUntilIdle()
+        assertTrue(!viewModel.uiState.value.isLoading)
         assertEquals(expected, viewModel.uiState.value.transactions.map { it.id })
     }
 
@@ -166,7 +169,7 @@ class TransactionsViewModelListTest {
         assertEquals("$actual", 0, BigDecimal(expected).compareTo(actual))
 
     @Test
-    fun `every filter narrows the same list`() = runBlocking {
+    fun `every filter narrows the same list`() = runTest(dispatcher) {
         val raw = "SYNTHETIC RAW 01"
         start(
             rows = listOf(
@@ -185,7 +188,6 @@ class TransactionsViewModelListTest {
         )
         tagsById.value = (1L..9L).filter { it != 3L }.associateWith { listOf("Work Trip") }
 
-        // The debounced query only re-triggers later, so another filter must be set after it.
         viewModel.updateSearchQuery("morning")
         viewModel.setTagFilter("work trip")
         viewModel.setTransactionTypeFilter(TransactionTypeFilter.EXPENSE)
@@ -197,7 +199,7 @@ class TransactionsViewModelListTest {
 
     // Apart from the list above: a row the account filter keeps can't also be on an ignored account.
     @Test
-    fun `an ignored account's rows stay out`() = runBlocking {
+    fun `an ignored account's rows stay out`() = runTest(dispatcher) {
         start(rows = listOf(row(1), row(2, last4 = "0000")), ignoredKeys = setOf("Test Bank_0000"))
         viewModel.setSortOption(SortOption.DATE_OLDEST)
 
@@ -205,7 +207,7 @@ class TransactionsViewModelListTest {
     }
 
     @Test
-    fun `tags arriving later re-filter the list`() = runBlocking {
+    fun `tags arriving later re-filter the list`() = runTest(dispatcher) {
         start(rows = listOf(row(1), row(2)))
         viewModel.updateSearchQuery("trip")
         viewModel.setSortOption(SortOption.DATE_OLDEST) // re-triggers with the query
@@ -218,7 +220,7 @@ class TransactionsViewModelListTest {
     }
 
     @Test
-    fun `a category found only in a split filters the list and stays available`() = runBlocking {
+    fun `a category found only in a split filters the list and stays available`() = runTest(dispatcher) {
         val living = CategoryEntity(id = 10, name = "Living", color = "#000000")
         val rent = CategoryEntity(id = 11, name = "Rent", color = "#000000", parentId = 10)
         start(
@@ -235,7 +237,7 @@ class TransactionsViewModelListTest {
     }
 
     @Test
-    fun `sort, date groups and totals follow the listed rows`() = runBlocking {
+    fun `sort, date groups and totals follow the listed rows`() = runTest(dispatcher) {
         start(
             rows = listOf(
                 row(1, amount = "10"),
@@ -256,7 +258,7 @@ class TransactionsViewModelListTest {
     }
 
     @Test
-    fun `unified totals convert each currency into the display currency`() = runBlocking {
+    fun `unified totals convert each currency into the display currency`() = runTest(dispatcher) {
         val conversions = mockk<CurrencyConversionService> {
             // The one pair this list needs: a swapped from/to would convert nothing and fail below.
             coEvery { convertAmountOrNull(any(), any(), any(), any()) } answers {

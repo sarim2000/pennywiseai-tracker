@@ -2,4 +2,16 @@
 <resources>
     <!-- ══ Home subscriptions card: next due charge ══ -->
     <!-- %1$s is the merchant, %2$s is when it is due (one of the strings below). -->
+    <string name="home_subscriptions_next_due">التالي: %1$s · %2$s</string>
+    <string name="home_subscriptions_due_today">اليوم</string>
+    <string name="home_subscriptions_due_tomorrow">غدًا</string>
+    <string name="home_subscriptions_due_overdue">متأخر</string>
+    <plurals name="home_subscriptions_due_in_days">
+        <item quantity="zero">اليوم</item>
+        <item quantity="one">بعد %1$d يوم</item>
+        <item quantity="two">بعد يومين</item>
+        <item quantity="few">بعد %1$d أيام</item>
+        <item quantity="many">بعد %1$d يومًا</item>
+        <item quantity="other">بعد %1$d يوم</item>
+    </plurals>
 </resources>

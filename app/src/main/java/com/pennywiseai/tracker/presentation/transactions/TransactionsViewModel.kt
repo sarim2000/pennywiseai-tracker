@@ -37,7 +37,6 @@ import com.pennywiseai.tracker.utils.CurrencyUtils
 import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
 import com.pennywiseai.tracker.utils.dateQueryWindow
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
@@ -65,7 +64,9 @@ class TransactionsViewModel @Inject constructor(
     private val deleteTransactionUseCase: DeleteTransactionUseCase,
     private val restoreTransactionUseCase: RestoreTransactionUseCase,
     private val savedStateHandle: androidx.lifecycle.SavedStateHandle,
-    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
+    // Where the list is filtered, sorted and converted off the main thread.
+    @com.pennywiseai.tracker.core.DefaultDispatcher private val defaultDispatcher: kotlinx.coroutines.CoroutineDispatcher
 ) : ViewModel() {
 
     // Keep home-screen widgets in sync with edits made here (delete/undo,
@@ -349,7 +350,7 @@ class TransactionsViewModel @Inject constructor(
     // the originals.
     val suggestedTransferPartnerOf: StateFlow<Map<Long, Long>> = _uiState
         .map { state -> computeSelfTransferPairs(state.transactions) }
-        .flowOn(Dispatchers.Default)
+        .flowOn(defaultDispatcher)
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -757,7 +758,7 @@ class TransactionsViewModel @Inject constructor(
                                 filterableCategories(transactions, allSplits, parentOf)
                             }
                     }
-                    .flowOn(Dispatchers.Default)
+                    .flowOn(defaultDispatcher)
                     .collect { emit(it) }
             }
             .onEach { categories ->
@@ -879,7 +880,7 @@ class TransactionsViewModel @Inject constructor(
                             splitShares = splitShares
                         )
                     }
-                    .flowOn(Dispatchers.Default)
+                    .flowOn(defaultDispatcher)
                     .collect { emit(it) }
             }
             .onEach { computed ->
@@ -904,7 +905,7 @@ class TransactionsViewModel @Inject constructor(
                     // rows and grouped totals shouldn't. The map only means anything in the
                     // currency it was built for, so a switch meanwhile discards it.
                     val displayCurrency = _selectedCurrency.value
-                    val converted = withContext(Dispatchers.Default) {
+                    val converted = withContext(defaultDispatcher) {
                         convertedAmountsFor(computed.transactions, displayCurrency, computed.splitShares)
                     }
                     if (_selectedCurrency.value == displayCurrency) {

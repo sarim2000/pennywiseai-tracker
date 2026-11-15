@@ -470,4 +470,14 @@
     <string name="tag_input_add">Add tag</string>
     <string name="tag_input_create">Create \"%1$s\"</string>
 
+    <string name="what_was_this_title">What was this?</string>
+    <string name="what_was_this_subtitle">Lent, split, saved, or moved between your accounts</string>
+    <string name="what_was_this_loan">Lent to or borrowed from someone</string>
+    <string name="what_was_this_loan_hint">Track who owes whom</string>
+    <string name="what_was_this_split">Split with people</string>
+    <string name="what_was_this_split_hint">Only your share counts as spending</string>
+    <string name="what_was_this_saving">Saving or investment</string>
+    <string name="what_was_this_saving_hint">Gold, a fund, a deposit. Not spending</string>
+    <string name="what_was_this_transfer">Between my accounts</string>
+    <string name="what_was_this_transfer_hint">Not spending or income</string>
 </resources>

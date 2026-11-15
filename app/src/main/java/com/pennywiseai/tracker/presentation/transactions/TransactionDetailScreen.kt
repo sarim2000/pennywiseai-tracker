@@ -118,6 +118,7 @@ fun TransactionDetailScreen(
     val goals by goalsViewModel.goals.collectAsStateWithLifecycle()
     val addToGoal by goalsViewModel.sheet.collectAsStateWithLifecycle()
     var showAddToGoal by rememberSaveable { mutableStateOf(false) }
+    var showWhatWasThis by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(transaction) { goalsViewModel.setTransaction(transaction) }
     // Split a bill (#346): reload after a save so lent_shares_total is fresh.
     LaunchedEffect(transaction) { splitViewModel.setTransaction(transaction) }
@@ -362,6 +363,11 @@ fun TransactionDetailScreen(
                 towardGoals = {
                     TowardGoalsSection(linkedGoals, onOpenGoal = onNavigateToGoal, onRemove = goalsViewModel::remove)
                 },
+                whatWasThis = {
+                    if (transaction?.let { whatWasThisOptions(it, loan != null) }?.isNotEmpty() == true) {
+                        WhatWasThisRow(onClick = { showWhatWasThis = true })
+                    }
+                },
                 splitWith = {
                     transaction?.let { SplitSection(splitViewModel, it, onOpenLoan = onNavigateToLoanDetail) }
                 },
@@ -371,6 +377,32 @@ fun TransactionDetailScreen(
     }
 
     transaction?.let { SplitBillSheet(splitViewModel, it) }
+
+    if (showWhatWasThis) {
+        transaction?.let { txn ->
+            WhatWasThisSheet(
+                options = whatWasThisOptions(txn, loan != null),
+                onDismiss = { showWhatWasThis = false },
+                onPick = { option ->
+                    showWhatWasThis = false
+                    when (option) {
+                        WhatWasThis.LOAN -> viewModel.showMarkAsLoanSheet()
+                        WhatWasThis.SPLIT -> splitViewModel.openSheet()
+                        // Open the editor with the type set, so the existing save path
+                        // handles accounts and balances; the user reviews and saves.
+                        WhatWasThis.SAVING -> {
+                            viewModel.enterEditMode()
+                            viewModel.updateTransactionType(TransactionType.INVESTMENT)
+                        }
+                        WhatWasThis.OWN_TRANSFER -> {
+                            viewModel.enterEditMode()
+                            viewModel.updateTransactionType(TransactionType.TRANSFER)
+                        }
+                    }
+                }
+            )
+        }
+    }
 
     if (showAddToGoal) {
         transaction?.let { txn ->
@@ -576,6 +608,7 @@ private fun TransactionDetailContent(
     hazeState: HazeState,
     towardGoals: @Composable () -> Unit,
     splitWith: @Composable () -> Unit,
+    whatWasThis: @Composable () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -628,7 +661,8 @@ private fun TransactionDetailContent(
                 onUnmarkLoanClick = onUnmarkLoanClick,
                 accountProfileId = accountProfileId,
                 towardGoals = towardGoals,
-                splitWith = splitWith
+                splitWith = splitWith,
+                whatWasThis = whatWasThis
             )
         }
     }

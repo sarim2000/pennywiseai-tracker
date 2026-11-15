@@ -464,4 +464,8 @@
     <string name="what_was_this_saving_hint">Gold, a fund, a deposit. Not spending</string>
     <string name="what_was_this_transfer">Between my accounts</string>
     <string name="what_was_this_transfer_hint">Not spending or income</string>
+    <string name="own_transfer_partner_title">Is this the other side?</string>
+    <string name="own_transfer_partner_message">%1$s · %2$s · %3$s. Count both as one move between your accounts?</string>
+    <string name="own_transfer_partner_confirm">Yes, pair them</string>
+    <string name="own_transfer_partner_decline">No, pick accounts</string>
 </resources>

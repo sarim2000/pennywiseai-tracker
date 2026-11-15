@@ -1143,13 +1143,13 @@ class TransactionDetailViewModel @Inject constructor(
      * other way, on another account, within the hour) the two are paired, so the money
      * isn't counted twice. Otherwise the editor opens as a transfer with this row's leg
      * filled in, for the user to pick the other account and save.
-     * ponytail: the first matching leg wins; equal back-to-back transfers could pair crosswise.
+     * The match is shown for the user to confirm before both rows change.
      */
     fun answerOwnTransfer() {
         val txn = _transaction.value ?: return
         viewModelScope.launch {
             try {
-                pairOrEditAsTransfer(txn)
+                findOwnTransferPartner(txn)
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {
@@ -1158,7 +1158,12 @@ class TransactionDetailViewModel @Inject constructor(
         }
     }
 
-    private suspend fun pairOrEditAsTransfer(txn: TransactionEntity) {
+    /** The other leg found for "Between my accounts", waiting for the user to confirm it. */
+    private val _proposedTransferPartner = MutableStateFlow<TransactionEntity?>(null)
+    val proposedTransferPartner: StateFlow<TransactionEntity?> = _proposedTransferPartner.asStateFlow()
+
+    // A same-amount row nearby may be unrelated income, so it's shown before both rows change.
+    private suspend fun findOwnTransferPartner(txn: TransactionEntity) {
         val window = java.time.Duration.ofMinutes(60)
         val partner = ownTransferPartner(
             txn,
@@ -1166,11 +1171,40 @@ class TransactionDetailViewModel @Inject constructor(
             com.pennywiseai.tracker.domain.model.buildProfileAccountKeys(accountBalanceRepository.getAllLatestBalancesOnce()),
             transactionRepository.observeSplitsForActiveTransactions().first().mapTo(HashSet()) { it.transactionId }
         )
-        if (partner == null) {
-            enterEditMode()
-            updateTransactionType(TransactionType.TRANSFER)
-            return
+        if (partner == null) editAsTransfer() else _proposedTransferPartner.value = partner
+    }
+
+    private fun editAsTransfer() {
+        enterEditMode()
+        updateTransactionType(TransactionType.TRANSFER)
+    }
+
+    /** No: it isn't the other leg. Open the editor to pick the accounts instead. */
+    fun declineTransferPartner() {
+        _proposedTransferPartner.value = null
+        editAsTransfer()
+    }
+
+    fun dismissTransferPartner() {
+        _proposedTransferPartner.value = null
+    }
+
+    fun confirmTransferPartner() {
+        val txn = _transaction.value ?: return
+        val partner = _proposedTransferPartner.value ?: return
+        _proposedTransferPartner.value = null
+        viewModelScope.launch {
+            try {
+                pairAsTransfer(txn, partner)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _errorMessage.value = UiText.Res(R.string.txn_detail_error_save, listOf(e.message.toString()))
+            }
         }
+    }
+
+    private suspend fun pairAsTransfer(txn: TransactionEntity, partner: TransactionEntity) {
         val (expense, income) = if (txn.transactionType == TransactionType.EXPENSE) txn to partner else partner to txn
         transactionRepository.markAsTransferPair(expense, income)
         loadTransaction(txn.id)
@@ -1507,5 +1541,23 @@ internal fun ownTransferPartner(
         txn.effectiveProfileId(profileAccountKeys),
         profileAccountKeys
     )
-    return computeSelfTransferPairs(candidates)[txn.id]?.let { id -> candidates.firstOrNull { it.id == id } }
+    // Matched against this row directly: in a list-wide pairing another equal expense
+    // could claim this row's credit first, leaving the real leg unoffered.
+    val wanted = when (txn.transactionType) {
+        TransactionType.EXPENSE -> TransactionType.INCOME
+        TransactionType.INCOME -> TransactionType.EXPENSE
+        else -> return null
+    }
+    val acct = txn.accountNumber?.takeIf { it.isNotBlank() }?.let { "${txn.bankName.orEmpty()}|$it" }
+    return candidates
+        .filter { it.id != txn.id && it.transactionType == wanted && it.transferPairId == null }
+        .filter { it.currency == txn.currency && it.amount.compareTo(txn.amount) == 0 }
+        .filter { other ->
+            val otherAcct = other.accountNumber?.takeIf { it.isNotBlank() }?.let { "${other.bankName.orEmpty()}|$it" }
+            acct == null || otherAcct == null || acct != otherAcct
+        }
+        .map { it to kotlin.math.abs(java.time.Duration.between(txn.dateTime, it.dateTime).toMinutes()) }
+        .filter { (_, minutes) -> minutes <= 60 }
+        .minByOrNull { (_, minutes) -> minutes }
+        ?.first
 }

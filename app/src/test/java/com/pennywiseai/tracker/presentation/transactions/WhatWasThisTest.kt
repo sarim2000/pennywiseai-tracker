@@ -80,6 +80,14 @@ class WhatWasThisTest {
     }
 
     @Test
+    fun `a later equal expense doesn't take this row's credit`() {
+        val out = txn(TransactionType.EXPENSE).copy(id = 1)
+        val into = txn(TransactionType.INCOME).copy(id = 2, accountNumber = "2222", dateTime = out.dateTime.plusMinutes(1))
+        val laterOut = txn(TransactionType.EXPENSE).copy(id = 3, dateTime = out.dateTime.plusMinutes(30))
+        assertEquals(into, ownTransferPartner(out, listOf(laterOut, into, out), emptyMap()))
+    }
+
+    @Test
     fun `the other leg must be on the same profile`() {
         val out = txn(TransactionType.EXPENSE).copy(id = 1)
         val into = txn(TransactionType.INCOME).copy(id = 2, accountNumber = "2222", dateTime = out.dateTime.plusMinutes(5))

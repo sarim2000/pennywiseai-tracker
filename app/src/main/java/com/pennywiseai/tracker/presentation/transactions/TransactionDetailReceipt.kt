@@ -34,6 +34,7 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
+import com.pennywiseai.tracker.domain.loan.LoanMath
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -198,9 +199,18 @@ internal fun TransactionReceipt(
                         SuggestionChip(
                             onClick = { onNavigateToLoanDetail(loan.id) },
                             label = {
+                                // This row's own role on the loan: a repayment isn't "Borrowed from".
+                                val principal = LoanMath.isPrincipal(loan.direction, transaction.transactionType)
                                 Text(
-                                    text = if (loan.direction == LoanDirection.LENT)
-                                        stringResource(R.string.txn_detail_loan_lent_to, loan.personName) else stringResource(R.string.txn_detail_loan_borrowed_from, loan.personName),
+                                    text = stringResource(
+                                        when {
+                                            loan.direction == LoanDirection.LENT && principal -> R.string.txn_detail_loan_lent_to
+                                            loan.direction == LoanDirection.LENT -> R.string.txn_detail_loan_repaid_by
+                                            principal -> R.string.txn_detail_loan_borrowed_from
+                                            else -> R.string.txn_detail_loan_repaid_to
+                                        },
+                                        loan.personName
+                                    ),
                                     style = MaterialTheme.typography.labelMedium,
                                     fontWeight = FontWeight.SemiBold
                                 )
@@ -231,6 +241,7 @@ internal fun TransactionReceipt(
                             )
                         }
                     }
+                    LoanPartLine(transaction)
                 } else if (transaction.lentSharesTotal == null) {
                     // A split bill (#346) is already on Loans, one share per person.
                     SuggestionChip(
@@ -753,4 +764,32 @@ private fun ExpandableSmsSection(smsBody: String) {
             }
         }
     }
+}
+
+/**
+ * How a loan-linked row divides: the part on the loan and the part that counts
+ * as your own spend or income (#831), e.g. "₹1,000 on the loan · ₹500 your spending".
+ */
+@Composable
+private fun LoanPartLine(transaction: TransactionEntity) {
+    val loanPart = (transaction.loanContribution ?: transaction.amount).min(transaction.amount)
+    val ownPart = transaction.amount - loanPart
+    val onLoan = stringResource(R.string.txn_detail_loan_part, CurrencyFormatter.formatCurrency(loanPart, transaction.currency))
+    val text = if (ownPart.signum() > 0) {
+        val own = CurrencyFormatter.formatCurrency(ownPart, transaction.currency)
+        val ownText = if (transaction.transactionType == TransactionType.INCOME) {
+            stringResource(R.string.txn_detail_loan_own_income, own)
+        } else {
+            stringResource(R.string.txn_detail_loan_own_spend, own)
+        }
+        "$onLoan · $ownText"
+    } else {
+        onLoan
+    }
+    Text(
+        text = text,
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        textAlign = TextAlign.Center
+    )
 }

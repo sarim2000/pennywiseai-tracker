@@ -3,6 +3,10 @@ name: Crowdin Sync
 # Keeps app-string and Play Store metadata translations in sync with the English source.
 #  - When English strings or store copy change on main, push the new sources to Crowdin.
 #  - On a weekly schedule (and on demand), pull completed translations back as a PR.
+# The translations PR is opened by github-actions[bot], so its CI runs sit at
+# "action required" until a maintainer approves them, and end as failed if left
+# unapproved (#1284). Approve, or re-run, them before merging: broken escaping or
+# format args in a translation only show up there.
 on:
   push:
     branches: [main]

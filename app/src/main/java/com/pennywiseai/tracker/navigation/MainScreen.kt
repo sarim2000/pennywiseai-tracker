@@ -44,9 +44,11 @@ import com.pennywiseai.tracker.data.preferences.NavBarStyle
 import com.pennywiseai.tracker.presentation.accounts.AddAccountScreen
 import com.pennywiseai.tracker.presentation.accounts.ManageAccountsScreen
 import com.pennywiseai.tracker.presentation.accounts.ManageAccountsViewModel
+import com.pennywiseai.tracker.presentation.chat.ChatTabViewModel
 import com.pennywiseai.tracker.presentation.home.HomeScreen
 import com.pennywiseai.tracker.presentation.settings.AppearanceScreen
 import com.pennywiseai.tracker.presentation.settings.FAQScreen
+import com.pennywiseai.tracker.presentation.settings.MascotPlaygroundScreen
 import com.pennywiseai.tracker.presentation.settings.SettingsScreen
 import com.pennywiseai.tracker.presentation.settings.SettingsSectionScreen
 import com.pennywiseai.tracker.presentation.statement.ImportStatementScreen
@@ -61,6 +63,7 @@ import com.pennywiseai.tracker.ui.components.LocalNavDock
 import com.pennywiseai.tracker.ui.components.NavDockState
 import com.pennywiseai.tracker.ui.components.SpotlightTutorial
 import com.pennywiseai.tracker.ui.components.WhatsNewDialog
+import com.pennywiseai.tracker.ui.components.mascot.rememberChatTabReaction
 import com.pennywiseai.tracker.ui.viewmodel.MainViewModel
 import com.pennywiseai.tracker.ui.viewmodel.SpotlightViewModel
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
@@ -128,6 +131,7 @@ fun MainScreen(
     val themeViewModel = themeViewModel ?: hiltViewModel()
     val spotlightViewModel = spotlightViewModel ?: hiltViewModel()
     val mainViewModel = mainViewModel ?: hiltViewModel()
+    val chatTabViewModel: ChatTabViewModel = hiltViewModel()
     // Root-level screens (details, editors) open above the tabs.
     val openRoot: (NavKey) -> Unit = { rootBackStack?.navigate(it) }
 
@@ -426,6 +430,10 @@ fun MainScreen(
             )
         }
 
+        entry<MascotPlayground> { key ->
+            MascotPlaygroundScreen(onNavigateBack = { backFrom(tab, key) })
+        }
+
         entry<Appearance> { key ->
             AppearanceScreen(
                 onNavigateBack = {
@@ -558,14 +566,22 @@ fun MainScreen(
             val lastTabRoute = remember { arrayOf(baseRoute) }
             if (onTabScreen) lastTabRoute[0] = baseRoute
             if (!themeState.isLoading) {
+                // The ViewModel hears saves even while a pushed screen (Add) covers the
+                // tabs, so one made there is still showing when the bar comes back. A
+                // hidden Chat tab shows nothing and doesn't follow the scan.
+                val chatReaction = if (BottomNavItem.Chat.route !in hiddenTabs) {
+                    rememberChatTabReaction(chatTabViewModel.reactions, chatTabViewModel.scan)
+                } else null
                 PennyWiseBottomNavigation(
                     selectedRoute = lastTabRoute[0],
                     onTabSelected = ::onTabClick,
                     navBarStyle = themeState.navBarStyle,
                     // Step aside while typing (Transactions search, Chat) rather
                     // than sit under the keyboard with the docked action.
-                    visible = onTabScreen && !WindowInsets.isImeVisible && !hideNavBar.value,
+                    // The mascot playground keeps it up too: its reactions play on the real tab.
+                    visible = (onTabScreen || topKey == MascotPlayground) && !WindowInsets.isImeVisible && !hideNavBar.value,
                     hiddenTabs = hiddenTabs,
+                    chatReaction = chatReaction,
                     blurEffects = themeState.blurEffectsEnabled,
                     hazeState = hazeState,
                     dock = dockForTabs,

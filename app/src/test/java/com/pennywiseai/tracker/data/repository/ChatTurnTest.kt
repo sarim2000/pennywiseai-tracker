@@ -170,6 +170,35 @@ class ChatTurnTest {
     }
 
     @Test
+    fun `the latest reply is known by its id, with the tool it answered and its figure`() = runTest {
+        val w = SpendingComparison.Window(LocalDateTime.of(2026, 10, 1, 0, 0), LocalDateTime.of(2026, 10, 9, 0, 0))
+        coEvery { aiContext.compareSpending(any(), any(), any()) } returns
+            SpendingComparison.Result.Rows(w, w, listOf(SpendingComparison.Row("INR", BigDecimal("80"), BigDecimal("100"), BigDecimal("-20"))))
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month")))
+        send("compare with last month")
+        val compared = repository.lastReply.value!!
+        assertEquals(saved.last().id, compared.messageId)
+        assertEquals(PennyWiseTools.COMPARE_SPENDING, compared.tool)
+        assertEquals(-1, compared.trend)
+
+        events = listOf(LlmEvent.Text("Hello!"))
+        send("hi")
+        assertEquals(saved.last().id, repository.lastReply.value!!.messageId)
+        assertEquals(null, repository.lastReply.value!!.tool)
+
+        events = listOf(add(120.0))
+        send("coffee 120")
+        assertEquals(PennyWiseTools.ADD_TRANSACTIONS, repository.lastReply.value!!.tool)
+        repository.completePendingAction("Added ₹120 at shop (Food).")
+        val added = repository.lastReply.value!!
+        assertEquals(saved.last().id, added.messageId)
+        assertTrue(added.saved)
+
+        repository.deleteAllMessages()
+        assertEquals(null, repository.lastReply.value)
+    }
+
+    @Test
     fun `the model hears a confirmed card once, without it being shown or saved`() = runTest {
         events = listOf(add(120.0))
         send("coffee 120")

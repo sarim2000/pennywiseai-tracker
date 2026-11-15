@@ -271,6 +271,18 @@
     <string name="loan_detail_settle_message">Mark this loan as settled? Any remaining balance will be forgiven.</string>
     <string name="loan_detail_expected_return_title">Expected Return</string>
     <string name="loan_detail_expected_return_label">Amount expected back</string>
+    <!-- A repayment larger than what's left on the loan. %1$s = formatted extra amount -->
+    <string name="loan_overflow_title">%1$s more than owed</string>
+    <!-- %1$s = person name, %2$s = formatted extra amount -->
+    <string name="loan_overflow_message_paid">This payment covers what you owed %1$s, plus %2$s more. What is the extra?</string>
+    <!-- %1$s = person name, %2$s = formatted extra amount -->
+    <string name="loan_overflow_message_received">This payment covers what %1$s owed you, plus %2$s more. What is the extra?</string>
+    <string name="loan_overflow_own_spend">My own spending</string>
+    <string name="loan_overflow_own_income">My income</string>
+    <!-- %1$s = person name -->
+    <string name="loan_overflow_they_owe">%1$s owes me</string>
+    <!-- %1$s = person name -->
+    <string name="loan_overflow_i_owe">I owe %1$s</string>
     <string name="loan_detail_delete_title">Delete Loan</string>
     <string name="loan_detail_delete_message">Delete this loan? Linked transactions will be unlinked but not deleted.</string>
     <string name="loan_detail_original_chip">Original</string>

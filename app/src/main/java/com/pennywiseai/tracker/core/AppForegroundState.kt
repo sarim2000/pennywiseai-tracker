@@ -1,5 +1,8 @@
 package com.pennywiseai.tracker.core
 
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.emptyFlow
+
 /**
  * Whether one of the app's activities is started right now. `data` checks it to
  * hold back a notification the user would rather not get while in the app,
@@ -10,4 +13,7 @@ package com.pennywiseai.tracker.core
  */
 fun interface AppForegroundState {
     fun isInForeground(): Boolean
+
+    /** Emits each time the user leaves the app (a rotation isn't leaving). Never, unless bound to the app. */
+    val backgrounded: Flow<Unit> get() = emptyFlow()
 }

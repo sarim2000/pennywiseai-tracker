@@ -1,7 +1,44 @@
 package com.pennywiseai.tracker.presentation.transactions
 
 import android.animation.ValueAnimator
+import android.content.Intent
+import android.net.Uri
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.CallSplit
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.FolderOpen
+import androidx.compose.material.icons.outlined.Savings
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.Dialog
+import androidx.compose.ui.window.DialogProperties
+import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import coil3.compose.AsyncImage
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.database.entity.LoanDirection
+import com.pennywiseai.tracker.data.database.entity.LoanEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.domain.loan.LoanOverflow
 import com.pennywiseai.tracker.presentation.goals.AddToGoalSheet
 import com.pennywiseai.tracker.presentation.goals.TowardGoalsSection
 import com.pennywiseai.tracker.presentation.goals.TransactionGoalsViewModel
@@ -9,50 +46,16 @@ import com.pennywiseai.tracker.presentation.split.SplitBillSheet
 import com.pennywiseai.tracker.presentation.split.SplitBillViewModel
 import com.pennywiseai.tracker.presentation.split.SplitSection
 import com.pennywiseai.tracker.presentation.split.canSplit
-import androidx.compose.ui.res.stringResource
-import android.content.Intent
-import android.net.Uri
-import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.window.Dialog
-import androidx.compose.ui.window.DialogProperties
-import coil3.compose.AsyncImage
-import com.pennywiseai.tracker.ui.effects.overScrollVertical
-import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.CallSplit
-import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.FolderOpen
-import androidx.compose.material.icons.outlined.Savings
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.material3.*
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.unit.dp
-import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.Lifecycle
-import androidx.lifecycle.compose.LifecycleEventEffect
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.pennywiseai.tracker.data.database.entity.LoanDirection
-import com.pennywiseai.tracker.data.database.entity.LoanEntity
-import com.pennywiseai.tracker.data.database.entity.TransactionEntity
-import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.ui.components.SETTLED_HOLD_MILLIS
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
+import com.pennywiseai.tracker.ui.components.LoanOverflowDialog
+import com.pennywiseai.tracker.ui.components.SETTLED_HOLD_MILLIS
 import com.pennywiseai.tracker.ui.components.SplitItem
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
-import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.ui.theme.Dimensions
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
@@ -93,6 +96,8 @@ fun TransactionDetailScreen(
     // Loan state
     val loan by viewModel.loan.collectAsStateWithLifecycle()
     val showMarkAsLoanSheet by viewModel.showMarkAsLoanSheet.collectAsStateWithLifecycle()
+    val loanOverflowPrompt by viewModel.loanOverflowPrompt.collectAsStateWithLifecycle()
+    val unlinkReversal by viewModel.unlinkReversal.collectAsStateWithLifecycle()
     var showUnmarkLoanConfirm by remember { mutableStateOf(false) }
     val recentPersonNames by viewModel.recentPersonNames.collectAsStateWithLifecycle()
 // Account profile state
@@ -113,6 +118,7 @@ fun TransactionDetailScreen(
     val goals by goalsViewModel.goals.collectAsStateWithLifecycle()
     val addToGoal by goalsViewModel.sheet.collectAsStateWithLifecycle()
     var showAddToGoal by rememberSaveable { mutableStateOf(false) }
+    var showWhatWasThis by rememberSaveable { mutableStateOf(false) }
     LaunchedEffect(transaction) { goalsViewModel.setTransaction(transaction) }
     // Split a bill (#346): reload after a save so lent_shares_total is fresh.
     LaunchedEffect(transaction) { splitViewModel.setTransaction(transaction) }
@@ -130,7 +136,7 @@ fun TransactionDetailScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    
+
     // Show success snackbar
     val updatedMessage = stringResource(R.string.txn_detail_updated)
     // "Receipt settled": only the user's own Save gets the check + haptic.
@@ -153,7 +159,7 @@ fun TransactionDetailScreen(
             try { delay(SETTLED_HOLD_MILLIS) } finally { settled = false }
         }
     }
-    
+
     // Show error snackbar
     val errorText = errorMessage?.asString()
     LaunchedEffect(errorText) {
@@ -163,20 +169,20 @@ fun TransactionDetailScreen(
             }
         }
     }
-    
+
     // Reload on every resume so external changes — e.g. the linked loan being
     // deleted from the Loan screen — are reflected when returning here (#444).
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.loadTransaction(transactionId)
     }
-    
+
     // Handle delete success
     LaunchedEffect(deleteSuccess) {
         if (deleteSuccess) {
             onNavigateBack()
         }
     }
-    
+
     val context = LocalContext.current
     var showActionsMenu by remember { mutableStateOf(false) }
 
@@ -348,11 +354,19 @@ fun TransactionDetailScreen(
                 hasSplits = hasSplits,
                 loan = loan,
                 onNavigateToLoanDetail = onNavigateToLoanDetail,
-                onUnmarkLoanClick = { showUnmarkLoanConfirm = true },
+                onUnmarkLoanClick = {
+                    viewModel.loadUnlinkReversal()
+                    showUnmarkLoanConfirm = true
+                },
                 accountProfileId = accountProfileId,
                 hazeState = hazeState,
                 towardGoals = {
                     TowardGoalsSection(linkedGoals, onOpenGoal = onNavigateToGoal, onRemove = goalsViewModel::remove)
+                },
+                whatWasThis = {
+                    if (transaction?.let { whatWasThisOptions(it, loan != null) }?.isNotEmpty() == true) {
+                        WhatWasThisRow(onClick = { showWhatWasThis = true })
+                    }
                 },
                 splitWith = {
                     transaction?.let { SplitSection(splitViewModel, it, onOpenLoan = onNavigateToLoanDetail) }
@@ -363,6 +377,32 @@ fun TransactionDetailScreen(
     }
 
     transaction?.let { SplitBillSheet(splitViewModel, it) }
+
+    if (showWhatWasThis) {
+        transaction?.let { txn ->
+            WhatWasThisSheet(
+                options = whatWasThisOptions(txn, loan != null),
+                onDismiss = { showWhatWasThis = false },
+                onPick = { option ->
+                    showWhatWasThis = false
+                    when (option) {
+                        WhatWasThis.LOAN -> viewModel.showMarkAsLoanSheet()
+                        WhatWasThis.SPLIT -> splitViewModel.openSheet()
+                        // Open the editor with the type set, so the existing save path
+                        // handles accounts and balances; the user reviews and saves.
+                        WhatWasThis.SAVING -> {
+                            viewModel.enterEditMode()
+                            viewModel.updateTransactionType(TransactionType.INVESTMENT)
+                        }
+                        WhatWasThis.OWN_TRANSFER -> {
+                            viewModel.enterEditMode()
+                            viewModel.updateTransactionType(TransactionType.TRANSFER)
+                        }
+                    }
+                }
+            )
+        }
+    }
 
     if (showAddToGoal) {
         transaction?.let { txn ->
@@ -377,13 +417,13 @@ fun TransactionDetailScreen(
             )
         }
     }
-    
+
     // Delete Confirmation Dialog
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { viewModel.hideDeleteDialog() },
             title = { Text(stringResource(R.string.txn_detail_delete_title)) },
-            text = { 
+            text = {
                 Text(stringResource(R.string.txn_detail_delete_message))
             },
             confirmButton = {
@@ -442,19 +482,66 @@ fun TransactionDetailScreen(
         )
     }
 
+    // A repayment beyond what's owed: ask what the extra is
+    loanOverflowPrompt?.let { prompt ->
+        LoanOverflowDialog(
+            personName = prompt.personName,
+            youPaid = prompt.youPaid,
+            extra = prompt.extra,
+            currency = prompt.currency,
+            onCountAsOwn = { viewModel.resolveLoanOverflow(LoanOverflow.COUNT_AS_OWN) },
+            onFlipDebt = { viewModel.resolveLoanOverflow(LoanOverflow.FLIP_DEBT) },
+            onDismiss = { viewModel.dismissLoanOverflow() }
+        )
+    }
+
     // Unmark-as-loan confirmation (#444)
     if (showUnmarkLoanConfirm) {
+        // Unmarking the bill that turned a loan around can turn it back (keep).
+        val reversal = unlinkReversal
+        val reversalLoan = loan
+        val keepText = if (reversal != null && reversalLoan != null) {
+            val amount = CurrencyFormatter.formatCurrency(reversal, reversalLoan.currency)
+            // The loan turns the other way: a lent loan becomes money you owe.
+            if (reversalLoan.direction == LoanDirection.LENT) {
+                stringResource(R.string.txn_detail_unmark_loan_keep_you_owe, reversalLoan.personName, amount)
+            } else {
+                stringResource(R.string.txn_detail_unmark_loan_keep_owes_you, reversalLoan.personName, amount)
+            }
+        } else {
+            null
+        }
         AlertDialog(
             onDismissRequest = { showUnmarkLoanConfirm = false },
             title = { Text(stringResource(R.string.txn_detail_unmark_loan_title)) },
             text = {
-                Text(stringResource(R.string.txn_detail_unmark_loan_message))
+                Text(
+                    if (keepText != null) {
+                        stringResource(R.string.txn_detail_unmark_loan_reversal_message)
+                    } else {
+                        stringResource(R.string.txn_detail_unmark_loan_message)
+                    }
+                )
             },
             confirmButton = {
-                TextButton(onClick = {
-                    showUnmarkLoanConfirm = false
-                    viewModel.unlinkLoan()
-                }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.txn_detail_unmark_loan_confirm)) }
+                Column(horizontalAlignment = Alignment.End) {
+                    if (keepText != null) {
+                        TextButton(onClick = {
+                            showUnmarkLoanConfirm = false
+                            viewModel.unlinkLoan(keepReversal = true)
+                        }, shapes = ButtonDefaults.shapes()) { Text(keepText) }
+                    }
+                    TextButton(onClick = {
+                        showUnmarkLoanConfirm = false
+                        viewModel.unlinkLoan()
+                    }, shapes = ButtonDefaults.shapes()) {
+                        Text(
+                            stringResource(
+                                if (keepText != null) R.string.txn_detail_unmark_loan_only else R.string.txn_detail_unmark_loan_confirm
+                            )
+                        )
+                    }
+                }
             },
             dismissButton = {
                 TextButton(onClick = { showUnmarkLoanConfirm = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.txn_detail_action_cancel)) }
@@ -521,6 +608,7 @@ private fun TransactionDetailContent(
     hazeState: HazeState,
     towardGoals: @Composable () -> Unit,
     splitWith: @Composable () -> Unit,
+    whatWasThis: @Composable () -> Unit,
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -559,7 +647,6 @@ private fun TransactionDetailContent(
                 splits = splits,
                 showSplitEditor = showSplitEditor
             )
-
         } else {
             TransactionReceipt(
                 transaction = transaction,
@@ -574,7 +661,8 @@ private fun TransactionDetailContent(
                 onUnmarkLoanClick = onUnmarkLoanClick,
                 accountProfileId = accountProfileId,
                 towardGoals = towardGoals,
-                splitWith = splitWith
+                splitWith = splitWith,
+                whatWasThis = whatWasThis
             )
         }
     }

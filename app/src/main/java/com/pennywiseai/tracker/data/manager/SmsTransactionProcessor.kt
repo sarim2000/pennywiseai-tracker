@@ -12,6 +12,8 @@ import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.withTransaction
+import com.pennywiseai.tracker.data.events.TransactionEvents
+import com.pennywiseai.tracker.data.events.TransactionOrigin
 import com.pennywiseai.tracker.data.ledger.BalanceCalculator
 import com.pennywiseai.tracker.data.ledger.cashWallets
 import com.pennywiseai.tracker.data.ledger.routeAtmToCashWallet
@@ -64,7 +66,8 @@ class SmsTransactionProcessor @Inject constructor(
     private val database: PennyWiseDatabase,
     private val moneyAlerts: MoneyAlerts,
     private val transactionWidgets: TransactionWidgets,
-    private val scanPreferences: ScanPreferences
+    private val scanPreferences: ScanPreferences,
+    private val transactionEvents: TransactionEvents
 ) {
     private val bankAccountMerges = BankAccountMergeStore(appContext)
     companion object {
@@ -324,6 +327,7 @@ class SmsTransactionProcessor @Inject constructor(
                 transactionWidgets.refresh()
                 // Every live path saves here (SMS, bank notifications, their retries); the inbox scan doesn't.
                 moneyAlerts.onTransactionSaved()
+                transactionEvents.onSaved(finalEntity.transactionType, TransactionOrigin.BANK_MESSAGE)
 
                 return ProcessingResult(
                     true,

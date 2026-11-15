@@ -84,6 +84,9 @@ internal const val ATTENTION_MS = 300f
 /** Gain on a drag's saturated reach: a finger about two thirds of the mascot away gets a full look. */
 private const val DRAG_GAIN = 1.6f
 
+/** How far up or down a [MascotShape.Bars] looks for a full change. */
+private const val TREND_GAZE = 0.8f
+
 /** Characters after which a typed line has the eyes at its far end. */
 private const val TYPING_LINE_CHARS = 32f
 
@@ -252,6 +255,12 @@ internal fun typingGaze(length: Int): Offset {
     val along = (length / TYPING_LINE_CHARS).coerceIn(0f, 1f)
     return clampGaze(-0.5f + along, 0.8f)
 }
+
+/**
+ * Where a [MascotShape.Bars] looks for a [change] of -1..1: up when spending rose, down
+ * when it fell, ahead when it held. Only the direction, never a verdict on it.
+ */
+internal fun trendGaze(change: Float): Offset = Offset(0f, -TREND_GAZE * change.coerceIn(-1f, 1f))
 
 /**
  * Lays [look] over [pose] at [attention] 0..1. Only open eyes follow: `^` and closed eyes

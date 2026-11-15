@@ -51,6 +51,7 @@ class ChatViewModelSettleTest {
     private val llm = mockk<LlmRepository>(relaxed = true) {
         every { pendingAction } returns pending
         every { isConfirming } returns MutableStateFlow(false)
+        every { lastReply } returns MutableStateFlow(null)
     }
     private val addTransaction = mockk<AddTransactionUseCase>(relaxed = true)
     private val events = TransactionEvents(AppForegroundState { true })

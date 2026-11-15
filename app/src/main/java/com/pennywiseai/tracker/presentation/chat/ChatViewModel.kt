@@ -140,6 +140,13 @@ class ChatViewModel @Inject constructor(
                 _uiState.value = _uiState.value.copy(error = UiText.Res(message))
             }
         }
+
+        // The latest reply's mascot, from what the repository says it answered.
+        viewModelScope.launch {
+            llmRepository.lastReply.collect { subject ->
+                _uiState.value = _uiState.value.copy(replyTopic = subject?.let(::replyTopic))
+            }
+        }
     }
 
     private suspend fun loadContextMessage() {
@@ -308,9 +315,11 @@ class ChatViewModel @Inject constructor(
         llmRepository.clearPendingAction()
 
         sendJob = viewModelScope.launch {
+            // The last reply's mascot goes as the new request starts.
             _uiState.value = _uiState.value.copy(
                 isLoading = true,
-                error = null
+                error = null,
+                replyTopic = null
             )
             _currentResponse.value = ""
 
@@ -353,7 +362,7 @@ class ChatViewModel @Inject constructor(
         if (_uiState.value.isLoading || _isConfirming.value) return
         llmRepository.clearPendingAction()
         // Claimed before launching, so a second tap or a send can't start alongside it.
-        _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+        _uiState.value = _uiState.value.copy(isLoading = true, error = null, replyTopic = null)
         sendJob = viewModelScope.launch {
             try {
                 llmRepository.answerQuickAction(action)
@@ -373,7 +382,8 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             llmRepository.deleteAllMessages()
             _uiState.value = _uiState.value.copy(
-                error = null
+                error = null,
+                replyTopic = null
             )
             // Reload context message after clearing chat
             loadContextMessage()
@@ -433,7 +443,9 @@ data class ChatUiState(
     /** An Add card whose rows were just saved: still drawn, with its check, for a beat. */
     val settledCard: com.pennywiseai.tracker.data.model.PendingChatAction.Add? = null,
     /** Adds saved so far; the Confirm haptic keys on it, since [settledCard] may never reach a frame. */
-    val adds: Int = 0
+    val adds: Int = 0,
+    /** The mascot beside the latest assistant reply, or null. Transient: never saved. */
+    val replyTopic: ReplyTopic? = null
 ) {
     val cardSaved: Boolean get() = settledCard != null
 }

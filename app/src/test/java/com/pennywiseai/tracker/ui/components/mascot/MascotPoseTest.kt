@@ -186,6 +186,16 @@ class MascotPoseTest {
         assertTrue(gaze * OwlEye.GAZE_TRAVEL + OwlEye.IRIS_R <= OwlEye.DISC_R)
     }
 
+    @Test
+    fun `bars look up when spending rose, down when it fell, ahead when it held`() {
+        assertTrue(trendGaze(1f).y < 0f)
+        assertTrue(trendGaze(-1f).y > 0f)
+        assertEquals(0f, trendGaze(0f).y, 0f)
+        // Only up or down, and never out of the eye however big the change.
+        assertEquals(0f, trendGaze(5f).x, 0f)
+        assertTrue(hypot(trendGaze(5f).x, trendGaze(5f).y) <= 1f)
+    }
+
     private fun assertPose(expected: MascotPose, actual: MascotPose) {
         val d = 1e-5f
         assertEquals(expected.gazeX, actual.gazeX, d)

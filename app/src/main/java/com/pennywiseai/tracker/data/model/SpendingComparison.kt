@@ -76,6 +76,14 @@ object SpendingComparison {
         return Result.Rows(cw, pw, rows)
     }
 
+    /**
+     * Which way spending went: 1 when it rose in every currency, -1 when it fell in every one,
+     * 0 when it held, went both ways, or there is nothing to compare.
+     */
+    fun direction(result: Result): Int =
+        (result as? Result.Rows)?.rows?.map { it.changePercent?.signum() ?: if (it.current.signum() > 0) 1 else 0 }
+            ?.distinct()?.singleOrNull() ?: 0
+
     /** Adds [other] per currency (a forgiven loan's balance onto spending), never across currencies. */
     fun Map<String, BigDecimal>.plusAmounts(other: Map<String, BigDecimal>): Map<String, BigDecimal> =
         (keys + other.keys).associateWith { (this[it] ?: BigDecimal.ZERO) + (other[it] ?: BigDecimal.ZERO) }

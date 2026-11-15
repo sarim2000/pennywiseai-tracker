@@ -27,6 +27,7 @@ import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDirection
@@ -38,6 +39,7 @@ import com.pennywiseai.tracker.data.repository.ModelState
 import com.pennywiseai.tracker.data.repository.QuickAction
 import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.ui.animations.pwExpand
+import com.pennywiseai.tracker.ui.animations.pwFadeIn
 import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
@@ -118,16 +120,17 @@ fun ChatScreen(
         if (uiState.adds > addsAtEntry) haptics.performHapticFeedback(HapticFeedbackType.Confirm)
     }
 
-    // The hero's owl is happy for a beat after the same saved Adds, and never for one
-    // from an earlier visit, a rotation or restored history. No beat without animations.
+    // The owl is happy for a beat after the same saved Adds (the reply's mascot, or the
+    // hero), and never for one from an earlier visit, a rotation or restored history. No
+    // beat without animations.
     val animationsEnabled = rememberAnimationsEnabled()
-    var heroHappy by remember { mutableStateOf(false) }
+    var savedBeat by remember { mutableStateOf(false) }
     LaunchedEffect(uiState.adds, animationsEnabled) {
         if (uiState.adds > addsAtEntry && animationsEnabled) {
-            heroHappy = true
+            savedBeat = true
             delay(REACTION_HOLD_MS)
         }
-        heroHappy = false
+        savedBeat = false
     }
 
     // The model screen's owl sleeps; the first LOADING after it wakes it, once.
@@ -240,7 +243,12 @@ fun ChatScreen(
                                 flingBehavior = rememberOverscrollFlingBehavior { listState }
                             ) {
                                 items(messages, key = { it.id }) { message ->
-                                    ChatMessageItem(message = message, modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null))
+                                    ChatMessageItem(
+                                        message = message,
+                                        modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null),
+                                        topic = uiState.replyTopic?.takeIf { it.messageId == message.id },
+                                        celebrating = savedBeat
+                                    )
                                 }
                             }
                         }
@@ -405,7 +413,7 @@ fun ChatScreen(
                                     item(key = HERO_KEY) {
                                         val motion = MaterialTheme.motionScheme
                                         ChatHero(
-                                            happy = heroHappy,
+                                            happy = savedBeat,
                                             typedLength = inputText.length,
                                             modifier = Modifier.animateItem(
                                                 fadeInSpec = motion.fastEffectsSpec(),
@@ -421,7 +429,12 @@ fun ChatScreen(
                                 // line — and a fading row would draw over or under its replacement.
                                 // On device a fade-in on the card also stuck at alpha 0, hiding it.
                                 items(messages, key = { it.id }) { message ->
-                                    ChatMessageItem(message = message, modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null))
+                                    ChatMessageItem(
+                                        message = message,
+                                        modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null),
+                                        topic = uiState.replyTopic?.takeIf { it.messageId == message.id },
+                                        celebrating = savedBeat
+                                    )
                                 }
 
                                 // A transaction the model proposed — the user confirms it (#170)
@@ -465,7 +478,9 @@ fun ChatScreen(
                                                     timestamp = System.currentTimeMillis()
                                                 ),
                                                 modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null),
-                                                isStreaming = true
+                                                isStreaming = true,
+                                                // The saved reply takes this place with its mascot: no reflow, no jump.
+                                                reserveMascot = true
                                             )
                                         } else {
                                             // One status line per request, picked when the wait starts,
@@ -810,11 +825,19 @@ fun TypingIndicator(
     }
 }
 
+/**
+ * One chat message. The latest assistant reply has a [topic]: its mascot stands at the
+ * reply's start, with a badge by the time when there is one. [reserveMascot] keeps that
+ * space for a reply still on its way, so the saved one lands without moving.
+ */
 @Composable
 fun ChatMessageItem(
     message: com.pennywiseai.tracker.data.database.entity.ChatMessage,
     modifier: Modifier = Modifier,
-    isStreaming: Boolean = false
+    isStreaming: Boolean = false,
+    topic: ReplyTopic? = null,
+    reserveMascot: Boolean = false,
+    celebrating: Boolean = false
 ) {
     val timeFormat = remember { SimpleDateFormat("h:mm a", Locale.getDefault()) }
 
@@ -822,6 +845,7 @@ fun ChatMessageItem(
         modifier = modifier.fillMaxWidth(),
         horizontalArrangement = if (message.isUser) Arrangement.End else Arrangement.Start
     ) {
+        if (!message.isUser) ReplyMascotSlot(visible = reserveMascot || topic != null, topic = topic, celebrating = celebrating)
         PennyWiseCardV2(
             modifier = Modifier
                 .widthIn(max = 280.dp)
@@ -865,8 +889,71 @@ fun ChatMessageItem(
                     else
                         MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
                 )
+                topic?.badge?.let { ReplyBadgeLabel(it) }
             }
         }
+    }
+}
+
+/**
+ * The space at a reply's start for its mascot. It closes toward the start when the reply
+ * stops being the latest (a new request), so the bubble slides back instead of jumping.
+ */
+@Composable
+private fun ReplyMascotSlot(visible: Boolean, topic: ReplyTopic?, celebrating: Boolean) {
+    // The mascot leaves with the slot, not before it.
+    var shown by remember { mutableStateOf(topic) }
+    if (topic != null && topic != shown) shown = topic
+    val motion = MaterialTheme.motionScheme
+    AnimatedVisibility(
+        visible = visible,
+        enter = expandHorizontally(motion.fastSpatialSpec(), expandFrom = Alignment.Start) + fadeIn(motion.fastEffectsSpec()),
+        exit = shrinkHorizontally(motion.fastSpatialSpec(), shrinkTowards = Alignment.Start) + fadeOut(motion.fastEffectsSpec())
+    ) {
+        Row {
+            Box(modifier = Modifier.size(Dimensions.Icon.large)) {
+                shown?.let { ReplyMascot(it, celebrating) }
+            }
+            Spacer(modifier = Modifier.width(Spacing.sm))
+        }
+    }
+}
+
+/**
+ * The reply's mascot fades in as the reply lands. It starts calm, so a happy reply's
+ * mood arrives as a change and its hop plays; outside the beat after a save it is calm.
+ */
+@Composable
+private fun ReplyMascot(topic: ReplyTopic, celebrating: Boolean) {
+    val target = if (topic.mood == MascotMood.Happy && !celebrating) MascotMood.Calm else topic.mood
+    var mood by remember { mutableStateOf(MascotMood.Calm) }
+    LaunchedEffect(target) { mood = target }
+    val appear = remember { MutableTransitionState(false) }.apply { targetState = true }
+    AnimatedVisibility(visibleState = appear, enter = pwFadeIn()) {
+        Mascot(size = Dimensions.Icon.large, shape = topic.shape, mood = mood, value = topic.value)
+    }
+}
+
+/** The badge by a reply's time. Silent to TalkBack: the reply's own text says the same. */
+@Composable
+private fun ReplyBadgeLabel(badge: ReplyBadge) {
+    val text = when (badge) {
+        ReplyBadge.Saved -> stringResource(R.string.chat_badge_saved)
+        is ReplyBadge.Total -> com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(badge.money.amount, badge.money.currency)
+        is ReplyBadge.Currencies -> pluralStringResource(R.plurals.chat_badge_currencies, badge.count, badge.count)
+    }
+    val appear = remember { MutableTransitionState(false) }.apply { targetState = true }
+    AnimatedVisibility(visibleState = appear, enter = pwFadeIn()) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.inverseOnSurface,
+            maxLines = 1,
+            modifier = Modifier
+                .clearAndSetSemantics {}
+                .background(MaterialTheme.colorScheme.inverseSurface, CircleShape)
+                .padding(horizontal = Spacing.sm, vertical = Spacing.xxs)
+        )
     }
 }
 

@@ -74,6 +74,9 @@ import kotlin.random.Random
  * long as it thinks: the owl's eyes drift and its head sways, a [MascotShape.Bubble]'s
  * eyes sweep along its lines.
  *
+ * [value] is the shape's figure: a [MascotShape.Pie]'s slice share (0..1), or which way a
+ * [MascotShape.Bars] went (-1..1), which its eyes follow: up when it rose, down when it fell.
+ *
  * [look] points the open eyes somewhere (gaze -1..1, x toward line end, y down) until it
  * is null again. An [interactive] mascot answers a tap with a poke (a quick blink and a
  * wobble) and a drag by looking at the finger, back to centre once it lifts. Neither has
@@ -86,6 +89,7 @@ fun Mascot(
     mood: MascotMood = MascotMood.Calm,
     shape: MascotShape = MascotShape.Owl,
     tint: Color = MaterialTheme.colorScheme.primary,
+    value: Float = 0f,
     look: Offset? = null,
     interactive: Boolean = false,
 ) {
@@ -99,7 +103,10 @@ fun Mascot(
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val thinking = mood == MascotMood.Thinking
     LaunchedEffect(motion, lifecycle, thinking) { state.runClock(motion, lifecycle, thinking) }
-    SideEffect { state.look = look }
+    SideEffect {
+        state.look = look
+        state.value = value
+    }
     val motionScheme = MaterialTheme.motionScheme
     val blendSpec = motionScheme.defaultEffectsSpec<Float>()
     val swapSpec = motionScheme.slowEffectsSpec<Float>()
@@ -121,9 +128,9 @@ fun Mascot(
             .then(if (detailed) Modifier else Modifier.graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen })
             .drawWithCache {
                 val current = state.shape
-                val currentGeometry = current.geometry()
+                val currentGeometry = current.geometry(state.value)
                 val previous = state.previousShape
-                val previousGeometry = previous?.geometry()
+                val previousGeometry = previous?.geometry(state.value)
                 val scratch = Path()
                 val layer = Paint()
                 val k = this.size.minDimension / BOX
@@ -199,6 +206,9 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
     /** The pose last drawn: where a mood change blends from. */
     private var shown = MascotPose()
 
+    /** The shape's figure (see [Mascot]). */
+    var value by mutableFloatStateOf(0f)
+
     /** Where the caller points the eyes, and where a finger dragging on the mascot is. */
     var look by mutableStateOf<Offset?>(null)
     var dragLook by mutableStateOf<Offset?>(null)
@@ -213,6 +223,7 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
         val t = time.longValue
         var pose = moodPose(mood, t, t - moodStart, seed, motion, sweep = isSweeping(shape, mood))
         if (motion == MascotMotion.Quiet) pose = pose.copy(blink = max(pose.blink, quietBlink.floatValue))
+        if (shape == MascotShape.Bars && value != 0f) pose = lookAt(pose, trendGaze(value), 1f)
         val w = blend.value
         from?.let { if (w < 1f) pose = blendPose(it, pose, w) }
         val target = dragLook ?: look

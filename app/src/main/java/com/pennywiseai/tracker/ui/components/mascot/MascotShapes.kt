@@ -8,13 +8,16 @@ import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.PathOperation
 import androidx.compose.ui.graphics.vector.PathParser
+import kotlin.math.cos
+import kotlin.math.sin
 
 /**
  * The silhouettes the mascot can take. The owl is the assistant; the others are what it
  * becomes for a moment: a coin for income, a receipt for an expense or card purchase, a
- * wallet for a transfer, a jar for an investment, a message bubble for an SMS scan.
+ * wallet for a transfer, a jar for an investment, a message bubble for an SMS scan. A
+ * chat reply takes its topic's: a pie for categories, bars for a month comparison.
  */
-enum class MascotShape { Owl, Coin, Receipt, Wallet, Jar, Bubble }
+enum class MascotShape { Owl, Coin, Receipt, Wallet, Jar, Bubble, Pie, Bars }
 
 /**
  * Where a shape's pill eyes sit in the 0..100 box: the centre between them, the gap
@@ -49,7 +52,8 @@ internal class MascotGeometry(
     val details: Path? = null,
 )
 
-internal fun MascotShape.geometry(): MascotGeometry = when (this) {
+/** A shape's paths; [value] is its figure where it has one (a [MascotShape.Pie]'s slice share, 0..1). */
+internal fun MascotShape.geometry(value: Float = 0f): MascotGeometry = when (this) {
     MascotShape.Owl -> MascotGeometry(
         // Ear tufts, a round belly: the PennyWise logo owl.
         body = svgPath(
@@ -105,6 +109,53 @@ internal fun MascotShape.geometry(): MascotGeometry = when (this) {
         eyes = EyeSpec(x = 50f, y = 43f, spacing = 18f, scale = 1f),
         pivot = STANDING,
     )
+    MascotShape.Pie -> pie(value)
+    // Three rising bars that overlap into one stepped outline; the eyes sit on the middle one.
+    MascotShape.Bars -> MascotGeometry(
+        body = union(roundRect(14f, 52f, 25f, 38f, 7f), roundRect(37.5f, 32f, 25f, 58f, 7f), roundRect(61f, 16f, 25f, 74f, 7f)),
+        eyes = EyeSpec(x = 50f, y = 50f, spacing = 12f, scale = 0.75f),
+        pivot = STANDING,
+    )
+}
+
+/**
+ * A pie with its first slice, [share] of it from twelve o'clock clockwise, pulled out
+ * along its middle. The eyes sit on the rest, toward its middle, so however big the
+ * slice it never takes an eye.
+ */
+private fun pie(share: Float): MascotGeometry {
+    val sweep = 360f * share.coerceIn(PIE_MIN_SHARE, PIE_MAX_SHARE)
+    val start = -90f
+    val pull = polar(start + sweep / 2, PIE_PULL)
+    val eyes = polar(start + sweep + (360f - sweep) / 2, PIE_EYES_OUT)
+    val c = Offset(50f, 54f)
+    return MascotGeometry(
+        body = Path().apply {
+            moveTo(c.x, c.y)
+            arcTo(circle(c.x, c.y, PIE_R), start + sweep, 360f - sweep, forceMoveTo = false)
+            close()
+            moveTo(c.x + pull.x, c.y + pull.y)
+            arcTo(circle(c.x + pull.x, c.y + pull.y, PIE_R), start, sweep, forceMoveTo = false)
+            close()
+        },
+        eyes = EyeSpec(x = c.x + eyes.x, y = c.y + eyes.y, spacing = 16f, scale = 0.9f),
+        pivot = STANDING,
+    )
+}
+
+/** The slice is drawn at least this big, to read as a slice, and at most half the pie. */
+private const val PIE_MIN_SHARE = 0.05f
+private const val PIE_MAX_SHARE = 0.5f
+private const val PIE_R = 36f
+private const val PIE_PULL = 6f
+
+/** How far from the pie's centre the eyes sit, along the middle of the rest of it. */
+private const val PIE_EYES_OUT = 14f
+
+/** A point [r] from the origin at [degrees], clockwise from three o'clock (y down). */
+private fun polar(degrees: Float, r: Float): Offset {
+    val a = Math.toRadians(degrees.toDouble())
+    return Offset((cos(a) * r).toFloat(), (sin(a) * r).toFloat())
 }
 
 /** Where every shape stands, so they all tilt and hop about the same point. */

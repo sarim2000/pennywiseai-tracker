@@ -121,17 +121,22 @@ fun ChatScreen(
     }
 
     // The owl is happy for a beat after the same saved Adds (the reply's mascot, or the
-    // hero), and never for one from an earlier visit, a rotation or restored history. No
-    // beat without animations.
+    // hero), and never for one from an earlier visit, a rotation or restored history. Each
+    // Add is used up as it arrives, beat or not: without animations it gets none, and
+    // turning them back on later never replays it. That change can only end a beat.
     val animationsEnabled = rememberAnimationsEnabled()
+    val animate by rememberUpdatedState(animationsEnabled)
     var savedBeat by remember { mutableStateOf(false) }
-    LaunchedEffect(uiState.adds, animationsEnabled) {
-        if (uiState.adds > addsAtEntry && animationsEnabled) {
-            savedBeat = true
-            delay(REACTION_HOLD_MS)
-        }
+    var addsHandled by remember { mutableIntStateOf(addsAtEntry) }
+    LaunchedEffect(uiState.adds) {
+        if (uiState.adds <= addsHandled) return@LaunchedEffect
+        addsHandled = uiState.adds
+        if (!animate) return@LaunchedEffect
+        savedBeat = true
+        delay(REACTION_HOLD_MS)
         savedBeat = false
     }
+    LaunchedEffect(animationsEnabled) { if (!animationsEnabled) savedBeat = false }
 
     // The model screen's owl sleeps; the first LOADING after it wakes it, once.
     var modelWasAsleep by remember { mutableStateOf(false) }

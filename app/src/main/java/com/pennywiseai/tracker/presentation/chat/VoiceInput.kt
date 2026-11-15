@@ -412,8 +412,10 @@ class VoiceInput internal constructor(
     fun download(tag: String) {
         menuOpen = false
         if (!available || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
-        // Its own recognizer per download, so a second download can't swallow the first one's callback.
-        val r = SpeechRecognizer.createOnDeviceSpeechRecognizer(context).also { downloads += it }
+        // API 34+: its own recognizer per download, so a second one can't swallow the first one's callback.
+        // API 33 has no callback (so nothing to swallow, and no moment to release): reuse one.
+        val r = downloads.takeIf { Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE }?.firstOrNull()
+            ?: SpeechRecognizer.createOnDeviceSpeechRecognizer(context).also { downloads += it }
         val picksBefore = picks
         pending = pending + tag
         downloadable = downloadable - tag

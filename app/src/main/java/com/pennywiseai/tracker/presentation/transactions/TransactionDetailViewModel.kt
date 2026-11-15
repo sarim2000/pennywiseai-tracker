@@ -1204,6 +1204,12 @@ class TransactionDetailViewModel @Inject constructor(
                 // Both rows as they are now: a scan may have corrected either while the
                 // dialog was open. Pair only if the same row still matches; else ask again.
                 val txn = transactionRepository.getTransactionById(txnId) ?: return@launch
+                // This row changed meanwhile (deleted, answered, corrected): show it as it is
+                // now, to answer again, rather than pair or edit the copy read before the dialog.
+                if (txn != _transaction.value) {
+                    loadTransaction(txnId)
+                    return@launch
+                }
                 val partner = lookUpTransferPartner(txn)
                 when {
                     partner?.id == proposed.id -> pairAsTransfer(txn, partner)
@@ -1593,6 +1599,11 @@ internal fun transferWithoutLegs(original: TransactionEntity, updated: Transacti
         updated.transferPairId == null &&
         updated.fromAccount == null && updated.toAccount == null
 
+/** Not deleted and not already answered (a pair, a loan, a split bill, a refund, a split across categories). */
+internal fun TransactionEntity.openToPair(categorySplitIds: Set<Long>): Boolean =
+    !isDeleted && transferPairId == null && loanId == null && lentSharesTotal == null &&
+        budgetImpactType == null && id !in categorySplitIds
+
 /**
  * The other leg of [txn] among [nearby] rows, if it arrived: the self-transfer match on
  * the same profile (a Business income an hour later isn't a Personal transfer's other
@@ -1606,13 +1617,10 @@ internal fun ownTransferPartner(
 ): TransactionEntity? {
     // Rows already answered (a loan, a split bill, a refund, a split across categories) are
     // dropped before matching, so a nearer one can't take the match or be turned into a transfer.
+    // This row too: on confirm it's re-read, and it may have been deleted or answered meanwhile.
+    if (!txn.openToPair(categorySplitIds)) return null
     val candidates = com.pennywiseai.tracker.domain.model.filterTransactionsByProfile(
-        nearby.filter {
-            it.id == txn.id || (
-                it.loanId == null && it.lentSharesTotal == null &&
-                    it.budgetImpactType == null && it.id !in categorySplitIds
-                )
-        },
+        nearby.filter { it.id == txn.id || it.openToPair(categorySplitIds) },
         txn.effectiveProfileId(profileAccountKeys),
         profileAccountKeys
     )

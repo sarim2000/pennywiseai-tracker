@@ -88,6 +88,17 @@ class WhatWasThisTest {
     }
 
     @Test
+    fun `no pairing once this row is deleted or answered`() {
+        val out = txn(TransactionType.EXPENSE).copy(id = 1)
+        val into = txn(TransactionType.INCOME).copy(id = 2, accountNumber = "2222", dateTime = out.dateTime.plusMinutes(1))
+        assertEquals(into, ownTransferPartner(out, listOf(out, into), emptyMap()))
+        listOf(out.copy(isDeleted = true), out.copy(loanId = 9), out.copy(transferPairId = "p")).forEach {
+            assertEquals(null, ownTransferPartner(it, listOf(it, into), emptyMap()))
+        }
+        assertEquals(null, ownTransferPartner(out, listOf(out, into), emptyMap(), categorySplitIds = setOf(1)))
+    }
+
+    @Test
     fun `the other leg must be on the same profile`() {
         val out = txn(TransactionType.EXPENSE).copy(id = 1)
         val into = txn(TransactionType.INCOME).copy(id = 2, accountNumber = "2222", dateTime = out.dateTime.plusMinutes(5))

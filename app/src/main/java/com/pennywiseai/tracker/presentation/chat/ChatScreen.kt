@@ -52,6 +52,7 @@ import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.warning
 import com.pennywiseai.tracker.utils.TokenUtils
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
@@ -636,7 +637,7 @@ fun DeveloperInfoCard(
     }
     val usageColor = when (usageHint) {
         "critical" -> MaterialTheme.colorScheme.error
-        "warning" -> MaterialTheme.colorScheme.tertiary
+        "warning" -> MaterialTheme.colorScheme.warning
         else -> MaterialTheme.colorScheme.primary
     }
 

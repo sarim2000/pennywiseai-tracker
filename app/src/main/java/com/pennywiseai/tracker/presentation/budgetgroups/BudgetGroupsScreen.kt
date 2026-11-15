@@ -757,7 +757,7 @@ private fun BudgetCard(
                             val catPctUsed = catSpending.percentageUsed
                             val catStatusColor: Color = when {
                                 catPctUsed >= 90f -> MaterialTheme.colorScheme.error
-                                catPctUsed >= 70f -> MaterialTheme.colorScheme.tertiary
+                                catPctUsed >= 70f -> MaterialTheme.colorScheme.warning
                                 else -> MaterialTheme.colorScheme.primary
                             }
 

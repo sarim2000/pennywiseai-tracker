@@ -72,7 +72,7 @@ val LightColorScheme = lightColorScheme(
     surfaceTint = md_theme_light_surfaceTint,
     outlineVariant = md_theme_light_outlineVariant,
     scrim = md_theme_light_scrim,
-)
+).withReadableInk()
 
 /** Also read by the home-screen widgets' Glance theme (PennyWiseWidgetTheme in :app). */
 val DarkColorScheme = darkColorScheme(
@@ -105,7 +105,7 @@ val DarkColorScheme = darkColorScheme(
     surfaceTint = md_theme_dark_surfaceTint,
     outlineVariant = md_theme_dark_outlineVariant,
     scrim = md_theme_dark_scrim,
-)
+).withReadableInk()
 
 /**
  * Whether this scheme is a dark one, read from the scheme itself rather than the
@@ -122,30 +122,32 @@ val ColorScheme.isDark: Boolean
 @ReadOnlyComposable
 fun isAppInDarkTheme(): Boolean = MaterialTheme.colorScheme.isDark
 
-// Custom color extensions
+// Semantic colours. Each picks its light/dark base, then readableOn() nudges it toward
+// black/white only as far as this scheme's surfaces need for 4.5:1 text. A red stays a
+// red, it just gets as dark (or light) as the palette demands.
 val ColorScheme.success: Color
-    get() = if (isDark) success_dark else success_light
+    get() = (if (isDark) success_dark else success_light).readableOn(neutralSurfaces)
 
 val ColorScheme.warning: Color
-    get() = if (isDark) warning_dark else warning_light
+    get() = (if (isDark) warning_dark else warning_light).readableOn(neutralSurfaces)
 
 val ColorScheme.income: Color
-    get() = if (isDark) income_dark else income_light
+    get() = (if (isDark) income_dark else income_light).readableOn(neutralSurfaces)
 
 val ColorScheme.expense: Color
-    get() = if (isDark) expense_dark else expense_light
+    get() = (if (isDark) expense_dark else expense_light).readableOn(neutralSurfaces)
 
 val ColorScheme.credit: Color
-    get() = if (isDark) credit_dark else credit_light
+    get() = (if (isDark) credit_dark else credit_light).readableOn(neutralSurfaces)
 
 val ColorScheme.transfer: Color
-    get() = if (isDark) transfer_dark else transfer_light
+    get() = (if (isDark) transfer_dark else transfer_light).readableOn(neutralSurfaces)
 
 val ColorScheme.investment: Color
-    get() = if (isDark) investment_dark else investment_light
+    get() = (if (isDark) investment_dark else investment_light).readableOn(neutralSurfaces)
 
 val ColorScheme.loan: Color
-    get() = if (isDark) loan_dark else loan_light
+    get() = (if (isDark) loan_dark else loan_light).readableOn(neutralSurfaces)
 
 /**
  * The scheme [PennyWiseTheme] draws with for these settings. Appearance also uses it to
@@ -259,32 +261,6 @@ internal fun ColorScheme.withAmoledSurfaces(): ColorScheme = copy(
     surfaceContainerHighest = amoled_surfaceContainerHighest,
 )
 
-private fun relativeLuminance(color: Color): Double {
-    fun linearize(c: Float): Double {
-        return if (c <= 0.03928f) (c / 12.92)
-        else Math.pow(((c + 0.055) / 1.055), 2.4)
-    }
-    val r = linearize(color.red)
-    val g = linearize(color.green)
-    val b = linearize(color.blue)
-    return 0.2126 * r + 0.7152 * g + 0.0722 * b
-}
-
-private fun contrastRatio(l1: Double, l2: Double): Double {
-    val lighter = maxOf(l1, l2)
-    val darker = minOf(l1, l2)
-    return (lighter + 0.05) / (darker + 0.05)
-}
-
-private fun onColorFor(bg: Color, darkOnColor: Color, lightOnColor: Color = Color.White): Color {
-    val bgLum = relativeLuminance(bg)
-    val lightLum = relativeLuminance(lightOnColor)
-    val darkLum = relativeLuminance(darkOnColor)
-    val lightContrast = contrastRatio(bgLum, lightLum)
-    val darkContrast = contrastRatio(bgLum, darkLum)
-    return if (lightContrast >= darkContrast) lightOnColor else darkOnColor
-}
-
 fun getCustomLightColorScheme(accent: AccentColor): ColorScheme {
     val primaryColor = when (accent) {
         AccentColor.ROSE -> Dawn_Rose
@@ -329,22 +305,20 @@ fun getCustomLightColorScheme(accent: AccentColor): ColorScheme {
         AccentColor.OVERLAY -> Dawn_Overlay_tertiary
     }
 
-    val dawnDarkOnColor = Dawn_Text
-
     return lightColorScheme(
         primary = primaryColor,
-        onPrimary = onColorFor(primaryColor, dawnDarkOnColor),
+        onPrimary = primaryColor.bestInk(),
         primaryContainer = primaryColor,
-        onPrimaryContainer = onColorFor(primaryColor, dawnDarkOnColor),
-        inversePrimary = Color(0xFF000000),
+        onPrimaryContainer = primaryColor.bestInk(),
+        inversePrimary = primaryColor,
         secondary = secondaryColor,
-        onSecondary = onColorFor(secondaryColor, dawnDarkOnColor),
+        onSecondary = secondaryColor.bestInk(),
         secondaryContainer = secondaryColor,
-        onSecondaryContainer = onColorFor(secondaryColor, dawnDarkOnColor),
+        onSecondaryContainer = secondaryColor.bestInk(),
         tertiary = tertiaryColor,
-        onTertiary = onColorFor(tertiaryColor, dawnDarkOnColor),
+        onTertiary = tertiaryColor.bestInk(),
         tertiaryContainer = tertiaryColor,
-        onTertiaryContainer = onColorFor(tertiaryColor, dawnDarkOnColor),
+        onTertiaryContainer = tertiaryColor.bestInk(),
         background = Color(0xFFFAF4ED),
         onBackground = Color(0xFF575279),
         surface = Color(0xFFFFFAF3),
@@ -354,9 +328,9 @@ fun getCustomLightColorScheme(accent: AccentColor): ColorScheme {
         inverseSurface = Color(0xFF26233A),
         inverseOnSurface = Color(0xFFE0DEF4),
         error = Dawn_Love,
-        onError = onColorFor(Dawn_Love, dawnDarkOnColor),
+        onError = Dawn_Love.bestInk(),
         errorContainer = Dawn_Love,
-        onErrorContainer = onColorFor(Dawn_Love, dawnDarkOnColor),
+        onErrorContainer = Dawn_Love.bestInk(),
         surfaceBright = Color(0xFFFFFAF3),
         surfaceDim = Color(0xFFF2E9E1),
         surfaceContainer = Color(0xFFFAF4ED),
@@ -364,7 +338,7 @@ fun getCustomLightColorScheme(accent: AccentColor): ColorScheme {
         surfaceContainerHighest = Color(0xFFE6DDD5),
         surfaceContainerLow = Color(0xFFFFFAF3),
         surfaceContainerLowest = Color(0xFFFFFFFF)
-    )
+    ).withReadableInk()
 }
 
 fun getCustomDarkColorScheme(accent: AccentColor): ColorScheme {
@@ -411,22 +385,20 @@ fun getCustomDarkColorScheme(accent: AccentColor): ColorScheme {
         AccentColor.OVERLAY -> RosePine_Overlay_tertiary
     }
 
-    val rosePineDarkOnColor = Color(0xFF191724)
-
     return darkColorScheme(
         primary = primaryColor,
-        onPrimary = onColorFor(primaryColor, rosePineDarkOnColor),
+        onPrimary = primaryColor.bestInk(),
         primaryContainer = primaryColor,
-        onPrimaryContainer = onColorFor(primaryColor, rosePineDarkOnColor),
-        inversePrimary = Color(0xFFFFFFFF),
+        onPrimaryContainer = primaryColor.bestInk(),
+        inversePrimary = primaryColor,
         secondary = secondaryColor,
-        onSecondary = onColorFor(secondaryColor, rosePineDarkOnColor),
+        onSecondary = secondaryColor.bestInk(),
         secondaryContainer = secondaryColor,
-        onSecondaryContainer = onColorFor(secondaryColor, rosePineDarkOnColor),
+        onSecondaryContainer = secondaryColor.bestInk(),
         tertiary = tertiaryColor,
-        onTertiary = onColorFor(tertiaryColor, rosePineDarkOnColor),
+        onTertiary = tertiaryColor.bestInk(),
         tertiaryContainer = tertiaryColor,
-        onTertiaryContainer = onColorFor(tertiaryColor, rosePineDarkOnColor),
+        onTertiaryContainer = tertiaryColor.bestInk(),
         background = Color(0xFF191724),
         onBackground = Color(0xFFE0DEF4),
         surface = Color(0xFF1F1D2E),
@@ -436,9 +408,9 @@ fun getCustomDarkColorScheme(accent: AccentColor): ColorScheme {
         inverseSurface = Color(0xFFE0DEF4),
         inverseOnSurface = Color(0xFF26233A),
         error = RosePine_Love,
-        onError = onColorFor(RosePine_Love, rosePineDarkOnColor),
+        onError = RosePine_Love.bestInk(),
         errorContainer = RosePine_Love,
-        onErrorContainer = onColorFor(RosePine_Love, rosePineDarkOnColor),
+        onErrorContainer = RosePine_Love.bestInk(),
         surfaceBright = Color(0xFF26233A),
         surfaceDim = Color(0xFF191724),
         surfaceContainer = Color(0xFF1F1D2E),
@@ -446,5 +418,5 @@ fun getCustomDarkColorScheme(accent: AccentColor): ColorScheme {
         surfaceContainerHighest = Color(0xFF403D52),
         surfaceContainerLow = Color(0xFF1F1D2E),
         surfaceContainerLowest = Color(0xFF191724)
-    )
+    ).withReadableInk()
 }

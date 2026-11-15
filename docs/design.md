@@ -470,11 +470,50 @@ Material You dynamic colour on Android 12+, a branded Rose Pine palette
 true black. Always use semantic roles — never hard-code a colour.
 
 Custom `ColorScheme` extensions in `theme/Theme.kt`: `success`, `warning`,
-`income`, `expense`, `credit`, `transfer`, `investment`, `loan` — each resolves
-light/dark from the app's scheme. Always use these tokens, never pick a
-`*_dark` / `*_light` constant yourself. When something else must change with
-the theme, check `isAppInDarkTheme()`, not `isSystemInDarkTheme()`: Appearance
-can force Light or Dark regardless of the system.
+`income`, `expense`, `credit`, `transfer`, `investment`, `loan`. Each picks its
+light/dark base, then `readableOn()` nudges it toward black/white (in Oklab, so
+a red stays a red) just far enough to reach 4.5:1 on that scheme's surfaces.
+Always use these getters, never a `*_dark` / `*_light` constant (the only
+exception is Glance widgets, which have no `ColorScheme`). When something else
+must change with the theme, check `isAppInDarkTheme()`, not
+`isSystemInDarkTheme()`: Appearance can force Light or Dark regardless of the system.
+
+### Contrast
+
+WCAG AA, unrounded: **4.5:1** for text, **3:1** for large text (≥ 18sp, or
+14sp bold) and for marks you need to see (icons, progress, chart lines,
+outlined controls). Shared roles stay at 4.5:1 even where they're drawn large,
+because the same role also renders small labels.
+
+- **Neutral surfaces** (`neutralSurfaces`) are `background`, `surface`,
+  `surfaceVariant` and the five `surfaceContainer*` roles. `onSurface`,
+  `onSurfaceVariant`, `primary`, `error` and every semantic colour must read on
+  all eight.
+- **On a coloured fill**, use the fill's own `on*` role, plus a sign, label or
+  icon. Semantic colours on `primaryContainer` & co. are not guaranteed.
+- **A custom fill** (a semantic or category colour as a background) has no
+  `on*` role, so pass `fill.bestInk()` explicitly. `contentColorFor()` can't
+  infer one, and black-or-white always clears 4.58:1.
+- **Alpha**: check the composited colour, not the base. Never dim
+  `onSurfaceVariant` (see Alpha).
+- Hand-built schemes (default, Rosé Pine) go through `withReadableInk()`. It
+  fixes text roles and on-colours and leaves fills alone, so the look holds.
+
+### Surfaces
+
+- **Light ramps** run Lowest (lightest) → Highest (darkest); dark ramps run the
+  other way. Equal adjacent tones are fine; a reversed ramp isn't.
+- **AMOLED** is dark-only. `withAmoledSurfaces()` makes background/Lowest true
+  black and keeps a raised ramp above it, so cards still separate. It changes
+  surfaces, so every ink is re-checked against them (the tests do).
+
+### Guard tests
+
+`SchemeContrastTest` (and `PaletteContrastTest` for the fixed palettes) assert
+the floors above for every theme and accent in light, dark and AMOLED: each
+`on*`/fill pair (including inverse), and every text and semantic ink on every
+neutral surface. A new palette or accent that fails can't merge. Dynamic
+(wallpaper) colour can't be unit-tested, so check it on a device.
 
 ### What colour means
 
@@ -487,8 +526,12 @@ its meaning:
 - **Credit, transfer, investment, loan** keep their own tokens.
 - **Red (`expense` / `error`) or `warning` only for a problem**: over budget,
   overdue, a negative net or balance, low balance, limit exceeded, errors.
+  Name the problem or add an icon too: red alone fails colour-blind users.
+- **Never use `secondary` or `tertiary` as a status.** They are palette
+  accents, so tertiary is pale lilac in one theme and dark green in another.
+  "Getting close" (budget ≥ 70%, card utilisation) is `warning`.
 - **Charts keep series colours** (the expense line, legend dots): series need
-  to be told apart.
+  to be told apart. Hue alone isn't enough, so label them or vary the marker/line.
 - **Identity colours** (categories, merchants) stay.
 
 **The accent (`primary`) marks what you can act on or what is in a state:**
@@ -510,6 +553,8 @@ tinted thing can't be tapped and isn't selected or in progress, it shouldn't be
 - [ ] Secondary text is `onSurfaceVariant` at full opacity (no stacked alpha)
 - [ ] Light **and** dark theme checked
 - [ ] Dynamic colour + branded + AMOLED all checked
+- [ ] Status colours come from `warning` / `error` / semantic tokens, never `tertiary`
+- [ ] Ink on a custom fill is `fill.bestInk()`, not inherited
 - [ ] Font scaling to 200% doesn't clip or overlap
 - [ ] Section headers carry `semantics { heading() }` (`SectionHeaderV2` does)
 - [ ] Decorative icons pass `contentDescription = null`; meaningful ones don't

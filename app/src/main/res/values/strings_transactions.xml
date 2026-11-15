@@ -78,10 +78,27 @@
     <string name="txn_detail_unmark_loan_title">Unmark as loan?</string>
     <string name="txn_detail_unmark_loan_message">This removes the loan link from this transaction. If no other transactions are linked, the loan is deleted too.</string>
     <string name="txn_detail_unmark_loan_confirm">Unmark</string>
+    <!-- Unmarking leaves the loan's other transactions running the other way (e.g. undoing an overpayment that turned the loan around) -->
+    <string name="txn_detail_unmark_loan_reversal_message">Without this transaction, the rest of this loan runs the other way. Keep that as a loan, or just unmark?</string>
+    <!-- %1$s = person name, %2$s = formatted amount -->
+    <string name="txn_detail_unmark_loan_keep_you_owe">Keep: you owe %1$s %2$s</string>
+    <!-- %1$s = person name, %2$s = formatted amount -->
+    <string name="txn_detail_unmark_loan_keep_owes_you">Keep: %1$s owes you %2$s</string>
+    <string name="txn_detail_unmark_loan_only">Just unmark</string>
     <string name="txn_detail_unmark_loan">Unmark as loan</string>
     <string name="txn_detail_mark_as_loan">Mark as loan</string>
     <string name="txn_detail_loan_lent_to">Lent to %1$s</string>
     <string name="txn_detail_loan_borrowed_from">Borrowed from %1$s</string>
+    <!-- A repayment row on a loan. %1$s = person name -->
+    <string name="txn_detail_loan_repaid_by">Repaid by %1$s</string>
+    <!-- A repayment row on a loan. %1$s = person name -->
+    <string name="txn_detail_loan_repaid_to">Repaid to %1$s</string>
+    <!-- Part of a loan-linked transaction that is on the loan. %1$s = formatted amount -->
+    <string name="txn_detail_loan_part">%1$s on the loan</string>
+    <!-- Part of a loan-linked transaction that counts as the user's own spending. %1$s = formatted amount -->
+    <string name="txn_detail_loan_own_spend">%1$s your spending</string>
+    <!-- Part of a loan-linked transaction that counts as the user's own income. %1$s = formatted amount -->
+    <string name="txn_detail_loan_own_income">%1$s your income</string>
     <string name="txn_detail_receipt_full_screen">Receipt full screen</string>
     <string name="txn_detail_close">Close</string>
     <string name="txn_detail_exclude_analytics_title">Exclude from analytics</string>

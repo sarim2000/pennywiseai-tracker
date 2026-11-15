@@ -85,7 +85,10 @@ fun ChatScreen(
     val voice = rememberVoiceInput(onText = { inputText = it })
     // The mic stops with the screen; words already heard stay in the box.
     androidx.lifecycle.compose.LifecycleStartEffect(voice) {
-        onStopOrDispose { voice.cancel() }
+        onStopOrDispose {
+            voice.cancel()
+            voice.menuOpen = false
+        }
     }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
@@ -503,7 +506,8 @@ fun ChatScreen(
                                                 {
                                                     VoiceMicButton(
                                                         voice = voice,
-                                                        enabled = !uiState.isLoading && !isConfirming,
+                                                        // Stop always works; only a new recording waits for the chat.
+                                                        enabled = voice.active || (!uiState.isLoading && !isConfirming),
                                                         onTap = { voice.toggle(inputText) }
                                                     )
                                                 }

@@ -19,6 +19,7 @@ import android.speech.RecognitionSupport
 import android.speech.RecognitionSupportCallback
 import android.speech.RecognizerIntent
 import android.speech.SpeechRecognizer
+import android.view.inputmethod.InputMethodManager
 import androidx.activity.compose.LocalActivity
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
@@ -27,13 +28,12 @@ import androidx.annotation.StringRes
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.combinedClickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -41,6 +41,7 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Cloud
 import androidx.compose.material.icons.filled.Download
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.AlertDialog
@@ -52,10 +53,13 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuDefaults
+import androidx.compose.material3.SelectableDropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -67,6 +71,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -79,6 +84,7 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.startFirstAvailable
+import kotlinx.coroutines.delay
 import java.util.Locale
 
 /**
@@ -123,23 +129,40 @@ class VoiceInput internal constructor(
         private set
 
     /**
-     * Phone languages with no on-device model at all: these can only run on the phone's
+     * The user's languages with no on-device model at all: these can only run on the phone's
      * default speech service, online. Empty when that service can't be identified.
      */
     var online by mutableStateOf(emptyList<String>())
         private set
 
+    /** The user's languages: phone, then app, then keyboard languages. Re-read on [refresh]. */
+    var mine by mutableStateOf(userLanguages())
+        private set
+
+    /** False until the recognizer has said which languages it has (or if it couldn't). */
+    private var supportKnown by mutableStateOf(false)
+
     private var chosen by mutableStateOf(prefs.getString(KEY_LANGUAGE, null))
 
-    /** The language the mic uses: the saved pick while still usable, else the phone's own. */
-    val language: String? get() = pickLanguage(chosen, installed + online, phoneLanguages())
+    /** Bumped on every pick, so a download can tell whether the user chose anything since. */
+    private var picks = 0
+
+    /**
+     * Languages the mic can use. Until the recognizer answers, or if it can't, the saved pick
+     * and the user's languages, unverified: the mic still works and a wrong one says so.
+     */
+    val usable: List<String>
+        get() = if (supportKnown) installed + online else (listOfNotNull(chosen) + mine).distinct()
+
+    /** The language the mic uses: the saved pick while still usable, else the user's own. */
+    val language: String? get() = pickLanguage(chosen, usable, mine)
 
     val active get() = state != State.Idle
 
     internal var requestPermission: () -> Unit = {}
     internal var onText: (String) -> Unit = {}
     private var recognizer: SpeechRecognizer? = null
-    private var downloader: SpeechRecognizer? = null
+    private val downloads = mutableListOf<SpeechRecognizer>()
     private var prefix = ""
     private var heard = ""
     private var pendingStart = false
@@ -180,6 +203,7 @@ class VoiceInput internal constructor(
             return
         }
         chosen = tag
+        picks++
         prefs.edit { putString(KEY_LANGUAGE, tag) }
         // Switching mid-sentence says it again in the new language, replacing what was heard.
         if (state == State.Listening) {
@@ -199,6 +223,7 @@ class VoiceInput internal constructor(
             putString(KEY_LANGUAGE, ask.tag)
         }
         chosen = ask.tag
+        picks++
         if (ask.startAfter) start()
     }
 
@@ -243,8 +268,8 @@ class VoiceInput internal constructor(
         cancel()
         probe?.destroy()
         probe = null
-        downloader?.destroy()
-        downloader = null
+        downloads.forEach { it.destroy() }
+        downloads.clear()
     }
 
     private fun start() {
@@ -339,9 +364,14 @@ class VoiceInput internal constructor(
 
     private fun onlineAllowed() = onlineService()?.flattenToString()?.let { it == prefs.getString(KEY_ONLINE_OK, null) } == true
 
-    /** Re-reads what the on-device recognizer has, needs downloading, or has queued. */
-    fun refresh() {
+    /**
+     * Re-reads what the on-device recognizer has, needs downloading, or has queued. A poll
+     * ([replace] false) waits for a slow answer instead of cancelling it.
+     */
+    fun refresh(replace: Boolean = true) {
         if (!available || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        if (!replace && probe != null) return
+        mine = userLanguages()
         querySupport()
     }
 
@@ -352,7 +382,7 @@ class VoiceInput internal constructor(
         val r = SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
         probe = r
         r.checkRecognitionSupport(
-            recognizeIntent(language ?: phoneLanguages().first()),
+            recognizeIntent(language ?: Locale.getDefault().toLanguageTag()),
             ContextCompat.getMainExecutor(context),
             object : RecognitionSupportCallback {
                 override fun onSupportResult(support: RecognitionSupport) {
@@ -364,9 +394,10 @@ class VoiceInput internal constructor(
                     downloadable = support.supportedOnDeviceLanguages
                         .filter { it !in installed && it !in pending }
                         .distinct()
-                        .sortedWith(compareBy({ tag -> phoneLanguages().none { sameLanguage(it, tag) } }, { displayName(it) }))
+                        .sortedBy { displayName(it) }
                     val onDevice = installed + pending + downloadable
-                    online = if (onlineService() == null) emptyList() else onlineOnly(phoneLanguages(), onDevice)
+                    online = if (onlineService() == null) emptyList() else onlineOnly(mine, onDevice)
+                    supportKnown = true
                 }
 
                 override fun onError(error: Int) {
@@ -381,7 +412,9 @@ class VoiceInput internal constructor(
     fun download(tag: String) {
         menuOpen = false
         if (!available || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
-        val r = downloader ?: SpeechRecognizer.createOnDeviceSpeechRecognizer(context).also { downloader = it }
+        // Its own recognizer per download, so a second download can't swallow the first one's callback.
+        val r = SpeechRecognizer.createOnDeviceSpeechRecognizer(context).also { downloads += it }
+        val picksBefore = picks
         pending = pending + tag
         downloadable = downloadable - tag
         // Android asks first (with the size); the note follows its answer.
@@ -392,18 +425,24 @@ class VoiceInput internal constructor(
                 object : ModelDownloadListener {
                     override fun onProgress(completedPercent: Int) = Unit
                     override fun onSuccess() {
+                        done(r)
                         note = Note(R.string.voice_download_done, tag, isError = false)
-                        chosen = tag
-                        prefs.edit { putString(KEY_LANGUAGE, tag) }
+                        // Switch to it only if the user didn't pick something else meanwhile.
+                        if (picks == picksBefore) {
+                            chosen = tag
+                            prefs.edit { putString(KEY_LANGUAGE, tag) }
+                        }
                         refresh()
                     }
 
                     override fun onScheduled() {
+                        done(r)
                         note = Note(R.string.voice_download_scheduled, tag, isError = false)
                         refresh()
                     }
 
                     override fun onError(error: Int) {
+                        done(r)
                         note = Note(R.string.voice_download_failed, tag)
                         refresh()
                     }
@@ -414,6 +453,11 @@ class VoiceInput internal constructor(
             r.triggerModelDownload(recognizeIntent(tag))
             note = Note(R.string.voice_download_scheduled, tag, isError = false)
         }
+    }
+
+    /** A download that answered no longer needs its recognizer. */
+    private fun done(r: SpeechRecognizer) {
+        if (downloads.remove(r)) r.destroy()
     }
 
     fun displayName(tag: String): String {
@@ -428,6 +472,27 @@ class VoiceInput internal constructor(
     }
 
     fun isOnline(tag: String) = tag in online
+
+    /**
+     * Downloads worth listing up front: the user's own languages not already on the phone in some
+     * region. The rest (other languages, other English accents) sit behind "Other languages".
+     */
+    fun isSuggested(tag: String) = mine.any { sameLanguage(it, tag) } && installed.none { sameLanguage(it, tag) }
+
+    /** Phone, app, then keyboard languages, in that order. */
+    private fun userLanguages(): List<String> {
+        val phone = Resources.getSystem().configuration.locales
+        val app = context.resources.configuration.locales
+        val imm = context.getSystemService(InputMethodManager::class.java)
+        val keyboards = runCatching {
+            imm.enabledInputMethodList.flatMap { imm.getEnabledInputMethodSubtypeList(it, true) }
+                // Older keyboards only fill the legacy "ar_JO" form.
+                .map { sub -> sub.languageTag.ifBlank { @Suppress("DEPRECATION") sub.locale.replace('_', '-') } }
+        }.getOrDefault(emptyList())
+        return ((0 until phone.size()).map { phone[it].toLanguageTag() } + (0 until app.size()).map { app[it].toLanguageTag() } + keyboards)
+            .filter { it.isNotBlank() && it != "und" }
+            .distinct()
+    }
 
     private fun recognizeIntent(tag: String) = Intent(RecognizerIntent.ACTION_RECOGNIZE_SPEECH)
         .putExtra(RecognizerIntent.EXTRA_LANGUAGE_MODEL, RecognizerIntent.LANGUAGE_MODEL_FREE_FORM)
@@ -444,12 +509,6 @@ class VoiceInput internal constructor(
 
         val QUIET_ERRORS = setOf(SpeechRecognizer.ERROR_NO_MATCH, SpeechRecognizer.ERROR_SPEECH_TIMEOUT)
 
-        /** The phone's languages from system settings, not the app's own language. */
-        fun phoneLanguages(): List<String> {
-            val locales = Resources.getSystem().configuration.locales
-            return (0 until locales.size()).map { locales[it].toLanguageTag() }.distinct()
-        }
-
         fun sameLanguage(a: String, b: String) = Locale.forLanguageTag(a).language == Locale.forLanguageTag(b).language
 
         /** The saved pick while still usable, else the phone's languages in order (exact tag, then same language). */
@@ -462,9 +521,16 @@ class VoiceInput internal constructor(
             return usable.firstOrNull()
         }
 
-        /** Phone languages the on-device recognizer can't do in any region: these can only go online. */
-        fun onlineOnly(phone: List<String>, onDevice: List<String>) =
-            phone.filter { p -> onDevice.none { sameLanguage(it, p) } }
+        /**
+         * The user's languages the on-device recognizer can't do in any region: these can only go
+         * online. Regions stay apart (ar-JO, ar-EG); a bare "ar" from a keyboard is dropped when a
+         * regional Arabic is already there.
+         */
+        fun onlineOnly(mine: List<String>, onDevice: List<String>): List<String> {
+            val offline = mine.filter { p -> onDevice.none { sameLanguage(it, p) } }
+            fun bare(tag: String) = Locale.forLanguageTag(tag).let { it.toLanguageTag() == it.language }
+            return offline.filterNot { tag -> bare(tag) && offline.any { it != tag && sameLanguage(it, tag) && !bare(it) } }
+        }
 
         fun noteFor(error: Int) = Note(
             when (error) {
@@ -516,7 +582,11 @@ fun rememberVoiceInput(onText: (String) -> Unit): VoiceInput {
 @Composable
 fun VoiceMicButton(voice: VoiceInput, enabled: Boolean, onTap: () -> Unit) {
     val primary = MaterialTheme.colorScheme.primaryContainer
-    val pulse by animateFloatAsState(if (voice.state == VoiceInput.State.Listening) voice.level else 0f, label = "micLevel")
+    val pulse by animateFloatAsState(
+        if (voice.state == VoiceInput.State.Listening) voice.level else 0f,
+        animationSpec = MaterialTheme.motionScheme.fastEffectsSpec(),
+        label = "micLevel"
+    )
     val description = stringResource(if (voice.active) R.string.voice_stop else R.string.voice_start)
     val pick = stringResource(R.string.voice_language)
     Box {
@@ -569,22 +639,40 @@ fun VoiceMicButton(voice: VoiceInput, enabled: Boolean, onTap: () -> Unit) {
 
 @Composable
 private fun VoiceLanguageMenu(voice: VoiceInput) {
+    // A queued download turns into a usable language without closing the menu.
+    LaunchedEffect(voice.menuOpen, voice.pending) {
+        while (voice.menuOpen && voice.pending.isNotEmpty()) {
+            delay(PENDING_REFRESH_MS)
+            voice.refresh(replace = false)
+        }
+    }
+    var showAll by remember(voice.menuOpen) { mutableStateOf(false) }
     DropdownMenu(expanded = voice.menuOpen, onDismissRequest = { voice.menuOpen = false }) {
         val current = voice.language
-        (voice.installed + voice.online).forEach { tag ->
-            DropdownMenuItem(
-                text = { Text(voice.displayName(tag)) },
-                onClick = { voice.select(tag) },
-                leadingIcon = {
-                    if (tag == current) Icon(Icons.Default.Check, contentDescription = null) else Spacer(Modifier.width(24.dp))
+        val usable = voice.usable
+        usable.forEachIndexed { index, tag ->
+            SelectableDropdownMenuItem(
+                selected = tag == current,
+                text = {
+                    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        Text(voice.displayName(tag))
+                        if (voice.isOnline(tag)) {
+                            Icon(
+                                Icons.Default.Cloud,
+                                contentDescription = stringResource(R.string.voice_online),
+                                modifier = Modifier.size(Dimensions.Icon.small)
+                            )
+                        }
+                    }
                 },
-                trailingIcon = if (voice.isOnline(tag)) {
-                    { Icon(Icons.Default.Cloud, contentDescription = stringResource(R.string.voice_online)) }
-                } else {
-                    null
-                }
+                onClick = { voice.select(tag) },
+                shapes = MenuDefaults.itemShape(index, usable.size),
+                colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
+                selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
             )
         }
+        val (mine, others) = voice.downloadable.partition(voice::isSuggested)
+        val shown = if (showAll) mine + others else mine
         if (voice.pending.isNotEmpty() || voice.downloadable.isNotEmpty()) {
             HorizontalDivider()
             DropdownMenuItem(
@@ -606,16 +694,25 @@ private fun VoiceLanguageMenu(voice: VoiceInput) {
                     trailingIcon = { Text(stringResource(R.string.voice_download_pending), style = MaterialTheme.typography.labelSmall) }
                 )
             }
-            voice.downloadable.forEach { tag ->
+            shown.forEach { tag ->
                 DropdownMenuItem(
                     text = { Text(voice.displayName(tag)) },
                     onClick = { voice.download(tag) },
                     trailingIcon = { Icon(Icons.Default.Download, contentDescription = stringResource(R.string.voice_download)) }
                 )
             }
+            if (!showAll && others.isNotEmpty()) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.voice_other_languages)) },
+                    onClick = { showAll = true },
+                    trailingIcon = { Icon(Icons.Default.ExpandMore, contentDescription = null) }
+                )
+            }
         }
     }
 }
+
+private const val PENDING_REFRESH_MS = 2_000L
 
 /** Replaces the quick questions while the mic is on, or to say what went wrong. */
 @Composable

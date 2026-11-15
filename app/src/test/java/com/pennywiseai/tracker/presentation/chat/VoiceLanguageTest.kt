@@ -41,4 +41,19 @@ class VoiceLanguageTest {
             VoiceInput.onlineOnly(listOf("en-GB", "ar-JO", "hi-IN"), listOf("en-US", "hi-IN"))
         )
     }
+
+    @Test
+    fun `a language from both the phone and the keyboard is offered online once`() {
+        assertEquals(listOf("ar-JO"), VoiceInput.onlineOnly(listOf("en-US", "ar-JO", "ar"), listOf("en-US")))
+    }
+
+    @Test
+    fun `regional languages stay apart online`() {
+        assertEquals(listOf("ar-JO", "ar-EG"), VoiceInput.onlineOnly(listOf("ar-JO", "ar-EG", "ar"), listOf("en-US")))
+    }
+
+    @Test
+    fun `a script tag is not a bare language`() {
+        assertEquals(listOf("sr-Latn", "sr-RS"), VoiceInput.onlineOnly(listOf("sr-Latn", "sr-RS"), emptyList()))
+    }
 }

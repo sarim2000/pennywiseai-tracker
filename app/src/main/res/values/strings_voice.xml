@@ -10,6 +10,7 @@
     <string name="voice_download">Download</string>
     <string name="voice_download_header">Download for offline use</string>
     <string name="voice_download_pending">Pending</string>
+    <string name="voice_other_languages">Other languages</string>
     <string name="voice_download_scheduled">%1$s is downloading in the background. It\'ll be in the list when it\'s ready.</string>
     <string name="voice_download_done">%1$s is ready.</string>
     <string name="voice_download_failed">Couldn\'t download %1$s.</string>

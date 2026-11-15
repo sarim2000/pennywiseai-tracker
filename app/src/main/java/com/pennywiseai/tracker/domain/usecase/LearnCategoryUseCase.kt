@@ -1,8 +1,9 @@
 package com.pennywiseai.tracker.domain.usecase
 
-import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.withTransaction
+import com.pennywiseai.tracker.data.ledger.isAtmMerchant
 import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
@@ -18,7 +19,8 @@ import javax.inject.Singleton
  * merchant is remembered so its next SMS is filed on arrival, and its earlier
  * transactions of the same kind still sitting in "Others" move along.
  * Transactions the user already filed elsewhere are left alone, and so are
- * loan-linked and split rows. [undo] reverses the latest lesson.
+ * loan-linked and split rows. [undo] reverses the latest lesson; [forget]
+ * reverses it but keeps the pick ("Only this one", #1029).
  *
  * A parser placeholder ("UPI Payment", "ATM Withdrawal") names a channel, not
  * a place: picking for one files only that row.
@@ -91,7 +93,24 @@ class LearnCategoryUseCase @Inject constructor(
      * back. Rows go back only while they are still in its category, so a later
      * edit stands. Returns whether anything was undone.
      */
-    suspend fun undo(learned: Learned): Boolean = lock.withLock {
+    suspend fun undo(learned: Learned): Boolean = lock.withLock { reverse(learned, keepPick = false) }
+
+    /**
+     * "Only this one": like [undo], but the picked row keeps [Learned.category];
+     * only the merchant's mapping and the moved rows go back. Same latest-lesson
+     * guard, and the row must still hold the pick, so a newer save stands.
+     *
+     * [announce] runs on success while the lock is still held, so its note can't
+     * land after (and over) the note of a pick made since.
+     */
+    suspend fun forget(learned: Learned, announce: () -> Unit = {}): Boolean = lock.withLock {
+        val forgot = learned.merchant != null &&
+            transactionRepository.getTransactionById(learned.transactionId)?.category == learned.category &&
+            reverse(learned, keepPick = true)
+        forgot.also { if (it) announce() }
+    }
+
+    private suspend fun reverse(learned: Learned, keepPick: Boolean): Boolean =
         database.withTransaction {
             val merchant = learned.merchant
             if (merchant != null) {
@@ -106,10 +125,11 @@ class LearnCategoryUseCase @Inject constructor(
                 }
                 transactionRepository.moveCategory(learned.movedIds, from = learned.category, to = BuiltinCategoryNames.current("Others"))
             }
-            transactionRepository.moveCategory(listOf(learned.transactionId), from = learned.category, to = learned.previousCategory)
+            if (!keepPick) {
+                transactionRepository.moveCategory(listOf(learned.transactionId), from = learned.category, to = learned.previousCategory)
+            }
             true
         }
-    }
 
     internal companion object {
         /**
@@ -118,7 +138,6 @@ class LearnCategoryUseCase @Inject constructor(
          * has no shared constant for these, so they are matched by shape.
          */
         private val PLACEHOLDER_NAMES = setOf("unknown merchant", "transfer", "transaction alert")
-        private val ATM = Regex("""\batm\b""")
         private val CHANNEL = Regex(
             """(upi|neft|imps|rtgs|ibft|raast|tips|npsb|visa|pos|fund|bank|account|cash|wallet|mobile money|mobile banking)""" +
                 """( (transfer|credit|debit|transaction|payment|withdrawal|deposit|load))?|transfer via .*"""
@@ -126,7 +145,7 @@ class LearnCategoryUseCase @Inject constructor(
 
         fun isPlaceholderMerchant(name: String): Boolean {
             val n = name.trim().lowercase()
-            return n.isEmpty() || n in PLACEHOLDER_NAMES || ATM.containsMatchIn(n) || CHANNEL.matches(n)
+            return n.isEmpty() || n in PLACEHOLDER_NAMES || isAtmMerchant(n) || CHANNEL.matches(n)
         }
 
         /**

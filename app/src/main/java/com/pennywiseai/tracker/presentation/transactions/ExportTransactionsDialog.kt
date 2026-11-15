@@ -1,15 +1,8 @@
 package com.pennywiseai.tracker.presentation.transactions
 
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.pennywiseai.tracker.utils.AppDates
-
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
 import android.content.Intent
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.automirrored.filled.InsertDriveFile
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -17,13 +10,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import kotlinx.coroutines.launch
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.BuildConfig
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.export.ExportResult
 import com.pennywiseai.tracker.ui.components.SupportDevelopmentDialog
@@ -31,7 +27,9 @@ import com.pennywiseai.tracker.ui.components.SupportNudgeCard
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import kotlinx.coroutines.launch
 import java.text.DecimalFormat
 import java.time.format.DateTimeFormatter
 
@@ -59,7 +57,7 @@ fun ExportTransactionsDialog(
             showSupportNudge = true
         }
     }
-    val csvLimit = com.pennywiseai.tracker.billing.FreeTierLimits.MAX_CSV_EXPORT_ROWS_PER_MONTH
+    val csvLimit = com.pennywiseai.tracker.core.entitlement.FreeTierLimits.MAX_CSV_EXPORT_ROWS_PER_MONTH
     // Free users get the FIRST `csvLimit` rows on every export — never a
     // hard block. The advertised free tier is "first 100 rows," so we
     // actually deliver them when the selection exceeds the limit. Pro is
@@ -67,7 +65,7 @@ fun ExportTransactionsDialog(
     // it's never a silent surprise.
     val willTruncate = !isProEntitled && transactions.size > csvLimit
     val transactionsToExport = if (willTruncate) transactions.take(csvLimit) else transactions
-    
+
     Dialog(onDismissRequest = {
         if (exportState !is ExportState.Exporting) {
             onDismiss()
@@ -91,7 +89,7 @@ fun ExportTransactionsDialog(
                     is ExportState.Success -> Icons.Default.CheckCircle
                     is ExportState.Error -> Icons.Default.Error
                 }
-                
+
                 Icon(
                     imageVector = icon,
                     contentDescription = null,
@@ -102,9 +100,9 @@ fun ExportTransactionsDialog(
                         else -> MaterialTheme.colorScheme.onSurfaceVariant
                     }
                 )
-                
+
                 Spacer(modifier = Modifier.height(16.dp))
-                
+
                 // Title
                 Text(
                     text = when (exportState) {
@@ -116,9 +114,9 @@ fun ExportTransactionsDialog(
                     style = MaterialTheme.typography.headlineSmall,
                     textAlign = TextAlign.Center
                 )
-                
+
                 Spacer(modifier = Modifier.height(8.dp))
-                
+
                 // Content based on state
                 when (val state = exportState) {
                     is ExportState.Ready -> {
@@ -128,9 +126,9 @@ fun ExportTransactionsDialog(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
                         )
-                        
+
                         Spacer(modifier = Modifier.height(16.dp))
-                        
+
                         // Summary info
                         PennyWiseCardV2(
                             colors = CardDefaults.cardColors(
@@ -139,45 +137,45 @@ fun ExportTransactionsDialog(
                             modifier = Modifier.fillMaxWidth(),
                             contentPadding = 12.dp
                         ) {
-                                // Total transactions row
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween
+                            // Total transactions row
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.txn_export_total_transactions),
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                                Text(
+                                    text = transactions.size.toString(),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+
+                            // Date range in column layout to prevent wrapping
+                            if (transactions.isNotEmpty()) {
+                                Spacer(modifier = Modifier.height(8.dp))
+
+                                val dateFormatter = AppDates.dateFormatter()
+                                val startDate = transactions.last().dateTime.format(dateFormatter)
+                                val endDate = transactions.first().dateTime.format(dateFormatter)
+
+                                Column(
+                                    modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Text(
-                                        text = stringResource(R.string.txn_export_total_transactions),
-                                        style = MaterialTheme.typography.bodySmall
+                                        text = stringResource(R.string.txn_export_date_range),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Text(
-                                        text = transactions.size.toString(),
+                                        text = stringResource(R.string.txn_export_date_range_value, startDate, endDate),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                 }
-                                
-                                // Date range in column layout to prevent wrapping
-                                if (transactions.isNotEmpty()) {
-                                    Spacer(modifier = Modifier.height(8.dp))
-
-                                    val dateFormatter = AppDates.dateFormatter()
-                                    val startDate = transactions.last().dateTime.format(dateFormatter)
-                                    val endDate = transactions.first().dateTime.format(dateFormatter)
-
-                                    Column(
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Text(
-                                            text = stringResource(R.string.txn_export_date_range),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                        Text(
-                                            text = stringResource(R.string.txn_export_date_range_value, startDate, endDate),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                    }
-                                }
+                            }
                         }
 
                         // Free-tier truncation notice. Shown ONLY when we're
@@ -217,16 +215,16 @@ fun ExportTransactionsDialog(
                             progress = { state.progress },
                             modifier = Modifier.fillMaxWidth(),
                         )
-                        
+
                         Spacer(modifier = Modifier.height(8.dp))
-                        
+
                         Text(
                             text = state.message,
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    
+
                     is ExportState.Success -> {
                         Text(
                             text = pluralStringResource(R.plurals.txn_export_success_message, state.transactionCount, state.transactionCount),
@@ -234,9 +232,9 @@ fun ExportTransactionsDialog(
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
                         )
-                        
+
                         Spacer(modifier = Modifier.height(8.dp))
-                        
+
                         // File info
                         PennyWiseCardV2(
                             colors = CardDefaults.cardColors(
@@ -288,9 +286,9 @@ fun ExportTransactionsDialog(
                         )
                     }
                 }
-                
+
                 Spacer(modifier = Modifier.height(24.dp))
-                
+
                 // Buttons
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -305,7 +303,7 @@ fun ExportTransactionsDialog(
                             ) {
                                 Text(stringResource(R.string.txn_export_action_cancel))
                             }
-                            
+
                             Button(
                                 onClick = {
                                     // Always export the (possibly truncated)
@@ -347,11 +345,11 @@ fun ExportTransactionsDialog(
                                 )
                             }
                         }
-                        
+
                         is ExportState.Exporting -> {
                             // No buttons during export
                         }
-                        
+
                         is ExportState.Success -> {
                             TextButton(
                                 onClick = onDismiss,
@@ -360,7 +358,7 @@ fun ExportTransactionsDialog(
                             ) {
                                 Text(stringResource(R.string.txn_export_action_done))
                             }
-                            
+
                             Button(
                                 onClick = {
                                     // Share the exported file
@@ -384,7 +382,7 @@ fun ExportTransactionsDialog(
                                 Text(stringResource(R.string.txn_export_action_share))
                             }
                         }
-                        
+
                         is ExportState.Error -> {
                             TextButton(
                                 onClick = onDismiss,
@@ -393,7 +391,7 @@ fun ExportTransactionsDialog(
                             ) {
                                 Text(stringResource(R.string.txn_export_action_close))
                             }
-                            
+
                             Button(
                                 onClick = {
                                     exportState = ExportState.Ready

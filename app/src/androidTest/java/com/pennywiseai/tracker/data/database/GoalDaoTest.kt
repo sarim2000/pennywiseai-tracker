@@ -7,7 +7,7 @@ import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
 import com.pennywiseai.tracker.data.database.entity.GoalEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.receiver.BankNotificationConfig
+import com.pennywiseai.tracker.data.notification.BankNotificationConfig
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.After

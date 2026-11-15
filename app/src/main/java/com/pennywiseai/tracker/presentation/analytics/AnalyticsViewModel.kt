@@ -3,49 +3,49 @@ package com.pennywiseai.tracker.presentation.analytics
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
-import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
+import com.pennywiseai.tracker.data.database.entity.expandWithChildren
+import com.pennywiseai.tracker.data.database.entity.parentNameOf
+import com.pennywiseai.tracker.data.ledger.countingTransferPairsOnce
+import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.ProfileRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
-import com.pennywiseai.tracker.utils.countingTransferPairsOnce
-import kotlinx.coroutines.ExperimentalCoroutinesApi
-import com.pennywiseai.tracker.presentation.common.TimePeriod
+import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
+import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
+import com.pennywiseai.tracker.domain.model.filterTransactionsByProfile
+import com.pennywiseai.tracker.domain.spending.SpendForecast
 import com.pennywiseai.tracker.domain.spending.analyticsRowsFor
 import com.pennywiseai.tracker.domain.spending.defaultTypeFilter
 import com.pennywiseai.tracker.domain.spending.netOf
 import com.pennywiseai.tracker.domain.spending.refundNetting
 import com.pennywiseai.tracker.presentation.common.AccountOption
+import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.accountOptions
-import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
-import com.pennywiseai.tracker.domain.model.filterTransactionsByProfile
-import com.pennywiseai.tracker.data.database.entity.expandWithChildren
-import com.pennywiseai.tracker.data.database.entity.parentNameOf
 import com.pennywiseai.tracker.presentation.common.getCycleAwareDateRange
 import com.pennywiseai.tracker.presentation.common.getDateRangeForPeriod
+import com.pennywiseai.tracker.ui.components.BalancePoint
 import com.pennywiseai.tracker.utils.CurrencyUtils
 import com.pennywiseai.tracker.utils.Money
-import com.pennywiseai.tracker.utils.forTotals
-import com.pennywiseai.tracker.R
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
-import com.pennywiseai.tracker.domain.model.BudgetCycle
-import com.pennywiseai.tracker.domain.spending.SpendForecast
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.temporal.ChronoUnit
 import javax.inject.Inject
-import com.pennywiseai.tracker.ui.components.BalancePoint
 
 enum class ChartType { LINE, BAR, HEATMAP }
 
@@ -122,14 +122,14 @@ class AnalyticsViewModel @Inject constructor(
     fun selectProfile(id: Long?) {
         viewModelScope.launch { userPreferencesRepository.updateSelectedProfileId(id) }
     }
-    
+
     private val _selectedPeriod = MutableStateFlow(TimePeriod.THIS_MONTH)
     val selectedPeriod: StateFlow<TimePeriod> = _selectedPeriod.asStateFlow()
 
     /** Drives the period chip's date label (#686). */
     val budgetCycleStartDay: StateFlow<Int> = userPreferencesRepository.budgetCycleStartDay
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), 1)
-    
+
     private val typeFilter = TypeFilterSelection()
     val transactionTypeFilter: StateFlow<TransactionTypeFilter> = typeFilter.value
 
@@ -890,4 +890,3 @@ data class MerchantData(
     val transactionCount: Int,
     val isSubscription: Boolean
 )
-

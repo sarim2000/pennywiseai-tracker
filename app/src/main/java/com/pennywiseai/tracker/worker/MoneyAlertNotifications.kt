@@ -14,7 +14,7 @@ import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.domain.spending.BudgetAlertTier
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.bidiIsolate
-import com.pennywiseai.tracker.widget.inAppLanguage
+import com.pennywiseai.tracker.utils.inAppLanguage
 import java.math.BigDecimal
 import java.math.RoundingMode
 

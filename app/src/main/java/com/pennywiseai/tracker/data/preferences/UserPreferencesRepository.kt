@@ -10,22 +10,24 @@ import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
-import com.pennywiseai.tracker.domain.spending.BudgetAlertTier
-import com.pennywiseai.tracker.domain.spending.MoneyAlertRules
+import com.pennywiseai.tracker.core.DateFormatStyle
+import com.pennywiseai.tracker.core.NumberFormatStyle
+import com.pennywiseai.tracker.core.TransactionWidgets
+import com.pennywiseai.tracker.data.preferences.HomeSection
+import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
 import com.pennywiseai.tracker.data.share.ShareCardConfig
 import com.pennywiseai.tracker.data.share.ShareHero
 import com.pennywiseai.tracker.data.share.SharePeriod
-import com.pennywiseai.tracker.data.preferences.HomeSection
-import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
 import com.pennywiseai.tracker.domain.conscience.ConscienceCadence
 import com.pennywiseai.tracker.domain.conscience.ConscienceCandidate
 import com.pennywiseai.tracker.domain.conscience.ConscienceChoice
-import com.pennywiseai.tracker.widget.WidgetRefresher
+import com.pennywiseai.tracker.domain.spending.BudgetAlertTier
+import com.pennywiseai.tracker.domain.spending.MoneyAlertRules
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
-import java.time.LocalDate
 import kotlinx.coroutines.flow.map
+import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.random.Random
@@ -69,8 +71,8 @@ const val DAILY_SUMMARY_DEFAULT = false
 
 @Singleton
 open class UserPreferencesRepository internal constructor(
-    private val context: Context,
-    private val dataStore: DataStore<Preferences>
+    private val dataStore: DataStore<Preferences>,
+    private val transactionWidgets: TransactionWidgets
 ) : CurrencyPreferences,
     BudgetPreferences,
     ScanPreferences,
@@ -82,7 +84,10 @@ open class UserPreferencesRepository internal constructor(
     // Production always takes the delegate: a second DataStore on the same file throws.
     // The internal constructor exists so tests can give each case its own empty file.
     @Inject
-    constructor(@ApplicationContext context: Context) : this(context, context.dataStore)
+    constructor(
+        @ApplicationContext context: Context,
+        transactionWidgets: TransactionWidgets
+    ) : this(context.dataStore, transactionWidgets)
 
     internal object PreferencesKeys {
         val DARK_THEME_ENABLED = booleanPreferencesKey("dark_theme_enabled")
@@ -94,6 +99,7 @@ open class UserPreferencesRepository internal constructor(
         val HAS_SKIPPED_SMS_PERMISSION = booleanPreferencesKey("has_skipped_sms_permission")
         val DEVELOPER_MODE_ENABLED = booleanPreferencesKey("developer_mode_enabled")
         val COUNT_CREDIT_AS_EXPENSE = booleanPreferencesKey("count_credit_as_expense")
+        val ATM_CASH_TO_WALLET = booleanPreferencesKey("atm_cash_to_wallet")
         val DAILY_SUMMARY_ENABLED = booleanPreferencesKey("daily_summary_enabled")
         val BACKGROUND_OEM_STEP_CONFIRMED_ON = stringPreferencesKey("background_oem_step_confirmed_on")
         val BUDGET_ALERTS_ENABLED = booleanPreferencesKey("budget_alerts_enabled")
@@ -132,6 +138,8 @@ open class UserPreferencesRepository internal constructor(
         // not within 30 days. Device-local.
         val RECURRING_HOME_CARD_SEEN = stringSetPreferencesKey("recurring_home_card_seen")
         val RECURRING_HOME_CARD_DISMISSED_AT = longPreferencesKey("recurring_home_card_dismissed_at")
+        // The Home "tracking may miss transactions" card stays hidden until this epoch ms. Device-local.
+        val TRACKING_CARD_SNOOZED_UNTIL = longPreferencesKey("tracking_card_snoozed_until")
         // "Track as … bill" on transaction alerts: "key|epochDay" per merchant
         // offered, to cap how often it's offered. Device-local.
         val RECURRING_OFFER_LOG = stringSetPreferencesKey("recurring_offer_log")
@@ -390,10 +398,19 @@ open class UserPreferencesRepository internal constructor(
             preferences[PreferencesKeys.HAS_SKIPPED_SMS_PERMISSION] = skipped
         }
     }
-    
+
     suspend fun setDeveloperModeEnabled(enabled: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.DEVELOPER_MODE_ENABLED] = enabled
+        }
+    }
+
+    override val atmCashToWallet: Flow<Boolean> = dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.ATM_CASH_TO_WALLET] ?: false }
+
+    suspend fun setAtmCashToWallet(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.ATM_CASH_TO_WALLET] = enabled
         }
     }
 
@@ -486,7 +503,7 @@ open class UserPreferencesRepository internal constructor(
 
     private fun lowBalanceToldKey(bankName: String, accountLast4: String) =
         booleanPreferencesKey("low_balance_told_$bankName|$accountLast4")
-    
+
     override val conscienceEnabled: Flow<Boolean> = dataStore.data
         .map { it[PreferencesKeys.CONSCIENCE_ENABLED] ?: false }
 
@@ -535,41 +552,41 @@ open class UserPreferencesRepository internal constructor(
             preferences[PreferencesKeys.SYSTEM_PROMPT] = prompt
         }
     }
-    
+
     fun getSystemPrompt(): Flow<String?> = dataStore.data
         .map { preferences ->
             preferences[PreferencesKeys.SYSTEM_PROMPT]
         }
-    
+
     suspend fun markScanTutorialShown() {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.HAS_SHOWN_SCAN_TUTORIAL] = true
         }
     }
-    
+
     suspend fun saveActiveDownloadId(id: Long) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.ACTIVE_DOWNLOAD_ID] = id
         }
     }
-    
+
     suspend fun getActiveDownloadId(): Long? {
         return dataStore.data
             .map { preferences -> preferences[PreferencesKeys.ACTIVE_DOWNLOAD_ID] }
             .first()
     }
-    
+
     suspend fun clearActiveDownloadId() {
         dataStore.edit { preferences ->
             preferences.remove(PreferencesKeys.ACTIVE_DOWNLOAD_ID)
         }
     }
-    
+
     override val smsScanMonths: Flow<Int> = dataStore.data
         .map { preferences ->
             preferences[PreferencesKeys.SMS_SCAN_MONTHS] ?: 3 // Default to 3 months
         }
-    
+
     override suspend fun updateSmsScanMonths(months: Int) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.SMS_SCAN_MONTHS] = months
@@ -630,13 +647,13 @@ open class UserPreferencesRepository internal constructor(
             .map { preferences -> preferences[PreferencesKeys.SMS_SCAN_CUSTOM_DATE] }
             .first()
     }
-    
+
     override suspend fun setLastScanTimestamp(timestamp: Long) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.LAST_SCAN_TIMESTAMP] = timestamp
         }
     }
-    
+
     override suspend fun setLastScanPeriod(period: Int) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.LAST_SCAN_PERIOD] = period
@@ -720,6 +737,14 @@ open class UserPreferencesRepository internal constructor(
         dataStore.edit { it[PreferencesKeys.PAYDAY_SUGGESTION_HANDLED] = true }
     }
 
+    /** Epoch ms until which the Home tracking warning stays hidden; 0 = not snoozed. */
+    val trackingCardSnoozedUntil: Flow<Long> = dataStore.data
+        .map { it[PreferencesKeys.TRACKING_CARD_SNOOZED_UNTIL] ?: 0L }
+
+    suspend fun snoozeTrackingCard(untilMillis: Long) {
+        dataStore.edit { it[PreferencesKeys.TRACKING_CARD_SNOOZED_UNTIL] = untilMillis }
+    }
+
     /** Recurring-bill suggestions marked "Not recurring"; they never come back. */
     override val dismissedRecurringSuggestions: Flow<Set<String>> = dataStore.data
         .map { it[PreferencesKeys.DISMISSED_RECURRING_SUGGESTIONS] ?: emptySet() }
@@ -798,77 +823,77 @@ open class UserPreferencesRepository internal constructor(
             preferences[PreferencesKeys.FIRST_LAUNCH_TIME] = timestamp
         }
     }
-    
+
     suspend fun hasShownReviewPrompt(): Boolean {
         return dataStore.data
             .map { preferences -> preferences[PreferencesKeys.HAS_SHOWN_REVIEW_PROMPT] ?: false }
             .first()
     }
-    
+
     suspend fun markReviewPromptShown() {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.HAS_SHOWN_REVIEW_PROMPT] = true
             preferences[PreferencesKeys.LAST_REVIEW_PROMPT_TIME] = System.currentTimeMillis()
         }
     }
-    
+
     // Flow methods for backup/restore
     override fun getLastScanTimestamp(): Flow<Long?> = dataStore.data
         .map { preferences -> preferences[PreferencesKeys.LAST_SCAN_TIMESTAMP] }
-    
+
     override fun getLastScanPeriod(): Flow<Int?> = dataStore.data
         .map { preferences -> preferences[PreferencesKeys.LAST_SCAN_PERIOD] }
-    
+
     fun getFirstLaunchTime(): Flow<Long?> = dataStore.data
         .map { preferences -> preferences[PreferencesKeys.FIRST_LAUNCH_TIME] }
-    
+
     fun getHasShownReviewPrompt(): Flow<Boolean> = dataStore.data
         .map { preferences -> preferences[PreferencesKeys.HAS_SHOWN_REVIEW_PROMPT] ?: false }
-    
+
     fun getLastReviewPromptTime(): Flow<Long?> = dataStore.data
         .map { preferences -> preferences[PreferencesKeys.LAST_REVIEW_PROMPT_TIME] }
-    
+
     // Update methods for import
     suspend fun updateDarkTheme(enabled: Boolean?) {
         updateDarkThemeEnabled(enabled)
     }
-    
+
     suspend fun updateDynamicColor(enabled: Boolean) {
         updateDynamicColorEnabled(enabled)
     }
-    
+
     suspend fun updateHasSkippedSmsPermission(skipped: Boolean) {
         updateSkippedSmsPermission(skipped)
     }
-    
+
     suspend fun updateDeveloperMode(enabled: Boolean) {
         setDeveloperModeEnabled(enabled)
     }
-    
+
     suspend fun updateLastScanTimestamp(timestamp: Long) {
         setLastScanTimestamp(timestamp)
     }
-    
+
     suspend fun updateLastScanPeriod(period: Int) {
         setLastScanPeriod(period)
     }
-    
+
     suspend fun updateFirstLaunchTime(timestamp: Long) {
         setFirstLaunchTime(timestamp)
     }
-    
+
     suspend fun updateHasShownScanTutorial(shown: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.HAS_SHOWN_SCAN_TUTORIAL] = shown
         }
     }
-    
+
     suspend fun updateHasShownReviewPrompt(shown: Boolean) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.HAS_SHOWN_REVIEW_PROMPT] = shown
         }
     }
-    
+
     suspend fun updateLastReviewPromptTime(timestamp: Long) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.LAST_REVIEW_PROMPT_TIME] = timestamp
@@ -1136,7 +1161,7 @@ open class UserPreferencesRepository internal constructor(
             preferences[PreferencesKeys.BUDGET_CYCLE_START_DAY] = clamped
         }
         // Every widget computes "this cycle" from this day.
-        WidgetRefresher.refreshTransactionWidgets(context)
+        transactionWidgets.refresh()
     }
 
     /**
@@ -1194,7 +1219,7 @@ open class UserPreferencesRepository internal constructor(
             preferences[PreferencesKeys.BALANCE_HIDDEN] = hidden
         }
         // The widgets' totals follow the same eye.
-        WidgetRefresher.refreshTransactionWidgets(context)
+        transactionWidgets.refresh()
     }
 
     /**
@@ -1209,7 +1234,7 @@ open class UserPreferencesRepository internal constructor(
             hidden = !(preferences[PreferencesKeys.BALANCE_HIDDEN] ?: hiddenWhenUnset)
             preferences[PreferencesKeys.BALANCE_HIDDEN] = hidden
         }
-        WidgetRefresher.refreshTransactionWidgets(context)
+        transactionWidgets.refresh()
         return hidden
     }
 
@@ -1271,7 +1296,7 @@ open class UserPreferencesRepository internal constructor(
             }
         }
         // The spend widgets are scoped to the selected profile.
-        WidgetRefresher.refreshTransactionWidgets(context)
+        transactionWidgets.refresh()
     }
 
     // Blur Effects

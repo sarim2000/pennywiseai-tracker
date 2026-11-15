@@ -35,7 +35,6 @@ import androidx.navigation3.ui.NavDisplay
 import androidx.savedstate.serialization.encodeToSavedState
 import com.pennywiseai.tracker.ui.LocalNavAnimatedVisibilityScope
 import com.pennywiseai.tracker.ui.LocalSharedTransitionScope
-import com.pennywiseai.tracker.ui.MainScreen
 import com.pennywiseai.tracker.ui.animations.LocalNavEntrance
 import com.pennywiseai.tracker.ui.animations.pwPop
 import com.pennywiseai.tracker.ui.animations.pwPredictivePop

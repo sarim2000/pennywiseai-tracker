@@ -193,6 +193,8 @@
     </plurals>
     <string name="budget_card_spent_of">Umetumia %1$s kati ya %2$s</string>
     <!-- Budget pace: spending compared with an even spend across the period -->
+    <!-- Tap action on the pace status / chart legend: shows the explanation below -->
+    <!-- Shown under the pace status on the budget card -->
     <string name="budget_cadence_weekly">Kila wiki</string>
     <string name="budget_cadence_monthly">Kila mwezi</string>
     <string name="budget_cadence_one_time">Mara moja</string>
@@ -223,6 +225,7 @@
     <string name="txn_item_tag_recurring">Unajirudia</string>
     <string name="txn_item_tag_business">Biashara</string>
     <string name="txn_item_tag_excluded">Haujahesabiwa</string>
+    <!-- A split row in a category-filtered list: its full amount, e.g. "Split of ₹10,000" -->
     <string name="txn_item_balance_after">Salio %1$s</string>
     <!-- %1$s is the last 4 digits of the other account -->
     <string name="txn_item_transfer_to">Uhamisho → %1$s</string>
@@ -282,6 +285,8 @@
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">Imehifadhiwa kama %1$s</string>
     <string name="notif_txn_learned_text">Malipo ya hapa yatapangwa yenyewe kuanzia sasa.</string>
+    <!-- Learned-note action: keep this pick, but don't remember the merchant -->
+    <string name="notif_txn_learned_only_this_one">Huu tu</string>
     <plurals name="notif_txn_learned_moved">
         <item quantity="one">Muamala %d wa awali pia umehamishwa.</item>
         <item quantity="other">Miamala %d ya awali pia imehamishwa.</item>

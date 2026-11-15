@@ -224,6 +224,11 @@
         <item quantity="one">%1$d day over pace</item>
         <item quantity="other">%1$d days over pace</item>
     </plurals>
+    <!-- Tap action on the pace status / chart legend: shows the explanation below -->
+    <string name="budget_pace_what_is">What is pace?</string>
+    <string name="budget_pace_explainer">Pace compares what you\'ve spent with spending your budget evenly across its period.</string>
+    <!-- Shown under the pace status on the budget card -->
+    <string name="budget_pace_explainer_card">Pace compares your spending with spending this budget evenly over its period. Over pace means you\'ve spent more than an even pace would by today; under means less. The number of days is how far ahead or behind that even pace your spending is. The tick on the bar marks today\'s even pace.</string>
     <string name="budget_cadence_weekly">Weekly</string>
     <string name="budget_cadence_monthly">Monthly</string>
     <string name="budget_cadence_one_time">One-time</string>
@@ -258,6 +263,8 @@
     <string name="txn_item_tag_recurring">Recurring</string>
     <string name="txn_item_tag_business">Business</string>
     <string name="txn_item_tag_excluded">Excluded</string>
+    <!-- A split row in a category-filtered list: its full amount, e.g. "Split of ₹10,000" -->
+    <string name="txn_item_tag_split_of">Split of %1$s</string>
     <string name="txn_item_balance_after">Bal %1$s</string>
     <!-- %1$s is the last 4 digits of the other account -->
     <string name="txn_item_transfer_to">Transfer → %1$s</string>
@@ -328,6 +335,8 @@
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">Saved as %1$s</string>
     <string name="notif_txn_learned_text">Payments here will be sorted automatically from now on.</string>
+    <!-- Learned-note action: keep this pick, but don't remember the merchant -->
+    <string name="notif_txn_learned_only_this_one">Only this one</string>
     <plurals name="notif_txn_learned_moved">
         <item quantity="one">%d earlier one moved too.</item>
         <item quantity="other">%d earlier ones moved too.</item>

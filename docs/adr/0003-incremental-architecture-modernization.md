@@ -16,10 +16,16 @@ The Android app is one `:app` module of about 500 Kotlin files. Its top-level pa
 
 ## Deferred
 
-- **Feature Gradle modules.** Screens import `data` directly (330 imports from `presentation` alone), and `data` imports back into `presentation`, `ui`, `worker`, `receiver` and `widget`. A `:feature:*` module would need `:app` on its classpath, which Gradle cannot do. The data layer, or at least the contracts features use, has to come out of `:app` first. Revisit once a pilot feature package has no back-edges.
-- **Convention plugins (`build-logic/`).** There is one Android application module, one Android test module (`:baselineprofile`) and two Kotlin Multiplatform modules configured differently. A convention plugin earns its keep when several modules share a configuration. Today it would move build code around without removing any duplication. Add it in the PR that creates the second module of a kind.
-- **Detekt.** Its compatibility with Kotlin 2.4.21 and AGP 9.5 is not yet verified. If a release works with this toolchain, pilot it in report-only mode with a baseline.
-- **Compose screenshot tests.** No screenshot tool has been checked against AGP 9.5, and no screen is being split yet. Add tests with the first PR that splits a large screen, for the states that PR touches.
-- **Renovate.** Automated update PRs are only safe once CI gates are trustworthy, and Kotlin, AGP, Room, Hilt, KSP, WorkManager, billing and LiteRT bumps need a person to review them anyway. Revisit after the guardrails land.
-- **Kover.** A coverage number with no tests on the critical paths invites vanity targets. Add reporting for money, backup and parser code once those have targeted tests.
+Status as of 2026-11-12. The original reasoning is kept under each item.
+
+- **Feature Gradle modules. Started.** `:feature:exchangerates` and `:feature:learnedcategories` are out, each behind a small port that `:app` binds ([architecture.md](../architecture.md#featureexchangerates)). The rest still wait for their packages to lose their back-edges. Originally deferred because screens import `data` directly (330 imports from `presentation` alone), and `data` imported back into `presentation`, `ui`, `worker`, `receiver` and `widget`. A `:feature:*` module would need `:app` on its classpath, which Gradle cannot do.
+- **Convention plugins (`build-logic/`). Started.** The second Android library module brought them in, as planned: `pennywise.android.compose-library` and `pennywise.android.feature` (#1235). `:app`, `:shared`, `:parser-core` and `:baselineprofile` don't use them yet.
+- **Detekt. Advisory.** It runs with Kotlin 2.4.21 and AGP 9.5 in report-only mode with a baseline, in `quality-advisory.yml` (#1237). It doesn't fail a build.
+- **Kover. Opt-in.** Coverage reports run only with `-Pcoverage` (#1237), with no thresholds. Add targets for money, backup and parser code once those have targeted tests.
+- **Renovate. Config merged.** `renovate.json` opens grouped weekly PRs; the coupled toolchain (Kotlin, AGP, Hilt, LiteRT-LM, coroutines) and every major wait for approval (#1217).
+- **Compose screenshot tests. Rejected for now** by the maintainer. Revisit only if a screen split needs them.
 - **Runtime performance numbers.** Startup and scroll need a physical device ([performance.md](../performance.md)). This decision doesn't depend on them.
+
+## Data and domain stay one layer for now
+
+`data` and `domain` import each other 51 / 136 times, because use cases work on Room entities and concrete repositories. We treat the two as one implementation layer for now and don't try to break that cycle. We also don't extract a `:core:data` module yet. It would pull `utils`, `billing` and the code that schedules workers, refreshes widgets and posts notifications along with it, unless those already sit behind contracts. Round 5 adds those inversions: `utils` becomes a leaf, `data` reaches `billing` through `core.entitlement`, and data reaches workers, widgets and receivers through contracts. Revisit `:core:data` once all of them have landed on `main`.

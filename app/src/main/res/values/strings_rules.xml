@@ -343,6 +343,7 @@
     <string name="chat_reply_compare_no_data">No transactions are recorded for %1$s, so there\'s nothing to compare with.</string>
     <string name="chat_reply_compare_unsupported">I can compare this month with last month, or this week with last week.</string>
     <string name="chat_reply_nothing_changed">(Nothing was changed — I can only add, update or delete through a confirmation card. Try: \"change the tea to Groceries\" or \"delete the tea from today\".)</string>
+    <string name="chat_reply_card_cancelled">No — nothing was changed. You cancelled the card for %1$s.</string>
     <string name="chat_reply_add_many">Here\'s what I found — review it below.</string>
     <string name="chat_reply_too_many">I can review up to %1$d at a time. Send the rest in another message.</string>
     <string name="chat_reply_one_card_at_a_time">I can only confirm one at a time for now. Answer this card, then send the others again.</string>
@@ -518,6 +519,9 @@
     <string name="rules_field_account">Account</string>
     <string name="rules_field_description">Description</string>
     <string name="rules_field_tags">Tags</string>
+    <string name="rules_field_transfer_from_account">Transfer from account</string>
+    <string name="rules_field_transfer_to_account">Transfer to account</string>
+    <string name="rules_transfer_account_hint">Only applies to transfers. To make one, also set Transaction Type to Transfer in this rule.</string>
 
     <!-- Rule operators (condition chips) -->
     <string name="rules_op_less_than_symbol" translatable="false">&lt;</string>
@@ -613,6 +617,8 @@
     <string name="rules_preview_field_date">date</string>
     <string name="rules_preview_field_account">account</string>
     <string name="rules_preview_field_tags">tags</string>
+    <string name="rules_preview_field_transfer_from_account">transfer from account</string>
+    <string name="rules_preview_field_transfer_to_account">transfer to account</string>
     <string name="rules_preview_field_generic">field</string>
     <string name="rules_preview_op_before">is before</string>
     <string name="rules_preview_op_after">is after</string>

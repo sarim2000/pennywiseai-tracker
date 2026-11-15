@@ -20,20 +20,20 @@ import com.pennywiseai.tracker.data.repository.ProfileRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
-import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
+import com.pennywiseai.tracker.presentation.common.TimePeriod
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.cancelAndJoin
-import kotlinx.coroutines.job
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.job
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -109,6 +109,7 @@ class TransactionsViewModelListTest {
             every { getTransactionsBetweenDates(any<LocalDateTime>(), any<LocalDateTime>()) } returns afterFiltersSet { rows }
             every { observeSplitsForActiveTransactions() } returns flowOf(splits)
             every { getAllCurrencies() } returns flowOf(rows.map { it.currency }.distinct())
+            every { observeRecentCategoryUsage() } returns flowOf(emptyList())
             every { getCurrenciesForPeriod(any(), any()) } returns flowOf(rows.map { it.currency }.distinct())
         }
         val categoryRepo = mockk<CategoryRepository> { every { getAllCategories() } returns flowOf(categories) }

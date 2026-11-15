@@ -598,7 +598,7 @@
     <ID>LongMethod:TransactionDetailEditSections.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable private fun BudgetImpactSection(viewModel: TransactionDetailViewModel)</ID>
     <ID>LongMethod:TransactionDetailReceipt.kt$@Composable internal fun TransactionReceipt( transaction: TransactionEntity, settled: Boolean, primaryCurrency: String, convertedAmount: BigDecimal?, viewModel: TransactionDetailViewModel, splits: List&lt;SplitItem&gt;, hasSplits: Boolean, loan: LoanEntity?, onNavigateToLoanDetail: (Long) -&gt; Unit, onUnmarkLoanClick: () -&gt; Unit, accountProfileId: Long? = null, towardGoals: @Composable () -&gt; Unit = {}, splitWith: @Composable () -&gt; Unit = {} )</ID>
     <ID>LongMethod:TransactionDetailScreen.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable fun TransactionDetailScreen( transactionId: Long, onNavigateBack: () -&gt; Unit, onNavigateToLoanDetail: (Long) -&gt; Unit = {}, onDuplicateTransaction: (Long) -&gt; Unit = {}, onNavigateToGoal: (Long) -&gt; Unit = {}, onCreateGoal: () -&gt; Unit = {}, viewModel: TransactionDetailViewModel = hiltViewModel(), goalsViewModel: TransactionGoalsViewModel = hiltViewModel(), splitViewModel: SplitBillViewModel = hiltViewModel() )</ID>
-    <ID>LongMethod:TransactionDetailSheets.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable internal fun BalanceAdjustmentSheet( discrepancy: com.pennywiseai.tracker.utils.BalanceDiscrepancy, viewModel: TransactionDetailViewModel, onDismiss: () -&gt; Unit )</ID>
+    <ID>LongMethod:TransactionDetailSheets.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable internal fun BalanceAdjustmentSheet( discrepancy: com.pennywiseai.tracker.data.ledger.BalanceDiscrepancy, viewModel: TransactionDetailViewModel, onDismiss: () -&gt; Unit )</ID>
     <ID>LongMethod:TransactionDetailSheets.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable internal fun GroupBottomSheet( currentGroup: TransactionGroupEntity?, availableGroups: List&lt;TransactionGroupEntity&gt;, onDismiss: () -&gt; Unit, onAddToGroup: (Long) -&gt; Unit, onRemoveFromGroup: () -&gt; Unit, onCreateGroup: (String, String?) -&gt; Unit )</ID>
     <ID>LongMethod:TransactionDetailSheets.kt$@OptIn(ExperimentalMaterial3Api::class) @Composable internal fun MarkAsLoanBottomSheet( transactionAmount: BigDecimal, transactionCurrency: String, direction: LoanDirection, recentPersonNames: List&lt;String&gt;, onDismiss: () -&gt; Unit, onConfirm: (personName: String, note: String?, loanAmount: BigDecimal?) -&gt; Unit )</ID>
     <ID>LongMethod:TransactionDetailViewModel.kt$TransactionDetailViewModel$fun saveChanges()</ID>
@@ -673,13 +673,13 @@
     <ID>LongParameterList:CategoryEditDialog.kt$( category: CategoryEntity? = null, defaultIsIncome: Boolean = false, lockType: Boolean = false, // Candidate parents for the "Parent category" picker (#374); empty hides it. parentOptions: List&lt;CategoryEntity&gt; = emptyList(), onDismiss: () -&gt; Unit, onSave: (name: String, color: String, isIncome: Boolean, icon: String?, parentId: Long?) -&gt; Unit, onDelete: (() -&gt; Unit)? = null )</ID>
     <ID>LongParameterList:CategoryPieChart.kt$( label: String, value: Double, color: Color, currency: String, isSelected: Boolean, totalAmount: Double, onClick: () -&gt; Unit )</ID>
     <ID>LongParameterList:CategoryPieWidgetUpdateWorker.kt$CategoryPieWidgetUpdateWorker$( @Assisted appContext: Context, @Assisted workerParams: WorkerParameters, private val transactionRepository: TransactionRepository, private val categoryRepository: CategoryRepository, private val userPreferencesRepository: UserPreferencesRepository, private val accountBalanceRepository: AccountBalanceRepository, private val currencyConversionService: CurrencyConversionService )</ID>
-    <ID>LongParameterList:ChatViewModel.kt$ChatViewModel$( @ApplicationContext private val context: Context, private val llmRepository: LlmRepository, private val modelRepository: ModelRepository, private val userPreferencesRepository: UserPreferencesRepository, private val addTransactionUseCase: com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase, private val deleteTransactionUseCase: com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase, categoryRepository: com.pennywiseai.tracker.data.repository.CategoryRepository, private val transactionRepository: com.pennywiseai.tracker.data.repository.TransactionRepository, private val modelDownloader: ModelDownloader, @com.pennywiseai.tracker.di.ApplicationScope private val appScope: kotlinx.coroutines.CoroutineScope, )</ID>
+    <ID>LongParameterList:ChatViewModel.kt$ChatViewModel$( @ApplicationContext private val context: Context, private val llmRepository: LlmRepository, private val modelRepository: ModelRepository, private val userPreferencesRepository: UserPreferencesRepository, private val addTransactionUseCase: com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase, private val deleteTransactionUseCase: com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase, categoryRepository: com.pennywiseai.tracker.data.repository.CategoryRepository, private val transactionRepository: com.pennywiseai.tracker.data.repository.TransactionRepository, private val modelDownloader: ModelDownloader, @com.pennywiseai.tracker.core.ApplicationScope private val appScope: kotlinx.coroutines.CoroutineScope, )</ID>
     <ID>LongParameterList:ConnectedToggleGroup.kt$( options: List&lt;T&gt;, selected: T, onSelect: (T) -&gt; Unit, label: @Composable (T) -&gt; String, modifier: Modifier = Modifier, fillMaxWidth: Boolean = true, textStyle: TextStyle? = null, )</ID>
     <ID>LongParameterList:ConscienceCadence.kt$ConscienceCadence$( candidates: List&lt;ConscienceCandidate&gt;, log: ConscienceLog, retired: Set&lt;String&gt;, contentLocale: String, nowMillis: Long, todayEpochDay: Long, random: Random, )</ID>
     <ID>LongParameterList:ConscienceCadence.kt$ConscienceCadence$( pool: List&lt;ConscienceLine&gt;, contentLocale: String, log: ConscienceLog, retired: Set&lt;String&gt;, todayEpochDay: Long, random: Random, )</ID>
     <ID>LongParameterList:ConscienceDetectors.kt$ConscienceDetectors$( current: ConsciencePurchase, history: List&lt;ConsciencePurchase&gt;, ledgerStart: LocalDate?, activeDates: Set&lt;LocalDate&gt; = emptySet(), refunds: List&lt;ConsciencePurchase&gt; = emptyList(), zone: ZoneId = ZoneId.systemDefault(), )</ID>
     <ID>LongParameterList:ConscienceDetectors.kt$ConscienceDetectors$( current: ConsciencePurchase, inCategory: List&lt;ConsciencePurchase&gt;, refundsInCategory: List&lt;ConsciencePurchase&gt;, today: LocalDate, ledgerStart: LocalDate?, activeDates: Set&lt;LocalDate&gt;, )</ID>
-    <ID>LongParameterList:ConscienceManager.kt$ConscienceManager$( @ApplicationContext private val context: Context, private val preferences: UserPreferencesRepository, private val transactionRepository: TransactionRepository, private val categoryRepository: CategoryRepository, private val accountBalanceRepository: AccountBalanceRepository, private val cardRepository: CardRepository, private val ignoredAccountsStore: IgnoredAccountsStore )</ID>
+    <ID>LongParameterList:ConscienceManager.kt$ConscienceManager$( @ApplicationContext private val context: Context, private val preferences: UserPreferencesRepository, private val transactionRepository: TransactionRepository, private val categoryRepository: CategoryRepository, private val accountBalanceRepository: AccountBalanceRepository, private val cardRepository: CardRepository, private val ignoredAccountsStore: IgnoredAccountsStore, private val appForeground: AppForegroundState, private val notificationActions: ConscienceNotificationActions )</ID>
     <ID>LongParameterList:CreditCardItem.kt$( card: com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity, isHidden: Boolean, onToggleVisibility: () -&gt; Unit, onUpdateBalance: () -&gt; Unit, onViewHistory: () -&gt; Unit, onDeleteAccount: () -&gt; Unit, onEditAccount: () -&gt; Unit = {}, onSetStatementDay: (Int?) -&gt; Unit = {} )</ID>
     <ID>LongParameterList:CsvTransactionImporter.kt$CsvTransactionImporter$( dateTime: LocalDateTime, merchant: String, amount: BigDecimal, type: TransactionType, currency: String, account: String? )</ID>
     <ID>LongParameterList:CsvTransactionImporter.kt$CsvTransactionImporter$( row: Array&lt;String&gt;, dateIdx: Int, timeIdx: Int?, merchantIdx: Int?, categoryIdx: Int?, typeIdx: Int, amountIdx: Int, currencyIdx: Int?, bankIdx: Int?, accountIdx: Int?, balanceIdx: Int?, descriptionIdx: Int?, defaultCurrency: String )</ID>
@@ -688,7 +688,6 @@
     <ID>LongParameterList:CustomTitleTopAppBar.kt$( modifier: Modifier = Modifier, scrollBehaviorSmall: TopAppBarScrollBehavior, title: String, subtitle: String?, isHomeScreen: Boolean, hasBackButton: Boolean = false, actionContent: @Composable () -&gt; Unit = {}, navigationContent: @Composable () -&gt; Unit = {}, userName: String = "", profileImageUri: String? = null, profileBackgroundColor: Int = 0, collapsedFraction: Float, hazeState: HazeState, blurEffects: Boolean = true )</ID>
     <ID>LongParameterList:DailySummaryWorker.kt$DailySummaryWorker$( @Assisted appContext: Context, @Assisted workerParams: WorkerParameters, private val transactionRepository: TransactionRepository, private val loanRepository: LoanRepository, private val userPreferencesRepository: UserPreferencesRepository, private val accountBalanceRepository: AccountBalanceRepository, private val ignoredAccountsStore: IgnoredAccountsStore )</ID>
     <ID>LongParameterList:ExpressiveFilterChip.kt$( selected: Boolean, text: String, icon: ImageVector, onClick: () -&gt; Unit, modifier: Modifier = Modifier, enabled: Boolean = true, colors: SelectableChipColors = FilterChipDefaults.filterChipColors( selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer, selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer, selectedLeadingIconColor = MaterialTheme.colorScheme.onSecondaryContainer, selectedTrailingIconColor = MaterialTheme.colorScheme.onSecondaryContainer ), border: BorderStroke? = FilterChipDefaults.filterChipBorder(enabled, selected) )</ID>
-    <ID>LongParameterList:GoalComponents.kt$( progress: GoalProgress, size: Dp, stroke: Dp, modifier: Modifier = Modifier, addedFrom: BigDecimal? = null, onAddedSettled: () -&gt; Unit = {}, content: @Composable (percent: Int) -&gt; Unit, )</ID>
     <ID>LongParameterList:GoalDetailScreen.kt$( detail: GoalDetail, padding: PaddingValues, onAdd: () -&gt; Unit, onTakeOut: () -&gt; Unit, addedFrom: BigDecimal?, onAddedSettled: () -&gt; Unit, merchants: Map&lt;Long, String&gt;, onContribution: (GoalContributionEntity) -&gt; Unit, )</ID>
     <ID>LongParameterList:GoalDetailScreen.kt$( mode: MoneySheetMode, goalCurrency: String, saved: BigDecimal, state: MoneySheetState, onDismiss: () -&gt; Unit, onSave: (amount: BigDecimal?, currency: String, date: LocalDate, note: String, manual: BigDecimal?) -&gt; Unit, onDelete: (() -&gt; Unit)?, )</ID>
     <ID>LongParameterList:GoalDetailViewModel.kt$GoalDetailViewModel$( isWithdrawal: Boolean, amount: BigDecimal?, currency: String, date: LocalDate, note: String, manualConverted: BigDecimal?, )</ID>
@@ -697,6 +696,7 @@
     <ID>LongParameterList:GoalRepository.kt$GoalRepository$( goalId: Long, amount: BigDecimal, date: LocalDate = LocalDate.now(), note: String? = null, originalAmount: BigDecimal? = null, originalCurrency: String? = null, transactionId: Long? = null, )</ID>
     <ID>LongParameterList:GoalRepository.kt$GoalRepository$( goalId: Long, amount: BigDecimal, date: LocalDate, note: String?, originalAmount: BigDecimal?, originalCurrency: String?, transactionId: Long?, sign: Int, )</ID>
     <ID>LongParameterList:GoalRepository.kt$GoalRepository$( name: String, targetAmount: BigDecimal, currency: String, dueDate: LocalDate, color: String, alreadySaved: BigDecimal = BigDecimal.ZERO, )</ID>
+    <ID>LongParameterList:GoalRing.kt$( progress: GoalProgress, size: Dp, stroke: Dp, modifier: Modifier = Modifier, addedFrom: BigDecimal? = null, onAddedSettled: () -&gt; Unit = {}, content: @Composable (percent: Int) -&gt; Unit, )</ID>
     <ID>LongParameterList:GreetingCard.kt$( modifier: Modifier = Modifier, userName: String = "User", profileImageUri: String? = null, profileBackgroundColor: Int = 0, onAvatarClick: () -&gt; Unit = {}, onMenuClick: () -&gt; Unit = {}, // Shows an Add button when set (the floating nav bar docks Sync instead // of Home keeping an Add FAB). onAddClick: (() -&gt; Unit)? = null, profiles: List&lt;ProfileEntity&gt; = emptyList(), selectedProfileId: Long? = null, onProfileSelected: (Long?) -&gt; Unit = {}, isProEntitled: Boolean = false, onUpgradeClick: () -&gt; Unit = {}, // The last day of the user's current budget cycle. When null, the // subtitle falls back to the calendar month's end. The "X days left in // &lt;month&gt;" line then tracks the cycle (e.g. "4 days left in October" on // Oct 20 with startDay=25, where the cycle ends Oct 24). cycleEnd: LocalDate? = null )</ID>
     <ID>LongParameterList:GroupCard.kt$( group: TransactionGroupEntity, transactions: List&lt;TransactionEntity&gt;, convertedAmounts: Map&lt;Long, BigDecimal&gt; = emptyMap(), displayCurrency: String? = null, onClick: () -&gt; Unit, modifier: Modifier = Modifier )</ID>
     <ID>LongParameterList:GroupedList.kt$( icon: ImageVector, containerColor: Color, contentColor: Color, modifier: Modifier = Modifier, size: Dp = Dimensions.Icon.avatarLarge, glyphSize: Dp = Dimensions.Icon.medium, contentDescription: String? = null )</ID>
@@ -756,7 +756,7 @@
     <ID>LongParameterList:SmsBroadcastReceiver.kt$SmsBroadcastReceiver$( context: Context, transaction: TransactionEntity, repository: TransactionRepository, categoryRepository: CategoryRepository, priceLine: String? = null, trackCycle: String? = null, offerPriceUpdate: Boolean = false )</ID>
     <ID>LongParameterList:SmsScanParamsCalculator.kt$SmsScanParamsCalculator$( scanAllTime: Boolean, scanUseCustomDate: Boolean, scanCustomDateMillis: Long?, scanMonths: Int, nowMillis: Long, zoneId: ZoneId = ZoneId.systemDefault(), )</ID>
     <ID>LongParameterList:SmsScanPipeline.kt$SmsScanPipeline$( private val source: SmsMessageSource, private val classify: (ScannedSms) -&gt; ParseResult, private val isTaught: (ScannedSms) -&gt; Boolean, private val writer: ScanTransactionWriter, private val parserConcurrency: Int, private val onProgress: suspend (ProcessingStats) -&gt; Unit, private val onTransactionsChanged: () -&gt; Unit, )</ID>
-    <ID>LongParameterList:SmsTransactionProcessor.kt$SmsTransactionProcessor$( @ApplicationContext private val appContext: Context, private val transactionRepository: TransactionRepository, private val accountBalanceRepository: AccountBalanceRepository, private val cardRepository: CardRepository, private val merchantMappingRepository: MerchantMappingRepository, private val subscriptionRepository: SubscriptionRepository, private val ruleRepository: RuleRepository, private val ruleEngine: RuleEngine, private val tagRepository: TagRepository, private val ignoredAccountsStore: IgnoredAccountsStore, private val database: PennyWiseDatabase )</ID>
+    <ID>LongParameterList:SmsTransactionProcessor.kt$SmsTransactionProcessor$( @ApplicationContext private val appContext: Context, private val transactionRepository: TransactionRepository, private val accountBalanceRepository: AccountBalanceRepository, private val cardRepository: CardRepository, private val merchantMappingRepository: MerchantMappingRepository, private val subscriptionRepository: SubscriptionRepository, private val ruleRepository: RuleRepository, private val ruleEngine: RuleEngine, private val tagRepository: TagRepository, private val ignoredAccountsStore: IgnoredAccountsStore, private val database: PennyWiseDatabase, private val moneyAlerts: MoneyAlerts, private val transactionWidgets: TransactionWidgets )</ID>
     <ID>LongParameterList:SpendOutlook.kt$SpendForecast.Companion$( spent: BigDecimal, currency: String, periodStart: LocalDate, periodEnd: LocalDate, today: LocalDate, previousPeriods: List&lt;BigDecimal?&gt;, )</ID>
     <ID>LongParameterList:SpendingComparison.kt$SpendingComparison$( windows: Pair&lt;Window, Window&gt;, current: List&lt;TransactionWithSplits&gt;, previous: List&lt;TransactionWithSplits&gt;, categories: Set&lt;String&gt;? = null, currentLoss: Map&lt;String, BigDecimal&gt; = emptyMap(), previousLoss: Map&lt;String, BigDecimal&gt; = emptyMap(), creditAsExpense: Boolean = true )</ID>
     <ID>LongParameterList:SplitEditor.kt$( split: SplitItem, availableCategories: List&lt;String&gt;, onCategoryChanged: (String) -&gt; Unit, onAmountChanged: (BigDecimal) -&gt; Unit, onRemove: () -&gt; Unit, canRemove: Boolean, currency: String, modifier: Modifier = Modifier )</ID>
@@ -1257,18 +1257,18 @@
     <ID>MagicNumber:GenericTransactionExtractor.kt$GenericTransactionExtractor$30</ID>
     <ID>MagicNumber:GenericTransactionExtractor.kt$GenericTransactionExtractor$4</ID>
     <ID>MagicNumber:GenericTransactionExtractor.kt$GenericTransactionExtractor$5</ID>
-    <ID>MagicNumber:GoalComponents.kt$360f</ID>
-    <ID>MagicNumber:GoalComponents.kt$90f</ID>
     <ID>MagicNumber:GoalDetailScreen.kt$0.4f</ID>
     <ID>MagicNumber:GoalDetailScreen.kt$0.6f</ID>
     <ID>MagicNumber:GoalDetailViewModel.kt$GoalDetailViewModel$5_000</ID>
     <ID>MagicNumber:GoalEditScreen.kt$0.4f</ID>
     <ID>MagicNumber:GoalEditScreen.kt$0.6f</ID>
-    <ID>MagicNumber:GoalForms.kt$0.001f</ID>
-    <ID>MagicNumber:GoalForms.kt$100f</ID>
     <ID>MagicNumber:GoalProgress.kt$GoalRules$10</ID>
     <ID>MagicNumber:GoalProgressRules.kt$100</ID>
     <ID>MagicNumber:GoalProgressRules.kt$4</ID>
+    <ID>MagicNumber:GoalRing.kt$0.001f</ID>
+    <ID>MagicNumber:GoalRing.kt$100f</ID>
+    <ID>MagicNumber:GoalRing.kt$360f</ID>
+    <ID>MagicNumber:GoalRing.kt$90f</ID>
     <ID>MagicNumber:GoalWidgets.kt$360f</ID>
     <ID>MagicNumber:GoalWidgets.kt$5000L</ID>
     <ID>MagicNumber:GoalWidgets.kt$90f</ID>
@@ -1776,7 +1776,6 @@
     <ID>NewLineAtEndOfFile:AddSubscriptionUseCase.kt$com.pennywiseai.tracker.domain.usecase.AddSubscriptionUseCase.kt</ID>
     <ID>NewLineAtEndOfFile:AddTransactionUseCase.kt$com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase.kt</ID>
     <ID>NewLineAtEndOfFile:AirtelPaymentsBankParser.kt$com.pennywiseai.parser.core.bank.AirtelPaymentsBankParser.kt</ID>
-    <ID>NewLineAtEndOfFile:ApplicationModule.kt$com.pennywiseai.tracker.di.ApplicationModule.kt</ID>
     <ID>NewLineAtEndOfFile:AxisBankParser.kt$com.pennywiseai.parser.core.bank.AxisBankParser.kt</ID>
     <ID>NewLineAtEndOfFile:BalanceHistoryScreen.kt$com.pennywiseai.tracker.presentation.accounts.BalanceHistoryScreen.kt</ID>
     <ID>NewLineAtEndOfFile:BancolombiaParser.kt$com.pennywiseai.parser.core.bank.BancolombiaParser.kt</ID>
@@ -1786,14 +1785,12 @@
     <ID>NewLineAtEndOfFile:CardEntity.kt$com.pennywiseai.tracker.data.database.entity.CardEntity.kt</ID>
     <ID>NewLineAtEndOfFile:CardRepository.kt$com.pennywiseai.tracker.data.repository.CardRepository.kt</ID>
     <ID>NewLineAtEndOfFile:CategoriesScreen.kt$com.pennywiseai.tracker.presentation.categories.CategoriesScreen.kt</ID>
-    <ID>NewLineAtEndOfFile:CategoriesViewModel.kt$com.pennywiseai.tracker.presentation.categories.CategoriesViewModel.kt</ID>
     <ID>NewLineAtEndOfFile:CategoryChip.kt$com.pennywiseai.tracker.ui.components.CategoryChip.kt</ID>
     <ID>NewLineAtEndOfFile:CategoryRepository.kt$com.pennywiseai.tracker.data.repository.CategoryRepository.kt</ID>
     <ID>NewLineAtEndOfFile:CentralBankOfIndiaParser.kt$com.pennywiseai.parser.core.bank.CentralBankOfIndiaParser.kt</ID>
     <ID>NewLineAtEndOfFile:CharlesSchwabParser.kt$com.pennywiseai.parser.core.bank.CharlesSchwabParser.kt</ID>
     <ID>NewLineAtEndOfFile:ChatDao.kt$com.pennywiseai.tracker.data.database.dao.ChatDao.kt</ID>
     <ID>NewLineAtEndOfFile:ChatMessage.kt$com.pennywiseai.tracker.data.database.entity.ChatMessage.kt</ID>
-    <ID>NewLineAtEndOfFile:ChatViewModel.kt$com.pennywiseai.tracker.presentation.chat.ChatViewModel.kt</ID>
     <ID>NewLineAtEndOfFile:CitiBankParser.kt$com.pennywiseai.parser.core.bank.CitiBankParser.kt</ID>
     <ID>NewLineAtEndOfFile:CityUnionBankParser.kt$com.pennywiseai.parser.core.bank.CityUnionBankParser.kt</ID>
     <ID>NewLineAtEndOfFile:CollapsibleFilterRow.kt$com.pennywiseai.tracker.ui.components.CollapsibleFilterRow.kt</ID>
@@ -1807,7 +1804,6 @@
     <ID>NewLineAtEndOfFile:DBSBankParser.kt$com.pennywiseai.parser.core.bank.DBSBankParser.kt</ID>
     <ID>NewLineAtEndOfFile:DeviceEncryption.kt$com.pennywiseai.tracker.utils.DeviceEncryption.kt</ID>
     <ID>NewLineAtEndOfFile:DiscoverCardParser.kt$com.pennywiseai.parser.core.bank.DiscoverCardParser.kt</ID>
-    <ID>NewLineAtEndOfFile:EntityExtensions.kt$com.pennywiseai.tracker.utils.EntityExtensions.kt</ID>
     <ID>NewLineAtEndOfFile:EverestBankParser.kt$com.pennywiseai.parser.core.bank.EverestBankParser.kt</ID>
     <ID>NewLineAtEndOfFile:ExchangeRateDao.kt$com.pennywiseai.tracker.data.database.dao.ExchangeRateDao.kt</ID>
     <ID>NewLineAtEndOfFile:ExchangeRateEntity.kt$com.pennywiseai.tracker.data.database.entity.ExchangeRateEntity.kt</ID>
@@ -1850,8 +1846,6 @@
     <ID>NewLineAtEndOfFile:RuleTemplateService.kt$com.pennywiseai.tracker.domain.service.RuleTemplateService.kt</ID>
     <ID>NewLineAtEndOfFile:RulesScreen.kt$com.pennywiseai.tracker.presentation.rules.RulesScreen.kt</ID>
     <ID>NewLineAtEndOfFile:RulesViewModel.kt$com.pennywiseai.tracker.presentation.rules.RulesViewModel.kt</ID>
-    <ID>NewLineAtEndOfFile:SmsParsingProgressDialog.kt$com.pennywiseai.tracker.ui.components.SmsParsingProgressDialog.kt</ID>
-    <ID>NewLineAtEndOfFile:SmsScanManager.kt$com.pennywiseai.tracker.data.manager.SmsScanManager.kt</ID>
     <ID>NewLineAtEndOfFile:SpotlightTutorial.kt$com.pennywiseai.tracker.ui.components.SpotlightTutorial.kt</ID>
     <ID>NewLineAtEndOfFile:SpotlightViewModel.kt$com.pennywiseai.tracker.ui.viewmodel.SpotlightViewModel.kt</ID>
     <ID>NewLineAtEndOfFile:SubscriptionDao.kt$com.pennywiseai.tracker.data.database.dao.SubscriptionDao.kt</ID>
@@ -1905,6 +1899,7 @@
     <ID>ReturnCount:AlinmaBankParser.kt$AlinmaBankParser$override fun extractMerchant(message: String, sender: String): String?</ID>
     <ID>ReturnCount:AlinmaBankParser.kt$AlinmaBankParser$override fun extractTransactionType(message: String): TransactionType?</ID>
     <ID>ReturnCount:ApolloParser.kt$ApolloParser$override fun extractAmount(message: String): BigDecimal?</ID>
+    <ID>ReturnCount:AppLanguage.kt$private fun Context.appLanguageContext(): Context</ID>
     <ID>ReturnCount:AppLockRepository.kt$internal fun shouldLock( isEnabled: Boolean, timeoutMinutes: Int, lastAuthTimestamp: Long, session: LockSession, now: Long ): Boolean</ID>
     <ID>ReturnCount:ArabBankParser.kt$ArabBankParser$override fun detectIsCard(message: String): Boolean</ID>
     <ID>ReturnCount:ArabBankParser.kt$ArabBankParser$override fun extractAccountLast4(message: String): String?</ID>
@@ -2434,7 +2429,6 @@
     <ID>ReturnCount:WebhookDeliveryService.kt$WebhookDeliveryService$suspend fun deliver( url: String, headers: List&lt;WebhookHeader&gt;, payload: WebhookEnvelope ): WebhookAttemptResult</ID>
     <ID>ReturnCount:WebhookValidation.kt$WebhookValidation$fun validateDraft(draft: WebhookProfileDraft): ResText?</ID>
     <ID>ReturnCount:WeeklySummaryWorker.kt$WeeklySummaryWorker$override suspend fun doWork(): Result</ID>
-    <ID>ReturnCount:WidgetUi.kt$private fun Context.appLanguageContext(): Context</ID>
     <ID>ReturnCount:WidgetUi.kt$private fun Context.readsAgainstDevice(): Boolean</ID>
     <ID>ReturnCount:XlsxReader.kt$XlsxReader$private fun firstSheetPath(parts: Map&lt;String, ByteArray&gt;): String?</ID>
     <ID>ReturnCount:YesBankParser.kt$YesBankParser$override fun detectIsCard(message: String): Boolean</ID>
@@ -2632,7 +2626,6 @@
     <ID>TooManyFunctions:ExchangeRateDao.kt$ExchangeRateDao</ID>
     <ID>TooManyFunctions:FABParser.kt$FABParser : UAEBankParser</ID>
     <ID>TooManyFunctions:FederalBankParser.kt$FederalBankParser : BaseIndianBankParser</ID>
-    <ID>TooManyFunctions:GoalComponents.kt$com.pennywiseai.tracker.presentation.goals.GoalComponents.kt</ID>
     <ID>TooManyFunctions:GoalDao.kt$GoalDao</ID>
     <ID>TooManyFunctions:GoalRepository.kt$GoalRepository</ID>
     <ID>TooManyFunctions:HDFCBankParser.kt$HDFCBankParser : BaseIndianBankParser</ID>

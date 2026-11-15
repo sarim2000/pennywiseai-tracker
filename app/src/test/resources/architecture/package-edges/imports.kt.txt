@@ -1,0 +1,18 @@
+@file:Suppress("unused")
+
+package com.pennywiseai.tracker.ui.components
+
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity as Row
+import com.pennywiseai.tracker.domain.model.*
+import com.pennywiseai.tracker.utils.formatShort
+import com.pennywiseai.tracker.MainActivity
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.BuildConfig
+import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.parser.core.ParsedTransaction
+import com.pennywiseai.tracker
+    .worker.OptimizedSmsReaderWorker
+import com.pennywiseai.tracker.widget.A; import com.pennywiseai.tracker.receiver.B
+import androidx.compose.runtime.Composable
+
+fun show(row: Row) = Unit

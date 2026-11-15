@@ -80,6 +80,7 @@ class TransactionsViewModelPinTest {
             }
             every { observeSplitsForActiveTransactions() } returns flowOf(emptyList())
             every { getAllCurrencies() } returns flowOf(listOf("USD"))
+            every { observeRecentCategoryUsage() } returns flowOf(emptyList())
             every { getCurrenciesForPeriod(any(), any()) } returns flowOf(listOf("USD"))
         }
         val categories = mockk<CategoryRepository> {

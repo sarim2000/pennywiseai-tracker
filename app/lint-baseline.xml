@@ -1195,7 +1195,7 @@
         errorLine1="    var lastHiddenTabs by rememberSaveable { mutableStateOf&lt;ArrayList&lt;String>?>(null) }"
         errorLine2="                                             ~~~~~~~~~~~~~~">
         <location
-            file="src/main/java/com/pennywiseai/tracker/ui/MainScreen.kt"
+            file="src/main/java/com/pennywiseai/tracker/navigation/MainScreen.kt"
             line="277"
             column="46"/>
     </issue>
@@ -9726,7 +9726,7 @@
         errorLine1="                    .offset(x = indicatorOffset)"
         errorLine2="                     ~~~~~~">
         <location
-            file="src/main/java/com/pennywiseai/tracker/ui/PennyWiseBottomNavigation.kt"
+            file="src/main/java/com/pennywiseai/tracker/navigation/PennyWiseBottomNavigation.kt"
             line="268"
             column="22"/>
     </issue>

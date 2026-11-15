@@ -3,15 +3,16 @@ package com.pennywiseai.tracker.receiver
 import android.service.notification.NotificationListenerService
 import android.service.notification.StatusBarNotification
 import android.util.Log
-import com.pennywiseai.tracker.data.preferences.TrackedNotificationAppsStore
-import com.pennywiseai.tracker.data.repository.BankNotificationRepository
-import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.parser.core.bank.BankParserFactory
 import com.pennywiseai.tracker.data.manager.ConscienceManager
 import com.pennywiseai.tracker.data.manager.SmsTransactionProcessor
 import com.pennywiseai.tracker.data.manager.TransactionDeduplication
-import com.pennywiseai.parser.core.bank.BankParserFactory
-import com.pennywiseai.tracker.worker.BankNotificationRetryWorker
 import com.pennywiseai.tracker.data.mapper.toEntity
+import com.pennywiseai.tracker.data.notification.BankNotificationConfig
+import com.pennywiseai.tracker.data.preferences.TrackedNotificationAppsStore
+import com.pennywiseai.tracker.data.repository.BankNotificationRepository
+import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.worker.BankNotificationRetryWorker
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -61,10 +62,7 @@ class BankNotificationListenerService : NotificationListenerService() {
             return
         }
 
-        // Skip group summaries to avoid duplicate processing
-        if ((sbn.notification.flags and android.app.Notification.FLAG_GROUP_SUMMARY) != 0) {
-            return
-        }
+        if (BankNotificationConfig.skipsPost(sbn.notification.flags, trackedApp = !allowed)) return
 
         val body = BankNotificationConfig.extractMessage(sbn.notification)
         if (body.isBlank()) {

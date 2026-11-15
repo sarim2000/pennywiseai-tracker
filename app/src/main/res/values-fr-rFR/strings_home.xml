@@ -195,6 +195,8 @@
     </plurals>
     <string name="budget_card_spent_of">Dépenser %1$s de %2$s</string>
     <!-- Budget pace: spending compared with an even spend across the period -->
+    <!-- Tap action on the pace status / chart legend: shows the explanation below -->
+    <!-- Shown under the pace status on the budget card -->
     <string name="budget_cadence_weekly">Hebdomadaire</string>
     <string name="budget_cadence_monthly">Mensuel</string>
     <string name="budget_cadence_one_time">Une fois</string>
@@ -225,6 +227,7 @@
     <string name="txn_item_tag_recurring">Récurrents</string>
     <string name="txn_item_tag_business">Entreprise</string>
     <string name="txn_item_tag_excluded">Exclus</string>
+    <!-- A split row in a category-filtered list: its full amount, e.g. "Split of ₹10,000" -->
     <string name="txn_item_balance_after">Solde %1$s</string>
     <!-- %1$s is the last 4 digits of the other account -->
     <string name="txn_item_transfer_to">Transfert → %1$s</string>
@@ -285,6 +288,8 @@
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">Enregistré comme %1$s</string>
     <string name="notif_txn_learned_text">Les paiements ici seront classés automatiquement à partir de maintenant.</string>
+    <!-- Learned-note action: keep this pick, but don't remember the merchant -->
+    <string name="notif_txn_learned_only_this_one">Seulement celle-ci</string>
     <plurals name="notif_txn_learned_moved">
         <item quantity="one">%d paiement précédent a aussi été déplacé.</item>
         <item quantity="other">%d paiements précédents ont aussi été déplacés.</item>

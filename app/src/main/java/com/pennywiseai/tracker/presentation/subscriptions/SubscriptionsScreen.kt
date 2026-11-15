@@ -1,29 +1,16 @@
 package com.pennywiseai.tracker.presentation.subscriptions
 
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import android.animation.ValueAnimator
-import com.pennywiseai.tracker.ui.animations.pwExpand
-import com.pennywiseai.tracker.ui.animations.pwCollapse
-import com.pennywiseai.tracker.utils.AppDates
-
-import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.pluralStringResource
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
-import com.pennywiseai.tracker.ui.effects.overScrollVertical
-import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
-import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.*
@@ -34,41 +21,53 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
-import com.pennywiseai.tracker.ui.animations.StaggeredEntrance
-import com.pennywiseai.tracker.ui.animations.rememberEntranceDone
-import com.pennywiseai.tracker.ui.animations.staggerDelayMs
+import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import com.pennywiseai.tracker.ui.theme.Dimensions
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
+import com.pennywiseai.tracker.data.database.entity.formatAmount
+import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.domain.model.getAccountType
 import com.pennywiseai.tracker.presentation.accounts.icon
-import com.pennywiseai.tracker.domain.model.AccountType
+import com.pennywiseai.tracker.ui.animations.StaggeredEntrance
+import com.pennywiseai.tracker.ui.animations.pwCollapse
+import com.pennywiseai.tracker.ui.animations.pwExpand
+import com.pennywiseai.tracker.ui.animations.rememberEntranceDone
+import com.pennywiseai.tracker.ui.animations.staggerDelayMs
 import com.pennywiseai.tracker.ui.components.*
+import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
+import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.cards.SummaryCardV2
-import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
+import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.*
-import androidx.compose.ui.input.nestedscroll.nestedScroll
+import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.utils.AmountPrivacy
+import com.pennywiseai.tracker.utils.AppDates
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
-import androidx.compose.ui.hapticfeedback.HapticFeedbackType
-import androidx.compose.ui.platform.LocalHapticFeedback
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
-import com.pennywiseai.tracker.utils.AmountPrivacy
-import com.pennywiseai.tracker.utils.CurrencyFormatter
-import com.pennywiseai.tracker.utils.formatAmount
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
-import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -545,7 +544,7 @@ private fun SwipeableSubscriptionItem(
     val isIncome = subscription.direction == SubscriptionDirection.INCOME
     val amountColor = if (isIncome) MaterialTheme.colorScheme.income else MaterialTheme.colorScheme.onSurface
     val amountPrefix = if (isIncome) "+" else ""
-    
+
     // Not rememberSaveable: a restored row (e.g. after Undo) must start at rest, or onDismiss re-fires.
     val threshold = SwipeToDismissBoxDefaults.positionalThreshold
     val dismissState = remember { SwipeToDismissBoxState(SwipeToDismissBoxValue.Settled, threshold) }
@@ -611,7 +610,7 @@ private fun SwipeableSubscriptionItem(
                                 showBackground = true
                             )
                         }
-                        
+
                         // Content
                         Column(
                             modifier = Modifier
@@ -625,7 +624,7 @@ private fun SwipeableSubscriptionItem(
                                 maxLines = 1,
                                 overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
                             )
-                            
+
                             // Due-date line — icon + relative-time copy. Single
                             // line, ellipsised. Previously this row also tried to
                             // fit the category, which wrapped mid-word
@@ -737,7 +736,7 @@ private fun SwipeableSubscriptionItem(
                                 )
                             }
                         }
-                        
+
                         if (convertedAmount != null && displayCurrency != null) {
                             Column(horizontalAlignment = Alignment.End) {
                                 Text(
@@ -829,7 +828,7 @@ private fun SwipeableSubscriptionItem(
                         }
                     }
                 }
-                
+
                 // SMS Body Display (expandable)
                 if (showSmsBody && !subscription.smsBody.isNullOrBlank()) {
                     PennyWiseCardV2(
@@ -863,9 +862,9 @@ private fun SwipeableSubscriptionItem(
                                     fontWeight = FontWeight.Bold
                                 )
                             }
-                            
+
                             Spacer(modifier = Modifier.height(Spacing.sm))
-                            
+
                             // SMS text in monospace font
                             Surface(
                                 modifier = Modifier.fillMaxWidth(),
@@ -1128,4 +1127,3 @@ private fun SubscriptionItemSkeleton(
 ) {
     TransactionItemSkeleton(modifier = modifier)
 }
-

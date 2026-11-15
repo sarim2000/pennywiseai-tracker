@@ -183,6 +183,8 @@
     </plurals>
     <string name="budget_card_spent_of">ใช้ไป %1$s จาก %2$s</string>
     <!-- Budget pace: spending compared with an even spend across the period -->
+    <!-- Tap action on the pace status / chart legend: shows the explanation below -->
+    <!-- Shown under the pace status on the budget card -->
     <string name="budget_cadence_weekly">รายสัปดาห์</string>
     <string name="budget_cadence_monthly">รายเดือน</string>
     <string name="budget_cadence_one_time">ครั้งเดียว</string>
@@ -211,6 +213,7 @@
     <string name="txn_item_tag_recurring">เกิดซ้ำ</string>
     <string name="txn_item_tag_business">ธุรกิจ</string>
     <string name="txn_item_tag_excluded">ไม่นับรวม</string>
+    <!-- A split row in a category-filtered list: its full amount, e.g. "Split of ₹10,000" -->
     <string name="txn_item_balance_after">คงเหลือ %1$s</string>
     <!-- %1$s is the last 4 digits of the other account -->
     <string name="txn_item_transfer_to">โอน → %1$s</string>
@@ -270,6 +273,8 @@
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">บันทึกเป็น %1$s แล้ว</string>
     <string name="notif_txn_learned_text">ต่อจากนี้รายการจ่ายที่นี่จะถูกจัดหมวดหมู่ให้อัตโนมัติ</string>
+    <!-- Learned-note action: keep this pick, but don't remember the merchant -->
+    <string name="notif_txn_learned_only_this_one">เฉพาะรายการนี้</string>
     <plurals name="notif_txn_learned_moved">
         <item quantity="other">ย้ายรายการก่อนหน้า %d รายการไปด้วยแล้ว</item>
     </plurals>

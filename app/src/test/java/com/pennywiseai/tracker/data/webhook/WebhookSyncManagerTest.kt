@@ -1,11 +1,11 @@
 package com.pennywiseai.tracker.data.webhook
 
+import com.pennywiseai.tracker.core.entitlement.ProEntitlement
 import com.pennywiseai.tracker.data.database.entity.*
 import com.pennywiseai.tracker.data.repository.WebhookRepository
-import com.pennywiseai.tracker.billing.EntitlementGate
-import kotlinx.coroutines.flow.MutableStateFlow
-import io.mockk.*
 import io.ktor.client.engine.mock.respond
+import io.mockk.*
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.*
 import org.junit.Test
@@ -16,7 +16,7 @@ class WebhookSyncManagerTest {
     private val builder = mockk<WebhookPayloadBuilder>()
     private val delivery = mockk<WebhookDeliveryService>()
     private val pro = MutableStateFlow(true)
-    private val gate = mockk<EntitlementGate> { every { isProEntitled } returns pro }
+    private val gate = mockk<ProEntitlement> { every { isProEntitled } returns pro }
     private val manager = WebhookSyncManager(repository, builder, delivery, gate)
     private val profile = WebhookProfileEntity(id = "profile", name = "Test", url = "https://example.com/hook")
     private val end = LocalDateTime.of(2026, 1, 1, 12, 0)
@@ -35,8 +35,7 @@ class WebhookSyncManagerTest {
 
     @Test fun `partial failure does not advance any cursor`() = runBlocking {
         setup()
-        coEvery { delivery.deliver(any(), any(), any()) } returnsMany listOf(
-            WebhookAttemptResult(true, 200, "Delivered"), WebhookAttemptResult(false, 503, "HTTP 503", true))
+        coEvery { delivery.deliver(any(), any(), any()) } returnsMany listOf(WebhookAttemptResult(true, 200, "Delivered"), WebhookAttemptResult(false, 503, "HTTP 503", true))
         val result = manager.syncProfile(profile.id, WebhookSyncReason.MANUAL)
         assertTrue(result.anyRetryableFailure)
         coVerify(exactly = 0) { repository.markSuccess(any(), any(), any()) }

@@ -70,6 +70,45 @@ class RuleEngineTest {
         assertNull(result.bankName)
     }
 
+    // --- Transfer leg actions (#1068) ---
+
+    @Test
+    fun `transfer account actions set both legs, after a TYPE action listed later`() {
+        val transferRule = TransactionRule(
+            name = "rule",
+            conditions = listOf(RuleCondition(TransactionField.MERCHANT, ConditionOperator.CONTAINS, "Coffee")),
+            actions = listOf(
+                RuleAction(TransactionField.TRANSFER_FROM_ACCOUNT, ActionType.SET, "Bank A||1111"),
+                RuleAction(TransactionField.TRANSFER_TO_ACCOUNT, ActionType.SET, "Cash||"),
+                RuleAction(TransactionField.TYPE, ActionType.SET, "TRANSFER")
+            )
+        )
+
+        val (result, applications) = engine.evaluateRules(txn(bankName = "Bank A"), null, listOf(transferRule))
+
+        assertEquals(TransactionType.TRANSFER, result.transactionType)
+        assertEquals("1111", result.fromAccount)
+        assertEquals("Bank A", result.fromBankName)
+        assertEquals("", result.toAccount)
+        assertEquals("Cash", result.toBankName)
+        // The row's own account is untouched.
+        assertEquals("Bank A", result.bankName)
+        assertEquals(3, applications.single().fieldsModified.size)
+    }
+
+    @Test
+    fun `transfer account action is skipped on a non-transfer`() {
+        val (result, applications) = engine.evaluateRules(
+            txn(),
+            smsText = null,
+            rules = listOf(rule(RuleAction(TransactionField.TRANSFER_TO_ACCOUNT, ActionType.SET, "Bank B||2222")))
+        )
+
+        assertNull(result.toAccount)
+        assertNull(result.toBankName)
+        assertTrue(applications.isEmpty())
+    }
+
     // --- Incoming: ACCOUNT condition tests (EQUALS, CONTAINS, etc.) ---
 
     @Test

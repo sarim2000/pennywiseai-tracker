@@ -23,7 +23,7 @@ class AmountVisibilityDefaultTest {
 
     @Test
     fun `with no saved choice Home hides amounts but other screens show them`() = runBlocking {
-        val repository = UserPreferencesRepository(FakeContext())
+        val repository = UserPreferencesRepository(FakeContext()) {}
 
         assertTrue(repository.isBalanceHidden.first())
         assertFalse(repository.isAmountHiddenEverywhere.first())

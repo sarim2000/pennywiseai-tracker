@@ -2,7 +2,7 @@ package com.pennywiseai.tracker.utils
 
 import com.pennywiseai.parser.core.bank.BankParserFactory
 import com.pennywiseai.shared.domain.money.MinorUnits
-import com.pennywiseai.tracker.data.preferences.NumberFormatStyle
+import com.pennywiseai.tracker.core.NumberFormatStyle
 import java.math.BigDecimal
 import java.text.NumberFormat
 import java.util.Currency

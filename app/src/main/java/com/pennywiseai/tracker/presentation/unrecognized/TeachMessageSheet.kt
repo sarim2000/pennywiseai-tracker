@@ -65,8 +65,8 @@ import com.pennywiseai.parser.core.MessageTemplates
 import com.pennywiseai.parser.core.TemplateField
 import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.notification.BankNotificationConfig
 import com.pennywiseai.tracker.data.repository.SmsInboxReader
-import com.pennywiseai.tracker.receiver.BankNotificationConfig
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
@@ -163,7 +163,6 @@ fun TeachMessageSheet(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-
             }
 
             Button(

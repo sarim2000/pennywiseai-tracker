@@ -1,10 +1,10 @@
 package com.pennywiseai.tracker.domain.usecase
 
-import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.MerchantMappingEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.repository.MerchantMappingRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import io.mockk.coEvery
@@ -42,9 +42,15 @@ class LearnCategoryUseCaseTest {
     @After
     fun tearDown() = unmockkStatic("com.pennywiseai.tracker.data.database.RoomCompatKt")
 
-    private fun given(merchant: String, type: TransactionType = TransactionType.EXPENSE, deleted: Boolean = false, id: Long = 1) =
+    private fun given(
+        merchant: String,
+        type: TransactionType = TransactionType.EXPENSE,
+        deleted: Boolean = false,
+        id: Long = 1,
+        category: String = "Others"
+    ) =
         coEvery { transactions.getTransactionById(id) } returns TransactionEntity(
-            id = id, amount = BigDecimal("4.25"), merchantName = merchant, category = "Others",
+            id = id, amount = BigDecimal("4.25"), merchantName = merchant, category = category,
             transactionType = type, dateTime = LocalDateTime.now(), currency = "JOD",
             transactionHash = "h$id", isDeleted = deleted
         )
@@ -173,5 +179,75 @@ class LearnCategoryUseCaseTest {
         // Undoing B returns to the state before B, which had A.
         coVerify(exactly = 2) { mappings.setMapping("Shein", "Food & Dining", any()) } // lesson A, then B's undo
         coVerify(exactly = 0) { mappings.removeMapping(any()) }
+    }
+
+    @Test
+    fun `only this one keeps the pick but forgets the lesson and its moved rows`() = runBlocking {
+        given("Shein")
+        coEvery { mappings.getCategoryForMerchant("Shein") } returns "Entertainment"
+        coEvery { transactions.getMovableMerchantRowIds(any(), any(), any()) } returns listOf(7L)
+        val learned = learn(1, "Shopping")!!
+        stored(learned)
+        given("Shein", category = "Shopping")
+
+        assertTrue(learn.forget(learned))
+
+        coVerify { mappings.setMapping("Shein", "Entertainment", any()) }
+        coVerify { transactions.moveCategory(listOf(7L), from = "Shopping", to = "Others") }
+        coVerify(exactly = 0) { transactions.moveCategory(listOf(1L), any(), any()) }
+    }
+
+    @Test
+    fun `only this one cannot forget a lesson a newer pick replaced`() = runBlocking {
+        given("Shein")
+        coEvery { mappings.getCategoryForMerchant("Shein") } returns null
+        val learned = learn(1, "Shopping")!!
+        coEvery { mappings.getMapping("Shein") } returns
+            MerchantMappingEntity("Shein", "Food & Dining", updatedAt = learned.mappedAt!!.plusSeconds(30))
+        given("Shein", category = "Shopping") // the row still holds the pick: only the mapping check can refuse
+
+        assertFalse(learn.forget(learned))
+
+        coVerify { mappings.getMapping("Shein") }
+
+        coVerify(exactly = 0) { mappings.removeMapping(any()) }
+        coVerify(exactly = 0) { transactions.moveCategory(any(), from = "Shopping", to = any()) }
+    }
+
+    @Test
+    fun `only this one leaves a newer save on the row alone`() = runBlocking {
+        given("Shein")
+        val learned = learn(1, "Shopping")!!
+        stored(learned)
+        given("Shein", category = "Others") // a later pick of Others: no new lesson, but a newer save
+        var announced = false
+
+        assertFalse(learn.forget(learned) { announced = true })
+
+        assertFalse(announced)
+        coVerify(exactly = 0) { mappings.removeMapping(any()) }
+    }
+
+    @Test
+    fun `only this one announces under the lock, before a later pick's note`() = runBlocking {
+        given("Shein")
+        val learned = learn(1, "Shopping")!!
+        stored(learned)
+        given("Shein", category = "Shopping")
+        val order = java.util.Collections.synchronizedList(mutableListOf<String>())
+        val started = java.util.concurrent.CountDownLatch(1)
+        kotlinx.coroutines.coroutineScope {
+            launch(kotlinx.coroutines.Dispatchers.Default) {
+                learn.forget(learned) {
+                    order += "one-off start"
+                    started.countDown()
+                    Thread.sleep(100) // a window for the later pick to slip in, were the lock released
+                    order += "one-off end"
+                }
+            }
+            started.await()
+            launch(kotlinx.coroutines.Dispatchers.Default) { learn(1, "Groceries") { order += "newer pick" } }
+        }
+        assertEquals(listOf("one-off start", "one-off end", "newer pick"), order)
     }
 }

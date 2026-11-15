@@ -113,12 +113,12 @@ app/
 │   │   │                        #   loans, groups, rules, settings (+ aiaccess/,
 │   │   │                        #   webhooks/), onboarding, unrecognized, applock,
 │   │   │                        #   permission, paywall, share, statement,
-│   │   │                        #   exchangerates, common; also a navigation/
-│   │   │                        #   subpackage for feature routes)
-│   ├── ui/                      # App shell (MainScreen) + shared components
+│   │   │                        #   exchangerates, common)
+│   ├── ui/                      # Shared UI, imported by features and the shell
 │   │   ├── components/          # Reusable Compose components
 │   │   └── viewmodel/           # App-wide ViewModels (main, theme, spotlight)
-│   ├── navigation/              # Navigation graph
+│   ├── navigation/              # Routes, nav graph and the app shell (MainScreen,
+│   │                            #   bottom bar, BottomNavItem tabs)
 │   ├── domain/                  # Business logic
 │   │   ├── model/
 │   │   ├── usecase/
@@ -133,10 +133,10 @@ app/
 │   │   └── mapper/
 │   ├── di/                      # Hilt modules (DatabaseModule, etc.)
 │   ├── receiver/                # SMS / notification entry points
-│   ├── worker/                  # WorkManager jobs (SMS scan retry, scheduled backups)
+│   ├── worker/                  # WorkManager jobs and the schedulers that enqueue them (SMS scan, webhook sync, scheduled backups)
 │   │   └── smsscan/             # The SMS scan's stages: source, classifier, pipeline, writer, cleanup
 │   ├── widget/                  # Home-screen widgets
-│   ├── billing/                 # Play Billing + FreeTierLimits
+│   ├── billing/                 # Play Billing, license keys, EntitlementGate
 │   ├── backup/ core/ initializer/ utils/
 └── build.gradle.kts             # Flavors: standard, fdroid
 core/designsystem/               # PennyWiseTheme, ui.theme tokens, fonts, LocalBlurEffects,
@@ -157,17 +157,19 @@ These rules set the direction for new code and for moves under
 follow all of them yet. [architecture-baseline.md](architecture-baseline.md)
 lists the existing cycles and back-edges, and `scripts/arch/package-deps.sh`
 reprints them. A PR may remove a violation but must not add one.
+[`PackageEdgeRatchetTest`](#package-edge-ratchet) enforces that for the package
+graph as a whole.
 
 | Package (`com.pennywiseai.tracker.…`) | Owns | Must not import |
 |---|---|---|
 | `presentation/<feature>` | A feature's screens, ViewModel and UI state, kept together | Another feature's screens or internal components |
 | `ui/components`, `ui/theme`, `ui/icons`, `ui/animations`, `ui/effects` | Components and design tokens used by more than one feature | `presentation`, `worker` |
-| `ui/viewmodel`, `ui` root (`MainScreen`) | App-wide ViewModels (main, theme, spotlight) and the app shell | (a feature's ViewModel goes in its `presentation/<feature>`) |
+| `ui/viewmodel`, `ui` root | App-wide ViewModels (main, theme, spotlight) and small app-wide UI helpers (`UiText`, the shared-transition locals) | `presentation`, `navigation` (a feature's ViewModel goes in its `presentation/<feature>`) |
 | `domain` | Use cases, business rules, models, service interfaces | `presentation`, `ui`, Compose, Activities or other Android UI |
-| `data` | Room (`database`), repositories, DataStore (`preferences`), backup, SMS processing (`manager`) | `presentation`, `ui` |
-| `utils`, `core` | Small helpers used across layers: money, currency, dates | `presentation`, `ui`, Android entry points |
+| `data` | Room (`database`), repositories, DataStore (`preferences`), backup, SMS processing (`manager`) | `presentation`, `ui`, `worker`, `widget`, `receiver`, root classes but `R`/`BuildConfig` (declare a contract in `data` that `worker` or `receiver` implements, like `data/manager/MoneyAlerts` or `data/manager/ConscienceNotificationActions`; refresh widgets through `core/TransactionWidgets`; ask `core/AppForegroundState` rather than casting `PennyWiseApplication`) |
+| `utils`, `core` | Small helpers used across layers: money, currency, dates, the app language (`utils/AppLanguage.kt`). Helpers that need Room entities live in `data` (`data/ledger`); `core` also holds contracts that several layers call and an entry point implements (`TransactionWidgets`, `QuickAddIntent`, `AppForegroundState`) | `data`, `domain`, `presentation`, `ui`, Android entry points |
 | `worker`, `receiver`, `widget`, `tile`, `aiaccess` | Android entry points | Feature screen internals. Use `domain`/`data` instead |
-| `di`, `navigation`, root (`MainActivity`, `PennyWiseApp`, `PennyWiseApplication`) | Wiring and the composition root | (may import anything) |
+| `di`, `navigation`, root (`MainActivity`, `PennyWiseApp`, `PennyWiseApplication`) | Wiring and the composition root. `navigation` also holds the app shell: `MainScreen`, `PennyWiseBottomNavigation` and `BottomNavItem` | (may import anything) |
 
 1. **No new cycles.** If two packages import each other, cut the edge that points
    from the lower layer to the higher one.
@@ -266,12 +268,29 @@ tests, so `./init.sh app` and CI fail on a new violation:
 |---|---|
 | `domain` | `presentation`, `ui`, Compose, Activity/Fragment, Room |
 | `data` | `presentation`, `ui` |
-| `utils`, `core` | `presentation`, `ui`, `worker`, `receiver`, `widget`, `tile`, `aiaccess` |
+| `utils`, `core` | `presentation`, `ui`, `worker`, `receiver`, `widget`, `tile`, `aiaccess`; and `data`, `domain` (`UtilsLeafBoundaryTest`) |
 | `worker`, `widget`, `receiver`, `tile`, `aiaccess` (one rule each) | `presentation` (launch an Activity by class name through a `core` intent contract such as `core/QuickAddIntent`; don't import it) |
 | `ui.components`, `ui.icons`, `ui.animations`, `ui.effects` | `presentation`, `worker` |
+| `ui` and every package under it (`UiBoundaryTest`) | `presentation`, `navigation` |
 | ViewModels, files that declare a `@Composable` | DAOs, `PennyWiseDatabase`, Room |
 
 `ui.theme` needs no rule: `:core:designsystem` can't see `:app`'s code.
+
+`SchedulerPlacementBoundaryTest` and `MoneyAlertsBoundaryTest` keep `data` from
+importing `worker` or WorkManager, with no allowlist. `WidgetRefreshBoundaryTest`
+keeps `data` and `receiver` from importing `widget`: they refresh widgets through
+`core/TransactionWidgets`, which `widget/WorkManagerTransactionWidgets` implements.
+`NotificationContractsBoundaryTest` keeps `data` from importing `receiver` or a
+root class other than `R` and `BuildConfig`: `receiver` implements the
+notification contracts `data` declares (`ConscienceNotificationActions`,
+`UnrecognizedSmsAlerts`, bound in `di/NotificationContractsModule.kt`), the
+bank-notification allowlist is `data/notification/BankNotificationConfig`, and
+the foreground check goes through `core/AppForegroundState`.
+
+`BillingBoundaryTest` keeps `data` and `core` from importing `billing`. Data
+code gates on Pro through `core.entitlement` (`ProEntitlement`,
+`LicenseRestorer`, `FreeTierLimits`), which `di/EntitlementContractsModule`
+binds to `EntitlementGate` and `LicenseManager`.
 
 Two more rules check where files live rather than what they import: no file in
 any source set may be in the retired `ui.screens` package (by path or by
@@ -284,6 +303,28 @@ allowlist only shrinks. Don't add to it: move the code to the right layer. When
 you fix an import, delete its entry. The test also fails on an entry that no
 longer matches an import, so a fixed import can't come back. A fully qualified name in code isn't checked,
 so don't use one to get around a rule.
+
+### Package-edge ratchet
+
+`app/src/test/.../architecture/PackageEdgeRatchetTest.kt` lists every directed
+edge between top-level `com.pennywiseai.tracker` packages (`data -> worker`,
+`navigation -> ui`, …) in the sources `scripts/arch/package-deps.sh` reads:
+`:app`'s main and flavor sources and the `feature/*` and `core/*` modules. It
+counts `import` lines and fully qualified names in code, but not comments,
+strings, `R` or `BuildConfig`. It fails when an edge is missing from
+`config/architecture/package-edges.txt`, and runs with the unit tests, so
+`./init.sh app` catches it.
+
+- **A new edge fails the test.** Move the code to the layer the rules above
+  allow. Add an edge to the file only when the dependency points the right way
+  (for example a wiring package such as `di` or `navigation` reaching a new
+  package), and say why in the PR.
+- **A removed edge is printed, not failed on**, as "no longer exist" in the test
+  output (`app/build/test-results/`). Delete those lines in the same PR or a
+  later one.
+- The file was seeded with the union of `main` and the merged round-5 PRs, so it
+  lists a few edges `main` doesn't have yet; they show as stale until those PRs
+  land.
 
 ## Data Flow Example
 ```
@@ -369,7 +410,8 @@ The real `HomeUiState` in `presentation/home/HomeViewModel.kt` carries much more
 
 Both are advisory: neither is in `./init.sh` nor in the required **Check** job.
 `quality-advisory.yml` runs them in CI with `continue-on-error` and uploads the
-reports as artifacts.
+reports as artifacts. New Detekt findings leave the job green but add a warning
+annotation and list the findings in the job summary.
 
 - **Detekt**: `./gradlew detekt` checks the production sources of `:app` (main,
   standard, fdroid), `core/*`, `feature/*` and `parser-core`. It parses syntax
@@ -435,10 +477,12 @@ reports as artifacts.
 - Formatting is ktlint via Spotless (rules in `.editorconfig`), checked only on files changed since `origin/main`: run `./gradlew spotlessCheck`, fix with `./gradlew spotlessApply`.
 - `-PspotlessRatchetFrom=<ref>` compares against another ref (a stacked PR's base); an empty value checks every file.
 - `./init.sh` (every target) and the opt-in `.githooks/pre-push` hook run it; `check`/`build` don't. Don't reformat files you aren't changing.
-- Its CI job is advisory: it can't fail the workflow.
+- Its CI job (Format Check) fails the workflow on a violation in a changed file.
 - Dependency updates: Renovate (`renovate.json`) opens grouped PRs weekly; the coupled Kotlin/AGP/Hilt/LiteRT-LM/coroutines toolchain and all majors wait for approval on its Dependency Dashboard issue.
 - Unused or mis-scoped dependencies: `./gradlew buildHealth --max-workers=2` (Dependency Analysis plugin, report only). Its known false positives are listed in [architecture-baseline.md](architecture-baseline.md#dependencies).
-- Vulnerable dependencies: the **Dependency Review** PR check fails when a PR adds a dependency with a known high/critical advisory. It's not required for merge yet. `dependency-graph.yml` resolves the Gradle graph and `dependency-graph-submit.yml` submits it after validating it, which lets fork PRs work too.
+- Vulnerable dependencies: Dependency Review fails a PR that adds a dependency with a known high/critical advisory. Neither check is required for merge yet.
+  - Gradle: `dependency-graph.yml` resolves the graph on every PR and `dependency-graph-submit.yml` submits it after validating it, which lets fork PRs work too. Its `review` job then sets the **Dependency Review (Gradle)** commit status. A PR that changes no Gradle dependency input (`*.gradle(.kts)`, `gradle/*.versions.toml`, `gradle.properties`, `build-logic/`, the wrapper properties, `dependency-graph.yml`) gets a success status as soon as its graph is submitted, with no wait. Otherwise the status stays pending until GitHub shows the PR's snapshot, usually 13 to 35 minutes, then reports the review. After 50 minutes without a snapshot it turns to error ("not reviewed"); re-run that job from the status's Details link. A newer push or a closed PR ends the wait early.
+  - Everything GitHub reads itself (npm manifests, GitHub Actions workflows): `dependency-review.yml` runs the **Dependency Review (non-Gradle)** job on every PR. It needs no snapshot, so it finishes in seconds. Each check reports only its own ecosystems: Gradle (`maven`) advisories fail only the Gradle status.
 
 ## Migration & Evolution
 

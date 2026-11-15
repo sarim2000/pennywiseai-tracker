@@ -12,6 +12,9 @@
   "labels": [
     "dependencies"
   ],
+  "ignoreDeps": [
+    "com.pennywiseai:parser-core"
+  ],
   "packageRules": [
     {
       "description": "One PR for all non-major Gradle updates.",

@@ -2,12 +2,11 @@ package com.pennywiseai.tracker.data.manager
 
 import android.app.NotificationChannel
 import android.app.NotificationManager
+import android.app.PendingIntent
 import android.content.Context
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.receiver.NotificationActionReceiver
-import com.pennywiseai.tracker.receiver.SmsBroadcastReceiver
 
 /**
  * Silent, on its own channel so it can be muted alone, and deliberately without
@@ -27,8 +26,8 @@ object ConscienceNotifier {
         return ensureChannel(context).getNotificationChannel(CHANNEL_ID)?.importance != NotificationManager.IMPORTANCE_NONE
     }
 
-    fun post(context: Context, text: ConscienceText, line: String, lineKey: String, transactionId: Long) {
-        val openTransaction = SmsBroadcastReceiver.openTransactionIntent(context, transactionId)
+    /** [openTransaction] is the tap on the remark, [retireLine] its "Not this one" action. */
+    fun post(context: Context, text: ConscienceText, line: String, openTransaction: PendingIntent, retireLine: PendingIntent) {
         val builder = baseBuilder(context, text, line)
             .setContentIntent(openTransaction)
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
@@ -40,7 +39,7 @@ object ConscienceNotifier {
             .addAction(
                 0,
                 text.string(R.string.conscience_action_dislike),
-                NotificationActionReceiver.conscienceRetireIntent(context, lineKey)
+                retireLine
             )
         ensureChannel(context, text).notify(NOTIFICATION_ID, builder.build())
     }

@@ -1,9 +1,5 @@
 package com.pennywiseai.tracker.presentation.groups
 
-import com.pennywiseai.tracker.utils.AppDates
-
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -20,13 +16,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.repository.GroupTotals
 import com.pennywiseai.tracker.presentation.transactions.ExportTransactionsDialog
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
@@ -34,7 +37,9 @@ import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.ui.theme.investment
+import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.utils.Money
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import java.time.format.DateTimeFormatter
@@ -232,6 +237,74 @@ fun TransactionGroupDetailScreen(
                                         fontWeight = FontWeight.SemiBold,
                                         color = accentColor
                                     )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Each account's part of the totals above, with the same figures and colours.
+            // One account would just repeat the total, so it shows from two up.
+            if (uiState.accountShares.size > 1) {
+                item {
+                    PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
+                        Column(
+                            modifier = Modifier.fillMaxWidth(),
+                            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                        ) {
+                            Text(
+                                stringResource(R.string.analytics_group_by_account),
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.semantics { heading() }
+                            )
+                            // With one kind of figure, the summary card above already names it.
+                            val mixedKinds = listOf<(GroupTotals) -> Map<String, Money>>({ it.expense }, { it.invested }, { it.income })
+                                .count { kind -> uiState.accountShares.any { share -> kind(share.totals).values.any { it.isPositive } } } > 1
+                            uiState.accountShares.forEach { share ->
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                                    verticalAlignment = Alignment.Top
+                                ) {
+                                    Text(
+                                        share.label ?: stringResource(R.string.add_sub_no_account),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Column(horizontalAlignment = Alignment.End) {
+                                        listOf(
+                                            Triple(share.totals.expense, expenseColor, R.string.group_detail_expenses),
+                                            Triple(share.totals.invested, MaterialTheme.colorScheme.investment, R.string.group_detail_invested),
+                                            Triple(share.totals.income, accentColor, R.string.group_detail_income)
+                                        ).forEach { (amounts, color, kind) ->
+                                            if (amounts.values.any { it.isPositive }) {
+                                                // Named, not only coloured: the kind sits beside each figure.
+                                                val kindLabel = stringResource(kind)
+                                                val figure = CurrencyFormatter.formatByCurrency(amounts)
+                                                Row(
+                                                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier.clearAndSetSemantics { contentDescription = "$kindLabel $figure" }
+                                                ) {
+                                                    if (mixedKinds) {
+                                                        Text(
+                                                            kindLabel,
+                                                            style = MaterialTheme.typography.labelSmall,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                    Text(
+                                                        figure,
+                                                        style = PennyWiseText.amountRow,
+                                                        color = color
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
                                 }
                             }
                         }

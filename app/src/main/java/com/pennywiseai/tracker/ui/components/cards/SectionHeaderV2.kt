@@ -81,7 +81,9 @@ fun SectionHeaderV2(
                     text = title,
                     style = PennyWiseText.sectionHeader,
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
+                    // Two lines before an ellipsis, so a longer translation at a large
+                    // font scale wraps instead of losing its last letters (#1057).
+                    maxLines = 2,
                     overflow = TextOverflow.Ellipsis
                 )
                 if (!subtitle.isNullOrBlank()) {

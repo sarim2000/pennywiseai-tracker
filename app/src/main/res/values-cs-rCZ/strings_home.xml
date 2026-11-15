@@ -216,6 +216,8 @@
     </plurals>
     <string name="budget_card_spent_of">Utraceno %1$s z %2$s</string>
     <!-- Budget pace: spending compared with an even spend across the period -->
+    <!-- Tap action on the pace status / chart legend: shows the explanation below -->
+    <!-- Shown under the pace status on the budget card -->
     <string name="budget_cadence_weekly">Týdně</string>
     <string name="budget_cadence_monthly">Měsíčně</string>
     <string name="budget_cadence_one_time">Jednorázový</string>
@@ -251,6 +253,7 @@
     <string name="txn_item_tag_recurring">Opakování</string>
     <string name="txn_item_tag_business">Podniky</string>
     <string name="txn_item_tag_excluded">Vyloučeny</string>
+    <!-- A split row in a category-filtered list: its full amount, e.g. "Split of ₹10,000" -->
     <string name="txn_item_balance_after">Zůst. %1$s</string>
     <!-- %1$s is the last 4 digits of the other account -->
     <string name="txn_item_transfer_to">Převod → %1$s</string>
@@ -311,6 +314,8 @@
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">Uloženo jako %1$s</string>
     <string name="notif_txn_learned_text">Platby tady se od teď budou třídit automaticky.</string>
+    <!-- Learned-note action: keep this pick, but don't remember the merchant -->
+    <string name="notif_txn_learned_only_this_one">Jen tuto</string>
     <plurals name="notif_txn_learned_moved">
         <item quantity="one">Přesunuta byla i %d dřívější.</item>
         <item quantity="few">Přesunuty byly i %d dřívější.</item>

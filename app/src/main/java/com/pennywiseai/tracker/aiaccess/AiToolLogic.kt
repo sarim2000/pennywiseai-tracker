@@ -4,14 +4,14 @@ import com.pennywiseai.shared.domain.money.MinorUnits
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
-import com.pennywiseai.tracker.data.rules.RuleSharingCodec
-import com.pennywiseai.tracker.domain.model.rule.ActionType
-import com.pennywiseai.tracker.domain.model.rule.TransactionRule
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.ledger.forTotals
+import com.pennywiseai.tracker.data.rules.RuleSharingCodec
+import com.pennywiseai.tracker.domain.model.rule.ActionType
+import com.pennywiseai.tracker.domain.model.rule.TransactionRule
 import com.pennywiseai.tracker.utils.Money
-import com.pennywiseai.tracker.utils.forTotals
 import com.pennywiseai.tracker.utils.sumByCurrency
 import kotlinx.serialization.json.JsonArray
 import kotlinx.serialization.json.JsonObject
@@ -40,7 +40,6 @@ object AiToolLogic {
     }
 
     const val HIDDEN_SMS_TEXT = "(SMS text hidden)"
-
 
     const val MAX_ROWS = 200
 

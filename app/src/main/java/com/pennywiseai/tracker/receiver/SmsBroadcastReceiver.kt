@@ -19,9 +19,11 @@ import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
+import com.pennywiseai.tracker.data.ledger.BalanceDiscrepancy
 import com.pennywiseai.tracker.data.manager.ConscienceManager
 import com.pennywiseai.tracker.data.manager.SmsTransactionProcessor
 import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
+import com.pennywiseai.tracker.data.notification.BankNotificationConfig
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.LearnedSendersStore
 import com.pennywiseai.tracker.data.repository.CategoryRepository
@@ -33,7 +35,6 @@ import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
 import com.pennywiseai.tracker.domain.usecase.TrackRepeatChargeUseCase
 import com.pennywiseai.tracker.ui.components.forPicker
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
-import com.pennywiseai.tracker.utils.BalanceDiscrepancy
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.bidiIsolate
 import dagger.hilt.EntryPoint
@@ -76,8 +77,9 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         const val EXTRA_TRANSACTION_ID = "transaction_id"
         const val CHANNEL_ID = "transaction_notifications"
 
-        // Category actions occupy slots 0..1; Not an expense 2 and its Undo 3; "Track as … bill" /
-        // "Update price" slot 7; the learned note's Undo slot 8; picker reserves slot 9.
+        // Category actions occupy slots 0..1; Not an expense 2 and its Undo 3; the learned
+        // note's "Only this one" 4; "Track as … bill" / "Update price" slot 7; the learned
+        // note's Undo slot 8; picker reserves slot 9.
         // Codes are unique per (transactionId, slot): txId*10+slot cannot alias across
         // transactions because take(2) bounds slot < 10. This numbering is used ONLY by
         // NotificationActionReceiver broadcasts — one filterEquals space; activity intents
@@ -333,6 +335,19 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 .setStyle(NotificationCompat.BigTextStyle().bigText(text))
                 .setContentIntent(openTransactionIntent(context, learned.transactionId))
             billAlert?.actions?.firstOrNull()?.let { builder.addAction(0, it.title, it.actionIntent) }
+            // A lesson can be turned into a one-off: keep the pick, forget the merchant (#1029).
+            if (learned.merchant != null) {
+                builder.addAction(
+                    0,
+                    context.getString(R.string.notif_txn_learned_only_this_one),
+                    NotificationActionReceiver.onlyThisOneIntent(
+                        context,
+                        categoryRequestCode(learned.transactionId, ONLY_THIS_ONE_SLOT),
+                        notificationId,
+                        learned
+                    )
+                )
+            }
             builder
                 .addAction(
                     0,
@@ -542,6 +557,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         // Long enough to reach Undo after the picker closes the shade.
         private const val LEARNED_TIMEOUT_MS = 15_000L
         private const val UNDO_SLOT = 8
+        private const val ONLY_THIS_ONE_SLOT = 4
         private const val EXCLUDE_SLOT = 2
         private const val UNDO_EXCLUDE_SLOT = 3
         private const val EXTRA_LEARNED_MERCHANT = "com.pennywiseai.tracker.learned_merchant"

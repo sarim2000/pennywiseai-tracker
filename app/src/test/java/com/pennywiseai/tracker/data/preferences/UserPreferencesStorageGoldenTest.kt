@@ -1,6 +1,5 @@
 package com.pennywiseai.tracker.data.preferences
 
-import android.content.ContextWrapper
 import androidx.datastore.core.DataStore
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.datastore.preferences.core.Preferences
@@ -10,6 +9,8 @@ import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.longPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
+import com.pennywiseai.tracker.core.DateFormatStyle
+import com.pennywiseai.tracker.core.NumberFormatStyle
 import com.pennywiseai.tracker.data.share.ShareCardConfig
 import com.pennywiseai.tracker.data.share.ShareHero
 import com.pennywiseai.tracker.data.share.SharePeriod
@@ -41,7 +42,7 @@ import java.time.LocalDate
  * Runs on its own store per test, because the app's `Context.dataStore` delegate is a
  * process-wide singleton that other unit tests write to. Skips the setters that refresh
  * widgets (updateBudgetCycleStartDay, setBalanceHidden, toggleBalanceHidden,
- * updateSelectedProfileId), which would enqueue WorkManager jobs.
+ * updateSelectedProfileId); PreferenceWidgetRefreshTest covers those.
  */
 class UserPreferencesStorageGoldenTest {
 
@@ -67,7 +68,7 @@ class UserPreferencesStorageGoldenTest {
             scope = scope,
             produceFile = { File(tmp.root, "user_preferences.preferences_pb") }
         )
-        repository = UserPreferencesRepository(ContextWrapper(null), store)
+        repository = UserPreferencesRepository(store) {}
     }
 
     @After

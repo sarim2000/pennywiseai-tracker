@@ -216,6 +216,8 @@
     </plurals>
     <string name="budget_card_spent_of">Потрачено %1$s из %2$s</string>
     <!-- Budget pace: spending compared with an even spend across the period -->
+    <!-- Tap action on the pace status / chart legend: shows the explanation below -->
+    <!-- Shown under the pace status on the budget card -->
     <string name="budget_cadence_weekly">Еженедельно</string>
     <string name="budget_cadence_monthly">Ежемесячно</string>
     <string name="budget_cadence_one_time">Одноразовое</string>
@@ -251,6 +253,7 @@
     <string name="txn_item_tag_recurring">Повторяющийся</string>
     <string name="txn_item_tag_business">Бизнес</string>
     <string name="txn_item_tag_excluded">Исключено</string>
+    <!-- A split row in a category-filtered list: its full amount, e.g. "Split of ₹10,000" -->
     <string name="txn_item_balance_after">Бал %1$s</string>
     <!-- %1$s is the last 4 digits of the other account -->
     <string name="txn_item_transfer_to">Перевод → %1$s</string>
@@ -311,6 +314,8 @@
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">Сохранено как %1$s</string>
     <string name="notif_txn_learned_text">Платежи здесь теперь будут распределяться автоматически.</string>
+    <!-- Learned-note action: keep this pick, but don't remember the merchant -->
+    <string name="notif_txn_learned_only_this_one">Только эту</string>
     <plurals name="notif_txn_learned_moved">
         <item quantity="one">Также перенесена %d прежняя транзакция.</item>
         <item quantity="few">Также перенесены %d прежние транзакции.</item>

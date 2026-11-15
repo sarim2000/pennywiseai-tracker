@@ -1,0 +1,18 @@
+/* Header naming com.pennywiseai.tracker.billing.Foo /* nested com.pennywiseai.tracker.aiaccess.X */ */
+package com.pennywiseai.tracker
+
+/** See [com.pennywiseai.tracker.presentation.home.HomeScreen]. */
+class App {
+    // com.pennywiseai.tracker.widget.Widget
+    val name = "com.pennywiseai.tracker.worker.Worker \" com.pennywiseai.tracker.tile.Tile"
+    val raw = """com.pennywiseai.tracker.tile.Tile "" com.pennywiseai.tracker.receiver.X"""
+    val quote = '"'
+    val escaped = '\''
+    val template = "${com.pennywiseai.tracker.navigation.Routes.HOME} done"
+    val nested = "${listOf("com.pennywiseai.tracker.ui.X").first()} ${com.pennywiseai.tracker.domain.Y}"
+    val literal = $$"""${com.pennywiseai.tracker.backup.Literal} $${com.pennywiseai.tracker.utils.Real}"""
+    val `com.pennywiseai.tracker.di.Name` = 1
+    val member = holder.com.pennywiseai.tracker.tile.Tile
+    val data = com.pennywiseai.tracker.data.Repo()
+    val root = com.pennywiseai.tracker.PennyWiseApplication::class
+}

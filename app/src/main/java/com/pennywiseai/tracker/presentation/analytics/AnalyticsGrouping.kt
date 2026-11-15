@@ -33,7 +33,7 @@ enum class AnalyticsGroupBy(val isPro: Boolean) {
     }
 }
 
-/** A row the totals count ([com.pennywiseai.tracker.utils.forTotals]), with its amount in the view. */
+/** A row the totals count ([com.pennywiseai.tracker.data.ledger.forTotals]), with its amount in the view. */
 internal class CountedRow(val tx: TransactionEntity, val money: Money)
 
 /** One group: its total per currency, and the rows that fed it. */

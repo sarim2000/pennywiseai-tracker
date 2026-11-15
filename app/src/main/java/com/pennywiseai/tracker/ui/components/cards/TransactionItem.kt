@@ -1,10 +1,7 @@
 package com.pennywiseai.tracker.ui.components.cards
 
-import com.pennywiseai.tracker.utils.AppDates
-
 import android.content.res.Resources
-import androidx.compose.ui.platform.LocalContext
-import com.pennywiseai.tracker.R
+import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
@@ -15,29 +12,33 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.isSpecified
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.style.TextOverflow
-import android.view.HapticFeedbackConstants
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.entity.formatAmount
 import com.pennywiseai.tracker.ui.LocalNavAnimatedVisibilityScope
 import com.pennywiseai.tracker.ui.LocalSharedTransitionScope
-import com.pennywiseai.tracker.ui.sharedElementIcon
 import com.pennywiseai.tracker.ui.components.BrandIcon
+import com.pennywiseai.tracker.ui.icons.categoryLabel
+import com.pennywiseai.tracker.ui.sharedElementIcon
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.AmountPrivacy
+import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
-import com.pennywiseai.tracker.utils.formatAmount
 import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
-import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 @Composable
 fun TransactionItem(
     transaction: TransactionEntity,
     convertedAmount: BigDecimal? = null,
+    /** The part of a split row shown in a category-filtered list (#1192); shown instead of its amount. */
+    splitShare: BigDecimal? = null,
     displayCurrency: String? = null,
     showDate: Boolean = true,
     showTypeLabel: Boolean = true,
@@ -88,8 +89,10 @@ fun TransactionItem(
 
     val resources = LocalContext.current.resources
     val categoryText = categoryLabel(transaction.category)
-    val subtitle = remember(transaction, categoryText, dateTimeText, isEffectivelyBusiness, AmountPrivacy.hidden) {
+    val subtitle = remember(transaction, splitShare, categoryText, dateTimeText, isEffectivelyBusiness, AmountPrivacy.hidden) {
         buildList {
+            // First, so a long description can't truncate it out of the one-line subtitle.
+            if (splitShare != null) add(resources.getString(R.string.txn_item_tag_split_of, transaction.formatAmount()))
             if (description != null) add(CurrencyFormatter.maskAmountsIn(description))
             add(dateTimeText)
             if (transaction.category.isNotBlank() &&
@@ -129,10 +132,12 @@ fun TransactionItem(
         }
     }
 
+    val nativeAmount = splitShare?.let { CurrencyFormatter.formatCurrency(it, transaction.currency) }
+        ?: transaction.formatAmount()
     val formattedAmount = if (convertedAmount != null && displayCurrency != null) {
         CurrencyFormatter.formatCurrency(convertedAmount, displayCurrency)
     } else {
-        transaction.formatAmount()
+        nativeAmount
     }
 
     val sharedTransitionScope = LocalSharedTransitionScope.current
@@ -192,7 +197,7 @@ fun TransactionItem(
                         overflow = TextOverflow.Ellipsis
                     )
                     Text(
-                        text = "(${transaction.formatAmount()})",
+                        text = "($nativeAmount)",
                         style = PennyWiseText.amountSmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
@@ -223,11 +228,14 @@ private fun transferTitleOverride(transaction: TransactionEntity, resources: Res
     val mine = transaction.accountNumber
     val from = transaction.fromAccount
     val to = transaction.toAccount
+    // A Cash wallet saved without an identifier has a blank last4: name it by its bank name instead.
+    val toLabel = to?.takeLast(4)?.ifBlank { transaction.toBankName.orEmpty() }
+    val fromLabel = from?.takeLast(4)?.ifBlank { transaction.fromBankName.orEmpty() }
     return when {
-        from != null && to != null && mine == from -> resources.getString(R.string.txn_item_transfer_to, to.takeLast(4))
-        from != null && to != null && mine == to -> resources.getString(R.string.txn_item_transfer_from, from.takeLast(4))
-        to != null && mine != to -> resources.getString(R.string.txn_item_transfer_to, to.takeLast(4))
-        from != null && mine != from -> resources.getString(R.string.txn_item_transfer_from, from.takeLast(4))
+        from != null && to != null && mine == from -> resources.getString(R.string.txn_item_transfer_to, toLabel)
+        from != null && to != null && mine == to -> resources.getString(R.string.txn_item_transfer_from, fromLabel)
+        to != null && mine != to -> resources.getString(R.string.txn_item_transfer_to, toLabel)
+        from != null && mine != from -> resources.getString(R.string.txn_item_transfer_from, fromLabel)
         else -> null
     }
 }

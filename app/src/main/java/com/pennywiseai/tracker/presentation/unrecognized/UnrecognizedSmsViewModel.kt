@@ -17,13 +17,13 @@ import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.core.Constants.Links
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
 import com.pennywiseai.tracker.data.manager.TaughtMessageBooker
+import com.pennywiseai.tracker.data.notification.BankNotificationConfig
 import com.pennywiseai.tracker.data.preferences.LearnedSendersStore
 import com.pennywiseai.tracker.data.preferences.TaughtTemplatesStore
 import com.pennywiseai.tracker.data.preferences.TrackedNotificationAppsStore
 import com.pennywiseai.tracker.data.repository.SmsInboxReader
 import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
 import com.pennywiseai.tracker.domain.model.Suggestion
-import com.pennywiseai.tracker.receiver.BankNotificationConfig
 import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext

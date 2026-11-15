@@ -2,9 +2,8 @@ package com.pennywiseai.tracker.widget
 
 import android.app.LocaleManager
 import android.content.Context
-import android.content.res.Configuration
-import android.text.TextUtils
 import android.os.Build
+import android.text.TextUtils
 import android.view.View
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
@@ -46,6 +45,7 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.Typography
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.utils.inAppLanguage
 import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
@@ -57,7 +57,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import java.math.BigDecimal
 import java.math.RoundingMode
-import com.pennywiseai.tracker.utils.withLatinDigits
 import java.util.Locale
 
 /*
@@ -65,22 +64,6 @@ import java.util.Locale
  * language and reading direction, the in-app eye, how money reads at a
  * glance, and the few parts (header, + button, progress bar, empty state).
  */
-
-/**
- * This context in the app's own language. A widget is drawn from whichever
- * context its session or worker started with, and that can carry the
- * device's language (English) while the app is set to Arabic, which flipped
- * widget text between the two. Older Androids have no per-app language, so
- * there the device's language is the app's.
- */
-fun Context.inAppLanguage(): Context = appLanguageContext().withLatinDigits()
-
-private fun Context.appLanguageContext(): Context {
-    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return this
-    val appLocales = getSystemService(LocaleManager::class.java)?.applicationLocales
-    if (appLocales == null || appLocales.isEmpty || resources.configuration.locales == appLocales) return this
-    return createConfigurationContext(Configuration(resources.configuration).apply { setLocales(appLocales) })
-}
 
 /**
  * Whether the app's language reads the other way from the device's (an

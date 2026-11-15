@@ -31,6 +31,8 @@
     <string name="settings_exchange_rates_subtitle">View and customize rates</string>
     <string name="settings_card_spend_as_expense_title">Count card spend as expense</string>
     <string name="settings_card_spend_as_expense_subtitle">Include credit-card spend in \"Spent this month\"</string>
+    <string name="settings_atm_cash_to_wallet_title">Send ATM cash to my Cash wallet</string>
+    <string name="settings_atm_cash_to_wallet_subtitle">On: cash you take out goes to your Cash wallet and isn\'t counted as spending. Off: it counts as spending right away.</string>
     <string name="settings_default_currency_title">Default Currency</string>
     <string name="settings_default_currency_subtitle">Currency used for conversions</string>
     <string name="settings_budget_convert_title">Convert your budgets?</string>

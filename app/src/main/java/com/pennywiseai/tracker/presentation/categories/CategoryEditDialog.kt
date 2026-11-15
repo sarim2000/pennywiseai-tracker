@@ -1,7 +1,5 @@
 package com.pennywiseai.tracker.presentation.categories
 
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,18 +16,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.ui.components.CategoryChip
 import com.pennywiseai.tracker.ui.components.ColorSwatchRow
 import com.pennywiseai.tracker.ui.components.EmojiGlyph
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.ui.icons.categoryLabel
-
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
@@ -37,13 +36,15 @@ fun CategoryEditDialog(
     category: CategoryEntity? = null,
     defaultIsIncome: Boolean = false,
     lockType: Boolean = false,
+    // Pre-filled name for a new category, e.g. the picker's search (#1058).
+    initialName: String = "",
     // Candidate parents for the "Parent category" picker (#374); empty hides it.
     parentOptions: List<CategoryEntity> = emptyList(),
     onDismiss: () -> Unit,
     onSave: (name: String, color: String, isIncome: Boolean, icon: String?, parentId: Long?) -> Unit,
     onDelete: (() -> Unit)? = null
 ) {
-    var name by remember { mutableStateOf(category?.name ?: "") }
+    var name by remember { mutableStateOf(category?.name ?: initialName) }
     var isIncome by remember { mutableStateOf(category?.isIncome ?: defaultIsIncome) }
     var parentId by remember { mutableStateOf(category?.parentId) }
     // Only top-level categories of the same type can be parents (one level deep).
@@ -236,8 +237,7 @@ fun CategoryEditDialog(
                                 .size(Dimensions.Icon.medium)
                                 .clip(CircleShape)
                                 .background(
-                                    try { Color(android.graphics.Color.parseColor(selectedColor)) }
-                                    catch (e: Exception) { MaterialTheme.colorScheme.primary }
+                                    try { Color(android.graphics.Color.parseColor(selectedColor)) } catch (e: Exception) { MaterialTheme.colorScheme.primary }
                                 ),
                             contentAlignment = Alignment.Center
                         ) {

@@ -83,6 +83,58 @@ class TransactionListFiltersTest {
         assertEquals(emptyList<Long>(), ids(filterByCategories(listOf(tx(1, "Others")), setOf("Groceries"), listOf(split(9, "Groceries")))))
     }
 
+    @Test
+    fun `a split row matches on its splits, not its own category`() {
+        // Analytics counts nothing of it under Others, so the list must not list it there.
+        assertEquals(emptyList<Long>(), ids(filterByCategories(listOf(tx(1, "Others")), setOf("Others"), listOf(split(1, "Groceries")))))
+    }
+
+    // ─── Split shares under a category filter (#1192) ────────────────────────
+
+    private val splitTx = tx(1, "Others").copy(amount = BigDecimal("10000"))
+    private val splitRows = listOf(
+        TransactionSplitEntity(transactionId = 1, category = "Others", amount = BigDecimal("7000")),
+        TransactionSplitEntity(transactionId = 1, category = "Shopping", amount = BigDecimal("3000")),
+    )
+
+    @Test
+    fun `a split row shows and totals only its share in the filtered category`() {
+        val shopping = CategorySplitShares(setOf("Shopping"), splitRows)
+        assertEquals(0, BigDecimal("3000").compareTo(shopping.shareOf(splitTx)))
+        val totals = calculateCurrencyGroupedTotals(listOfNotNull(shopping.forTotals(splitTx)))
+        assertEquals(0, BigDecimal("3000").compareTo(totals.getTotalsForCurrency("INR").expenses))
+
+        val others = CategorySplitShares(setOf("Others"), splitRows)
+        assertEquals(0, BigDecimal("7000").compareTo(others.forTotals(splitTx)!!.amount))
+    }
+
+    @Test
+    fun `sort and search use the split share the row shows`() {
+        val shopping = CategorySplitShares(setOf("Shopping"), splitRows)
+        val plain = tx(2, "Shopping").copy(amount = BigDecimal("5000"))
+        val rows = listOf(splitTx, plain)
+        assertEquals(listOf(2L, 1L), ids(sortTransactions(rows, SortOption.AMOUNT_HIGHEST, shopping::shownAmount)))
+        assertEquals(listOf(1L), ids(filterBySearch(rows, "3000", emptyMap(), emptyMap(), shopping::shownAmount)))
+        assertEquals(emptyList<Long>(), ids(filterBySearch(rows, "10000", emptyMap(), emptyMap(), shopping::shownAmount)))
+    }
+
+    @Test
+    fun `an unsplit row keeps its full amount`() {
+        val shares = CategorySplitShares(setOf("Food"), splitRows)
+        val plain = tx(2, "Food")
+        assertEquals(null, shares.shareOf(plain))
+        assertEquals(plain, shares.forTotals(plain))
+    }
+
+    @Test
+    fun `a split row's share is cut like the rest of the totals`() {
+        // ₹4,000 of the ₹10,000 is other people's share (#346): Shopping's ₹3,000 counts ₹1,800.
+        val lent = splitTx.copy(lentSharesTotal = BigDecimal("4000"))
+        val shopping = CategorySplitShares(setOf("Shopping"), splitRows)
+        assertEquals(0, BigDecimal("1800").compareTo(shopping.forTotals(lent)!!.amount))
+        assertEquals(null, shopping.forTotals(splitTx.copy(excludedFromAnalytics = true)))
+    }
+
     // ─── Ignored accounts and profile ────────────────────────────────────────
 
     private val ignoredKey = "Test Bank_0000"

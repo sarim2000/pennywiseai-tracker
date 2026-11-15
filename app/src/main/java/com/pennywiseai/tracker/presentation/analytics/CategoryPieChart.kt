@@ -1,8 +1,5 @@
 package com.pennywiseai.tracker.presentation.analytics
 
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
-import java.math.BigDecimal
 import androidx.compose.animation.Crossfade
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -19,18 +16,21 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.components.CategoryIcon
 import com.pennywiseai.tracker.ui.effects.BlurredAnimatedVisibility
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
+import com.pennywiseai.tracker.ui.icons.categoryLabel
+import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
-import com.pennywiseai.tracker.ui.theme.Dimensions
 import ir.ehsannarmani.compose_charts.PieChart
 import ir.ehsannarmani.compose_charts.models.LabelHelperProperties
 import ir.ehsannarmani.compose_charts.models.Pie
-import com.pennywiseai.tracker.ui.icons.categoryLabel
+import java.math.BigDecimal
 
 @Composable
 fun CategoryPieChart(
@@ -161,6 +161,7 @@ fun CategoryPieChart(
     }
 }
 
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun PieLegendItem(
     label: String,
@@ -214,16 +215,20 @@ private fun PieLegendItem(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
-            Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            // Each figure stays whole; the percentage moves to the next line when it
+            // doesn't fit. In Arabic "(١٠٠%)" broke before its closing parenthesis (#1057).
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
                 Text(
                     text = CurrencyFormatter.formatAbbreviated(value, currency),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    softWrap = false
                 )
                 Text(
                     text = stringResource(R.string.analytics_pie_percent, percentage),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    softWrap = false
                 )
             }
         }

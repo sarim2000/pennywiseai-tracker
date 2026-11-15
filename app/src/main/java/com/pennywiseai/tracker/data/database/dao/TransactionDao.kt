@@ -73,13 +73,12 @@ interface TransactionDao {
     """)
     suspend fun getWebhookCurrencyRemovals(currency: String, profileId: String): List<TransactionEntity>
 
-    
     @Query("SELECT * FROM transactions WHERE is_deleted = 0 ORDER BY date_time DESC")
     fun getAllTransactions(): Flow<List<TransactionEntity>>
 
     @Query("SELECT * FROM transactions WHERE id = :transactionId")
     suspend fun getTransactionById(transactionId: Long): TransactionEntity?
-    
+
     @Query("""
         SELECT * FROM transactions
         WHERE is_deleted = 0
@@ -115,7 +114,7 @@ interface TransactionDao {
         currency: String,
         transactionType: TransactionType?
     ): Flow<List<TransactionEntity>>
-    
+
     @Query("""
         SELECT * FROM transactions 
         WHERE is_deleted = 0 
@@ -123,7 +122,7 @@ interface TransactionDao {
         ORDER BY date_time DESC
     """)
     fun getTransactionsByType(type: TransactionType): Flow<List<TransactionEntity>>
-    
+
     @Query("""
         SELECT * FROM transactions 
         WHERE is_deleted = 0 
@@ -131,7 +130,7 @@ interface TransactionDao {
         ORDER BY date_time DESC
     """)
     fun getTransactionsByCategory(category: String): Flow<List<TransactionEntity>>
-    
+
     @Query("""
         SELECT * FROM transactions 
         WHERE is_deleted = 0 
@@ -142,7 +141,7 @@ interface TransactionDao {
         ORDER BY date_time DESC
     """)
     fun searchTransactions(searchQuery: String): Flow<List<TransactionEntity>>
-    
+
     @Query("SELECT DISTINCT category FROM transactions WHERE is_deleted = 0 ORDER BY category ASC")
     fun getAllCategories(): Flow<List<String>>
 
@@ -154,10 +153,18 @@ interface TransactionDao {
     """)
     suspend fun getCategoriesByUsage(): List<String>
 
+    /** Categories by how many transactions used them since [since], most first (#1058). */
+    @Query("""
+        SELECT category FROM transactions
+        WHERE is_deleted = 0 AND date_time >= :since
+        GROUP BY category
+        ORDER BY COUNT(*) DESC
+    """)
+    fun observeCategoriesByUsageSince(since: LocalDateTime): Flow<List<String>>
 
     @Query("SELECT DISTINCT merchant_name FROM transactions WHERE is_deleted = 0 ORDER BY merchant_name ASC")
     fun getAllMerchants(): Flow<List<String>>
-    
+
     @Query("""
         SELECT SUM(amount) FROM transactions 
         WHERE is_deleted = 0 
@@ -169,22 +176,22 @@ interface TransactionDao {
         startDate: LocalDateTime,
         endDate: LocalDateTime
     ): Double?
-    
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertTransaction(transaction: TransactionEntity): Long
-    
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertTransactions(transactions: List<TransactionEntity>)
-    
+
     @Update
     suspend fun updateTransaction(transaction: TransactionEntity)
-    
+
     @Delete
     suspend fun deleteTransaction(transaction: TransactionEntity)
-    
+
     @Query("DELETE FROM transactions WHERE id = :transactionId")
     suspend fun deleteTransactionById(transactionId: Long)
-    
+
     /** @return the number of rows actually removed. */
     @Query("DELETE FROM transactions")
     suspend fun deleteAllTransactions(): Int
@@ -210,7 +217,6 @@ interface TransactionDao {
      */
     @Query("SELECT COUNT(*) FROM transactions")
     suspend fun countAllTransactions(): Int
-
 
     /**
      * The "rebuild from scratch" resync: deletes only rows the SMS inbox can
@@ -238,7 +244,7 @@ interface TransactionDao {
           AND date_time >= :from
     """)
     suspend fun deleteRebuildableSmsTransactions(notificationAliases: List<String>, from: LocalDateTime)
-    
+
     /**
      * Moves [merchantName]'s other live rows of [types] to [newCategory] (the
      * "Update existing transactions" box). Spaces around the name and case are
@@ -278,7 +284,6 @@ interface TransactionDao {
     /** Flips only the "don't count" flag; 0 when it already had that value. */
     @Query("UPDATE transactions SET excluded_from_analytics = :excluded, updated_at = :updatedAt WHERE id = :transactionId AND excluded_from_analytics != :excluded")
     suspend fun setExcludedFromAnalytics(transactionId: Long, excluded: Boolean, updatedAt: LocalDateTime): Int
-
 
     @Query("SELECT COUNT(*) FROM transactions WHERE bank_name = :bankName AND account_number = :accountLast4 AND is_deleted = 0 AND profile_id IS NOT NULL AND profile_id != :profileId")
     suspend fun countExplicitProfileMismatchForAccount(bankName: String, accountLast4: String, profileId: Long): Int
@@ -459,7 +464,7 @@ interface TransactionDao {
         since: LocalDateTime,
         limit: Int = 5,
     ): List<TransactionEntity>
-    
+
     @Query("""
         SELECT * FROM transactions 
         WHERE is_deleted = 0 
@@ -473,7 +478,7 @@ interface TransactionDao {
 
     @Query("SELECT MIN(date_time) FROM transactions WHERE is_deleted = 0")
     suspend fun getOldestTransactionDateTime(): LocalDateTime?
-    
+
     @Query("""
         SELECT * FROM transactions
         WHERE is_deleted = 0
@@ -527,7 +532,7 @@ interface TransactionDao {
 
     @Query("UPDATE transactions SET transfer_pair_id = :pairId WHERE id IN (:ids)")
     suspend fun linkTransferPair(pairId: String, ids: List<Long>)
-    
+
     @Query("""
         SELECT * FROM transactions
         WHERE is_deleted = 0

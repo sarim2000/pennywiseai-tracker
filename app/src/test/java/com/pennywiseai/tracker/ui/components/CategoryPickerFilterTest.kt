@@ -26,6 +26,23 @@ class CategoryPickerFilterTest {
     }
 
     @Test
+    fun `most used follows usage order, skips what the picker doesn't offer, and caps at the limit`() {
+        val offered = all.forPicker(isIncome = false)
+        assertEquals(listOf("Fruit", "Food"), offered.mostUsed(listOf("Salary", "Fruit", "Gone", "Food")).map { it.name })
+        assertEquals(listOf("Fruit"), offered.mostUsed(listOf("Fruit", "Food"), limit = 1).map { it.name })
+        assertEquals(emptyList<String>(), offered.mostUsed(emptyList()).map { it.name })
+    }
+
+    @Test
+    fun `search matches the shown translated name or the stored one, ignoring case`() {
+        val offered = all.forPicker(isIncome = false)
+        val label = { c: CategoryEntity -> if (c.name == "Food") "Essen" else c.name }
+        assertEquals(listOf("Food"), offered.matching("ess", label).map { it.name })
+        assertEquals(listOf("Food"), offered.matching(" food ", label).map { it.name })
+        assertEquals(offered, offered.matching("  ", label))
+    }
+
+    @Test
     fun `income pickers show income categories`() =
         assertEquals(listOf("Salary"), all.forPicker(isIncome = true).map { it.name })
 }

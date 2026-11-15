@@ -34,6 +34,8 @@ fun supportedActionTypes(field: TransactionField): Set<ActionType> = when (field
     TransactionField.TYPE -> setOf(ActionType.SET)
     TransactionField.BANK_NAME -> setOf(ActionType.SET, ActionType.CLEAR)
     TransactionField.TAGS -> setOf(ActionType.ADD_TAG, ActionType.REMOVE_TAG)
+    TransactionField.TRANSFER_FROM_ACCOUNT,
+    TransactionField.TRANSFER_TO_ACCOUNT -> setOf(ActionType.SET)
     else -> emptySet()
 }
 
@@ -54,9 +56,12 @@ data class RuleAction(
             // Setting TYPE needs a value the engine can parse back into a
             // TransactionType: applyAction falls back to the transaction's
             // existing type otherwise, so the rule silently does nothing.
-            ActionType.SET ->
-                if (field == TransactionField.TYPE) parseRuleTransactionType(value) != null
-                else value.isNotBlank()
+            ActionType.SET -> when (field) {
+                TransactionField.TYPE -> parseRuleTransactionType(value) != null
+                TransactionField.TRANSFER_FROM_ACCOUNT,
+                TransactionField.TRANSFER_TO_ACCOUNT -> parseRuleAccountKey(value) != null
+                else -> value.isNotBlank()
+            }
             ActionType.APPEND, ActionType.PREPEND -> value.isNotBlank()
             ActionType.CLEAR -> true
             ActionType.ADD_TAG -> value.isNotBlank()
@@ -75,4 +80,9 @@ enum class ActionType {
     ADD_TAG,       // Add a tag
     REMOVE_TAG,    // Remove a tag
     BLOCK          // Block the transaction from being saved
+}
+/** Splits an account key "BankName||Last4" into (bank, last4); null if it isn't one. */
+fun parseRuleAccountKey(value: String): Pair<String, String>? {
+    val parts = value.split("||")
+    return if (parts.size == 2 && parts[0].isNotBlank()) parts[0] to parts[1] else null
 }

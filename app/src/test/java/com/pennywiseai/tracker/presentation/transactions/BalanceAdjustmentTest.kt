@@ -3,7 +3,7 @@ package com.pennywiseai.tracker.presentation.transactions
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.utils.BalanceDiscrepancy
+import com.pennywiseai.tracker.data.ledger.BalanceDiscrepancy
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test

@@ -2,12 +2,12 @@ package com.pennywiseai.tracker.presentation.recurring
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pennywiseai.tracker.billing.EntitlementGate
+import com.pennywiseai.tracker.core.entitlement.FreeTierLimits
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.RecurringFrequency
 import com.pennywiseai.tracker.data.database.entity.RecurringTransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.billing.EntitlementGate
-import com.pennywiseai.tracker.billing.FreeTierLimits
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.repository.RecurringTransactionRepository
 import com.pennywiseai.tracker.domain.usecase.GetCategoriesUseCase

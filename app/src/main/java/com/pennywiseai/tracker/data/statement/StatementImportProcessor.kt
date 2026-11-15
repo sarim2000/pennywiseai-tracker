@@ -3,8 +3,8 @@ package com.pennywiseai.tracker.data.statement
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.ledger.ledgerType
 import com.pennywiseai.tracker.data.mapper.toEntity
-import com.pennywiseai.tracker.utils.ledgerType
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalDateTime

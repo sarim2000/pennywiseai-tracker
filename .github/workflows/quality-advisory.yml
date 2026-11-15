@@ -60,8 +60,49 @@ jobs:
 
     - uses: gradle/actions/setup-gradle@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
 
+    # The step may fail (new findings) without failing the job; the next step turns a
+    # failure into a warning annotation and a summary line so it is not silently green.
     - name: Run Detekt against the baseline
-      run: ./gradlew detekt --build-cache
+      id: detekt
+      continue-on-error: true
+      run: |
+        set -o pipefail
+        ./gradlew detekt --build-cache 2>&1 | tee "$RUNNER_TEMP/detekt.log"
+
+    - name: Summarise Detekt result
+      if: always()
+      env:
+        DETEKT_OUTCOME: ${{ steps.detekt.outcome }}
+      run: |
+        report=build/reports/detekt/detekt.txt
+        if [ "$DETEKT_OUTCOME" = "success" ]; then
+          echo "Detekt: no findings beyond config/detekt/baseline.xml." >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+        fi
+        weighted=$(grep -oE 'Analysis failed with [0-9]+ weighted issues?' "$RUNNER_TEMP/detekt.log" | grep -oE '[0-9]+' | head -n 1 || true)
+        if [ -z "$weighted" ]; then
+          echo "::warning title=Detekt (advisory)::Detekt did not finish ($DETEKT_OUTCOME); see the job log."
+          echo "Detekt did not finish ($DETEKT_OUTCOME); see the job log." >> "$GITHUB_STEP_SUMMARY"
+          exit 0
+        fi
+        findings=0
+        if [ -f "$report" ]; then
+          findings=$(wc -l < "$report" | tr -d ' ')
+        fi
+        echo "::warning title=Detekt (advisory)::Detekt found $findings finding(s), $weighted weighted issue(s), not in config/detekt/baseline.xml. See the detekt-report artifact."
+        {
+          echo "### Detekt: $findings finding(s), $weighted weighted issue(s) not in the baseline"
+          echo
+          echo "Fix them, or replace stale IDs in config/detekt/baseline.xml when a baselined smell only moved."
+          if [ -f "$report" ]; then
+            echo
+            echo '```'
+            # One command reads the whole report: piping into head could SIGPIPE sed
+            # and fail this step under pipefail.
+            sed -n -e "s|$GITHUB_WORKSPACE/||" -e 's| - Signature=.*||' -e '1,50p' "$report"
+            echo '```'
+          fi
+        } >> "$GITHUB_STEP_SUMMARY"
 
     - name: Upload Detekt report
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -101,6 +142,7 @@ jobs:
         :app:koverXmlReportStandardDebug :app:koverHtmlReportStandardDebug
         :core:designsystem:koverXmlReportDebug :core:designsystem:koverHtmlReportDebug
         :feature:exchangerates:koverXmlReportDebug :feature:exchangerates:koverHtmlReportDebug
+        :feature:learnedcategories:koverXmlReportDebug :feature:learnedcategories:koverHtmlReportDebug
 
     - name: Upload coverage reports
       uses: actions/upload-artifact@cf430e030ddbb5b0abf93d22962f4752f3646cd9 # v7.0.2
@@ -111,4 +153,5 @@ jobs:
           app/build/reports/kover/
           core/designsystem/build/reports/kover/
           feature/exchangerates/build/reports/kover/
+          feature/learnedcategories/build/reports/kover/
         retention-days: 7

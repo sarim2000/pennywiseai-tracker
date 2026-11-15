@@ -160,6 +160,8 @@ object BankParserFactory {
         SNBAlAhliBankParser(),  // Saudi National Bank / Al Ahli Bank (Saudi Arabia)
         STCBankParser(),  // STC Bank (Saudi Arabia)
         SabbBankParser(),  // SABB - Saudi Awwal Bank (Saudi Arabia)
+        MobilyPayParser(),  // Mobily Pay (Saudi Arabia)
+        BarqParser(),  // Barq (Saudi Arabia)
         D360BankParser(),  // D360 Bank (Saudi Arabia)
         MBankCZParser(),  // mBank CZ (Czech Republic)
         SparkasseRheinMaasParser(),  // Sparkasse Rhein-Maas (Germany)
@@ -172,7 +174,8 @@ object BankParserFactory {
         NationalSavingsBankParser(),  // National Savings Bank / NSB (Sri Lanka)
         NDBBankParser(),  // National Development Bank / NDB (Sri Lanka)
         ComBankParser(),  // Commercial Bank of Ceylon / ComBank (Sri Lanka) (#848)
-        CityBankBangladeshParser(), // City Bank PLC (Bangladesh)
+        CityBankBangladeshParser(),
+        IFICBangladeshParser(),  // IFIC Bank (Bangladesh) // City Bank PLC (Bangladesh)
         BRACBankParser(),  // BRAC Bank (Bangladesh) (#943)
         BkashParser(),  // bKash (Bangladesh) — mobile money
         AccessBankParser(),  // Access Bank (Nigeria)

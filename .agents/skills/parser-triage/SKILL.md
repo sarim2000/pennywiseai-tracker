@@ -46,7 +46,7 @@ grep -n "<Bank>" parser-core/src/main/kotlin/com/pennywiseai/parser/core/bank/Ba
   `ICICIB`). Read the matching parser's `canHandle()`; it may use exact sets, `contains` or
   regex. `BankParserFactory.getParsers()` returns every parser whose `canHandle` matches, and
   `parse()` tries them in list order, so a broader parser above can swallow the sender.
-- Some banks arrive by app notification, not SMS: `receiver/BankNotificationConfig.kt`
+- Some banks arrive by app notification, not SMS: `data/notification/BankNotificationConfig.kt`
   `allowedPackages` (under `app/src/main/java/com/pennywiseai/tracker/`).
 - Duplicates and prior work:
   `gh issue list -R sarim2000/pennywiseai-tracker --search "<bank> in:title,body" --state all -L 20`,

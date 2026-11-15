@@ -192,6 +192,8 @@
     </plurals>
     <string name="budget_card_spent_of">%2$s में से %1$s खर्च</string>
     <!-- Budget pace: spending compared with an even spend across the period -->
+    <!-- Tap action on the pace status / chart legend: shows the explanation below -->
+    <!-- Shown under the pace status on the budget card -->
     <string name="budget_cadence_weekly">साप्ताहिक</string>
     <string name="budget_cadence_monthly">मासिक</string>
     <string name="budget_cadence_one_time">एक बार</string>
@@ -222,6 +224,7 @@
     <string name="txn_item_tag_recurring">दोहराव</string>
     <string name="txn_item_tag_business">बिज़नेस</string>
     <string name="txn_item_tag_excluded">बाहर रखा</string>
+    <!-- A split row in a category-filtered list: its full amount, e.g. "Split of ₹10,000" -->
     <string name="txn_item_balance_after">बैलेंस %1$s</string>
     <!-- %1$s is the last 4 digits of the other account -->
     <string name="txn_item_transfer_to">स्थानांतरण → %1$s</string>
@@ -281,6 +284,8 @@
     <!-- After a category is picked from the notification; %1$s is the category -->
     <string name="notif_txn_learned_title">%1$s में सहेजा गया</string>
     <string name="notif_txn_learned_text">अब से यहाँ के भुगतान अपने-आप इसी श्रेणी में जाएँगे।</string>
+    <!-- Learned-note action: keep this pick, but don't remember the merchant -->
+    <string name="notif_txn_learned_only_this_one">सिर्फ़ यह वाला</string>
     <plurals name="notif_txn_learned_moved">
         <item quantity="one">पहले का %d लेन-देन भी बदला गया।</item>
         <item quantity="other">पहले के %d लेन-देन भी बदले गए।</item>

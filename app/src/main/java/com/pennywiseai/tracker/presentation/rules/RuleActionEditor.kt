@@ -29,7 +29,8 @@ private fun actionTypeLabel(type: ActionType): Int = when (type) {
 @Composable
 internal fun ActionEditor(
     action: RuleAction,
-    onActionChange: (RuleAction) -> Unit
+    onActionChange: (RuleAction) -> Unit,
+    allAccounts: List<RulesViewModel.AccountInfo> = emptyList()
 ) {
     var actionTypeDropdownExpanded by remember { mutableStateOf(false) }
     var actionFieldDropdownExpanded by remember { mutableStateOf(false) }
@@ -120,6 +121,8 @@ internal fun ActionEditor(
                             TransactionField.NARRATION -> R.string.rules_field_description
                             TransactionField.BANK_NAME -> R.string.rules_field_account
                             TransactionField.TAGS -> R.string.rules_field_tags
+                            TransactionField.TRANSFER_FROM_ACCOUNT -> R.string.rules_field_transfer_from_account
+                            TransactionField.TRANSFER_TO_ACCOUNT -> R.string.rules_field_transfer_to_account
                             else -> R.string.rules_field_label
                         }
                     ),
@@ -139,7 +142,9 @@ internal fun ActionEditor(
                         TransactionField.TYPE to R.string.rules_field_transaction_type,
                         TransactionField.NARRATION to R.string.rules_field_description,
                         TransactionField.BANK_NAME to R.string.rules_field_account,
-                        TransactionField.TAGS to R.string.rules_field_tags
+                        TransactionField.TAGS to R.string.rules_field_tags,
+                        TransactionField.TRANSFER_FROM_ACCOUNT to R.string.rules_field_transfer_from_account,
+                        TransactionField.TRANSFER_TO_ACCOUNT to R.string.rules_field_transfer_to_account
                     ).forEach { (field, label) ->
                         DropdownMenuItem(
                             text = { Text(stringResource(label)) },
@@ -273,6 +278,24 @@ internal fun ActionEditor(
                         placeholder = { Text(stringResource(R.string.rules_value_placeholder_bank)) },
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true
+                    )
+                }
+
+                TransactionField.TRANSFER_FROM_ACCOUNT,
+                TransactionField.TRANSFER_TO_ACCOUNT -> {
+                    RuleAccountPicker(
+                        value = action.value,
+                        allAccounts = allAccounts,
+                        label = stringResource(
+                            if (action.field == TransactionField.TRANSFER_TO_ACCOUNT) R.string.rules_field_transfer_to_account
+                            else R.string.rules_field_transfer_from_account
+                        ),
+                        onSelect = { onActionChange(action.copy(value = it)) }
+                    )
+                    Text(
+                        text = stringResource(R.string.rules_transfer_account_hint),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 

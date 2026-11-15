@@ -417,13 +417,20 @@ tasks.withType<Test>().configureEach {
         .withPathSensitivity(PathSensitivity.RELATIVE)
         .withPropertyName("androidResourcesForParityTest")
     // Both tests also read the feature modules (feature/*/src).
-    inputs.files(rootProject.fileTree("feature") { include("*/src/**/res/**/*.xml", "*/src/*/java/**/*.kt") })
+    inputs.files(rootProject.fileTree("feature") { include("*/src/**/res/**/*.xml", "*/src/*/java/**/*.kt", "*/src/*/kotlin/**/*.kt") })
         .withPathSensitivity(PathSensitivity.RELATIVE)
         .withPropertyName("featureSourcesForArchitectureAndParityTests")
     // Same for ArchitectureTest, which parses the Kotlin sources' imports. An
     // import edit doesn't always change the bytecode (swap one import line for
     // another), and then the compiled classes alone wouldn't re-run the test.
-    inputs.files(fileTree("src") { include("*/java/**/*.kt") })
+    inputs.files(fileTree("src") { include("*/java/**/*.kt", "*/kotlin/**/*.kt") })
         .withPathSensitivity(PathSensitivity.RELATIVE)
         .withPropertyName("kotlinSourcesForArchitectureTest")
+    // PackageEdgeRatchetTest also reads core/* and its allowlist.
+    inputs.files(rootProject.fileTree("core") { include("*/src/main/**/*.kt") })
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+        .withPropertyName("coreSourcesForPackageEdgeRatchet")
+    inputs.file(rootProject.layout.projectDirectory.file("config/architecture/package-edges.txt"))
+        .withPathSensitivity(PathSensitivity.RELATIVE)
+        .withPropertyName("packageEdgeAllowlist")
 }

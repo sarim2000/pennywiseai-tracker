@@ -1,10 +1,10 @@
 package com.pennywiseai.tracker.data.preferences
 
 import android.content.Context
-import kotlinx.coroutines.sync.Mutex
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import kotlinx.coroutines.sync.Mutex
 
 /** Applies only user-confirmed account aliases, scoped to the bank and currency. */
 class BankAccountMergeStore(context: Context) {
@@ -51,7 +51,9 @@ class BankAccountMergeStore(context: Context) {
     companion object {
         private val writeLock = Any()
         internal val mutationMutex = Mutex()
-        private val shortSuffixPattern = Regex("\\d{3}")
+        // Some banks mask to the last 2 digits (#1139), others to 3 (#873). Mappings are only
+        // written on a user-confirmed merge, so a 2-digit collision is never redirected implicitly.
+        private val shortSuffixPattern = Regex("\\d{2,3}")
         private val fullSuffixPattern = Regex("\\d{4}")
         private val currencyPattern = Regex("[A-Z]{3}")
 

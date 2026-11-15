@@ -17,6 +17,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.ApplicationScope
+import com.pennywiseai.tracker.core.TransactionWidgets
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -32,7 +33,6 @@ import com.pennywiseai.tracker.ui.security.BiometricAuthManager
 import com.pennywiseai.tracker.ui.viewmodel.PennyWiseUserTheme
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.withLatinDigits
-import com.pennywiseai.tracker.widget.WidgetRefresher
 import com.pennywiseai.tracker.worker.DailySummaryWorker
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.CoroutineScope
@@ -75,6 +75,7 @@ class QuickCategoryPickerActivity : FragmentActivity() {
     @Inject lateinit var learnCategory: LearnCategoryUseCase
     @Inject lateinit var appLockRepository: AppLockRepository
     @Inject lateinit var biometricAuthManager: BiometricAuthManager
+    @Inject lateinit var transactionWidgets: TransactionWidgets
 
     /** Nothing is read or shown until this is true. */
     private val unlocked = mutableStateOf(false)
@@ -250,6 +251,7 @@ class QuickCategoryPickerActivity : FragmentActivity() {
         var transactionLoaded by remember(args.transactionId) { mutableStateOf(false) }
         var categories by remember { mutableStateOf<List<CategoryEntity>>(emptyList()) }
         var categoriesLoaded by remember { mutableStateOf(false) }
+        var mostUsed by remember { mutableStateOf<List<String>>(emptyList()) }
         // Tags for the inline tag section (#696): the txn's current tags seed
         // the field, and every known tag name feeds autocomplete.
         var initialTags by remember(args.transactionId) { mutableStateOf<List<String>>(emptyList()) }
@@ -276,6 +278,7 @@ class QuickCategoryPickerActivity : FragmentActivity() {
         LaunchedEffect(Unit) {
             categories = categoryRepository.getVisibleCategories().first()
             categoriesLoaded = true
+            mostUsed = transactionRepository.observeRecentCategoryUsage().first()
             tagSuggestions = tagRepository.observeAllTagNames().first()
         }
 
@@ -310,7 +313,7 @@ class QuickCategoryPickerActivity : FragmentActivity() {
                         learnCategory(txn.id, newCategory) { learned ->
                             SmsBroadcastReceiver.showLearnedNotification(applicationContext, activeNotificationId, learned)
                         }
-                        WidgetRefresher.refreshTransactionWidgets(applicationContext)
+                        transactionWidgets.refresh()
                     }
                 },
                 onDismiss = { finish() },
@@ -320,7 +323,7 @@ class QuickCategoryPickerActivity : FragmentActivity() {
                 onExclude = {
                     answer(txn.id) {
                         transactionRepository.setExcludedFromAnalytics(txn.id, true)
-                        WidgetRefresher.refreshTransactionWidgets(applicationContext)
+                        transactionWidgets.refresh()
                         // Nothing was learned, so the alert just clears, as for a pick on a vanished row.
                         SmsBroadcastReceiver.showLearnedNotification(applicationContext, activeNotificationId, null)
                     }
@@ -334,7 +337,8 @@ class QuickCategoryPickerActivity : FragmentActivity() {
                     // consumer — no reorder, and no loss when the picker retargets
                     // to another transaction via onNewIntent. (#710)
                     tagRepository.enqueueSetTags(txn.id, newTags)
-                }
+                },
+                mostUsed = mostUsed
             )
         }
     }

@@ -8,7 +8,7 @@ import com.pennywiseai.tracker.domain.conscience.ConscienceFact
 import com.pennywiseai.tracker.domain.conscience.ConscienceLine
 import com.pennywiseai.tracker.domain.conscience.ConscienceLines
 import com.pennywiseai.tracker.domain.conscience.ConscienceWords
-import com.pennywiseai.tracker.widget.inAppLanguage
+import com.pennywiseai.tracker.utils.inAppLanguage
 import java.util.Locale
 
 /**

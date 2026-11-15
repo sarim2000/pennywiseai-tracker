@@ -20,7 +20,7 @@ class ExportViewModel @Inject constructor(
 
     /**
      * Pro entitlement. Free users are capped at
-     * [com.pennywiseai.tracker.billing.FreeTierLimits.MAX_CSV_EXPORT_ROWS_PER_MONTH]
+     * [com.pennywiseai.tracker.core.entitlement.FreeTierLimits.MAX_CSV_EXPORT_ROWS_PER_MONTH]
      * rows per export; the dialog checks this before calling
      * [exportTransactions].
      */

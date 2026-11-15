@@ -1,8 +1,8 @@
 package com.pennywiseai.tracker.domain.model.rule
 
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import java.time.LocalDate
 import kotlinx.serialization.Serializable
+import java.time.LocalDate
 
 /**
  * Parses a stored [TransactionField.TYPE] value (an enum name like "EXPENSE") into a
@@ -110,7 +110,9 @@ fun supportedOperators(field: TransactionField): List<ConditionOperator> = when 
     )
     // Action-only: the pure engine has no tag value to compare, so a TAGS
     // condition can never fire and the importer refuses it.
-    TransactionField.TAGS -> emptyList()
+    TransactionField.TAGS,
+    TransactionField.TRANSFER_FROM_ACCOUNT,
+    TransactionField.TRANSFER_TO_ACCOUNT -> emptyList()
     else -> listOf(
         ConditionOperator.CONTAINS,
         ConditionOperator.EQUALS,
@@ -184,7 +186,7 @@ enum class TransactionField {
     TRANSACTION_HOUR,        // Hour (00-23)
     TRANSACTION_TIME,        // Time as HH:mm
     TRANSACTION_DAY_OF_WEEK, // 1=Monday .. 7=Sunday
-    TRANSACTION_DAY_OF_MONTH,// 01-31
+    TRANSACTION_DAY_OF_MONTH, // 01-31
     TRANSACTION_DATE,        // yyyy-MM-dd
     /**
      * Composite key "BankName||Last4" scoping rules to a specific account.
@@ -197,7 +199,14 @@ enum class TransactionField {
      * only records the modification and the persisting site applies it via
      * `TagRepository` (see `applyTagActions`). Never valid as a condition.
      */
-    TAGS
+    TAGS,
+    /**
+     * Action-only: a transfer's source / destination account, as "BankName||Last4"
+     * (Last4 may be blank for a numberless account like Cash). Applied only when the
+     * transaction is a [com.pennywiseai.tracker.data.database.entity.TransactionType.TRANSFER] (#1068).
+     */
+    TRANSFER_FROM_ACCOUNT,
+    TRANSFER_TO_ACCOUNT
 }
 
 @Serializable

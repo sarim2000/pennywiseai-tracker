@@ -11,6 +11,7 @@ import com.pennywiseai.tracker.domain.goals.percent
 import com.pennywiseai.tracker.domain.goals.tone
 import com.pennywiseai.tracker.ui.components.shortLine
 import com.pennywiseai.tracker.ui.components.statusLine
+import com.pennywiseai.tracker.utils.inAppLanguage
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable

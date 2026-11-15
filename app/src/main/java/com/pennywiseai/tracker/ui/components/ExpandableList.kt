@@ -1,16 +1,17 @@
 package com.pennywiseai.tracker.ui.components
 
-import com.pennywiseai.tracker.ui.animations.pwCollapse
-import com.pennywiseai.tracker.ui.animations.pwExpand
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.unit.Dp
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.ui.animations.pwCollapse
+import com.pennywiseai.tracker.ui.animations.pwExpand
 import com.pennywiseai.tracker.ui.theme.Spacing
 
 /**
@@ -22,12 +23,13 @@ fun <T> ExpandableList(
     items: List<T>,
     visibleItemCount: Int = 5,
     modifier: Modifier = Modifier,
+    itemSpacing: Dp = Spacing.md,
     itemContent: @Composable (T) -> Unit
 ) {
     var isExpanded by remember { mutableStateOf(false) }
 
     Column(modifier = modifier) {
-        Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+        Column(verticalArrangement = Arrangement.spacedBy(itemSpacing)) {
             items.take(visibleItemCount).forEach { item ->
                 itemContent(item)
             }
@@ -38,7 +40,7 @@ fun <T> ExpandableList(
         AnimatedVisibility(visible = isExpanded, enter = pwExpand(), exit = pwCollapse()) {
             Column {
                 items.drop(visibleItemCount).forEach { item ->
-                    Box(Modifier.padding(top = Spacing.md)) { itemContent(item) }
+                    Box(Modifier.padding(top = itemSpacing)) { itemContent(item) }
                 }
             }
         }

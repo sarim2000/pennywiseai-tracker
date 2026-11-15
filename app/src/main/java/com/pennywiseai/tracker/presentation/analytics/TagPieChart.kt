@@ -3,8 +3,6 @@ package com.pennywiseai.tracker.presentation.analytics
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -16,6 +14,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.ui.components.ExpandableList
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -66,15 +65,13 @@ fun TagPieChart(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(200.dp)
+            .heightIn(min = 200.dp)
             .padding(Spacing.sm),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
-            modifier = Modifier
-                .weight(1.2f)
-                .fillMaxHeight(),
+            modifier = Modifier.weight(1.2f),
             contentAlignment = Alignment.Center
         ) {
             PieChart(
@@ -101,29 +98,31 @@ fun TagPieChart(
             )
         }
 
-        LazyColumn(
+        // A plain list, not a LazyColumn: a fixed-height scroller inside the scrolling
+        // Analytics screen trapped the drag. The rest opens below, like the list view.
+        ExpandableList(
+            items = chartData.sortedByDescending { it.data },
+            visibleItemCount = 5,
+            itemSpacing = 0.dp,
             modifier = Modifier
                 .weight(1f)
-                .fillMaxHeight()
                 .padding(start = Spacing.md)
-        ) {
-            items(chartData.sortedByDescending { it.data }) { pie ->
-                TagLegendItem(
-                    label = pie.label ?: stringResource(R.string.analytics_pie_unknown),
-                    value = pie.data,
-                    color = pie.color,
-                    isSelected = pie.selected,
-                    currency = currency,
-                    totalAmount = total,
-                    onClick = {
-                        val pieIndex = indexOfPie(pie)
-                        chartData = chartData.mapIndexed { index, p ->
-                            p.copy(selected = index == pieIndex)
-                        }
-                        tags.getOrNull(pieIndex)?.let(onTagClick)
+        ) { pie ->
+            TagLegendItem(
+                label = pie.label ?: stringResource(R.string.analytics_pie_unknown),
+                value = pie.data,
+                color = pie.color,
+                isSelected = pie.selected,
+                currency = currency,
+                totalAmount = total,
+                onClick = {
+                    val pieIndex = indexOfPie(pie)
+                    chartData = chartData.mapIndexed { index, p ->
+                        p.copy(selected = index == pieIndex)
                     }
-                )
-            }
+                    tags.getOrNull(pieIndex)?.let(onTagClick)
+                }
+            )
         }
     }
 }

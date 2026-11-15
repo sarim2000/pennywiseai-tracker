@@ -1,0 +1,578 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>PennyWise Mascot Preview</title>
+<!--
+  Design preview for docs/ai-chat-avatar-plan.md. Not shipped in the app.
+  Timing ideas (blink slots, gaze wander, mood blending, shape swap inside a blink)
+  come from open-bot-avatar (MIT, github.com/DominikScholz/open-bot-avatar).
+  Theme palettes here are approximations of Material 3 tonal palettes, not the app's
+  exact dynamic colours.
+-->
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font: 15px/1.45 system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+    background: var(--background); color: var(--onSurface);
+    transition: background .25s, color .25s;
+  }
+  header { padding: 20px 16px 8px; max-width: 1100px; margin: 0 auto; }
+  h1 { font-size: 22px; margin: 0 0 4px; }
+  .sub { color: var(--onSurfaceVariant); margin: 0; font-size: 14px; }
+  .controls { display: flex; flex-wrap: wrap; gap: 16px 24px; padding: 12px 16px; max-width: 1100px; margin: 0 auto; }
+  .group { display: flex; flex-direction: column; gap: 6px; }
+  .label { font-size: 12px; font-weight: 600; letter-spacing: .04em; text-transform: uppercase; color: var(--onSurfaceVariant); }
+  .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
+  .swatch { width: 30px; height: 30px; border-radius: 50%; border: 2px solid transparent; cursor: pointer; padding: 0; }
+  .swatch[aria-pressed="true"] { border-color: var(--onSurface); box-shadow: 0 0 0 2px var(--background) inset; }
+  .chip {
+    border: 1px solid var(--outlineVariant); background: transparent; color: var(--onSurface);
+    border-radius: 999px; padding: 7px 14px; font: inherit; font-size: 14px; cursor: pointer; white-space: nowrap;
+  }
+  .chip[aria-pressed="true"] { background: var(--secondaryContainer); color: var(--onSecondaryContainer); border-color: transparent; font-weight: 600; }
+  .chip:focus-visible, .swatch:focus-visible, .btn:focus-visible { outline: 2px solid var(--primary); outline-offset: 2px; }
+  main { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 20px; align-items: start; padding: 8px 16px 40px; max-width: 1100px; margin: 0 auto; }
+  @media (max-width: 820px) { main { grid-template-columns: minmax(0, 1fr); } }
+  .card { background: var(--surfaceContainer); border-radius: 24px; padding: 18px; min-width: 0; }
+  .card h2 { font-size: 16px; margin: 0 0 4px; }
+  .card p.hint { margin: 0 0 12px; color: var(--onSurfaceVariant); font-size: 13px; }
+  .stage { position: relative; display: flex; flex-direction: column; align-items: center; padding: 8px 0 4px; }
+  .badge {
+    min-height: 30px; padding: 4px 14px; border-radius: 999px; font-weight: 600; font-size: 14px;
+    background: var(--inverseSurface); color: var(--inverseOnSurface); opacity: 0; transition: opacity .2s;
+  }
+  .badge.on { opacity: 1; }
+  #hero { width: 220px; height: 220px; touch-action: none; cursor: grab; }
+  .tip { color: var(--onSurfaceVariant); font-size: 13px; margin: 2px 0 10px; text-align: center; }
+  .scroller { display: flex; gap: 8px; overflow-x: auto; padding: 2px 0 8px; scrollbar-width: thin; }
+  input[type=range] { width: 100%; accent-color: var(--primary); }
+  .phone { background: var(--background); border-radius: 28px; padding: 14px 12px 12px; border: 1px solid var(--outlineVariant); }
+  .bubble-row { display: flex; gap: 8px; align-items: center; margin: 4px 0 14px; }
+  .bubble { background: var(--secondaryContainer); color: var(--onSecondaryContainer); border-radius: 18px; padding: 8px 12px; font-size: 13px; }
+  .user { margin-left: auto; background: var(--primaryContainer); color: var(--onPrimaryContainer); }
+  .navbar { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--surfaceContainer); border-top: 1px solid var(--outlineVariant); padding: 10px 0 8px; border-radius: 0 0 18px 18px; }
+  .nav-item { display: flex; flex-direction: column; align-items: center; gap: 4px; background: none; border: 0; color: var(--onSurfaceVariant); font: inherit; font-size: 12px; cursor: pointer; }
+  .nav-item .pill { width: 60px; height: 32px; border-radius: 16px; display: grid; place-items: center; }
+  .nav-item[aria-selected="true"] { color: var(--onSurface); font-weight: 600; }
+  .nav-item[aria-selected="true"] .pill { background: var(--secondaryContainer); }
+  .floating { display: grid; grid-template-columns: repeat(4, 1fr); background: var(--surfaceContainerHigh); border-radius: 999px; padding: 8px; margin-top: 16px; }
+  .floating .nav-item .pill { width: 100%; max-width: 92px; height: 52px; border-radius: 999px; }
+  .floating .nav-item .lbl { display: none; }
+  .ico { width: 24px; height: 24px; display: block; }
+  canvas.tab { width: 24px; height: 24px; display: block; }
+  .events { display: grid; grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap: 8px; margin-top: 12px; }
+  .btn { border: 0; border-radius: 14px; padding: 10px 12px; font: inherit; font-size: 13px; text-align: start; cursor: pointer; background: var(--surfaceContainerHigh); color: var(--onSurface); }
+  .btn b { display: block; font-size: 14px; }
+  .btn span { color: var(--onSurfaceVariant); }
+  .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 10px; }
+  .cell { display: flex; flex-direction: column; align-items: center; gap: 2px; font-size: 12px; color: var(--onSurfaceVariant); cursor: pointer; border-radius: 16px; padding: 6px 0; }
+  .cell:hover { background: var(--surfaceContainerHigh); }
+  .cell canvas { width: 72px; height: 72px; }
+  .full { grid-column: 1 / -1; }
+  .note { font-size: 12px; color: var(--onSurfaceVariant); margin-top: 10px; }
+  label.toggle { display: flex; gap: 8px; align-items: center; font-size: 14px; cursor: pointer; }
+</style>
+</head>
+<body>
+<header>
+  <h1>PennyWise mascot — preview</h1>
+  <p class="sub">One owl, a family of finance shapes. Every colour comes from the theme. Tap the big one to poke it, drag to make it look around.</p>
+</header>
+
+<section class="controls" aria-label="Preview settings">
+  <div class="group">
+    <span class="label">Theme seed</span>
+    <div class="row" id="seeds"></div>
+  </div>
+  <div class="group">
+    <span class="label">Mode</span>
+    <div class="row" id="modes"></div>
+  </div>
+  <div class="group">
+    <span class="label">Shape colour role</span>
+    <div class="row" id="roles"></div>
+  </div>
+  <div class="group">
+    <span class="label">Options</span>
+    <div class="row">
+      <label class="toggle"><input type="checkbox" id="mutedTab"> Muted tab when not selected (Codex)</label>
+      <label class="toggle"><input type="checkbox" id="reduced"> Remove animations</label>
+    </div>
+  </div>
+</section>
+
+<main>
+  <section class="card">
+    <h2>Hero</h2>
+    <p class="hint">96dp in the app (empty chat, empty states). Shown larger here.</p>
+    <div class="stage">
+      <div class="badge" id="badge"></div>
+      <canvas id="hero" aria-hidden="true"></canvas>
+      <div class="tip">Tap to poke. Drag to make it look around.</div>
+    </div>
+    <div class="label">Shape</div>
+    <div class="scroller" id="shapeChips"></div>
+    <div class="label">Mood</div>
+    <div class="scroller" id="moodChips"></div>
+    <div id="valueWrap">
+      <div class="label" id="valueLabel">Value</div>
+      <input type="range" id="value" min="0" max="100" value="72" aria-labelledby="valueLabel">
+    </div>
+  </section>
+
+  <section class="card">
+    <h2>Chat tab + reactions</h2>
+    <p class="hint">The chat tab is the mascot. A new transaction swaps it to that type's shape for a few seconds, inside a blink, then it goes back to the owl.</p>
+    <div class="phone">
+      <div class="bubble-row"><div class="bubble user">How much did I spend on food?</div></div>
+      <div class="bubble-row"><canvas id="thinking" style="width:32px;height:32px" aria-hidden="true"></canvas><div class="bubble">Crunching the numbers…</div></div>
+      <div class="navbar" id="nav1" role="tablist" aria-label="Normal bar"></div>
+      <div class="floating" id="nav2" role="tablist" aria-label="Floating bar"></div>
+    </div>
+    <div class="events" id="events"></div>
+    <p class="note">In the app the tab only animates during a blink or a reaction — no frame loop while idle.</p>
+  </section>
+
+  <section class="card full">
+    <h2>All shapes</h2>
+    <p class="hint">Click one to load it into the hero.</p>
+    <div class="gallery" id="gallery"></div>
+  </section>
+</main>
+
+<script>
+"use strict";
+// ---------- theme ----------
+const SEEDS = [
+  { name: "Brand blue", h: 214 }, { name: "Green", h: 145 }, { name: "Purple", h: 268 },
+  { name: "Orange", h: 28 }, { name: "Pink", h: 332 }, { name: "Teal", h: 182 },
+];
+const hsl = (h, s, l) => `hsl(${((h % 360) + 360) % 360} ${s}% ${l}%)`;
+function palette(h, mode) {
+  const t = h + 60;
+  if (mode === "light") return {
+    primary: hsl(h,55,40), onPrimary: "#fff", primaryContainer: hsl(h,85,90), onPrimaryContainer: hsl(h,60,15),
+    secondaryContainer: hsl(h,30,88), onSecondaryContainer: hsl(h,25,15),
+    tertiary: hsl(t,45,38), onTertiary: "#fff", tertiaryContainer: hsl(t,70,88), onTertiaryContainer: hsl(t,50,14),
+    background: hsl(h,30,98), surface: hsl(h,30,98), surfaceContainer: hsl(h,22,94), surfaceContainerHigh: hsl(h,18,90),
+    onSurface: hsl(h,10,11), onSurfaceVariant: hsl(h,10,32), outlineVariant: hsl(h,10,80),
+    inverseSurface: hsl(h,10,19), inverseOnSurface: hsl(h,20,95), light: true,
+  };
+  const d = {
+    primary: hsl(h,70,80), onPrimary: hsl(h,60,18), primaryContainer: hsl(h,45,28), onPrimaryContainer: hsl(h,80,90),
+    secondaryContainer: hsl(h,15,26), onSecondaryContainer: hsl(h,30,88),
+    tertiary: hsl(t,50,78), onTertiary: hsl(t,50,16), tertiaryContainer: hsl(t,35,26), onTertiaryContainer: hsl(t,60,88),
+    background: hsl(h,12,7), surface: hsl(h,12,7), surfaceContainer: hsl(h,10,11), surfaceContainerHigh: hsl(h,10,16),
+    onSurface: hsl(h,15,90), onSurfaceVariant: hsl(h,10,74), outlineVariant: hsl(h,8,30),
+    inverseSurface: hsl(h,15,90), inverseOnSurface: hsl(h,10,15), light: false,
+  };
+  if (mode === "amoled") Object.assign(d, { background: "#000", surface: "#000", surfaceContainer: hsl(h,8,7), surfaceContainerHigh: hsl(h,8,12) });
+  return d;
+}
+const ROLES = {
+  tertiary: c => ({ body: c.tertiary, on: c.onTertiary }),
+  tertiaryContainer: c => ({ body: c.tertiaryContainer, on: c.onTertiaryContainer }),
+  primary: c => ({ body: c.primary, on: c.onPrimary }),
+};
+const state = { seed: 0, mode: matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light", role: "tertiary", mutedTab: false, reduced: false };
+let C = palette(SEEDS[0].h, state.mode);
+function applyTheme() {
+  C = palette(SEEDS[state.seed].h, state.mode);
+  for (const [k, v] of Object.entries(C)) if (typeof v === "string") document.documentElement.style.setProperty("--" + k, v);
+}
+
+// ---------- maths ----------
+const clamp = (x, a = 0, b = 1) => Math.min(b, Math.max(a, x));
+const smooth = x => { x = clamp(x); return x * x * (3 - 2 * x); };
+const lerp = (a, b, w) => a + (b - a) * w;
+const rand = (seed, i) => { const x = Math.sin(seed * 127.1 + i * 311.7) * 43758.5453; return x - Math.floor(x); };
+const bump = u => (u >= 0 && u <= 0.19) ? Math.sin(Math.PI * u / 0.19) : 0;
+function blinkAt(seed, t) {                       // one blink per 4.2s slot, 20% doubles
+  const i = Math.floor(t / 4.2), local = t - i * 4.2 - (0.5 + rand(seed, i) * 2.9);
+  let c = bump(local);
+  if (rand(seed, i + 99) < 0.2) c = Math.max(c, bump(local - 0.34));
+  return c;
+}
+function wanderAt(seed, t) {                       // 1.9s slots, 40% centred, eased over 0.16s
+  const target = i => rand(seed, i * 3 + 1) < 0.4 ? [0, 0] : [(rand(seed, i * 3 + 2) * 2 - 1) * 0.6, (rand(seed, i * 3 + 3) * 2 - 1) * 0.35];
+  const i = Math.floor(t / 1.9), w = smooth((t - i * 1.9) / 0.16), a = target(i - 1), b = target(i);
+  return [lerp(a[0], b[0], w), lerp(a[1], b[1], w)];
+}
+
+// ---------- shapes (0..100 box) ----------
+const P = s => new Path2D(s);
+function rr(x, y, w, h, r) { const p = new Path2D(); p.roundRect(x, y, w, h, r); return p; }
+function circ(x, y, r) { const p = new Path2D(); p.arc(x, y, r, 0, Math.PI * 2); return p; }
+const OWL_BODY = P("M50 26 C40 26 29 20 20 11 C22 21 18 29 16 37 C12 46 12 60 18 72 C25 85 38 91 50 91 C62 91 75 85 82 72 C88 60 88 46 84 37 C82 29 78 21 80 11 C71 20 60 26 50 26 Z");
+
+const SHAPES = {
+  owl: { label: "Owl", owl: true, eyes: { x: 50, y: 50, sp: 30, s: 1 } },
+  receipt: {
+    label: "Receipt", meaning: "Expense", eyes: { x: 50, y: 36, sp: 16, s: 0.9 },
+    body: () => P("M28 14 H72 Q76 14 76 18 V80 L71.7 74 L67.3 80 L63 74 L58.7 80 L54.3 74 L50 80 L45.7 74 L41.3 80 L37 74 L32.7 80 L28.3 74 L24 80 V18 Q24 14 28 14 Z"),
+    detail(ctx, on) { ctx.globalAlpha *= .35; ctx.fillStyle = on; ctx.fill(rr(36, 52, 28, 3.5, 2)); ctx.fill(rr(36, 60, 18, 3.5, 2)); },
+    badge: () => "Saved",
+  },
+  coin: {
+    label: "Coin", meaning: "Income", eyes: { x: 50, y: 48, sp: 20, s: 1 },
+    body: () => circ(50, 52, 38),
+    detail(ctx, on) { ctx.globalAlpha *= .3; ctx.strokeStyle = on; ctx.lineWidth = 3; ctx.stroke(circ(50, 52, 31)); },
+    badge: () => "+250.00 SAR",
+  },
+  donut: {
+    label: "Pie", meaning: "Categories", eyes: { x: 43, y: 58, sp: 16, s: 0.9 }, usesValue: "Top category share",
+    body(v) {
+      const a0 = -Math.PI / 2, a1 = a0 + Math.PI * 2 * clamp(v, .05, .5);
+      const p = new Path2D(); p.moveTo(50, 54); p.arc(50, 54, 36, a1, a0 + Math.PI * 2); p.closePath();
+      const mid = (a0 + a1) / 2, dx = Math.cos(mid) * 6, dy = Math.sin(mid) * 6;
+      p.moveTo(50 + dx, 54 + dy); p.arc(50 + dx, 54 + dy, 36, a0, a1); p.closePath(); return p;
+    },
+    badge: v => `Food ${Math.round(clamp(v, .05, .5) * 100)}%`,
+  },
+  bars: {
+    label: "Bars", meaning: "Compare months", eyes: { x: 50, y: 50, sp: 12, s: 0.75 },
+    body() { const p = rr(14, 52, 25, 38, 7); p.addPath(rr(37.5, 32, 25, 58, 7)); p.addPath(rr(61, 16, 25, 74, 7)); return p; },
+    badge: () => "+12% vs last month",
+  },
+  jar: {
+    label: "Jar", meaning: "Goals", eyes: { x: 50, y: 50, sp: 18, s: 1 }, usesValue: "Goal progress",
+    body() { const p = rr(33, 9, 34, 10, 4); p.addPath(rr(38, 17, 24, 10, 2)); p.addPath(rr(20, 25, 60, 66, 17)); return p; },
+    detail(ctx, on, v) {
+      ctx.save(); ctx.clip(rr(20, 25, 60, 66, 17)); ctx.globalAlpha *= .22; ctx.fillStyle = on;
+      const top = 91 - 66 * clamp(v); ctx.fillRect(20, top, 60, 91 - top); ctx.restore();
+    },
+    badge: v => `Goal ${Math.round(clamp(v) * 100)}%`,
+  },
+  bell: {
+    label: "Bell", meaning: "Bills & subscriptions", eyes: { x: 50, y: 50, sp: 16, s: 0.95 }, pivot: [50, 8],
+    body() { const p = P("M50 15 C33 15 26 30 26 46 V65 L16 77 Q15 80 19 80 H81 Q85 80 84 77 L74 65 V46 C74 30 67 15 50 15 Z"); p.addPath(circ(50, 12, 5)); p.addPath(circ(50, 85, 7)); return p; },
+    badge: () => "Due in 3 days",
+  },
+  wallet: {
+    label: "Wallet", meaning: "Accounts", eyes: { x: 38, y: 54, sp: 16, s: 0.95 },
+    body() { const p = rr(12, 27, 72, 56, 11); p.addPath(rr(60, 43, 30, 24, 9)); return p; },
+    detail(ctx, on) { ctx.globalAlpha *= .35; ctx.fillStyle = on; ctx.fill(circ(75, 55, 4)); },
+    badge: () => "4 accounts",
+  },
+  gauge: {
+    label: "Gauge", meaning: "Budget", eyes: { x: 50, y: 52, sp: 20, s: 0.95 }, usesValue: "Budget used",
+    body: () => P("M12 76 A38 38 0 0 1 88 76 V82 Q88 88 82 88 H18 Q12 88 12 82 Z"),
+    detail(ctx, on, v) {
+      ctx.globalAlpha *= .55; ctx.strokeStyle = on; ctx.fillStyle = on; ctx.lineCap = "round"; ctx.lineWidth = 3.2;
+      const a = Math.PI + Math.PI * clamp(v); ctx.beginPath(); ctx.moveTo(50, 78); ctx.lineTo(50 + Math.cos(a) * 15, 78 + Math.sin(a) * 15); ctx.stroke();
+      ctx.fill(circ(50, 78, 3.4));
+    },
+    badge: v => `${Math.round(clamp(v) * 100)}% used`,
+  },
+  bubble: {
+    label: "SMS", meaning: "SMS scan", eyes: { x: 50, y: 43, sp: 18, s: 1 },
+    body() { const p = rr(12, 16, 76, 56, 18); p.addPath(P("M27 68 L22 88 L45 68 Z")); return p; },
+    badge: () => "120 SMS scanned",
+  },
+};
+const MOODS = ["calm", "thinking", "happy", "worried", "asleep"];
+
+// ---------- one mascot ----------
+class Mascot {
+  constructor(canvas, css, detail, seed) {
+    this.cv = canvas; this.css = css; this.detail = detail; this.seed = seed;
+    this.shape = "owl"; this.mood = "calm"; this.value = .72; this.colored = true;
+    this.shapeFrom = null; this.shapeT0 = -10;
+    this.moodFrom = null; this.moodT0 = -10; this.styleFrom = "open";
+    this.pokeT0 = -10; this.hopT0 = -10; this.enterT0 = -10;
+    this.look = null; this.att = 0; this.g = [0, 0];
+    this.last = null; this.lastT = 0;
+    this.resize();
+  }
+  resize() { const r = devicePixelRatio || 1; this.cv.width = this.css * r; this.cv.height = this.css * r; }
+  now() { return performance.now() / 1000; }
+  setShape(k) {
+    if (k === this.shape) return;
+    const t = this.now();
+    this.shapeFrom = this.shape; this.shape = k; this.shapeT0 = state.reduced ? -10 : t; this.enterT0 = t;
+  }
+  setMood(m) {
+    if (m === this.mood) return;
+    const t = this.now();
+    this.moodFrom = this.last; this.styleFrom = this.last ? this.last.style : "open"; this.mood = m; this.moodT0 = state.reduced ? -10 : t;
+    if (m === "happy") this.hopT0 = t;
+    if (m === "worried") this.enterT0 = t;
+  }
+  poke() { this.pokeT0 = this.now(); }
+
+  moodPose(m, t) {
+    const red = state.reduced, s = this.seed;
+    const p = { gx: 0, gy: 0, roll: 0, lift: 0, squint: 0, blink: 0, style: "open", brows: 0 };
+    const w = red ? [0, 0] : wanderAt(s, t);
+    if (this.detail === "hero" || this.shape === "bubble") { p.gx = w[0]; p.gy = w[1]; }
+    if (!red) p.blink = blinkAt(s, t);
+    if (m === "thinking") {
+      p.gx = 0.55 + (red ? 0 : 0.3 * Math.sin(t * 0.9)); p.gy = -0.8; p.squint = 0.3;
+      p.roll = -4 + (red ? 0 : 1.4 * Math.sin(t * 2 * Math.PI / 4.1)); p.blink = red ? 0 : blinkAt(s, t * 0.7);
+    } else if (m === "happy") {
+      p.style = "arc"; p.blink = 0; p.gx = 0; p.gy = 0;
+      if (!red) {
+        const ph = ((t - this.hopT0) % 2.8) / 0.92;
+        if (ph >= 0 && ph < 1) { p.lift = -6 * Math.sin(Math.PI * ph); p.roll = 4.5 * Math.sin(2 * Math.PI * ph); }
+      }
+    } else if (m === "worried") {
+      p.gy = 0.5; p.gx *= 0.3; p.brows = 1;
+      const dt = t - this.enterT0; if (!red && dt < 0.7) p.roll = 3 * Math.sin(dt * 34) * (1 - dt / 0.7);
+    } else if (m === "asleep") {
+      p.style = "closed"; p.blink = 0; p.gx = 0; p.gy = 0; if (!red) p.lift = 0.8 * Math.sin(t * 2 * Math.PI / 3.4);
+    }
+    if (this.shape === "bubble" && !red && m !== "asleep") p.gx = Math.sin(t * 3);   // scanning
+    return p;
+  }
+
+  pose(t, dt) {
+    let p = this.moodPose(this.mood, t);
+    const mw = smooth((t - this.moodT0) / 0.42);              // blend from the pose on screen
+    if (this.moodFrom && mw < 1) {
+      for (const k of ["gx", "gy", "roll", "lift", "squint", "brows"]) p[k] = lerp(this.moodFrom[k], p[k], mw);
+      if (this.styleFrom !== p.style) { p.blink = Math.max(p.blink, Math.sin(Math.PI * mw)); if (mw < .5) p.style = this.styleFrom; }
+    }
+    // drag to look: tanh-saturated target, eased attention
+    const tgt = this.look ? 1 : 0;
+    this.att += (tgt - this.att) * (1 - Math.exp(-dt / 0.3));
+    if (this.look) { this.g[0] += (this.look[0] - this.g[0]) * (1 - Math.exp(-dt / 0.12)); this.g[1] += (this.look[1] - this.g[1]) * (1 - Math.exp(-dt / 0.12)); }
+    if (p.style === "open") { p.gx = lerp(p.gx, this.g[0], this.att); p.gy = lerp(p.gy, this.g[1], this.att); }
+    if (!state.reduced) {
+      const pk = t - this.pokeT0;                               // poke: quick blink + damped wobble
+      if (pk < 0.9) { p.roll += 7 * Math.exp(-pk * 5) * Math.sin(pk * 22); p.blink = Math.max(p.blink, bump(pk)); }
+      if (this.shape === "bell") { const e = t - Math.max(this.enterT0, this.pokeT0); if (e < 1.6) p.roll += 14 * Math.exp(-e * 2.5) * Math.sin(e * 16); }
+    }
+    const sw = smooth((t - this.shapeT0) / 0.36);              // shape swap hides inside a blink
+    p.shapeW = sw; if (sw < 1) p.blink = Math.max(p.blink, Math.sin(Math.PI * sw));
+    this.last = p; return p;
+  }
+
+  colors() {
+    const role = ROLES[state.role](C);
+    const owl = {
+      body: C.primary, mask: C.primaryContainer,
+      disc: C.light ? C.surface : C.onSurface, iris: C.tertiary, pupil: C.light ? C.onSurface : C.surface,
+      tabEye: C.onPrimary,
+    };
+    if (!this.colored) return { owl: { ...owl, body: C.onSurfaceVariant, tabEye: C.surface }, obj: { body: C.onSurfaceVariant, on: C.surface } };
+    return { owl, obj: role };
+  }
+
+  draw() {
+    const t = this.now(), dt = Math.min(0.05, t - (this.lastT || t)); this.lastT = t;
+    const p = this.pose(t, dt), ctx = this.cv.getContext("2d"), k = this.cv.width / 100, col = this.colors();
+    ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.clearRect(0, 0, this.cv.width, this.cv.height);
+    ctx.setTransform(k, 0, 0, k, 0, 0);
+    if (this.detail === "hero") {                               // contact shadow shrinks as it hops
+      ctx.save(); ctx.globalAlpha = 0.12 * (1 + p.lift / 12); ctx.fillStyle = C.onSurface;
+      ctx.beginPath(); ctx.ellipse(50, 95, 26 * (1 + p.lift / 20), 2.6, 0, 0, Math.PI * 2); ctx.fill(); ctx.restore();
+    }
+    const both = p.shapeW < 1 && this.shapeFrom;
+    const aNew = both ? smooth((p.shapeW - .3) / .4) : 1;
+    if (both && aNew < 1) this.drawShape(ctx, this.shapeFrom, p, col, 1 - aNew);
+    this.drawShape(ctx, this.shape, p, col, aNew);
+  }
+
+  drawShape(ctx, key, p, col, alpha) {
+    if (alpha <= 0) return;
+    const S = SHAPES[key], [px, py] = S.pivot || [50, 88];
+    ctx.save(); ctx.globalAlpha = alpha;
+    ctx.translate(px, py + p.lift); ctx.rotate(p.roll * Math.PI / 180); ctx.translate(-px, -py);
+    if (S.owl) this.drawOwl(ctx, p, col.owl); else {
+      ctx.fillStyle = col.obj.body; ctx.fill(S.body(this.value));
+      if (S.detail && this.detail !== "tab") { ctx.save(); S.detail(ctx, col.obj.on, this.value); ctx.restore(); }
+      this.drawPillEyes(ctx, S.eyes, p, col.obj.on);
+    }
+    ctx.restore();
+  }
+
+  drawPillEyes(ctx, e, p, color) {
+    const sc = e.s * (this.detail === "tab" ? 1.35 : 1), w = 4.6 * sc, h = 11 * sc;
+    const ox = p.gx * 6, oy = p.gy * 4;
+    ctx.fillStyle = color; ctx.strokeStyle = color; ctx.lineCap = "round"; ctx.lineWidth = 2.6 * sc;
+    for (const side of [-1, 1]) {
+      const cx = e.x + side * e.sp / 2 + ox, cy = e.y + oy;
+      if (p.style === "arc") { ctx.beginPath(); ctx.moveTo(cx - w, cy + 2); ctx.quadraticCurveTo(cx, cy - 5 * sc, cx + w, cy + 2); ctx.stroke(); continue; }
+      if (p.style === "closed") { ctx.beginPath(); ctx.moveTo(cx - w, cy - 1); ctx.quadraticCurveTo(cx, cy + 4 * sc, cx + w, cy - 1); ctx.stroke(); continue; }
+      const open = Math.max(h * Math.max(0.09, (1 - p.blink) * (1 - p.squint * 0.4)), w * 0.55);
+      ctx.fill(rr(cx - w / 2, cy - open / 2 + (h - open) * 0.25, w, open, Math.min(w, open) / 2));
+      if (p.brows > 0.01) {
+        ctx.save(); ctx.globalAlpha *= p.brows; ctx.beginPath();
+        ctx.moveTo(cx - side * 5 * sc, cy - h / 2 - 3 * sc); ctx.lineTo(cx + side * 4 * sc, cy - h / 2 - 6 * sc); ctx.stroke(); ctx.restore();
+      }
+    }
+  }
+
+  drawOwl(ctx, p, c) {
+    ctx.fillStyle = c.body; ctx.fill(OWL_BODY);
+    if (this.detail === "tab") {                                // 24dp: body + two pill eyes only
+      this.drawPillEyes(ctx, { x: 50, y: 52, sp: 28, s: 1.05 }, p, c.tabEye); return;
+    }
+    ctx.fillStyle = c.mask; ctx.fill(circ(35, 50, 18)); ctx.fill(circ(65, 50, 18)); ctx.fill(P("M33 62 L67 62 L50 76 Z"));
+    const ox = clamp(p.gx, -1, 1) * 4, oy = clamp(p.gy, -1, 1) * 4;
+    for (const cx of [35, 65]) {
+      const cy = 50, r = 13;
+      ctx.strokeStyle = c.pupil; ctx.lineCap = "round"; ctx.lineWidth = 3;
+      if (p.style === "arc") { ctx.beginPath(); ctx.moveTo(cx - 8, cy + 3); ctx.quadraticCurveTo(cx, cy - 7, cx + 8, cy + 3); ctx.stroke(); continue; }
+      if (p.style === "closed") { ctx.beginPath(); ctx.moveTo(cx - 8, cy - 1); ctx.quadraticCurveTo(cx, cy + 6, cx + 8, cy - 1); ctx.stroke(); continue; }
+      const half = r * (1 - p.blink) * (1 - p.squint * 0.45);   // the lid clips the whole eye
+      if (half < 1.6) { ctx.beginPath(); ctx.moveTo(cx - 9, cy + 1); ctx.quadraticCurveTo(cx, cy + 4, cx + 9, cy + 1); ctx.stroke(); }
+      else {
+        ctx.save(); ctx.beginPath(); ctx.rect(cx - r - 1, cy - half + r * p.squint * 0.3, 2 * r + 2, 2 * half); ctx.clip();
+        ctx.fillStyle = c.disc; ctx.fill(circ(cx, cy, r));
+        ctx.fillStyle = c.iris; ctx.fill(circ(cx + ox, cy + oy, 7));
+        ctx.fillStyle = c.pupil; ctx.fill(circ(cx + ox, cy + oy, 3.5));
+        if (this.detail === "hero") { ctx.fillStyle = c.disc; ctx.fill(circ(cx + ox - 2, cy + oy - 2.2, 1.4)); }
+        ctx.restore();
+      }
+      if (p.brows > 0.01) {
+        const side = cx < 50 ? -1 : 1;
+        ctx.save(); ctx.globalAlpha *= p.brows; ctx.strokeStyle = c.pupil; ctx.lineWidth = 3; ctx.beginPath();
+        ctx.moveTo(cx + side * 10, cy - 15); ctx.lineTo(cx - side * 4, cy - 19); ctx.stroke(); ctx.restore();
+      }
+    }
+    ctx.fillStyle = c.pupil; ctx.fill(P("M45.5 61 L54.5 61 L50 69 Z"));
+    if (this.detail === "hero") {                               // the coin from the logo
+      ctx.fillStyle = c.iris; ctx.fill(circ(50, 81, 7));
+      ctx.save(); ctx.globalAlpha = .35; ctx.strokeStyle = c.pupil; ctx.lineWidth = 1.4; ctx.stroke(circ(50, 81, 4.6)); ctx.restore();
+    }
+  }
+}
+
+// ---------- hero ----------
+const hero = new Mascot(document.getElementById("hero"), 220, "hero", 3.7);
+const badge = document.getElementById("badge");
+function updateBadge() {
+  const S = SHAPES[hero.shape];
+  badge.textContent = S.badge ? S.badge(hero.value) : ""; badge.classList.toggle("on", !!S.badge);
+  document.getElementById("valueWrap").style.display = S.usesValue ? "" : "none";
+  document.getElementById("valueLabel").textContent = S.usesValue || "Value";
+}
+(function pointer() {
+  const cv = hero.cv; let down = null;
+  const toGaze = ev => {
+    const r = cv.getBoundingClientRect(), e = SHAPES[hero.shape].eyes;
+    const ex = r.left + r.width * e.x / 100, ey = r.top + r.height * e.y / 100, reach = Math.max(r.width, 160);
+    const dx = (ev.clientX - ex) / reach, dy = (ev.clientY - ey) / reach, m = Math.hypot(dx, dy), k = m > 1e-4 ? Math.tanh(m) / m : 1;
+    return [clamp(dx * k * 1.6, -1, 1), clamp(dy * k * 1.6, -1, 1)];
+  };
+  cv.addEventListener("pointerdown", ev => { cv.setPointerCapture(ev.pointerId); down = { x: ev.clientX, y: ev.clientY, t: performance.now(), moved: false }; });
+  cv.addEventListener("pointermove", ev => {
+    if (!down) return;
+    if (Math.hypot(ev.clientX - down.x, ev.clientY - down.y) > 6) down.moved = true;
+    if (down.moved) { hero.look = toGaze(ev); cv.style.cursor = "grabbing"; }
+  });
+  const up = () => { if (down && !down.moved && performance.now() - down.t < 350) hero.poke(); down = null; hero.look = null; cv.style.cursor = "grab"; };
+  cv.addEventListener("pointerup", up); cv.addEventListener("pointercancel", up);
+})();
+
+// ---------- chips ----------
+function chips(el, items, get, set) {
+  el.innerHTML = "";
+  for (const [key, label] of items) {
+    const b = document.createElement("button"); b.className = "chip"; b.textContent = label;
+    b.setAttribute("aria-pressed", String(get() === key));
+    b.onclick = () => { set(key); [...el.children].forEach((c, i) => c.setAttribute("aria-pressed", String(items[i][0] === get()))); };
+    el.appendChild(b);
+  }
+}
+function renderControls() {
+  const seeds = document.getElementById("seeds"); seeds.innerHTML = "";
+  SEEDS.forEach((s, i) => {
+    const b = document.createElement("button"); b.className = "swatch"; b.title = s.name; b.setAttribute("aria-label", s.name);
+    b.style.background = hsl(s.h, 55, 50); b.setAttribute("aria-pressed", String(i === state.seed));
+    b.onclick = () => { state.seed = i; applyTheme(); renderControls(); }; seeds.appendChild(b);
+  });
+  chips(document.getElementById("modes"), [["light", "Light"], ["dark", "Dark"], ["amoled", "AMOLED"]], () => state.mode, v => { state.mode = v; applyTheme(); });
+  chips(document.getElementById("roles"), [["tertiary", "tertiary"], ["tertiaryContainer", "tertiaryContainer"], ["primary", "primary"]], () => state.role, v => state.role = v);
+}
+function renderHeroChips() {
+  chips(document.getElementById("shapeChips"), Object.entries(SHAPES).map(([k, s]) => [k, s.label]), () => hero.shape, k => { hero.setShape(k); updateBadge(); });
+  chips(document.getElementById("moodChips"), MOODS.map(m => [m, m[0].toUpperCase() + m.slice(1)]), () => hero.mood, m => hero.setMood(m));
+}
+document.getElementById("value").oninput = e => { hero.value = e.target.value / 100; updateBadge(); };
+document.getElementById("mutedTab").onchange = e => { state.mutedTab = e.target.checked; };
+document.getElementById("reduced").onchange = e => { state.reduced = e.target.checked; };
+
+// ---------- nav bars ----------
+const ICONS = {
+  Home: "M12 3 3 10v11h6v-6h6v6h6V10z",
+  Transactions: "M6 2h12v20l-3-2-3 2-3-2-3 2zm3 5v2h6V7zm0 4v2h6v-2z",
+  Analytics: "M4 20V10h3v10zm6.5 0V4h3v16zM17 20v-7h3v7z",
+};
+const tabMascots = [];
+function buildNav(el, withLabels) {
+  const tabs = ["Home", "Transactions", "Analytics", "Chat"];
+  let selected = "Home";
+  const btns = tabs.map(name => {
+    const b = document.createElement("button"); b.className = "nav-item"; b.setAttribute("role", "tab");
+    const pill = document.createElement("span"); pill.className = "pill";
+    if (name === "Chat") {
+      const cv = document.createElement("canvas"); cv.className = "tab"; cv.setAttribute("aria-hidden", "true"); pill.appendChild(cv);
+      const m = new Mascot(cv, 24, "tab", 9.1 + tabMascots.length); m.tab = { isSelected: () => selected === "Chat" }; tabMascots.push(m);
+    } else {
+      pill.innerHTML = `<svg class="ico" viewBox="0 0 24 24" aria-hidden="true"><path fill="currentColor" d="${ICONS[name]}"/></svg>`;
+    }
+    b.appendChild(pill);
+    const l = document.createElement("span"); l.className = "lbl"; l.textContent = name; if (!withLabels) l.style.display = "none"; b.appendChild(l);
+    b.setAttribute("aria-label", name);
+    b.onclick = () => { selected = name; btns.forEach((x, i) => x.setAttribute("aria-selected", String(tabs[i] === selected))); };
+    b.setAttribute("aria-selected", String(name === selected)); el.appendChild(b); return b;
+  });
+}
+buildNav(document.getElementById("nav1"), true);
+buildNav(document.getElementById("nav2"), false);
+
+const EVENTS = [
+  { title: "+ Income", sub: "INCOME", shape: "coin", mood: "happy" },
+  { title: "− Expense", sub: "EXPENSE", shape: "receipt", mood: "calm" },
+  { title: "Card purchase", sub: "CREDIT", shape: "receipt", mood: "calm" },
+  { title: "Transfer", sub: "TRANSFER", shape: "wallet", mood: "calm" },
+  { title: "Investment", sub: "INVESTMENT", shape: "jar", mood: "calm", value: .6 },
+  { title: "SMS scan", sub: "Foreground scan only", shape: "bubble", mood: "thinking" },
+];
+// One reaction at a time: a burst coalesces into the one already showing, never queues or extends.
+let reacting = false;
+function react(ev) {
+  if (reacting) return;
+  reacting = true;
+  for (const m of tabMascots) { if (ev.value != null) m.value = ev.value; m.setShape(ev.shape); m.setMood(ev.mood); m.enterT0 = m.now(); }
+  setTimeout(() => { tabMascots.forEach(m => { m.setShape("owl"); m.setMood("calm"); }); reacting = false; }, 3000);
+}
+const evEl = document.getElementById("events");
+for (const ev of EVENTS) {
+  const b = document.createElement("button"); b.className = "btn";
+  b.innerHTML = `<b>${ev.title}</b><span>${ev.sub} → ${SHAPES[ev.shape].label}</span>`;
+  b.onclick = () => react(ev); evEl.appendChild(b);
+}
+
+// ---------- thinking row + gallery ----------
+const thinking = new Mascot(document.getElementById("thinking"), 32, "small", 5.3); thinking.mood = "thinking";
+const gallery = [];
+const gEl = document.getElementById("gallery");
+Object.entries(SHAPES).forEach(([k, s], i) => {
+  const cell = document.createElement("div"); cell.className = "cell"; cell.tabIndex = 0; cell.setAttribute("role", "button");
+  const cv = document.createElement("canvas"); cv.setAttribute("aria-hidden", "true"); cell.appendChild(cv);
+  const cap = document.createElement("div"); cap.innerHTML = `<b style="color:var(--onSurface)">${s.label}</b><br>${s.meaning || "Assistant"}`; cap.style.textAlign = "center"; cell.appendChild(cap);
+  const m = new Mascot(cv, 72, "small", 1.3 + i); m.shape = k; gallery.push(m);
+  const pick = () => { hero.setShape(k); updateBadge(); renderHeroChips(); hero.poke(); };
+  cell.onclick = pick; cell.onkeydown = e => { if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pick(); } };
+  gEl.appendChild(cell);
+});
+
+// ---------- loop ----------
+function frame() {
+  hero.draw(); thinking.draw();
+  for (const m of tabMascots) { m.colored = !(state.mutedTab && !m.tab.isSelected()); m.draw(); }
+  for (const m of gallery) m.draw();
+  requestAnimationFrame(frame);
+}
+applyTheme(); renderControls(); renderHeroChips(); updateBadge();
+addEventListener("resize", () => [hero, thinking, ...tabMascots, ...gallery].forEach(m => m.resize()));
+requestAnimationFrame(frame);
+</script>
+</body>
+</html>

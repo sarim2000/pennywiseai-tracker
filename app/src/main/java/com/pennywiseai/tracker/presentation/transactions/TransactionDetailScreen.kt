@@ -38,6 +38,7 @@ import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.entity.formatAmount
 import com.pennywiseai.tracker.domain.loan.LoanOverflow
 import com.pennywiseai.tracker.presentation.goals.AddToGoalSheet
 import com.pennywiseai.tracker.presentation.goals.TowardGoalsSection
@@ -394,10 +395,8 @@ fun TransactionDetailScreen(
                             viewModel.enterEditMode()
                             viewModel.updateTransactionType(TransactionType.INVESTMENT)
                         }
-                        WhatWasThis.OWN_TRANSFER -> {
-                            viewModel.enterEditMode()
-                            viewModel.updateTransactionType(TransactionType.TRANSFER)
-                        }
+                        // Pairs the other leg if it arrived, else opens the editor.
+                        WhatWasThis.OWN_TRANSFER -> viewModel.answerOwnTransfer()
                     }
                 }
             )
@@ -449,6 +448,35 @@ fun TransactionDetailScreen(
             dismissButton = {
                 TextButton(onClick = { viewModel.hideDeleteDialog() }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.txn_detail_action_cancel))
+                }
+            }
+        )
+    }
+
+    // "Between my accounts" found the other leg: confirm it before both rows change.
+    val proposedPartner by viewModel.proposedTransferPartner.collectAsStateWithLifecycle()
+    proposedPartner?.let { partner ->
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissTransferPartner() },
+            title = { Text(stringResource(R.string.own_transfer_partner_title)) },
+            text = {
+                Text(
+                    stringResource(
+                        R.string.own_transfer_partner_message,
+                        partner.formatAmount(),
+                        partner.merchantName,
+                        partner.dateTime.format(com.pennywiseai.tracker.utils.AppDates.dateTimeFormatter())
+                    )
+                )
+            },
+            confirmButton = {
+                TextButton(onClick = { viewModel.confirmTransferPartner() }, shapes = ButtonDefaults.shapes()) {
+                    Text(stringResource(R.string.own_transfer_partner_confirm))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.declineTransferPartner() }, shapes = ButtonDefaults.shapes()) {
+                    Text(stringResource(R.string.own_transfer_partner_decline))
                 }
             }
         )

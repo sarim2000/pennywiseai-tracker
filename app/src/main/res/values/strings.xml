@@ -42,11 +42,6 @@
     </plurals>
     <!-- AI chat: the badge by the latest reply's mascot. Saved: the rows of an Add card were just saved -->
     <string name="chat_badge_saved">Saved</string>
-    <!-- AI chat: this month's spending is in several currencies, so the badge counts them instead of adding them up -->
-    <plurals name="chat_badge_currencies">
-        <item quantity="one">%1$d currency</item>
-        <item quantity="other">%1$d currencies</item>
-    </plurals>
     <!-- Developer mode: a screen showing the mascot in every shape and mood, for checking it on a device -->
     <string name="mascot_playground_title">Mascot playground</string>
     <string name="mascot_playground_subtitle">Every shape and mood, and the Chat tab\'s reactions</string>

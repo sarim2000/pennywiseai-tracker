@@ -211,15 +211,15 @@ The smallest visible win: the Chat tab becomes the owl that blinks.
 
 ### M4 — Shapes for chat replies
 - [x] Transient `replyTopic` (shape + mood + value) in `ChatUiState`, set from `handleToolCall` and `QuickAction`. Not stored in Room or backup.
-  - `LlmRepository.lastReply` (a `StateFlow<ReplySubject?>`, data-layer, no mascot enums) names the saved line and the tool behind it, set just before the line is saved so the screen knows its subject when it shows. `ReplyTopic.kt` maps it to shape, mood, value and badge. Each `QuickAction` names the tool that answers the same question.
+  - `LlmRepository.lastReply` (a `StateFlow<ReplySubject?>`, data-layer, no mascot enums) names the saved line and the tool behind it, set just before the line is saved so the screen knows its subject when it shows. `ReplyTopic.kt` maps it to shape, mood, value and whether it saved. Each `QuickAction` names the tool that answers the same question.
 - [x] `MascotShapes`: add `Pie` (slice = top category share) and `Bars` (gaze follows the direction of change)
   - `spending_by_category` slices by the asked category's share of the month; `TOP_CATEGORIES` by the top one's share of its own currency. Drawn between 5% and 50%; the eyes move onto the rest of the pie.
   - Bars look up only when spending rose in every currency, down only when it fell in every one, ahead otherwise.
 - [x] 32dp mascot at the start of the **latest** assistant reply only. Space is reserved for the whole reply so the text does not reflow. It is removed when a new request starts.
   - The streamed reply keeps the slot empty; the saved one lands in place and its mascot fades in. When a new request starts, the slot closes toward the start on a spatial spec.
   - A saved Add's line is `Happy` for the same beat as the hero (`addsAtEntry` rule), then calm.
-- [x] Receipt badge "Saved" on a confirmed Add. Coin badge with the month total via `CurrencyFormatter`, or a count when the month has mixed currencies.
-  - The count is of currencies, which the reply lists, so the badge never states a number the text doesn't. `month_summary` shows its base-currency spend (already converted, as its text does). No badge for nothing spent. Badges sit by the reply's time, fade in, and are silent to TalkBack.
+- [x] Receipt badge "Saved" on a confirmed Add, the only badge a reply wears. It sits by the reply's time, fades in, and is silent to TalkBack.
+  - No coin badge with the month total or a currency count: the reply's text already states the figure, so on a phone it only repeated it beside the time.
 - [x] Test: every tool / `QuickAction` maps to a shape
 
 ### M5 — Empty states outside chat

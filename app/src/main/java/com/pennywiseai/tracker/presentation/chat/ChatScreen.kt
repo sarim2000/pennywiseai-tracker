@@ -833,7 +833,7 @@ fun TypingIndicator(
 
 /**
  * One chat message. The latest assistant reply has a [topic]: its mascot stands at the
- * reply's start, with a badge by the time when there is one. [reserveMascot] keeps that
+ * reply's start, with "Saved" by the time for a confirmed Add. [reserveMascot] keeps that
  * space for a reply still on its way, so the saved one lands without moving.
  */
 @Composable
@@ -895,7 +895,7 @@ fun ChatMessageItem(
                     else
                         MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
                 )
-                topic?.badge?.let { ReplyBadgeLabel(it) }
+                if (topic?.saved == true) SavedBadge()
             }
         }
     }
@@ -940,14 +940,10 @@ private fun ReplyMascot(topic: ReplyTopic, celebrating: Boolean) {
     }
 }
 
-/** The badge by a reply's time. Silent to TalkBack: the reply's own text says the same. */
+/** "Saved" by a confirmed Add's time. Silent to TalkBack: the reply's own text says the same. */
 @Composable
-private fun ReplyBadgeLabel(badge: ReplyBadge) {
-    val text = when (badge) {
-        ReplyBadge.Saved -> stringResource(R.string.chat_badge_saved)
-        is ReplyBadge.Total -> com.pennywiseai.tracker.utils.CurrencyFormatter.formatCurrency(badge.money.amount, badge.money.currency)
-        is ReplyBadge.Currencies -> pluralStringResource(R.plurals.chat_badge_currencies, badge.count, badge.count)
-    }
+private fun SavedBadge() {
+    val text = stringResource(R.string.chat_badge_saved)
     val appear = remember { MutableTransitionState(false) }.apply { targetState = true }
     AnimatedVisibility(visibleState = appear, enter = pwFadeIn()) {
         Text(

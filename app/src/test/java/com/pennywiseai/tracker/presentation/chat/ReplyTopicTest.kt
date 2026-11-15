@@ -5,14 +5,12 @@ import com.pennywiseai.tracker.data.repository.QuickAction
 import com.pennywiseai.tracker.data.service.PennyWiseTools
 import com.pennywiseai.tracker.ui.components.mascot.MascotMood
 import com.pennywiseai.tracker.ui.components.mascot.MascotShape
-import com.pennywiseai.tracker.utils.Money
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.lang.reflect.Modifier
-import java.math.BigDecimal
 
 class ReplyTopicTest {
     /** Every tool name PennyWiseTools declares, so a new tool can't go without a shape. */
@@ -52,21 +50,18 @@ class ReplyTopicTest {
         val topic = replyTopic(ReplySubject(messageId = "m", tool = PennyWiseTools.ADD_TRANSACTIONS, saved = true))
         assertEquals(MascotShape.Receipt, topic.shape)
         assertEquals(MascotMood.Happy, topic.mood)
-        assertEquals(ReplyBadge.Saved, topic.badge)
+        assertTrue(topic.saved)
         // Proposed, not yet saved: calm, no badge.
         val proposed = replyTopic(ReplySubject(messageId = "m", tool = PennyWiseTools.ADD_TRANSACTIONS))
         assertEquals(MascotMood.Calm, proposed.mood)
-        assertNull(proposed.badge)
+        assertFalse(proposed.saved)
     }
 
     @Test
-    fun `the coin shows the month total in one currency, and only counts several`() {
-        val total = Money(BigDecimal("1200"), "INR")
-        assertEquals(ReplyBadge.Total(total), replyTopic(ReplySubject(tool = PennyWiseTools.MONTH_SUMMARY, monthTotal = total)).badge)
-        assertEquals(ReplyBadge.Currencies(2), replyTopic(ReplySubject(tool = PennyWiseTools.MONTH_SUMMARY, currencies = 2)).badge)
-        assertNull(replyTopic(ReplySubject(tool = PennyWiseTools.MONTH_SUMMARY)).badge)
-        // Only the coin carries a total.
-        assertNull(replyTopic(ReplySubject(tool = PennyWiseTools.COMPARE_SPENDING, monthTotal = total)).badge)
+    fun `a month summary is a coin without a badge, its text already has the figure`() {
+        val topic = replyTopic(ReplySubject(tool = PennyWiseTools.MONTH_SUMMARY))
+        assertEquals(MascotShape.Coin, topic.shape)
+        assertFalse(topic.saved)
     }
 
     @Test

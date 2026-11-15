@@ -24,7 +24,6 @@ import com.pennywiseai.tracker.domain.service.LlmService
 import com.pennywiseai.tracker.domain.service.TOOL_CALL_PARSE_FAILURE
 import com.pennywiseai.tracker.domain.service.isContextFull
 import com.pennywiseai.tracker.utils.CurrencyFormatter
-import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.TokenUtils
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CancellationException
@@ -548,8 +547,6 @@ class LlmRepository @Inject constructor(
         PennyWiseTools.MONTH_SUMMARY -> {
             val m = aiContextRepository.getMonthSummary()
             val currency = userPreferencesRepository.baseCurrency.first()
-            // Converted to one currency already: the figure the reply states.
-            turnSubject = turnSubject?.copy(monthTotal = Money(m.totalExpense, currency))
             context.getString(
                 R.string.chat_reply_month_summary,
                 CurrencyFormatter.formatCurrency(m.totalExpense, currency, maskIfHidden = false),
@@ -618,9 +615,6 @@ class LlmRepository @Inject constructor(
                 val (window, rows) = aiContextRepository.monthSoFar()
                 // Forgiven loan balances count as spent, as on Home (#938).
                 val spent = with(SpendingComparison) { spend(rows, creditAsExpense = creditAsExpense()).plusAmounts(aiContextRepository.settlementLoss(window)) }
-                // One currency is one total; several are never added up, so they're only counted.
-                subject = spent.entries.singleOrNull()?.let { (c, a) -> subject.copy(monthTotal = Money(a, c)) }
-                    ?: subject.copy(currencies = spent.size)
                 if (spent.isEmpty()) context.getString(R.string.chat_reply_quick_nothing, range(window))
                 else (listOf(context.getString(R.string.chat_reply_month_spend, range(window))) + spent.ordered().map { (c, a) -> money(a, c) }).joinToString("\n")
             }

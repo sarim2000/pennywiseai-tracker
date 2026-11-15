@@ -74,8 +74,9 @@ device it was calibrated on; any other device or emulator is reported, never gat
 a device, run the report a few times and set each limit above the slowest run.
 
 CI (`.github/workflows/perf-report.yml`) is report-only, never a required check:
-- **APK Size**, on pull requests touching app code or dependencies: builds the unsigned
-  standard release and writes arm64 and universal APK and dex sizes to the job summary.
+- **APK Size**, weekly and on demand (Actions → Performance Report → Run workflow, on
+  any branch): builds the unsigned standard release and writes arm64 and universal APK
+  and dex sizes to the job summary.
 - **Emulator Benchmarks**, weekly and on demand: the same two benchmarks on an API 34
   emulator, with results uploaded as an artifact. Emulator timings drift with the host,
   so compare them only with earlier runs of that job.

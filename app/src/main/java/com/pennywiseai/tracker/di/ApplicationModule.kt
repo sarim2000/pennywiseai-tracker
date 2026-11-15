@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.di
 
 import com.pennywiseai.tracker.core.ApplicationScope
+import com.pennywiseai.tracker.core.DefaultDispatcher
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.currency.ExchangeRateProvider
 import com.pennywiseai.tracker.data.currency.ExchangeRateProviderFactory
@@ -10,6 +11,7 @@ import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -43,6 +45,10 @@ object ApplicationModule {
     @ApplicationScope
     fun provideApplicationScope(): CoroutineScope =
         CoroutineScope(SupervisorJob() + Dispatchers.IO)
+
+    @Provides
+    @DefaultDispatcher
+    fun provideDefaultDispatcher(): CoroutineDispatcher = Dispatchers.Default
 
     /**
      * Provides the CurrencyConversionService.

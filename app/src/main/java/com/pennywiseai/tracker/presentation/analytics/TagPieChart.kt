@@ -103,7 +103,7 @@ fun TagPieChart(
         ExpandableList(
             items = chartData.sortedByDescending { it.data },
             visibleItemCount = 5,
-            itemSpacing = 0.dp,
+            itemSpacing = Spacing.none,
             modifier = Modifier
                 .weight(1f)
                 .padding(start = Spacing.md)

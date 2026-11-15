@@ -7,10 +7,12 @@ package com.pennywiseai.tracker.ui.components.mascot
 
 import androidx.compose.ui.geometry.Offset
 import kotlin.math.PI
+import kotlin.math.exp
 import kotlin.math.floor
 import kotlin.math.hypot
 import kotlin.math.max
 import kotlin.math.sin
+import kotlin.math.tanh
 
 /** What the mascot feels; each mood is a target pose the face blends toward. */
 enum class MascotMood { Calm, Thinking, Happy, Worried, Asleep }
@@ -22,7 +24,8 @@ internal enum class EyeStyle { Open, Arc, Closed }
  * How much the mascot moves.
  * - [Still]: "Remove animations" — a deliberate static pose, no clock at all.
  * - [Quiet]: small sizes. The caller blinks it from a delay-driven clock; time only
- *   advances while a mood change plays out, so nothing runs between blinks.
+ *   advances while a mood change plays out or the mascot is thinking, so an idle one
+ *   runs nothing between blinks.
  * - [Full]: the hero, on a frame clock: scheduled blinks and a wandering gaze.
  */
 internal enum class MascotMotion { Still, Quiet, Full }
@@ -63,6 +66,26 @@ private const val SWEEP_REACH = 0.8f
 
 /** Radians per second: one look across and back in about two seconds. */
 private const val SWEEP_RATE = 3f
+
+/** Asleep, a detailed mascot breathes: a slow rise and fall, in box units. */
+private const val BREATH_MS = 3400f
+private const val BREATH_LIFT = 1.2f
+
+/** A poke: a quick blink and a wobble of at most [POKE_ROLL] degrees that dies out in [POKE_MS]. */
+internal const val POKE_MS = 900L
+internal const val POKE_ROLL = 6f
+private const val POKE_DECAY = 5f
+private const val POKE_RATE = 22f
+
+/** How quickly the eyes find a finger, and how quickly they let go of it once it lifts. */
+internal const val FOLLOW_MS = 120f
+internal const val ATTENTION_MS = 300f
+
+/** Gain on a drag's saturated reach: a finger about two thirds of the mascot away gets a full look. */
+private const val DRAG_GAIN = 1.6f
+
+/** Characters after which a typed line has the eyes at its far end. */
+private const val TYPING_LINE_CHARS = 32f
 
 /** How long a mood change keeps a Quiet mascot's clock running (the hop, the shake). */
 internal const val MOOD_MOTION_MS = 1000L
@@ -176,7 +199,10 @@ internal fun moodPose(
                 3f * sin(sinceMoodMillis * 0.034f) * (1 - sinceMoodMillis / SHAKE_MS.toFloat())
             } else 0f,
         )
-        MascotMood.Asleep -> MascotPose(style = EyeStyle.Closed)
+        MascotMood.Asleep -> MascotPose(
+            style = EyeStyle.Closed,
+            lift = if (full) BREATH_LIFT * sin(2 * PI * tMillis / BREATH_MS).toFloat() else 0f,
+        )
     }
     val gaze = clampGaze(pose.gazeX, pose.gazeY)
     return pose.copy(gazeX = gaze.x, gazeY = gaze.y)
@@ -200,5 +226,50 @@ internal fun blendPose(from: MascotPose, to: MascotPose, weight: Float): MascotP
         brows = lerp(from.brows, to.brows, w),
         blink = if (styleChanges) max(blink, sin(PI * w).toFloat()) else blink,
         style = if (styleChanges && w < 0.5f) from.style else to.style,
+    )
+}
+
+/** Exponential ease of [current] toward [target] over [dtMs], with time constant [tauMs]. */
+internal fun ease(current: Float, target: Float, dtMs: Long, tauMs: Float): Float =
+    current + (target - current) * (1 - exp(-dtMs / tauMs))
+
+/**
+ * Where the eyes look for a finger at [dx], [dy] from them, in units of the mascot's size
+ * (x toward line end, y down). The reach saturates (tanh), so a finger far across the
+ * screen still lands inside the eye, and one beside it gets a proportional glance.
+ */
+internal fun dragGaze(dx: Float, dy: Float): Offset {
+    val m = hypot(dx, dy)
+    val k = if (m > 1e-4f) tanh(m) / m else 1f
+    return clampGaze(dx * k * DRAG_GAIN, dy * k * DRAG_GAIN)
+}
+
+/**
+ * Looking down at a text field below while [length] characters are typed into it: the
+ * eyes start at the line's start and follow it toward its end as it fills.
+ */
+internal fun typingGaze(length: Int): Offset {
+    val along = (length / TYPING_LINE_CHARS).coerceIn(0f, 1f)
+    return clampGaze(-0.5f + along, 0.8f)
+}
+
+/**
+ * Lays [look] over [pose] at [attention] 0..1. Only open eyes follow: `^` and closed eyes
+ * have no pupil to point.
+ */
+internal fun lookAt(pose: MascotPose, look: Offset, attention: Float): MascotPose {
+    if (pose.style != EyeStyle.Open || attention <= 0f) return pose
+    val w = attention.coerceAtMost(1f)
+    val gaze = clampGaze(lerp(pose.gazeX, look.x, w), lerp(pose.gazeY, look.y, w))
+    return pose.copy(gazeX = gaze.x, gazeY = gaze.y)
+}
+
+/** [pose] [sinceMs] after a poke: a quick blink and a damped wobble of at most ±[POKE_ROLL]°. */
+internal fun poked(pose: MascotPose, sinceMs: Long): MascotPose {
+    if (sinceMs !in 0 until POKE_MS) return pose
+    val s = sinceMs / 1000f
+    return pose.copy(
+        roll = pose.roll + POKE_ROLL * exp(-s * POKE_DECAY) * sin(s * POKE_RATE),
+        blink = max(pose.blink, bump(sinceMs)),
     )
 }

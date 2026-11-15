@@ -1,8 +1,10 @@
 package com.pennywiseai.tracker.ui.components.mascot
 
+import androidx.compose.ui.geometry.Offset
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.math.abs
 import kotlin.math.hypot
 
 class MascotPoseTest {
@@ -113,6 +115,69 @@ class MascotPoseTest {
         assertTrue(lifts.all { it <= 0f })
         assertTrue(lifts.min() < -5f)
         assertTrue(lifts.drop(100).all { it == 0f }) // nothing after the first second
+    }
+
+    @Test
+    fun `a poke blinks once and wobbles within six degrees, then settles`() {
+        val calm = MascotPose()
+        val rolls = (0L until POKE_MS step 5).map { poked(calm, it).roll }
+        assertTrue(rolls.all { abs(it) <= POKE_ROLL })
+        assertTrue(rolls.max() > 3f && rolls.min() < -1f) // it wobbles both ways
+        assertEquals(1f, poked(calm, BLINK_MS / 2).blink, 0.01f)
+        assertEquals(0f, poked(calm, BLINK_MS + 1).blink, 0f)
+        assertEquals(calm, poked(calm, POKE_MS))
+        assertEquals(calm, poked(calm, -1))
+    }
+
+    @Test
+    fun `a drag looks toward the finger and never leaves the eye`() {
+        val right = dragGaze(0.3f, 0f)
+        assertTrue(right.x > 0.3f && right.y == 0f)
+        val upLeft = dragGaze(-0.2f, -0.2f)
+        assertTrue(upLeft.x < 0f && upLeft.y < 0f)
+        for (d in listOf(0.5f, 2f, 10f, 1_000f)) {
+            for ((x, y) in listOf(d to 0f, 0f to -d, -d to d, d to d)) {
+                val gaze = dragGaze(x, y)
+                assertInsideEye(MascotPose(gazeX = gaze.x, gazeY = gaze.y))
+            }
+        }
+        assertEquals(Offset.Zero, dragGaze(0f, 0f))
+    }
+
+    @Test
+    fun `let go, the eyes are back to their own gaze within a second`() {
+        var attention = 1f
+        for (frame in 0 until 60) attention = ease(attention, 0f, 16, ATTENTION_MS) // ~1s at 60fps
+        assertTrue(attention < 0.05f)
+        val own = MascotPose(gazeX = 0.2f)
+        assertEquals(0.2f, lookAt(own, Offset(-1f, 0f), attention).gazeX, 0.07f)
+        assertEquals(-1f, lookAt(own, Offset(-1f, 0f), 1f).gazeX, 0f)
+    }
+
+    @Test
+    fun `only open eyes follow a look`() {
+        val happy = MascotPose(style = EyeStyle.Arc)
+        assertEquals(happy, lookAt(happy, Offset(1f, 0f), 1f))
+        val asleep = MascotPose(style = EyeStyle.Closed)
+        assertEquals(asleep, lookAt(asleep, Offset(1f, 0f), 1f))
+    }
+
+    @Test
+    fun `typing has the eyes down on the input, moving along the line as it fills`() {
+        val start = typingGaze(1)
+        val later = typingGaze(20)
+        val full = typingGaze(500)
+        assertTrue(start.y > 0.5f)
+        assertTrue(start.x < later.x && later.x < full.x)
+        assertEquals(full, typingGaze(5_000))
+        for (n in 0..200) assertInsideEye(MascotPose(gazeX = typingGaze(n).x, gazeY = typingGaze(n).y))
+    }
+
+    @Test
+    fun `asleep, the hero breathes and the small mascot stays still`() {
+        val lifts = (0L until 4_000L step 20).map { moodPose(MascotMood.Asleep, it, it, seed, MascotMotion.Full).lift }
+        assertTrue(lifts.max() > 1f && lifts.min() < -1f)
+        assertEquals(0f, moodPose(MascotMood.Asleep, 1_234, 1_234, seed, MascotMotion.Quiet).lift, 0f)
     }
 
     private fun assertInsideEye(pose: MascotPose) {

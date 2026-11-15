@@ -199,14 +199,14 @@ The smallest visible win: the Chat tab becomes the owl that blinks.
 - [ ] On device: each reaction on both bar styles, light and dark, with "Remove animations"; no frames between reactions once the owl is back
 
 ### M3 — Chat surfaces
-- [ ] Empty-chat hero (96dp owl, `Calm`):
-  - [ ] Tap = poke (quick blink + damped ±6° wobble, no haptic)
-  - [ ] Drag = look around (tanh saturation, back to centre ~0.3s after release)
-  - [ ] Eyes look at the input while it has text
-- [ ] Hide the hero as soon as the first request starts
-- [ ] `TypingIndicator`: the dots become a 32dp `Thinking` owl. Keep the `THINKING_LINES` text and the `REPLY_KEY` slot.
-- [ ] Model screen: `Asleep` owl replaces `CloudDownload`. It wakes once on `LOADING`.
-- [ ] `Happy` on the hero when `adds` increments after entry, never on navigation, rotation or restored history (same rule as `addsAtEntry`)
+- [x] Empty-chat hero (96dp owl, `Calm`), above the welcome message:
+  - [x] Tap = poke (quick blink + damped ±6° wobble, no haptic)
+  - [x] Drag = look around (tanh saturation, back to centre ~0.3s after release)
+  - [x] Eyes look at the input while it has text
+- [x] Hide the hero as soon as the first request starts
+- [x] `TypingIndicator`: the dots become a 32dp `Thinking` owl. Keep the `THINKING_LINES` text and the `REPLY_KEY` slot.
+- [x] Model screen: `Asleep` owl replaces `CloudDownload`. It wakes once on `LOADING` (the `LOADING` screen's owl takes the `LoadingIndicator`'s place and thinks).
+- [x] `Happy` on the hero when `adds` increments after entry, never on navigation, rotation or restored history (same rule as `addsAtEntry`). Today an Add always follows a request, which has already hidden the hero, so this is wired but cannot show yet; M4's reply mascot is where a saved Add shows.
 - [ ] **Measure:** tokens/s and time-to-first-token with and without the mascot, on the M0 phone from [`ai-chat-improvement-plan.md`](ai-chat-improvement-plan.md). If there is a measurable difference, the Thinking owl is static during generation.
 
 ### M4 — Shapes for chat replies

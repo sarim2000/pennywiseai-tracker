@@ -2,11 +2,14 @@ package com.pennywiseai.tracker.ui.components.mascot
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableFloatStateOf
@@ -36,6 +39,7 @@ import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.unit.Dp
@@ -66,8 +70,14 @@ import kotlin.random.Random
  * draw phase only, so it never recomposes per frame.
  *
  * A new [shape] crossfades in on the theme's effects spec; a new [mood] blends from the
- * pose on screen. A [MascotShape.Bubble] that is [MascotMood.Thinking] reads: its eyes
- * sweep along the lines, on a frame clock that runs only while it does.
+ * pose on screen. A small mascot that is [MascotMood.Thinking] runs a frame clock for as
+ * long as it thinks: the owl's eyes drift and its head sways, a [MascotShape.Bubble]'s
+ * eyes sweep along its lines.
+ *
+ * [look] points the open eyes somewhere (gaze -1..1, x toward line end, y down) until it
+ * is null again. An [interactive] mascot answers a tap with a poke (a quick blink and a
+ * wobble) and a drag by looking at the finger, back to centre once it lifts. Neither has
+ * a haptic or a semantics node: the mascot never acts as a button of its own.
  */
 @Composable
 fun Mascot(
@@ -76,6 +86,8 @@ fun Mascot(
     mood: MascotMood = MascotMood.Calm,
     shape: MascotShape = MascotShape.Owl,
     tint: Color = MaterialTheme.colorScheme.primary,
+    look: Offset? = null,
+    interactive: Boolean = false,
 ) {
     val detailed = size > Dimensions.Icon.large
     val motion = when {
@@ -85,8 +97,9 @@ fun Mascot(
     }
     val state = remember { MascotState(mood, shape) }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
-    val sweeping = isSweeping(shape, mood)
-    LaunchedEffect(motion, lifecycle, sweeping) { state.runClock(motion, lifecycle, sweeping) }
+    val thinking = mood == MascotMood.Thinking
+    LaunchedEffect(motion, lifecycle, thinking) { state.runClock(motion, lifecycle, thinking) }
+    SideEffect { state.look = look }
     val motionScheme = MaterialTheme.motionScheme
     val blendSpec = motionScheme.defaultEffectsSpec<Float>()
     val swapSpec = motionScheme.slowEffectsSpec<Float>()
@@ -103,6 +116,7 @@ fun Mascot(
         modifier
             .size(size)
             .clearAndSetSemantics {}
+            .then(if (interactive) Modifier.mascotGestures(state, direction) else Modifier)
             // The two-tone glyph punches its eyes out, which needs a layer of its own.
             .then(if (detailed) Modifier else Modifier.graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen })
             .drawWithCache {
@@ -126,6 +140,26 @@ fun Mascot(
             }
     )
 }
+
+/** Tap to poke; drag to have the eyes follow the finger. The drag is consumed, so a list under it doesn't scroll. */
+private fun Modifier.mascotGestures(state: MascotState, direction: Float): Modifier = this
+    .pointerInput(state) { detectTapGestures(onTap = { state.poke() }) }
+    .pointerInput(state, direction) {
+        // From the middle of the face, in units of the mascot's size; x toward line end.
+        fun gazeAt(p: Offset) = dragGaze(
+            dx = (p.x / size.width - 0.5f) * direction,
+            dy = p.y / size.height - OwlEye.Y / BOX,
+        )
+        detectDragGestures(
+            onDragStart = { state.dragLook = gazeAt(it) },
+            onDragEnd = { state.dragLook = null },
+            onDragCancel = { state.dragLook = null },
+            onDrag = { change, _ ->
+                change.consume()
+                state.dragLook = gazeAt(change.position)
+            },
+        )
+    }
 
 /** A thinking message bubble is reading: its eyes sweep left and right. */
 private fun isSweeping(shape: MascotShape, mood: MascotMood) = shape == MascotShape.Bubble && mood == MascotMood.Thinking
@@ -165,6 +199,15 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
     /** The pose last drawn: where a mood change blends from. */
     private var shown = MascotPose()
 
+    /** Where the caller points the eyes, and where a finger dragging on the mascot is. */
+    var look by mutableStateOf<Offset?>(null)
+    var dragLook by mutableStateOf<Offset?>(null)
+
+    /** How far the eyes follow [dragLook] or [look] (0..1), and the point they've reached. */
+    private var attention = 0f
+    private var followed = Offset.Zero
+    private var pokeStart = Long.MIN_VALUE / 4
+
     /** Called from the draw phase, so the state reads here invalidate the drawing only. */
     fun pose(motion: MascotMotion): MascotPose {
         val t = time.longValue
@@ -172,16 +215,28 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
         if (motion == MascotMotion.Quiet) pose = pose.copy(blink = max(pose.blink, quietBlink.floatValue))
         val w = blend.value
         from?.let { if (w < 1f) pose = blendPose(it, pose, w) }
+        val target = dragLook ?: look
+        if (motion == MascotMotion.Still) {
+            // No clock to ease on: the eyes are simply where they're pointed.
+            if (target != null) pose = lookAt(pose, target, 1f)
+        } else {
+            pose = poked(lookAt(pose, followed, attention), t - pokeStart)
+        }
         shown = pose
         return pose
     }
 
-    /** [sweeping]: a Quiet mascot also needs frames, for as long as its eyes sweep. */
-    suspend fun runClock(motion: MascotMotion, lifecycle: Lifecycle, sweeping: Boolean) {
+    /** A tap: a quick blink and a damped wobble. Only a mascot on a frame clock shows it. */
+    fun poke() {
+        pokeStart = time.longValue
+    }
+
+    /** [thinking]: a Quiet mascot also needs frames, for as long as it thinks. */
+    suspend fun runClock(motion: MascotMotion, lifecycle: Lifecycle, thinking: Boolean) {
         when (motion) {
             MascotMotion.Still -> quietBlink.floatValue = 0f
             MascotMotion.Quiet -> lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                if (sweeping) launch { tick() }
+                if (thinking) launch { tick() }
                 blinkNowAndThen()
             }
             MascotMotion.Full -> lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { tick() }
@@ -189,7 +244,23 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
     }
 
     private suspend fun tick() {
-        while (true) withFrameMillis { time.longValue = it }
+        var last = -1L
+        while (true) {
+            withFrameMillis { now ->
+                if (last >= 0) follow(now - last)
+                last = now
+                time.longValue = now
+            }
+        }
+    }
+
+    /** Eases the eyes toward where they're pointed, and back to their own gaze once let go. */
+    private fun follow(dtMs: Long) {
+        val target = dragLook ?: look
+        attention = ease(attention, if (target != null) 1f else 0f, dtMs, ATTENTION_MS)
+        if (target != null) {
+            followed = Offset(ease(followed.x, target.x, dtMs, FOLLOW_MS), ease(followed.y, target.y, dtMs, FOLLOW_MS))
+        }
     }
 
     /** Waits 4–8s, blinks for 190ms (sometimes twice), repeats. No frames while it waits. */

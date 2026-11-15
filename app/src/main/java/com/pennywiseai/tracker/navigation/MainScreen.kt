@@ -48,6 +48,7 @@ import com.pennywiseai.tracker.presentation.chat.ChatTabViewModel
 import com.pennywiseai.tracker.presentation.home.HomeScreen
 import com.pennywiseai.tracker.presentation.settings.AppearanceScreen
 import com.pennywiseai.tracker.presentation.settings.FAQScreen
+import com.pennywiseai.tracker.presentation.settings.MascotPlaygroundScreen
 import com.pennywiseai.tracker.presentation.settings.SettingsScreen
 import com.pennywiseai.tracker.presentation.settings.SettingsSectionScreen
 import com.pennywiseai.tracker.presentation.statement.ImportStatementScreen
@@ -429,6 +430,10 @@ fun MainScreen(
             )
         }
 
+        entry<MascotPlayground> { key ->
+            MascotPlaygroundScreen(onNavigateBack = { backFrom(tab, key) })
+        }
+
         entry<Appearance> { key ->
             AppearanceScreen(
                 onNavigateBack = {
@@ -573,7 +578,8 @@ fun MainScreen(
                     navBarStyle = themeState.navBarStyle,
                     // Step aside while typing (Transactions search, Chat) rather
                     // than sit under the keyboard with the docked action.
-                    visible = onTabScreen && !WindowInsets.isImeVisible && !hideNavBar.value,
+                    // The mascot playground keeps it up too: its reactions play on the real tab.
+                    visible = (onTabScreen || topKey == MascotPlayground) && !WindowInsets.isImeVisible && !hideNavBar.value,
                     hiddenTabs = hiddenTabs,
                     chatReaction = chatReaction,
                     blurEffects = themeState.blurEffectsEnabled,

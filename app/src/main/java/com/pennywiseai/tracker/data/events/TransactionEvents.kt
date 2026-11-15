@@ -25,7 +25,8 @@ data class TransactionEvent(val type: TransactionType, val count: Int, val origi
  * to react to. Only the live save paths announce one, and only after the row committed:
  * the SMS and bank-notification processor, a manual add or transfer, and a chat Add (once
  * per card). Imports, backup restore, recurring rows, autopay and loans never do
- * (`TransactionEventsTest`).
+ * (`TransactionEventsTest`). Developer mode's mascot playground announces saves it never
+ * makes, to play the reactions on the real tab.
  *
  * Nothing is kept: a save made in the background, or with no one listening, is gone, so
  * it is never replayed when the user comes back. Not persisted, so backups are untouched.

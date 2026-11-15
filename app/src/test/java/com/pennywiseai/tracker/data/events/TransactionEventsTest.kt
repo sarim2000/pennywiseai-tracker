@@ -55,7 +55,11 @@ class TransactionEventsTest {
             .filter { it.name != "TransactionEvents" && "TransactionEvents" in it.text && ".onSaved(" in it.text }
             .map { it.name }
             .toSet()
-        assertEquals(setOf("SmsTransactionProcessor", "AddTransactionUseCase", "ChatViewModel"), announcers)
+        // The Developer mode playground announces too, to play the reactions; it saves nothing.
+        assertEquals(
+            setOf("SmsTransactionProcessor", "AddTransactionUseCase", "ChatViewModel", "MascotPlaygroundScreen"),
+            announcers,
+        )
     }
 
     @Test

@@ -47,4 +47,15 @@
         <item quantity="one">%1$d currency</item>
         <item quantity="other">%1$d currencies</item>
     </plurals>
+    <!-- Developer mode: a screen showing the mascot in every shape and mood, for checking it on a device -->
+    <string name="mascot_playground_title">Mascot playground</string>
+    <string name="mascot_playground_subtitle">Every shape and mood, and the Chat tab\'s reactions</string>
+    <string name="mascot_playground_back">Back</string>
+    <string name="mascot_playground_hint">Tap to poke it. Drag to have it watch your finger.</string>
+    <!-- The slider for the figure a shape draws (how full a jar is, where a gauge's needle sits). %1$d is a percentage -->
+    <string name="mascot_playground_value">Value: %1$d%%</string>
+    <string name="mascot_playground_reactions_title">Chat tab reactions</string>
+    <string name="mascot_playground_reactions_body">Each button announces a save the way a real one does, so the Chat tab below reacts. Nothing is saved. A tap during a reaction folds into it.</string>
+    <string name="mascot_playground_grid_title">Every shape and mood</string>
+    <string name="mascot_playground_grid_body">Tap one to show it above.</string>
 </resources>

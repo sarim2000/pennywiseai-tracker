@@ -113,6 +113,22 @@ class WhatWasThisTest {
     }
 
     @Test
+    fun `a leg filled before switching back is dropped with the switch`() {
+        val expense = txn(TransactionType.EXPENSE)
+        val asTransfer = expense.copy(transactionType = TransactionType.TRANSFER).withKnownTransferLeg(expense)
+        // Back to an expense, account B picked, then a transfer again: B is the source, not A.
+        val onB = asTransfer.copy(transactionType = TransactionType.EXPENSE).withSavedTransferLegs(expense)
+            .copy(accountNumber = "3333", bankName = "Bank B")
+        assertEquals(null, onB.fromAccount)
+        val again = onB.copy(transactionType = TransactionType.TRANSFER).withKnownTransferLeg(onB)
+        assertEquals("3333" to "Bank B", again.fromAccount to again.fromBankName)
+        // A saved transfer keeps its own legs through the switch.
+        val saved = asTransfer.copy(toAccount = "2222", toBankName = "Bank C")
+        val back = saved.copy(transactionType = TransactionType.EXPENSE, fromAccount = "9999").withSavedTransferLegs(saved)
+        assertEquals("1111" to "2222", back.fromAccount to back.toAccount)
+    }
+
+    @Test
     fun `an account picked in the editor is the leg that's kept`() {
         val expense = txn(TransactionType.EXPENSE)
         val edited = expense.copy(accountNumber = "3333", bankName = "Bank B")

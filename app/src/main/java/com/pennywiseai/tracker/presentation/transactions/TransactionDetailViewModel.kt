@@ -618,11 +618,12 @@ class TransactionDetailViewModel @Inject constructor(
             _budgetCategory.value = null
             _editableTransaction.update { current ->
                 current?.copy(transactionType = type, budgetImpactType = null, budgetCategory = null)
+                    ?.withSavedTransferLegs(_transaction.value)
                     ?.withKnownTransferLeg(current?.let { it.copy(bankName = resolvedBankName(it)) })
             }
         } else {
             _editableTransaction.update { current ->
-                current?.copy(transactionType = type)
+                current?.copy(transactionType = type)?.withSavedTransferLegs(_transaction.value)
             }
         }
     }
@@ -1591,6 +1592,17 @@ internal fun TransactionEntity.withKnownTransferLeg(before: TransactionEntity?):
         copy(fromAccount = account, fromBankName = before.bankName)
     }
 }
+
+/**
+ * Left TRANSFER in the editor: legs filled there go back to the [saved] row's, so a leg
+ * filled from account A can't stay after the user switches back and picks account B.
+ */
+internal fun TransactionEntity.withSavedTransferLegs(saved: TransactionEntity?): TransactionEntity =
+    if (transactionType == TransactionType.TRANSFER) this
+    else copy(
+        fromAccount = saved?.fromAccount, fromBankName = saved?.fromBankName,
+        toAccount = saved?.toAccount, toBankName = saved?.toBankName
+    )
 
 /** [updated] turned [original] into a standalone transfer that moves no account. */
 internal fun transferWithoutLegs(original: TransactionEntity, updated: TransactionEntity): Boolean =

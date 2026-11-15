@@ -135,7 +135,7 @@ fun TransactionDetailScreen(
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
-    
+
     // Show success snackbar
     val updatedMessage = stringResource(R.string.txn_detail_updated)
     // "Receipt settled": only the user's own Save gets the check + haptic.
@@ -158,7 +158,7 @@ fun TransactionDetailScreen(
             try { delay(SETTLED_HOLD_MILLIS) } finally { settled = false }
         }
     }
-    
+
     // Show error snackbar
     val errorText = errorMessage?.asString()
     LaunchedEffect(errorText) {
@@ -168,20 +168,20 @@ fun TransactionDetailScreen(
             }
         }
     }
-    
+
     // Reload on every resume so external changes — e.g. the linked loan being
     // deleted from the Loan screen — are reflected when returning here (#444).
     LifecycleEventEffect(Lifecycle.Event.ON_RESUME) {
         viewModel.loadTransaction(transactionId)
     }
-    
+
     // Handle delete success
     LaunchedEffect(deleteSuccess) {
         if (deleteSuccess) {
             onNavigateBack()
         }
     }
-    
+
     val context = LocalContext.current
     var showActionsMenu by remember { mutableStateOf(false) }
 
@@ -385,13 +385,13 @@ fun TransactionDetailScreen(
             )
         }
     }
-    
+
     // Delete Confirmation Dialog
     if (showDeleteDialog) {
         AlertDialog(
             onDismissRequest = { viewModel.hideDeleteDialog() },
             title = { Text(stringResource(R.string.txn_detail_delete_title)) },
-            text = { 
+            text = {
                 Text(stringResource(R.string.txn_detail_delete_message))
             },
             confirmButton = {
@@ -611,7 +611,6 @@ private fun TransactionDetailContent(
                 splits = splits,
                 showSplitEditor = showSplitEditor
             )
-
         } else {
             TransactionReceipt(
                 transaction = transaction,

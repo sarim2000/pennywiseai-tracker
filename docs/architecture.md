@@ -410,8 +410,9 @@ The real `HomeUiState` in `presentation/home/HomeViewModel.kt` carries much more
 
 Both are advisory: neither is in `./init.sh` nor in the required **Check** job.
 `quality-advisory.yml` runs them in CI with `continue-on-error` and uploads the
-reports as artifacts. New Detekt findings leave the job green but add a warning
-annotation and list the findings in the job summary.
+reports as artifacts. Detekt runs on PRs and main; coverage only on main and on
+demand, since it re-runs the gated unit tests. New Detekt findings leave the job
+green but add a warning annotation and list the findings in the job summary.
 
 - **Detekt**: `./gradlew detekt` checks the production sources of `:app` (main,
   standard, fdroid), `core/*`, `feature/*` and `parser-core`. It parses syntax

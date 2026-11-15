@@ -61,6 +61,7 @@ import com.pennywiseai.tracker.ui.components.mascot.MascotMood
 import com.pennywiseai.tracker.ui.components.mascot.MascotShape
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.tabular
 import dagger.hilt.android.lifecycle.HiltViewModel
 import javax.inject.Inject
 import kotlin.math.roundToInt
@@ -142,7 +143,7 @@ fun MascotPlaygroundScreen(
                     val state = lastSlider[0] ?: return@AnimatedVisibility
                     val label = stringResource(R.string.mascot_playground_value, (state.value * 100).roundToInt())
                     Column(Modifier.padding(top = Spacing.sm)) {
-                        Text(label, style = MaterialTheme.typography.labelLarge)
+                        Text(label, style = MaterialTheme.typography.labelLarge.tabular())
                         Slider(
                             state = state,
                             onValueChange = {

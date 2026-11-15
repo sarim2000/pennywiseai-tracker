@@ -100,14 +100,14 @@ fun UnifiedAccountsCard(
                         imageVector = Icons.Default.CreditCard,
                         contentDescription = stringResource(R.string.accounts_overview_available_credit),
                         modifier = Modifier.size(Dimensions.Icon.medium),
-                        tint = MaterialTheme.colorScheme.secondary
+                        tint = MaterialTheme.colorScheme.credit
                     )
                     Spacer(modifier = Modifier.height(Spacing.xs))
                     Text(
                         text = CurrencyFormatter.formatCurrency(totalAvailableCredit, selectedCurrency),
                         style = PennyWiseText.amountMedium,
                         fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.secondary
+                        color = MaterialTheme.colorScheme.credit
                     )
                     Text(
                         text = if (creditCards.isNotEmpty()) {

@@ -45,7 +45,7 @@
     <string name="sms_access_empty_body">ستظهر هنا بعد تفعيل الوصول إلى الرسائل القصيرة.</string>
     <string name="sms_access_blocked_hint">لن يطلب Android الإذن مرة أخرى. اسمح بالرسائل القصيرة من إعدادات التطبيق.</string>
     <!-- ══ Unrecognized SMS ══ -->
-    <string name="unrecognized_title">الرسائل القصيرة غير المعترف بها</string>
+    <string name="unrecognized_title">رسائل لم يُتعرّف عليها</string>
     <string name="unrecognized_back">الرجوع</string>
     <string name="unrecognized_header_title">رسائل البنوك غير المعروفة</string>
     <string name="unrecognized_header_body">تعذّر تحليل هذه الرسائل تلقائيًا، ويُرجَّح أنها من بنوك. ساعد في تحسين PennyWise بالإبلاغ عنها لنضيف دعم مزيد من البنوك.</string>
@@ -53,7 +53,7 @@
     <plurals name="unrecognized_new_count">
         <item quantity="zero">%1$d جديدة</item>
         <item quantity="one">%1$d جديدة</item>
-        <item quantity="two">%1$d جديدة</item>
+        <item quantity="two">جديدتان</item>
         <item quantity="few">%1$d جديدة</item>
         <item quantity="many">%1$d جديدة</item>
         <item quantity="other">%1$d جديدة</item>
@@ -61,7 +61,7 @@
     <plurals name="unrecognized_reported_count">
         <item quantity="zero">%1$d مُبلَّغ عنها</item>
         <item quantity="one">%1$d مُبلَّغ عنها</item>
-        <item quantity="two">%1$d مُبلَّغ عنها</item>
+        <item quantity="two">مُبلَّغ عنهما</item>
         <item quantity="few">%1$d مُبلَّغ عنها</item>
         <item quantity="many">%1$d مُبلَّغ عنها</item>
         <item quantity="other">%1$d مُبلَّغ عنها</item>
@@ -232,12 +232,12 @@
     <string name="onboarding_notifications_reason">بعد ذلك، اسمح بالإشعارات ليُعلمك PennyWise فور تسجيل أي مصروف جديد.</string>
     <string name="onboarding_scan_in_progress">جارٍ فحص رسائلك...</string>
     <plurals name="onboarding_scan_processed">
-        <item quantity="zero">تمت معالجة %1$d من %2$d رسالة</item>
-        <item quantity="one">تمت معالجة %1$d من %2$d رسالة</item>
-        <item quantity="two">تمت معالجة %1$d من %2$d رسالة</item>
-        <item quantity="few">تمت معالجة %1$d من %2$d رسائل</item>
-        <item quantity="many">تمت معالجة %1$d من %2$d رسالة</item>
-        <item quantity="other">تمت معالجة %1$d من %2$d رسالة</item>
+        <item quantity="zero">الرسائل المُعالَجة: %1$d من %2$d</item>
+        <item quantity="one">الرسائل المُعالَجة: %1$d من %2$d</item>
+        <item quantity="two">الرسائل المُعالَجة: %1$d من %2$d</item>
+        <item quantity="few">الرسائل المُعالَجة: %1$d من %2$d</item>
+        <item quantity="many">الرسائل المُعالَجة: %1$d من %2$d</item>
+        <item quantity="other">الرسائل المُعالَجة: %1$d من %2$d</item>
     </plurals>
     <plurals name="onboarding_scan_found">
         <item quantity="zero">تم العثور على %1$d معاملة</item>
@@ -251,12 +251,12 @@
     <string name="onboarding_scan_preparing">جارٍ التحضير للفحص...</string>
     <string name="onboarding_scan_complete">اكتمل الفحص!</string>
     <plurals name="onboarding_scan_saved">
-        <item quantity="zero">تم حفظ %1$d معاملة من %2$d رسالة</item>
-        <item quantity="one">تم حفظ %1$d معاملة من %2$d رسالة</item>
-        <item quantity="two">تم حفظ معاملتين من %2$d رسالة</item>
-        <item quantity="few">تم حفظ %1$d معاملات من %2$d رسالة</item>
-        <item quantity="many">تم حفظ %1$d معاملة من %2$d رسالة</item>
-        <item quantity="other">تم حفظ %1$d معاملة من %2$d رسالة</item>
+        <item quantity="zero">تم حفظ %1$d معاملة · الرسائل: %2$d</item>
+        <item quantity="one">تم حفظ %1$d معاملة · الرسائل: %2$d</item>
+        <item quantity="two">تم حفظ معاملتين · الرسائل: %2$d</item>
+        <item quantity="few">تم حفظ %1$d معاملات · الرسائل: %2$d</item>
+        <item quantity="many">تم حفظ %1$d معاملة · الرسائل: %2$d</item>
+        <item quantity="other">تم حفظ %1$d معاملة · الرسائل: %2$d</item>
     </plurals>
     <string name="onboarding_scan_none_found">لم يتم العثور على معاملات. يمكنك إضافتها يدوياً لاحقاً.</string>
     <string name="onboarding_scan_title">فحص رسائلك</string>
@@ -435,7 +435,7 @@
     <string name="rules_summary_subscription">Netflix وSpotify وغيرها</string>
     <string name="rules_summary_fuel">معاملات محطات الوقود</string>
     <string name="rules_summary_healthcare">كلمات المستشفيات والصيدليات</string>
-    <string name="rules_summary_transfer">التحويلات بين حساباتك والقيود العكسية</string>
+    <string name="rules_summary_transfer">التحويلات بين حساباتك، بما فيها التحويلات بين النقد والبنك</string>
     <string name="rules_priority_badge">الأولوية: %1$d</string>
     <string name="rules_more_actions">المزيد من الإجراءات</string>
     <string name="rules_menu_edit">تعديل القاعدة</string>
@@ -519,12 +519,12 @@
     <string name="rules_batch_confirm">تطبيق \"%1$s\" على المعاملات الموجودة؟</string>
     <string name="rules_batch_preview_hint">استخدم المعاينة لمعرفة ما سيتغير قبل التطبيق.</string>
     <plurals name="rules_batch_processing">
-        <item quantity="zero">جارٍ معالجة %1$d من %2$d معاملة</item>
-        <item quantity="one">جارٍ معالجة %1$d من %2$d معاملة</item>
-        <item quantity="two">جارٍ معالجة %1$d من %2$d معاملة</item>
-        <item quantity="few">جارٍ معالجة %1$d من %2$d معاملات</item>
-        <item quantity="many">جارٍ معالجة %1$d من %2$d معاملة</item>
-        <item quantity="other">جارٍ معالجة %1$d من %2$d معاملة</item>
+        <item quantity="zero">جارٍ المعالجة: %1$d من %2$d</item>
+        <item quantity="one">جارٍ المعالجة: %1$d من %2$d</item>
+        <item quantity="two">جارٍ المعالجة: %1$d من %2$d</item>
+        <item quantity="few">جارٍ المعالجة: %1$d من %2$d</item>
+        <item quantity="many">جارٍ المعالجة: %1$d من %2$d</item>
+        <item quantity="other">جارٍ المعالجة: %1$d من %2$d</item>
     </plurals>
     <string name="rules_batch_completed">اكتمل</string>
     <string name="rules_batch_result_processed">المعاملات المعالجة: %1$d</string>
@@ -635,7 +635,7 @@
     <string name="rules_value_placeholder_amount">مثال: 200</string>
     <string name="rules_value_placeholder_merchant">مثال: Swiggy</string>
     <string name="rules_value_placeholder_sms_text">مثال: راتب</string>
-    <string name="rules_value_placeholder_category">مثال: الطعام والمطاعم</string>
+    <string name="rules_value_placeholder_category">مثال: طعام ومطاعم</string>
     <string name="rules_value_placeholder_bank">مثال: بنك HDFC</string>
     <string name="rules_value_placeholder_generic">أدخل القيمة</string>
 
@@ -657,7 +657,7 @@
 
     <!-- Rule preview sentence: "When <conditions>, <actions>" -->
     <string name="rules_preview_title">معاينة القاعدة</string>
-    <string name="rules_preview_sentence">إذا كان %1$s، %2$s</string>
+    <string name="rules_preview_sentence">الشروط: %1$s؛ الإجراءات: %2$s</string>
     <string name="rules_preview_conditions_and">%1$s و %2$s</string>
     <string name="rules_preview_conditions_or">%1$s أو %2$s</string>
     <string name="rules_preview_actions_and">%1$s، و%2$s</string>
@@ -668,7 +668,7 @@
     <string name="rules_preview_field_category">الفئة</string>
     <string name="rules_preview_field_merchant">التاجر</string>
     <string name="rules_preview_field_description">الوصف</string>
-    <string name="rules_preview_field_sms_text">نص SMS</string>
+    <string name="rules_preview_field_sms_text">نص الرسالة القصيرة</string>
     <string name="rules_preview_field_bank">البنك</string>
     <string name="rules_preview_field_time">الوقت</string>
     <string name="rules_preview_field_hour">الساعة</string>

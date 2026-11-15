@@ -123,7 +123,7 @@
     <string name="settings_import_csv_subtitle">استيراد من ملف CSV صدّرته من PennyWise</string>
     <string name="settings_import_statement_title">استيراد كشف حساب</string>
     <string name="settings_import_statement_subtitle">كشوف حساب بنكية (Excel وCSV) أو ملفات PDF من تطبيقات UPI</string>
-    <string name="settings_unrecognized_sms_title">الرسائل القصيرة غير المعترف بها</string>
+    <string name="settings_unrecognized_sms_title">رسائل لم يُتعرّف عليها</string>
     <string name="settings_unrecognized_sms_subtitle">عرض الرسائل المصرفية غير المدعومة والإبلاغ عنها</string>
     <string name="settings_delete_all_title">حذف جميع المعاملات</string>
     <string name="settings_delete_all_subtitle">مسح سجل معاملاتك مع الإبقاء على الحسابات والميزانيات</string>
@@ -257,7 +257,7 @@
         <item quantity="many">%d تطبيقًا متتبَّعًا</item>
         <item quantity="other">%d تطبيق متتبَّع</item>
     </plurals>
-    <string name="settings_tracked_apps_body">اختر التطبيقات التي تُعلمك بالمدفوعات. تظهر إشعاراتها كاقتراحات في \"الرسائل القصيرة غير المعترف بها\"، ولا يُضاف شيء حتى تضغط \"إضافة\". تطبيقات البنوك المدعومة تُقرأ مسبقًا ولا تظهر هنا.</string>
+    <string name="settings_tracked_apps_body">اختر التطبيقات التي تُعلمك بالمدفوعات. تظهر إشعاراتها كاقتراحات في \"رسائل لم يُتعرّف عليها\"، ولا يُضاف شيء حتى تضغط \"أضف\". تطبيقات البنوك المدعومة تُقرأ مسبقًا ولا تظهر هنا.</string>
     <string name="settings_tracked_apps_enable_access">فعّل الوصول إلى الإشعارات أولًا</string>
     <string name="settings_tracked_apps_search">ابحث في التطبيقات</string>
     <string name="settings_tracked_apps_done">تم</string>
@@ -512,8 +512,8 @@
     <string name="faq_sms_parsing_section">تحليل الرسائل القصيرة</string>
     <string name="faq_sms_not_detected_question">لماذا لا يكتشف التطبيق رسائل البنك القصيرة؟</string>
     <string name="faq_sms_not_detected_answer">تحقق مما إذا كان بنكك مدعومًا في قائمتنا. إن لم يكن كذلك، أبلغ عنه عبر GitHub. وتأكد من منح إذن الرسائل القصيرة ومن أن صيغة المرسل تطابق الأنماط المعتادة لرسائل البنوك.</string>
-    <string name="faq_unrecognized_sms_question">ماذا يحدث للرسائل القصيرة غير المعترف بها؟</string>
-    <string name="faq_unrecognized_sms_answer">تُحفظ في \"الرسائل القصيرة غير المعترف بها\" حيث يمكنك مراجعتها يدويًا أو الإبلاغ عنها لمساعدتنا على تحسين التحليل.</string>
+    <string name="faq_unrecognized_sms_question">ماذا يحدث للرسائل التي لم يُتعرّف عليها؟</string>
+    <string name="faq_unrecognized_sms_answer">تُحفظ في \"رسائل لم يُتعرّف عليها\" حيث يمكنك مراجعتها يدويًا أو الإبلاغ عنها لمساعدتنا على تحسين التحليل.</string>
     <string name="faq_duplicates_question">لماذا تتكرر بعض المعاملات؟</string>
     <string name="faq_duplicates_answer">ترسل بعض البنوك أكثر من رسالة للمعاملة نفسها. يحاول التطبيق اكتشاف التكرار، لكن يمكنك حذف أي معاملة مكررة تفلت منه يدويًا.</string>
     <!-- Privacy & Data -->

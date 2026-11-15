@@ -160,7 +160,7 @@
     <string name="card_expand">توسيع</string>
     <!-- Account carousel -->
     <string name="account_card_type_credit">ائتمان</string>
-    <string name="account_card_type_savings">مدخرات</string>
+    <string name="account_card_type_savings">توفير</string>
     <string name="account_card_low_balance">رصيد منخفض</string>
     <string name="account_card_outstanding">المستحق</string>
     <string name="account_card_balance">الرصيد</string>
@@ -197,26 +197,26 @@
     <!-- Amount the user can still spend each day for the rest of the budget window, e.g. "₹450/day" -->
     <string name="budget_card_per_day">%1$s/يوم</string>
     <string name="budget_card_finished">انتهى</string>
-    <string name="budget_card_tracking_all">يتتبّع جميع المصروفات</string>
+    <string name="budget_card_tracking_all">تتتبّع جميع المصروفات</string>
     <!-- %1$s is a weekday name -->
-    <string name="budget_card_resets_today_weekday">يتجدد اليوم · كل %1$s</string>
+    <string name="budget_card_resets_today_weekday">تتجدد اليوم · كل %1$s</string>
     <plurals name="budget_card_resets_in_weekday">
-        <item quantity="zero">يتجدد اليوم · كل %2$s</item>
-        <item quantity="one">يتجدد بعد %1$d يوم · كل %2$s</item>
-        <item quantity="two">يتجدد بعد يومين · كل %2$s</item>
-        <item quantity="few">يتجدد بعد %1$d أيام · كل %2$s</item>
-        <item quantity="many">يتجدد بعد %1$d يومًا · كل %2$s</item>
-        <item quantity="other">يتجدد بعد %1$d يوم · كل %2$s</item>
+        <item quantity="zero">تتجدد اليوم · كل %2$s</item>
+        <item quantity="one">تتجدد بعد %1$d يوم · كل %2$s</item>
+        <item quantity="two">تتجدد بعد يومين · كل %2$s</item>
+        <item quantity="few">تتجدد بعد %1$d أيام · كل %2$s</item>
+        <item quantity="many">تتجدد بعد %1$d يومًا · كل %2$s</item>
+        <item quantity="other">تتجدد بعد %1$d يوم · كل %2$s</item>
     </plurals>
     <!-- %1$d is the day of month the budget starts on -->
-    <string name="budget_card_resets_today_day">يتجدد اليوم · في اليوم %1$d</string>
+    <string name="budget_card_resets_today_day">تتجدد اليوم · في اليوم %1$d</string>
     <plurals name="budget_card_resets_in_day">
-        <item quantity="zero">يتجدد اليوم · في اليوم %2$d</item>
-        <item quantity="one">يتجدد بعد %1$d يوم · في اليوم %2$d</item>
-        <item quantity="two">يتجدد بعد يومين · في اليوم %2$d</item>
-        <item quantity="few">يتجدد بعد %1$d أيام · في اليوم %2$d</item>
-        <item quantity="many">يتجدد بعد %1$d يومًا · في اليوم %2$d</item>
-        <item quantity="other">يتجدد بعد %1$d يوم · في اليوم %2$d</item>
+        <item quantity="zero">تتجدد اليوم · في اليوم %2$d</item>
+        <item quantity="one">تتجدد بعد %1$d يوم · في اليوم %2$d</item>
+        <item quantity="two">تتجدد بعد يومين · في اليوم %2$d</item>
+        <item quantity="few">تتجدد بعد %1$d أيام · في اليوم %2$d</item>
+        <item quantity="many">تتجدد بعد %1$d يومًا · في اليوم %2$d</item>
+        <item quantity="other">تتجدد بعد %1$d يوم · في اليوم %2$d</item>
     </plurals>
     <string name="budget_card_over_by">تجاوزت بـ %1$s</string>
     <!-- %1$s is a date range -->

@@ -11,7 +11,7 @@
     <string name="analytics_top_categories">الفئات الأعلى</string>
     <string name="analytics_toggle_view">تبديل العرض</string>
     <!-- %1$s = formatted refund amount -->
-    <string name="analytics_refund_note">الإجمالي صافٍ بعد خصم %1$s من المبالغ المستردة. لا يمكن أن تنزل أشرطة الفئات عن الصفر، لذا قد يتجاوز مجموعها الإجمالي المعروض.</string>
+    <string name="analytics_refund_note">الإجمالي بعد خصم المبالغ المستردة البالغة %1$s من الإنفاق. لا يمكن أن تنزل أشرطة الفئات عن الصفر، لذا قد يتجاوز مجموعها الإجمالي المعروض.</string>
     <string name="analytics_top_tags">العلامات الأعلى</string>
     <string name="analytics_top_merchants">التجار الأعلى</string>
     <string name="analytics_by_account">حسب الحساب</string>

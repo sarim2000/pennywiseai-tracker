@@ -29,7 +29,7 @@
     <string name="teach_saved">تمت الإضافة. ستطلب الرسائل المشابهة موافقتك قبل إضافتها.</string>
     <string name="teach_added">تمت الإضافة.</string>
     <string name="teach_settled">لم تتم الإضافة: إما أنها موجودة مسبقاً أو أن إعداداتك تستثنيها.</string>
-    <string name="teach_booking_failed">تعذّرت الإضافة. ما زالت الرسالة في الرسائل القصيرة غير المعترف بها.</string>
+    <string name="teach_booking_failed">تعذّرت الإضافة. ما زالت الرسالة في \"رسائل لم يُتعرّف عليها\".</string>
     <string name="teach_format_changed">صيغة جديدة من هذا المرسل. علّمها أيضاً.</string>
     <string name="teach_find_message">بحث عن رسالة</string>
     <string name="teach_picker_title">رسائل مالية حديثة</string>

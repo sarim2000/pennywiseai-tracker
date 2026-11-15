@@ -3,18 +3,18 @@
     <string name="background_access_title">إبقاء التتبع يعمل</string>
     <string name="background_access_settings_subtitle">امنع أندرويد من إيقاف تتبع رسائل البنك</string>
     <plurals name="background_access_settings_left">
-        <item quantity="zero">%d خطوة</item>
-        <item quantity="one">%d خطوة</item>
-        <item quantity="two">%d خطوة</item>
-        <item quantity="few">%d خطوات</item>
-        <item quantity="many">%d خطوة</item>
-        <item quantity="other">%d خطوة</item>
+        <item quantity="zero">لم يبقَ شيء</item>
+        <item quantity="one">بقيت %d خطوة</item>
+        <item quantity="two">بقيت خطوتان</item>
+        <item quantity="few">بقيت %d خطوات</item>
+        <item quantity="many">بقيت %d خطوة</item>
+        <item quantity="other">بقيت %d خطوة</item>
     </plurals>
     <string name="background_access_intro">يوقف أندرويد التطبيقات التي تعمل في الخلفية، فتتوقف معاملاتك البنكية عن الوصول.</string>
     <plurals name="background_access_steps_left">
-        <item quantity="zero">بقيت %d خطوة.</item>
+        <item quantity="zero">لم تبقَ أي خطوة.</item>
         <item quantity="one">بقيت %d خطوة.</item>
-        <item quantity="two">بقيت %d خطوة.</item>
+        <item quantity="two">بقيت خطوتان.</item>
         <item quantity="few">بقيت %d خطوات.</item>
         <item quantity="many">بقيت %d خطوة.</item>
         <item quantity="other">بقيت %d خطوة.</item>
@@ -22,7 +22,7 @@
     <string name="background_access_all_set">كل شيء جاهز. يمكن لـ PennyWise مواصلة تتبع رسائل البنك في الخلفية.</string>
     <string name="background_access_allow">السماح</string>
     <string name="background_access_open_settings">فتح الإعدادات</string>
-    <string name="background_access_mark_done">قمت بذلك</string>
+    <string name="background_access_mark_done">فعلت ذلك</string>
     <string name="background_access_confirmed_by_you">أكّدتها بنفسك</string>
     <string name="background_access_undo">تراجع</string>
     <string name="background_access_status_done">تم</string>
@@ -44,4 +44,9 @@
     <string name="background_access_oem_howto_transsion">اسمح لـ PennyWise ضمن «التشغيل التلقائي» في تطبيق Phone Master.</string>
     <string name="background_access_oem_howto_asus">اسمح لـ PennyWise ضمن «إدارة التشغيل التلقائي» في تطبيق Mobile Manager.</string>
     <string name="background_access_oem_howto_other">لبعض الهواتف إعدادات خلفية خاصة بها. من معلومات التطبيق، فعّل أي خيار مثل «التشغيل التلقائي» أو «التشغيل في الخلفية» لـ PennyWise.</string>
+    <string name="home_tracking_card_title">قد يفوت التتبع بعض المعاملات</string>
+    <string name="home_tracking_card_sms">لا يستطيع PennyWise قراءة رسائلك البنكية القصيرة. اسمح بالوصول إلى الرسائل القصيرة لمواصلة التتبع.</string>
+    <string name="home_tracking_card_background">قيّد أندرويد عمل PennyWise في الخلفية.</string>
+    <string name="home_tracking_card_fix">إصلاح</string>
+    <string name="home_tracking_card_dismiss">إخفاء لمدة أسبوع</string>
 </resources>

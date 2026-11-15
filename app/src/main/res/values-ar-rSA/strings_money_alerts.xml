@@ -8,4 +8,7 @@
     <string name="budget_alert_over_text">التجاوز %1$s. حد الميزانية: %2$s</string>
     <string name="low_balance_alert_title">رصيد منخفض: %1$s</string>
     <string name="low_balance_alert_text">%1$s · حد التنبيه: %2$s</string>
+    <string name="settings_budget_alerts_title">تنبيهات الميزانية</string>
+    <string name="settings_budget_alerts_subtitle">تنبيه عند بلوغ %1$d%% في وقت مبكر من الفترة، وعند تجاوز الميزانية</string>
+    <string name="settings_budget_alerts_needs_permission">تحتاج تنبيهات الميزانية إلى إذن الإشعارات</string>
 </resources>

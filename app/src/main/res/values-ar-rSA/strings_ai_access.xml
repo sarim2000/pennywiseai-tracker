@@ -2,10 +2,11 @@
 <!-- AI access: connecting Claude, ChatGPT and the dashboard to on-phone data (ADR 0002). -->
 <resources>
     <string name="ai_access_settings_title">ربط Claude / ChatGPT</string>
-    <string name="ai_access_settings_subtitle">اسمح لتطبيقات الذكاء الاصطناعي بقراءة بياناتك طالما سمحت بذلك</string>
-    <string name="ai_access_settings_subtitle_pro">Pro · اسمح لتطبيقات الذكاء الاصطناعي بقراءة بياناتك طالما سمحت بذلك</string>
+    <string name="ai_access_settings_subtitle">اسمح لتطبيقات الذكاء الاصطناعي بقراءة بياناتك خلال المدة التي تحددها فقط</string>
+    <string name="ai_access_settings_subtitle_pro">Pro · اسمح لتطبيقات الذكاء الاصطناعي بقراءة بياناتك خلال المدة التي تحددها فقط</string>
     <string name="ai_access_title">وصول الذكاء الاصطناعي</string>
     <string name="ai_access_back">رجوع</string>
+    <string name="ai_access_intro">اسأل Claude أو ChatGPT أو أي تطبيق ذكاء اصطناعي آخر عن إنفاقك، أو افتح لوحة المعلومات على الكمبيوتر. لا يمكنها قراءة معاملاتك وأرصدتك واشتراكاتك إلا أثناء تشغيل جلسة ذكاء اصطناعي، ولا تغيّر شيئًا إلا إذا سمحت بذلك أدناه.</string>
     <string name="ai_access_pro_only">وصول الذكاء الاصطناعي ميزة في Pro.</string>
     <string name="ai_access_unlock">افتح مع Pro</string>
     <string name="ai_access_session_title">جلسة الذكاء الاصطناعي</string>
@@ -33,6 +34,9 @@
     <string name="ai_access_connected_on">متصل منذ %s</string>
     <string name="ai_access_disconnect">قطع الاتصال</string>
     <string name="ai_access_disconnected">تم قطع الاتصال.</string>
+    <string name="ai_access_allow_changes_title">السماح لتطبيقات الذكاء الاصطناعي بالتعديل</string>
+    <string name="ai_access_allow_changes_body">يمكن للتطبيقات المتصلة إنشاء فئات وقواعد، وتعيين فئة التاجر أو اسمه المعروض، وإعادة تصنيف معاملات التاجر السابقة. ولا يمكنها حذف المعاملات أو تعديل المبالغ.</string>
+    <string name="ai_access_privacy">تبقى بياناتك على هاتفك. أثناء جلسة الذكاء الاصطناعي، تمر أسئلة تطبيق الذكاء الاصطناعي عبر خادم الترحيل إلى هاتفك، وتعود الإجابات بالطريقة نفسها. لا يخزّنها خادم الترحيل ولا يسجّلها أبدًا. يرى مزوّد تطبيق الذكاء الاصطناعي (مثل Anthropic أو OpenAI) الإجابات التي يتلقاها.\n\nيمكن للتطبيقات المتصلة البحث في سجلك الكامل في كل الملفات الشخصية، بما في ذلك أسماء المستفيدين في التحويلات. ولا تحصل أبدًا على نص الرسائل القصيرة أو أرقام الحسابات الكاملة أو الأرقام المرجعية. ولا يمكنها تغيير البيانات إلا أثناء تفعيل «السماح لتطبيقات الذكاء الاصطناعي بالتعديل».</string>
     <string name="ai_access_relay_title">استخدام خادم ترحيل خاص بك</string>
     <string name="ai_access_relay_body">لتحكّم كامل، انشر خادم الترحيل مفتوح المصدر (relay/ في مستودع PennyWise على GitHub) على حسابك في Cloudflare وأدخل عنوانه. تغيير خادم الترحيل يقطع اتصال كل تطبيقات الذكاء الاصطناعي.</string>
     <string name="ai_access_relay_label">عنوان خادم الترحيل</string>

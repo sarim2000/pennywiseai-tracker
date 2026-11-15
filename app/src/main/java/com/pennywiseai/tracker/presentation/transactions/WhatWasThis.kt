@@ -8,7 +8,6 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.CallSplit
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
@@ -31,7 +30,6 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -43,9 +41,11 @@ import com.pennywiseai.tracker.ui.theme.Spacing
 enum class WhatWasThis { LOAN, SPLIT, SAVING, OWN_TRANSFER }
 
 fun whatWasThisOptions(txn: TransactionEntity, hasLoan: Boolean): List<WhatWasThis> = buildList {
-    // A split bill is already on Loans, one share per person.
-    if (!hasLoan && txn.lentSharesTotal == null) add(WhatWasThis.LOAN)
-    if (canSplit(txn) && txn.lentSharesTotal == null) add(WhatWasThis.SPLIT)
+    // Already on a loan or split (a split bill is on Loans, one share per person):
+    // answered, and the editor won't let its type change anyway.
+    if (hasLoan || txn.loanId != null || txn.lentSharesTotal != null) return@buildList
+    add(WhatWasThis.LOAN)
+    if (canSplit(txn)) add(WhatWasThis.SPLIT)
     if (txn.transactionType == TransactionType.EXPENSE) add(WhatWasThis.SAVING)
     if (txn.transactionType == TransactionType.EXPENSE || txn.transactionType == TransactionType.INCOME) {
         add(WhatWasThis.OWN_TRANSFER)
@@ -57,7 +57,7 @@ internal fun WhatWasThisRow(onClick: () -> Unit) {
     Surface(
         modifier = Modifier.fillMaxWidth(),
         color = MaterialTheme.colorScheme.surfaceContainerLow,
-        shape = RoundedCornerShape(12.dp)
+        shape = MaterialTheme.shapes.medium
     ) {
         Row(
             modifier = Modifier

@@ -29,9 +29,10 @@ class WhatWasThisTest {
         assertEquals(listOf(LOAN, SPLIT, SAVING, OWN_TRANSFER), whatWasThisOptions(txn(TransactionType.EXPENSE), hasLoan = false))
 
     @Test
-    fun `an expense already on a loan or split offers neither again`() {
-        assertEquals(listOf(SAVING, OWN_TRANSFER), whatWasThisOptions(txn(TransactionType.EXPENSE, loanId = 1), hasLoan = true))
-        assertEquals(listOf(SAVING, OWN_TRANSFER), whatWasThisOptions(txn(TransactionType.EXPENSE, BigDecimal.TEN), hasLoan = false))
+    fun `a transaction already on a loan or split offers nothing`() {
+        assertEquals(emptyList<WhatWasThis>(), whatWasThisOptions(txn(TransactionType.EXPENSE, loanId = 1), hasLoan = true))
+        assertEquals(emptyList<WhatWasThis>(), whatWasThisOptions(txn(TransactionType.INCOME, loanId = 1), hasLoan = true))
+        assertEquals(emptyList<WhatWasThis>(), whatWasThisOptions(txn(TransactionType.EXPENSE, BigDecimal.TEN), hasLoan = false))
     }
 
     @Test

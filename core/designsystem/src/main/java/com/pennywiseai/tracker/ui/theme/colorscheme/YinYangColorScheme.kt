@@ -21,7 +21,7 @@ internal object YinYangColorScheme : BaseColorScheme() {
         secondary = Color(0xFFFFFFFF), // Unread badge
         onSecondary = Color(0xFF5A5A5A), // Unread badge text
         secondaryContainer = Color(0xFF717171), // Navigation bar selector pill & progress indicator (remaining)
-        onSecondaryContainer = Color(0xFFE4E4E4), // Navigation bar selector icon
+        onSecondaryContainer = Color(0xFFF9F9F9), // Navigation bar selector icon
         tertiary = Color(0xFF000000), // Downloaded badge
         onTertiary = Color(0xFFFFFFFF), // Downloaded badge text
         tertiaryContainer = Color(0xFF00419E),
@@ -67,10 +67,11 @@ internal object YinYangColorScheme : BaseColorScheme() {
         inverseSurface = Color(0xFF333333),
         inverseOnSurface = Color(0xFFF4F4F4),
         outline = Color(0xFF838383),
-        surfaceContainerLowest = Color(0xFFCFCFCF),
-        surfaceContainerLow = Color(0xFFDADADA),
+        surfaceContainerLowest = Color(0xFFEFEFEF),
+        surfaceContainerLow = Color(0xFFECECEC),
         surfaceContainer = Color(0xFFE8E8E8), // Navigation bar background
-        surfaceContainerHigh = Color(0xFFECECEC),
-        surfaceContainerHighest = Color(0xFFEFEFEF),
+        surfaceContainerHigh = Color(0xFFDADADA),
+        surfaceContainerHighest = Color(0xFFCFCFCF),
+        error = Color(0xFFAB1C16), // contrast fix (was M3 default #B3261E)
     )
 }

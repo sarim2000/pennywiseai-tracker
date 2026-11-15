@@ -23,7 +23,7 @@ internal object TealTurquoiseColorScheme : BaseColorScheme() {
         tertiary = Color(0xFFBF1F2F), // Downloaded badge
         onTertiary = Color(0xFFFFFFFF), // Downloaded badge text
         tertiaryContainer = Color(0xFF200508),
-        onTertiaryContainer = Color(0xFFBF1F2F),
+        onTertiaryContainer = Color(0xFFDF4349),
         background = Color(0xFF202125),
         onBackground = Color(0xFFDFDEDA),
         surface = Color(0xFF202125),
@@ -50,7 +50,7 @@ internal object TealTurquoiseColorScheme : BaseColorScheme() {
         secondary = Color(0xFF008080), // Unread badge text
         onSecondary = Color(0xFFFFFFFF), // Unread badge text
         secondaryContainer = Color(0xFFCFE5E4), // Navigation bar selector pill & progress indicator (remaining)
-        onSecondaryContainer = Color(0xFF008080), // Navigation bar selector icon
+        onSecondaryContainer = Color(0xFF026E6E), // Navigation bar selector icon
         tertiary = Color(0xFFFF7F7F), // Downloaded badge
         onTertiary = Color(0xFF000000), // Downloaded badge text
         tertiaryContainer = Color(0xFF2A1616),
@@ -65,10 +65,10 @@ internal object TealTurquoiseColorScheme : BaseColorScheme() {
         inverseSurface = Color(0xFF050505),
         inverseOnSurface = Color(0xFFFAFAFA),
         outline = Color(0xFF6F7977),
-        surfaceContainerLowest = Color(0xFFE1E9E7),
-        surfaceContainerLow = Color(0xFFE6EEEC),
+        surfaceContainerLowest = Color(0xFFF7FFFD),
+        surfaceContainerLow = Color(0xFFF0F8F6),
         surfaceContainer = Color(0xFFEBF3F1), // Navigation bar background
-        surfaceContainerHigh = Color(0xFFF0F8F6),
-        surfaceContainerHighest = Color(0xFFF7FFFD),
+        surfaceContainerHigh = Color(0xFFE6EEEC),
+        surfaceContainerHighest = Color(0xFFE1E9E7),
     )
 }

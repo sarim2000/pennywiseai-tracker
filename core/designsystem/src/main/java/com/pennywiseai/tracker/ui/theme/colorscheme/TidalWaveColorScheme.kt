@@ -30,7 +30,7 @@ internal object TidalWaveColorScheme : BaseColorScheme() {
         tertiary = Color(0xFF92f7bc), // Downloaded badge
         onTertiary = Color(0xFF001c3b), // Downloaded badge text
         tertiaryContainer = Color(0xFFc3fada),
-        onTertiaryContainer = Color(0xFF78ffd6),
+        onTertiaryContainer = Color(0xFF02795F),
         background = Color(0xFF001c3b),
         onBackground = Color(0xFFd5e3ff),
         surface = Color(0xFF001c3b),
@@ -61,7 +61,7 @@ internal object TidalWaveColorScheme : BaseColorScheme() {
         tertiary = Color(0xFF92f7bc), // Downloaded badge
         onTertiary = Color(0xFF001c3b), // Downloaded badge text
         tertiaryContainer = Color(0xFFc3fada),
-        onTertiaryContainer = Color(0xFF78ffd6),
+        onTertiaryContainer = Color(0xFF02795F),
         background = Color(0xFFfdfbff),
         onBackground = Color(0xFF001c3b),
         surface = Color(0xFFfdfbff),
@@ -72,10 +72,10 @@ internal object TidalWaveColorScheme : BaseColorScheme() {
         inverseSurface = Color(0xFF020400),
         inverseOnSurface = Color(0xFFffe3c4),
         outline = Color(0xFF70787c),
-        surfaceContainerLowest = Color(0xFFe2e8ec),
-        surfaceContainerLow = Color(0xFFe5ecf1),
-        surfaceContainer = Color(0xFFe8eff5), // Navigation bar background
-        surfaceContainerHigh = Color(0xFFedf4fA),
-        surfaceContainerHighest = Color(0xFFf5faff),
+        surfaceContainerLowest = Color(0xFFF5FAFF),
+        surfaceContainerLow = Color(0xFFEDF4FA),
+        surfaceContainer = Color(0xFFE8EFF5), // Navigation bar background
+        surfaceContainerHigh = Color(0xFFE5ECF1),
+        surfaceContainerHighest = Color(0xFFE2E8EC),
     )
 }

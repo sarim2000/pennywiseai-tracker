@@ -19,15 +19,15 @@ import androidx.compose.ui.graphics.Color
 internal object MidnightDuskColorScheme : BaseColorScheme() {
 
     override val darkScheme = darkColorScheme(
-        primary = Color(0xFFF02475),
-        onPrimary = Color(0xFFFFFFFF),
+        primary = Color(0xFFF62C79),
+        onPrimary = Color(0xFF16151D),
         primaryContainer = Color(0xFFBD1C5C),
         onPrimaryContainer = Color(0xFFFFFFFF),
         inversePrimary = Color(0xFFF02475),
-        secondary = Color(0xFFF02475), // Unread badge
+        secondary = Color(0xFFF62C79), // Unread badge
         onSecondary = Color(0xFF16151D), // Unread badge text
         secondaryContainer = Color(0xFF66183C), // Navigation bar selector pill & progress indicator (remaining)
-        onSecondaryContainer = Color(0xFFF02475), // Navigation bar selector icon
+        onSecondaryContainer = Color(0xFFFF739A), // Navigation bar selector icon
         tertiary = Color(0xFF55971C), // Downloaded badge
         onTertiary = Color(0xFF16151D), // Downloaded badge text
         tertiaryContainer = Color(0xFF386412),
@@ -58,11 +58,11 @@ internal object MidnightDuskColorScheme : BaseColorScheme() {
         secondary = Color(0xFFBB0054), // Unread badge
         onSecondary = Color(0xFFFFFFFF), // Unread badge text
         secondaryContainer = Color(0xFFEFBAD4), // Navigation bar selector pill & progress indicator (remaining)
-        onSecondaryContainer = Color(0xFFD1377C), // Navigation bar selector icon
+        onSecondaryContainer = Color(0xFFA4025A), // Navigation bar selector icon
         tertiary = Color(0xFF006638), // Downloaded badge
         onTertiary = Color(0xFFFFFFFF), // Downloaded badge text
         tertiaryContainer = Color(0xFF00894b),
-        onTertiaryContainer = Color(0xFF2D1600),
+        onTertiaryContainer = Color(0xFF060200),
         background = Color(0xFFFFFBFF),
         onBackground = Color(0xFF1C1B1F),
         surface = Color(0xFFFFFBFF),
@@ -73,10 +73,11 @@ internal object MidnightDuskColorScheme : BaseColorScheme() {
         inverseSurface = Color(0xFF313033),
         inverseOnSurface = Color(0xFFF4F0F4),
         outline = Color(0xFF847376),
-        surfaceContainerLowest = Color(0xFFDAC0CD),
-        surfaceContainerLow = Color(0xFFE8D1DD),
+        surfaceContainerLowest = Color(0xFFFEF9FC),
+        surfaceContainerLow = Color(0xFFFCF3F8),
         surfaceContainer = Color(0xFFF9E6F1), // Navigation bar background
-        surfaceContainerHigh = Color(0xFFFCF3F8),
-        surfaceContainerHighest = Color(0xFFFEF9FC),
+        surfaceContainerHigh = Color(0xFFE8D1DD),
+        surfaceContainerHighest = Color(0xFFDAC0CD),
+        error = Color(0xFFA5120F), // contrast fix (was M3 default #B3261E)
     )
 }

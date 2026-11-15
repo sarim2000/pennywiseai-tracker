@@ -41,7 +41,7 @@ internal object CatppuccinColorScheme : BaseColorScheme() {
         onTertiaryContainer = Color(0xFFCDD6F4),
         error = Color(0xFFF38BA8),
         onError = Color(0xFF11111B),
-        errorContainer = Color(0xFFFF0558),
+        errorContainer = Color(0xFF90002E),
         onErrorContainer = Color(0xFFEF9FB4),
         background = Color(0xFF181825),
         onBackground = Color(0xFFCDD6F4),
@@ -65,22 +65,22 @@ internal object CatppuccinColorScheme : BaseColorScheme() {
     )
 
     override val lightScheme = lightColorScheme(
-        primary = Color(0xFF8839EF),
-        onPrimary = Color(0xFFDCE0E8),
+        primary = Color(0xFF8636EC),
+        onPrimary = Color(0xFFFFFFFF),
         primaryContainer = Color(0xFF8839EF),
-        onPrimaryContainer = Color(0xFFDCE0E8),
+        onPrimaryContainer = Color(0xFFFFFFFF),
         secondary = Color(0xFF7287FD), // Unread badge
-        onSecondary = Color(0xFFDCE0E8), // Unread badge text
+        onSecondary = Color(0xFF25282E), // Unread badge text
         secondaryContainer = Color(0xFFCDD0DA), // Navigation bar selector pill & progress indicator (remaining)
-        onSecondaryContainer = Color(0xFF8839EF), // Navigation bar selector icon
+        onSecondaryContainer = Color(0xFF771CDA), // Navigation bar selector icon
         tertiary = Color(0xFF40A02B), // Volume and brightness bars, Downloaded badge
-        onTertiary = Color(0xFFDCE0E8), // Downloaded badge text
+        onTertiary = Color(0xFF21242A), // Downloaded badge text
         tertiaryContainer = Color(0xFFEFF1F5),
         onTertiaryContainer = Color(0xFF4C4F69),
-        error = Color(0xFFD20F39),
-        onError = Color(0xFFDCE0E8),
+        error = Color(0xFFB3012E),
+        onError = Color(0xFFFFFFFF),
         errorContainer = Color(0xFF68001C),
-        onErrorContainer = Color(0xFFD61C41),
+        onErrorContainer = Color(0xFFFF6772),
         background = Color(0xFFE6E9EF),
         onBackground = Color(0xFF4C4F69),
         surface = Color(0xFFE6E9EF),
@@ -95,10 +95,10 @@ internal object CatppuccinColorScheme : BaseColorScheme() {
         inversePrimary = Color(0xFFCBA6F7), // Snackbar accent
         surfaceDim = Color(0xFFE6E9EF),
         surfaceBright = Color(0xFFCDD0DA),
-        surfaceContainerLowest = Color(0xFFE6E9EF),
+        surfaceContainerLowest = Color(0xFFEFF1F5),
         surfaceContainerLow = Color(0xFFEFF1F5), // Repo cards
         surfaceContainer = Color(0xFFEFF1F5), // Navigation bar background
-        surfaceContainerHigh = Color(0xFFEFF1F5), // Filter menu
+        surfaceContainerHigh = Color(0xFFE6E9EF), // Filter menu
         surfaceContainerHighest = Color(0xFFCDD0DA), // Untoggleg bg
     )
 }

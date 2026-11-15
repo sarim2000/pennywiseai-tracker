@@ -21,7 +21,7 @@ internal object NordColorScheme : BaseColorScheme() {
         secondary = Color(0xFF81A1C1), // Unread badge
         onSecondary = Color(0xFF2E3440), // Unread badge text
         secondaryContainer = Color(0xFF506275), // Navigation bar selector pill & progress indicator (remaining)
-        onSecondaryContainer = Color(0xFF88C0D0), // Navigation bar selector icon
+        onSecondaryContainer = Color(0xFFACE6F6), // Navigation bar selector icon
         tertiary = Color(0xFF5E81AC), // Downloaded badge
         onTertiary = Color(0xFF000000), // Downloaded badge text
         tertiaryContainer = Color(0xFF5E81AC),
@@ -45,11 +45,12 @@ internal object NordColorScheme : BaseColorScheme() {
         surfaceContainer = Color(0xFF414C5C),
         surfaceContainerHigh = Color(0xFF4E5766),
         surfaceContainerHighest = Color(0xFF505968), // Navigation bar background
+        error = Color(0xFFFDC3C0), // contrast fix (was M3 default #F2B8B5)
     )
 
     override val lightScheme = lightColorScheme(
-        primary = Color(0xFF5E81AC),
-        onPrimary = Color(0xFF000000),
+        primary = Color(0xFF476993),
+        onPrimary = Color(0xFFFFFFFF),
         primaryContainer = Color(0xFF5E81AC),
         onPrimaryContainer = Color(0xFF000000),
         inversePrimary = Color(0xFF8CA8CD),
@@ -75,10 +76,10 @@ internal object NordColorScheme : BaseColorScheme() {
         onError = Color(0xFFECEFF4),
         errorContainer = Color(0xFFBF616A),
         onErrorContainer = Color(0xFF000000),
-        surfaceContainerLowest = Color(0xFFD1D7E0),
-        surfaceContainerLow = Color(0xFFD6DCE6),
+        surfaceContainerLowest = Color(0xFFF2F4F8),
+        surfaceContainerLow = Color(0xFFE9EDF3),
         surfaceContainer = Color(0xFFDAE0EA), // Navigation bar background
-        surfaceContainerHigh = Color(0xFFE9EDF3),
-        surfaceContainerHighest = Color(0xFFF2F4F8),
+        surfaceContainerHigh = Color(0xFFD6DCE6),
+        surfaceContainerHighest = Color(0xFFD1D7E0),
     )
 }

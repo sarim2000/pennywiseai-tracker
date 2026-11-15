@@ -19,13 +19,13 @@ internal object LavenderColorScheme : BaseColorScheme() {
 
     override val darkScheme = darkColorScheme(
         primary = Color(0xFFA177FF),
-        onPrimary = Color(0xFF3D0090),
+        onPrimary = Color(0xFF33007C),
         primaryContainer = Color(0xFFA177FF),
-        onPrimaryContainer = Color(0xFFFFFFFF),
+        onPrimaryContainer = Color(0xFF33007C),
         secondary = Color(0xFFA177FF), // Unread badge
-        onSecondary = Color(0xFFFFFFFF), // Unread badge text
+        onSecondary = Color(0xFF33007C), // Unread badge text
         secondaryContainer = Color(0xFF423271), // Navigation bar selector pill & progress indicator (remaining)
-        onSecondaryContainer = Color(0xFFA177FF), // Navigation bar selected icon
+        onSecondaryContainer = Color(0xFFB499FE), // Navigation bar selected icon
         tertiary = Color(0xFFCDBDFF), // Downloaded badge
         onTertiary = Color(0xFF360096), // Downloaded badge text
         tertiaryContainer = Color(0xFF5512D8),
@@ -59,16 +59,16 @@ internal object LavenderColorScheme : BaseColorScheme() {
         primary = Color(0xFF6D41C8),
         onPrimary = Color(0xFFFFFFFF),
         primaryContainer = Color(0xFF7B46AF),
-        onPrimaryContainer = Color(0xFF130038),
+        onPrimaryContainer = Color(0xFFEDE2FF),
         secondary = Color(0xFF7B46AF), // Unread badge
         onSecondary = Color(0xFFEDE2FF), // Unread badge text
         secondaryContainer = Color(0xFFC9B0E6), // Navigation bar selector pill & progress indicator (remaining)
-        onSecondaryContainer = Color(0xFF7B46AF), // Navigation bar selector icon
+        onSecondaryContainer = Color(0xFF642D95), // Navigation bar selector icon
         tertiary = Color(0xFFEDE2FF), // Downloaded badge
         onTertiary = Color(0xFF7B46AF), // Downloaded badge text
         tertiaryContainer = Color(0xFF6D3BF0),
         onTertiaryContainer = Color(0xFFFFFFFF),
-        error = Color(0xFFBA1A1A),
+        error = Color(0xFFB30E13),
         onError = Color(0xFFFFFFFF),
         errorContainer = Color(0xFFFFDAD6),
         onErrorContainer = Color(0xFF410002),
@@ -86,10 +86,10 @@ internal object LavenderColorScheme : BaseColorScheme() {
         inversePrimary = Color(0xFFA177FF),
         surfaceDim = Color(0xFFDED7E3),
         surfaceBright = Color(0xFFEDE2FF),
-        surfaceContainerLowest = Color(0xFFDACCEC),
-        surfaceContainerLow = Color(0xFFDED0F1),
+        surfaceContainerLowest = Color(0xFFEEE2FF),
+        surfaceContainerLow = Color(0xFFEADCFD),
         surfaceContainer = Color(0xFFE4D5F8), // Navigation bar background
-        surfaceContainerHigh = Color(0xFFEADCFD),
-        surfaceContainerHighest = Color(0xFFEEE2FF),
+        surfaceContainerHigh = Color(0xFFDED0F1),
+        surfaceContainerHighest = Color(0xFFDACCEC),
     )
 }

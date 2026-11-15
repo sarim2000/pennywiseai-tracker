@@ -27,8 +27,8 @@ internal object TakoColorScheme : BaseColorScheme() {
         secondary = Color(0xFFF3B375), // Unread badge
         onSecondary = Color(0xFF38294E), // Unread badge text
         secondaryContainer = Color(0xFF5C4D4B), // Navigation bar selector pill & progress indicator (remaining)
-        onSecondaryContainer = Color(0xFFF3B375), // Navigation bar selector icon
-        tertiary = Color(0xFF66577E), // Downloaded badge
+        onSecondaryContainer = Color(0xFFF8B87A), // Navigation bar selector icon
+        tertiary = Color(0xFF55466C), // Downloaded badge
         onTertiary = Color(0xFFF3B375), // Downloaded badge text
         tertiaryContainer = Color(0xFF4E4065),
         onTertiaryContainer = Color(0xFFEDDCFF),
@@ -50,15 +50,15 @@ internal object TakoColorScheme : BaseColorScheme() {
     )
 
     override val lightScheme = lightColorScheme(
-        primary = Color(0xFF66577E),
+        primary = Color(0xFF55466C),
         onPrimary = Color(0xFFF3B375),
-        primaryContainer = Color(0xFF66577E),
+        primaryContainer = Color(0xFF55466C),
         onPrimaryContainer = Color(0xFFF3B375),
         inversePrimary = Color(0xFFD6BAFF),
-        secondary = Color(0xFF66577E), // Unread badge
+        secondary = Color(0xFF55466C), // Unread badge
         onSecondary = Color(0xFFF3B375), // Unread badge text
         secondaryContainer = Color(0xFFC8BED0), // Navigation bar selector pill & progress indicator (remaining)
-        onSecondaryContainer = Color(0xFF66577E), // Navigation bar selector icon
+        onSecondaryContainer = Color(0xFF55466C), // Navigation bar selector icon
         tertiary = Color(0xFFF3B375), // Downloaded badge
         onTertiary = Color(0xFF574360), // Downloaded badge text
         tertiaryContainer = Color(0xFFFDD6B0),
@@ -73,10 +73,11 @@ internal object TakoColorScheme : BaseColorScheme() {
         inverseSurface = Color(0xFF313033),
         inverseOnSurface = Color(0xFFF3EFF4),
         outline = Color(0xFF7A757E),
-        surfaceContainerLowest = Color(0xFFD7D0DA),
-        surfaceContainerLow = Color(0xFFDFD8E2),
+        surfaceContainerLowest = Color(0xFFF7EEFA),
+        surfaceContainerLow = Color(0xFFEEE6F1),
         surfaceContainer = Color(0xFFE8E0EB), // Navigation bar background
-        surfaceContainerHigh = Color(0xFFEEE6F1),
-        surfaceContainerHighest = Color(0xFFF7EEFA),
+        surfaceContainerHigh = Color(0xFFDFD8E2),
+        surfaceContainerHighest = Color(0xFFD7D0DA),
+        error = Color(0xFFAE2019), // contrast fix (was M3 default #B3261E)
     )
 }

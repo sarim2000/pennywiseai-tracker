@@ -29,6 +29,7 @@ import com.pennywiseai.tracker.data.database.entity.formatAmount
 import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -131,7 +132,7 @@ internal fun NeedsAnswerCard(
                 val sign = if (txn.transactionType == TransactionType.INCOME) "+" else "-"
                 Text(
                     text = CurrencyFormatter.signed(sign, txn.formatAmount()),
-                    style = MaterialTheme.typography.titleSmall,
+                    style = PennyWiseText.amountRow,
                     color = ink,
                 )
                 Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = ink)

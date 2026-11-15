@@ -2,8 +2,8 @@ package com.pennywiseai.tracker.ui.components.mascot
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FiniteAnimationSpec
-import androidx.compose.foundation.gestures.detectDragGestures
-import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.foundation.gestures.awaitEachGesture
+import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.MaterialTheme
@@ -74,13 +74,15 @@ import kotlin.random.Random
  * long as it thinks: the owl's eyes drift and its head sways, a [MascotShape.Bubble]'s
  * eyes sweep along its lines.
  *
- * [value] is the shape's figure: a [MascotShape.Pie]'s slice share (0..1), or which way a
+ * [value] is the shape's figure: a [MascotShape.Pie]'s slice share, how full a
+ * [MascotShape.Jar] is or how much of a [MascotShape.Gauge] is used (0..1), or which way a
  * [MascotShape.Bars] went (-1..1), which its eyes follow: up when it rose, down when it fell.
  *
  * [look] points the open eyes somewhere (gaze -1..1, x toward line end, y down) until it
  * is null again. An [interactive] mascot answers a tap with a poke (a quick blink and a
- * wobble) and a drag by looking at the finger, back to centre once it lifts. Neither has
- * a haptic or a semantics node: the mascot never acts as a button of its own.
+ * wobble; a [MascotShape.Bell] also swings) and a drag by looking at the finger, back to
+ * centre once it lifts. The drag is never consumed, so a list under the mascot still
+ * scrolls. Neither has a haptic or a semantics node: the mascot never acts as a button.
  */
 @Composable
 fun Mascot(
@@ -148,25 +150,39 @@ fun Mascot(
     )
 }
 
-/** Tap to poke; drag to have the eyes follow the finger. The drag is consumed, so a list under it doesn't scroll. */
-private fun Modifier.mascotGestures(state: MascotState, direction: Float): Modifier = this
-    .pointerInput(state) { detectTapGestures(onTap = { state.poke() }) }
-    .pointerInput(state, direction) {
-        // From the middle of the face, in units of the mascot's size; x toward line end.
-        fun gazeAt(p: Offset) = dragGaze(
-            dx = (p.x / size.width - 0.5f) * direction,
-            dy = p.y / size.height - OwlEye.Y / BOX,
-        )
-        detectDragGestures(
-            onDragStart = { state.dragLook = gazeAt(it) },
-            onDragEnd = { state.dragLook = null },
-            onDragCancel = { state.dragLook = null },
-            onDrag = { change, _ ->
-                change.consume()
-                state.dragLook = gazeAt(change.position)
-            },
-        )
+/**
+ * Tap to poke; drag to have the eyes follow the finger. A drag only watches the pointer
+ * and consumes nothing, so a list under the mascot scrolls as it would without it; a tap
+ * is the mascot's own, so nothing behind it takes it too.
+ */
+private fun Modifier.mascotGestures(state: MascotState, direction: Float): Modifier = pointerInput(state, direction) {
+    // From the middle of the face, in units of the mascot's size; x toward line end.
+    fun gazeAt(p: Offset) = dragGaze(
+        dx = (p.x / size.width - 0.5f) * direction,
+        dy = p.y / size.height - OwlEye.Y / BOX,
+    )
+    awaitEachGesture {
+        val down = awaitFirstDown(requireUnconsumed = false)
+        // Past the touch slop it's a drag, and stays one: only then do the eyes follow.
+        var dragging = false
+        try {
+            while (true) {
+                val change = awaitPointerEvent().changes.firstOrNull { it.id == down.id } ?: break
+                if (!change.pressed) {
+                    if (!dragging) {
+                        change.consume()
+                        state.poke()
+                    }
+                    break
+                }
+                dragging = dragging || (change.position - down.position).getDistance() > viewConfiguration.touchSlop
+                if (dragging) state.dragLook = gazeAt(change.position)
+            }
+        } finally {
+            state.dragLook = null
+        }
     }
+}
 
 /** A thinking message bubble is reading: its eyes sweep left and right. */
 private fun isSweeping(shape: MascotShape, mood: MascotMood) = shape == MascotShape.Bubble && mood == MascotMood.Thinking
@@ -175,9 +191,6 @@ private const val BOX = 100f
 
 /** Pill eyes are drawn this much larger in the two-tone glyph, so they still read at 24dp. */
 private const val TWO_TONE_EYE_SCALE = 1.5f
-
-/** An object's markings sit this faintly over its body. */
-private const val DETAIL_ALPHA = 0.32f
 
 /** Below this contrast against the body, the face mask falls back to a neutral container. */
 private const val MASK_MIN_CONTRAST = 1.6f
@@ -232,6 +245,7 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
             if (target != null) pose = lookAt(pose, target, 1f)
         } else {
             pose = poked(lookAt(pose, followed, attention), t - pokeStart)
+            if (shape == MascotShape.Bell) pose = rung(pose, t - pokeStart)
         }
         shown = pose
         return pose
@@ -459,7 +473,7 @@ private fun DrawScope.drawTwoTone(g: MascotGeometry, pose: MascotPose, tint: Col
 /** A shape other than the owl, at the detailed size: container body, faint markings, ink eyes. */
 private fun DrawScope.drawDetailedObject(g: MascotGeometry, pose: MascotPose, c: MascotColors, scratch: Path) {
     drawPath(g.body, c.objectBody)
-    g.details?.let { drawPath(it, c.objectInk, alpha = DETAIL_ALPHA) }
+    g.details?.let { drawPath(it, c.objectInk, alpha = g.detailAlpha) }
     drawPillEyes(g.eyes, 1f, pose, c.objectInk, scratch, DrawScope.DefaultBlendMode)
 }
 

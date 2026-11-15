@@ -77,6 +77,12 @@ internal const val POKE_ROLL = 6f
 private const val POKE_DECAY = 5f
 private const val POKE_RATE = 22f
 
+/** A poked bell swings from its handle: at most [RING_ROLL] degrees, rung out in [RING_MS]. */
+internal const val RING_MS = 1600L
+internal const val RING_ROLL = 14f
+private const val RING_DECAY = 2.5f
+private const val RING_RATE = 16f
+
 /** How quickly the eyes find a finger, and how quickly they let go of it once it lifts. */
 internal const val FOLLOW_MS = 120f
 internal const val ATTENTION_MS = 300f
@@ -281,4 +287,11 @@ internal fun poked(pose: MascotPose, sinceMs: Long): MascotPose {
         roll = pose.roll + POKE_ROLL * exp(-s * POKE_DECAY) * sin(s * POKE_RATE),
         blink = max(pose.blink, bump(sinceMs)),
     )
+}
+
+/** [pose] [sinceMs] after a bell was rung: a swing of at most ±[RING_ROLL]° that dies out. */
+internal fun rung(pose: MascotPose, sinceMs: Long): MascotPose {
+    if (sinceMs !in 0 until RING_MS) return pose
+    val s = sinceMs / 1000f
+    return pose.copy(roll = pose.roll + RING_ROLL * exp(-s * RING_DECAY) * sin(s * RING_RATE))
 }

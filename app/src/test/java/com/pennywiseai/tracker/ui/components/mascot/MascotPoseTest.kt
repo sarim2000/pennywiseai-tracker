@@ -196,6 +196,41 @@ class MascotPoseTest {
         assertTrue(hypot(trendGaze(5f).x, trendGaze(5f).y) <= 1f)
     }
 
+    @Test
+    fun `a rung bell swings both ways within fourteen degrees, dies down and stops`() {
+        val calm = MascotPose()
+        val rolls = (0L until RING_MS step 5).map { rung(calm, it).roll }
+        assertTrue(rolls.all { abs(it) <= RING_ROLL })
+        assertTrue(rolls.max() > 8f && rolls.min() < -5f)
+        // Each swing is smaller than the one before: the last half second is barely a sway.
+        assertTrue(rolls.drop(rolls.size * 2 / 3).all { abs(it) < 3f })
+        assertEquals(calm, rung(calm, RING_MS))
+        assertEquals(calm, rung(calm, -1))
+        assertEquals(0f, rung(calm, 0).blink, 0f) // the swing is the bell's; the blink stays the poke's
+    }
+
+    @Test
+    fun `a gauge needle points left with nothing used, up at half, right when all is used`() {
+        val none = gaugeNeedleTip(0f)
+        val half = gaugeNeedleTip(0.5f)
+        val all = gaugeNeedleTip(1f)
+        assertTrue(none.x < 50f && abs(none.y - 78f) < 0.01f)
+        assertTrue(abs(half.x - 50f) < 0.01f && half.y < 78f)
+        assertTrue(all.x > 50f && abs(all.y - 78f) < 0.01f)
+        // Over budget still pins at the end of the dial rather than wrapping round.
+        assertEquals(all, gaugeNeedleTip(1.6f))
+        assertEquals(none, gaugeNeedleTip(-0.2f))
+    }
+
+    @Test
+    fun `a jar fills from its bottom, and never past its shoulders or below its floor`() {
+        assertEquals(91f, jarFillTop(0f), 0f)
+        assertTrue(jarFillTop(0.25f) < jarFillTop(0f) && jarFillTop(0.75f) < jarFillTop(0.25f))
+        assertEquals(25f, jarFillTop(1f), 0.01f)
+        assertEquals(jarFillTop(1f), jarFillTop(3f), 0f)
+        assertEquals(jarFillTop(0f), jarFillTop(-1f), 0f)
+    }
+
     private fun assertPose(expected: MascotPose, actual: MascotPose) {
         val d = 1e-5f
         assertEquals(expected.gazeX, actual.gazeX, d)

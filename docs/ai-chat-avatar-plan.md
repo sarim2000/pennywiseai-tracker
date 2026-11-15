@@ -223,15 +223,20 @@ The smallest visible win: the Chat tab becomes the owl that blinks.
 - [x] Test: every tool / `QuickAction` maps to a shape
 
 ### M5 — Empty states outside chat
-- [ ] `PennyWiseEmptyState`: optional `mascot: (@Composable () -> Unit)? = null`. Screens that don't pass it are unchanged.
-- [ ] Start with **Goals** (jar, fill = progress) to judge the feel, then:
-  - [ ] Subscriptions / Recurring (bell)
-  - [ ] Accounts (wallet)
-  - [ ] Budgets (gauge)
-  - [ ] Unrecognized SMS (bubble)
-- [ ] `MascotShapes`: add `Bell` and `Gauge`
+- [x] `PennyWiseEmptyState`: optional `mascot: (@Composable () -> Unit)? = null`. Screens that don't pass it are unchanged.
+  - The mascot takes the icon badge's place and fades in on the same effects spec, with no morph or scale. Every empty-state mascot is 96dp and interactive: a tap pokes it, a drag has it watch the finger. The drag now only watches the pointer and consumes nothing, so a list or scrolling column under a mascot still scrolls (the chat hero gets the same).
+- [x] Start with **Goals** (jar, fill = progress) to judge the feel, then:
+  - The Goals empty card on the Budgets screen shows an empty jar beside its text: with no goal there is no progress, so the fill stays at zero. With no budgets either, the card keeps its icon so the budget card's gauge is the screen's one mascot.
+  - [x] Subscriptions / Recurring (bell)
+  - [x] Accounts (wallet)
+  - [x] Budgets (gauge): the needle rests at zero, nothing is budgeted yet
+  - [x] Unrecognized SMS (bubble)
+- [x] `MascotShapes`: add `Bell` and `Gauge`
+  - The bell swings from its handle when poked (±14°, rung out in 1.6s). The gauge's needle follows `value` (share used, 0..1) and pins at the end of the dial when over. A jar's `value` fills it from the bottom.
 - [ ] Data moods: bell swings if something is due ≤ 3 days; gauge `Worried` at ≥ 90%; jar `Happy` once on the goal screen when a goal reaches 100%
+  - Not wired: each needs data that an empty state by definition doesn't have. An empty Subscriptions or Recurring screen has nothing due, an empty Budgets screen has no budget to be 90% through, and the Goals empty card has no goal to reach. The goal detail screen is populated, where the mascot never appears. The shapes take the figures (`value`, a poke rings the bell), so a later surface that has the data can pass them.
 - [ ] Badges (percent / days / count, plus amounts only via `CurrencyFormatter`)
+  - Not added, for the same reason: an empty state has no figure to badge, and a "0" badge would only repeat the headline.
 
 ### M6 — Optional: developer playground
 - [ ] A screen behind Developer mode showing every shape × mood with poke and drag, for on-device QA screenshots in both themes. Skip it if the HTML preview plus emulator checks prove enough.

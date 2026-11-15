@@ -54,6 +54,8 @@ import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.budgetStatusColors
 import com.pennywiseai.tracker.ui.components.cards.paceInfoToggle
 import com.pennywiseai.tracker.ui.components.cards.tintedSurface
+import com.pennywiseai.tracker.ui.components.mascot.Mascot
+import com.pennywiseai.tracker.ui.components.mascot.MascotShape
 import com.pennywiseai.tracker.ui.components.toColorOr
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
@@ -85,14 +87,16 @@ fun BudgetGroupsScreen(
     onNavigateToGoalEdit: (Long) -> Unit = {},
     createGoalOnOpen: Boolean = false
 ) {
+    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val goalsSection: @Composable () -> Unit = {
         com.pennywiseai.tracker.presentation.goals.GoalsSection(
             onOpenGoal = onNavigateToGoal,
             onCreateGoal = { onNavigateToGoalEdit(-1L) },
-            createOnOpen = createGoalOnOpen
+            createOnOpen = createGoalOnOpen,
+            // With no budgets either, the budget card below is the screen's one mascot.
+            mascot = uiState.hasGroups
         )
     }
-    val uiState by viewModel.uiState.collectAsStateWithLifecycle()
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -206,12 +210,8 @@ private fun EmptyBudgetState(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
-                Icon(
-                    imageVector = Icons.Default.AccountBalance,
-                    contentDescription = null,
-                    modifier = Modifier.size(64.dp),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                // Nothing budgeted yet, so the needle rests at zero.
+                Mascot(size = Dimensions.Icon.extraLarge, shape = MascotShape.Gauge, interactive = true)
 
                 Text(
                     text = stringResource(R.string.budgets_setup_title),

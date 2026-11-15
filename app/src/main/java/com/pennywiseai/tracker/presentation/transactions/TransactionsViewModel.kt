@@ -1482,7 +1482,8 @@ internal fun computeSelfTransferPairs(
     val incomesByKey = HashMap<Pair<String, BigDecimal>, MutableList<TransactionEntity>>()
     for (tx in txns) {
         if (tx.transactionType == TransactionType.INCOME) {
-            incomesByKey.getOrPut(tx.currency to tx.amount) { mutableListOf() }.add(tx)
+            // Scale-free key: one bank sends 100.00, another 100.000 (3-decimal currencies).
+            incomesByKey.getOrPut(tx.currency to tx.amount.stripTrailingZeros()) { mutableListOf() }.add(tx)
         }
     }
     if (incomesByKey.isEmpty()) return emptyMap()
@@ -1491,7 +1492,7 @@ internal fun computeSelfTransferPairs(
     val claimedIncome = HashSet<Long>()
     for (expense in txns) {
         if (expense.transactionType != TransactionType.EXPENSE) continue
-        val candidates = incomesByKey[expense.currency to expense.amount] ?: continue
+        val candidates = incomesByKey[expense.currency to expense.amount.stripTrailingZeros()] ?: continue
         // Closest in time within the window, not on the same known account, not
         // already claimed by another expense.
         val expenseAcct = acctOf(expense)

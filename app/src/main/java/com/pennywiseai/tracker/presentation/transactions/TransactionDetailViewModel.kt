@@ -616,7 +616,7 @@ class TransactionDetailViewModel @Inject constructor(
             _budgetCategory.value = null
             _editableTransaction.update { current ->
                 current?.copy(transactionType = type, budgetImpactType = null, budgetCategory = null)
-                    ?.withKnownTransferLeg(current)
+                    ?.withKnownTransferLeg(current?.let { it.copy(bankName = resolvedBankName(it)) })
             }
         } else {
             _editableTransaction.update { current ->
@@ -997,11 +997,7 @@ class TransactionDetailViewModel @Inject constructor(
                 // novel/unknown number. Clearing (accountNumber == null) keeps
                 // the existing bank untouched. Belt-and-braces with the picker's
                 // selectAccount so no edit path can desync (#566, #570).
-                val resolvedBankName = toSave.accountNumber
-                    ?.let { last4 -> availableAccounts.value.filter { it.accountLast4 == last4 } }
-                    ?.singleOrNull()
-                    ?.bankName
-                    ?: toSave.bankName
+                val resolvedBankName = resolvedBankName(toSave)
 
                 // Loan linkage (loanId / loanContribution) is owned by mark-as-loan
                 // and unmark, never the edit form. The editable copy was snapshotted
@@ -1135,6 +1131,13 @@ class TransactionDetailViewModel @Inject constructor(
         exitEditMode()
     }
 
+    /** [txn]'s bank, or the one known account with its typed number when exactly one matches. */
+    private fun resolvedBankName(txn: TransactionEntity): String? = txn.accountNumber
+        ?.let { last4 -> availableAccounts.value.filter { it.accountLast4 == last4 } }
+        ?.singleOrNull()
+        ?.bankName
+        ?: txn.bankName
+
     /**
      * "Between my accounts" (#1050). If the other leg already arrived (same amount the
      * other way, on another account, within the hour) the two are paired, so the money
@@ -1160,7 +1163,8 @@ class TransactionDetailViewModel @Inject constructor(
         val partner = ownTransferPartner(
             txn,
             transactionRepository.getTransactionsBetweenDatesList(txn.dateTime.minus(window), txn.dateTime.plus(window)),
-            com.pennywiseai.tracker.domain.model.buildProfileAccountKeys(accountBalanceRepository.getAllLatestBalancesOnce())
+            com.pennywiseai.tracker.domain.model.buildProfileAccountKeys(accountBalanceRepository.getAllLatestBalancesOnce()),
+            transactionRepository.observeSplitsForActiveTransactions().first().mapTo(HashSet()) { it.transactionId }
         )
         if (partner == null) {
             enterEditMode()
@@ -1483,16 +1487,23 @@ internal fun transferWithoutLegs(original: TransactionEntity, updated: Transacti
 /**
  * The other leg of [txn] among [nearby] rows, if it arrived: the self-transfer match on
  * the same profile (a Business income an hour later isn't a Personal transfer's other
- * leg), not already on a loan or split.
+ * leg), not already answered.
  */
 internal fun ownTransferPartner(
     txn: TransactionEntity,
     nearby: List<TransactionEntity>,
-    profileAccountKeys: Map<Long, Set<String>>
+    profileAccountKeys: Map<Long, Set<String>>,
+    categorySplitIds: Set<Long> = emptySet()
 ): TransactionEntity? {
-    // Loan and split rows are dropped before matching, so a nearer one can't take the match.
+    // Rows already answered (a loan, a split bill, a refund, a split across categories) are
+    // dropped before matching, so a nearer one can't take the match or be turned into a transfer.
     val candidates = com.pennywiseai.tracker.domain.model.filterTransactionsByProfile(
-        nearby.filter { it.id == txn.id || (it.loanId == null && it.lentSharesTotal == null) },
+        nearby.filter {
+            it.id == txn.id || (
+                it.loanId == null && it.lentSharesTotal == null &&
+                    it.budgetImpactType == null && it.id !in categorySplitIds
+                )
+        },
         txn.effectiveProfileId(profileAccountKeys),
         profileAccountKeys
     )

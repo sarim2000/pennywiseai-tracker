@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.presentation.transactions.WhatWasThis.LOAN
@@ -98,5 +99,24 @@ class WhatWasThisTest {
         val edited = expense.copy(accountNumber = "3333", bankName = "Bank B")
         val transfer = edited.copy(transactionType = TransactionType.TRANSFER).withKnownTransferLeg(edited)
         assertEquals("3333" to "Bank B", transfer.fromAccount to transfer.fromBankName)
+    }
+
+    @Test
+    fun `a refund or a row split across categories is never taken as the other leg`() {
+        val out = txn(TransactionType.EXPENSE).copy(id = 1)
+        val into = txn(TransactionType.INCOME).copy(id = 2, accountNumber = "2222", dateTime = out.dateTime.plusMinutes(5))
+        val nearerRefund = into.copy(id = 3, budgetImpactType = BudgetImpactType.DEDUCT_SPENT, dateTime = out.dateTime.plusMinutes(1))
+        assertEquals(into, ownTransferPartner(out, listOf(out, nearerRefund, into), emptyMap()))
+        // From the incoming side: a categorised split expense stays as it is.
+        assertEquals(null, ownTransferPartner(into, listOf(out, into), emptyMap(), categorySplitIds = setOf(1L)))
+    }
+
+    @Test
+    fun `the same amount at another scale still pairs`() {
+        val out = txn(TransactionType.EXPENSE).copy(id = 1, amount = BigDecimal("100.00"))
+        val into = txn(TransactionType.INCOME).copy(
+            id = 2, amount = BigDecimal("100.000"), accountNumber = "2222", dateTime = out.dateTime.plusMinutes(5)
+        )
+        assertEquals(into, ownTransferPartner(out, listOf(out, into), emptyMap()))
     }
 }

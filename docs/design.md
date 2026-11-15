@@ -489,6 +489,11 @@ because the same role also renders small labels.
   `surfaceVariant` and the five `surfaceContainer*` roles. `onSurface`,
   `onSurfaceVariant`, `primary`, `error` and every semantic colour must read on
   all eight.
+- **`secondary` and `tertiary` are fills, not ink.** Mihon-style palettes
+  make them pale badge colours (Lavender light's tertiary is 1:1 on its
+  surfaces), so they aren't contrast-checked on surfaces. Text uses
+  `onSurface` / `onSurfaceVariant` / `primary` / a semantic token; if a label
+  must carry one, pass it through `readableOn()` against what it sits on.
 - **On a coloured fill**, use the fill's own `on*` role, plus a sign, label or
   icon. Semantic colours on `primaryContainer` & co. are not guaranteed.
 - **A custom fill** (a semantic or category colour as a background) has no
@@ -554,6 +559,7 @@ tinted thing can't be tapped and isn't selected or in progress, it shouldn't be
 - [ ] Light **and** dark theme checked
 - [ ] Dynamic colour + branded + AMOLED all checked
 - [ ] Status colours come from `warning` / `error` / semantic tokens, never `tertiary`
+- [ ] No text in `secondary` / `tertiary` (they are fills)
 - [ ] Ink on a custom fill is `fill.bestInk()`, not inherited
 - [ ] Font scaling to 200% doesn't clip or overlap
 - [ ] Section headers carry `semantics { heading() }` (`SectionHeaderV2` does)

@@ -14,7 +14,6 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.selection.selectable
@@ -46,7 +45,6 @@ import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
 import com.pennywiseai.tracker.R
@@ -113,29 +111,21 @@ fun MascotPlaygroundScreen(
         Column(Modifier.fillMaxSize().padding(padding)) {
             // The stage stays put while the grid scrolls, so a pick shows at once.
             PennyWiseCardV2(Modifier.fillMaxWidth().padding(horizontal = Spacing.md)) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                        Mascot(size = HERO_SIZE, shape = shape, mood = mood, value = shown, interactive = true, alive = true)
-                    }
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+                // The sizes the app really draws: hero, reply, and the tab in its selection pill.
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceEvenly,
+                ) {
+                    Mascot(size = Dimensions.Icon.extraLarge, shape = shape, mood = mood, value = shown, interactive = true, alive = true)
+                    Mascot(size = Dimensions.Icon.large, shape = shape, mood = mood, value = shown)
+                    // As the tab draws it: in the selection pill, its eyes cut through to it.
+                    Box(
+                        Modifier
+                            .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
+                            .padding(horizontal = Spacing.md + Spacing.xs, vertical = Spacing.xs)
                     ) {
-                        Mascot(size = Dimensions.Icon.extraLarge, shape = shape, mood = mood, value = shown, interactive = true)
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                        ) {
-                            Mascot(size = Dimensions.Icon.large, shape = shape, mood = mood, value = shown)
-                            // As the tab draws it: in the selection pill, its eyes cut through to it.
-                            Box(
-                                Modifier
-                                    .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
-                                    .padding(horizontal = Spacing.md + Spacing.xs, vertical = Spacing.xs)
-                            ) {
-                                Mascot(size = Dimensions.Icon.medium, shape = shape, mood = mood, value = shown)
-                            }
-                        }
+                        Mascot(size = Dimensions.Icon.medium, shape = shape, mood = mood, value = shown)
                     }
                 }
                 Text(
@@ -198,7 +188,7 @@ fun MascotPlaygroundScreen(
                         topSpacing = Spacing.Layout.sectionGap,
                     )
                     Row(Modifier.padding(top = Spacing.Layout.headerToContent)) {
-                        Box(Modifier.width(SHAPE_LABEL_WIDTH))
+                        Box(Modifier.weight(1f))
                         MascotMood.entries.forEach {
                             Text(
                                 text = it.name,
@@ -219,7 +209,7 @@ fun MascotPlaygroundScreen(
                             style = MaterialTheme.typography.labelMedium,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            modifier = Modifier.width(SHAPE_LABEL_WIDTH),
+                            modifier = Modifier.weight(1f),
                         )
                         MascotMood.entries.forEach { cellMood ->
                             GridCell(
@@ -290,8 +280,3 @@ private fun TransactionType.label(): Int = when (this) {
 
 /** The figure every value-drawing shape starts at, and shows in the grid until picked. */
 private const val SAMPLE_VALUE = 0.6f
-
-/** Larger than anywhere in the app, so the detail is easy to look at. */
-private val HERO_SIZE = 136.dp
-
-private val SHAPE_LABEL_WIDTH = 64.dp

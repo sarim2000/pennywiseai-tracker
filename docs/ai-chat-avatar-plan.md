@@ -240,7 +240,7 @@ The smallest visible win: the Chat tab becomes the owl that blinks.
 
 ### M6 — Developer playground
 - [x] A screen behind Developer mode showing every shape × mood with poke and drag, for on-device QA screenshots in both themes. Skip it if the HTML preview plus emulator checks prove enough.
-  - Settings → Developer → **Mascot playground**, a row that shows only while Developer mode is on. A fixed stage on top: a 136dp mascot to poke and drag, beside the same pose at 96dp, the chat's 32dp glyph and the tab's 24dp glyph in its pill. A value slider shows for the shapes that draw a figure (pie slice, jar fill, gauge needle up to 125% to see it pin, bars -100..100%). Below it, every shape × mood at 40dp; a tap puts it on the stage, so a mood change blends and a shape change crossfades as it would in the app.
+  - Settings → Developer → **Mascot playground**, a row that shows only while Developer mode is on. A fixed stage on top shows the pose at the sizes the app draws: the 96dp hero to poke and drag, the chat's 32dp glyph and the tab's 24dp glyph in its pill. A value slider shows for the shapes that draw a figure (pie slice, jar fill, gauge needle up to 125% to see it pin, bars -100..100%). Below it, every shape × mood at 40dp; a tap puts it on the stage, so a mood change blends and a shape change crossfades as it would in the app.
   - Reaction buttons, one per `TransactionType`, announce a save through `TransactionEvents` as a manual add does (nothing is written). The bottom bar stays up on this screen, so each plays on the real Chat tab, and a second tap inside a reaction shows the coalescing.
 - [ ] On device: every cell in light and dark, with "Remove animations", and each reaction on both bar styles
 

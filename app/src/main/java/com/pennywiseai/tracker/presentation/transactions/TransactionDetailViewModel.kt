@@ -33,6 +33,7 @@ import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.repository.mappingFits
 import com.pennywiseai.tracker.domain.loan.LoanCurrencyRules
 import com.pennywiseai.tracker.domain.loan.LoanOverflow
+import com.pennywiseai.tracker.domain.loan.LoanOverflowPrompt
 import com.pennywiseai.tracker.domain.model.rule.ActionType
 import com.pennywiseai.tracker.domain.model.rule.ConditionOperator
 import com.pennywiseai.tracker.domain.model.rule.RuleAction
@@ -41,7 +42,6 @@ import com.pennywiseai.tracker.domain.model.rule.TransactionField
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
-import com.pennywiseai.tracker.presentation.loans.LoanOverflowPrompt
 import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.ui.components.SplitItem
 import com.pennywiseai.tracker.ui.components.pickerDefault

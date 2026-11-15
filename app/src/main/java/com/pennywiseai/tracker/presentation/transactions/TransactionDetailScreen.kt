@@ -42,12 +42,12 @@ import com.pennywiseai.tracker.domain.loan.LoanOverflow
 import com.pennywiseai.tracker.presentation.goals.AddToGoalSheet
 import com.pennywiseai.tracker.presentation.goals.TowardGoalsSection
 import com.pennywiseai.tracker.presentation.goals.TransactionGoalsViewModel
-import com.pennywiseai.tracker.presentation.loans.LoanOverflowDialog
 import com.pennywiseai.tracker.presentation.split.SplitBillSheet
 import com.pennywiseai.tracker.presentation.split.SplitBillViewModel
 import com.pennywiseai.tracker.presentation.split.SplitSection
 import com.pennywiseai.tracker.presentation.split.canSplit
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
+import com.pennywiseai.tracker.ui.components.LoanOverflowDialog
 import com.pennywiseai.tracker.ui.components.SETTLED_HOLD_MILLIS
 import com.pennywiseai.tracker.ui.components.SplitItem
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
@@ -453,7 +453,10 @@ fun TransactionDetailScreen(
     // A repayment beyond what's owed: ask what the extra is
     loanOverflowPrompt?.let { prompt ->
         LoanOverflowDialog(
-            prompt = prompt,
+            personName = prompt.personName,
+            youPaid = prompt.youPaid,
+            extra = prompt.extra,
+            currency = prompt.currency,
             onCountAsOwn = { viewModel.resolveLoanOverflow(LoanOverflow.COUNT_AS_OWN) },
             onFlipDebt = { viewModel.resolveLoanOverflow(LoanOverflow.FLIP_DEBT) },
             onDismiss = { viewModel.dismissLoanOverflow() }

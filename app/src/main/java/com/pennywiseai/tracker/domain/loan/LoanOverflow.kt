@@ -1,6 +1,21 @@
 package com.pennywiseai.tracker.domain.loan
 
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
+import java.math.BigDecimal
+
+/**
+ * A payment that overshoots what's owed on a loan, waiting for the user to say
+ * what the extra is. [direction] is the loan's direction before the payment.
+ */
+data class LoanOverflowPrompt(
+    val personName: String,
+    val direction: LoanDirection,
+    val extra: BigDecimal,
+    val currency: String
+) {
+    /** A borrowed loan is repaid by money you pay out; a lent one by money you receive. */
+    val youPaid: Boolean get() = direction == LoanDirection.BORROWED
+}
 
 /**
  * What the part of a repayment beyond what's still owed is.

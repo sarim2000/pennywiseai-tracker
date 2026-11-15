@@ -20,31 +20,31 @@
     <string name="home_section_recent_transactions">المعاملات الأخيرة</string>
     <string name="home_section_accounts">الحسابات البنكية</string>
     <string name="home_section_subscriptions">الاشتراكات القادمة</string>
-    <string name="home_section_money_in_motion">نقود متحركة</string>
+    <string name="home_section_money_in_motion">حركة الأموال</string>
     <string name="home_section_activity">النشاط</string>
     <!-- Empty state -->
     <string name="home_empty_headline">لا توجد معاملات بعد</string>
-    <string name="home_empty_description">فحص الرسائل القصيرة الخاصة بك للبدء - سوف نجد المعاملات الخاصة بك تلقائياً</string>
-    <string name="home_empty_action">فحص الآن</string>
+    <string name="home_empty_description">افحص رسائلك القصيرة للبدء، وسنعثر على معاملاتك تلقائيًا</string>
+    <string name="home_empty_action">افحص الآن</string>
     <!-- FABs + full resync -->
     <string name="home_fab_add">إضافة معاملة أو اشتراك</string>
-    <string name="home_fab_sync">مزامنة الرسائل القصيرة (ضغطة طويلة للحصول على ريسينك كامل)</string>
-    <string name="home_fab_sync_hint">اضغط للريسينك الكامل</string>
+    <string name="home_fab_sync">مزامنة الرسائل القصيرة (اضغط مطولًا لإعادة المزامنة بالكامل)</string>
+    <string name="home_fab_sync_hint">اضغط مطولًا لإعادة المزامنة بالكامل</string>
     <string name="home_resync_title">قراءة الرسائل مجددًا</string>
     <string name="home_resync_scan_again">فحص جميع الرسائل مجددًا</string>
     <string name="home_resync_scan_again_desc">يضيف أي شيء فاتنا. تبقى تعديلاتك وجميع المعاملات الحالية كما هي.</string>
     <string name="home_resync_rebuild">إعادة البناء من البداية</string>
-    <string name="home_resync_rebuild_desc">يعيد قراءة معاملات SMS للاستفادة من إصلاحات قراءة الرسائل. تُلغى التعديلات على معاملات SMS. ويُحتفظ بالمعاملات اليدوية والمستوردة ومعاملات القروض والمعاملات المجمّعة.</string>
+    <string name="home_resync_rebuild_desc">يعيد قراءة معاملات الرسائل القصيرة للاستفادة من تحسينات قراءة الرسائل. تُلغى تعديلاتك على هذه المعاملات، ويُحتفظ بالمعاملات اليدوية والمستوردة ومعاملات القروض والمعاملات المجمّعة.</string>
     <!-- More options sheet -->
     <string name="home_menu_title">المزيد من الخيارات</string>
     <string name="home_menu_settings">الإعدادات</string>
     <string name="home_menu_edit_home">تعديل الشاشة الرئيسية</string>
-    <string name="home_menu_discord">انضم إلى ديسكورد للحصول على تعليقات</string>
-    <string name="home_menu_rate">قيم على متجر Play</string>
+    <string name="home_menu_discord">انضم إلى Discord وشاركنا ملاحظاتك</string>
+    <string name="home_menu_rate">قيّم التطبيق على Google Play</string>
     <string name="home_version">v%1$s</string>
     <!-- Edit home screen sheet -->
     <string name="home_edit_title">تعديل الشاشة الرئيسية</string>
-    <string name="home_edit_description">أعد ترتيب أو أخفِ الأقسام على شاشة البداية.</string>
+    <string name="home_edit_description">أعد ترتيب أقسام الشاشة الرئيسية أو أخفِها.</string>
     <string name="home_edit_move_up">تحريك %1$s لأعلى</string>
     <string name="home_edit_move_down">تحريك %1$s لأسفل</string>
     <!-- Calculation breakdown dialog -->
@@ -52,38 +52,38 @@
     <!-- Month name, then day range, e.g. "March 1-15" -->
     <string name="home_breakdown_period">%1$s 1-%2$d</string>
     <string name="home_breakdown_formula">الصيغة: الدخل - المصروفات = صافي الثروة\nالأخضر (+) = المدخرات | الأحمر (-) = الإنفاق الزائد</string>
-    <string name="home_breakdown_income">دخل</string>
-    <string name="home_breakdown_expenses">النفقات</string>
+    <string name="home_breakdown_income">الدخل</string>
+    <string name="home_breakdown_expenses">المصروفات</string>
     <string name="home_breakdown_net_worth">صافي الثروة</string>
     <!-- Subscriptions + loans summary cards -->
     <plurals name="home_active_subscriptions">
-        <item quantity="zero">اشتراكات نشطة %1$d</item>
-        <item quantity="one">الاشتراك النشط %1$d</item>
-        <item quantity="two">اشتراكات نشطة %1$d</item>
-        <item quantity="few">اشتراكات نشطة %1$d</item>
-        <item quantity="many">اشتراكات نشطة %1$d</item>
-        <item quantity="other">اشتراكات نشطة %1$d</item>
+        <item quantity="zero">لا اشتراكات نشطة</item>
+        <item quantity="one">%1$d اشتراك نشط</item>
+        <item quantity="two">اشتراكان نشطان</item>
+        <item quantity="few">%1$d اشتراكات نشطة</item>
+        <item quantity="many">%1$d اشتراكًا نشطًا</item>
+        <item quantity="other">%1$d اشتراك نشط</item>
     </plurals>
     <string name="home_subscriptions_monthly_total">المجموع الشهري: %1$s</string>
     <plurals name="home_active_loans">
-        <item quantity="zero">%1$d قروض نشطة</item>
+        <item quantity="zero">لا قروض نشطة</item>
         <item quantity="one">%1$d قرض نشط</item>
-        <item quantity="two">%1$d قروض نشطة</item>
+        <item quantity="two">قرضان نشطان</item>
         <item quantity="few">%1$d قروض نشطة</item>
-        <item quantity="many">%1$d قروض نشطة</item>
-        <item quantity="other">%1$d قروض نشطة</item>
+        <item quantity="many">%1$d قرضًا نشطًا</item>
+        <item quantity="other">%1$d قرض نشط</item>
     </plurals>
     <string name="home_loans_owed_to_you">مستحق لك %1$s</string>
     <string name="home_loans_you_owe">أنت مدين بـ %1$s</string>
     <!-- ══ Greeting card (home header) ══ -->
     <string name="greeting_last_day_of_month">آخر يوم في %1$s</string>
     <plurals name="greeting_days_left_in_month">
-        <item quantity="zero">%1$d أيام متبقية في %2$s</item>
-        <item quantity="one">%1$d يوم متبقي في %2$s</item>
-        <item quantity="two">%1$d أيام متبقية في %2$s</item>
+        <item quantity="zero">لا أيام متبقية في %2$s</item>
+        <item quantity="one">%1$d يوم متبقٍ في %2$s</item>
+        <item quantity="two">يومان متبقيان في %2$s</item>
         <item quantity="few">%1$d أيام متبقية في %2$s</item>
-        <item quantity="many">%1$d أيام متبقية في %2$s</item>
-        <item quantity="other">%1$d أيام متبقية في %2$s</item>
+        <item quantity="many">%1$d يومًا متبقيًا في %2$s</item>
+        <item quantity="other">%1$d يوم متبقٍ في %2$s</item>
     </plurals>
     <string name="greeting_good_morning">صباح الخير</string>
     <string name="greeting_good_afternoon">طاب مساؤك</string>
@@ -94,73 +94,73 @@
     <string name="greeting_more_options">خيارات أكثر</string>
     <!-- ══ Bottom navigation ══ -->
     <string name="nav_home">الرئيسية</string>
-    <string name="nav_transactions">الخط الزمني</string>
+    <string name="nav_transactions">المعاملات</string>
     <string name="nav_analytics">التحليلات</string>
     <string name="nav_chat">الدردشة</string>
     <!-- ══ Shared components ══ -->
     <string name="expandable_list_view_less">عرض أقل</string>
-    <string name="expandable_list_view_all_more">عرض الكل (%1$d المزيد )</string>
+    <string name="expandable_list_view_all_more">عرض الكل (%1$d أخرى)</string>
     <string name="error_state_retry">إعادة المحاولة</string>
     <string name="color_swatch_selected">المحدد</string>
     <string name="profile_filter_all_accounts">جميع الحسابات</string>
-    <string name="whats_new_got_it">فهمت ذلك</string>
+    <string name="whats_new_got_it">حسنًا</string>
     <string name="whats_new_title">ما الجديد</string>
     <string name="whats_new_version">الإصدار %1$s</string>
     <!-- Spotlight tutorial -->
-    <string name="spotlight_scan_sms">اضغط هنا لفحص رسائل SMS الخاصة بك للمعاملات</string>
-    <string name="spotlight_tap_to_dismiss">انقر في أي مكان للإلغاء</string>
+    <string name="spotlight_scan_sms">اضغط هنا لفحص رسائلك القصيرة بحثًا عن المعاملات</string>
+    <string name="spotlight_tap_to_dismiss">اضغط في أي مكان للإغلاق</string>
     <!-- Transaction type filter (short labels) -->
     <string name="type_filter_all">الكل</string>
     <string name="type_filter_income">دخل</string>
     <string name="type_filter_expense">مصروف</string>
-    <string name="type_filter_credit">رصيد</string>
+    <string name="type_filter_credit">ائتمان</string>
     <string name="type_filter_spending">الإنفاق</string>
     <string name="type_filter_transfer">تحويل</string>
-    <string name="type_filter_investment">استثمر</string>
+    <string name="type_filter_investment">استثمار</string>
     <!-- ══ SMS scan progress dialog ══ -->
-    <string name="sms_scan_title">فحص رسائل SMS</string>
+    <string name="sms_scan_title">جارٍ فحص الرسائل القصيرة</string>
     <string name="sms_scan_cancel">إلغاء الفحص</string>
     <string name="sms_scan_done">تم</string>
     <string name="sms_scan_close">إغلاق</string>
     <string name="sms_scan_all_processed">تمت معالجة جميع الرسائل!</string>
     <plurals name="sms_scan_processed_of">
-        <item quantity="zero">تمت معالجة %1$d من %2$d رسالة</item>
-        <item quantity="one">تمت معالجة %1$d من رسالة %2$d</item>
-        <item quantity="two">تمت معالجة %1$d من %2$d رسالة</item>
-        <item quantity="few">تمت معالجة %1$d من %2$d رسالة</item>
-        <item quantity="many">تمت معالجة %1$d من %2$d رسالة</item>
-        <item quantity="other">تمت معالجة %1$d من %2$d رسالة</item>
+        <item quantity="zero">الرسائل المُعالَجة: %1$d من %2$d</item>
+        <item quantity="one">الرسائل المُعالَجة: %1$d من %2$d</item>
+        <item quantity="two">الرسائل المُعالَجة: %1$d من %2$d</item>
+        <item quantity="few">الرسائل المُعالَجة: %1$d من %2$d</item>
+        <item quantity="many">الرسائل المُعالَجة: %1$d من %2$d</item>
+        <item quantity="other">الرسائل المُعالَجة: %1$d من %2$d</item>
     </plurals>
     <plurals name="sms_scan_transactions_parsed">
-        <item quantity="zero">تم تحليل معاملات %1$d</item>
-        <item quantity="one">تم تحليل معاملات %1$d</item>
-        <item quantity="two">تم تحليل معاملات %1$d</item>
-        <item quantity="few">تم تحليل معاملات %1$d</item>
-        <item quantity="many">تم تحليل معاملات %1$d</item>
-        <item quantity="other">تم تحليل معاملات %1$d</item>
+        <item quantity="zero">لم تُستخرج أي معاملة</item>
+        <item quantity="one">استُخرجت %1$d معاملة</item>
+        <item quantity="two">استُخرجت معاملتان</item>
+        <item quantity="few">استُخرجت %1$d معاملات</item>
+        <item quantity="many">استُخرجت %1$d معاملة</item>
+        <item quantity="other">استُخرجت %1$d معاملة</item>
     </plurals>
     <string name="sms_scan_saved">تم حفظ %1$d</string>
     <!-- %1$s is a duration such as "2m 5s" -->
-    <string name="sms_scan_time_left">~%1$s متبقي</string>
+    <string name="sms_scan_time_left">يتبقى نحو %1$s</string>
     <string name="sms_scan_batch">الدفعة %1$d من %2$d</string>
-    <string name="sms_scan_processing">معالجة...</string>
+    <string name="sms_scan_processing">جارٍ المعالجة...</string>
     <string name="sms_scan_completed">اكتمل الفحص بنجاح!</string>
     <string name="sms_scan_failed">فشل الفحص. يرجى المحاولة مرة أخرى.</string>
     <string name="sms_scan_cancelled">تم إلغاء الفحص</string>
-    <string name="sms_scan_starting">بدء الفحص...</string>
-    <string name="sms_scan_indicator">يتم فحص الرسائل: %1$d/%2$d</string>
+    <string name="sms_scan_starting">جارٍ بدء الفحص...</string>
+    <string name="sms_scan_indicator">جارٍ فحص الرسائل: %1$d/%2$d</string>
     <!-- Short elapsed/remaining durations -->
-    <string name="duration_hours_minutes">%1$dساعة %2$dدقيقة</string>
-    <string name="duration_minutes_seconds">%1$dm %2$ds</string>
-    <string name="duration_seconds">%1$ds</string>
+    <string name="duration_hours_minutes">%1$d س %2$d د</string>
+    <string name="duration_minutes_seconds">%1$d د %2$d ث</string>
+    <string name="duration_seconds">%1$d ث</string>
     <!-- ══ Shared cards ══ -->
     <string name="balance_show">إظهار الرصيد</string>
     <string name="balance_hide">إخفاء الرصيد</string>
     <string name="card_collapse">طي</string>
     <string name="card_expand">توسيع</string>
     <!-- Account carousel -->
-    <string name="account_card_type_credit">رصيد</string>
-    <string name="account_card_type_savings">مدخرات</string>
+    <string name="account_card_type_credit">ائتمان</string>
+    <string name="account_card_type_savings">توفير</string>
     <string name="account_card_low_balance">رصيد منخفض</string>
     <string name="account_card_outstanding">المستحق</string>
     <string name="account_card_balance">الرصيد</string>
@@ -170,12 +170,12 @@
     <!-- %1$s is a formatted (or masked) amount -->
     <string name="balance_card_balance">الرصيد: %1$s</string>
     <plurals name="balance_card_account_count">
-        <item quantity="zero">" · حسابات %1$d"</item>
-        <item quantity="one">" · حساب %1$d"</item>
-        <item quantity="two">" · حسابات %1$d"</item>
-        <item quantity="few">" · حسابات %1$d"</item>
-        <item quantity="many">" · حسابات %1$d"</item>
-        <item quantity="other">" · حسابات %1$d"</item>
+        <item quantity="zero">" · لا حسابات"</item>
+        <item quantity="one">" · %1$d حساب"</item>
+        <item quantity="two">" · حسابان"</item>
+        <item quantity="few">" · %1$d حسابات"</item>
+        <item quantity="many">" · %1$d حسابًا"</item>
+        <item quantity="other">" · %1$d حساب"</item>
     </plurals>
     <string name="balance_card_last_month_amount">الشهر الماضي: %1$s</string>
     <string name="balance_card_this_month">هذا الشهر</string>
@@ -184,106 +184,127 @@
     <string name="balance_card_credit_cards">بطاقات الائتمان</string>
     <string name="balance_card_total">الإجمالي</string>
     <string name="balance_card_other_currency_note">* لا يشمل هذا المجموع الحسابات بعملات أخرى.</string>
-    <string name="balance_card_spent_this_month">أنفق هذا الشهر</string>
+    <string name="balance_card_spent_this_month">الإنفاق هذا الشهر</string>
     <string name="balance_card_change_currency">تغيير العملة</string>
     <string name="balance_card_summary_income">الدخل</string>
     <string name="balance_card_summary_expenses">المصروفات</string>
-    <string name="balance_card_summary_lent">المُقرَض</string>
-    <string name="balance_card_summary_saved">المدّخر</string>
+    <string name="balance_card_summary_lent">أقرضت</string>
+    <string name="balance_card_summary_saved">ادّخرت</string>
     <!-- Budget card -->
     <string name="budget_card_percent">%1$d%%</string>
-    <string name="budget_card_over_budget">%1$s زيادة على الميزانية</string>
-    <string name="budget_card_remaining">متبقي %1$s</string>
+    <string name="budget_card_over_budget">تجاوزت الميزانية بـ %1$s</string>
+    <string name="budget_card_remaining">متبقٍ %1$s</string>
     <!-- Amount the user can still spend each day for the rest of the budget window, e.g. "₹450/day" -->
     <string name="budget_card_per_day">%1$s/يوم</string>
     <string name="budget_card_finished">انتهى</string>
-    <string name="budget_card_tracking_all">تتبع جميع المصروفات</string>
+    <string name="budget_card_tracking_all">تتتبّع جميع المصروفات</string>
     <!-- %1$s is a weekday name -->
-    <string name="budget_card_resets_today_weekday">إعادة تعيين اليوم · %1$s تجديد</string>
+    <string name="budget_card_resets_today_weekday">تتجدد اليوم · كل %1$s</string>
     <plurals name="budget_card_resets_in_weekday">
-        <item quantity="zero">إعادة تعيين في %1$d أيام · %2$s تجديد</item>
-        <item quantity="one">إعادة تعيين في %1$d يوم · %2$s تجديد</item>
-        <item quantity="two">إعادة تعيين في %1$d أيام · %2$s تجديد</item>
-        <item quantity="few">إعادة تعيين في %1$d أيام · %2$s تجديد</item>
-        <item quantity="many">إعادة تعيين في %1$d أيام · %2$s تجديد</item>
-        <item quantity="other">إعادة تعيين في %1$d أيام · %2$s تجديد</item>
+        <item quantity="zero">تتجدد اليوم · كل %2$s</item>
+        <item quantity="one">تتجدد بعد %1$d يوم · كل %2$s</item>
+        <item quantity="two">تتجدد بعد يومين · كل %2$s</item>
+        <item quantity="few">تتجدد بعد %1$d أيام · كل %2$s</item>
+        <item quantity="many">تتجدد بعد %1$d يومًا · كل %2$s</item>
+        <item quantity="other">تتجدد بعد %1$d يوم · كل %2$s</item>
     </plurals>
     <!-- %1$d is the day of month the budget starts on -->
-    <string name="budget_card_resets_today_day">إعادة تعيين اليوم · يوم %1$d</string>
+    <string name="budget_card_resets_today_day">تتجدد اليوم · في اليوم %1$d</string>
     <plurals name="budget_card_resets_in_day">
-        <item quantity="zero">إعادة التعيين في %1$d أيام · يوم %2$d</item>
-        <item quantity="one">إعادة التعيين في %1$d يوم · يوم %2$d</item>
-        <item quantity="two">إعادة التعيين في %1$d أيام · يوم %2$d</item>
-        <item quantity="few">إعادة التعيين في %1$d أيام · يوم %2$d</item>
-        <item quantity="many">إعادة التعيين في %1$d أيام · يوم %2$d</item>
-        <item quantity="other">إعادة التعيين في %1$d أيام · يوم %2$d</item>
+        <item quantity="zero">تتجدد اليوم · في اليوم %2$d</item>
+        <item quantity="one">تتجدد بعد %1$d يوم · في اليوم %2$d</item>
+        <item quantity="two">تتجدد بعد يومين · في اليوم %2$d</item>
+        <item quantity="few">تتجدد بعد %1$d أيام · في اليوم %2$d</item>
+        <item quantity="many">تتجدد بعد %1$d يومًا · في اليوم %2$d</item>
+        <item quantity="other">تتجدد بعد %1$d يوم · في اليوم %2$d</item>
     </plurals>
-    <string name="budget_card_over_by">أكثر من قبل %1$s</string>
+    <string name="budget_card_over_by">تجاوزت بـ %1$s</string>
     <!-- %1$s is a date range -->
     <plurals name="budget_card_runs_days_remaining">
-        <item quantity="zero">تشغيل %1$s · %2$d أيام متبقية</item>
-        <item quantity="one">تشغيل %1$s · %2$d يوم متبقي</item>
-        <item quantity="two">تشغيل %1$s · %2$d أيام متبقية</item>
-        <item quantity="few">تشغيل %1$s · %2$d أيام متبقية</item>
-        <item quantity="many">تشغيل %1$s · %2$d أيام متبقية</item>
-        <item quantity="other">تشغيل %1$s · %2$d أيام متبقية</item>
+        <item quantity="zero">%1$s · لا أيام متبقية</item>
+        <item quantity="one">%1$s · يتبقى %2$d يوم</item>
+        <item quantity="two">%1$s · يتبقى يومان</item>
+        <item quantity="few">%1$s · يتبقى %2$d أيام</item>
+        <item quantity="many">%1$s · يتبقى %2$d يومًا</item>
+        <item quantity="other">%1$s · يتبقى %2$d يوم</item>
     </plurals>
     <plurals name="budget_card_days_remaining">
-        <item quantity="zero">%1$d أيام متبقية</item>
-        <item quantity="one">%1$d يوم متبقي</item>
-        <item quantity="two">%1$d أيام متبقية</item>
-        <item quantity="few">%1$d أيام متبقية</item>
-        <item quantity="many">%1$d أيام متبقية</item>
-        <item quantity="other">%1$d أيام متبقية</item>
+        <item quantity="zero">لا أيام متبقية</item>
+        <item quantity="one">يتبقى %1$d يوم</item>
+        <item quantity="two">يتبقى يومان</item>
+        <item quantity="few">يتبقى %1$d أيام</item>
+        <item quantity="many">يتبقى %1$d يومًا</item>
+        <item quantity="other">يتبقى %1$d يوم</item>
     </plurals>
-    <string name="budget_card_spent_of">أنفق %1$s من %2$s</string>
+    <string name="budget_card_spent_of">صرفت %1$s من %2$s</string>
     <!-- Budget pace: spending compared with an even spend across the period -->
+    <string name="budget_card_on_pace">وفق الوتيرة</string>
+    <plurals name="budget_card_days_under_pace">
+        <item quantity="zero">وفق الوتيرة</item>
+        <item quantity="one">دون الوتيرة بـ %1$d يوم</item>
+        <item quantity="two">دون الوتيرة بيومين</item>
+        <item quantity="few">دون الوتيرة بـ %1$d أيام</item>
+        <item quantity="many">دون الوتيرة بـ %1$d يومًا</item>
+        <item quantity="other">دون الوتيرة بـ %1$d يوم</item>
+    </plurals>
+    <plurals name="budget_card_days_over_pace">
+        <item quantity="zero">وفق الوتيرة</item>
+        <item quantity="one">فوق الوتيرة بـ %1$d يوم</item>
+        <item quantity="two">فوق الوتيرة بيومين</item>
+        <item quantity="few">فوق الوتيرة بـ %1$d أيام</item>
+        <item quantity="many">فوق الوتيرة بـ %1$d يومًا</item>
+        <item quantity="other">فوق الوتيرة بـ %1$d يوم</item>
+    </plurals>
     <!-- Tap action on the pace status / chart legend: shows the explanation below -->
+    <string name="budget_pace_what_is">ما وتيرة الإنفاق؟</string>
+    <string name="budget_pace_explainer">تقارن وتيرة الإنفاق ما صرفته بما كنت ستصرفه لو وزّعت ميزانيتك بالتساوي على مدتها.</string>
     <!-- Shown under the pace status on the budget card -->
+    <string name="budget_pace_explainer_card">تقارن وتيرة الإنفاق ما صرفته بما كنت ستصرفه لو وزّعت هذه الميزانية بالتساوي على مدتها. «فوق الوتيرة» يعني أنك صرفت حتى اليوم أكثر مما تقتضيه الوتيرة المتساوية، و«دون الوتيرة» يعني أقل. ويبيّن عدد الأيام مدى تقدّم إنفاقك على تلك الوتيرة أو تأخّره عنها. وتشير العلامة على الشريط إلى الوتيرة المتساوية حتى اليوم.</string>
     <string name="budget_cadence_weekly">أسبوعي</string>
     <string name="budget_cadence_monthly">شهري</string>
     <string name="budget_cadence_one_time">لمرة واحدة</string>
-    <string name="budget_carousel_empty">قم بتعيين ميزانية لتتبع إنفاقك</string>
+    <string name="budget_carousel_empty">حدّد ميزانية لتتبّع إنفاقك</string>
     <string name="budget_carousel_create">إنشاء ميزانية</string>
     <!-- Group cards -->
     <plurals name="group_card_item_count">
-        <item quantity="zero">عناصر %1$d</item>
-        <item quantity="one">عنصر %1$d</item>
-        <item quantity="two">عناصر %1$d</item>
-        <item quantity="few">عناصر %1$d</item>
-        <item quantity="many">عناصر %1$d</item>
-        <item quantity="other">عناصر %1$d</item>
+        <item quantity="zero">لا عناصر</item>
+        <item quantity="one">%1$d عنصر</item>
+        <item quantity="two">عنصران</item>
+        <item quantity="few">%1$d عناصر</item>
+        <item quantity="many">%1$d عنصرًا</item>
+        <item quantity="other">%1$d عنصر</item>
     </plurals>
     <string name="group_card_no_transactions">لا توجد معاملات بعد</string>
     <string name="group_card_invested">تم استثمار %1$s</string>
     <plurals name="group_card_transaction_count">
-        <item quantity="zero">%1$d معاملة</item>
-        <item quantity="one">معاملة %1$d</item>
-        <item quantity="two">%1$d معاملة</item>
-        <item quantity="few">%1$d معاملة</item>
+        <item quantity="zero">لا معاملات</item>
+        <item quantity="one">%1$d معاملة</item>
+        <item quantity="two">معاملتان</item>
+        <item quantity="few">%1$d معاملات</item>
         <item quantity="many">%1$d معاملة</item>
         <item quantity="other">%1$d معاملة</item>
     </plurals>
     <!-- Transaction count · latest date -->
     <string name="group_card_subtitle">%1$s · %2$s</string>
     <!-- Cash flow card -->
-    <string name="cash_flow_title">نقود متحركة</string>
-    <string name="cash_flow_subtitle">القنوات خارج صافي التدفق النقدي هذا الشهر</string>
-    <string name="cash_flow_credit">رصيد</string>
+    <string name="cash_flow_title">حركة الأموال</string>
+    <string name="cash_flow_subtitle">أموال لا تدخل في صافي تدفقك النقدي هذا الشهر</string>
+    <string name="cash_flow_credit">ائتمان</string>
     <string name="cash_flow_invested">مستثمر</string>
     <string name="cash_flow_transferred">محول</string>
     <!-- Transaction row -->
-    <string name="txn_item_tag_credit">رصيد</string>
+    <string name="txn_item_tag_credit">ائتمان</string>
     <string name="txn_item_tag_transfer">تحويل</string>
     <string name="txn_item_tag_investment">استثمار</string>
     <string name="txn_item_tag_recurring">متكرر</string>
     <string name="txn_item_tag_business">الأعمال</string>
     <string name="txn_item_tag_excluded">مستبعد</string>
     <!-- A split row in a category-filtered list: its full amount, e.g. "Split of ₹10,000" -->
+    <string name="txn_item_tag_split_of">جزء من %1$s</string>
     <string name="txn_item_balance_after">الرصيد %1$s</string>
     <!-- %1$s is the last 4 digits of the other account -->
-    <string name="txn_item_transfer_to">نقل → %1$s</string>
-    <string name="txn_item_transfer_from">التحويل من %1$s</string>
+    <string name="txn_item_transfer_to">تحويل إلى %1$s</string>
+    <string name="txn_item_transfer_from">تحويل من %1$s</string>
     <!-- ══ Home-screen widgets ══ -->
     <!-- Add transaction widget -->
     <string name="widget_add_content_description">إضافة معاملة</string>
@@ -311,10 +332,10 @@
     <!-- SMS scan progress (foreground worker) -->
     <string name="notif_sms_scan_channel_name">فحص الرسائل القصيرة</string>
     <string name="notif_sms_scan_title">جارٍ فحص المعاملات…</string>
-    <string name="notif_sms_scan_progress">تمت المعالجة %1$d / %2$d</string>
-    <string name="notif_sms_scan_reading">قراءة SMS…</string>
+    <string name="notif_sms_scan_progress">تمت معالجة %1$d من %2$d</string>
+    <string name="notif_sms_scan_reading">جارٍ قراءة الرسائل القصيرة…</string>
     <!-- New transaction notification -->
-    <string name="notif_txn_channel_name">إشعارات المعاملة</string>
+    <string name="notif_txn_channel_name">إشعارات المعاملات</string>
     <string name="notif_txn_channel_description">إشعارات للمعاملات الجديدة</string>
     <string name="notif_txn_unknown_merchant">غير معروف</string>
     <string name="notif_txn_unknown_bank">البنك</string>
@@ -325,33 +346,33 @@
     <string name="notif_txn_title_spent">صرفت %1$s</string>
     <string name="notif_txn_title_received">استلمت %1$s</string>
     <!-- An SMS from a sender the user has added from before (#994): not saved until they tap Add. -->
-    <string name="notif_suggestion_title_spent">هل أنفقت %1$s في %2$s؟</string>
+    <string name="notif_suggestion_title_spent">هل صرفت %1$s في %2$s؟</string>
     <string name="notif_suggestion_title_received">هل استلمت %1$s من %2$s؟</string>
     <string name="notif_suggestion_text">من %1$s. اضغط لإضافتها.</string>
     <!-- Shown when the app couldn't tell the category -->
-    <string name="notif_txn_ask_category">على ماذا صرفتها؟</string>
-    <string name="notif_txn_action_change">تغيير التصنيف</string>
+    <string name="notif_txn_ask_category">ما فئة هذه المعاملة؟</string>
+    <string name="notif_txn_action_change">غيّر الفئة</string>
     <!-- Marks the transaction as not counting toward spending/income totals (kept in history and the balance) -->
-    <string name="notif_txn_action_not_expense">ليس مصروفاً</string>
-    <string name="notif_txn_action_not_income">ليس دخلاً</string>
-    <string name="notif_txn_excluded_spending">لن يُحسب كمصروف</string>
-    <string name="notif_txn_excluded_income">لن يُحسب كدخل</string>
+    <string name="notif_txn_action_not_expense">ليست مصروفًا</string>
+    <string name="notif_txn_action_not_income">ليست دخلًا</string>
+    <string name="notif_txn_excluded_spending">لن تُحتسب ضمن المصروفات</string>
+    <string name="notif_txn_excluded_income">لن تُحتسب ضمن الدخل</string>
     <!-- Balance check (#734); %1$s the difference with currency; the bank name opens the text -->
     <string name="notif_balance_higher">رصيدك أعلى بـ %1$s من المسجَّل</string>
     <string name="notif_balance_lower">رصيدك أقل بـ %1$s من المسجَّل</string>
     <string name="notif_balance_text">قد تكون هناك معاملة لم تُسجَّل. اضغط للمراجعة.</string>
     <!-- After a category is picked from the notification; %1$s is the category -->
-    <string name="notif_txn_learned_title">حُفظت في %1$s</string>
-    <string name="notif_txn_learned_text">ستُصنَّف المدفوعات هنا تلقائياً من الآن.</string>
+    <string name="notif_txn_learned_title">صُنّفت ضمن %1$s</string>
+    <string name="notif_txn_learned_text">ستُصنّف معاملات هذا التاجر تلقائيًا من الآن فصاعدًا.</string>
     <!-- Learned-note action: keep this pick, but don't remember the merchant -->
     <string name="notif_txn_learned_only_this_one">هذه فقط</string>
     <plurals name="notif_txn_learned_moved">
-        <item quantity="zero">لم تُنقل أي عملية سابقة.</item>
-        <item quantity="one">ونُقلت %d عملية سابقة أيضاً.</item>
-        <item quantity="two">ونُقلت عمليتان سابقتان أيضاً.</item>
-        <item quantity="few">ونُقلت %d عمليات سابقة أيضاً.</item>
-        <item quantity="many">ونُقلت %d عملية سابقة أيضاً.</item>
-        <item quantity="other">ونُقلت %d عملية سابقة أيضاً.</item>
+        <item quantity="zero">لم تتغيّر فئة أي معاملة سابقة.</item>
+        <item quantity="one">وصُنّفت %d معاملة سابقة أيضًا.</item>
+        <item quantity="two">وصُنّفت معاملتان سابقتان أيضًا.</item>
+        <item quantity="few">وصُنّفت %d معاملات سابقة أيضًا.</item>
+        <item quantity="many">وصُنّفت %d معاملة سابقة أيضًا.</item>
+        <item quantity="other">وصُنّفت %d معاملة سابقة أيضًا.</item>
     </plurals>
     <!-- Evening recap notification -->
     <string name="notif_daily_channel_name">الملخص اليومي</string>
@@ -359,41 +380,41 @@
     <!-- %1$s is today's spending, e.g. "JD 23.500" -->
     <string name="notif_daily_title">صرفت اليوم %1$s</string>
     <plurals name="notif_daily_count">
-        <item quantity="zero">لا عمليات</item>
-        <item quantity="one">%d عملية</item>
-        <item quantity="two">عمليتان</item>
-        <item quantity="few">%d عمليات</item>
-        <item quantity="many">%d عملية</item>
-        <item quantity="other">%d عملية</item>
+        <item quantity="zero">لا معاملات</item>
+        <item quantity="one">%d معاملة</item>
+        <item quantity="two">معاملتان</item>
+        <item quantity="few">%d معاملات</item>
+        <item quantity="many">%d معاملة</item>
+        <item quantity="other">%d معاملة</item>
     </plurals>
     <plurals name="notif_daily_uncategorized">
         <item quantity="zero">كلها مصنّفة</item>
-        <item quantity="one">%d بلا تصنيف</item>
-        <item quantity="two">اثنتان بلا تصنيف</item>
-        <item quantity="few">%d بلا تصنيف</item>
-        <item quantity="many">%d بلا تصنيف</item>
-        <item quantity="other">%d بلا تصنيف</item>
+        <item quantity="one">%d بلا فئة</item>
+        <item quantity="two">اثنتان بلا فئة</item>
+        <item quantity="few">%d بلا فئة</item>
+        <item quantity="many">%d بلا فئة</item>
+        <item quantity="other">%d بلا فئة</item>
     </plurals>
     <!-- Follows notif_daily_uncategorized after " — ": why sorting matters -->
     <plurals name="notif_daily_sort_why">
-        <item quantity="zero">رتّبها ليُحسب صرفك الحقيقي فقط</item>
-        <item quantity="one">رتّبها ليُحسب صرفك الحقيقي فقط</item>
-        <item quantity="two">رتّبهما ليُحسب صرفك الحقيقي فقط</item>
-        <item quantity="few">رتّبها ليُحسب صرفك الحقيقي فقط</item>
-        <item quantity="many">رتّبها ليُحسب صرفك الحقيقي فقط</item>
-        <item quantity="other">رتّبها ليُحسب صرفك الحقيقي فقط</item>
+        <item quantity="zero">صنّفها لتُحتسب مصروفاتك الفعلية فقط</item>
+        <item quantity="one">صنّفها لتُحتسب مصروفاتك الفعلية فقط</item>
+        <item quantity="two">صنّفهما لتُحتسب مصروفاتك الفعلية فقط</item>
+        <item quantity="few">صنّفها لتُحتسب مصروفاتك الفعلية فقط</item>
+        <item quantity="many">صنّفها لتُحتسب مصروفاتك الفعلية فقط</item>
+        <item quantity="other">صنّفها لتُحتسب مصروفاتك الفعلية فقط</item>
     </plurals>
     <string name="notif_daily_action_sort">صنّفها</string>
-    <string name="notif_daily_action_sort_all">صنّفها</string>
-    <string name="notif_daily_action_cash">+ نقداً</string>
+    <string name="notif_daily_action_sort_all">صنّف الكل</string>
+    <string name="notif_daily_action_cash">+ مصروف نقدي</string>
     <!-- Header over a stack of transaction alerts -->
     <plurals name="notif_txn_group_title">
-        <item quantity="zero">لا عمليات جديدة</item>
-        <item quantity="one">%d عملية جديدة</item>
-        <item quantity="two">عمليتان جديدتان</item>
-        <item quantity="few">%d عمليات جديدة</item>
-        <item quantity="many">%d عملية جديدة</item>
-        <item quantity="other">%d عملية جديدة</item>
+        <item quantity="zero">لا معاملات جديدة</item>
+        <item quantity="one">%d معاملة جديدة</item>
+        <item quantity="two">معاملتان جديدتان</item>
+        <item quantity="few">%d معاملات جديدة</item>
+        <item quantity="many">%d معاملة جديدة</item>
+        <item quantity="other">%d معاملة جديدة</item>
     </plurals>
     <!-- Balance chart legend -->
     <string name="balance_chart_label">اتجاه الرصيد</string>
@@ -407,7 +428,7 @@
     <string name="home_payday_card_action">ابدأ من اليوم %1$d</string>
     <string name="home_payday_card_dismiss">إخفاء</string>
     <!-- Month-end forecast on the "Spent this month" card -->
-    <string name="forecast_on_track">في الطريق إلى %1$s بحلول %2$s</string>
+    <string name="forecast_on_track">المتوقع %1$s بحلول %2$s</string>
     <string name="forecast_over_usual">%1$s فوق المعتاد</string>
     <!-- Safe to spend card + breakdown sheet -->
     <string name="home_section_safe_to_spend">المتاح للإنفاق</string>

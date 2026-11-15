@@ -42,8 +42,9 @@ enum class WhatWasThis { LOAN, SPLIT, SAVING, OWN_TRANSFER }
 
 fun whatWasThisOptions(txn: TransactionEntity, hasLoan: Boolean): List<WhatWasThis> = buildList {
     // Already on a loan or split (a split bill is on Loans, one share per person):
-    // answered, and the editor won't let its type change anyway.
-    if (hasLoan || txn.loanId != null || txn.lentSharesTotal != null) return@buildList
+    // answered, and the editor won't let its type change anyway. A paired transfer
+    // leg is answered too: it's one side of a move between the user's own accounts.
+    if (hasLoan || txn.loanId != null || txn.lentSharesTotal != null || txn.transferPairId != null) return@buildList
     add(WhatWasThis.LOAN)
     if (canSplit(txn)) add(WhatWasThis.SPLIT)
     if (txn.transactionType == TransactionType.EXPENSE) add(WhatWasThis.SAVING)

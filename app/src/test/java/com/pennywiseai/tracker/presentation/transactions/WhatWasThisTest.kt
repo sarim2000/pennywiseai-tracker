@@ -44,6 +44,10 @@ class WhatWasThisTest {
         assertEquals(listOf(LOAN, OWN_TRANSFER), whatWasThisOptions(txn(TransactionType.INCOME), hasLoan = false))
 
     @Test
+    fun `a paired transfer leg offers nothing`() =
+        assertEquals(emptyList<WhatWasThis>(), whatWasThisOptions(txn(TransactionType.TRANSFER).copy(transferPairId = "p"), hasLoan = false))
+
+    @Test
     fun `a transfer offers only the loan answer`() =
         assertEquals(listOf(LOAN), whatWasThisOptions(txn(TransactionType.TRANSFER), hasLoan = false))
 

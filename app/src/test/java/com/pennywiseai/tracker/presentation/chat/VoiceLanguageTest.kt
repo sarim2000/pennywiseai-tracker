@@ -56,4 +56,12 @@ class VoiceLanguageTest {
     fun `a script tag is not a bare language`() {
         assertEquals(listOf("sr-Latn", "sr-RS"), VoiceInput.onlineOnly(listOf("sr-Latn", "sr-RS"), emptyList()))
     }
+
+    @Test
+    fun `only my exact region is suggested for download when it exists`() {
+        val englishes = listOf("en-AU", "en-CA", "en-IN", "en-US")
+        assertEquals(listOf("en-US"), englishes.filter { VoiceInput.suggests(listOf("en-US"), englishes, it) })
+        // No exact match: every region of the language is a fair suggestion.
+        assertEquals(englishes, englishes.filter { VoiceInput.suggests(listOf("en"), englishes, it) })
+    }
 }

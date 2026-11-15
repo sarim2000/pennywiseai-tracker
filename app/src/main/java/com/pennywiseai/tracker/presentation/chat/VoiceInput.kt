@@ -479,7 +479,7 @@ class VoiceInput internal constructor(
      * Downloads worth listing up front: the user's own languages not already on the phone in some
      * region. The rest (other languages, other English accents) sit behind "Other languages".
      */
-    fun isSuggested(tag: String) = mine.any { sameLanguage(it, tag) } && installed.none { sameLanguage(it, tag) }
+    fun isSuggested(tag: String) = suggests(mine, downloadable, tag) && installed.none { sameLanguage(it, tag) }
 
     /** Phone, app, then keyboard languages, in that order. */
     private fun userLanguages(): List<String> {
@@ -512,6 +512,16 @@ class VoiceInput internal constructor(
         val QUIET_ERRORS = setOf(SpeechRecognizer.ERROR_NO_MATCH, SpeechRecognizer.ERROR_SPEECH_TIMEOUT)
 
         fun sameLanguage(a: String, b: String) = Locale.forLanguageTag(a).language == Locale.forLanguageTag(b).language
+
+        /**
+         * A download is suggested when it is one of [mine] exactly. Only a language of mine
+         * with no exact download (a bare "ar" from a keyboard) brings in every region of it,
+         * so an en-US phone isn't offered seven Englishes.
+         */
+        fun suggests(mine: List<String>, downloadable: List<String>, tag: String) = mine.any { m ->
+            m.equals(tag, ignoreCase = true) ||
+                (sameLanguage(m, tag) && downloadable.none { it.equals(m, ignoreCase = true) })
+        }
 
         /** The saved pick while still usable, else the phone's languages in order (exact tag, then same language). */
         fun pickLanguage(chosen: String?, usable: List<String>, phone: List<String>): String? {

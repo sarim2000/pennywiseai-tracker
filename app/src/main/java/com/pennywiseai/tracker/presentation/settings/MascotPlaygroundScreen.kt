@@ -115,7 +115,7 @@ fun MascotPlaygroundScreen(
             PennyWiseCardV2(Modifier.fillMaxWidth().padding(horizontal = Spacing.md)) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     Box(Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                        Mascot(size = HERO_SIZE, shape = shape, mood = mood, value = shown, interactive = true)
+                        Mascot(size = HERO_SIZE, shape = shape, mood = mood, value = shown, interactive = true, alive = true)
                     }
                     Column(
                         horizontalAlignment = Alignment.CenterHorizontally,

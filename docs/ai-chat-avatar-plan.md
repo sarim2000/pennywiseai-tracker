@@ -134,8 +134,8 @@ data/events/TransactionEvents.kt   // app-scoped SharedFlow, replay = 0
 
 - **Drawing:** `drawWithCache` caches the paths for each size. Time is read only in the draw phase, so no recomposition happens per frame.
 - **Two clocks:**
-  - Tab and small sizes: a coroutine `delay(random 4–8s)` followed by a 190ms blink animation. Nothing runs between blinks.
-  - Hero: `withFrameMillis` while it is visible.
+  - Every mascot but a hero: a coroutine `delay(random 4–8s)` followed by a 190ms blink animation. Nothing runs between blinks; frames run only in short bursts while a poke, a drag (and the ~0.3s settle after it), a mood or shape change or a one-shot mood plays out, and stop once the pose settles. Drawing detail goes by size; motion doesn't, so a 96dp empty state is as quiet as the tab.
+  - Hero (the empty chat's owl, the playground stage, opted in with `alive`): `withFrameMillis` while it is visible. A `Thinking` mascot also runs one for as long as it thinks.
 - **Gating:** every clock runs only when `rememberAnimationsEnabled()`, the lifecycle is `STARTED`, and the mascot is in composition. Otherwise a deliberate static pose is drawn.
 - **Licence:** a header comment in `MascotPose.kt` credits open-bot-avatar (MIT) for the timing constants.
 

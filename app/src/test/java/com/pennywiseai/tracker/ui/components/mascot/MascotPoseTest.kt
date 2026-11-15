@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.ui.components.mascot
 
 import androidx.compose.ui.geometry.Offset
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.math.abs
@@ -152,6 +153,57 @@ class MascotPoseTest {
         val own = MascotPose(gazeX = 0.2f)
         assertEquals(0.2f, lookAt(own, Offset(-1f, 0f), attention).gazeX, 0.07f)
         assertEquals(-1f, lookAt(own, Offset(-1f, 0f), 1f).gazeX, 0f)
+    }
+
+    /** Frames of [frameMs] from [start] until [needsFrames] says stop; returns the frames run and where the eyes ended. */
+    private fun runUntilSettled(
+        start: Follow,
+        target: Offset?,
+        shape: MascotShape = MascotShape.Owl,
+        sincePokeMs: Long = Long.MAX_VALUE / 2,
+        frameMs: Long = 16,
+    ): Pair<Int, Follow> {
+        var follow = start
+        var frames = 0
+        while (needsFrames(false, sincePokeMs + frames * frameMs, shape, follow, target)) {
+            follow = follow.step(target, frameMs)
+            frames++
+            check(frames < 10_000) { "never settled" }
+        }
+        return frames to follow.settle(target)
+    }
+
+    @Test
+    fun `a settled mascot asks for no frames`() {
+        assertFalse(needsFrames(false, Long.MAX_VALUE / 2, MascotShape.Owl, Follow(), null))
+        // A look the eyes have reached holds without frames too.
+        val look = Offset(0.3f, 0.8f)
+        assertFalse(needsFrames(false, Long.MAX_VALUE / 2, MascotShape.Owl, Follow(1f, look), look))
+    }
+
+    @Test
+    fun `a finger on the mascot keeps frames coming, and let go they stop after a short settle`() {
+        val gaze = Offset(0.8f, -0.4f)
+        assertTrue(needsFrames(true, Long.MAX_VALUE / 2, MascotShape.Owl, Follow(1f, gaze), gaze))
+        val (frames, landed) = runUntilSettled(Follow(1f, gaze), target = null)
+        assertTrue("settled in ${frames * 16}ms", frames * 16 in 300..1_500)
+        assertEquals(Follow(0f, gaze), landed)
+    }
+
+    @Test
+    fun `a new look plays out and then holds still`() {
+        val look = typingGaze(12)
+        val (frames, landed) = runUntilSettled(Follow(), look)
+        assertTrue("settled in ${frames * 16}ms", frames * 16 in 100..1_500)
+        assertEquals(Follow(1f, look), landed)
+    }
+
+    @Test
+    fun `a poke runs frames for its wobble only, and a bell for its whole swing`() {
+        val (wobble, _) = runUntilSettled(Follow(), null, MascotShape.Owl, sincePokeMs = 0)
+        assertEquals(POKE_MS.toFloat(), wobble * 16f, 16f)
+        val (swing, _) = runUntilSettled(Follow(), null, MascotShape.Bell, sincePokeMs = 0)
+        assertEquals(RING_MS.toFloat(), swing * 16f, 16f)
     }
 
     @Test

@@ -21,12 +21,13 @@ enum class MascotMood { Calm, Thinking, Happy, Worried, Asleep }
 internal enum class EyeStyle { Open, Arc, Closed }
 
 /**
- * How much the mascot moves.
+ * How much the mascot moves. Separate from how detailed it draws, which goes by size.
  * - [Still]: "Remove animations" — a deliberate static pose, no clock at all.
- * - [Quiet]: small sizes. The caller blinks it from a delay-driven clock; time only
- *   advances while a mood change plays out or the mascot is thinking, so an idle one
- *   runs nothing between blinks.
- * - [Full]: the hero, on a frame clock: scheduled blinks and a wandering gaze.
+ * - [Quiet]: the default. It blinks from a delay-driven clock, and frames run only while
+ *   something plays out (a mood or shape change, a poke, a finger on it, the eyes
+ *   finding a look) or it is thinking, so a settled one runs nothing between blinks.
+ * - [Full]: the one hero on a screen, on a frame clock: scheduled blinks, a wandering
+ *   gaze, breathing while asleep.
  */
 internal enum class MascotMotion { Still, Quiet, Full }
 
@@ -86,6 +87,9 @@ private const val RING_RATE = 16f
 /** How quickly the eyes find a finger, and how quickly they let go of it once it lifts. */
 internal const val FOLLOW_MS = 120f
 internal const val ATTENTION_MS = 300f
+
+/** Within this of where they're headed, the eyes snap there and a Quiet mascot stops drawing frames. */
+private const val SETTLE_EPSILON = 0.01f
 
 /** Gain on a drag's saturated reach: a finger about two thirds of the mascot away gets a full look. */
 private const val DRAG_GAIN = 1.6f
@@ -241,6 +245,37 @@ internal fun blendPose(from: MascotPose, to: MascotPose, weight: Float): MascotP
 /** Exponential ease of [current] toward [target] over [dtMs], with time constant [tauMs]. */
 internal fun ease(current: Float, target: Float, dtMs: Long, tauMs: Float): Float =
     current + (target - current) * (1 - exp(-dtMs / tauMs))
+
+/** How far the eyes follow a look (0..1), and the point they've reached. */
+internal data class Follow(val attention: Float = 0f, val at: Offset = Offset.Zero)
+
+/**
+ * One frame of [dtMs]: the eyes ease toward [target] (a finger, or where the caller
+ * points them), or back to their own gaze when it is null.
+ */
+internal fun Follow.step(target: Offset?, dtMs: Long): Follow = Follow(
+    attention = ease(attention, if (target != null) 1f else 0f, dtMs, ATTENTION_MS),
+    at = if (target == null) at else Offset(ease(at.x, target.x, dtMs, FOLLOW_MS), ease(at.y, target.y, dtMs, FOLLOW_MS)),
+)
+
+/** Close enough to [target] (or, without one, to the eyes' own gaze) that nothing would visibly move. */
+internal fun Follow.isSettled(target: Offset?): Boolean =
+    if (target == null) attention <= SETTLE_EPSILON
+    else attention >= 1f - SETTLE_EPSILON && (at - target).getDistance() <= SETTLE_EPSILON
+
+/** Exactly where a settled [Follow] was headed, so the held pose is the one it was easing to. */
+internal fun Follow.settle(target: Offset?): Follow = if (target == null) copy(attention = 0f) else Follow(1f, target)
+
+/** How long a poke plays out: a bell swings for longer than another shape wobbles. */
+internal fun pokeLengthMs(shape: MascotShape): Long = if (shape == MascotShape.Bell) RING_MS else POKE_MS
+
+/**
+ * Whether a [MascotMotion.Quiet] mascot still needs frames: a finger is [dragging] on it,
+ * a poke [sincePokeMs] ago is still playing out, or the eyes haven't reached [target].
+ * Once false, the pose holds and nothing runs until the next poke, drag or look.
+ */
+internal fun needsFrames(dragging: Boolean, sincePokeMs: Long, shape: MascotShape, follow: Follow, target: Offset?): Boolean =
+    dragging || sincePokeMs in 0 until pokeLengthMs(shape) || !follow.isSettled(target)
 
 /**
  * Where the eyes look for a finger at [dx], [dy] from them, in units of the mascot's size

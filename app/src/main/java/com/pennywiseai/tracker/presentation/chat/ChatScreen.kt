@@ -778,7 +778,8 @@ private fun ChatHero(happy: Boolean, typedLength: Int, modifier: Modifier = Modi
             size = Dimensions.Icon.extraLarge,
             mood = if (happy) MascotMood.Happy else MascotMood.Calm,
             look = if (typedLength > 0) typingGaze(typedLength) else null,
-            interactive = true
+            interactive = true,
+            alive = true
         )
     }
 }

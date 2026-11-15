@@ -50,6 +50,7 @@ import androidx.lifecycle.repeatOnLifecycle
 import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.isDark
+import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
@@ -62,17 +63,22 @@ import kotlin.random.Random
  * It is decoration and stays silent to accessibility — give the slot around it its name.
  *
  * Up to 32dp it draws as a two-tone glyph: a [tint] silhouette with the eyes cut out, so
- * whatever is behind it (a nav pill, a bar) shows through. It blinks on a delay-driven
- * clock and draws no frames in between. Larger, it draws the detailed owl from theme
- * roles on a frame clock, with a wandering gaze; other shapes take the tertiary
- * container roles. Either clock runs only while the mascot is composed, its lifecycle is
- * STARTED and animations are on; otherwise it holds a static pose. Time is read in the
- * draw phase only, so it never recomposes per frame.
+ * whatever is behind it (a nav pill, a bar) shows through. Larger, it draws the detailed
+ * owl from theme roles; other shapes take the tertiary container roles.
+ *
+ * How it moves doesn't depend on its size. By default it blinks on a delay-driven clock
+ * and draws no frames in between: frames run only while something plays out (a mood or
+ * shape change, a poke, a finger on it and the eyes settling after) and stop once the
+ * pose has settled. [alive] keeps a frame clock running instead, with a wandering gaze
+ * and breathing while asleep: for the one hero a screen is about (the empty chat), never
+ * for an empty state or a grid. A mascot that is [MascotMood.Thinking] runs a frame clock
+ * for as long as it thinks: the owl's eyes drift and its head sways, a
+ * [MascotShape.Bubble]'s eyes sweep along its lines. Any clock runs only while the mascot
+ * is composed, its lifecycle is STARTED and animations are on; otherwise it holds a
+ * static pose. Time is read in the draw phase only, so it never recomposes per frame.
  *
  * A new [shape] crossfades in on the theme's effects spec; a new [mood] blends from the
- * pose on screen. A small mascot that is [MascotMood.Thinking] runs a frame clock for as
- * long as it thinks: the owl's eyes drift and its head sways, a [MascotShape.Bubble]'s
- * eyes sweep along its lines.
+ * pose on screen.
  *
  * [value] is the shape's figure: a [MascotShape.Pie]'s slice share, how full a
  * [MascotShape.Jar] is or how much of a [MascotShape.Gauge] is used (0..1), or which way a
@@ -94,11 +100,12 @@ fun Mascot(
     value: Float = 0f,
     look: Offset? = null,
     interactive: Boolean = false,
+    alive: Boolean = false,
 ) {
     val detailed = size > Dimensions.Icon.large
     val motion = when {
         !rememberAnimationsEnabled() -> MascotMotion.Still
-        detailed -> MascotMotion.Full
+        alive -> MascotMotion.Full
         else -> MascotMotion.Quiet
     }
     val state = remember { MascotState(mood, shape) }
@@ -216,20 +223,44 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
     private val quietBlink = mutableFloatStateOf(0f)
     private val seed = Random.nextFloat() * 10f
 
+    /** Asks a Quiet mascot's idle clock for frames: a poke, a drag, a new look. */
+    private val wake = Channel<Unit>(Channel.CONFLATED)
+
     /** The pose last drawn: where a mood change blends from. */
     private var shown = MascotPose()
 
     /** The shape's figure (see [Mascot]). */
     var value by mutableFloatStateOf(0f)
 
-    /** Where the caller points the eyes, and where a finger dragging on the mascot is. */
-    var look by mutableStateOf<Offset?>(null)
-    var dragLook by mutableStateOf<Offset?>(null)
+    private val lookState = mutableStateOf<Offset?>(null)
+    private val dragLookState = mutableStateOf<Offset?>(null)
 
-    /** How far the eyes follow [dragLook] or [look] (0..1), and the point they've reached. */
-    private var attention = 0f
-    private var followed = Offset.Zero
+    /** Where the caller points the eyes. */
+    var look: Offset?
+        get() = lookState.value
+        set(v) {
+            if (v != lookState.value) {
+                lookState.value = v
+                wake.trySend(Unit)
+            }
+        }
+
+    /** Where a finger dragging on the mascot is, or null once it lifts. */
+    var dragLook: Offset?
+        get() = dragLookState.value
+        set(v) {
+            if (v != dragLookState.value) {
+                dragLookState.value = v
+                wake.trySend(Unit)
+            }
+        }
+
+    /** How far the eyes follow [dragLook] or [look], and the point they've reached. */
+    private var follow = Follow()
     private var pokeStart = Long.MIN_VALUE / 4
+
+    /** A tap waiting for the next frame, which starts its poke. */
+    private var pokeRequested = false
 
     /** Called from the draw phase, so the state reads here invalidate the drawing only. */
     fun pose(motion: MascotMotion): MascotPose {
@@ -244,48 +275,74 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
             // No clock to ease on: the eyes are simply where they're pointed.
             if (target != null) pose = lookAt(pose, target, 1f)
         } else {
-            pose = poked(lookAt(pose, followed, attention), t - pokeStart)
+            pose = poked(lookAt(pose, follow.at, follow.attention), t - pokeStart)
             if (shape == MascotShape.Bell) pose = rung(pose, t - pokeStart)
         }
         shown = pose
         return pose
     }
 
-    /** A tap: a quick blink and a damped wobble. Only a mascot on a frame clock shows it. */
+    /** A tap: a quick blink and a damped wobble (a bell swings). Only a mascot with a clock shows it. */
     fun poke() {
-        pokeStart = time.longValue
+        pokeRequested = true
+        wake.trySend(Unit)
     }
 
-    /** [thinking]: a Quiet mascot also needs frames, for as long as it thinks. */
+    /** [thinking]: a Quiet mascot runs a frame clock for as long as it thinks. */
     suspend fun runClock(motion: MascotMotion, lifecycle: Lifecycle, thinking: Boolean) {
         when (motion) {
-            MascotMotion.Still -> quietBlink.floatValue = 0f
+            MascotMotion.Still -> {
+                quietBlink.floatValue = 0f
+                pokeRequested = false
+            }
             MascotMotion.Quiet -> lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) {
-                if (thinking) launch { tick() }
+                launch { if (thinking) tick() else tickWhenNeeded() }
                 blinkNowAndThen()
             }
             MascotMotion.Full -> lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { tick() }
         }
     }
 
+    /** Frames for as long as the clock runs. */
     private suspend fun tick() {
         var last = -1L
         while (true) {
             withFrameMillis { now ->
-                if (last >= 0) follow(now - last)
+                frame(now, if (last >= 0) now - last else 0L)
                 last = now
-                time.longValue = now
             }
         }
     }
 
-    /** Eases the eyes toward where they're pointed, and back to their own gaze once let go. */
-    private fun follow(dtMs: Long) {
-        val target = dragLook ?: look
-        attention = ease(attention, if (target != null) 1f else 0f, dtMs, ATTENTION_MS)
-        if (target != null) {
-            followed = Offset(ease(followed.x, target.x, dtMs, FOLLOW_MS), ease(followed.y, target.y, dtMs, FOLLOW_MS))
+    /**
+     * A Quiet mascot's frames: a burst while something plays out ([needsFrames]), then
+     * none until [wake]. The first burst also lands whatever a stop cut short.
+     */
+    private suspend fun tickWhenNeeded() {
+        while (true) {
+            var last = -1L
+            do {
+                val busy = withFrameMillis { now ->
+                    frame(now, if (last >= 0) now - last else 0L)
+                    last = now
+                    val target = dragLook ?: look
+                    needsFrames(dragLook != null, now - pokeStart, shape, follow, target).also { busy ->
+                        if (!busy) follow = follow.settle(target)
+                    }
+                }
+            } while (busy)
+            wake.receive()
         }
+    }
+
+    /** One frame: starts a waiting poke and eases the eyes toward where they're pointed. */
+    private fun frame(now: Long, dtMs: Long) {
+        if (pokeRequested) {
+            pokeRequested = false
+            pokeStart = now
+        }
+        follow = follow.step(dragLook ?: look, dtMs)
+        time.longValue = now
     }
 
     /** Waits 4–8s, blinks for 190ms (sometimes twice), repeats. No frames while it waits. */

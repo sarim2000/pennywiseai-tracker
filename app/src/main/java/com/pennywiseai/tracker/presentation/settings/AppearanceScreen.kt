@@ -44,9 +44,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.SegmentedButton
-import androidx.compose.material3.SegmentedButtonDefaults
-import androidx.compose.material3.SingleChoiceSegmentedButtonRow
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
@@ -80,6 +77,7 @@ import com.pennywiseai.tracker.data.preferences.ThemeStyle
 import com.pennywiseai.tracker.navigation.BottomNavItem
 import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.ui.animations.pwExpand
+import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PreferenceSwitch
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
@@ -313,32 +311,28 @@ private fun NavigationContent(onNavigateBack: () -> Unit) {
     }
 }
 
-// --- Theme mode (System / Light / Dark): a segmented row, as in Mihon ---
+// --- Theme mode (System / Light / Dark) ---
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun ThemeModeSelector(
     currentMode: Boolean?,
     onModeSelected: (Boolean?) -> Unit
 ) {
-    val options = listOf(
-        null to R.string.appearance_mode_system,
-        false to R.string.appearance_mode_light,
-        true to R.string.appearance_mode_dark
+    ConnectedChoiceRow(
+        options = listOf(null, false, true),
+        selected = currentMode,
+        onSelect = onModeSelected,
+        label = { mode ->
+            stringResource(
+                when (mode) {
+                    null -> R.string.appearance_mode_system
+                    false -> R.string.appearance_mode_light
+                    true -> R.string.appearance_mode_dark
+                }
+            )
+        },
+        modifier = Modifier.padding(horizontal = Spacing.md)
     )
-    SingleChoiceSegmentedButtonRow(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.md)
-    ) {
-        options.forEachIndexed { index, (mode, label) ->
-            SegmentedButton(
-                selected = currentMode == mode,
-                onClick = { onModeSelected(mode) },
-                shape = SegmentedButtonDefaults.itemShape(index, options.size)
-            ) {
-                Text(stringResource(label))
-            }
-        }
-    }
 }
 
 // --- Theme picker: a row of mini app mock-ups, each drawn in its own theme (as in Mihon) ---
@@ -386,7 +380,7 @@ private fun ThemePicker(
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
         items(themes, key = { it.name }) { style ->
-            Column(modifier = Modifier.width(114.dp).padding(top = Spacing.sm)) {
+            Column(modifier = Modifier.width(Dimensions.Component.themePreviewWidth).padding(top = Spacing.sm)) {
                 val title = stringResource(style.titleRes())
                 ThemePreviewCard(
                     scheme = pennyWiseColorScheme(
@@ -430,26 +424,27 @@ private fun ThemePreviewCard(
                 .fillMaxWidth()
                 .aspectRatio(9f / 16f)
                 .border(
-                    width = 4.dp,
+                    width = Spacing.xs,
                     color = if (selected) colors.primary else colors.outlineVariant,
-                    shape = RoundedCornerShape(17.dp)
+                    shape = RoundedCornerShape(Dimensions.CornerRadius.large)
                 )
-                .padding(4.dp)
-                .clip(RoundedCornerShape(13.dp))
+                .padding(Spacing.xs)
+                // Inner corner = outer corner − border, so the two stay concentric.
+                .clip(RoundedCornerShape(Dimensions.CornerRadius.card))
                 .background(colors.background)
                 .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
                 .semantics { this.contentDescription = contentDescription }
         ) {
             // Top bar
             Row(
-                modifier = Modifier.fillMaxWidth().height(40.dp).padding(8.dp),
+                modifier = Modifier.fillMaxWidth().padding(Spacing.sm).height(Dimensions.Icon.medium),
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxHeight(0.8f)
                         .weight(0.7f)
-                        .padding(end = 4.dp)
+                        .padding(end = Spacing.xs)
                         .background(colors.onSurface, pill)
                 )
                 Box(modifier = Modifier.weight(0.3f), contentAlignment = Alignment.CenterEnd) {
@@ -466,19 +461,19 @@ private fun ThemePreviewCard(
             // Balance card with secondary/tertiary chips
             Column(
                 modifier = Modifier
-                    .padding(horizontal = 8.dp, vertical = 2.dp)
+                    .padding(horizontal = Spacing.sm, vertical = Spacing.xxs)
                     .fillMaxWidth()
                     .background(colors.primaryContainer, pill)
-                    .padding(6.dp),
-                verticalArrangement = Arrangement.spacedBy(6.dp)
+                    .padding(Spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 Box(
                     modifier = Modifier
                         .fillMaxWidth(0.6f)
-                        .height(8.dp)
+                        .height(Spacing.sm)
                         .background(colors.onPrimaryContainer, pill)
                 )
-                Row(modifier = Modifier.size(width = 24.dp, height = 12.dp).clip(RoundedCornerShape(4.dp))) {
+                Row(modifier = Modifier.size(width = Dimensions.Icon.medium, height = Dimensions.Icon.tiny).clip(RoundedCornerShape(Dimensions.CornerRadius.small))) {
                     Box(modifier = Modifier.fillMaxHeight().weight(1f).background(colors.tertiary))
                     Box(modifier = Modifier.fillMaxHeight().weight(1f).background(colors.secondary))
                 }
@@ -487,15 +482,15 @@ private fun ThemePreviewCard(
             // Two transaction rows
             listOf(colors.secondary, colors.tertiary).forEach { dot ->
                 Row(
-                    modifier = Modifier.padding(start = 8.dp, end = 8.dp, top = 6.dp),
+                    modifier = Modifier.padding(start = Spacing.sm, end = Spacing.sm, top = Spacing.sm),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(modifier = Modifier.size(12.dp).background(dot, CircleShape))
+                    Box(modifier = Modifier.size(Dimensions.Icon.tiny).background(dot, CircleShape))
                     Box(
                         modifier = Modifier
-                            .padding(start = 6.dp)
+                            .padding(start = Spacing.sm)
                             .alpha(0.6f)
-                            .height(8.dp)
+                            .height(Spacing.sm)
                             .weight(1f)
                             .background(colors.onSurface, pill)
                     )
@@ -507,17 +502,17 @@ private fun ThemePreviewCard(
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
-                        .height(32.dp)
+                        .height(Spacing.xl)
                         .background(colors.surfaceContainer)
-                        .padding(horizontal = 8.dp),
+                        .padding(horizontal = Spacing.sm),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Box(modifier = Modifier.size(17.dp).background(colors.primary, CircleShape))
+                    Box(modifier = Modifier.size(Dimensions.Icon.small).background(colors.primary, CircleShape))
                     Box(
                         modifier = Modifier
-                            .padding(start = 8.dp)
+                            .padding(start = Spacing.sm)
                             .alpha(0.6f)
-                            .height(17.dp)
+                            .height(Dimensions.Icon.small)
                             .weight(1f)
                             .background(colors.onSurface, pill)
                     )
@@ -548,13 +543,13 @@ private fun AccentPicker(
             // Wallpaper-style swatch: primary on top, secondary | tertiary below.
             Box(
                 modifier = Modifier
-                    .size(48.dp)
+                    .size(Dimensions.Icon.avatarLarge)
                     .border(
-                        width = 3.dp,
+                        width = Spacing.xxs,
                         color = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
                         shape = CircleShape
                     )
-                    .padding(5.dp)
+                    .padding(Spacing.xs)
                     .clip(CircleShape)
                     .selectable(selected = selected, role = Role.RadioButton, onClick = { onAccentSelected(accent) })
                     // ponytail: Rosé Pine palette names are proper nouns, so no string resources.
@@ -574,9 +569,9 @@ private fun AccentPicker(
                         contentDescription = null,
                         tint = scheme.onPrimary,
                         modifier = Modifier
-                            .size(20.dp)
+                            .size(Dimensions.Icon.inline)
                             .background(scheme.primary, CircleShape)
-                            .padding(2.dp)
+                            .padding(Spacing.xxs)
                     )
                 }
             }

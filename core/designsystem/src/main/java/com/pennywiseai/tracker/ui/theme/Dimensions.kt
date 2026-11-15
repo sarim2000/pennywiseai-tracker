@@ -143,6 +143,9 @@ object Dimensions {
         /** The year review's month bars. */
         val reviewBarHeight = 72.dp
 
+        /** Width of a theme preview card in Appearance (Mihon's 9:16 mini-app mock-up). */
+        val themePreviewWidth = 114.dp
+
         /** Widest a current value may get at the end of a settings row. */
         val rowValueMaxWidth = 96.dp
 

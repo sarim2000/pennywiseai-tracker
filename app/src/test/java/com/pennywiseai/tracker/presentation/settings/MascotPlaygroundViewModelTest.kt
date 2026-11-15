@@ -5,6 +5,8 @@ import androidx.work.WorkManager
 import com.pennywiseai.tracker.core.AppForegroundState
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.events.TransactionEvents
+import com.pennywiseai.tracker.data.preferences.UserPreferences
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.presentation.chat.ChatTabViewModel
 import com.pennywiseai.tracker.ui.components.mascot.reactionFor
 import io.mockk.every
@@ -36,7 +38,12 @@ class MascotPlaygroundViewModelTest {
             }
             val events = TransactionEvents(AppForegroundState { true })
             val playground = MascotPlaygroundViewModel(events)
-            val tab = ChatTabViewModel(mockk<Context>(), events)
+            val tab = ChatTabViewModel(
+                mockk<Context>(),
+                events,
+                AppForegroundState { true },
+                mockk<UserPreferencesRepository> { every { userPreferences } returns flowOf(UserPreferences()) },
+            )
             runTest(dispatcher) {
                 runCurrent() // the tab is listening
                 for (type in TransactionType.entries) {

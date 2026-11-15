@@ -5,7 +5,9 @@ import android.content.Context
 import com.pennywiseai.tracker.PennyWiseApplication
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.flow.MutableSharedFlow
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -21,6 +23,15 @@ class AppForegroundModuleTest {
 
         assertTrue(state.isInForeground())
         assertFalse(state.isInForeground())
+    }
+
+    @Test
+    fun `passes on the application's backgrounding`() {
+        val left = MutableSharedFlow<Unit>()
+        val app = mockk<PennyWiseApplication> { every { backgrounded } returns left }
+        val context = mockk<Context> { every { applicationContext } returns app }
+
+        assertSame(left, AppForegroundModule.provideAppForegroundState(context).backgrounded)
     }
 
     @Test

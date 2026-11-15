@@ -54,9 +54,10 @@ internal fun reactionFor(type: TransactionType): MascotReaction = when (type) {
  * scan runs, then the owl again. A burst folds into the reaction already showing: nothing
  * queues behind it and its hold never extends. A scan takes over from a reaction.
  *
- * Saves come in through [onSave] for as long as [scope] lives (the Chat tab's ViewModel),
- * so one made on a screen pushed over the tabs (Add) is still inside its hold when the bar
- * comes back. The hold runs on [scope], so it ends on time whether or not anyone watches.
+ * Saves come in through [onSave] while the Chat tab is visible, for as long as [scope]
+ * lives (the Chat tab's ViewModel), so one made on a screen pushed over the tabs (Add) is
+ * still inside its hold when the bar comes back. The hold runs on [scope], so it ends on
+ * time whether or not anyone watches; [clear] drops it early.
  */
 internal class ChatTabReactions(
     private val scope: CoroutineScope,
@@ -73,6 +74,15 @@ internal class ChatTabReactions(
     /** A save just committed in the foreground (gated at the source). */
     fun onSave(event: TransactionEvent) {
         if (!scanning) react(reactionFor(event.type))
+    }
+
+    /**
+     * The user left the app or hid the tab: the reaction goes now, so there is nothing to
+     * show on return. A running scan's bubble belongs to [watchScan], which ends it itself.
+     */
+    fun clear() {
+        clearFlash()
+        publish()
     }
 
     /**

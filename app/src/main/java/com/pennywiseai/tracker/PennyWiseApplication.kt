@@ -21,6 +21,10 @@ import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -68,6 +72,11 @@ class PennyWiseApplication : Application(), Configuration.Provider {
     @Volatile
     var isAppInForeground: Boolean = false
         private set
+
+    private val _backgrounded = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+
+    /** Emits each time the user leaves the app; a rotation stops the activity but isn't leaving. */
+    val backgrounded: SharedFlow<Unit> = _backgrounded.asSharedFlow()
 
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
@@ -261,6 +270,7 @@ class PennyWiseApplication : Application(), Configuration.Provider {
                 // Ends the unlock and starts the lock timeout. A rotation stops
                 // the only activity too, but the user never left.
                 if (!activity.isChangingConfigurations) {
+                    _backgrounded.tryEmit(Unit)
                     appLockRepository.onAppBackgrounded()?.let { leftAt ->
                         applicationScope.launch { appLockRepository.recordLeftAt(leftAt) }
                     }

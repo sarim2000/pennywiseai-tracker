@@ -1,0 +1,7 @@
+• Added IFIC Bank Bangladesh SMS support
+• Added Barq SMS support (Saudi Arabia)
+• Added Mobily Pay SMS support (Saudi Arabia)
+• Animated owl mascot in AI chat with live reactions
+• Dictate chat messages with your mic, in any language
+• Week, cycle and year spending reviews with a weekly recap and share card
+• Ask 'What was this?' on any transaction to tag it as a loan, split, transfer or saving

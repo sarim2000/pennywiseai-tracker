@@ -1164,14 +1164,18 @@ class TransactionDetailViewModel @Inject constructor(
 
     // A same-amount row nearby may be unrelated income, so it's shown before both rows change.
     private suspend fun findOwnTransferPartner(txn: TransactionEntity) {
+        val partner = lookUpTransferPartner(txn)
+        if (partner == null) editAsTransfer() else _proposedTransferPartner.value = partner
+    }
+
+    private suspend fun lookUpTransferPartner(txn: TransactionEntity): TransactionEntity? {
         val window = java.time.Duration.ofMinutes(60)
-        val partner = ownTransferPartner(
+        return ownTransferPartner(
             txn,
             transactionRepository.getTransactionsBetweenDatesList(txn.dateTime.minus(window), txn.dateTime.plus(window)),
             com.pennywiseai.tracker.domain.model.buildProfileAccountKeys(accountBalanceRepository.getAllLatestBalancesOnce()),
             transactionRepository.observeSplitsForActiveTransactions().first().mapTo(HashSet()) { it.transactionId }
         )
-        if (partner == null) editAsTransfer() else _proposedTransferPartner.value = partner
     }
 
     private fun editAsTransfer() {
@@ -1190,12 +1194,20 @@ class TransactionDetailViewModel @Inject constructor(
     }
 
     fun confirmTransferPartner() {
-        val txn = _transaction.value ?: return
-        val partner = _proposedTransferPartner.value ?: return
+        val txnId = _transaction.value?.id ?: return
+        val proposed = _proposedTransferPartner.value ?: return
         _proposedTransferPartner.value = null
         viewModelScope.launch {
             try {
-                pairAsTransfer(txn, partner)
+                // Both rows as they are now: a scan may have corrected either while the
+                // dialog was open. Pair only if the same row still matches; else ask again.
+                val txn = transactionRepository.getTransactionById(txnId) ?: return@launch
+                val partner = lookUpTransferPartner(txn)
+                when {
+                    partner?.id == proposed.id -> pairAsTransfer(txn, partner)
+                    partner != null -> _proposedTransferPartner.value = partner
+                    else -> editAsTransfer()
+                }
             } catch (e: kotlinx.coroutines.CancellationException) {
                 throw e
             } catch (e: Exception) {

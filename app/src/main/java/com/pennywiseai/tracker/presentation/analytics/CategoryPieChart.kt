@@ -6,8 +6,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -21,6 +19,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.components.CategoryIcon
+import com.pennywiseai.tracker.ui.components.ExpandableList
 import com.pennywiseai.tracker.ui.effects.BlurredAnimatedVisibility
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.icons.categoryLabel
@@ -71,15 +70,13 @@ fun CategoryPieChart(
     Row(
         modifier = modifier
             .fillMaxWidth()
-            .height(200.dp)
+            .heightIn(min = 200.dp)
             .padding(Spacing.sm),
         horizontalArrangement = Arrangement.SpaceBetween,
         verticalAlignment = Alignment.CenterVertically
     ) {
         Box(
-            modifier = Modifier
-                .weight(1.2f)
-                .fillMaxHeight(),
+            modifier = Modifier.weight(1.2f),
             contentAlignment = Alignment.Center
         ) {
             PieChart(
@@ -133,30 +130,32 @@ fun CategoryPieChart(
             }
         }
 
-        LazyColumn(
+        // A plain list, not a LazyColumn: a fixed-height scroller inside the scrolling
+        // Analytics screen trapped the drag. The rest opens below, like the list view.
+        ExpandableList(
+            items = chartData.sortedByDescending { it.data },
+            visibleItemCount = 5,
+            itemSpacing = Spacing.none,
             modifier = Modifier
                 .weight(1f)
-                .fillMaxHeight()
                 .padding(start = Spacing.md)
-        ) {
-            items(chartData.sortedByDescending { it.data }) { pie ->
-                PieLegendItem(
-                    label = pie.label ?: stringResource(R.string.analytics_pie_unknown),
-                    value = pie.data,
-                    color = pie.color,
-                    isSelected = pie.selected,
-                    currency = currency,
-                    totalAmount = total,
-                    onClick = {
-                        val pieIndex = chartData.indexOf(pie)
-                        chartData = chartData.mapIndexed { index, p ->
-                            p.copy(selected = index == pieIndex)
-                        }
-                        val categoryName = pie.label ?: return@PieLegendItem
-                        categories.find { it.name == categoryName }?.let(onCategoryClick)
+        ) { pie ->
+            PieLegendItem(
+                label = pie.label ?: stringResource(R.string.analytics_pie_unknown),
+                value = pie.data,
+                color = pie.color,
+                isSelected = pie.selected,
+                currency = currency,
+                totalAmount = total,
+                onClick = {
+                    val pieIndex = chartData.indexOf(pie)
+                    chartData = chartData.mapIndexed { index, p ->
+                        p.copy(selected = index == pieIndex)
                     }
-                )
-            }
+                    val categoryName = pie.label ?: return@PieLegendItem
+                    categories.find { it.name == categoryName }?.let(onCategoryClick)
+                }
+            )
         }
     }
 }

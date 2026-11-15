@@ -147,30 +147,30 @@ Each milestone is one PR (M5 may be one PR per screen). Every milestone also nee
 ### M1 — Mascot engine + Chat tab owl
 The smallest visible win: the Chat tab becomes the owl that blinks.
 
-- [ ] Branch `feat/mascot-tab` from `main`
-- [ ] `MascotPose.kt`:
-  - [ ] Blink slots (4.2s / 0.19s / 20% doubles)
-  - [ ] Gaze wander, clamped inside the eye
-  - [ ] Mood blend from the on-screen pose
-  - [ ] Reduced-motion static pose
-- [ ] `MascotShapes.kt`: `Owl` only for now (body path + eye spec), with the 24/32dp two-tone variant
-- [ ] `Mascot.kt`:
-  - [ ] `drawWithCache` drawing
-  - [ ] Delay-driven blink clock
-  - [ ] Lifecycle, visibility and animations-enabled gating
-  - [ ] `clearAndSetSemantics {}` on the drawing
-- [ ] `PennyWiseBottomNavigation.kt`: branch on `BottomNavItem.Chat` in the NORMAL and FLOATING icon slots
-- [ ] Tab tint rules:
-  - [ ] Accent in both states
-  - [ ] Muted when unselected and both pill and labels are hidden
-  - [ ] Eye cut-outs in the backing colour
+- [x] Branch `feat/mascot` from `main`
+- [x] `MascotPose.kt`:
+  - [x] Blink slots (4.2s / 0.19s / 20% doubles)
+  - [x] Gaze wander, clamped inside the eye
+  - [x] Mood blend from the on-screen pose
+  - [x] Reduced-motion static pose
+- [x] `MascotShapes.kt`: `Owl` only for now (body path + eye spec), with the 24/32dp two-tone variant
+- [x] `Mascot.kt`:
+  - [x] `drawWithCache` drawing
+  - [x] Delay-driven blink clock
+  - [x] Lifecycle, visibility and animations-enabled gating
+  - [x] `clearAndSetSemantics {}` on the drawing
+- [x] `PennyWiseBottomNavigation.kt`: branch on `BottomNavItem.Chat` in the NORMAL and FLOATING icon slots
+- [x] Tab tint rules:
+  - [x] Accent in both states
+  - [x] Muted when unselected and both pill and labels are hidden
+  - [x] Eye cut-outs in the backing colour
 - [ ] Keep the Chat accessible name and tab semantics in both bars (verify with TalkBack)
-- [ ] Hidden Chat tab: nothing composed, nothing running
-- [ ] `MascotPoseTest`:
-  - [ ] Blink closes and reopens on schedule
-  - [ ] Gaze stays inside the eye
-  - [ ] A blend starts from the pose on screen
-  - [ ] Reduced motion gives a static pose
+- [x] Hidden Chat tab: nothing composed, nothing running
+- [x] `MascotPoseTest`:
+  - [x] Blink closes and reopens on schedule
+  - [x] Gaze stays inside the eye
+  - [x] A blend starts from the pose on screen
+  - [x] Reduced motion gives a static pose
 - [ ] Battery check: no frames between blinks (Layout Inspector / `dumpsys gfxinfo`)
 
 ### M2 — Transaction reactions on the tab

@@ -390,7 +390,8 @@ class Mascot {
   }
 
   drawPillEyes(ctx, e, p, color) {
-    const sc = e.s * (this.detail === "tab" ? 1.35 : 1), w = 4.6 * sc, h = 11 * sc;
+    // Tab eyes are 1.5x so the cut-outs still read at 24dp (matches TWO_TONE_EYE_SCALE in Mascot.kt).
+    const sc = e.s * (this.detail === "tab" ? 1.5 : 1), w = 4.6 * sc, h = 11 * sc;
     const ox = p.gx * 6, oy = p.gy * 4;
     ctx.fillStyle = color; ctx.strokeStyle = color; ctx.lineCap = "round"; ctx.lineWidth = 2.6 * sc;
     for (const side of [-1, 1]) {

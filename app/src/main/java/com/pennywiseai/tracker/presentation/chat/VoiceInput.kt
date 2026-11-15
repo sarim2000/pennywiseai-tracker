@@ -46,12 +46,14 @@ import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.Stop
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.AssistChip
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.SelectableDropdownMenuItem
@@ -643,8 +645,8 @@ fun VoiceMicButton(voice: VoiceInput, enabled: Boolean, onTap: () -> Unit) {
             icon = { Icon(Icons.Default.Cloud, contentDescription = null) },
             title = { Text(stringResource(R.string.voice_online_title, voice.shortName(tag))) },
             text = { Text(stringResource(R.string.voice_online_body, voice.shortName(tag), ask.label)) },
-            confirmButton = { TextButton(onClick = { voice.answerOnline(true) }) { Text(stringResource(R.string.voice_online_confirm)) } },
-            dismissButton = { TextButton(onClick = { voice.answerOnline(false) }) { Text(stringResource(android.R.string.cancel)) } }
+            confirmButton = { TextButton(onClick = { voice.answerOnline(true) }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.voice_online_confirm)) } },
+            dismissButton = { TextButton(onClick = { voice.answerOnline(false) }, shapes = ButtonDefaults.shapes()) { Text(stringResource(android.R.string.cancel)) } }
         )
     }
 }
@@ -752,7 +754,7 @@ fun VoiceStatusBar(voice: VoiceInput, modifier: Modifier = Modifier) {
         )
         VoiceLanguageChip(voice)
         if (!voice.active) {
-            IconButton(onClick = { voice.note = null }) {
+            IconButton(onClick = { voice.note = null }, shapes = IconButtonDefaults.shapes()) {
                 Icon(Icons.Default.Close, contentDescription = stringResource(R.string.chat_dismiss))
             }
         }

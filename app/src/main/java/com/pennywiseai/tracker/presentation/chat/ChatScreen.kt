@@ -82,6 +82,14 @@ fun ChatScreen(
     }
 
     var inputText by remember { mutableStateOf("") }
+    val voice = rememberVoiceInput(onText = { inputText = it })
+    // The mic stops with the screen; words already heard stay in the box.
+    androidx.lifecycle.compose.LifecycleStartEffect(voice) {
+        onStopOrDispose {
+            voice.cancel()
+            voice.menuOpen = false
+        }
+    }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
     val focusRequester = remember { FocusRequester() }
@@ -469,7 +477,15 @@ fun ChatScreen(
                                 tonalElevation = 3.dp
                             ) {
                                 Column {
-                                    QuickActionChips(enabled = !uiState.isLoading && !isConfirming, onClick = viewModel::runQuickAction)
+                                    if (voice.available && (voice.active || voice.note != null)) {
+                                        VoiceStatusBar(voice)
+                                    } else {
+                                        QuickActionChips(
+                                            enabled = !uiState.isLoading && !isConfirming,
+                                            onClick = viewModel::runQuickAction,
+                                            leading = { if (voice.available) VoiceLanguageChip(voice) }
+                                        )
+                                    }
                                     Row(
                                         modifier = Modifier
                                             .fillMaxWidth()
@@ -484,7 +500,23 @@ fun ChatScreen(
                                                 .focusRequester(focusRequester),
                                             placeholder = { Text(stringResource(R.string.chat_input_placeholder)) },
                                             enabled = !uiState.isLoading,
+                                            // Words land here as they're heard; editable once the mic stops.
+                                            readOnly = voice.active,
+                                            trailingIcon = if (voice.available) {
+                                                {
+                                                    VoiceMicButton(
+                                                        voice = voice,
+                                                        // Stop always works; only a new recording waits for the chat.
+                                                        enabled = voice.active || (!uiState.isLoading && !isConfirming),
+                                                        onTap = { voice.toggle(inputText) }
+                                                    )
+                                                }
+                                            } else {
+                                                null
+                                            },
                                             maxLines = 3,
+                                            // Arabic from the mic (or typed) reads right to left.
+                                            textStyle = LocalTextStyle.current.copy(textDirection = TextDirection.Content),
                                             shape = MaterialTheme.shapes.extraLarge
                                         )
 
@@ -497,7 +529,7 @@ fun ChatScreen(
                                                 // Keep keyboard open by requesting focus
                                                 focusRequester.requestFocus()
                                             },
-                                            enabled = inputText.isNotBlank() && !uiState.isLoading && !isConfirming,
+                                            enabled = inputText.isNotBlank() && !uiState.isLoading && !isConfirming && !voice.active,
                                             modifier = Modifier.size(48.dp),
                                             shapes = IconButtonDefaults.shapes()
                                         ) {
@@ -860,7 +892,7 @@ private fun PendingActionCard(
 
 /** M8: one-tap questions the app answers itself, no model involved. */
 @Composable
-private fun QuickActionChips(enabled: Boolean, onClick: (QuickAction) -> Unit) {
+private fun QuickActionChips(enabled: Boolean, onClick: (QuickAction) -> Unit, leading: @Composable () -> Unit = {}) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -868,6 +900,7 @@ private fun QuickActionChips(enabled: Boolean, onClick: (QuickAction) -> Unit) {
             .padding(start = Dimensions.Padding.content, end = Dimensions.Padding.content, top = Spacing.sm),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
+        leading()
         QuickAction.entries.forEach { action ->
             SuggestionChip(
                 onClick = { onClick(action) },

@@ -12,10 +12,12 @@ import com.pennywiseai.tracker.data.database.entity.LoanStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.domain.loan.LoanMath
+import com.pennywiseai.tracker.domain.loan.LoanOverflow
 import com.pennywiseai.tracker.domain.loan.SettledShareException
 import com.pennywiseai.tracker.domain.loan.SplitPerson
 import com.pennywiseai.tracker.domain.loan.SplitRules
 import com.pennywiseai.tracker.domain.loan.SplitShare
+import com.pennywiseai.tracker.domain.loan.opposite
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -218,12 +220,17 @@ class LoanRepository @Inject constructor(
      * The repayment is capped at what's still owed: ₹500 back on a ₹130 loan
      * repays ₹130, and the other ₹370 stays ordinary income in every total
      * (see `countedAmount`) instead of vanishing into a settled loan (#831).
+     *
+     * With [overflow] [LoanOverflow.FLIP_DEBT] that extra is instead money the
+     * other side now owes, when the loan can take it ([flippableOverflow]): the
+     * payment links in full and the loan turns around for the extra.
      */
     suspend fun recordRepayment(
         loanId: Long,
         transactionId: Long,
         contribution: BigDecimal? = null,
-        note: String? = null
+        note: String? = null,
+        overflow: LoanOverflow = LoanOverflow.COUNT_AS_OWN
     ) = repaymentLock.withLock {
         requireNotSplit(transactionId)
         val loan = loanDao.getLoanById(loanId)
@@ -232,6 +239,16 @@ class LoanRepository @Inject constructor(
         // A row already linked here is already counted as repaid, so add it back to what is owed.
         val alreadyRepaid = if (txn?.loanId == loanId) txn.loanContribution ?: txn.amount else BigDecimal.ZERO
         val owed = loan?.let { owedNow(it) + alreadyRepaid }
+        val extra = if (wanted != null && owed != null) wanted - owed else null
+        if (overflow == LoanOverflow.FLIP_DEBT && loan != null && wanted != null && extra != null &&
+            extra.signum() > 0 && canFlip(loan)
+        ) {
+            loanDao.linkTransaction(transactionId, loanId)
+            persistContributionOverride(transactionId, wanted)
+            keepNote(transactionId, note)
+            flipDirection(loan, extra)
+            return@withLock
+        }
         // Capped even at zero (a reopened, fully repaid loan): the payment then
         // counts in full as ordinary income/spend rather than vanishing.
         val capped = if (wanted != null && owed != null && wanted > owed) owed else contribution
@@ -243,13 +260,64 @@ class LoanRepository @Inject constructor(
         recalculateRemaining(loanId)
     }
 
+    /**
+     * How much a payment of [contribution] (or all of [transactionId] when null)
+     * would pay beyond what loan [loanId] still owes, when that extra could turn
+     * the loan around ([LoanOverflow.FLIP_DEBT]); null when it pays no more than
+     * is owed or the loan can't turn. Callers ask before recording, so the user
+     * can choose what the extra is.
+     */
+    suspend fun flippableOverflow(loanId: Long, transactionId: Long?, contribution: BigDecimal?): BigDecimal? {
+        val loan = loanDao.getLoanById(loanId) ?: return null
+        val txn = transactionId?.let { transactionDao.getTransactionById(it) }
+        val wanted = contribution ?: txn?.amount ?: return null
+        val alreadyRepaid = if (txn != null && txn.loanId == loanId) txn.loanContribution ?: txn.amount else BigDecimal.ZERO
+        val extra = wanted - (owedNow(loan) + alreadyRepaid)
+        return extra.takeIf { it.signum() > 0 && canFlip(loan) }
+    }
+
+    /**
+     * A loan can turn around only while it's open, holds no split-bill shares
+     * (those are always money owed to you, #346), and the person has no other
+     * open loan the other way in its currency, which would leave them with two.
+     */
+    private suspend fun canFlip(loan: LoanEntity): Boolean =
+        loan.status == LoanStatus.ACTIVE &&
+            loanDao.getSharesForLoan(loan.id).isEmpty() &&
+            loanDao.getActiveLoanByPersonAndDirection(loan.personName, loan.direction.opposite().name, loan.currency) == null
+
+    /**
+     * Turns [loan] around after a payment overshot it by [extra]: its money-out
+     * and money-in rows swap roles ([LoanMath]), and the principal is set so
+     * exactly [extra] is left to repay. A ₹1,000 advance overspent by a ₹1,500
+     * bill becomes a ₹1,500 loan with ₹1,000 repaid: ₹500 owed to you.
+     */
+    private suspend fun flipDirection(loan: LoanEntity, extra: BigDecimal) {
+        val direction = loan.direction.opposite()
+        val repaid = LoanMath.repaid(direction, loanDao.getLinkedTransactions(loan.id))
+        val now = LocalDateTime.now()
+        loanDao.updateLoan(
+            loan.copy(
+                direction = direction,
+                originalAmount = repaid + extra,
+                remainingAmount = extra,
+                status = LoanStatus.ACTIVE,
+                settledAt = null,
+                updatedAt = now
+            )
+        )
+    }
+
     suspend fun recordManualRepayment(
         loanId: Long,
         amount: BigDecimal,
         personName: String,
-        currency: String
+        currency: String,
+        overflow: LoanOverflow = LoanOverflow.COUNT_AS_OWN
     ): Long = repaymentLock.withLock {
         val loan = loanDao.getLoanById(loanId) ?: return@withLock -1L
+        val owed = owedNow(loan)
+        val flip = overflow == LoanOverflow.FLIP_DEBT && amount > owed && canFlip(loan)
         val txType = if (loan.direction == LoanDirection.LENT)
             TransactionType.INCOME else TransactionType.EXPENSE
         val transaction = TransactionEntity(
@@ -263,11 +331,12 @@ class LoanRepository @Inject constructor(
             currency = currency,
             loanId = loanId,
             // Same cap as [recordRepayment]: anything beyond what's owed counts
-            // as ordinary income/spend instead of vanishing (#831).
-            loanContribution = owedNow(loan).takeIf { amount > it }
+            // as ordinary income/spend instead of vanishing (#831), unless it
+            // turns the loan around.
+            loanContribution = if (flip) null else owed.takeIf { amount > it }
         )
         val txId = transactionDao.insertTransaction(transaction)
-        recalculateRemaining(loanId)
+        if (flip) flipDirection(loan, amount - owed) else recalculateRemaining(loanId)
         txId
     }
 

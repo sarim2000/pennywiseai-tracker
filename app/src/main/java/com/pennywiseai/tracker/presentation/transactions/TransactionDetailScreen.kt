@@ -2,7 +2,9 @@ package com.pennywiseai.tracker.presentation.transactions
 
 import android.animation.ValueAnimator
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.domain.loan.LoanOverflow
 import com.pennywiseai.tracker.presentation.goals.AddToGoalSheet
+import com.pennywiseai.tracker.presentation.loans.LoanOverflowDialog
 import com.pennywiseai.tracker.presentation.goals.TowardGoalsSection
 import com.pennywiseai.tracker.presentation.goals.TransactionGoalsViewModel
 import com.pennywiseai.tracker.presentation.split.SplitBillSheet
@@ -93,6 +95,7 @@ fun TransactionDetailScreen(
     // Loan state
     val loan by viewModel.loan.collectAsStateWithLifecycle()
     val showMarkAsLoanSheet by viewModel.showMarkAsLoanSheet.collectAsStateWithLifecycle()
+    val loanOverflowPrompt by viewModel.loanOverflowPrompt.collectAsStateWithLifecycle()
     var showUnmarkLoanConfirm by remember { mutableStateOf(false) }
     val recentPersonNames by viewModel.recentPersonNames.collectAsStateWithLifecycle()
 // Account profile state
@@ -439,6 +442,16 @@ fun TransactionDetailScreen(
             onConfirm = { personName, note, loanAmount ->
                 viewModel.createLoanFromTransaction(personName, inferredDirection, note, loanAmount)
             }
+        )
+    }
+
+    // A repayment beyond what's owed: ask what the extra is
+    loanOverflowPrompt?.let { prompt ->
+        LoanOverflowDialog(
+            prompt = prompt,
+            onCountAsOwn = { viewModel.resolveLoanOverflow(LoanOverflow.COUNT_AS_OWN) },
+            onFlipDebt = { viewModel.resolveLoanOverflow(LoanOverflow.FLIP_DEBT) },
+            onDismiss = { viewModel.dismissLoanOverflow() }
         )
     }
 

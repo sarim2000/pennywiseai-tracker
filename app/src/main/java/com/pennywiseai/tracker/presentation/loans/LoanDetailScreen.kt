@@ -34,6 +34,7 @@ import com.pennywiseai.tracker.data.database.entity.LoanStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.domain.loan.LoanMath
+import com.pennywiseai.tracker.domain.loan.LoanOverflow
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
@@ -371,6 +372,15 @@ fun LoanDetailScreen(
             onDismiss = { viewModel.hideRecordPayment() },
             onLinkTransaction = { viewModel.linkTransactionAsRepayment(it) },
             onManualPayment = { viewModel.recordManualRepayment(it) }
+        )
+    }
+
+    uiState.overflowPrompt?.let { prompt ->
+        LoanOverflowDialog(
+            prompt = prompt,
+            onCountAsOwn = { viewModel.resolveOverflow(LoanOverflow.COUNT_AS_OWN) },
+            onFlipDebt = { viewModel.resolveOverflow(LoanOverflow.FLIP_DEBT) },
+            onDismiss = { viewModel.dismissOverflow() }
         )
     }
 }

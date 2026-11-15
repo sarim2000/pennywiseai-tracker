@@ -10,7 +10,6 @@
     <string name="widget_name_summary">ملخص الإنفاق</string>
     <!-- Quick-add entry points: QS tile + launcher long-press shortcut -->
     <string name="tile_add_transaction">إضافة معاملة</string>
-    <string name="ai_session_tile">PennyWise AI</string>
     <string name="shortcut_add_transaction_short">إضافة</string>
     <string name="shortcut_add_transaction_long">إضافة معاملة</string>
     <!-- Developer's public donation address, shown in the "Support development"
@@ -30,8 +29,6 @@
     <string name="duplicate_accounts_merge">دمج وتذكّر ذلك</string>
     <string name="duplicate_accounts_keep">إبقاؤهما منفصلين</string>
     <!-- Docked nav action: a finished scan's result, shown for a beat in place of the icon -->
-    <string name="dock_result_new">+%1$d</string>
-    <string name="dock_result_many">%1$d+</string>
     <plurals name="dock_result_description">
         <item quantity="zero">لا معاملات جديدة</item>
         <item quantity="one">%1$d معاملة جديدة</item>

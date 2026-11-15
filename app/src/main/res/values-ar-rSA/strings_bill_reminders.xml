@@ -6,7 +6,6 @@
     <!-- %1$s: the subscription's name, e.g. "Rent" -->
     <string name="bill_reminder_title">غدًا موعد سداد %1$s</string>
     <!-- %1$s: amount with currency; %2$s: billing cycle, e.g. "Monthly" -->
-    <string name="bill_reminder_text">%1$s · %2$s</string>
     <string name="bill_reminder_action_paid">تم السداد</string>
     <string name="bill_reminder_action_skip">تخطَّ هذه المرة</string>
 </resources>

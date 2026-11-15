@@ -418,8 +418,6 @@
     <string name="webhooks_history_delivered">تم الإرسال</string>
     <string name="webhooks_history_failed">فشل</string>
     <!-- %1$s = what started the delivery (e.g. Manual), %2$s = date and time -->
-    <string name="webhooks_history_meta">%1$s · %2$s</string>
-    <!-- %1$s = what started the delivery (e.g. Manual), %2$s = date and time -->
     <plurals name="webhooks_history_batches">
         <item quantity="zero">الإرسال يحتوي على %1$d دفعة</item>
         <item quantity="one">الإرسال يحتوي على %1$d دفعة</item>

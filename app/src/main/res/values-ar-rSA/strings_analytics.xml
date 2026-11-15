@@ -127,7 +127,7 @@
         <item quantity="other">تتجدد بعد %1$d يوم · يوم %2$d من الشهر</item>
     </plurals>
     <!-- Date range, %1$s = start date, %2$s = end date -->
-    <string name="budgets_date_range">%1$s – %2$s</string>
+    <string name="budgets_date_range">%1$s - %2$s</string>
     <!-- %1$s = date range, %2$d = days -->
     <plurals name="budgets_runs_days_remaining">
         <item quantity="zero">الفترة %1$s · يتبقى %2$d يوم</item>
@@ -172,7 +172,7 @@
     <string name="budget_edit_runs_once">تعمل لمرة واحدة، دون ترحيل</string>
     <string name="budget_edit_current_window">الفترة الحالية</string>
     <!-- %1$s = start date, %2$s = end date, %3$s = reset rule (e.g. "Resets every Monday") -->
-    <string name="budget_edit_window_caption">%1$s – %2$s · %3$s</string>
+    <string name="budget_edit_window_caption">%1$s - %2$s · %3$s</string>
     <string name="budget_edit_category_limits">حدود الفئات (اختياري)</string>
     <string name="budget_edit_no_categories">لم تُضف أي فئات. ستشمل هذه الميزانية جميع المصروفات.</string>
     <string name="budget_edit_unallocated">غير مخصص: %1$s</string>

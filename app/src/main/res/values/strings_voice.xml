@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Chat voice input (M5). -->
+    <string name="voice_start">Speak</string>
+    <string name="voice_stop">Stop listening</string>
+    <string name="voice_listening">Listening…</string>
+    <string name="voice_finishing">Finishing…</string>
+    <string name="voice_language">Voice language</string>
+    <string name="voice_online">Uses the internet</string>
+    <string name="voice_download">Download</string>
+    <string name="voice_download_header">Download for offline use</string>
+    <string name="voice_download_pending">Pending</string>
+    <string name="voice_download_scheduled">%1$s is downloading in the background. It\'ll be in the list when it\'s ready.</string>
+    <string name="voice_download_done">%1$s is ready.</string>
+    <string name="voice_download_failed">Couldn\'t download %1$s.</string>
+    <string name="voice_error_no_match">Didn\'t catch that. Try again.</string>
+    <string name="voice_error_language">This language isn\'t available. Pick another one.</string>
+    <string name="voice_error_network">No internet for online voice. Try an offline language.</string>
+    <string name="voice_error_busy">The microphone is busy. Try again in a moment.</string>
+    <string name="voice_error_audio">Couldn\'t use the microphone.</string>
+    <string name="voice_error_permission">Microphone access is off. Tap the mic to allow it.</string>
+    <string name="voice_error_generic">Voice input stopped. Try again.</string>
+    <string name="voice_online_title">Use online voice for %1$s?</string>
+    <string name="voice_online_body">%1$s isn\'t available offline on this phone. %2$s will turn your voice into text over the internet. PennyWise doesn\'t record or keep the audio, and you send the text yourself.</string>
+    <string name="voice_online_confirm">Use online</string>
+</resources>

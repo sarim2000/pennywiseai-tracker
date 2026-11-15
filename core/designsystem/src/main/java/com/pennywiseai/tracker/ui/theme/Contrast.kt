@@ -1,0 +1,90 @@
+package com.pennywiseai.tracker.ui.theme
+
+import androidx.compose.material3.ColorScheme
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
+import java.util.concurrent.ConcurrentHashMap
+
+// Kept out of Theme.kt on purpose: LightColorScheme/DarkColorScheme call withReadableInk()
+// while that file initialises, so the cache below must live in its own file class.
+
+/** WCAG AA floor for normal-size text. */
+const val TEXT_CONTRAST = 4.5f
+
+/** What a nudged colour aims for, so 8-bit rounding never lands it under [TEXT_CONTRAST]. */
+private const val TEXT_CONTRAST_TARGET = 4.6f
+
+/** WCAG 2.x contrast ratio between two opaque colours, from 1 to 21. */
+fun contrastRatio(a: Color, b: Color): Float {
+    val la = a.luminance() + 0.05f
+    val lb = b.luminance() + 0.05f
+    return maxOf(la, lb) / minOf(la, lb)
+}
+
+/** Black or white, whichever reads better on this fill. One of them always clears 4.58:1. */
+fun Color.bestInk(): Color =
+    if (contrastRatio(Color.Black, this) >= contrastRatio(Color.White, this)) Color.Black else Color.White
+
+/** This colour if it reads at [TEXT_CONTRAST] on [fill], else [bestInk] of the fill. */
+fun Color.orBestInkOn(fill: Color): Color =
+    if (contrastRatio(this, fill) >= TEXT_CONTRAST) this else fill.bestInk()
+
+/**
+ * The surfaces text and semantic ink get drawn straight onto. A colour that reads on all
+ * of these reads anywhere neutral; on a coloured container use its `on*` role instead.
+ */
+val ColorScheme.neutralSurfaces: List<Color>
+    get() = listOf(
+        background, surface, surfaceVariant,
+        surfaceContainerLowest, surfaceContainerLow, surfaceContainer,
+        surfaceContainerHigh, surfaceContainerHighest,
+    )
+
+private val readableCache = ConcurrentHashMap<List<ULong>, Color>()
+
+/**
+ * This colour, moved toward black or white (in Oklab, so the hue holds) just far enough
+ * to read at [TEXT_CONTRAST] on every one of [backgrounds]. Unchanged when it already does,
+ * so a palette that passes keeps its exact colours.
+ */
+fun Color.readableOn(backgrounds: List<Color>): Color {
+    fun minContrast(c: Color) = backgrounds.minOf { contrastRatio(c, it) }
+    if (minContrast(this) >= TEXT_CONTRAST) return this
+    // ponytail: unbounded in theory, but keys are (token × scheme) — a few hundred at most.
+    return readableCache.getOrPut(listOf(value) + backgrounds.map { it.value }) {
+        val end = if (minContrast(Color.Black) >= minContrast(Color.White)) Color.Black else Color.White
+        var lo = 0f
+        var hi = 1f
+        repeat(16) {
+            val mid = (lo + hi) / 2
+            if (minContrast(lerp(this, end, mid)) >= TEXT_CONTRAST_TARGET) hi = mid else lo = mid
+        }
+        lerp(this, end, hi)
+    }
+}
+
+/**
+ * Makes a hand-built scheme's text roles readable: primary, error and onSurfaceVariant
+ * on every neutral surface, inversePrimary on inverseSurface, and every on-colour on its
+ * fill. Fills (containers, secondary, tertiary) keep their colours, so the theme's look holds.
+ */
+fun ColorScheme.withReadableInk(): ColorScheme {
+    val neutrals = neutralSurfaces
+    val primary = primary.readableOn(neutrals)
+    val error = error.readableOn(neutrals)
+    return copy(
+        primary = primary,
+        onPrimary = onPrimary.orBestInkOn(primary),
+        onPrimaryContainer = onPrimaryContainer.orBestInkOn(primaryContainer),
+        onSecondary = onSecondary.orBestInkOn(secondary),
+        onSecondaryContainer = onSecondaryContainer.orBestInkOn(secondaryContainer),
+        onTertiary = onTertiary.orBestInkOn(tertiary),
+        onTertiaryContainer = onTertiaryContainer.orBestInkOn(tertiaryContainer),
+        error = error,
+        onError = onError.orBestInkOn(error),
+        onErrorContainer = onErrorContainer.orBestInkOn(errorContainer),
+        onSurfaceVariant = onSurfaceVariant.readableOn(neutrals),
+        inversePrimary = inversePrimary.readableOn(listOf(inverseSurface)),
+    )
+}

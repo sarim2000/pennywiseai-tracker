@@ -17,7 +17,7 @@ internal object YinYangColorScheme : BaseColorScheme() {
         onPrimary = Color(0xFF5A5A5A),
         primaryContainer = Color(0xFFFFFFFF),
         onPrimaryContainer = Color(0xFF000000),
-        inversePrimary = Color(0xFFCECECE),
+        inversePrimary = Color(0xFF666666),
         secondary = Color(0xFFFFFFFF), // Unread badge
         onSecondary = Color(0xFF5A5A5A), // Unread badge text
         secondaryContainer = Color(0xFF717171), // Navigation bar selector pill & progress indicator (remaining)

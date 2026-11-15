@@ -31,7 +31,7 @@ internal object StrawberryColorScheme : BaseColorScheme() {
         onTertiary = Color(0xFF201A1A), // Downloaded badge text
         tertiaryContainer = Color(0xFF775930),
         onTertiaryContainer = Color(0xFFFFF7F1),
-        error = Color(0xFFFFB4AB),
+        error = Color(0xFFFF8F70),
         onError = Color(0xFF690005),
         errorContainer = Color(0xFF93000A),
         onErrorContainer = Color(0xFFFFDAD6),

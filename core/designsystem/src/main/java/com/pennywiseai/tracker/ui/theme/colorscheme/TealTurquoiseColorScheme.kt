@@ -15,7 +15,7 @@ internal object TealTurquoiseColorScheme : BaseColorScheme() {
         onPrimary = Color(0xFF000000),
         primaryContainer = Color(0xFF40E0D0),
         onPrimaryContainer = Color(0xFF000000),
-        inversePrimary = Color(0xFF008080),
+        inversePrimary = Color(0xFF006C6C),
         secondary = Color(0xFF40E0D0), // Unread badge
         onSecondary = Color(0xFF000000), // Unread badge text
         secondaryContainer = Color(0xFF18544E), // Navigation bar selector pill & progress indicator (remaining)
@@ -42,7 +42,7 @@ internal object TealTurquoiseColorScheme : BaseColorScheme() {
     )
 
     override val lightScheme = lightColorScheme(
-        primary = Color(0xFF008080),
+        primary = Color(0xFF007272),
         onPrimary = Color(0xFFFFFFFF),
         primaryContainer = Color(0xFF008080),
         onPrimaryContainer = Color(0xFFFFFFFF),

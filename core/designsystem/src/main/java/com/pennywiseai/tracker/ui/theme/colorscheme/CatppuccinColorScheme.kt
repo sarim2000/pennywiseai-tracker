@@ -65,7 +65,7 @@ internal object CatppuccinColorScheme : BaseColorScheme() {
     )
 
     override val lightScheme = lightColorScheme(
-        primary = Color(0xFF8636EC),
+        primary = Color(0xFF722DCB),
         onPrimary = Color(0xFFFFFFFF),
         primaryContainer = Color(0xFF8839EF),
         onPrimaryContainer = Color(0xFFFFFFFF),

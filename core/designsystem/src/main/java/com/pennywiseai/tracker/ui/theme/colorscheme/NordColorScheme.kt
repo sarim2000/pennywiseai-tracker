@@ -13,11 +13,11 @@ import androidx.compose.ui.graphics.Color
 internal object NordColorScheme : BaseColorScheme() {
 
     override val darkScheme = darkColorScheme(
-        primary = Color(0xFF88C0D0),
+        primary = Color(0xFFB3D7E1),
         onPrimary = Color(0xFF2E3440),
         primaryContainer = Color(0xFF88C0D0),
         onPrimaryContainer = Color(0xFF2E3440),
-        inversePrimary = Color(0xFF397E91),
+        inversePrimary = Color(0xFF2E6879),
         secondary = Color(0xFF81A1C1), // Unread badge
         onSecondary = Color(0xFF2E3440), // Unread badge text
         secondaryContainer = Color(0xFF506275), // Navigation bar selector pill & progress indicator (remaining)
@@ -49,11 +49,11 @@ internal object NordColorScheme : BaseColorScheme() {
     )
 
     override val lightScheme = lightColorScheme(
-        primary = Color(0xFF476993),
+        primary = Color(0xFF3F5E85),
         onPrimary = Color(0xFFFFFFFF),
         primaryContainer = Color(0xFF5E81AC),
         onPrimaryContainer = Color(0xFF000000),
-        inversePrimary = Color(0xFF8CA8CD),
+        inversePrimary = Color(0xFF98B2D3),
         secondary = Color(0xFF81A1C1), // Unread badge
         onSecondary = Color(0xFF2E3440), // Unread badge text
         secondaryContainer = Color(0xFF91B4D7), // Navigation bar selector pill & progress indicator (remaining)

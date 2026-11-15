@@ -19,11 +19,11 @@ import androidx.compose.ui.graphics.Color
 internal object MidnightDuskColorScheme : BaseColorScheme() {
 
     override val darkScheme = darkColorScheme(
-        primary = Color(0xFFF62C79),
+        primary = Color(0xFFFE6693),
         onPrimary = Color(0xFF16151D),
         primaryContainer = Color(0xFFBD1C5C),
         onPrimaryContainer = Color(0xFFFFFFFF),
-        inversePrimary = Color(0xFFF02475),
+        inversePrimary = Color(0xFFFB6A93),
         secondary = Color(0xFFF62C79), // Unread badge
         onSecondary = Color(0xFF16151D), // Unread badge text
         secondaryContainer = Color(0xFF66183C), // Navigation bar selector pill & progress indicator (remaining)
@@ -50,7 +50,7 @@ internal object MidnightDuskColorScheme : BaseColorScheme() {
     )
 
     override val lightScheme = lightColorScheme(
-        primary = Color(0xFFBB0054),
+        primary = Color(0xFFA50049),
         onPrimary = Color(0xFFFFFFFF),
         primaryContainer = Color(0xFFFFD9E1),
         onPrimaryContainer = Color(0xFF3F0017),

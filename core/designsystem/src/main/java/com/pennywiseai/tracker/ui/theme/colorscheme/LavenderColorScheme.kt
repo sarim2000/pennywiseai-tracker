@@ -18,7 +18,7 @@ import androidx.compose.ui.graphics.Color
 internal object LavenderColorScheme : BaseColorScheme() {
 
     override val darkScheme = darkColorScheme(
-        primary = Color(0xFFA177FF),
+        primary = Color(0xFFB092FF),
         onPrimary = Color(0xFF33007C),
         primaryContainer = Color(0xFFA177FF),
         onPrimaryContainer = Color(0xFF33007C),
@@ -56,7 +56,7 @@ internal object LavenderColorScheme : BaseColorScheme() {
     )
 
     override val lightScheme = lightColorScheme(
-        primary = Color(0xFF6D41C8),
+        primary = Color(0xFF673DBE),
         onPrimary = Color(0xFFFFFFFF),
         primaryContainer = Color(0xFF7B46AF),
         onPrimaryContainer = Color(0xFFEDE2FF),
@@ -83,7 +83,7 @@ internal object LavenderColorScheme : BaseColorScheme() {
         scrim = Color(0xFF000000),
         inverseSurface = Color(0xFF322F38),
         inverseOnSurface = Color(0xFFF5EEFA),
-        inversePrimary = Color(0xFFA177FF),
+        inversePrimary = Color(0xFFA884FF),
         surfaceDim = Color(0xFFDED7E3),
         surfaceBright = Color(0xFFEDE2FF),
         surfaceContainerLowest = Color(0xFFEEE2FF),

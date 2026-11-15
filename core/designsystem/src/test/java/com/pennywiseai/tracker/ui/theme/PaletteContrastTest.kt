@@ -33,8 +33,9 @@ private const val TEXT_FLOOR = 4.5
 /** Foreground/background pairs the UI renders as text, with their contrast if under [TEXT_FLOOR]. */
 internal fun ColorScheme.textPairFailures(): List<String> {
     val neutrals = listOf(
-        "surface" to surface,
         "background" to background,
+        "surface" to surface,
+        "surfaceVariant" to surfaceVariant,
         "surfaceContainerLowest" to surfaceContainerLowest,
         "surfaceContainerLow" to surfaceContainerLow,
         "surfaceContainer" to surfaceContainer,
@@ -51,11 +52,13 @@ internal fun ColorScheme.textPairFailures(): List<String> {
         "onError/error" to (onError to error),
         "onErrorContainer/errorContainer" to (onErrorContainer to errorContainer),
         "onBackground/background" to (onBackground to background),
-        "primary/surface" to (primary to surface),
+        "inverseOnSurface/inverseSurface" to (inverseOnSurface to inverseSurface),
+        "inversePrimary/inverseSurface" to (inversePrimary to inverseSurface),
     ) + neutrals.flatMap { (name, bg) ->
         listOf(
             "onSurface/$name" to (onSurface to bg),
             "onSurfaceVariant/$name" to (onSurfaceVariant to bg),
+            "primary/$name" to (primary to bg),
             "error/$name" to (error to bg),
         )
     }

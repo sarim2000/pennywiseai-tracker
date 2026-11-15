@@ -13,7 +13,7 @@ import androidx.compose.ui.graphics.Color
 internal object TokyoNightColorScheme : BaseColorScheme() {
 
     override val darkScheme = darkColorScheme(
-        primary = Color(0xFF82AAFF),
+        primary = Color(0xFFA0BFFF),
         onPrimary = Color(0xFF1B1D2B),
         primaryContainer = Color(0xFF444A73),
         onPrimaryContainer = Color(0xFFA3BFFF),
@@ -25,7 +25,7 @@ internal object TokyoNightColorScheme : BaseColorScheme() {
         onTertiary = Color(0xFF1B1D2B),
         tertiaryContainer = Color(0xFF444A73),
         onTertiaryContainer = Color(0xFFCEB2FF),
-        error = Color(0xFFFF9EA2),
+        error = Color(0xFFFFA8AB),
         onError = Color(0xFF1B1D2B),
         errorContainer = Color(0xFFC53B53),
         onErrorContainer = Color(0xFFFFF0F0),
@@ -40,7 +40,7 @@ internal object TokyoNightColorScheme : BaseColorScheme() {
         scrim = Color(0xFF000000),
         inverseSurface = Color(0xFFC8D3F5),
         inverseOnSurface = Color(0xFF222436),
-        inversePrimary = Color(0xFF3D5C9E),
+        inversePrimary = Color(0xFF3A5898),
         surfaceContainerLowest = Color(0xFF1E202F),
         surfaceDim = Color(0xFF222436),
         surfaceContainerLow = Color(0xFF292C44),
@@ -51,11 +51,11 @@ internal object TokyoNightColorScheme : BaseColorScheme() {
     )
 
     override val lightScheme = lightColorScheme(
-        primary = Color(0xFF0660C9),
+        primary = Color(0xFF02397E),
         onPrimary = Color(0xFFFFFFFF),
         primaryContainer = Color(0xFF92A6D5),
         onPrimaryContainer = Color(0xFF15386A),
-        inversePrimary = Color(0xFF7890DD),
+        inversePrimary = Color(0xFFDDE4F8),
         secondary = Color(0xFF007197),
         onSecondary = Color(0xFFFFFFFF),
         secondaryContainer = Color(0xFFA9C6D3),

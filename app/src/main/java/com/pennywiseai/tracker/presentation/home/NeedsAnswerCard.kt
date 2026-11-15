@@ -22,6 +22,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.formatAmount
@@ -29,9 +30,9 @@ import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.utils.AppDates
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
-import java.time.format.FormatStyle
 
 /**
  * Transactions the app couldn't place (#1049): money out left in Others, money in left
@@ -72,7 +73,9 @@ internal fun NeedsAnswerCard(
     modifier: Modifier = Modifier,
 ) {
     val ink = MaterialTheme.colorScheme.onSecondaryContainer
-    val dateFormat = DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM)
+    // Same name, date and sign as the transaction list, so a row reads the same here.
+    val merchantDisplay = LocalMerchantDisplay.current
+    val dateFormat = AppDates.dayMonthTimeFormatter()
     PennyWiseCardV2(
         modifier = modifier.fillMaxWidth(),
         containerColor = MaterialTheme.colorScheme.secondaryContainer,
@@ -112,7 +115,7 @@ internal fun NeedsAnswerCard(
             ) {
                 Column(Modifier.weight(1f)) {
                     Text(
-                        text = txn.merchantName,
+                        text = merchantDisplay(txn.merchantName) ?: txn.merchantName,
                         style = MaterialTheme.typography.bodyLarge,
                         color = ink,
                         maxLines = 1,
@@ -125,8 +128,12 @@ internal fun NeedsAnswerCard(
                     )
                 }
                 // Money in or out reads the same otherwise; the sign tells them apart.
-                val sign = if (txn.transactionType == TransactionType.INCOME) "+" else "−"
-                Text(text = sign + txn.formatAmount(), style = MaterialTheme.typography.titleSmall, color = ink)
+                val sign = if (txn.transactionType == TransactionType.INCOME) "+" else "-"
+                Text(
+                    text = CurrencyFormatter.signed(sign, txn.formatAmount()),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = ink,
+                )
                 Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, tint = ink)
             }
         }

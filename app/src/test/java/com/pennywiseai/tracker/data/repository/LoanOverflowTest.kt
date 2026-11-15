@@ -94,7 +94,11 @@ class LoanOverflowTest {
 
     @Test
     fun `turning the loan around leaves the extra owed to you`() {
-        coEvery { loanDao.getLinkedTransactions(2) } returns listOf(advanceIn, bill.copy(loanId = 2))
+        // What's owed is read before the bill links; the turn reads the rows after.
+        coEvery { loanDao.getLinkedTransactions(2) } returnsMany listOf(
+            listOf(advanceIn),
+            listOf(advanceIn, bill.copy(loanId = 2))
+        )
         val saved = slot<LoanEntity>()
         coEvery { loanDao.updateLoan(capture(saved)) } returns Unit
 
@@ -123,7 +127,10 @@ class LoanOverflowTest {
         coEvery { transactionDao.getTransactionById(9) } returns bill.copy(amount = BigDecimal("1000"))
         assertEquals(0, BigDecimal("300").compareTo(runBlocking { repo.flippableOverflow(2, 9, null) }))
 
-        coEvery { loanDao.getLinkedTransactions(2) } returns listOf(advanceIn, earlier, bill.copy(amount = BigDecimal("1000"), loanId = 2))
+        coEvery { loanDao.getLinkedTransactions(2) } returnsMany listOf(
+            listOf(advanceIn, earlier),
+            listOf(advanceIn, earlier, bill.copy(amount = BigDecimal("1000"), loanId = 2))
+        )
         val saved = slot<LoanEntity>()
         coEvery { loanDao.updateLoan(capture(saved)) } returns Unit
         runBlocking { repo.recordRepayment(2, 9, overflow = LoanOverflow.FLIP_DEBT) }
@@ -187,11 +194,13 @@ class LoanOverflowTest {
 
     @Test
     fun `just unmarking stays as before and never turns the loan`() {
+        // ₹300 lent is left after the bill comes off, against ₹1,000 back: it would run
+        // the other way, but without keepReversal the existing rule applies unchanged.
+        val earlier = txn(7, "300", TransactionType.EXPENSE, loanId = 2)
         coEvery { loanDao.getLoanById(2) } returns turned
-        coEvery { loanDao.getLinkedTransactions(2) } returns listOf(advanceIn)
+        coEvery { loanDao.getLinkedTransactions(2) } returns listOf(advanceIn, earlier)
         runBlocking { repo.unlinkTransaction(9, 2) }
         coVerify { loanDao.unlinkTransaction(9) }
-        // No lent principal left: the existing rule (deleteLoan) takes over, untouched.
         coVerify(exactly = 0) { loanDao.updateLoan(match { it.direction == LoanDirection.BORROWED }) }
     }
 

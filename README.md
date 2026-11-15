@@ -216,7 +216,8 @@ All AI processing happens on your device, powered by Google AI Edge LiteRT-LM ru
 2. **Exchange rates** — fetched from `open.er-api.com`. Automatic currency conversion runs **only when you hold more than one currency** (same-currency conversions make no call), but opening the currency picker also fetches the current rate list. Either way the request carries just a 3-letter currency code and a static `User-Agent` — no SMS, transactions, or device identifier — and results are cached locally. (`ExchangeRateProvider.kt`)
 3. **On-device AI model** — a one-time ~1.5 GB download from Cloudflare R2, **only if you open the AI chat and choose to download it**. The bytes are SHA-256 pinned; after that the AI runs 100% offline. (`Constants.MODEL_URL`)
 4. **Report a parsing problem** — when you use this flow it opens `pennywise.zynth.dev` with the SMS text, its sender, and an RSA-encrypted device identifier (your Android ID plus a timestamp) pre-filled, and parses them server-side to show a preview. Nothing is sent unless you start this yourself. (`SmsReportUrlBuilder.kt`, `DeviceEncryption.kt`)
-5. **Links** (Discord, GitHub, Play Store, user guide, backup docs) open your browser — no background data.
+5. **Online voice in chat** *(optional, off until you agree)* — dictation runs on your phone's speech service, on-device by default. A language your phone can't recognize offline (e.g. Arabic) can be used online after a one-time prompt that names the service; your speech then goes to that service, not to PennyWise. No audio is recorded or kept. (`VoiceInput.kt`)
+6. **Links** (Discord, GitHub, Play Store, user guide, backup docs) open your browser — no background data.
 
 Everything else stays on your phone.
 

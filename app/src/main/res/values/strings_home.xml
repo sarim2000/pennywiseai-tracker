@@ -406,4 +406,14 @@
     <string name="safe_to_spend_done">Done</string>
     <string name="safe_to_spend_footnote">Bills come from your active subscriptions. Credit cards and loans don\'t count as spendable money.</string>
 
+    <!-- "Needs an answer" (#1049): money the app couldn't place, usually a transfer to or from a person. -->
+    <plurals name="home_needs_answer_title">
+        <item quantity="one">%d transaction needs an answer</item>
+        <item quantity="other">%d transactions need an answer</item>
+    </plurals>
+    <string name="home_needs_answer_body">Was it a transfer, a loan, a split or a bill? Until you say, it counts as spending or income.</string>
+    <plurals name="home_needs_answer_more">
+        <item quantity="one">%d more after these</item>
+        <item quantity="other">%d more after these</item>
+    </plurals>
 </resources>

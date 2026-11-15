@@ -8,12 +8,17 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.CallSplit
 import androidx.compose.material.icons.automirrored.filled.HelpOutline
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.ShowChart
+import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.Handshake
+import androidx.compose.material.icons.filled.Schedule
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
@@ -23,6 +28,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -37,10 +43,13 @@ import com.pennywiseai.tracker.presentation.split.canSplit
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 
-/** The "this isn't plain spending" answers that apply to [txn] (#1050). */
-enum class WhatWasThis { LOAN, SPLIT, SAVING, OWN_TRANSFER }
+/**
+ * The "this isn't plain spending" answers that apply to [txn] (#1050). Asked from
+ * "Needs an answer" (#1049), it can also be another category, kept as is, or put off.
+ */
+enum class WhatWasThis { LOAN, SPLIT, SAVING, OWN_TRANSFER, CATEGORY, KEEP, LATER }
 
-fun whatWasThisOptions(txn: TransactionEntity, hasLoan: Boolean): List<WhatWasThis> = buildList {
+fun whatWasThisOptions(txn: TransactionEntity, hasLoan: Boolean, asking: Boolean = false): List<WhatWasThis> = buildList {
     // Already on a loan or split (a split bill is on Loans, one share per person):
     // answered, and the editor won't let its type change anyway. A paired transfer
     // leg is answered too: it's one side of a move between the user's own accounts.
@@ -51,6 +60,7 @@ fun whatWasThisOptions(txn: TransactionEntity, hasLoan: Boolean): List<WhatWasTh
     if (txn.transactionType == TransactionType.EXPENSE || txn.transactionType == TransactionType.INCOME) {
         add(WhatWasThis.OWN_TRANSFER)
     }
+    if (asking) addAll(listOf(WhatWasThis.CATEGORY, WhatWasThis.KEEP, WhatWasThis.LATER))
 }
 
 @Composable
@@ -102,8 +112,17 @@ internal fun WhatWasThisSheet(
     onDismiss: () -> Unit,
     onPick: (WhatWasThis) -> Unit
 ) {
-    ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(Modifier.navigationBarsPadding().padding(bottom = Spacing.md)) {
+    // Up to seven answers: open fully and scroll, so the last ones are never off screen.
+    ModalBottomSheet(
+        onDismissRequest = onDismiss,
+        sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+    ) {
+        Column(
+            Modifier
+                .verticalScroll(rememberScrollState())
+                .navigationBarsPadding()
+                .padding(bottom = Spacing.md)
+        ) {
             Text(
                 stringResource(R.string.what_was_this_title),
                 style = MaterialTheme.typography.titleLarge,
@@ -128,4 +147,7 @@ private fun WhatWasThis.labels(): Triple<ImageVector, Int, Int> = when (this) {
     WhatWasThis.SPLIT -> Triple(Icons.AutoMirrored.Filled.CallSplit, R.string.what_was_this_split, R.string.what_was_this_split_hint)
     WhatWasThis.SAVING -> Triple(Icons.AutoMirrored.Filled.ShowChart, R.string.what_was_this_saving, R.string.what_was_this_saving_hint)
     WhatWasThis.OWN_TRANSFER -> Triple(Icons.Default.SwapHoriz, R.string.what_was_this_transfer, R.string.what_was_this_transfer_hint)
+    WhatWasThis.CATEGORY -> Triple(Icons.Default.Category, R.string.what_was_this_category, R.string.what_was_this_category_hint)
+    WhatWasThis.KEEP -> Triple(Icons.Default.Check, R.string.what_was_this_keep, R.string.what_was_this_keep_hint)
+    WhatWasThis.LATER -> Triple(Icons.Default.Schedule, R.string.what_was_this_later, R.string.what_was_this_later_hint)
 }

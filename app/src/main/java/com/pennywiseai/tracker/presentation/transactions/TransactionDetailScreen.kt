@@ -70,9 +70,12 @@ fun TransactionDetailScreen(
     onDuplicateTransaction: (Long) -> Unit = {},
     onNavigateToGoal: (Long) -> Unit = {},
     onCreateGoal: () -> Unit = {},
+    // Opened from "Needs an answer" (#1049): ask "What was this?" straight away.
+    askWhatWasThis: Boolean = false,
     viewModel: TransactionDetailViewModel = hiltViewModel(),
     goalsViewModel: TransactionGoalsViewModel = hiltViewModel(),
-    splitViewModel: SplitBillViewModel = hiltViewModel()
+    splitViewModel: SplitBillViewModel = hiltViewModel(),
+    needsAnswerViewModel: NeedsAnswerViewModel = hiltViewModel()
 ) {
     val transaction by viewModel.transaction.collectAsStateWithLifecycle()
     val isEditMode by viewModel.isEditMode.collectAsStateWithLifecycle()
@@ -119,7 +122,7 @@ fun TransactionDetailScreen(
     val goals by goalsViewModel.goals.collectAsStateWithLifecycle()
     val addToGoal by goalsViewModel.sheet.collectAsStateWithLifecycle()
     var showAddToGoal by rememberSaveable { mutableStateOf(false) }
-    var showWhatWasThis by rememberSaveable { mutableStateOf(false) }
+    var showWhatWasThis by rememberSaveable { mutableStateOf(askWhatWasThis) }
     LaunchedEffect(transaction) { goalsViewModel.setTransaction(transaction) }
     // Split a bill (#346): reload after a save so lent_shares_total is fresh.
     LaunchedEffect(transaction) { splitViewModel.setTransaction(transaction) }
@@ -382,7 +385,7 @@ fun TransactionDetailScreen(
     if (showWhatWasThis) {
         transaction?.let { txn ->
             WhatWasThisSheet(
-                options = whatWasThisOptions(txn, loan != null),
+                options = whatWasThisOptions(txn, loan != null, asking = askWhatWasThis),
                 onDismiss = { showWhatWasThis = false },
                 onPick = { option ->
                     showWhatWasThis = false
@@ -397,6 +400,10 @@ fun TransactionDetailScreen(
                         }
                         // Pairs the other leg if it arrived, else opens the editor.
                         WhatWasThis.OWN_TRANSFER -> viewModel.answerOwnTransfer()
+                        // A new category takes it off "Needs an answer" once saved.
+                        WhatWasThis.CATEGORY -> viewModel.enterEditMode()
+                        WhatWasThis.KEEP -> needsAnswerViewModel.keep(txn.transactionHash, onNavigateBack)
+                        WhatWasThis.LATER -> needsAnswerViewModel.askLater(txn.transactionHash, onNavigateBack)
                     }
                 }
             )

@@ -140,6 +140,10 @@ open class UserPreferencesRepository internal constructor(
         val RECURRING_HOME_CARD_DISMISSED_AT = longPreferencesKey("recurring_home_card_dismissed_at")
         // The Home "tracking may miss transactions" card stays hidden until this epoch ms. Device-local.
         val TRACKING_CARD_SNOOZED_UNTIL = longPreferencesKey("tracking_card_snoozed_until")
+        // "Needs an answer" (#1049): "hash|epochDay" for each transaction the user kept as
+        // recorded or asked about later; hidden until that day. Keyed by hash, which a
+        // restore keeps. Device-local.
+        val NEEDS_ANSWER_SNOOZED = stringSetPreferencesKey("needs_answer_snoozed")
         // "Track as … bill" on transaction alerts: "key|epochDay" per merchant
         // offered, to cap how often it's offered. Device-local.
         val RECURRING_OFFER_LOG = stringSetPreferencesKey("recurring_offer_log")
@@ -771,6 +775,19 @@ open class UserPreferencesRepository internal constructor(
     /** When the Home card was last dismissed (epoch millis), or null. */
     val recurringHomeCardDismissedAt: Flow<Long?> = dataStore.data
         .map { it[PreferencesKeys.RECURRING_HOME_CARD_DISMISSED_AT] }
+
+    /** "Needs an answer" transactions hidden for now: transaction hash to the last epoch day it stays hidden. */
+    val needsAnswerSnoozed: Flow<Map<String, Long>> = dataStore.data
+        .map { NeedsAnswerSnoozes.decode(it[PreferencesKeys.NEEDS_ANSWER_SNOOZED]) }
+
+    /** Hides [hash] from "Needs an answer" through [untilEpochDay]; entries already past are dropped. */
+    suspend fun snoozeNeedsAnswer(hash: String, untilEpochDay: Long, today: LocalDate) {
+        dataStore.edit { prefs ->
+            val kept = NeedsAnswerSnoozes.decode(prefs[PreferencesKeys.NEEDS_ANSWER_SNOOZED])
+                .filterValues { it >= today.toEpochDay() } + (hash to untilEpochDay)
+            prefs[PreferencesKeys.NEEDS_ANSWER_SNOOZED] = NeedsAnswerSnoozes.encode(kept)
+        }
+    }
 
     suspend fun dismissRecurringHomeCard(shownKeys: Collection<String>, nowMillis: Long) {
         dataStore.edit {

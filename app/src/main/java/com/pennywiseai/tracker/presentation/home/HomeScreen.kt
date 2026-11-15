@@ -84,6 +84,7 @@ fun HomeScreen(
     onNavigateToManageAccounts: () -> Unit = {},
     onNavigateToBackgroundAccess: () -> Unit = {},
     onTransactionClick: (Long) -> Unit = {},
+    onAnswerTransaction: (Long) -> Unit = {},
     onGroupClick: (Long) -> Unit = {},
     onGoalClick: (Long) -> Unit = {},
     onTransactionTypeClick: (String?) -> Unit = {},
@@ -138,6 +139,7 @@ fun HomeScreen(
         onPauseOrDispose { }
     }
     val trackingCardSnoozedUntil by viewModel.trackingCardSnoozedUntil.collectAsStateWithLifecycle()
+    val needsAnswer by viewModel.needsAnswer.collectAsStateWithLifecycle()
     val trackingIssue = trackingProblem(smsAccess.granted && canReceiveSms, backgroundState)
         .takeIf { resumedAtMillis >= trackingCardSnoozedUntil }
 
@@ -399,6 +401,17 @@ fun HomeScreen(
                                 }
                             },
                             onDismiss = { viewModel.snoozeTrackingCard() },
+                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                        )
+                    }
+                }
+
+                // Money the app couldn't place (#1049): asked before the figures it skews.
+                if (needsAnswer.isNotEmpty() && !uiState.isLoading) {
+                    item(key = "needs_answer") {
+                        NeedsAnswerCard(
+                            queue = needsAnswer,
+                            onAnswer = onAnswerTransaction,
                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                         )
                     }

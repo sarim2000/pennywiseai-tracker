@@ -57,7 +57,7 @@ data object Analytics : NavKey
 data object Chat : NavKey
 
 @Serializable
-data class TransactionDetail(val transactionId: Long) : NavKey
+data class TransactionDetail(val transactionId: Long, val askWhatWasThis: Boolean = false) : NavKey
 
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable

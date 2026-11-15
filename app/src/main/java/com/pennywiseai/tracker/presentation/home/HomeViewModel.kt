@@ -223,6 +223,9 @@ class HomeViewModel @Inject constructor(
     // Today's date as a flow, so day-based figures move on when Home is resumed on a new day.
     private val today = MutableStateFlow(LocalDate.now())
 
+    /** This cycle's rows on the selected profile, as Home's totals see them. */
+    private val _cycleTransactions = MutableStateFlow<List<TransactionEntity>>(emptyList())
+
     /**
      * Declared above init{} deliberately: Kotlin initialises properties in declaration
      * order, and init calls observeReviewPrompt(). Leaving this further down the class
@@ -649,6 +652,7 @@ class HomeViewModel @Inject constructor(
                 // Filtering and grouping off the main thread; the collector still runs on Main.
                 .flowOn(Dispatchers.Default)
                 .collect { transactions ->
+                    _cycleTransactions.value = transactions
                     updateTransactionTypeTotals(transactions)
                 }
         }
@@ -1404,6 +1408,16 @@ class HomeViewModel @Inject constructor(
             userPreferencesRepository.updateBudgetCycleStartDay(day)
         }
     }
+
+    /** "Needs an answer" (#1049): this cycle's transactions the app couldn't place, newest first. */
+    val needsAnswer: StateFlow<List<TransactionEntity>> = combine(
+        _cycleTransactions,
+        transactionRepository.observeSplitsForActiveTransactions().map { splits -> splits.mapTo(HashSet()) { it.transactionId } },
+        userPreferencesRepository.needsAnswerSnoozed,
+        today,
+    ) { rows, splitIds, snoozed, day -> needsAnswerQueue(rows, splitIds, snoozed, day) }
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /** Epoch ms the "tracking may miss transactions" card is hidden until; starts hidden, no flash. */
     val trackingCardSnoozedUntil: StateFlow<Long> = userPreferencesRepository.trackingCardSnoozedUntil

@@ -314,6 +314,9 @@ fun MainScreen(
                 onTransactionClick = { transactionId ->
                     openRoot(TransactionDetail(transactionId))
                 },
+                onAnswerTransaction = { transactionId ->
+                    openRoot(TransactionDetail(transactionId, askWhatWasThis = true))
+                },
                 onNavigateToTransactionGroups = {
                     openRoot(TransactionGroups)
                 },

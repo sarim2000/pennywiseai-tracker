@@ -134,6 +134,7 @@ class UserPreferencesKeysGoldenTest {
             "main_account_key" to "String",
             "monthly_budget_limit" to "String",
             "nav_bar_style" to "String",
+            "needs_answer_snoozed" to "Set<String>",
             "number_format_style" to "String",
             "payday_suggestion_handled" to "Boolean",
             "pro_cached_is_pro" to "Boolean",

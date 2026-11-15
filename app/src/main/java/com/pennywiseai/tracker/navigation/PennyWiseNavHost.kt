@@ -208,6 +208,7 @@ fun PennyWiseNavHost(
                         CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides LocalNavAnimatedContentScope.current) {
                             com.pennywiseai.tracker.presentation.transactions.TransactionDetailScreen(
                                 transactionId = key.transactionId,
+                                askWhatWasThis = key.askWhatWasThis,
                                 onNavigateBack = {
                                     onEditComplete()
                                     backStack.pop(key)

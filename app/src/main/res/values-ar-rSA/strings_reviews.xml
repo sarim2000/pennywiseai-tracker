@@ -22,7 +22,7 @@
     <string name="review_change_less">أقل بنسبة %1$d%% من %2$s</string>
     <string name="review_change_more">أكثر بنسبة %1$d%% من %2$s</string>
     <!-- %1$s = what it is compared with -->
-    <string name="review_change_same">مماثل تقريبًا لـ%1$s</string>
+    <string name="review_change_same">تقريبًا مثل %1$s</string>
     <string name="review_target_week">الأسبوع السابق</string>
     <string name="review_target_cycle">الدورة السابقة</string>
     <!-- %1$d = year -->
@@ -77,7 +77,7 @@
     <string name="settings_weekly_summary_subtitle">مصروف الأسبوع الماضي مقارنة بالأسبوع الذي قبله</string>
     <string name="settings_weekly_summary_needs_permission">اسمح بإشعارات PennyWise ليصلك الملخص الأسبوعي.</string>
     <string name="notif_weekly_channel_name">الملخص الأسبوعي</string>
-    <string name="notif_weekly_channel_description">ملخص قصير لمصروف الأسبوع الماضي</string>
+    <string name="notif_weekly_channel_description">ملخص قصير لمصروفات الأسبوع الماضي</string>
     <!-- %1$s = amount -->
     <string name="notif_weekly_title">صرفت الأسبوع الماضي %1$s</string>
 </resources>

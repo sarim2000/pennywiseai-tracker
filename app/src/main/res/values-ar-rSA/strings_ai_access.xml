@@ -48,9 +48,10 @@
     <string name="ai_access_all_disconnected">تم قطع اتصال كل تطبيقات الذكاء الاصطناعي.</string>
     <string name="ai_access_offline">تعذّر الوصول إلى خادم الترحيل. تحقّق من اتصالك بالإنترنت وحاول مرة أخرى.</string>
     <string name="ai_session_channel">جلسة الذكاء الاصطناعي</string>
-    <string name="ai_session_channel_description">يظهر أثناء قدرة تطبيقات الذكاء الاصطناعي المتصلة على قراءة بياناتك في PennyWise</string>
+    <string name="ai_session_channel_description">يظهر طوال سماحك لتطبيقات الذكاء الاصطناعي المتصلة بقراءة بياناتك في PennyWise</string>
     <string name="ai_session_notification_title">تطبيقات الذكاء الاصطناعي تستطيع قراءة بياناتك في PennyWise</string>
     <string name="ai_session_notification_connected">متصل · للقراءة فقط</string>
+    <string name="ai_session_notification_connected_changes">متصل · التعديل مسموح</string>
     <string name="ai_session_notification_connecting">جارٍ الاتصال…</string>
     <string name="ai_session_tile_on">تعمل</string>
     <string name="ai_session_tile_off">متوقفة</string>

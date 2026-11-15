@@ -1,2 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources></resources>
+<resources>
+    <string name="money_alert_channel_name">تنبيهات الميزانية والرصيد</string>
+    <string name="money_alert_channel_description">عند اقتراب الإنفاق من حد الميزانية أو انخفاض رصيد الحساب</string>
+    <string name="budget_alert_warning_title">%1$s: استُهلك %2$d%%</string>
+    <string name="budget_alert_warning_text">المتبقي %1$s، نحو %2$s يوميًا</string>
+    <string name="budget_alert_over_title">%1$s: تجاوزت حد الميزانية</string>
+    <string name="budget_alert_over_text">التجاوز %1$s. حد الميزانية: %2$s</string>
+    <string name="low_balance_alert_title">رصيد منخفض: %1$s</string>
+    <string name="low_balance_alert_text">%1$s · حد التنبيه: %2$s</string>
+</resources>

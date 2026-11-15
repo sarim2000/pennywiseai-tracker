@@ -69,7 +69,7 @@
     <string name="unrecognized_suggestion">يبدو أنها: %1$s</string>
     <string name="unrecognized_suggestion_debit">خصم %1$s</string>
     <string name="unrecognized_suggestion_credit">إيداع %1$s</string>
-    <string name="unrecognized_suggestion_add">إضافة</string>
+    <string name="unrecognized_suggestion_add">أضف</string>
     <!-- ══ Import statement ══ -->
     <string name="import_statement_title">بيان الاستيراد</string>
     <string name="import_statement_back">الرجوع</string>

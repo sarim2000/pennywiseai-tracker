@@ -311,10 +311,10 @@
     <!-- SMS scan progress (foreground worker) -->
     <string name="notif_sms_scan_channel_name">فحص الرسائل القصيرة</string>
     <string name="notif_sms_scan_title">جارٍ فحص المعاملات…</string>
-    <string name="notif_sms_scan_progress">تمت المعالجة %1$d / %2$d</string>
-    <string name="notif_sms_scan_reading">قراءة SMS…</string>
+    <string name="notif_sms_scan_progress">تمت معالجة %1$d من %2$d</string>
+    <string name="notif_sms_scan_reading">جارٍ قراءة الرسائل القصيرة…</string>
     <!-- New transaction notification -->
-    <string name="notif_txn_channel_name">إشعارات المعاملة</string>
+    <string name="notif_txn_channel_name">إشعارات المعاملات</string>
     <string name="notif_txn_channel_description">إشعارات للمعاملات الجديدة</string>
     <string name="notif_txn_unknown_merchant">غير معروف</string>
     <string name="notif_txn_unknown_bank">البنك</string>
@@ -325,33 +325,33 @@
     <string name="notif_txn_title_spent">صرفت %1$s</string>
     <string name="notif_txn_title_received">استلمت %1$s</string>
     <!-- An SMS from a sender the user has added from before (#994): not saved until they tap Add. -->
-    <string name="notif_suggestion_title_spent">هل أنفقت %1$s في %2$s؟</string>
+    <string name="notif_suggestion_title_spent">هل صرفت %1$s في %2$s؟</string>
     <string name="notif_suggestion_title_received">هل استلمت %1$s من %2$s؟</string>
     <string name="notif_suggestion_text">من %1$s. اضغط لإضافتها.</string>
     <!-- Shown when the app couldn't tell the category -->
-    <string name="notif_txn_ask_category">على ماذا صرفتها؟</string>
-    <string name="notif_txn_action_change">تغيير التصنيف</string>
+    <string name="notif_txn_ask_category">ما فئة هذه المعاملة؟</string>
+    <string name="notif_txn_action_change">غيّر الفئة</string>
     <!-- Marks the transaction as not counting toward spending/income totals (kept in history and the balance) -->
-    <string name="notif_txn_action_not_expense">ليس مصروفاً</string>
-    <string name="notif_txn_action_not_income">ليس دخلاً</string>
-    <string name="notif_txn_excluded_spending">لن يُحسب كمصروف</string>
-    <string name="notif_txn_excluded_income">لن يُحسب كدخل</string>
+    <string name="notif_txn_action_not_expense">ليست مصروفًا</string>
+    <string name="notif_txn_action_not_income">ليست دخلًا</string>
+    <string name="notif_txn_excluded_spending">لن تُحتسب ضمن المصروفات</string>
+    <string name="notif_txn_excluded_income">لن تُحتسب ضمن الدخل</string>
     <!-- Balance check (#734); %1$s the difference with currency; the bank name opens the text -->
     <string name="notif_balance_higher">رصيدك أعلى بـ %1$s من المسجَّل</string>
     <string name="notif_balance_lower">رصيدك أقل بـ %1$s من المسجَّل</string>
     <string name="notif_balance_text">قد تكون هناك معاملة لم تُسجَّل. اضغط للمراجعة.</string>
     <!-- After a category is picked from the notification; %1$s is the category -->
-    <string name="notif_txn_learned_title">حُفظت في %1$s</string>
-    <string name="notif_txn_learned_text">ستُصنَّف المدفوعات هنا تلقائياً من الآن.</string>
+    <string name="notif_txn_learned_title">صُنّفت ضمن %1$s</string>
+    <string name="notif_txn_learned_text">ستُصنّف معاملات هذا التاجر تلقائيًا من الآن فصاعدًا.</string>
     <!-- Learned-note action: keep this pick, but don't remember the merchant -->
     <string name="notif_txn_learned_only_this_one">هذه فقط</string>
     <plurals name="notif_txn_learned_moved">
-        <item quantity="zero">لم تُنقل أي عملية سابقة.</item>
-        <item quantity="one">ونُقلت %d عملية سابقة أيضاً.</item>
-        <item quantity="two">ونُقلت عمليتان سابقتان أيضاً.</item>
-        <item quantity="few">ونُقلت %d عمليات سابقة أيضاً.</item>
-        <item quantity="many">ونُقلت %d عملية سابقة أيضاً.</item>
-        <item quantity="other">ونُقلت %d عملية سابقة أيضاً.</item>
+        <item quantity="zero">لم تتغيّر فئة أي معاملة سابقة.</item>
+        <item quantity="one">وصُنّفت %d معاملة سابقة أيضًا.</item>
+        <item quantity="two">وصُنّفت معاملتان سابقتان أيضًا.</item>
+        <item quantity="few">وصُنّفت %d معاملات سابقة أيضًا.</item>
+        <item quantity="many">وصُنّفت %d معاملة سابقة أيضًا.</item>
+        <item quantity="other">وصُنّفت %d معاملة سابقة أيضًا.</item>
     </plurals>
     <!-- Evening recap notification -->
     <string name="notif_daily_channel_name">الملخص اليومي</string>
@@ -359,41 +359,41 @@
     <!-- %1$s is today's spending, e.g. "JD 23.500" -->
     <string name="notif_daily_title">صرفت اليوم %1$s</string>
     <plurals name="notif_daily_count">
-        <item quantity="zero">لا عمليات</item>
-        <item quantity="one">%d عملية</item>
-        <item quantity="two">عمليتان</item>
-        <item quantity="few">%d عمليات</item>
-        <item quantity="many">%d عملية</item>
-        <item quantity="other">%d عملية</item>
+        <item quantity="zero">لا معاملات</item>
+        <item quantity="one">%d معاملة</item>
+        <item quantity="two">معاملتان</item>
+        <item quantity="few">%d معاملات</item>
+        <item quantity="many">%d معاملة</item>
+        <item quantity="other">%d معاملة</item>
     </plurals>
     <plurals name="notif_daily_uncategorized">
         <item quantity="zero">كلها مصنّفة</item>
-        <item quantity="one">%d بلا تصنيف</item>
-        <item quantity="two">اثنتان بلا تصنيف</item>
-        <item quantity="few">%d بلا تصنيف</item>
-        <item quantity="many">%d بلا تصنيف</item>
-        <item quantity="other">%d بلا تصنيف</item>
+        <item quantity="one">%d بلا فئة</item>
+        <item quantity="two">اثنتان بلا فئة</item>
+        <item quantity="few">%d بلا فئة</item>
+        <item quantity="many">%d بلا فئة</item>
+        <item quantity="other">%d بلا فئة</item>
     </plurals>
     <!-- Follows notif_daily_uncategorized after " — ": why sorting matters -->
     <plurals name="notif_daily_sort_why">
-        <item quantity="zero">رتّبها ليُحسب صرفك الحقيقي فقط</item>
-        <item quantity="one">رتّبها ليُحسب صرفك الحقيقي فقط</item>
-        <item quantity="two">رتّبهما ليُحسب صرفك الحقيقي فقط</item>
-        <item quantity="few">رتّبها ليُحسب صرفك الحقيقي فقط</item>
-        <item quantity="many">رتّبها ليُحسب صرفك الحقيقي فقط</item>
-        <item quantity="other">رتّبها ليُحسب صرفك الحقيقي فقط</item>
+        <item quantity="zero">صنّفها لتُحتسب مصروفاتك الفعلية فقط</item>
+        <item quantity="one">صنّفها لتُحتسب مصروفاتك الفعلية فقط</item>
+        <item quantity="two">صنّفهما لتُحتسب مصروفاتك الفعلية فقط</item>
+        <item quantity="few">صنّفها لتُحتسب مصروفاتك الفعلية فقط</item>
+        <item quantity="many">صنّفها لتُحتسب مصروفاتك الفعلية فقط</item>
+        <item quantity="other">صنّفها لتُحتسب مصروفاتك الفعلية فقط</item>
     </plurals>
     <string name="notif_daily_action_sort">صنّفها</string>
-    <string name="notif_daily_action_sort_all">صنّفها</string>
-    <string name="notif_daily_action_cash">+ نقداً</string>
+    <string name="notif_daily_action_sort_all">صنّف الكل</string>
+    <string name="notif_daily_action_cash">+ مصروف نقدي</string>
     <!-- Header over a stack of transaction alerts -->
     <plurals name="notif_txn_group_title">
-        <item quantity="zero">لا عمليات جديدة</item>
-        <item quantity="one">%d عملية جديدة</item>
-        <item quantity="two">عمليتان جديدتان</item>
-        <item quantity="few">%d عمليات جديدة</item>
-        <item quantity="many">%d عملية جديدة</item>
-        <item quantity="other">%d عملية جديدة</item>
+        <item quantity="zero">لا معاملات جديدة</item>
+        <item quantity="one">%d معاملة جديدة</item>
+        <item quantity="two">معاملتان جديدتان</item>
+        <item quantity="few">%d معاملات جديدة</item>
+        <item quantity="many">%d معاملة جديدة</item>
+        <item quantity="other">%d معاملة جديدة</item>
     </plurals>
     <!-- Balance chart legend -->
     <string name="balance_chart_label">اتجاه الرصيد</string>

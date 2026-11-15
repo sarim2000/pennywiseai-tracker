@@ -12,6 +12,17 @@ export GIT_AUTHOR_NAME=test GIT_AUTHOR_EMAIL=test@example.com \
        GIT_COMMITTER_NAME=test GIT_COMMITTER_EMAIL=test@example.com
 FAILED=0
 
+# Stand-in for `gh run list`: prints $FAKE_CI (default: a passing run) the way
+# release.sh's --jq formats it, or fails like an API error when it's "error".
+mkdir -p "$TMP/bin"
+cat > "$TMP/bin/gh" <<'GH'
+#!/bin/bash
+[ "${FAKE_CI-}" = error ] && { echo "HTTP 502" >&2; exit 1; }
+printf '%s\n' "${FAKE_CI-completed success}"
+GH
+chmod +x "$TMP/bin/gh"
+export PATH="$TMP/bin:$PATH"
+
 # A bare origin and a clone ($TMP/work) on main, in sync. ($TMP/other) is a
 # second clone used to move origin/main ahead of work.
 # Setup is one && chain: any failed step aborts the run, so a failed clone can
@@ -78,5 +89,16 @@ expect "behind under custom refspec"  1 "HEAD is not origin/main"  -- patch --ye
 
 fresh; git remote set-url origin "$TMP/missing.git"
 expect "fetch failure refused"        1 "Could not fetch"          -- patch --yes
+
+fresh; export FAKE_CI="in_progress "
+expect "CI still running refused"     1 "not 'completed success'"  -- patch --yes
+export FAKE_CI="completed failure"
+expect "CI failed refused"            1 "completed failure"        -- patch --yes
+expect "CI failed warns on dry run"   0 "completed failure"        -- --dry-run --no-claude
+export FAKE_CI=""
+expect "no CI run refused"            1 "no run found"             -- patch --yes
+export FAKE_CI=error
+expect "CI lookup failure refused"    1 "Could not read CI"        -- patch --yes
+unset FAKE_CI
 
 exit $FAILED

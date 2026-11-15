@@ -8,12 +8,14 @@ import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.repository.LoanRepository
 import com.pennywiseai.tracker.domain.loan.LoanOverflow
+import com.pennywiseai.tracker.domain.loan.LoanOverflowPrompt
 import com.pennywiseai.tracker.widget.WidgetRefresher
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import javax.inject.Inject
@@ -63,14 +65,17 @@ class LoanDetailViewModel @Inject constructor(
     }
 
     fun showRecordPayment() {
-        val loan = _uiState.value.loan ?: return
         viewModelScope.launch {
-            loanRepository.getRecentUnlinkedRepayments(loan.direction, loan.currency).collect {
-                _uiState.value = _uiState.value.copy(
-                    recentUnlinkedTransactions = it,
-                    showRecordPaymentSheet = true
-                )
-            }
+            // Read once per opening, for the loan as it is now: a payment that turned
+            // the loan around changes which side repays it, and a live search left
+            // running would reopen the sheet with the old side's candidates.
+            val loan = loanRepository.getLoanById(loanId) ?: return@launch
+            val candidates = loanRepository.getRecentUnlinkedRepayments(loan.direction, loan.currency).first()
+            _uiState.value = _uiState.value.copy(
+                loan = loan,
+                recentUnlinkedTransactions = candidates,
+                showRecordPaymentSheet = true
+            )
         }
     }
 

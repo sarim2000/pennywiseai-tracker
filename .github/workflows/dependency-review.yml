@@ -4,13 +4,9 @@
 # no snapshot, so it runs on every PR and takes seconds. It isn't
 # path-filtered: a list of manifests would drift from what GitHub supports.
 #
-# Gradle dependencies are reviewed separately, once GitHub shows the PR's
-# snapshot (13 to 35+ minutes after it's submitted), by the `review` job in
-# dependency-graph-submit.yml, as the "Dependency Review (Gradle)" commit
-# status. Until then this job's compare has no Gradle snapshot for the PR's
-# head, so its summary may warn about that; it never waits for one. Once it
-# has, a re-run would see Gradle (`maven`) advisories too; this job ignores
-# them so they're reported only once, by the Gradle status.
+# Gradle isn't covered here: only main submits a Gradle snapshot
+# (dependency-graph.yml), so a PR's head has none and its summary may warn
+# about that. Vulnerable Gradle dependencies surface as Dependabot alerts.
 #
 # Not required for merging (and not in test.yml's `check` job) while it's new.
 name: Dependency Review
@@ -33,33 +29,12 @@ jobs:
     timeout-minutes: 5
 
     steps:
-    - id: review
-      uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
-      continue-on-error: true
+    - uses: actions/dependency-review-action@a1d282b36b6f3519aa1f3fc636f609c47dddb294 # v5.0.0
       with:
         fail-on-severity: high
-        # Same policy as the Gradle review in dependency-graph-submit.yml.
         fail-on-scopes: runtime, unknown
         # License policy is a separate decision; vulnerabilities only for now.
         license-check: false
         # Fork PRs can't get `pull-requests: write`, so no PR comment; the
         # result is in the job summary.
         comment-summary-in-pr: never
-
-    - name: Fail on non-Gradle advisories
-      env:
-        REVIEW: ${{ steps.review.outcome }}
-        VULNERABLE: ${{ steps.review.outputs.vulnerable-changes }}
-      run: |
-        set -euo pipefail
-        [[ "$REVIEW" == success ]] && exit 0
-        if ! jq -e 'type == "array" and length > 0' <<<"${VULNERABLE:-null}" >/dev/null 2>&1; then
-          echo "::error::The review didn't finish; see the step above."; exit 1
-        fi
-        others=$(jq -r '.[] | select(.ecosystem != "maven") | "\(.ecosystem) \(.name)@\(.version) (\(.manifest))"' <<<"$VULNERABLE")
-        if [[ -n "$others" ]]; then
-          echo "::error::Adds a dependency with a high/critical advisory:"
-          echo "$others"
-          exit 1
-        fi
-        echo "Only Gradle advisories; the Dependency Review (Gradle) status reports those."

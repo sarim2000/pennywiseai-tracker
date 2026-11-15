@@ -481,9 +481,9 @@ green but add a warning annotation and list the findings in the job summary.
 - Its CI job (Format Check) fails the workflow on a violation in a changed file.
 - Dependency updates: Renovate (`renovate.json`) opens grouped PRs weekly; the coupled Kotlin/AGP/Hilt/LiteRT-LM/coroutines toolchain and all majors wait for approval on its Dependency Dashboard issue.
 - Unused or mis-scoped dependencies: `./gradlew buildHealth --max-workers=2` (Dependency Analysis plugin, report only). Its known false positives are listed in [architecture-baseline.md](architecture-baseline.md#dependencies).
-- Vulnerable dependencies: Dependency Review fails a PR that adds a dependency with a known high/critical advisory. Neither check is required for merge yet.
-  - Gradle: `dependency-graph.yml` resolves the graph on every PR and `dependency-graph-submit.yml` submits it after validating it, which lets fork PRs work too. Its `review` job then sets the **Dependency Review (Gradle)** commit status. A PR that changes no Gradle dependency input (`*.gradle(.kts)`, `gradle/*.versions.toml`, `gradle.properties`, `build-logic/`, the wrapper properties, `dependency-graph.yml`) gets a success status as soon as its graph is submitted, with no wait. Otherwise the status stays pending until GitHub shows the PR's snapshot, usually 13 to 35 minutes, then reports the review. After 50 minutes without a snapshot it turns to error ("not reviewed"); re-run that job from the status's Details link. A newer push or a closed PR ends the wait early.
-  - Everything GitHub reads itself (npm manifests, GitHub Actions workflows): `dependency-review.yml` runs the **Dependency Review (non-Gradle)** job on every PR. It needs no snapshot, so it finishes in seconds. Each check reports only its own ecosystems: Gradle (`maven`) advisories fail only the Gradle status.
+- Vulnerable dependencies:
+  - Gradle: `dependency-graph.yml` resolves and submits the graph on every push to `main`, so **Dependabot alerts** cover Gradle dependencies (GitHub's own graph doesn't read `libs.versions.toml`). There is no pre-merge Gradle review: a PR's snapshot takes 13 to 35+ minutes to reach GitHub's compare API, and fork PRs can't submit one.
+  - Everything GitHub reads itself (npm manifests, GitHub Actions workflows): `dependency-review.yml` runs **Dependency Review (non-Gradle)** on every PR and fails one that adds a dependency with a known high/critical advisory. It needs no snapshot, so it finishes in seconds. Not required for merge yet.
 
 ## Migration & Evolution
 

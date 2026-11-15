@@ -77,4 +77,16 @@ class WhatWasThisTest {
         assertFalse(transferWithoutLegs(edited, edited))
         assertFalse(transferWithoutLegs(expense, edited.copy(transferPairId = "p")))
     }
+
+    @Test
+    fun `the other leg must be on the same profile`() {
+        val out = txn(TransactionType.EXPENSE).copy(id = 1)
+        val into = txn(TransactionType.INCOME).copy(id = 2, accountNumber = "2222", dateTime = out.dateTime.plusMinutes(5))
+        assertEquals(into, ownTransferPartner(out, listOf(out, into), emptyMap()))
+        // The credit landed on a Business account: not this Personal transfer's other leg.
+        val business = mapOf(2L to setOf("Bank A_2222"))
+        assertEquals(null, ownTransferPartner(out, listOf(out, into), business))
+        // Already on a loan: left alone.
+        assertEquals(null, ownTransferPartner(out, listOf(out, into.copy(loanId = 7)), emptyMap()))
+    }
 }

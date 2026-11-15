@@ -13,9 +13,11 @@ import com.pennywiseai.tracker.data.notification.BankNotificationConfig
 import com.pennywiseai.tracker.data.preferences.BudgetPreferences
 import com.pennywiseai.tracker.data.statement.StatementTransactionEnricher
 import com.pennywiseai.tracker.domain.model.BudgetCycle
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -158,7 +160,9 @@ open class TransactionRepository @Inject constructor(
      * same from/to and a shared [TransactionEntity.transferPairId], so each stays one leg.
      * Balances stay untouched: the money moved when the two SMS arrived.
      */
-    suspend fun markAsTransferPair(expense: TransactionEntity, income: TransactionEntity) {
+    // ponytail: NonCancellable covers leaving the screen mid-write, not a crash between the
+    // two writes; move both into one database transaction if that ever shows up.
+    suspend fun markAsTransferPair(expense: TransactionEntity, income: TransactionEntity) = withContext(NonCancellable) {
         val now = LocalDateTime.now()
         val pairId = java.util.UUID.randomUUID().toString()
         listOf(expense, income).forEach { row ->

@@ -32,6 +32,7 @@ import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.repository.mappingFits
 import com.pennywiseai.tracker.domain.loan.LoanCurrencyRules
+import com.pennywiseai.tracker.domain.model.effectiveProfileId
 import com.pennywiseai.tracker.domain.model.rule.ActionType
 import com.pennywiseai.tracker.domain.model.rule.ConditionOperator
 import com.pennywiseai.tracker.domain.model.rule.RuleAction
@@ -1145,11 +1146,12 @@ class TransactionDetailViewModel @Inject constructor(
         val txn = _transaction.value ?: return
         viewModelScope.launch {
             val window = java.time.Duration.ofMinutes(60)
-            val nearby = transactionRepository.getTransactionsBetweenDatesList(
-                txn.dateTime.minus(window), txn.dateTime.plus(window)
+            val partner = ownTransferPartner(
+                txn,
+                transactionRepository.getTransactionsBetweenDatesList(txn.dateTime.minus(window), txn.dateTime.plus(window)),
+                com.pennywiseai.tracker.domain.model.buildProfileAccountKeys(accountBalanceRepository.getAllLatestBalancesOnce())
             )
-            val partner = computeSelfTransferPairs(nearby)[txn.id]?.let { id -> nearby.firstOrNull { it.id == id } }
-            if (partner == null || partner.lentSharesTotal != null || partner.loanId != null) {
+            if (partner == null) {
                 enterEditMode()
                 updateTransactionType(TransactionType.TRANSFER)
                 return@launch
@@ -1466,3 +1468,23 @@ internal fun transferWithoutLegs(original: TransactionEntity, updated: Transacti
         updated.transactionType == TransactionType.TRANSFER &&
         updated.transferPairId == null &&
         updated.fromAccount == null && updated.toAccount == null
+
+/**
+ * The other leg of [txn] among [nearby] rows, if it arrived: the self-transfer match on
+ * the same profile (a Business income an hour later isn't a Personal transfer's other
+ * leg), not already on a loan or split.
+ */
+internal fun ownTransferPartner(
+    txn: TransactionEntity,
+    nearby: List<TransactionEntity>,
+    profileAccountKeys: Map<Long, Set<String>>
+): TransactionEntity? {
+    val sameProfile = com.pennywiseai.tracker.domain.model.filterTransactionsByProfile(
+        nearby,
+        txn.effectiveProfileId(profileAccountKeys),
+        profileAccountKeys
+    )
+    return computeSelfTransferPairs(sameProfile)[txn.id]
+        ?.let { id -> sameProfile.firstOrNull { it.id == id } }
+        ?.takeIf { it.lentSharesTotal == null && it.loanId == null }
+}

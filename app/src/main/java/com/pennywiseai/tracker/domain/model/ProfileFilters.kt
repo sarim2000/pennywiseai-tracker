@@ -20,17 +20,17 @@ fun filterTransactionsByProfile(
     profileAccountKeys: Map<Long, Set<String>>
 ): List<TransactionEntity> {
     if (selectedProfileId == null) return transactions
-    return transactions.filter { tx ->
-        // Explicit override > account inheritance > default Personal
-        val effectiveProfileId = tx.profileId ?: run {
-            if (tx.bankName != null && tx.accountNumber != null) {
-                val key = "${tx.bankName}_${tx.accountNumber}"
-                profileAccountKeys.entries.firstOrNull { (_, keys) -> keys.contains(key) }?.key
-            } else null
-        } ?: ProfileEntity.PERSONAL_ID
-        effectiveProfileId == selectedProfileId
-    }
+    return transactions.filter { tx -> tx.effectiveProfileId(profileAccountKeys) == selectedProfileId }
 }
+
+/** Explicit override > account inheritance > default Personal. */
+fun TransactionEntity.effectiveProfileId(profileAccountKeys: Map<Long, Set<String>>): Long =
+    profileId ?: run {
+        if (bankName != null && accountNumber != null) {
+            val key = "${bankName}_$accountNumber"
+            profileAccountKeys.entries.firstOrNull { (_, keys) -> keys.contains(key) }?.key
+        } else null
+    } ?: ProfileEntity.PERSONAL_ID
 
 /**
  * Builds a map of profileId → set of "bankName_accountLast4" keys from account balances.

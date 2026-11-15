@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Chat voice input (M5). -->
+    <string name="voice_start">تحدّث</string>
+    <string name="voice_stop">إيقاف الاستماع</string>
+    <string name="voice_listening">جارٍ الاستماع…</string>
+    <string name="voice_finishing">جارٍ الإنهاء…</string>
+    <string name="voice_language">لغة الإدخال الصوتي</string>
+    <string name="voice_online">يستخدم الإنترنت</string>
+    <string name="voice_download">تنزيل</string>
+    <string name="voice_download_header">تنزيل للاستخدام دون إنترنت</string>
+    <string name="voice_download_pending">قيد الانتظار</string>
+    <string name="voice_other_languages">لغات أخرى</string>
+    <string name="voice_download_scheduled">يجري تنزيل %1$s في الخلفية، وستظهر في القائمة عند جاهزيتها.</string>
+    <string name="voice_download_done">%1$s جاهزة.</string>
+    <string name="voice_download_failed">تعذّر تنزيل %1$s.</string>
+    <string name="voice_error_no_match">لم أفهم ما قلته. حاول مرة أخرى.</string>
+    <string name="voice_error_language">هذه اللغة غير متاحة. اختر لغة أخرى.</string>
+    <string name="voice_error_network">لا يوجد اتصال بالإنترنت للإدخال الصوتي عبر الإنترنت. جرّب لغة تعمل دون إنترنت.</string>
+    <string name="voice_error_busy">الميكروفون مشغول. حاول مرة أخرى بعد قليل.</string>
+    <string name="voice_error_audio">تعذّر استخدام الميكروفون.</string>
+    <string name="voice_error_permission">الوصول إلى الميكروفون غير مفعّل. اضغط على الميكروفون للسماح به.</string>
+    <string name="voice_error_generic">توقّف الإدخال الصوتي. حاول مرة أخرى.</string>
+    <string name="voice_online_title">هل تستخدم الإدخال الصوتي عبر الإنترنت لـ %1$s؟</string>
+    <string name="voice_online_body">لغة %1$s غير متاحة دون إنترنت على هذا الهاتف. سيحوّل %2$s صوتك إلى نص عبر الإنترنت. لا يسجّل PennyWise الصوت ولا يحتفظ به، وأنت من يرسل النص بنفسك.</string>
+    <string name="voice_online_confirm">استخدام عبر الإنترنت</string>
+</resources>

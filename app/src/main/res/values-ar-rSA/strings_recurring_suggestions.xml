@@ -7,23 +7,26 @@
     <string name="subscriptions_suggested_show_all">عرض الكل (%1$d)</string>
     <string name="subscriptions_suggested_show_less">عرض أقل</string>
     <!-- Suggestion row: "%1$s · %2$s" = billing cycle (e.g. "Monthly") · payment count (subscription_suggestion_payments) -->
+    <string name="subscription_suggestion_pattern">%1$s · %2$s</string>
     <plurals name="subscription_suggestion_payments">
         <item quantity="zero">%1$d دفعة</item>
         <item quantity="one">%1$d دفعة</item>
-        <item quantity="two">%1$d دفعتان</item>
+        <item quantity="two">دفعتان</item>
         <item quantity="few">%1$d دفعات</item>
         <item quantity="many">%1$d دفعة</item>
         <item quantity="other">%1$d دفعة</item>
     </plurals>
     <!-- Amount range of a bill whose amount changes. %1$s lowest amount, %2$s highest amount, both with currency -->
+    <string name="subscription_suggestion_amount_range">%1$s–%2$s</string>
     <string name="subscription_suggestion_varies">المبلغ متغير</string>
     <string name="subscription_suggestion_review">مراجعة</string>
     <string name="subscription_suggestion_not_recurring">غير متكررة</string>
     <!-- Review sheet. %1$s billing cycle (e.g. "Monthly"), %2$s category -->
+    <string name="subscription_suggestion_sheet_subtitle">%1$s · %2$s</string>
     <plurals name="subscription_suggestion_sheet_found">
         <item quantity="zero">تم العثور على %1$d دفعة</item>
         <item quantity="one">تم العثور على %1$d دفعة</item>
-        <item quantity="two">تم العثور على %1$d دفعتين</item>
+        <item quantity="two">تم العثور على دفعتين</item>
         <item quantity="few">تم العثور على %1$d دفعات</item>
         <item quantity="many">تم العثور على %1$d دفعة</item>
         <item quantity="other">تم العثور على %1$d دفعة</item>
@@ -43,7 +46,7 @@
     <plurals name="home_recurring_card_title">
         <item quantity="zero">%1$d فاتورة متكررة محتملة</item>
         <item quantity="one">%1$d فاتورة متكررة محتملة</item>
-        <item quantity="two">%1$d فاتورتان متكررتان محتملتان</item>
+        <item quantity="two">فاتورتان متكررتان محتملتان</item>
         <item quantity="few">%1$d فواتير متكررة محتملة</item>
         <item quantity="many">%1$d فاتورة متكررة محتملة</item>
         <item quantity="other">%1$d فاتورة متكررة محتملة</item>

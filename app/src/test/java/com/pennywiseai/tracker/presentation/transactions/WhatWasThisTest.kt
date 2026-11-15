@@ -86,7 +86,17 @@ class WhatWasThisTest {
         // The credit landed on a Business account: not this Personal transfer's other leg.
         val business = mapOf(2L to setOf("Bank A_2222"))
         assertEquals(null, ownTransferPartner(out, listOf(out, into), business))
-        // Already on a loan: left alone.
+        // Already on a loan: left alone, and a nearer loan credit doesn't hide the real leg.
         assertEquals(null, ownTransferPartner(out, listOf(out, into.copy(loanId = 7)), emptyMap()))
+        val nearerLoan = into.copy(id = 3, loanId = 7, dateTime = out.dateTime.plusMinutes(1))
+        assertEquals(into, ownTransferPartner(out, listOf(out, nearerLoan, into), emptyMap()))
+    }
+
+    @Test
+    fun `an account picked in the editor is the leg that's kept`() {
+        val expense = txn(TransactionType.EXPENSE)
+        val edited = expense.copy(accountNumber = "3333", bankName = "Bank B")
+        val transfer = edited.copy(transactionType = TransactionType.TRANSFER).withKnownTransferLeg(edited)
+        assertEquals("3333" to "Bank B", transfer.fromAccount to transfer.fromBankName)
     }
 }

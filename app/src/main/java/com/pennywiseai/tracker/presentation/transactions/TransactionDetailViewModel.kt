@@ -616,7 +616,7 @@ class TransactionDetailViewModel @Inject constructor(
             _budgetCategory.value = null
             _editableTransaction.update { current ->
                 current?.copy(transactionType = type, budgetImpactType = null, budgetCategory = null)
-                    ?.withKnownTransferLeg(_transaction.value)
+                    ?.withKnownTransferLeg(current)
             }
         } else {
             _editableTransaction.update { current ->
@@ -1145,23 +1145,33 @@ class TransactionDetailViewModel @Inject constructor(
     fun answerOwnTransfer() {
         val txn = _transaction.value ?: return
         viewModelScope.launch {
-            val window = java.time.Duration.ofMinutes(60)
-            val partner = ownTransferPartner(
-                txn,
-                transactionRepository.getTransactionsBetweenDatesList(txn.dateTime.minus(window), txn.dateTime.plus(window)),
-                com.pennywiseai.tracker.domain.model.buildProfileAccountKeys(accountBalanceRepository.getAllLatestBalancesOnce())
-            )
-            if (partner == null) {
-                enterEditMode()
-                updateTransactionType(TransactionType.TRANSFER)
-                return@launch
+            try {
+                pairOrEditAsTransfer(txn)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _errorMessage.value = UiText.Res(R.string.txn_detail_error_save, listOf(e.message.toString()))
             }
-            val (expense, income) = if (txn.transactionType == TransactionType.EXPENSE) txn to partner else partner to txn
-            transactionRepository.markAsTransferPair(expense, income)
-            loadTransaction(txn.id)
-            com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
-            _saveSuccess.value = true
         }
+    }
+
+    private suspend fun pairOrEditAsTransfer(txn: TransactionEntity) {
+        val window = java.time.Duration.ofMinutes(60)
+        val partner = ownTransferPartner(
+            txn,
+            transactionRepository.getTransactionsBetweenDatesList(txn.dateTime.minus(window), txn.dateTime.plus(window)),
+            com.pennywiseai.tracker.domain.model.buildProfileAccountKeys(accountBalanceRepository.getAllLatestBalancesOnce())
+        )
+        if (partner == null) {
+            enterEditMode()
+            updateTransactionType(TransactionType.TRANSFER)
+            return
+        }
+        val (expense, income) = if (txn.transactionType == TransactionType.EXPENSE) txn to partner else partner to txn
+        transactionRepository.markAsTransferPair(expense, income)
+        loadTransaction(txn.id)
+        com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
+        _saveSuccess.value = true
     }
 
     fun clearSaveSuccess() {
@@ -1449,16 +1459,17 @@ internal fun balanceAdjustment(
 
 /**
  * Switching a row to TRANSFER with no legs yet: the leg it already has is its own
- * account, as the source if money left it, the destination if money came in.
+ * account, as the source if money left it, the destination if money came in. Read
+ * from the row as edited just [before] the switch, so an account picked in the editor wins.
  */
-internal fun TransactionEntity.withKnownTransferLeg(original: TransactionEntity?): TransactionEntity {
+internal fun TransactionEntity.withKnownTransferLeg(before: TransactionEntity?): TransactionEntity {
     if (transactionType != TransactionType.TRANSFER || fromAccount != null || toAccount != null) return this
-    if (original == null || original.transactionType == TransactionType.TRANSFER) return this
-    val account = original.accountNumber ?: return this
-    return if (original.transactionType == TransactionType.INCOME) {
-        copy(toAccount = account, toBankName = original.bankName)
+    if (before == null || before.transactionType == TransactionType.TRANSFER) return this
+    val account = before.accountNumber ?: return this
+    return if (before.transactionType == TransactionType.INCOME) {
+        copy(toAccount = account, toBankName = before.bankName)
     } else {
-        copy(fromAccount = account, fromBankName = original.bankName)
+        copy(fromAccount = account, fromBankName = before.bankName)
     }
 }
 
@@ -1479,12 +1490,11 @@ internal fun ownTransferPartner(
     nearby: List<TransactionEntity>,
     profileAccountKeys: Map<Long, Set<String>>
 ): TransactionEntity? {
-    val sameProfile = com.pennywiseai.tracker.domain.model.filterTransactionsByProfile(
-        nearby,
+    // Loan and split rows are dropped before matching, so a nearer one can't take the match.
+    val candidates = com.pennywiseai.tracker.domain.model.filterTransactionsByProfile(
+        nearby.filter { it.id == txn.id || (it.loanId == null && it.lentSharesTotal == null) },
         txn.effectiveProfileId(profileAccountKeys),
         profileAccountKeys
     )
-    return computeSelfTransferPairs(sameProfile)[txn.id]
-        ?.let { id -> sameProfile.firstOrNull { it.id == id } }
-        ?.takeIf { it.lentSharesTotal == null && it.loanId == null }
+    return computeSelfTransferPairs(candidates)[txn.id]?.let { id -> candidates.firstOrNull { it.id == id } }
 }

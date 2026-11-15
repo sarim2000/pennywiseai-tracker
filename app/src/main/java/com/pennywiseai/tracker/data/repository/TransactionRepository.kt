@@ -154,6 +154,29 @@ open class TransactionRepository @Inject constructor(
     }
 
     /**
+     * Marks a debit and its credit as one transfer (#385): both rows turn TRANSFER with the
+     * same from/to and a shared [TransactionEntity.transferPairId], so each stays one leg.
+     * Balances stay untouched: the money moved when the two SMS arrived.
+     */
+    suspend fun markAsTransferPair(expense: TransactionEntity, income: TransactionEntity) {
+        val now = LocalDateTime.now()
+        val pairId = java.util.UUID.randomUUID().toString()
+        listOf(expense, income).forEach { row ->
+            updateTransaction(
+                row.copy(
+                    transactionType = TransactionType.TRANSFER,
+                    fromAccount = expense.accountNumber,
+                    toAccount = income.accountNumber,
+                    fromBankName = expense.bankName,
+                    toBankName = income.bankName,
+                    transferPairId = pairId,
+                    updatedAt = now
+                )
+            )
+        }
+    }
+
+    /**
      * Writes [transaction] so a split bill (#346) survives a stale copy of the
      * row: whether it's split comes from its loan_shares rows, not the stored
      * total; it stays an expense in its currency, at least its shares; and

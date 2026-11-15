@@ -7,6 +7,8 @@ import com.pennywiseai.tracker.presentation.transactions.WhatWasThis.OWN_TRANSFE
 import com.pennywiseai.tracker.presentation.transactions.WhatWasThis.SAVING
 import com.pennywiseai.tracker.presentation.transactions.WhatWasThis.SPLIT
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
 import java.time.LocalDateTime
@@ -21,7 +23,9 @@ class WhatWasThisTest {
         currency = "INR",
         transactionHash = "h",
         lentSharesTotal = lentShares,
-        loanId = loanId
+        loanId = loanId,
+        bankName = "Bank A",
+        accountNumber = "1111"
     )
 
     @Test
@@ -42,4 +46,31 @@ class WhatWasThisTest {
     @Test
     fun `a transfer offers only the loan answer`() =
         assertEquals(listOf(LOAN), whatWasThisOptions(txn(TransactionType.TRANSFER), hasLoan = false))
+
+    @Test
+    fun `money out turned into a transfer keeps its account as the source`() {
+        val expense = txn(TransactionType.EXPENSE)
+        val edited = expense.copy(transactionType = TransactionType.TRANSFER).withKnownTransferLeg(expense)
+        assertEquals("1111" to "Bank A", edited.fromAccount to edited.fromBankName)
+        assertEquals(null, edited.toAccount)
+        assertFalse(transferWithoutLegs(expense, edited))
+    }
+
+    @Test
+    fun `money in turned into a transfer keeps its account as the destination`() {
+        val income = txn(TransactionType.INCOME)
+        val edited = income.copy(transactionType = TransactionType.TRANSFER).withKnownTransferLeg(income)
+        assertEquals("1111" to "Bank A", edited.toAccount to edited.toBankName)
+        assertEquals(null, edited.fromAccount)
+    }
+
+    @Test
+    fun `a transfer with neither leg is refused`() {
+        val expense = txn(TransactionType.EXPENSE).copy(accountNumber = null)
+        val edited = expense.copy(transactionType = TransactionType.TRANSFER).withKnownTransferLeg(expense)
+        assertTrue(transferWithoutLegs(expense, edited))
+        // An existing transfer, or a paired leg, is left alone.
+        assertFalse(transferWithoutLegs(edited, edited))
+        assertFalse(transferWithoutLegs(expense, edited.copy(transferPairId = "p")))
+    }
 }

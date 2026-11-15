@@ -386,10 +386,8 @@ fun TransactionDetailScreen(
                             viewModel.enterEditMode()
                             viewModel.updateTransactionType(TransactionType.INVESTMENT)
                         }
-                        WhatWasThis.OWN_TRANSFER -> {
-                            viewModel.enterEditMode()
-                            viewModel.updateTransactionType(TransactionType.TRANSFER)
-                        }
+                        // Pairs the other leg if it arrived, else opens the editor.
+                        WhatWasThis.OWN_TRANSFER -> viewModel.answerOwnTransfer()
                     }
                 }
             )

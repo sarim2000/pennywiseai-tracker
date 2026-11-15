@@ -615,6 +615,7 @@ class TransactionDetailViewModel @Inject constructor(
             _budgetCategory.value = null
             _editableTransaction.update { current ->
                 current?.copy(transactionType = type, budgetImpactType = null, budgetCategory = null)
+                    ?.withKnownTransferLeg(_transaction.value)
             }
         } else {
             _editableTransaction.update { current ->
@@ -926,6 +927,13 @@ class TransactionDetailViewModel @Inject constructor(
             return
         }
 
+        // A row turned into a transfer with neither leg would undo its old effect
+        // on the account and apply nothing in its place.
+        if (original != null && transferWithoutLegs(original, toSave)) {
+            _errorMessage.value = UiText.Res(R.string.txn_detail_error_transfer_accounts)
+            return
+        }
+
         // Validate self-transfer for TRANSFER transactions
         if (toSave.transactionType == TransactionType.TRANSFER &&
             toSave.fromAccount != null &&
@@ -1124,6 +1132,34 @@ class TransactionDetailViewModel @Inject constructor(
 
     fun cancelEdit() {
         exitEditMode()
+    }
+
+    /**
+     * "Between my accounts" (#1050). If the other leg already arrived (same amount the
+     * other way, on another account, within the hour) the two are paired, so the money
+     * isn't counted twice. Otherwise the editor opens as a transfer with this row's leg
+     * filled in, for the user to pick the other account and save.
+     * ponytail: the first matching leg wins; equal back-to-back transfers could pair crosswise.
+     */
+    fun answerOwnTransfer() {
+        val txn = _transaction.value ?: return
+        viewModelScope.launch {
+            val window = java.time.Duration.ofMinutes(60)
+            val nearby = transactionRepository.getTransactionsBetweenDatesList(
+                txn.dateTime.minus(window), txn.dateTime.plus(window)
+            )
+            val partner = computeSelfTransferPairs(nearby)[txn.id]?.let { id -> nearby.firstOrNull { it.id == id } }
+            if (partner == null || partner.lentSharesTotal != null || partner.loanId != null) {
+                enterEditMode()
+                updateTransactionType(TransactionType.TRANSFER)
+                return@launch
+            }
+            val (expense, income) = if (txn.transactionType == TransactionType.EXPENSE) txn to partner else partner to txn
+            transactionRepository.markAsTransferPair(expense, income)
+            loadTransaction(txn.id)
+            com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
+            _saveSuccess.value = true
+        }
     }
 
     fun clearSaveSuccess() {
@@ -1408,3 +1444,25 @@ internal fun balanceAdjustment(
         currency = d.currency
     )
 }
+
+/**
+ * Switching a row to TRANSFER with no legs yet: the leg it already has is its own
+ * account, as the source if money left it, the destination if money came in.
+ */
+internal fun TransactionEntity.withKnownTransferLeg(original: TransactionEntity?): TransactionEntity {
+    if (transactionType != TransactionType.TRANSFER || fromAccount != null || toAccount != null) return this
+    if (original == null || original.transactionType == TransactionType.TRANSFER) return this
+    val account = original.accountNumber ?: return this
+    return if (original.transactionType == TransactionType.INCOME) {
+        copy(toAccount = account, toBankName = original.bankName)
+    } else {
+        copy(fromAccount = account, fromBankName = original.bankName)
+    }
+}
+
+/** [updated] turned [original] into a standalone transfer that moves no account. */
+internal fun transferWithoutLegs(original: TransactionEntity, updated: TransactionEntity): Boolean =
+    original.transactionType != TransactionType.TRANSFER &&
+        updated.transactionType == TransactionType.TRANSFER &&
+        updated.transferPairId == null &&
+        updated.fromAccount == null && updated.toAccount == null

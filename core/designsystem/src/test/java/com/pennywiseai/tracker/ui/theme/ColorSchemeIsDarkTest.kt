@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.ui.theme
 
 import com.pennywiseai.tracker.data.preferences.AccentColor
+import com.pennywiseai.tracker.data.preferences.ThemeStyle
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -35,6 +36,16 @@ class ColorSchemeIsDarkTest {
         AccentColor.entries.forEach { accent ->
             assertFalse(accent.name, getCustomLightColorScheme(accent).isDark)
             assertTrue(accent.name, getCustomDarkColorScheme(accent).isDark)
+        }
+    }
+
+    @Test
+    fun palettes_followLightAndDark_includingAmoled() {
+        ThemeStyle.entries.forEach { style ->
+            val palette = style.palette() ?: return@forEach
+            assertFalse(style.name, palette.lightScheme.isDark)
+            assertTrue(style.name, palette.darkScheme.isDark)
+            assertTrue(style.name, palette.darkScheme.withAmoledSurfaces().isDark)
         }
     }
 

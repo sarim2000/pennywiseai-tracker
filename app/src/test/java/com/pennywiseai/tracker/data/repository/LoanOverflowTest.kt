@@ -150,6 +150,62 @@ class LoanOverflowTest {
         assertEquals(0, BigDecimal("1000").compareTo(saved.captured.loanContribution))
     }
 
+    // After the turn: Office owes you ₹500 on a lent loan holding the advance and the bill.
+    private val turned = advance.copy(
+        direction = LoanDirection.LENT, originalAmount = BigDecimal("1500"), remainingAmount = BigDecimal("500")
+    )
+
+    @Test
+    fun `unmarking the bill that turned the loan offers the debt before it`() {
+        coEvery { loanDao.getLoanById(2) } returns turned
+        coEvery { loanDao.getLinkedTransactions(2) } returns listOf(advanceIn, bill.copy(loanId = 2))
+        assertEquals(0, BigDecimal("1000").compareTo(runBlocking { repo.unlinkReversal(9, 2) }))
+    }
+
+    @Test
+    fun `keeping the reversal turns the loan back`() {
+        coEvery { loanDao.getLoanById(2) } returns turned
+        // Before the unlink both rows are linked; after it only the advance is.
+        coEvery { loanDao.getLinkedTransactions(2) } returnsMany listOf(
+            listOf(advanceIn, bill.copy(loanId = 2)),
+            listOf(advanceIn)
+        )
+        val saved = slot<LoanEntity>()
+        coEvery { loanDao.updateLoan(capture(saved)) } returns Unit
+
+        runBlocking { repo.unlinkTransaction(9, 2, keepReversal = true) }
+
+        coVerify { loanDao.unlinkTransaction(9) }
+        coVerify(exactly = 0) { loanDao.unlinkAllTransactions(2) }
+        with(saved.captured) {
+            assertEquals(LoanDirection.BORROWED, direction)
+            assertEquals(0, BigDecimal("1000").compareTo(originalAmount))
+            assertEquals(0, BigDecimal("1000").compareTo(remainingAmount))
+            assertEquals(LoanStatus.ACTIVE, status)
+        }
+    }
+
+    @Test
+    fun `just unmarking stays as before and never turns the loan`() {
+        coEvery { loanDao.getLoanById(2) } returns turned
+        coEvery { loanDao.getLinkedTransactions(2) } returns listOf(advanceIn)
+        runBlocking { repo.unlinkTransaction(9, 2) }
+        coVerify { loanDao.unlinkTransaction(9) }
+        // No lent principal left: the existing rule (deleteLoan) takes over, untouched.
+        coVerify(exactly = 0) { loanDao.updateLoan(match { it.direction == LoanDirection.BORROWED }) }
+    }
+
+    @Test
+    fun `unmarking with nothing running the other way offers nothing`() {
+        // A plain lent loan, repaid in part: removing the repayment leaves only principal.
+        val lent = advance.copy(direction = LoanDirection.LENT)
+        val lentOut = txn(8, "1000", TransactionType.EXPENSE, loanId = 2)
+        val back = txn(9, "400", TransactionType.INCOME, loanId = 2)
+        coEvery { loanDao.getLoanById(2) } returns lent
+        coEvery { loanDao.getLinkedTransactions(2) } returns listOf(lentOut, back)
+        assertNull(runBlocking { repo.unlinkReversal(9, 2) })
+    }
+
     @Test
     fun `a manual payment beyond what is owed can turn the loan around`() {
         val inserted = slot<TransactionEntity>()

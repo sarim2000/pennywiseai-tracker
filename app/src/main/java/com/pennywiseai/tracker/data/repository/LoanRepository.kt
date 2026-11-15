@@ -281,9 +281,11 @@ class LoanRepository @Inject constructor(
      * (those are always money owed to you, #346), and the person has no other
      * open loan the other way in its currency, which would leave them with two.
      */
-    private suspend fun canFlip(loan: LoanEntity): Boolean =
-        loan.status == LoanStatus.ACTIVE &&
-            loanDao.getSharesForLoan(loan.id).isEmpty() &&
+    private suspend fun canFlip(loan: LoanEntity): Boolean = loan.status == LoanStatus.ACTIVE && canTurn(loan)
+
+    /** [canFlip] minus the open check: undoing a turn may find the loan settled since. */
+    private suspend fun canTurn(loan: LoanEntity): Boolean =
+        loanDao.getSharesForLoan(loan.id).isEmpty() &&
             loanDao.getActiveLoanByPersonAndDirection(loan.personName, loan.direction.opposite().name, loan.currency) == null
 
     /**
@@ -340,9 +342,34 @@ class LoanRepository @Inject constructor(
         txId
     }
 
-    suspend fun unlinkTransaction(transactionId: Long, loanId: Long) {
+    /**
+     * What would be owed the other way if [transactionId] came off loan [loanId]:
+     * the rows left repay more than they lend (or borrow). Unlinking the bill
+     * that turned a loan around ([LoanOverflow.FLIP_DEBT]) leaves exactly this,
+     * the debt before it. Null when nothing would run the other way, or the loan
+     * can't turn (split-bill shares, or the person already has an open loan the
+     * other way). The caller offers it; by default unlinking stays as before.
+     */
+    suspend fun unlinkReversal(transactionId: Long, loanId: Long): BigDecimal? {
+        val loan = loanDao.getLoanById(loanId) ?: return null
+        val left = loanDao.getLinkedTransactions(loanId).filter { it.id != transactionId }
+        val extra = LoanMath.repaid(loan.direction, left) - LoanMath.principal(loan.direction, left)
+        return extra.takeIf { it.signum() > 0 && canTurn(loan) }
+    }
+
+    /**
+     * Takes [transactionId] off loan [loanId]. With [keepReversal], when the
+     * rows left run the other way ([unlinkReversal]), the loan turns around to
+     * hold that debt instead of being removed or settled: the undo of a turn.
+     */
+    suspend fun unlinkTransaction(transactionId: Long, loanId: Long, keepReversal: Boolean = false) {
+        val reversal = if (keepReversal) unlinkReversal(transactionId, loanId) else null
         loanDao.unlinkTransaction(transactionId)
         val loan = loanDao.getLoanById(loanId) ?: return
+        if (reversal != null) {
+            repaymentLock.withLock { flipDirection(loan, reversal) }
+            return
+        }
         // Recompute the principal from the remaining CONTRIBUTION transactions
         // (the loan's own direction: LENT->money out, BORROWED->money in).
         // Repayments flow the other way and don't count toward principal.

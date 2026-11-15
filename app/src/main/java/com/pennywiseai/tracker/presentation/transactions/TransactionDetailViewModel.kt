@@ -1346,12 +1346,33 @@ class TransactionDetailViewModel @Inject constructor(
         }
     }
 
-    fun unlinkLoan() {
+    private val _unlinkReversal = MutableStateFlow<BigDecimal?>(null)
+
+    /**
+     * What would be owed the other way once this row comes off its loan, e.g.
+     * the advance's debt again after unmarking the bill that turned it around.
+     * Null when unmarking leaves nothing running the other way.
+     */
+    val unlinkReversal: StateFlow<BigDecimal?> = _unlinkReversal.asStateFlow()
+
+    /** Loads [unlinkReversal] for the unmark confirmation. */
+    fun loadUnlinkReversal() {
         val txn = _transaction.value ?: return
         val loanId = txn.loanId ?: return
+        _unlinkReversal.value = null
+        viewModelScope.launch {
+            _unlinkReversal.value = loanRepository.unlinkReversal(txn.id, loanId)
+        }
+    }
+
+    /** Unmarks the loan; [keepReversal] keeps [unlinkReversal] as a loan the other way. */
+    fun unlinkLoan(keepReversal: Boolean = false) {
+        val txn = _transaction.value ?: return
+        val loanId = txn.loanId ?: return
+        _unlinkReversal.value = null
         viewModelScope.launch {
             try {
-                loanRepository.unlinkTransaction(txn.id, loanId)
+                loanRepository.unlinkTransaction(txn.id, loanId, keepReversal)
                 _transaction.value = transactionRepository.getTransactionById(txn.id)
                 _loan.value = null
             } catch (e: Exception) {

@@ -78,6 +78,13 @@
     <string name="txn_detail_unmark_loan_title">Unmark as loan?</string>
     <string name="txn_detail_unmark_loan_message">This removes the loan link from this transaction. If no other transactions are linked, the loan is deleted too.</string>
     <string name="txn_detail_unmark_loan_confirm">Unmark</string>
+    <!-- Unmarking leaves the loan's other transactions running the other way (e.g. undoing an overpayment that turned the loan around) -->
+    <string name="txn_detail_unmark_loan_reversal_message">Without this transaction, the rest of this loan runs the other way. Keep that as a loan, or just unmark?</string>
+    <!-- %1$s = person name, %2$s = formatted amount -->
+    <string name="txn_detail_unmark_loan_keep_you_owe">Keep: you owe %1$s %2$s</string>
+    <!-- %1$s = person name, %2$s = formatted amount -->
+    <string name="txn_detail_unmark_loan_keep_owes_you">Keep: %1$s owes you %2$s</string>
+    <string name="txn_detail_unmark_loan_only">Just unmark</string>
     <string name="txn_detail_unmark_loan">Unmark as loan</string>
     <string name="txn_detail_mark_as_loan">Mark as loan</string>
     <string name="txn_detail_loan_lent_to">Lent to %1$s</string>

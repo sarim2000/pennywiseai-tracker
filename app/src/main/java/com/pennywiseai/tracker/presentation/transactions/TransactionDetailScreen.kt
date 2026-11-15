@@ -43,6 +43,7 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -96,6 +97,7 @@ fun TransactionDetailScreen(
     val loan by viewModel.loan.collectAsStateWithLifecycle()
     val showMarkAsLoanSheet by viewModel.showMarkAsLoanSheet.collectAsStateWithLifecycle()
     val loanOverflowPrompt by viewModel.loanOverflowPrompt.collectAsStateWithLifecycle()
+    val unlinkReversal by viewModel.unlinkReversal.collectAsStateWithLifecycle()
     var showUnmarkLoanConfirm by remember { mutableStateOf(false) }
     val recentPersonNames by viewModel.recentPersonNames.collectAsStateWithLifecycle()
 // Account profile state
@@ -351,7 +353,10 @@ fun TransactionDetailScreen(
                 hasSplits = hasSplits,
                 loan = loan,
                 onNavigateToLoanDetail = onNavigateToLoanDetail,
-                onUnmarkLoanClick = { showUnmarkLoanConfirm = true },
+                onUnmarkLoanClick = {
+                    viewModel.loadUnlinkReversal()
+                    showUnmarkLoanConfirm = true
+                },
                 accountProfileId = accountProfileId,
                 hazeState = hazeState,
                 towardGoals = {
@@ -457,17 +462,51 @@ fun TransactionDetailScreen(
 
     // Unmark-as-loan confirmation (#444)
     if (showUnmarkLoanConfirm) {
+        // Unmarking the bill that turned a loan around can turn it back (keep).
+        val reversal = unlinkReversal
+        val reversalLoan = loan
+        val keepText = if (reversal != null && reversalLoan != null) {
+            val amount = CurrencyFormatter.formatCurrency(reversal, reversalLoan.currency)
+            // The loan turns the other way: a lent loan becomes money you owe.
+            if (reversalLoan.direction == LoanDirection.LENT) {
+                stringResource(R.string.txn_detail_unmark_loan_keep_you_owe, reversalLoan.personName, amount)
+            } else {
+                stringResource(R.string.txn_detail_unmark_loan_keep_owes_you, reversalLoan.personName, amount)
+            }
+        } else {
+            null
+        }
         AlertDialog(
             onDismissRequest = { showUnmarkLoanConfirm = false },
             title = { Text(stringResource(R.string.txn_detail_unmark_loan_title)) },
             text = {
-                Text(stringResource(R.string.txn_detail_unmark_loan_message))
+                Text(
+                    if (keepText != null) {
+                        stringResource(R.string.txn_detail_unmark_loan_reversal_message)
+                    } else {
+                        stringResource(R.string.txn_detail_unmark_loan_message)
+                    }
+                )
             },
             confirmButton = {
-                TextButton(onClick = {
-                    showUnmarkLoanConfirm = false
-                    viewModel.unlinkLoan()
-                }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.txn_detail_unmark_loan_confirm)) }
+                Column(horizontalAlignment = Alignment.End) {
+                    if (keepText != null) {
+                        TextButton(onClick = {
+                            showUnmarkLoanConfirm = false
+                            viewModel.unlinkLoan(keepReversal = true)
+                        }, shapes = ButtonDefaults.shapes()) { Text(keepText) }
+                    }
+                    TextButton(onClick = {
+                        showUnmarkLoanConfirm = false
+                        viewModel.unlinkLoan()
+                    }, shapes = ButtonDefaults.shapes()) {
+                        Text(
+                            stringResource(
+                                if (keepText != null) R.string.txn_detail_unmark_loan_only else R.string.txn_detail_unmark_loan_confirm
+                            )
+                        )
+                    }
+                }
             },
             dismissButton = {
                 TextButton(onClick = { showUnmarkLoanConfirm = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.txn_detail_action_cancel)) }

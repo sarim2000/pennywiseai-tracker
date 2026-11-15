@@ -1,22 +1,14 @@
 package com.pennywiseai.tracker.presentation.accounts
 
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
-
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
-import com.pennywiseai.tracker.ui.effects.overScrollVertical
-import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
 import androidx.compose.material3.*
@@ -25,21 +17,30 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import com.pennywiseai.tracker.ui.components.SupportDevelopmentDialog
-import com.pennywiseai.tracker.ui.components.SupportNudgeCard
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
+import com.pennywiseai.tracker.ui.components.SupportDevelopmentDialog
+import com.pennywiseai.tracker.ui.components.SupportNudgeCard
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
+import com.pennywiseai.tracker.ui.components.mascot.Mascot
+import com.pennywiseai.tracker.ui.components.mascot.MascotShape
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.*
-import androidx.compose.ui.platform.LocalContext
-import kotlinx.coroutines.launch
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
+import kotlinx.coroutines.launch
 import java.math.BigDecimal
-import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -199,7 +200,8 @@ fun ManageAccountsScreen(
                 PennyWiseEmptyState(
                     icon = Icons.Default.AccountBalance,
                     headline = stringResource(R.string.manage_accounts_empty_title),
-                    description = stringResource(R.string.manage_accounts_empty_description)
+                    description = stringResource(R.string.manage_accounts_empty_description),
+                    mascot = { Mascot(size = Dimensions.Icon.extraLarge, shape = MascotShape.Wallet, interactive = true) }
                 )
             }
         } else {
@@ -288,7 +290,7 @@ fun ManageAccountsScreen(
                         }
                     }
                 }
-                
+
                 // Loan accounts (#792) get their own section; the rest split into
                 // bank accounts and credit cards as before.
                 val (loanAccounts, nonLoanAccounts) = uiState.accounts.partition { it.isLoan }
@@ -310,7 +312,7 @@ fun ManageAccountsScreen(
                     it.isCreditCard && viewModel.isAccountHidden(it.bankName, it.accountLast4)
                 }
                 val allRegularAccounts = nonLoanAccounts.filter { !it.isCreditCard }
-                
+
                 // Regular Bank Accounts Section (Visible Only)
                 if (visibleRegularAccounts.isNotEmpty()) {
                     item {
@@ -362,7 +364,7 @@ fun ManageAccountsScreen(
                         Spacer(modifier = Modifier.height(Spacing.md))
                         SectionHeaderV2(title = stringResource(R.string.manage_accounts_section_unlinked_cards))
                     }
-                    
+
                     items(uiState.orphanedCards) { card ->
                         OrphanedCardItem(
                             card = card,
@@ -598,7 +600,7 @@ fun ManageAccountsScreen(
             )
         }
     }
-    
+
     // Delete Account Confirmation Dialog
     if (showDeleteConfirmDialog && accountToDelete != null) {
         DeleteAccountConfirmDialog(

@@ -51,6 +51,8 @@ import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.cards.SummaryCardV2
+import com.pennywiseai.tracker.ui.components.mascot.Mascot
+import com.pennywiseai.tracker.ui.components.mascot.MascotShape
 import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
@@ -324,7 +326,8 @@ fun SubscriptionsScreen(
                     PennyWiseEmptyState(
                         icon = Icons.Default.Subscriptions,
                         headline = stringResource(R.string.subscriptions_empty_headline),
-                        description = stringResource(R.string.subscriptions_empty_description)
+                        description = stringResource(R.string.subscriptions_empty_description),
+                        mascot = { Mascot(size = Dimensions.Icon.extraLarge, shape = MascotShape.Bell, interactive = true) }
                     )
                 }
             }

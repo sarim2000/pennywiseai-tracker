@@ -82,6 +82,8 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         // Re-read the whole scan window without deleting anything: adds what an
         // earlier scan missed and keeps every edit (the gentle "scan again").
         const val INPUT_RESCAN_ALL                  = "input_rescan_all"
+        /** Tags a rebuild ([INPUT_FORCE_RESYNC]), whose saved count isn't new rows. */
+        const val TAG_REBUILD                       = "sms_rebuild"
         const val PROGRESS_TOTAL                    = "progress_total"
         const val PROGRESS_PROCESSED                = "progress_processed"
         const val PROGRESS_PARSED                   = "progress_parsed"

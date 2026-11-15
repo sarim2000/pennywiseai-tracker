@@ -4,9 +4,13 @@ import android.content.Context
 import android.content.SharedPreferences
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.TransactionType
+import com.pennywiseai.tracker.core.AppForegroundState
 import com.pennywiseai.tracker.core.TransactionWidgets
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.events.TransactionEvent
+import com.pennywiseai.tracker.data.events.TransactionEvents
+import com.pennywiseai.tracker.data.events.TransactionOrigin
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CardRepository
@@ -22,6 +26,7 @@ import io.mockk.justRun
 import io.mockk.mockk
 import io.mockk.slot
 import io.mockk.verify
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -30,12 +35,14 @@ import org.junit.Before
 import org.junit.Test
 import java.math.BigDecimal
 import java.time.LocalDateTime
+import com.pennywiseai.tracker.data.database.entity.TransactionType as SavedType
 
 /**
  * Made-up messages: the processor raises the same money alerts through
  * [MoneyAlerts] as it did when it called the worker directly. A saved live
  * transaction queues the check; a reported balance that falls to the
- * threshold posts the low-balance alert.
+ * threshold posts the low-balance alert. It announces a save to
+ * [TransactionEvents] only once the row is in.
  */
 class SmsTransactionProcessorMoneyAlertsTest {
     private val bank = "Zqt Bank"
@@ -57,6 +64,7 @@ class SmsTransactionProcessorMoneyAlertsTest {
     private val ignored = mockk<IgnoredAccountsStore>()
     private val alerts = mockk<MoneyAlerts>()
     private val widgets = mockk<TransactionWidgets>()
+    private val events = TransactionEvents(AppForegroundState { true })
 
     private val processor = SmsTransactionProcessor(
         appContext = context,
@@ -73,6 +81,7 @@ class SmsTransactionProcessorMoneyAlertsTest {
         moneyAlerts = alerts,
         transactionWidgets = widgets,
         scanPreferences = mockk { every { atmCashToWallet } returns kotlinx.coroutines.flow.flowOf(false) },
+        transactionEvents = events,
     )
 
     @Before
@@ -163,6 +172,42 @@ class SmsTransactionProcessorMoneyAlertsTest {
         assertTrue(result.reason, result.success)
         assertEquals(42L, result.transactionId)
         verify(exactly = 1) { alerts.onTransactionSaved() }
+    }
+
+    @Test
+    fun `a saved transaction announces one event`() = runBlocking {
+        val heard = listen()
+
+        processor.saveParsedTransaction(parsed(balance = null, accountLast4 = null), BODY)
+        heard.stop()
+
+        assertEquals(
+            listOf(TransactionEvent(SavedType.EXPENSE, 1, TransactionOrigin.BANK_MESSAGE)),
+            heard.events,
+        )
+    }
+
+    @Test
+    fun `an insert the database ignores announces nothing`() = runBlocking {
+        coEvery { transactions.insertTransaction(any()) } returns -1L
+        val heard = listen()
+
+        val result = processor.saveParsedTransaction(parsed(balance = null, accountLast4 = null), BODY)
+        heard.stop()
+
+        assertFalse(result.success)
+        assertTrue(heard.events.isEmpty())
+    }
+
+    private class Heard(val events: MutableList<TransactionEvent>, val stop: () -> Unit)
+
+    /** Collects on an unconfined scope, so it is listening before this returns. */
+    private fun listen(): Heard {
+        val events = mutableListOf<TransactionEvent>()
+        val job = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined).launch {
+            this@SmsTransactionProcessorMoneyAlertsTest.events.saved.collect { events += it }
+        }
+        return Heard(events) { job.cancel() }
     }
 
     /** The account sits at [before] with a threshold; captures the row the processor saves. */

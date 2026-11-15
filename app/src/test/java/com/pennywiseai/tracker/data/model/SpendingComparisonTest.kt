@@ -270,7 +270,6 @@ class SpendingComparisonTest {
     fun `month spend is per currency and leaves income out`() {
         val spent = SpendingComparison.spend(listOf(tx("120"), tx("30", type = TransactionType.CREDIT), tx("7", currency = "USD"), tx("900", type = TransactionType.INCOME)))
         assertEquals(mapOf("INR" to BigDecimal("150"), "USD" to BigDecimal("7")), spent)
-
     }
 
     @Test
@@ -321,5 +320,23 @@ class SpendingComparisonTest {
     fun `a category set rolls in every name it holds, refunds included`() {
         val cur = listOf(tx("60", category = "Food"), tx("30", category = "Coffee"), tx("9", category = "Travel"), tx("10", type = TransactionType.INCOME, refundTo = "Coffee"))
         assertEquals(mapOf("INR" to BigDecimal("80")), SpendingComparison.spend(cur, setOf("food", "coffee")))
+    }
+
+    @Test
+    fun `the direction is the way every currency went, and nothing when they disagree`() {
+        val (cw, pw) = windows
+        fun dir(vararg r: SpendingComparison.Row) = SpendingComparison.direction(Result.Rows(cw, pw, r.toList()))
+        fun row(cur: String, prev: String, change: String?) = SpendingComparison.Row("INR", BigDecimal(cur), BigDecimal(prev), change?.let(::BigDecimal))
+        assertEquals(1, dir(row("120", "100", "20")))
+        assertEquals(-1, dir(row("80", "100", "-20"), row("5", "10", "-50")))
+        assertEquals(0, dir(row("120", "100", "20"), row("5", "10", "-50")))
+        assertEquals(0, dir(row("100", "100", "0")))
+        // A change that rounds to 0% reads "no change" in the reply, so the eyes stay level too.
+        val tiny = SpendingComparison.compare(windows, listOf(tx("100.40")), listOf(tx("100")))
+        assertEquals(0, SpendingComparison.direction(tiny))
+        // Nothing before and something now: it rose.
+        assertEquals(1, dir(row("40", "0", null)))
+        assertEquals(0, dir())
+        assertEquals(0, SpendingComparison.direction(Result.NoData(cw, pw, pw)))
     }
 }

@@ -11,6 +11,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.model.ChatMessageFacts
 import com.pennywiseai.tracker.data.model.MonthSummary
 import com.pennywiseai.tracker.data.model.PendingChatAction
+import com.pennywiseai.tracker.data.model.ReplySubject
 import com.pennywiseai.tracker.data.model.ReviewRow
 import com.pennywiseai.tracker.data.model.SpendingComparison
 import com.pennywiseai.tracker.data.model.TransactionDraft
@@ -85,6 +86,15 @@ class LlmRepository @Inject constructor(
     // read the chat would otherwise reach the model twice.
     private var replayedIds = emptySet<String>()
 
+    // The latest assistant line and what it answered, for the chat screen's mascot. Set just before
+    // the line is saved, so the screen knows its subject by the time it shows; cleared as the next
+    // request starts. Never saved, never told to the model.
+    private val _lastReply = MutableStateFlow<ReplySubject?>(null)
+    val lastReply: StateFlow<ReplySubject?> = _lastReply.asStateFlow()
+
+    // What the turn in progress answers so far: its last tool, with that tool's figure.
+    private var turnSubject: ReplySubject? = null
+
     private val _contextTokens = MutableStateFlow(0)
     /** Tokens the model's window holds, measured by LiteRT-LM (developer stats). */
     val contextTokens: StateFlow<Int> = _contextTokens.asStateFlow()
@@ -106,11 +116,22 @@ class LlmRepository @Inject constructor(
 
     /** The user's tap went through: [line] (e.g. "Added ₹120 at Starbucks") joins the chat. */
     suspend fun completePendingAction(line: String) {
-        lastCard = AnsweredCard(line, saved = true, mentions = _pendingAction.value?.let(::mentionsOf).orEmpty())
+        val card = _pendingAction.value
+        lastCard = AnsweredCard(line, saved = true, mentions = card?.let(::mentionsOf).orEmpty())
         _pendingAction.value = null
         cardOutcome = "The user confirmed the last card. It is saved."
+        val message = ChatMessage(message = line, isUser = false)
+        _lastReply.value = ReplySubject(
+            messageId = message.id,
+            tool = when (card) {
+                is PendingChatAction.Add, null -> PennyWiseTools.ADD_TRANSACTIONS
+                is PendingChatAction.Delete -> PennyWiseTools.DELETE_TRANSACTION
+                is PendingChatAction.Update -> PennyWiseTools.UPDATE_TRANSACTION
+            },
+            saved = card is PendingChatAction.Add,
+        )
         // The save already happened. A lost line must not read as a failed save worth repeating.
-        runCatching { chatDao.insertMessage(ChatMessage(message = line, isUser = false)) }
+        runCatching { chatDao.insertMessage(message) }
             .onFailure { Log.w(TAG, "Couldn't save the line after a card (${it.javaClass.simpleName})") }
     }
 
@@ -119,6 +140,8 @@ class LlmRepository @Inject constructor(
     fun getAllMessagesIncludingSystem(): Flow<List<ChatMessage>> = chatDao.getAllMessagesIncludingSystem()
 
     fun sendMessageStream(userMessage: String): Flow<String> = flow {
+        _lastReply.value = null
+        turnSubject = null
         val existingMessages = chatDao.getAllMessagesForContext()
         val isNewChat = existingMessages.isEmpty()
 
@@ -242,6 +265,7 @@ class LlmRepository @Inject constructor(
             if (call.name in CARD_TOOLS && _pendingAction.value != null) { skippedCards++; continue }
             if (call.name == PennyWiseTools.ADD_TRANSACTIONS) {
                 addsProposed = true
+                turnSubject = ReplySubject(tool = PennyWiseTools.ADD_TRANSACTIONS)
                 addLine(proposeAdds(adds.flatMap { TransactionDraft.itemsOfCall(it.arguments) }, userMessage))
             } else {
                 handleToolCall(call, userMessage)?.let { addLine(it) }
@@ -282,6 +306,7 @@ class LlmRepository @Inject constructor(
             message = finalResponse,
             isUser = false
         )
+        _lastReply.value = (turnSubject ?: ReplySubject()).copy(messageId = aiMessage.id)
         chatDao.insertMessage(aiMessage)
         Log.d(TAG, "AI response saved")
     }
@@ -395,6 +420,7 @@ class LlmRepository @Inject constructor(
             chatDao.deleteMessagesBefore(asked)
             cardOutcome = null
             lastCard = null
+            _lastReply.value = null
             droppedIds.clear()
             replayedIds = emptySet()
             _contextTokens.value = 0
@@ -409,6 +435,8 @@ class LlmRepository @Inject constructor(
      */
     private suspend fun handleToolCall(call: LlmEvent.ToolCall, userMessage: String): String? {
         if (com.pennywiseai.tracker.BuildConfig.DEBUG) Log.d(TAG, "tool call ${call.name} ${call.arguments.keys}")
+        // The branches add their figure to it.
+        turnSubject = ReplySubject(tool = if (call.isComparison(userMessage)) PennyWiseTools.COMPARE_SPENDING else call.name)
         return handleToolCallInner(call, userMessage)
     }
 
@@ -478,9 +506,10 @@ class LlmRepository @Inject constructor(
             // spending; anything else is unknown, not a category with nothing spent.
             val unknown = category != null && known == null && result is SpendingComparison.Result.Rows && result.rows.isEmpty()
             when {
-                unknown && SpendingComparison.meansAllSpending(asked) -> comparisonText(aiContextRepository.compareSpending(period, null, creditAsExpense()), null)
+                unknown && SpendingComparison.meansAllSpending(asked) ->
+                    aiContextRepository.compareSpending(period, null, creditAsExpense()).let { comparisonText(it.alsoTrend(), null) }
                 unknown -> context.getString(R.string.chat_reply_unknown_category, asked)
-                else -> comparisonText(result, category)
+                else -> comparisonText(result.alsoTrend(), category)
             }
         }
     } else when (call.name) {
@@ -541,11 +570,14 @@ class LlmRepository @Inject constructor(
                     CurrencyFormatter.formatCurrency(spend.amount, currency, maskIfHidden = false),
                     spend.category,
                     spend.transactionCount
-                )
+                ).also { turnSubject = turnSubject?.copy(share = spend.percentage / 100f) }
             }
         }
         else -> null
     }
+
+    /** Notes which way this comparison went, for the reply's mascot. */
+    private fun SpendingComparison.Result.alsoTrend() = also { turnSubject = turnSubject?.copy(trend = SpendingComparison.direction(it)) }
 
     private suspend fun findTransaction(args: Map<String, Any?>, userMessage: String): TransactionFinder.Match? {
         val words = (args["merchant"] as? String).orEmpty()
@@ -567,12 +599,18 @@ class LlmRepository @Inject constructor(
     private suspend fun creditAsExpense() = userPreferencesRepository.countCreditCardAsExpense.first()
 
     suspend fun answerQuickAction(action: QuickAction) {
+        _lastReply.value = null
+        // For the reply's mascot: the shape of the tool asked the same question, and its figure.
+        var subject = ReplySubject(tool = action.tool)
         val money = { amount: BigDecimal, currency: String -> CurrencyFormatter.formatCurrency(amount, currency, maskIfHidden = false) }
         // The user's own currency on top, the rest by code: the same order in every answer.
         val base = userPreferencesRepository.baseCurrency.first()
         fun <V> Map<String, V>.ordered() = entries.sortedWith(compareBy({ it.key != base }, { it.key })).map { it.key to it.value }
         val answer = when (action) {
-            QuickAction.COMPARE_MONTH -> comparisonText(aiContextRepository.compareSpending(SpendingComparison.Period.MONTH, null, creditAsExpense()), null)
+            QuickAction.COMPARE_MONTH -> aiContextRepository.compareSpending(SpendingComparison.Period.MONTH, null, creditAsExpense()).let {
+                subject = subject.copy(trend = SpendingComparison.direction(it))
+                comparisonText(it, null)
+            }
             QuickAction.MONTH_SPEND -> {
                 val (window, rows) = aiContextRepository.monthSoFar()
                 // Forgiven loan balances count as spent, as on Home (#938).
@@ -583,6 +621,11 @@ class LlmRepository @Inject constructor(
             QuickAction.TOP_CATEGORIES -> {
                 val (window, rows) = aiContextRepository.monthSoFar()
                 val top = SpendingComparison.topCategories(rows, creditAsExpense = creditAsExpense())
+                // The top category's share of its own currency's spending.
+                top.ordered().firstOrNull()?.let { (c, cats) ->
+                    val total = SpendingComparison.spend(rows, creditAsExpense = creditAsExpense())[c]
+                    if (total != null && total.signum() > 0) subject = subject.copy(share = (cats.first().second.toDouble() / total.toDouble()).toFloat().coerceIn(0f, 1f))
+                }
                 if (top.isEmpty()) context.getString(R.string.chat_reply_quick_nothing, range(window))
                 // A blank line between currencies: each is its own ranking.
                 else context.getString(R.string.chat_reply_top_categories, range(window)) + "\n" +
@@ -590,10 +633,12 @@ class LlmRepository @Inject constructor(
             }
         }
         val at = System.currentTimeMillis()
+        val reply = ChatMessage(id = QUICK_ID + UUID.randomUUID(), message = answer, isUser = false, timestamp = at + 1)
+        _lastReply.value = subject.copy(messageId = reply.id)
         // The DAO orders by timestamp alone: the reply must sort after its question.
         chatDao.insertMessages(listOf(
             ChatMessage(id = QUICK_ID + UUID.randomUUID(), message = context.getString(action.label), isUser = true, timestamp = at),
-            ChatMessage(id = QUICK_ID + UUID.randomUUID(), message = answer, isUser = false, timestamp = at + 1)
+            reply
         ))
     }
 
@@ -816,9 +861,12 @@ class LlmRepository @Inject constructor(
     }
 }
 
-/** M8's one-tap questions: an action the code answers, never text for the model. */
-enum class QuickAction(@androidx.annotation.StringRes val label: Int) {
-    MONTH_SPEND(R.string.chat_quick_month_spend),
-    TOP_CATEGORIES(R.string.chat_quick_top_categories),
-    COMPARE_MONTH(R.string.chat_quick_compare_month)
+/**
+ * M8's one-tap questions: an action the code answers, never text for the model. [tool] is
+ * the tool that answers the same question, whose shape its reply's mascot takes.
+ */
+enum class QuickAction(@androidx.annotation.StringRes val label: Int, val tool: String) {
+    MONTH_SPEND(R.string.chat_quick_month_spend, PennyWiseTools.MONTH_SUMMARY),
+    TOP_CATEGORIES(R.string.chat_quick_top_categories, PennyWiseTools.SPENDING_BY_CATEGORY),
+    COMPARE_MONTH(R.string.chat_quick_compare_month, PennyWiseTools.COMPARE_SPENDING)
 }

@@ -1151,6 +1151,7 @@ class HomeViewModel @Inject constructor(
         val workRequest = OneTimeWorkRequestBuilder<OptimizedSmsReaderWorker>()
             .setInputData(inputData)
             .addTag(OptimizedSmsReaderWorker.WORK_NAME)
+            .apply { if (forceResync) addTag(OptimizedSmsReaderWorker.TAG_REBUILD) }
             .build()
 
         WorkManager.getInstance(context).enqueueUniqueWork(

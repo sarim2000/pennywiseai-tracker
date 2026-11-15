@@ -257,9 +257,7 @@
     <string name="appearance_mode_dark">Sombre</string>
     <!-- Theme style -->
     <string name="appearance_style_dynamic">Dynamique</string>
-    <string name="appearance_style_dynamic_subtitle">Couleurs du fond d\'écran</string>
     <string name="appearance_style_default">Par défaut</string>
-    <string name="appearance_style_default_subtitle">Couleurs de pin rose</string>
     <!-- Toggles -->
     <string name="appearance_amoled_title">Noir AMOLED</string>
     <string name="appearance_amoled_subtitle">Utiliser un fond noir pur pour un contraste plus profond</string>

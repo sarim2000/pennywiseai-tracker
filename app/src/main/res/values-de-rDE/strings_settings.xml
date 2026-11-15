@@ -261,9 +261,7 @@
     <string name="appearance_mode_dark">Dunkel</string>
     <!-- Theme style -->
     <string name="appearance_style_dynamic">Dynamisch</string>
-    <string name="appearance_style_dynamic_subtitle">Hintergrundfarben</string>
     <string name="appearance_style_default">Standard</string>
-    <string name="appearance_style_default_subtitle">Rose Kiefer Farben</string>
     <!-- Toggles -->
     <string name="appearance_amoled_title">AMOLED Schwarz</string>
     <string name="appearance_amoled_subtitle">Verwende reinen schwarzen Hintergrund für höheren Kontrast</string>

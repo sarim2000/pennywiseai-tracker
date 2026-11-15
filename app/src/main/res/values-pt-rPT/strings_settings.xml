@@ -261,9 +261,7 @@
     <string name="appearance_mode_dark">Escuro</string>
     <!-- Theme style -->
     <string name="appearance_style_dynamic">Dinâmico</string>
-    <string name="appearance_style_dynamic_subtitle">Cores do Papel de Parede</string>
     <string name="appearance_style_default">Padrão</string>
-    <string name="appearance_style_default_subtitle">Cores de Pinheiro Rosa</string>
     <!-- Toggles -->
     <string name="appearance_amoled_title">Preto AMOLED</string>
     <string name="appearance_amoled_subtitle">Use fundo preto puro para contraste mais profundo</string>

@@ -259,9 +259,7 @@
     <string name="appearance_mode_dark">डार्क</string>
     <!-- Theme style -->
     <string name="appearance_style_dynamic">डायनामिक</string>
-    <string name="appearance_style_dynamic_subtitle">वॉलपेपर रंग</string>
     <string name="appearance_style_default">डिफ़ॉल्ट</string>
-    <string name="appearance_style_default_subtitle">Rose Pine रंग</string>
     <!-- Toggles -->
     <string name="appearance_amoled_title">AMOLED काला</string>
     <string name="appearance_amoled_subtitle">गहरे कंट्रास्ट के लिए शुद्ध काला पृष्ठभूमि उपयोग करें</string>

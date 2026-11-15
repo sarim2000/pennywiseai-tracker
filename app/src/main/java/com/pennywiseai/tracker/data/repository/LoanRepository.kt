@@ -243,10 +243,14 @@ class LoanRepository @Inject constructor(
         if (overflow == LoanOverflow.FLIP_DEBT && loan != null && wanted != null && extra != null &&
             extra.signum() > 0 && canFlip(loan)
         ) {
-            loanDao.linkTransaction(transactionId, loanId)
-            persistContributionOverride(transactionId, wanted)
-            keepNote(transactionId, note)
-            flipDirection(loan, extra)
+            // One transaction: a payment linked in full on a loan that never turned
+            // would hide it from totals and wipe the old balance instead.
+            database.withTransaction {
+                loanDao.linkTransaction(transactionId, loanId)
+                persistContributionOverride(transactionId, wanted)
+                keepNote(transactionId, note)
+                flipDirection(loan, extra)
+            }
             return@withLock
         }
         // Capped even at zero (a reopened, fully repaid loan): the payment then
@@ -337,9 +341,16 @@ class LoanRepository @Inject constructor(
             // turns the loan around.
             loanContribution = if (flip) null else owed.takeIf { amount > it }
         )
-        val txId = transactionDao.insertTransaction(transaction)
-        if (flip) flipDirection(loan, amount - owed) else recalculateRemaining(loanId)
-        txId
+        if (!flip) {
+            val txId = transactionDao.insertTransaction(transaction)
+            recalculateRemaining(loanId)
+            return@withLock txId
+        }
+        database.withTransaction {
+            val txId = transactionDao.insertTransaction(transaction)
+            flipDirection(loan, amount - owed)
+            txId
+        }
     }
 
     /**
@@ -352,8 +363,13 @@ class LoanRepository @Inject constructor(
      */
     suspend fun unlinkReversal(transactionId: Long, loanId: Long): BigDecimal? {
         val loan = loanDao.getLoanById(loanId) ?: return null
-        val left = loanDao.getLinkedTransactions(loanId).filter { it.id != transactionId }
-        val extra = LoanMath.repaid(loan.direction, left) - LoanMath.principal(loan.direction, left)
+        val linked = loanDao.getLinkedTransactions(loanId)
+        val left = linked.filter { it.id != transactionId }
+        // The stored principal can differ from the rows (an edited expected return,
+        // or a turn that kept such an edit): carry that difference over, so borrowing
+        // ₹1,000 marked to return ₹800 comes back as ₹800 owed, not ₹1,000.
+        val adjustment = loan.originalAmount - LoanMath.principal(loan.direction, linked)
+        val extra = LoanMath.repaid(loan.direction, left) - LoanMath.principal(loan.direction, left) - adjustment
         return extra.takeIf { it.signum() > 0 && canTurn(loan) }
     }
 
@@ -364,12 +380,17 @@ class LoanRepository @Inject constructor(
      */
     suspend fun unlinkTransaction(transactionId: Long, loanId: Long, keepReversal: Boolean = false) {
         val reversal = if (keepReversal) unlinkReversal(transactionId, loanId) else null
-        loanDao.unlinkTransaction(transactionId)
-        val loan = loanDao.getLoanById(loanId) ?: return
         if (reversal != null) {
-            repaymentLock.withLock { flipDirection(loan, reversal) }
+            repaymentLock.withLock {
+                database.withTransaction {
+                    loanDao.unlinkTransaction(transactionId)
+                    loanDao.getLoanById(loanId)?.let { flipDirection(it, reversal) }
+                }
+            }
             return
         }
+        loanDao.unlinkTransaction(transactionId)
+        val loan = loanDao.getLoanById(loanId) ?: return
         // Recompute the principal from the remaining CONTRIBUTION transactions
         // (the loan's own direction: LENT->money out, BORROWED->money in).
         // Repayments flow the other way and don't count toward principal.

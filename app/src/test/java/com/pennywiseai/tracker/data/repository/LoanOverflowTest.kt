@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.data.repository
 
+import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.LoanDao
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
@@ -8,14 +9,18 @@ import com.pennywiseai.tracker.data.database.entity.LoanShareEntity
 import com.pennywiseai.tracker.data.database.entity.LoanStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.ledger.countedAmount
 import com.pennywiseai.tracker.domain.loan.LoanOverflow
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
+import io.mockk.mockkStatic
 import io.mockk.slot
+import io.mockk.unmockkStatic
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.After
 import org.junit.Assert.assertNull
 import org.junit.Before
 import org.junit.Test
@@ -30,7 +35,8 @@ import java.time.LocalDateTime
 class LoanOverflowTest {
     private val loanDao = mockk<LoanDao>(relaxed = true)
     private val transactionDao = mockk<TransactionDao>(relaxed = true)
-    private val repo = LoanRepository(loanDao, transactionDao, mockk(relaxed = true))
+    private val database = mockk<PennyWiseDatabase>()
+    private val repo = LoanRepository(loanDao, transactionDao, database)
 
     private val advance = LoanEntity(
         id = 2, personName = "Office", direction = LoanDirection.BORROWED,
@@ -48,12 +54,18 @@ class LoanOverflowTest {
 
     @Before
     fun setUp() {
+        // A turn writes in one database transaction; run its block directly.
+        mockkStatic("com.pennywiseai.tracker.data.database.RoomCompatKt")
+        coEvery { database.withTransaction(any<suspend () -> Any?>()) } coAnswers { secondArg<suspend () -> Any?>().invoke() }
         coEvery { loanDao.getLoanById(2) } returns advance
         coEvery { loanDao.getSharesForLoan(2) } returns emptyList()
         coEvery { loanDao.getActiveLoanByPersonAndDirection(any(), any(), any()) } returns null
         coEvery { transactionDao.getTransactionById(9) } returns bill
         coEvery { loanDao.getLinkedTransactions(2) } returns listOf(advanceIn)
     }
+
+    @After
+    fun tearDown() = unmockkStatic("com.pennywiseai.tracker.data.database.RoomCompatKt")
 
     @Test
     fun `the extra beyond what is owed is offered`() {
@@ -190,6 +202,36 @@ class LoanOverflowTest {
             assertEquals(0, BigDecimal("1000").compareTo(remainingAmount))
             assertEquals(LoanStatus.ACTIVE, status)
         }
+    }
+
+    @Test
+    fun `undoing a turn keeps an edited expected return`() {
+        // Borrowed ₹1,000 but marked to return ₹800, then paid ₹1,000: ₹200 turned
+        // into money owed to you (₹1,200 lent against ₹1,000 back). Undoing the
+        // payment should offer the ₹800 owed before it, not the ₹1,000 borrowed.
+        val payment = bill.copy(amount = BigDecimal("1000"), loanId = 2)
+        coEvery { loanDao.getLoanById(2) } returns advance.copy(
+            direction = LoanDirection.LENT, originalAmount = BigDecimal("1200"), remainingAmount = BigDecimal("200")
+        )
+        coEvery { loanDao.getLinkedTransactions(2) } returns listOf(advanceIn, payment)
+        assertEquals(0, BigDecimal("800").compareTo(runBlocking { repo.unlinkReversal(9, 2) }))
+    }
+
+    @Test
+    fun `an edited expected return carries into the turn`() {
+        // The same ₹1,000 marked to return ₹800: paying ₹1,000 overshoots by ₹200.
+        coEvery { loanDao.getLoanById(2) } returns advance.copy(originalAmount = BigDecimal("800"), remainingAmount = BigDecimal("800"))
+        val payment = bill.copy(amount = BigDecimal("1000"))
+        coEvery { transactionDao.getTransactionById(9) } returns payment
+        coEvery { loanDao.getLinkedTransactions(2) } returnsMany listOf(
+            listOf(advanceIn),
+            listOf(advanceIn, payment.copy(loanId = 2))
+        )
+        val saved = slot<LoanEntity>()
+        coEvery { loanDao.updateLoan(capture(saved)) } returns Unit
+        runBlocking { repo.recordRepayment(2, 9, overflow = LoanOverflow.FLIP_DEBT) }
+        assertEquals(0, BigDecimal("1200").compareTo(saved.captured.originalAmount))
+        assertEquals(0, BigDecimal("200").compareTo(saved.captured.remainingAmount))
     }
 
     @Test

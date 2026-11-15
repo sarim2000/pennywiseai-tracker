@@ -2,8 +2,10 @@
 #
 # init.sh — the verification gate for coding agents (and humans).
 #
-# Runs exactly what .github/workflows/test.yml gates on, so "green here" means
-# "green there". Every target starts with the format check (ktlint via Spotless,
+# Runs the format, compile and test steps .github/workflows/test.yml gates on.
+# CI also assembles the debug APKs and runs Android Lint, zizmor, ShellCheck and
+# the release-guard test, so "green here" is a fast pre-check, not a guarantee.
+# Every target starts with the format check (ktlint via Spotless,
 # files changed since origin/main only), which never edits files. Schema changes
 # also run database-upgrade-test.yml, which needs an emulator and isn't run here.
 # Prefer this over `./gradlew build` / `lint`, which are heavier and are NOT part

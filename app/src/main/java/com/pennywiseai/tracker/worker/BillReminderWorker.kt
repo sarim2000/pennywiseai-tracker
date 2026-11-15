@@ -89,7 +89,7 @@ class BillReminderWorker @AssistedInject constructor(
                 (sub.smsBody != null && sub.bankName != "Manual Entry") ||
                 transactionDao.getBankChargedRecurringMerchants(sub.currency).any { RecurringCharge.sameMerchant(it, sub.merchantName) }
             val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setSmallIcon(R.drawable.ic_notification)
                 .setContentTitle(context.getString(R.string.bill_reminder_title, context.bidiIsolate(sub.merchantName)))
                 .setContentText(
                     context.getString(

@@ -1,19 +1,18 @@
-# Resolves the Gradle dependency graph and saves it as an artifact.
-# GitHub's own graph doesn't read libs.versions.toml, so without this
-# Dependency Review sees no Gradle dependencies at all. The review of a PR's
-# Gradle changes runs from dependency-graph-submit.yml once its snapshot is in.
+# Resolves the Gradle dependency graph on every push to main and submits it.
+# GitHub's own graph doesn't read libs.versions.toml, so without this neither
+# Dependabot alerts nor Dependency Review see any Gradle dependencies.
 #
-# Fork PRs get a read-only token and can't submit a snapshot, so this workflow
-# only uploads it; dependency-graph-submit.yml (workflow_run) submits it. Main
-# goes the same way so the base snapshot that PRs are compared against exists.
-# https://github.com/gradle/actions/blob/main/docs/dependency-submission.md#usage-with-pull-requests-from-public-forked-repositories
+# PRs don't get a pre-merge Gradle vulnerability review: GitHub takes 13 to
+# 35+ minutes to show a submitted snapshot to the compare API, and fork PRs
+# can't submit one without a separate workflow_run workflow. A vulnerable
+# Gradle dependency shows up as a Dependabot alert once it lands on main.
+# https://github.com/gradle/actions/blob/main/docs/dependency-submission.md
 name: Dependency Graph
 
 on:
   push:
     branches: [ main ]
-  pull_request:
-    branches: [ main ]
+  workflow_dispatch:
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.ref }}
@@ -23,10 +22,15 @@ permissions:
   contents: read
 
 jobs:
+  # Keep the job ID: it is part of the snapshot key (dependency_graph-generate).
+  # GitHub keeps the latest snapshot per key, so a new ID would leave main's old
+  # snapshot, and its alerts, in place forever.
   generate:
-    name: Generate dependency graph
+    name: Submit dependency graph
     runs-on: ubuntu-latest
     timeout-minutes: 15
+    permissions:
+      contents: write   # POST /dependency-graph/snapshots
 
     steps:
     - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
@@ -42,9 +46,8 @@ jobs:
       with:
         packages: platform-tools
 
-    - name: Generate and save dependency graph
+    - name: Generate and submit dependency graph
       uses: gradle/actions/dependency-submission@0723195856401067f7a2779048b490ace7a47d7c # v5.0.2
       with:
-        dependency-graph: generate-and-upload
-        # Consumed minutes later by dependency-graph-submit.yml.
-        artifact-retention-days: 1
+        # The default also uploads the graph as an artifact, which nothing reads.
+        dependency-graph: generate-and-submit

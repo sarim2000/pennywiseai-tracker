@@ -2,6 +2,7 @@ name: Quality (advisory)
 
 # Report-only: Detekt findings and unit-test coverage. Every job is continue-on-error and
 # none is in the required Check job (test.yml), so nothing here blocks a merge.
+# Coverage skips PRs: it re-runs the unit tests Tests / App Unit Tests already gates on.
 # See docs/architecture.md#static-analysis-and-coverage.
 
 on:
@@ -114,6 +115,7 @@ jobs:
 
   coverage:
     name: Coverage (advisory)
+    if: github.event_name != 'pull_request'
     runs-on: ubuntu-latest
     timeout-minutes: 20
     continue-on-error: true

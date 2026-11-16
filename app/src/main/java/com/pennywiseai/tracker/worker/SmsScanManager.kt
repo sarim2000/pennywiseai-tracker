@@ -4,7 +4,10 @@ import android.content.Context
 import androidx.work.ExistingWorkPolicy
 import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.WorkManager
+import androidx.work.workDataOf
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.map
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -20,9 +23,12 @@ class SmsScanManager @Inject constructor(
 
     /**
      * Starts a one-time SMS scan using the optimized worker for faster processing.
+     * [rescanAll] re-reads the whole scan window without deleting anything, so it
+     * adds what an earlier scan missed and keeps every edit.
      */
-    fun startSmsLoggingScan() {
+    fun startSmsLoggingScan(rescanAll: Boolean = false) {
         val smsReaderWork = OneTimeWorkRequestBuilder<OptimizedSmsReaderWorker>()
+            .setInputData(workDataOf(OptimizedSmsReaderWorker.INPUT_RESCAN_ALL to rescanAll))
             .addTag("sms_logging")
             .addTag("optimized_sms_processing")
             .build()
@@ -40,6 +46,11 @@ class SmsScanManager @Inject constructor(
     fun cancelSmsScanning() {
         workManager.cancelUniqueWork(OptimizedSmsReaderWorker.WORK_NAME)
     }
+
+    /** Whether a scan is queued or running, whoever started it. */
+    fun isScanRunning(): Flow<Boolean> =
+        workManager.getWorkInfosForUniqueWorkFlow(OptimizedSmsReaderWorker.WORK_NAME)
+            .map { infos -> infos.any { !it.state.isFinished } }
 
     /**
      * Gets the work info for monitoring progress of the SMS scan.

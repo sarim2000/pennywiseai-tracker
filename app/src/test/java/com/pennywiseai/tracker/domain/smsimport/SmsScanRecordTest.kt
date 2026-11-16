@@ -64,4 +64,11 @@ class SmsScanRecordTest {
         assertEquals(LastScanStatus.NEVER, lastScanStatus(null, scanRunning = false))
         assertEquals(LastScanStatus.RUNNING, lastScanStatus(null, scanRunning = true))
     }
+
+    @Test
+    fun `only a scan that ended early needs attention`() {
+        val flagged = LastScanStatus.entries.filter { it.needsAttention }.toSet()
+
+        assertEquals(setOf(LastScanStatus.FAILED, LastScanStatus.CANCELLED, LastScanStatus.INTERRUPTED), flagged)
+    }
 }

@@ -51,7 +51,17 @@ data class SmsScanRecord(
 }
 
 /** What the check-up shows for the latest scan. */
-enum class LastScanStatus { NEVER, RUNNING, SUCCEEDED, FAILED, CANCELLED, INTERRUPTED }
+enum class LastScanStatus {
+    NEVER,
+    RUNNING,
+    SUCCEEDED,
+    FAILED,
+    CANCELLED,
+    INTERRUPTED;
+
+    /** The scan ended without finishing, so new messages may be missing. */
+    val needsAttention: Boolean get() = this == FAILED || this == CANCELLED || this == INTERRUPTED
+}
 
 /**
  * [scanRunning] is WorkManager's word on whether a scan is queued or running now. A

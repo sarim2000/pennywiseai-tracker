@@ -163,6 +163,10 @@ data object MascotPlayground : NavKey
 @Serializable
 data object BackgroundAccess : NavKey
 
+/** "Why didn't my transaction show up?": access, background, last scan, not imported. */
+@Serializable
+data object SmsCheckup : NavKey
+
 @Serializable
 data object LearnedCategories : NavKey
 

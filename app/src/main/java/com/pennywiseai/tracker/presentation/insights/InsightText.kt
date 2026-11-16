@@ -134,16 +134,15 @@ internal fun insightText(insight: Insight): InsightText = when (val f = insight.
         note = stringResource(R.string.insights_runway_estimate).takeIf { f.lowConfidence },
     )
     is InsightFact.GoalsFit -> InsightText(
-        title = if (f.fits) {
-            stringResource(R.string.insights_goals_fit_title, f.needed.format())
-        } else {
-            stringResource(
-                R.string.insights_goals_short_title,
-                Money(f.needed.amount - f.surplus.amount, f.needed.currency).format(),
-            )
+        // With nothing left over, "need X more" would only restate the shortfall as a
+        // bigger number than the goals ask for, so lead with what they need.
+        title = when {
+            f.shortBy == null -> stringResource(R.string.insights_goals_fit_title, f.needed.format())
+            f.surplus.amount.signum() <= 0 -> stringResource(R.string.goals_need_per_month, f.needed.format())
+            else -> stringResource(R.string.insights_goals_short_title, f.shortBy.format())
         },
         body = when {
-            f.fits -> stringResource(R.string.insights_goals_fit_body, f.surplus.format())
+            f.shortBy == null -> stringResource(R.string.insights_goals_fit_body, f.surplus.format())
             f.surplus.amount.signum() > 0 ->
                 stringResource(R.string.insights_goals_short_body, f.needed.format(), f.surplus.format())
             else -> stringResource(R.string.insights_goals_no_surplus_body, f.needed.format())

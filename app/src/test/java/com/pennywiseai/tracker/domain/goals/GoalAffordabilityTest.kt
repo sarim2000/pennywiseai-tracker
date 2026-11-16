@@ -138,6 +138,7 @@ class GoalAffordabilityTest {
         val fact = insights[1].fact as GoalsFit
         assertEquals("USD", fact.needed.currency)
         assertEquals(d("-50"), fact.surplus.amount)
-        assertEquals(false, fact.fits)
+        assertEquals(d("350"), fact.shortBy?.amount)
+        assertNull((insights[0].fact as GoalsFit).shortBy)
     }
 }

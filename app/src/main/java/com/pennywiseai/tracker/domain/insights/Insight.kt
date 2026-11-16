@@ -75,12 +75,11 @@ sealed interface InsightFact {
     ) : InsightFact
 
     /**
-     * The [count] goals in progress need [needed] a month together, and a usual month
-     * leaves [surplus] over (below zero when more goes out than comes in).
+     * The goals in progress need [needed] a month together, and a usual month leaves
+     * [surplus] over (below zero when more goes out than comes in). [shortBy] is
+     * [com.pennywiseai.tracker.domain.goals.GoalAffordability.shortBy]: null when they fit.
      */
-    data class GoalsFit(val needed: Money, val surplus: Money, val count: Int) : InsightFact {
-        val fits: Boolean get() = surplus.amount >= needed.amount
-    }
+    data class GoalsFit(val needed: Money, val surplus: Money, val shortBy: Money?) : InsightFact
 
     /** [names] are the subscriptions due, soonest first. */
     data class BillsDue(

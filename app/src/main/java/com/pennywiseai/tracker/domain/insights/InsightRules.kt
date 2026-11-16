@@ -390,7 +390,7 @@ object InsightRules {
             id("goals_fit", period, g.currency, "all"),
             if (g.fits == true) InsightSeverity.GOOD else InsightSeverity.WARNING,
             g.currency,
-            GoalsFit(Money(g.needed, g.currency), Money(surplus, g.currency), g.goalCount),
+            GoalsFit(Money(g.needed, g.currency), Money(surplus, g.currency), g.shortBy?.let { Money(it, g.currency) }),
             InsightAction.OpenGoals,
         )
     }

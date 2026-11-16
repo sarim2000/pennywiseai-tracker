@@ -366,7 +366,7 @@ private fun SeverityHeader(severity: InsightSeverity) {
 }
 
 @Composable
-private fun severityStyle(severity: InsightSeverity): Pair<ImageVector, Color> = when (severity) {
+internal fun severityStyle(severity: InsightSeverity): Pair<ImageVector, Color> = when (severity) {
     InsightSeverity.ALERT -> Icons.Default.ErrorOutline to MaterialTheme.colorScheme.error
     InsightSeverity.WARNING -> Icons.Default.WarningAmber to MaterialTheme.colorScheme.warning
     InsightSeverity.GOOD -> Icons.Default.CheckCircle to MaterialTheme.colorScheme.success

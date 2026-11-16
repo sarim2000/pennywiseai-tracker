@@ -76,6 +76,7 @@ fun HomeScreen(
     onNavigateToTransactionsWithSearch: () -> Unit = {},
     onNavigateToSubscriptions: () -> Unit = {},
     onNavigateToReview: (ReviewKind) -> Unit = {},
+    onNavigateToInsights: () -> Unit = {},
     onNavigateToBudgets: () -> Unit = {},
     onNavigateToLoans: () -> Unit = {},
     onNavigateToTransactionGroups: () -> Unit = {},
@@ -127,6 +128,13 @@ fun HomeScreen(
     // Fixes happen in system Settings, so every check reruns on return.
     val context = LocalContext.current
     val backgroundAccess: BackgroundAccessViewModel = hiltViewModel()
+    val insightsViewModel: com.pennywiseai.tracker.presentation.insights.InsightsViewModel = hiltViewModel()
+    // Only loaded while the section is shown: hidden, it costs nothing.
+    val topInsights = if (homeSectionLayout.contains(HomeSection.INSIGHTS to true)) {
+        insightsViewModel.top.collectAsStateWithLifecycle().value
+    } else {
+        emptyList()
+    }
     val backgroundState by backgroundAccess.state.collectAsStateWithLifecycle()
     var canReceiveSms by remember { mutableStateOf(context.canReceiveSms()) }
     // Read on resume too, so a snooze that ran out while Home sat in the background ends.
@@ -474,6 +482,7 @@ fun HomeScreen(
                     when (section) {
                         HomeSection.SAFE_TO_SPEND -> safeToSpend != null
                         HomeSection.BUDGETS -> uiState.budgetSummary != null
+                        HomeSection.INSIGHTS -> topInsights.isNotEmpty()
                         HomeSection.GOALS -> goals.isNotEmpty()
                         HomeSection.LOANS -> uiState.loanSummary != null
                         HomeSection.GROUPS -> groupSummaries.isNotEmpty()
@@ -510,6 +519,19 @@ fun HomeScreen(
                                         HomeBudgetsSection(
                                             summary = summary,
                                             onNavigateToBudgets = onNavigateToBudgets
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        HomeSection.INSIGHTS -> {
+                            // What needs attention this cycle; absent until there's something to say.
+                            if (topInsights.isNotEmpty()) {
+                                item(key = section.name) {
+                                    StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
+                                        HomeInsightsSection(
+                                            insights = topInsights,
+                                            onNavigateToInsights = onNavigateToInsights
                                         )
                                     }
                                 }
@@ -770,6 +792,7 @@ fun HomeScreen(
             HomeMenuSheet(
                 sheetState = sheetState,
                 onDismiss = { showMenuSheet = false },
+                onOpenInsights = onNavigateToInsights,
                 onOpenReview = { onNavigateToReview(ReviewKind.MONTH) },
                 onOpenShareCard = { showShareSheet = true },
                 onOpenSettings = onNavigateToSettings,

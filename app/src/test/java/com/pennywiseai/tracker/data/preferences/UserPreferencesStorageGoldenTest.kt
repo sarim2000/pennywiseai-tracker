@@ -161,7 +161,7 @@ class UserPreferencesStorageGoldenTest {
         assertEquals("THIS_MONTH", share.period.name)
         assertEquals(
             listOf(
-                "SAFE_TO_SPEND", "BUDGETS", "RECENT_TRANSACTIONS", "ACCOUNTS", "SUBSCRIPTIONS",
+                "SAFE_TO_SPEND", "BUDGETS", "INSIGHTS", "RECENT_TRANSACTIONS", "ACCOUNTS", "SUBSCRIPTIONS",
                 "LOANS", "GOALS", "GROUPS", "MONEY_IN_MOTION", "ACTIVITY"
             ).map { it to true },
             repository.homeSectionLayout.first().map { (section, visible) -> section.name to visible }

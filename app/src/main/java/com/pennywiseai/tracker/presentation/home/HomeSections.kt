@@ -629,3 +629,52 @@ internal fun HomeActivitySection(
         )
     }
 }
+
+/** The two insights that matter most; the card opens the Insights page. */
+@Composable
+internal fun HomeInsightsSection(
+    insights: List<com.pennywiseai.tracker.domain.insights.Insight>,
+    onNavigateToInsights: () -> Unit
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
+    ) {
+        SectionHeaderV2(
+            title = stringResource(R.string.home_section_insights),
+            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+            action = {
+                TextButton(onClick = onNavigateToInsights, shapes = ButtonDefaults.shapes()) {
+                    Text(stringResource(R.string.home_view_all))
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimensions.Icon.small)
+                    )
+                }
+            }
+        )
+        PennyWiseCardV2(
+            onClick = onNavigateToInsights,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Dimensions.Padding.content)
+        ) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.smd)) {
+                insights.forEach { insight ->
+                    val (icon, color) = com.pennywiseai.tracker.presentation.insights.severityStyle(insight.severity)
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.smd)
+                    ) {
+                        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(Dimensions.Icon.medium))
+                        Text(
+                            text = com.pennywiseai.tracker.presentation.insights.insightText(insight).title,
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+        }
+    }
+}

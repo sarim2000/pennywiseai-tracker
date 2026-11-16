@@ -87,7 +87,8 @@ fun AnalyticsScreen(
     viewModel: AnalyticsViewModel = hiltViewModel(),
     onNavigateToChat: () -> Unit = {},
     onNavigateToTransactions: (TransactionsDrillDown) -> Unit = {},
-    onNavigateToHome: () -> Unit = {}
+    onNavigateToHome: () -> Unit = {},
+    onNavigateToInsights: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val selectedPeriod by viewModel.selectedPeriod.collectAsStateWithLifecycle()
@@ -176,7 +177,12 @@ fun AnalyticsScreen(
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 title = stringResource(R.string.analytics_title),
-                hazeState = hazeState
+                hazeState = hazeState,
+                actionContent = {
+                    IconButton(onClick = onNavigateToInsights, shapes = IconButtonDefaults.shapes()) {
+                        Icon(Icons.Default.Insights, contentDescription = stringResource(R.string.insights_title))
+                    }
+                }
             )
         }
     ) { paddingValues ->

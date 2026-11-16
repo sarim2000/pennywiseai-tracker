@@ -290,6 +290,9 @@ fun MainScreen(
                 onNavigateToReview = { kind ->
                     openRoot(com.pennywiseai.tracker.navigation.Review(kind.name))
                 },
+                onNavigateToInsights = {
+                    openRoot(Insights)
+                },
                 onNavigateToSubscriptions = {
                     open(tab, Subscriptions)
                 },
@@ -398,6 +401,9 @@ fun MainScreen(
                 },
                 onNavigateToHome = {
                     selectTab(BottomNavItem.Home)
+                },
+                onNavigateToInsights = {
+                    openRoot(Insights)
                 }
             )
         }

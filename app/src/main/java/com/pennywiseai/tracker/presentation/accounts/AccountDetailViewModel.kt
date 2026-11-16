@@ -13,6 +13,7 @@ import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.spending.CardBillStatus
+import com.pennywiseai.tracker.domain.spending.CardBills
 import com.pennywiseai.tracker.domain.spending.CardBillsLoader
 import com.pennywiseai.tracker.ui.components.BalancePoint
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -67,16 +68,17 @@ class AccountDetailViewModel @Inject constructor(
 
     /**
      * Saves the card's due day and last statement amount; nulls clear them. The
-     * amount is dated now, so it counts as the latest statement's, unless only the
-     * due day changed: then it stays the statement it was.
+     * amount is dated now, so it counts as the latest statement's, unless the bill
+     * is unchanged and still current ([CardBills.keepsStatement]): then it stays
+     * the statement it was.
      */
     fun setCardBill(dueDay: Int?, amount: BigDecimal?) {
-        val current = _uiState.value.currentBalance
-        val sameAmount = amount != null && current?.cardBillAmount?.compareTo(amount) == 0
+        val status = _uiState.value.cardBill
+        val keep = status != null && CardBills.keepsStatement(status, dueDay, amount, LocalDate.now())
         viewModelScope.launch {
             accountBalanceRepository.setCardBill(
                 bankName, accountLast4, dueDay, amount,
-                asOf = if (sameAmount) current?.cardBillAsOf else amount?.let { LocalDateTime.now() },
+                asOf = if (keep) status?.card?.cardBillAsOf else amount?.let { LocalDateTime.now() },
             )
         }
     }

@@ -135,11 +135,30 @@ object CardBills {
             statementDate = statement,
             dueDate = dueDate(statement, dueDay),
         )
-        val newerStatement = card.statementDay?.let { statementDate(it, today).isAfter(statement) } == true
+        val newerStatement = newerStatement(card, statement, today)
         return CardBillStatus(
             card, bill.takeIf { !it.isRetired }, needsBill = owes && newerStatement, isKnown = !newerStatement,
         )
     }
+
+    /**
+     * Whether saving [amount] with [dueDay] keeps the entered bill on its statement:
+     * only when the amount is unchanged and the bill is still the latest statement's
+     * and unpaid, or only the due day changed. Once it's paid off or a newer
+     * statement has closed, the same figure is the new statement's amount.
+     */
+    fun keepsStatement(status: CardBillStatus, dueDay: Int?, amount: BigDecimal?, today: LocalDate): Boolean {
+        val card = status.card
+        val asOf = card.cardBillAsOf?.toLocalDate() ?: return false
+        if (amount == null || card.cardBillAmount?.compareTo(amount) != 0) return false
+        val statement = card.statementDay?.let { statementDate(it, asOf) } ?: asOf
+        if (newerStatement(card, statement, today)) return false
+        val paidOff = status.bill == null && card.cardDueDay != null
+        return !paidOff || dueDay != card.cardDueDay
+    }
+
+    private fun newerStatement(card: AccountBalanceEntity, statement: LocalDate, today: LocalDate): Boolean =
+        card.statementDay?.let { statementDate(it, today).isAfter(statement) } == true
 
     private fun YearMonth.dayClamped(day: Int): LocalDate = atDay(day.coerceIn(1, lengthOfMonth()))
 }

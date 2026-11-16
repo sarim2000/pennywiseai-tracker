@@ -189,4 +189,22 @@ class CardBillTest {
         assertEquals(date("2026-03-14"), bill.statementDate)
         assertEquals(date("2026-03-25"), bill.dueDate)
     }
+
+    @Test
+    fun `changing only the due day keeps the bill on its statement`() {
+        val status = CardBills.status(card(), emptyList(), date("2026-03-20"))
+
+        assertTrue(CardBills.keepsStatement(status, 5, d("4000"), date("2026-03-20")))
+        assertFalse(CardBills.keepsStatement(status, 2, d("4100"), date("2026-03-20")))
+    }
+
+    @Test
+    fun `the same amount after the bill is paid or a new statement closes is the new statement's`() {
+        val paid = listOf(tx("2026-03-15", "4000", TransactionType.INCOME))
+        val paidOff = CardBills.status(card(), paid, date("2026-03-20"))
+        val newer = CardBills.status(card(), emptyList(), date("2026-04-13"))
+
+        assertFalse(CardBills.keepsStatement(paidOff, 2, d("4000"), date("2026-03-20")))
+        assertFalse(CardBills.keepsStatement(newer, 2, d("4000"), date("2026-04-13")))
+    }
 }

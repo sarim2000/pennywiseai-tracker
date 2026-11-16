@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.review
 
+import android.content.Context
 import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
@@ -325,7 +326,7 @@ private fun CurrencyReviewCard(
 
         if (review.categories.isNotEmpty()) {
             HorizontalDivider(Modifier.padding(vertical = Spacing.md))
-            val showsChange = range.kind != ReviewKind.YEAR && review.previousSpent != null
+            val showsChange = review.showsCategoryChange(range.kind)
             Text(
                 text = stringResource(if (showsChange) R.string.review_categories_changed else R.string.review_categories_top),
                 style = MaterialTheme.typography.titleSmall,
@@ -464,16 +465,19 @@ private fun comparisonText(review: CurrencyReview, range: ReviewRange): String? 
     // A percent says how the amounts relate, so it hides with them, as on Home.
     if (AmountPrivacy.hidden) return null
     val change = percentChange(review.spent, review.previousSpent) ?: return null
-    val target = when (range.kind) {
-        ReviewKind.WEEK -> stringResource(R.string.review_target_week)
-        ReviewKind.MONTH ->
-            if (range.isCalendarMonth()) range.previousStart.format(AppDates.pattern("MMMM"))
-            else stringResource(R.string.review_target_cycle)
-        ReviewKind.YEAR ->
-            if (range.isComplete) range.previousStart.year.toString()
-            else stringResource(R.string.review_target_same_span, range.previousStart.year)
-    }
-    return changeText(LocalContext.current, change, target)
+    val context = LocalContext.current
+    return changeText(context, change, comparisonTarget(context, range))
+}
+
+/** What a period is compared with, as a sentence ends: "September", "the week before". */
+internal fun comparisonTarget(context: Context, range: ReviewRange): String = when (range.kind) {
+    ReviewKind.WEEK -> context.getString(R.string.review_target_week)
+    ReviewKind.MONTH ->
+        if (range.isCalendarMonth()) range.previousStart.format(AppDates.pattern("MMMM"))
+        else context.getString(R.string.review_target_cycle)
+    ReviewKind.YEAR ->
+        if (range.isComplete) range.previousStart.year.toString()
+        else context.getString(R.string.review_target_same_span, range.previousStart.year)
 }
 
 /** Explicit dates on a non-calendar cycle: "October" would be wrong for 25 Sep – 24 Oct. */

@@ -92,7 +92,7 @@ class PeriodReviewViewModel @Inject constructor(
                 val profile = userPreferencesRepository.selectedProfileId.first()?.let { profileRepository.getById(it) }
                 val profileName = profile?.let { it.seededNameRes()?.let(text::getString) ?: it.name }
                     ?: text.getString(R.string.txn_list_all_profiles)
-                pdfReportExporter.export(shown, title, profileName) { name ->
+                pdfReportExporter.export(shown, title, profileName, comparisonTarget(text, shown.range)) { name ->
                     CategoryMapping.labelRes(name)?.let(text::getString) ?: name
                 }
             } catch (e: CancellationException) {

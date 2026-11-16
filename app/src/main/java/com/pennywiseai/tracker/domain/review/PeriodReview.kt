@@ -113,6 +113,13 @@ data class CurrencyReview(
 ) {
     /** False for a currency shown only because it fell to nothing since the previous period. */
     val hasActivity: Boolean get() = transactionCount > 0 || spent.signum() > 0
+
+    /**
+     * Whether [categories] read as "what changed", each with its change: a week or a cycle
+     * that compares fairly. A year reads as "where it went", without changes, on the
+     * screen and in the PDF report alike.
+     */
+    fun showsCategoryChange(kind: ReviewKind): Boolean = kind != ReviewKind.YEAR && previousSpent != null
 }
 
 data class PeriodReview(

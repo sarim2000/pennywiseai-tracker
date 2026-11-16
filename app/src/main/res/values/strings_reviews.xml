@@ -40,10 +40,10 @@
     <!-- %1$s = date the report was made -->
     <string name="review_pdf_created">Created %1$s</string>
     <string name="review_pdf_net">Net</string>
-    <string name="review_pdf_categories">Categories</string>
     <string name="review_pdf_category">Category</string>
     <string name="review_pdf_amount">Amount</string>
-    <string name="review_pdf_change">Change from before</string>
+    <!-- Column heading. %1$s = what it is compared with, e.g. "September" or "the previous cycle" -->
+    <string name="review_pdf_change">Change from %1$s</string>
     <string name="review_pdf_merchants">Top merchants</string>
     <string name="review_pdf_merchant">Merchant</string>
     <string name="review_pdf_month">Month</string>

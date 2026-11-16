@@ -101,13 +101,15 @@ class PdfReportExporter @Inject constructor(
 ) {
     /**
      * Writes the report under a fresh name in the `exports/` cache and returns a shareable
-     * URI. [title] and [profileName] are as the screen shows them; [categoryLabel] turns a
-     * stored category name into the one the user reads.
+     * URI. [title] and [profileName] are as the screen shows them, and [comparedWith] names
+     * the period the categories' changes are measured from ("September"); [categoryLabel]
+     * turns a stored category name into the one the user reads.
      */
     suspend fun export(
         review: PeriodReview,
         title: String,
         profileName: String,
+        comparedWith: String,
         categoryLabel: (String) -> String,
     ): Uri = withContext(Dispatchers.IO) {
         val dir = File(appContext.cacheDir, DIR).apply { mkdirs() }
@@ -118,7 +120,7 @@ class PdfReportExporter @Inject constructor(
         val file = File.createTempFile("pennywise-report-${reportSlug(review.range)}-", ".pdf", dir)
         val document = PdfDocument()
         try {
-            Renderer(appContext.inAppLanguage(), categoryLabel).render(document, review, title, profileName)
+            Renderer(appContext.inAppLanguage(), categoryLabel).render(document, review, title, profileName, comparedWith)
             FileOutputStream(file).use { document.writeTo(it) }
         } catch (e: Exception) {
             file.delete()
@@ -142,9 +144,9 @@ class PdfReportExporter @Inject constructor(
         private val rule = Paint().apply { color = RULE; strokeWidth = 0.5f }
         private val bar = Paint(Paint.ANTI_ALIAS_FLAG).apply { color = BAR }
 
-        fun render(document: PdfDocument, review: PeriodReview, heading: String, profileName: String) {
+        fun render(document: PdfDocument, review: PeriodReview, heading: String, profileName: String, comparedWith: String) {
             val blocks = header(review, heading, profileName) +
-                review.currencies.flatMap(::currencySection) +
+                review.currencies.flatMap { currencySection(it, review.range.kind, comparedWith) } +
                 coverage(review)
             val starts = pageStarts(blocks, CONTENT_BOTTOM - MARGIN)
             starts.forEachIndexed { index, first ->
@@ -176,7 +178,7 @@ class PdfReportExporter @Inject constructor(
             )
         }
 
-        private fun currencySection(review: CurrencyReview): List<ReportBlock> {
+        private fun currencySection(review: CurrencyReview, kind: ReviewKind, comparedWith: String): List<ReportBlock> {
             val currency = review.currency
             val net = review.income - review.spent
             val blocks = mutableListOf(
@@ -210,22 +212,23 @@ class PdfReportExporter @Inject constructor(
                 }
             }
             if (review.categories.isNotEmpty()) {
-                // A year's previous is the year before; either way only when it compares fairly.
-                val compared = review.previousSpent != null
+                // Titled and ordered as on the screen, so its rows are this table's first rows.
+                val compared = review.showsCategoryChange(kind)
                 val columns = if (compared) CATEGORY_COLUMNS else NAME_AMOUNT_COLUMNS
-                blocks += text(context.getString(R.string.review_pdf_categories), bodyBold, before = 12f, after = 2f, keepWithNext = true)
+                val title = if (compared) R.string.review_categories_changed else R.string.review_categories_top
+                blocks += text(context.getString(title), bodyBold, before = 12f, after = 2f, keepWithNext = true)
                 val header = row(
                     columns,
                     listOfNotNull(
                         context.getString(R.string.review_pdf_category),
                         context.getString(R.string.review_pdf_amount),
-                        context.getString(R.string.review_pdf_change).takeIf { compared },
+                        context.getString(R.string.review_pdf_change, comparedWith).takeIf { compared },
                     ),
                     label,
                     keepWithNext = true,
                 )
                 blocks += header
-                review.categories.sortedByDescending { it.amount }.forEach { line ->
+                review.categories.forEach { line ->
                     val delta = line.amount - (line.previous ?: line.amount)
                     blocks += row(
                         columns,

@@ -40,10 +40,10 @@
     <!-- %1$s = date the report was made -->
     <string name="review_pdf_created">أُنشئ في %1$s</string>
     <string name="review_pdf_net">الصافي</string>
-    <string name="review_pdf_categories">الفئات</string>
     <string name="review_pdf_category">الفئة</string>
     <string name="review_pdf_amount">المبلغ</string>
-    <string name="review_pdf_change">التغيّر عن السابق</string>
+    <!-- Column heading. %1$s = what it is compared with, e.g. "September" or "the previous cycle" -->
+    <string name="review_pdf_change">التغيّر عن %1$s</string>
     <string name="review_pdf_merchants">أعلى التجار</string>
     <string name="review_pdf_merchant">التاجر</string>
     <string name="review_pdf_month">الشهر</string>

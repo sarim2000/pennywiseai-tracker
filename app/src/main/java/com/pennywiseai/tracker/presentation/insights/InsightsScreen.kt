@@ -452,7 +452,8 @@ private fun PeriodSummaryCard(state: InsightsUiState) {
         )
         val income = review?.income?.takeIf { it.signum() > 0 }
         val subscriptions = state.subscriptionsMonthly
-        if (income != null || subscriptions != null) {
+        val runway = state.runway
+        if (income != null || subscriptions != null || runway != null) {
             FlowRow(
                 modifier = Modifier.fillMaxWidth().padding(top = Spacing.md),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
@@ -469,6 +470,17 @@ private fun PeriodSummaryCard(state: InsightsUiState) {
                 }
                 subscriptions?.let {
                     Figure(stringResource(R.string.insights_subscriptions_monthly), it.format())
+                }
+                runway?.let {
+                    val lasts = months(it.months)
+                    Figure(
+                        stringResource(R.string.insights_runway),
+                        if (it.lowConfidence && !AmountPrivacy.hidden && it.months >= BigDecimal.ONE) {
+                            stringResource(R.string.insights_runway_about, lasts)
+                        } else {
+                            lasts
+                        },
+                    )
                 }
             }
         }

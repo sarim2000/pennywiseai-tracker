@@ -13,6 +13,7 @@ import com.pennywiseai.tracker.domain.insights.PeriodScore
 import com.pennywiseai.tracker.domain.review.CurrencyReview
 import com.pennywiseai.tracker.domain.review.CycleTotal
 import com.pennywiseai.tracker.domain.review.ReviewRange
+import com.pennywiseai.tracker.domain.spending.Runway
 import com.pennywiseai.tracker.utils.Money
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
@@ -45,6 +46,8 @@ data class InsightsUiState(
     val subscriptionsMonthly: Money? = null,
     /** Something was recorded before this cycle: an empty page is a quiet start, not a new user. */
     val hasHistory: Boolean = false,
+    /** How long this currency's money would last; null without enough history. */
+    val runway: Runway? = null,
 ) {
     /** Nothing recorded this cycle and nothing to say. */
     val isEmpty: Boolean get() = currencies.isEmpty()
@@ -70,6 +73,7 @@ internal fun insightsUiState(snapshot: InsightsSnapshot, chosen: String?): Insig
         score = currency?.let { snapshot.scores[it] },
         subscriptionsMonthly = currency?.let { snapshot.subscriptionsMonthly[it] },
         hasHistory = snapshot.review.hasOlder,
+        runway = currency?.let { snapshot.runways[it] },
     )
 }
 

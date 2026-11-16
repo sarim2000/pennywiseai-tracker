@@ -16,6 +16,8 @@ import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
 import com.pennywiseai.tracker.domain.review.PeriodReview
 import com.pennywiseai.tracker.domain.review.PeriodReviewLoader
 import com.pennywiseai.tracker.domain.review.ReviewKind
+import com.pennywiseai.tracker.domain.spending.CycleAverages
+import com.pennywiseai.tracker.domain.spending.Runway
 import com.pennywiseai.tracker.utils.Money
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -40,6 +42,8 @@ data class InsightsSnapshot(
     val scores: Map<String, PeriodScore> = emptyMap(),
     /** What active subscriptions cost a month, per currency. */
     val subscriptionsMonthly: Map<String, Money> = emptyMap(),
+    /** How long the money held would last, per currency with enough history. */
+    val runways: Map<String, Runway> = emptyMap(),
 ) {
     val active: List<Insight> get() = insights.filter { it.id !in dismissed }
 }
@@ -47,7 +51,7 @@ data class InsightsSnapshot(
 /**
  * Gathers [InsightInputs] from the sources the rest of the app already trusts: the
  * Period Review rows (profile and ignored accounts applied), the Budgets screen's
- * summary, and subscriptions and card balances scoped as those rows are. Nothing
+ * summary, and subscriptions and account balances scoped as those rows are. Nothing
  * leaves the device.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -64,13 +68,18 @@ class InsightsLoader @Inject constructor(
         periodReviewLoader.observe(ReviewKind.MONTH, 0, today, detail = true),
         budgets(today),
         subscriptions(),
-        creditCards(),
+        accounts(),
         combine(insightPreferences.dismissedInsights, userPreferencesRepository.selectedProfileId, ::Pair),
-    ) { review, budgets, subscriptions, cards, (dismissed, profileId) ->
-        val inputs = InsightInputs(today, review, budgets, subscriptions, cards, profileId)
+    ) { review, budgets, subscriptions, (accounts, unanchored), (dismissed, profileId) ->
+        val averages = CycleAverages.of(review.detail?.cycles.orEmpty())
+        val runways = Runway.calculate(accounts, averages, unanchored)
+        val inputs = InsightInputs(
+            today, review, budgets, subscriptions, accounts.filter { it.isCreditCard }, profileId,
+            runways = runways,
+        )
         InsightsSnapshot(
             review, InsightRules.evaluate(inputs), dismissed, scores(review, budgets),
-            InsightRules.subscriptionsMonthly(subscriptions),
+            InsightRules.subscriptionsMonthly(subscriptions), runways.associateBy { it.currency },
         )
     }
 
@@ -110,16 +119,20 @@ class InsightsLoader @Inject constructor(
         ::scopedSubscriptions,
     )
 
-    private fun creditCards(): Flow<List<AccountBalanceEntity>> = combine(
+    /**
+     * The active profile's accounts the user hasn't ignored, with the (bank, last 4)
+     * keys of those whose balance is only an estimate.
+     */
+    private fun accounts(): Flow<Pair<List<AccountBalanceEntity>, Set<Pair<String, String>>>> = combine(
         accountBalanceRepository.getAllLatestBalances(),
         ignoredAccountsStore.keysFlow,
         userPreferencesRepository.selectedProfileId,
-    ) { balances, ignored, profileId ->
+        accountBalanceRepository.getUnanchoredAccounts(),
+    ) { balances, ignored, profileId, unanchored ->
         balances.filter {
-            it.isCreditCard &&
-                !IgnoredAccountsStore.isIgnored(ignored, it.bankName, it.accountLast4) &&
+            !IgnoredAccountsStore.isIgnored(ignored, it.bankName, it.accountLast4) &&
                 (profileId == null || it.profileId == profileId)
-        }
+        } to unanchored
     }
 }
 

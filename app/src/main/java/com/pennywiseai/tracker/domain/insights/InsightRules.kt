@@ -13,11 +13,13 @@ import com.pennywiseai.tracker.domain.insights.InsightFact.BudgetsOnTrack
 import com.pennywiseai.tracker.domain.insights.InsightFact.CardUtilisation
 import com.pennywiseai.tracker.domain.insights.InsightFact.CategorySpike
 import com.pennywiseai.tracker.domain.insights.InsightFact.LargeTransaction
+import com.pennywiseai.tracker.domain.insights.InsightFact.MoneyLasts
 import com.pennywiseai.tracker.domain.insights.InsightFact.PriceChange
 import com.pennywiseai.tracker.domain.insights.InsightFact.SavingsRate
 import com.pennywiseai.tracker.domain.review.PeriodReview
 import com.pennywiseai.tracker.domain.spending.Bill
 import com.pennywiseai.tracker.domain.spending.RecurringCharge
+import com.pennywiseai.tracker.domain.spending.Runway
 import com.pennywiseai.tracker.domain.spending.SafeToSpend
 import com.pennywiseai.tracker.domain.spending.SpendForecast
 import com.pennywiseai.tracker.domain.spending.SubscriptionCost
@@ -66,6 +68,8 @@ data class InsightInputs(
     val creditCards: List<AccountBalanceEntity> = emptyList(),
     /** The profile all of the above is scoped to; null for all profiles. */
     val profileId: Long? = null,
+    /** Per currency, from the same scope as [review]. */
+    val runways: List<Runway> = emptyList(),
 )
 
 /**
@@ -87,7 +91,8 @@ object InsightRules {
                 priceChanges(inputs.review, subscriptions, period) +
                 categorySpikes(inputs.review, period) +
                 largeTransactions(inputs.review, subscriptions, period) +
-                savingsRate(inputs.review, inputs.today, period)
+                savingsRate(inputs.review, inputs.today, period) +
+                runway(inputs.runways, period)
             ).sortedBy { it.severity }
     }
 
@@ -352,6 +357,24 @@ object InsightRules {
     }
 
     /**
+     * How long the money held would last at a usual month's spending: worth a word
+     * below [LOW_RUNWAY_MONTHS], and as good news from [Runway.TARGET_MONTHS]. In
+     * between, the Insights summary still shows it.
+     */
+    internal fun runway(runways: List<Runway>, period: String): List<Insight> = runways.mapNotNull { r ->
+        val severity = when {
+            r.months < BigDecimal(LOW_RUNWAY_MONTHS) -> InsightSeverity.WARNING
+            r.months >= BigDecimal(Runway.TARGET_MONTHS) -> InsightSeverity.GOOD
+            else -> return@mapNotNull null
+        }
+        Insight(
+            id("runway", period, r.currency, "held"), severity, r.currency,
+            MoneyLasts(r.months, Money(r.balance, r.currency), Money(r.monthlySpend, r.currency), r.lowConfidence),
+            null,
+        )
+    }
+
+    /**
      * What active subscriptions add up to a month, per currency: a running figure for
      * the summary card, not something that needs attention every cycle.
      */
@@ -445,5 +468,6 @@ object InsightRules {
     private const val GOOD_SAVINGS_PERCENT = 20
     private const val CARD_WARNING_PERCENT = 50
     private const val CARD_ALERT_PERCENT = 90
+    private const val LOW_RUNWAY_MONTHS = 3
     internal const val BILLS_DAYS = 7L
 }

@@ -13,6 +13,22 @@
     <string name="insights_savings_rate">نسبة الادخار</string>
     <!-- What active subscriptions cost a month, beside this cycle's figures -->
     <string name="insights_subscriptions_monthly">الاشتراكات شهريًا</string>
+    <!-- How long the money in savings, current and cash accounts would last at a usual month's spending -->
+    <string name="insights_runway">تكفي أموالك</string>
+    <!-- Some balances are estimates. %1$s = a number of months, e.g. "2.4 months" -->
+    <string name="insights_runway_about">نحو %1$s</string>
+    <!-- %1$s = a number of months with one decimal, e.g. "2.4" -->
+    <string name="insights_months_decimal">%1$s شهر</string>
+    <!-- %1$s = a whole number of months -->
+    <plurals name="insights_months">
+        <item quantity="zero">%1$s شهر</item>
+        <item quantity="one">%1$s شهر</item>
+        <item quantity="two">%1$s شهر</item>
+        <item quantity="few">%1$s أشهر</item>
+        <item quantity="many">%1$s شهرًا</item>
+        <item quantity="other">%1$s شهر</item>
+    </plurals>
+    <string name="insights_months_under_one">أقل من شهر</string>
     <string name="insights_last_cycles">الإنفاق حسب الدورة</string>
     <string name="insights_section_alert">يحتاج إلى انتباهك</string>
     <string name="insights_section_warning">تنبيه</string>
@@ -104,6 +120,8 @@
     <string name="insights_metric_limit">الحد</string>
     <string name="insights_metric_tracked">المسجّل</string>
     <string name="insights_metric_charged">المخصوم</string>
+    <string name="insights_metric_held">في الحسابات</string>
+    <string name="insights_metric_usual_month">شهر معتاد</string>
 
     <!-- Action buttons -->
     <string name="insights_action_budgets">فتح الميزانيات</string>
@@ -163,6 +181,14 @@
 
     <!-- Card utilisation. %1$s = percentage, %2$s = card name -->
     <string name="insights_card_title">استُخدم %1$s من حد %2$s</string>
+
+    <!-- Runway. %1$s = how long, e.g. "2.4 months" or "under a month" -->
+    <string name="insights_runway_title">تكفي أموالك %1$s</string>
+    <!-- %1$s = money in savings, current and cash accounts, %2$s = a usual month's spending, %3$d = months many aim for -->
+    <string name="insights_runway_low_body">في حساباتك %1$s مقابل إنفاق %2$s في شهر معتاد. يسعى كثيرون إلى ما يكفي %3$d أشهر.</string>
+    <!-- %1$s = money in savings, current and cash accounts, %2$s = a usual month's spending, %3$d = months many aim for -->
+    <string name="insights_runway_good_body">في حساباتك %1$s مقابل إنفاق %2$s في شهر معتاد، أي أكثر من %3$d أشهر يسعى إليها كثيرون.</string>
+    <string name="insights_runway_estimate">بعض الأرصدة محسوبة من المعاملات وحدها. حدّثها من الحسابات لرقم أدق.</string>
 
     <!-- Bills due. %1$s = total, %2$d = days -->
     <plurals name="insights_bills_title">

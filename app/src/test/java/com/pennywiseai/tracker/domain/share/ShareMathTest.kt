@@ -120,6 +120,9 @@ class ShareMathTest {
         assertEquals(-75, categoryChangePercent(CategoryLine("Fuel", bd("50"), bd("200"))))
         assertNull(categoryChangePercent(CategoryLine("Travel", bd("50"), bd("0"))))
         assertNull(categoryChangePercent(CategoryLine("Travel", bd("50"), null)))
+        // From almost nothing: shown as new, never wrapped into a negative Int.
+        assertEquals(10_000, categoryChangePercent(CategoryLine("Gifts", bd("101"), bd("1"))))
+        assertNull(categoryChangePercent(CategoryLine("Gifts", bd("300000"), bd("0.01"))))
     }
 
     @Test

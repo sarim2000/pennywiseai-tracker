@@ -53,6 +53,7 @@ import kotlinx.serialization.json.JsonPrimitive
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.temporal.WeekFields
 import java.util.Locale
 import java.util.UUID
@@ -755,14 +756,14 @@ class LlmRepository @Inject constructor(
      */
     private suspend fun datesAsked(args: Map<String, Any?>, userMessage: String): SpendingQuery.Dates {
         var period = args["period"]
+        val today = today()
         if (SpendingQuery.defaultPeriod(period, args["from"], args["to"])) {
             val words = SpendingQuery.withoutNames(userMessage, args["merchant"], args["account"])
-            SpendingQuery.daysNamed(words, LocalDate.now())?.let { return it }
+            SpendingQuery.daysNamed(words, today)?.let { return it }
             // "this year" alone is the year; "March this year" is days it can't look up.
             val year = SpendingQuery.yearNamed(words)
             val rest = year?.second ?: words
             // "in October": that month, this year's or last, never this one in its place.
-            val today = LocalDate.now()
             SpendingQuery.monthNamed(rest, today, year?.first?.let { if (it == "this_year") today.year else today.year - 1 })?.let { return it }
             val previous = SpendingComparison.namesThePreviousPeriod(rest)
             val named = SpendingComparison.period(rest, null) ?: return SpendingQuery.Dates.Invalid(SpendingQuery.Problem.PERIOD)
@@ -774,7 +775,7 @@ class LlmRepository @Inject constructor(
             }
         }
         return SpendingQuery.dates(
-            period, args["from"], args["to"], LocalDateTime.now(), WeekFields.of(Locale.getDefault()).firstDayOfWeek,
+            period, args["from"], args["to"], LocalDateTime.of(today, LocalTime.now()), WeekFields.of(Locale.getDefault()).firstDayOfWeek,
             userPreferencesRepository.budgetCycleStartDay.first()
         )
     }

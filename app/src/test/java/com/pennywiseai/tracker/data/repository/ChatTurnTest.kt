@@ -1282,7 +1282,7 @@ class ChatTurnTest {
         every { context.getString(R.string.chat_reply_compare_no_data, any()) } returns "NO_DATA"
         coEvery { aiContext.compareSpending(any(), any(), any(), any()) } returns SpendingComparison.Result.NoData(nov, nov, nov)
         val filter = answerSpending()
-        fun asked(period: String) = (SpendingQuery.dates(period, null, null, LocalDateTime.now(), WeekFields.of(Locale.getDefault()).firstDayOfWeek, 1) as SpendingQuery.Dates.Of).window
+        fun asked(period: String) = (SpendingQuery.dates(period, null, null, LocalDateTime.of(2026, 11, 16, 12, 0), WeekFields.of(Locale.getDefault()).firstDayOfWeek, 1) as SpendingQuery.Dates.Of).window
 
         // Narrowed to a merchant it can't be a comparison: the figure covers the days named.
         events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("merchant" to "Uber", "period" to "this_month")))
@@ -1313,7 +1313,7 @@ class ChatTurnTest {
         every { context.getString(R.string.chat_reply_month_spend, any()) } returns "SPENT"
         coEvery { accountBalances.getAllLatestBalancesOnce() } returns listOf(account("HDFC", "2019"))
         val filter = answerSpending()
-        fun asked(period: String) = (SpendingQuery.dates(period, null, null, LocalDateTime.now(), WeekFields.of(Locale.getDefault()).firstDayOfWeek, 1) as SpendingQuery.Dates.Of).window
+        fun asked(period: String) = (SpendingQuery.dates(period, null, null, LocalDateTime.of(2026, 11, 16, 12, 0), WeekFields.of(Locale.getDefault()).firstDayOfWeek, 1) as SpendingQuery.Dates.Of).window
         suspend fun ask(args: Map<String, Any?>, message: String): String {
             events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, args))
             return send(message)
@@ -1334,13 +1334,12 @@ class ChatTurnTest {
         assertEquals(asked("last_year"), filter.captured.window)
         // A month within it is that month, not the whole year.
         ask(emptyMap(), "how much in March this year?")
-        assertEquals(asked("${LocalDate.now().year}-03"), filter.captured.window)
+        assertEquals(asked("2026-03"), filter.captured.window)
         // Named alone (seen on the emulator as "I can't look up those days"), the latest October begun.
         ask(mapOf("period" to "this_month"), "How much did I spend in October?")
-        val october = if (LocalDate.now().monthValue >= 10) LocalDate.now().year else LocalDate.now().year - 1
-        assertEquals(asked("$october-10"), filter.captured.window)
+        assertEquals(asked("2026-10"), filter.captured.window)
         ask(emptyMap(), "كم صرفت في أكتوبر؟")
-        assertEquals(asked("$october-10"), filter.captured.window)
+        assertEquals(asked("2026-10"), filter.captured.window)
     }
 
     @Test

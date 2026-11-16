@@ -47,7 +47,6 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.share.SHARE_CARD_URL
 import com.pennywiseai.tracker.data.share.ShareLinkError
@@ -129,7 +128,7 @@ internal fun ShareLinkSheet(
                 if (publishing) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(Dimensions.Icon.small),
-                        strokeWidth = 2.dp,
+                        strokeWidth = Dimensions.Component.progressIndicatorStrokeSmall,
                         color = LocalContentColor.current,
                     )
                 } else {

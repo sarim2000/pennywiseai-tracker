@@ -189,6 +189,9 @@ object Dimensions {
         val hairline = 0.5.dp
 
         val progressIndicatorSize = 24.dp
+
+        /** Stroke of a small spinner standing in for an icon (Dimensions.Icon.small) inside a button or row. */
+        val progressIndicatorStrokeSmall = 2.dp
         val chipHeight = 32.dp
 
         /**

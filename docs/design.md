@@ -110,7 +110,8 @@ a mistake next to its neighbours.
 the real target still reaches 48dp.
 
 Also here: `progressBarHeight` (8dp — one height for budget, loan and download
-tracks), `legendDot` (10dp), `fab` (56dp), `fabBottomInset`,
+tracks), `progressIndicatorStrokeSmall` (2dp — a small spinner standing in for an
+icon), `legendDot` (10dp), `fab` (56dp), `fabBottomInset`,
 `fabScrollClearance`, `hairline` (0.5dp), `dividerThickness`.
 
 The Floating nav style is a pill of icon-only tabs (`floatingNavHeight` 64dp,

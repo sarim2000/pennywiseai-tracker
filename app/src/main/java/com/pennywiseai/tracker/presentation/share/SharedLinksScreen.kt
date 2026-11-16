@@ -42,7 +42,6 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
-import androidx.compose.ui.unit.dp
 import androidx.core.net.toUri
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -197,7 +196,7 @@ private fun LinkRow(
         }
         if (busy) {
             Box(Modifier.size(Dimensions.Component.minTouchTarget), contentAlignment = Alignment.Center) {
-                CircularProgressIndicator(Modifier.size(Dimensions.Icon.small), strokeWidth = 2.dp)
+                CircularProgressIndicator(Modifier.size(Dimensions.Icon.small), strokeWidth = Dimensions.Component.progressIndicatorStrokeSmall)
             }
         } else {
             IconButton(onClick = onDelete, shapes = IconButtonDefaults.shapes()) {

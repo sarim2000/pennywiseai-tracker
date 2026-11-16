@@ -162,7 +162,9 @@ fun SmsCheckupScreen(
                             pluralStringResource(R.plurals.sms_checkup_background_steps_left, stepsLeft, stepsLeft)
                         },
                         actionLabel = stringResource(R.string.sms_checkup_review),
-                        onAction = onOpenBackgroundAccess
+                        onAction = onOpenBackgroundAccess,
+                        // Matches the header count: only a background restriction stops tracking.
+                        optional = background?.backgroundRestricted != true
                     ),
                     ListItemPosition.Single
                 )
@@ -180,7 +182,7 @@ fun SmsCheckupScreen(
 @Composable
 private fun LastScanCard(scan: SmsCheckupState, canScan: Boolean, onRescan: () -> Unit) {
     val record = scan.record
-    val ended = record?.finishedAt?.let(::relativeTime).orEmpty()
+    val ended = record?.finishedAt?.let { relativeTime(it) }.orEmpty()
     val (icon, color) = when {
         scan.status == LastScanStatus.SUCCEEDED -> Icons.Default.Check to MaterialTheme.colorScheme.success
         scan.status == LastScanStatus.RUNNING -> Icons.Default.Sync to MaterialTheme.colorScheme.primary
@@ -200,12 +202,12 @@ private fun LastScanCard(scan: SmsCheckupState, canScan: Boolean, onRescan: () -
     val lines = buildList {
         when {
             scan.status == LastScanStatus.NEVER -> add(stringResource(R.string.sms_checkup_scan_never_body))
-            scan.status.needsAttention -> {
-                add(stringResource(R.string.sms_checkup_scan_ended_early_body))
-                // From the record, not the incremental cursor: a scan-window change resets
-                // that to 0, and a restore brings it back without this record.
-                record?.lastSucceededAt?.let { add(stringResource(R.string.sms_checkup_last_success, relativeTime(it))) }
-            }
+            scan.status.needsAttention -> add(stringResource(R.string.sms_checkup_scan_ended_early_body))
+        }
+        if (scan.status.needsAttention || scan.status == LastScanStatus.RUNNING) {
+            // From the record, not the incremental cursor: a scan-window change resets
+            // that to 0, and a restore brings it back without this record.
+            record?.lastSucceededAt?.let { add(stringResource(R.string.sms_checkup_last_success, relativeTime(it))) }
         }
         if (counts != null) {
             add(
@@ -218,6 +220,8 @@ private fun LastScanCard(scan: SmsCheckupState, canScan: Boolean, onRescan: () -
             )
         }
         scan.lastLiveSmsAt?.let { add(stringResource(R.string.sms_checkup_live_sms, relativeTime(it))) }
+        // The way to fix it is further up; say why the button is off right next to it.
+        if (!canScan) add(stringResource(R.string.sms_checkup_scan_needs_access))
     }
     var showDetails by rememberSaveable { mutableStateOf(false) }
 
@@ -235,7 +239,13 @@ private fun LastScanCard(scan: SmsCheckupState, canScan: Boolean, onRescan: () -
                 onClick = onRescan,
                 enabled = canScan && scan.status != LastScanStatus.RUNNING,
                 shapes = ButtonDefaults.shapes()
-            ) { Text(stringResource(R.string.sms_checkup_scan_again)) }
+            ) {
+                Text(
+                    stringResource(
+                        if (scan.status == LastScanStatus.NEVER) R.string.sms_checkup_scan_now else R.string.sms_checkup_scan_again
+                    )
+                )
+            }
             if (counts != null) {
                 TextButton(onClick = { showDetails = !showDetails }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(if (showDetails) R.string.sms_checkup_hide_details else R.string.sms_checkup_show_details))
@@ -319,7 +329,15 @@ private fun StatusHeader(icon: ImageVector, color: Color, title: String) {
     }
 }
 
-private fun relativeTime(millis: Long): String =
-    DateUtils.getRelativeTimeSpanString(millis, System.currentTimeMillis(), DateUtils.MINUTE_IN_MILLIS).toString()
+@Composable
+private fun relativeTime(millis: Long): String {
+    val now = System.currentTimeMillis()
+    // DateUtils says "0 minutes ago" for the first minute.
+    return if (now - millis < DateUtils.MINUTE_IN_MILLIS) {
+        stringResource(R.string.sms_checkup_just_now)
+    } else {
+        DateUtils.getRelativeTimeSpanString(millis, now, DateUtils.MINUTE_IN_MILLIS).toString()
+    }
+}
 
 private fun formatCount(value: Int): String = NumberFormat.getIntegerInstance().format(value)

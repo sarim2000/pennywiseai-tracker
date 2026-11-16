@@ -42,11 +42,14 @@
     <string name="sms_checkup_count_saved">Added</string>
     <string name="sms_checkup_count_duplicates">Already in PennyWise</string>
     <string name="sms_checkup_count_excluded">Skipped by your rules or ignored accounts</string>
-    <string name="sms_checkup_count_unrecognised">Bank messages PennyWise couldn\'t read</string>
+    <string name="sms_checkup_count_unrecognised">Bank messages in a format PennyWise doesn\'t know yet</string>
     <string name="sms_checkup_count_special">Balance and mandate updates</string>
-    <string name="sms_checkup_count_discarded">Not a transaction, or couldn\'t be read</string>
+    <string name="sms_checkup_count_discarded">Not a transaction, like offers and OTPs</string>
     <string name="sms_checkup_count_failed">Read, but couldn\'t be saved</string>
     <string name="sms_checkup_scan_again">Scan again</string>
+    <string name="sms_checkup_scan_now">Scan now</string>
+    <string name="sms_checkup_scan_needs_access">Scanning needs SMS access. Allow it above.</string>
+    <string name="sms_checkup_just_now">just now</string>
 
     <string name="sms_checkup_section_not_imported">Not imported</string>
     <plurals name="sms_checkup_not_imported_title">

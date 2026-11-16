@@ -32,6 +32,9 @@ object UpcomingPayments {
      *   it ([subscriptions]). Only a charge in scope can.
      * @param isExcluded an account whose payments don't count (ignored, or in another
      *   profile); null accounts never are.
+     * @param keepCardCharges keep what's charged to a card with a bill entered: the
+     *   calendar shows each payment on its own day and never adds them up, so there's
+     *   nothing to count twice.
      */
     fun of(
         subscriptions: List<SubscriptionEntity>,
@@ -42,10 +45,12 @@ object UpcomingPayments {
         today: LocalDate,
         end: LocalDate,
         isExcluded: (bankName: String?, accountLast4: String?) -> Boolean = { _, _ -> false },
+        keepCardCharges: Boolean = false,
     ): List<Bill> {
-        // Cards whose charges never count, and each card's entered statement.
+        // Cards whose charges never count, and each card's entered statement (none when
+        // card charges are kept).
         val hidden = cards.filter { isExcluded(it.bankName, it.accountLast4) }
-        val entered = cardBills.mapNotNull { s -> s.enteredStatement?.let { s.card to it } }
+        val entered = if (keepCardCharges) emptyList() else cardBills.mapNotNull { s -> s.enteredStatement?.let { s.card to it } }
         fun counts(bank: String?, last4: String?, on: LocalDate) =
             !isExcluded(bank, last4) && !onCard(bank, last4, hidden) &&
                 entered.none { (card, closed) -> !on.isAfter(closed) && onCard(bank, last4, listOf(card)) }

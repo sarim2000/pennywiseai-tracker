@@ -63,7 +63,8 @@ class UpcomingPaymentsTest {
         posted: List<TransactionEntity> = emptyList(),
         on: LocalDate = today,
         isExcluded: (String?, String?) -> Boolean = { _, _ -> false },
-    ) = UpcomingPayments.of(subscriptions, recurring, cardBills, listOf(card), posted, on, end, isExcluded)
+        keepCardCharges: Boolean = false,
+    ) = UpcomingPayments.of(subscriptions, recurring, cardBills, listOf(card), posted, on, end, isExcluded, keepCardCharges)
 
     @Test
     fun `a charge pays the same bill whatever the window, so Safe to spend and Insights agree`() {
@@ -269,6 +270,21 @@ class UpcomingPaymentsTest {
         )
 
         assertEquals(listOf("Spotify", "Fuel"), bills.map { it.name })
+    }
+
+    @Test
+    fun `the calendar keeps a subscription on a billed card on its own day, but not one from an excluded account`() {
+        val bills = upcoming(
+            subscriptions = listOf(
+                sub("Spotify", "2026-10-28", bank = "Test Bank", last4 = "4444"),
+                sub("Rent", "2026-11-01", bank = "Other Bank", last4 = "9999"),
+            ),
+            recurring = listOf(template("Fuel", "2026-10-30", last4 = "4444")),
+            isExcluded = { bank, last4 -> bank == "Other Bank" && last4 == "9999" },
+            keepCardCharges = true,
+        )
+
+        assertEquals(listOf("Spotify" to date("2026-10-28"), "Fuel" to date("2026-10-30")), bills.map { it.name to it.dueDate })
     }
 
     @Test

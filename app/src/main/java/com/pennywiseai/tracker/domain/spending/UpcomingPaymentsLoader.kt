@@ -39,7 +39,8 @@ class UpcomingPaymentsLoader @Inject constructor(
     private val ignoredAccountsStore: IgnoredAccountsStore,
     private val userPreferencesRepository: UserPreferencesRepository,
 ) {
-    fun observe(today: LocalDate, end: LocalDate): Flow<Upcoming> = combine(
+    /** [keepCardCharges]: see [UpcomingPayments.of]. */
+    fun observe(today: LocalDate, end: LocalDate, keepCardCharges: Boolean = false): Flow<Upcoming> = combine(
         accountBalanceRepository.getAllLatestBalances(),
         ignoredAccountsStore.keysFlow,
         userPreferencesRepository.selectedProfileId,
@@ -71,6 +72,7 @@ class UpcomingPaymentsLoader @Inject constructor(
                     today = today,
                     end = end,
                     isExcluded = ::excluded,
+                    keepCardCharges = keepCardCharges,
                 ),
                 cardsNeedingBill = cardBills.filter { it.needsBill }.map { it.card },
             )

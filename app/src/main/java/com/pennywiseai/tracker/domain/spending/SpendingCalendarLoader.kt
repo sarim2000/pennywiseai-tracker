@@ -23,7 +23,7 @@ class SpendingCalendarLoader @Inject constructor(
     fun observe(month: YearMonth, today: LocalDate): Flow<Map<LocalDate, CalendarDay>> {
         val end = month.atEndOfMonth()
         // A month that's over has nothing left to pay.
-        val planned = if (end.isBefore(today)) flowOf(emptyList()) else upcomingPaymentsLoader.observe(today, end).map { it.bills }
+        val planned = if (end.isBefore(today)) flowOf(emptyList()) else upcomingPaymentsLoader.observe(today, end, keepCardCharges = true).map { it.bills }
         return combine(
             periodReviewLoader.scopedRows(month.atDay(1), end),
             planned,

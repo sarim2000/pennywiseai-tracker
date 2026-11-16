@@ -569,8 +569,9 @@ class LlmRepository @Inject constructor(
                 // "Nothing spent" would be a false figure for a category that doesn't exist.
                 spend.byCurrency.isEmpty() && category == null -> context.getString(R.string.chat_reply_unknown_category, wanted)
                 spend.byCurrency.isEmpty() -> context.getString(R.string.chat_reply_nothing_spent, category, scopeLabel(spend.scope))
-                else -> context.getString(
-                    R.string.chat_reply_category_spend,
+                else -> context.resources.getQuantityString(
+                    R.plurals.chat_reply_category_spend,
+                    spend.transactionCount,
                     amounts(spend.byCurrency),
                     spend.category,
                     scopeLabel(spend.scope),
@@ -651,7 +652,7 @@ class LlmRepository @Inject constructor(
             // Only currencies that received money: a zero in one with no activity isn't an answer.
             if (p.income.isNotEmpty()) add(context.getString(R.string.chat_reply_received, amounts(p.income)))
             else if (typed) add(context.getString(R.string.chat_reply_received_nothing))
-            if (typed) add(context.getString(R.string.chat_reply_transaction_count, p.transactionCount))
+            if (typed) add(context.resources.getQuantityString(R.plurals.chat_reply_transaction_count, p.transactionCount, p.transactionCount))
         }.joinToString("\n")
     }
 

@@ -72,7 +72,7 @@ class ChatTurnTest {
         every { getString(R.string.chat_reply_unreadable) } returns "UNREADABLE"
         every { getString(R.string.chat_reply_nothing_changed) } returns "NOTHING_CHANGED"
         every { getString(R.string.chat_reply_unknown_category, any()) } returns "UNKNOWN_CATEGORY"
-        every { getString(R.string.chat_reply_category_spend, any(), any(), any(), any()) } returns "SPEND"
+        every { resources.getQuantityString(R.plurals.chat_reply_category_spend, any(), any(), any(), any(), any()) } returns "SPEND"
         every { getString(R.string.chat_reply_nothing_spent, any(), any()) } returns "NOTHING_SPENT"
     }
     private val transactions = mockk<TransactionRepository>(relaxed = true)
@@ -362,7 +362,7 @@ class ChatTurnTest {
         every { context.getString(R.string.chat_reply_converted_estimate, any(), any()) } returns "ESTIMATE"
         every { context.getString(R.string.chat_reply_converted_left_out, any()) } returns "LEFT_OUT"
         every { context.getString(R.string.chat_reply_received, any()) } returns "RECEIVED"
-        every { context.getString(R.string.chat_reply_transaction_count, 12) } returns "COUNT"
+        every { context.resources.getQuantityString(R.plurals.chat_reply_transaction_count, 12, 12) } returns "COUNT"
         coEvery { aiContext.spending(any()) } returns com.pennywiseai.tracker.data.model.PeriodSpending(
             com.pennywiseai.tracker.data.model.ChatScope(SpendingComparison.Window(LocalDateTime.of(2026, 11, 1, 0, 0), LocalDateTime.of(2026, 11, 16, 23, 59))),
             spent = mapOf("USD" to BigDecimal("5"), "INR" to BigDecimal("600")),
@@ -455,8 +455,9 @@ class ChatTurnTest {
         assertEquals("SPEND", send("how much on food?"))
         // Both currencies, the user's own first, never added; the dates it covers.
         verify {
-            context.getString(
-                R.string.chat_reply_category_spend,
+            context.resources.getQuantityString(
+                R.plurals.chat_reply_category_spend,
+                1,
                 match<String> { it.indexOf("120") in 0 until it.indexOf("3") && " · " in it },
                 "طعام",
                 "1 Nov–16 Nov",

@@ -266,8 +266,12 @@ class QuickAddActivity : FragmentActivity() {
         var unclear by rememberSaveable { mutableStateOf(false) }
         // Starts by itself once; a rotation doesn't start it again.
         var started by rememberSaveable { mutableStateOf(false) }
+        // Words from a recording still going: only these are routed after a rotation, not
+        // ones already routed or left by a recording that failed.
+        var midRecording by rememberSaveable { mutableStateOf(false) }
         val categories = setup.expenseCategories + setup.incomeCategories
         fun route(text: String) {
+            midRecording = false
             when (val route = voiceRoute(text, categories, setup.baseCurrency, setup.chatOpen) { CategoryMapping.label(this, it) }) {
                 is VoiceRoute.Fill -> onEntry(route.entry)
                 VoiceRoute.Chat -> openChat(text)
@@ -278,14 +282,18 @@ class QuickAddActivity : FragmentActivity() {
             onText = {
                 transcript = it
                 unclear = false
+                midRecording = true
             },
             onDone = ::route
         )
+        LaunchedEffect(voice) {
+            snapshotFlow { voice.note }.collect { if (it?.isError == true) midRecording = false }
+        }
         LaunchedEffect(Unit) {
             // A widget drawn before the phone lost its recognizer: type instead.
             if (!voice.available) return@LaunchedEffect onType()
             // A rotation stopped the mic mid-sentence: use the words it kept, as if the user stopped.
-            if (started && transcript.isNotEmpty() && !unclear) return@LaunchedEffect route(transcript)
+            if (started && midRecording && transcript.isNotEmpty()) return@LaunchedEffect route(transcript)
             if (!started) {
                 // Until the recognizer says which languages it has, Arabic on Google's (online
                 // only) would start on-device and fail, or skip the consent question.
@@ -339,6 +347,8 @@ class QuickAddActivity : FragmentActivity() {
                     enabled = true,
                     onTap = {
                         unclear = false
+                        // A new recording: the last one's words are done with.
+                        if (!voice.active) midRecording = false
                         voice.toggle("")
                     }
                 )

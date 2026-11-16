@@ -77,8 +77,7 @@ internal class SmsScanPipeline(
         val balanceUpdates = Channel<DeferredBalanceUpdate>(Channel.BUFFERED)
         val balanceUpdater = launch(Dispatchers.IO) {
             for (update in balanceUpdates) {
-                try { writer.applyBalanceUpdate(update) }
-                catch (e: Exception) {
+                try { writer.applyBalanceUpdate(update) } catch (e: Exception) {
                     if (e is CancellationException) throw e
                     Log.e(TAG, "Balance update failed: ${e.message}")
                 }
@@ -97,16 +96,18 @@ internal class SmsScanPipeline(
                     val p = stats.processed.incrementAndGet()
                     stats.recordCompletion()
 
+                    // Each message counts in exactly one outcome (see SmsScanCounts).
                     when (result) {
-                        is ParseResult.Discard            -> Unit
+                        is ParseResult.Discard            -> stats.discarded.incrementAndGet()
                         is ParseResult.StoreUnrecognized  -> {
+                            stats.unrecognised.incrementAndGet()
                             unrecognizedBatch.add(result.sms)
                             if (unrecognizedBatch.size >= UNRECOGNIZED_BATCH_SIZE)
                                 writer.flushUnrecognizedBatch(unrecognizedBatch, isTaught)
                         }
                         is ParseResult.SpecialNotification -> {
-                            try { result.onSave() }
-                            catch (e: Exception) { Log.e(TAG, "Error saving special notification: ${e.message}") }
+                            stats.special.incrementAndGet()
+                            try { result.onSave() } catch (e: Exception) { Log.e(TAG, "Error saving special notification: ${e.message}") }
                         }
                         is ParseResult.Transaction -> {
                             stats.parsed.incrementAndGet()
@@ -124,7 +125,8 @@ internal class SmsScanPipeline(
                                     SaveOutcome.SKIPPED_DUPLICATE -> {
                                         stats.duplicates.incrementAndGet()
                                     }
-                                    SaveOutcome.SKIPPED -> Unit
+                                    SaveOutcome.EXCLUDED -> stats.excluded.incrementAndGet()
+                                    SaveOutcome.FAILED -> stats.discarded.incrementAndGet()
                                 }
                             } finally {
                                 Trace.endSection()

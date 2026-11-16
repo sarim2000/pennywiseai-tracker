@@ -164,6 +164,8 @@ class UserPreferencesKeysGoldenTest {
             "system_prompt" to "String",
             "theme_style" to "String",
             "tracking_card_snoozed_until" to "Long",
+            "last_scan_record" to "String",
+            "last_live_sms_at" to "Long",
             "unified_currency_mode" to "Boolean",
             "upi_id" to "String",
             "use_contacts_for_vpa" to "Boolean",

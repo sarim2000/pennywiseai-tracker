@@ -4,8 +4,10 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.mapper.toEntity
 import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
+import com.pennywiseai.tracker.domain.smsimport.SmsScanCounts
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.unmockkStatic
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
@@ -172,6 +174,51 @@ class SmsScanPipelineTest {
         assertEquals(6, stats.processed.get())
         assertEquals(5, stats.saved.get())
         assertEquals(5, h.store.all.size)
+        assertEquals(1, stats.counts().discarded)
+        assertEquals(6, stats.counts().examined)
+    }
+
+    @Test
+    fun `every message lands in exactly one outcome`() = scanTest {
+        val special = hdfcDebit(3)
+        val broken = hdfcDebit(4)
+        val inbox = listOf(
+            hdfcDebit(1),
+            hdfcDebit(2),
+            hdfcDebit(1).copy(id = 99L),
+            scannedSms("AD-SHOPXX-P", "Big sale today", id = 10L),
+            scannedSms("AD-NEWBNK-T", "Your statement is ready", id = 11L),
+            special,
+            broken,
+        )
+
+        val stats = h.scan(
+            inbox,
+            classify = { sms ->
+                when (sms.id) {
+                    special.id -> ParseResult.SpecialNotification(sms) {}
+                    broken.id -> error("parser bug")
+                    else -> h.classifier.classify(sms)
+                }
+            },
+        )
+
+        assertEquals(
+            SmsScanCounts(saved = 2, duplicates = 1, excluded = 0, unrecognised = 1, discarded = 2, special = 1),
+            stats.counts(),
+        )
+        assertEquals(inbox.size, stats.counts().examined)
+        assertEquals(stats.processed.get(), stats.counts().examined)
+    }
+
+    @Test
+    fun `an ignored account's messages count as excluded`() = scanTest {
+        every { h.ignored.isIgnored(any(), *anyVararg()) } returns true
+
+        val stats = h.scan((1..3).map(::hdfcDebit))
+
+        assertEquals(SmsScanCounts(excluded = 3), stats.counts())
+        assertTrue(h.store.all.isEmpty())
     }
 
     @Test

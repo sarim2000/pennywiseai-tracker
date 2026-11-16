@@ -69,6 +69,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         fun taughtMessageBooker(): com.pennywiseai.tracker.data.manager.TaughtMessageBooker
         fun recurringSuggestionPreferences(): com.pennywiseai.tracker.data.preferences.RecurringSuggestionPreferences
         fun conscienceManager(): ConscienceManager
+        fun scanPreferences(): com.pennywiseai.tracker.data.preferences.ScanPreferences
     }
 
     companion object {
@@ -756,6 +757,11 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         timestamp: Long
     ) {
         var conscience: Job? = null
+        // The SMS check-up's proof that live capture still works, whatever this SMS turns out to be.
+        runCatching {
+            EntryPointAccessors.fromApplication(context.applicationContext, SmsBroadcastReceiverEntryPoint::class.java)
+                .scanPreferences().setLastLiveSmsAt(System.currentTimeMillis())
+        }.onFailure { Log.e(TAG, "Couldn't record the live SMS time", it) }
         try {
             // Use the shared processor to parse and save the transaction
             val result = processor.processAndSaveTransaction(sender, body, timestamp)

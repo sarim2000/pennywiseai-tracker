@@ -147,7 +147,7 @@ internal class ScanHarness(
     private val cards = mockk<CardRepository>(relaxed = true)
     private val rules = mockk<RuleRepository>(relaxed = true)
     private val tags = mockk<TagRepository>(relaxed = true)
-    private val ignored = mockk<IgnoredAccountsStore>(relaxed = true)
+    val ignored = mockk<IgnoredAccountsStore>(relaxed = true)
     private val merges = mockk<BankAccountMergeStore>()
     private val database = mockk<PennyWiseDatabase>()
 

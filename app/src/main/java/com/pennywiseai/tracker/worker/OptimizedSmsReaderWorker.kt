@@ -19,6 +19,9 @@ import com.pennywiseai.tracker.data.preferences.ScanPreferences
 import com.pennywiseai.tracker.data.repository.*
 import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.domain.service.RuleEngine
+import com.pennywiseai.tracker.domain.smsimport.SmsScanCounts
+import com.pennywiseai.tracker.domain.smsimport.SmsScanRecord
+import com.pennywiseai.tracker.domain.smsimport.SmsScanState
 import com.pennywiseai.tracker.worker.smsscan.DeviceSmsMessageSource
 import com.pennywiseai.tracker.worker.smsscan.ProcessingStats
 import com.pennywiseai.tracker.worker.smsscan.ScanRunContext
@@ -156,9 +159,15 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         Process.setThreadPriority(Process.THREAD_PRIORITY_FOREGROUND)
         val recentSinceMillis = System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000
+        val startedAt = System.currentTimeMillis()
+        // Set once the counting starts; a failure before that records no counts.
+        var scanStats: ProcessingStats? = null
 
         Trace.beginSection("SmsWorker.doWork")
         try {
+            // First, before anything can fail: a scan that dies with its process stays
+            // RUNNING, which the check-up reads as interrupted rather than a success.
+            recordScan(SmsScanRecord(SmsScanState.RUNNING, startedAt))
             val forceResync = inputData.getBoolean(INPUT_FORCE_RESYNC, false)
             val rescanAll = inputData.getBoolean(INPUT_RESCAN_ALL, false)
             Log.i(TAG, "Starting SMS worker (forceResync=$forceResync, rescanAll=$rescanAll)")
@@ -229,7 +238,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             val parserConcurrency = maxOf(1, Runtime.getRuntime().availableProcessors() - 1)
             Log.i(TAG, "Pipeline: $parserConcurrency parsers | 1 saver | $total messages")
 
-            val stats = ProcessingStats(total = total)
+            val stats = ProcessingStats(total = total).also { scanStats = it }
             reportProgress(stats)
 
             val writer = ScanTransactionWriter(
@@ -299,6 +308,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 Log.e(TAG, "Income autopay phantom creator failed: ${e.message}", e)
             }
             reportProgress(stats)
+            recordScan(finishedRecord(SmsScanState.SUCCEEDED, startedAt, stats))
             // WorkManager clears `progress` once work finishes, so a caller
             // reading the result on SUCCEEDED saw every count as 0 — onboarding
             // said "No transactions found" after importing a whole inbox. Hand
@@ -307,7 +317,10 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 completionData(stats.total, stats.processed.get(), stats.parsed.get(), stats.saved.get())
             )
         } catch (e: Exception) {
-            Log.e(TAG, "Fatal error in SMS worker", e)
+            val state = if (e is CancellationException || isStopped) SmsScanState.CANCELLED else SmsScanState.FAILED
+            // The coroutine may already be cancelled; the record still has to land.
+            withContext(NonCancellable) { recordScan(finishedRecord(state, startedAt, scanStats)) }
+            Log.e(TAG, "SMS worker ended: $state", e)
             Result.failure()
         } finally {
             Trace.endSection()
@@ -321,6 +334,23 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             setProgress(progressData(stats))
         } catch (_: Exception) {}
     }
+
+    /** Best effort: the check-up's record must never fail the scan itself. */
+    private suspend fun recordScan(record: SmsScanRecord) {
+        try {
+            userPreferencesRepository.setLastScanRecord(record)
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            Log.e(TAG, "Couldn't record the scan outcome", e)
+        }
+    }
+
+    private fun finishedRecord(state: SmsScanState, startedAt: Long, stats: ProcessingStats?) = SmsScanRecord(
+        state = state,
+        startedAt = startedAt,
+        finishedAt = System.currentTimeMillis(),
+        counts = stats?.counts() ?: SmsScanCounts(),
+    )
 
     private suspend fun persistScanState(now: Long, needsFullScan: Boolean) {
         // Persist scan state after all stages (including saving) finish successfully

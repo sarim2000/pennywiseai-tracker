@@ -85,8 +85,12 @@ internal class ScanRunContext(
 internal enum class SaveOutcome {
     SAVED,
     UPDATED_DUPLICATE,
+    /** Already booked: same hash or SMS, the other channel, or a matching row. */
     SKIPPED_DUPLICATE,
-    SKIPPED
+    /** An ignored account or a blocking rule. */
+    EXCLUDED,
+    /** The save threw. */
+    FAILED
 }
 
 internal data class DeferredBalanceUpdate(
@@ -168,7 +172,7 @@ internal class ScanTransactionWriter(
                         linkedAccountLast4
                     )
                 ) {
-                    return@coroutineScope SaveOutcome.SKIPPED
+                    return@coroutineScope SaveOutcome.EXCLUDED
                 }
 
                 val hashDeferred = async { transactionRepository.getTransactionByHash(entity.transactionHash) }
@@ -182,7 +186,7 @@ internal class ScanTransactionWriter(
                 val activeRules = scanContext.rulesByType[mapped.transactionType] ?: emptyList()
                 val isBlocked = ruleEngine.shouldBlockTransaction(mapped, sms.body, activeRules) != null
 
-                if (hashDeferred.await() != null) return@coroutineScope SaveOutcome.SKIPPED
+                if (hashDeferred.await() != null) return@coroutineScope SaveOutcome.SKIPPED_DUPLICATE
 
                 // Same charge already booked from the bank's app notification. Only
                 // banks that can arrive by notification pay for the lookup.
@@ -198,7 +202,7 @@ internal class ScanTransactionWriter(
                             entity, nearby, BankNotificationConfig.notificationAliases
                         )
                     ) {
-                        return@coroutineScope SaveOutcome.SKIPPED
+                        return@coroutineScope SaveOutcome.SKIPPED_DUPLICATE
                     }
                 }
 
@@ -212,13 +216,13 @@ internal class ScanTransactionWriter(
                         if (!stored.isDeleted && TransactionDeduplication.isParseArtifact(stored, entity)) {
                             transactionRepository.correctParsedAmount(stored, entity)
                         }
-                        return@coroutineScope SaveOutcome.SKIPPED
+                        return@coroutineScope SaveOutcome.SKIPPED_DUPLICATE
                     }
                 }
 
                 if (isBlocked) {
                     stats.blocked.incrementAndGet()
-                    return@coroutineScope SaveOutcome.SKIPPED
+                    return@coroutineScope SaveOutcome.EXCLUDED
                 }
 
                 val (withRules, ruleApps) = ruleEngine.evaluateRules(mapped, sms.body, activeRules)
@@ -267,7 +271,7 @@ internal class ScanTransactionWriter(
                         if (id != -1L) matchedSub?.let { subscriptionRepository.recordCharge(it, finalEntity.dateTime.toLocalDate()) }
                     }
                 }
-                if (rowId == -1L) return@coroutineScope SaveOutcome.SKIPPED
+                if (rowId == -1L) return@coroutineScope SaveOutcome.SKIPPED_DUPLICATE
 
                 walletLeg?.let { (bank, account) -> accountBalanceRepository.recomputeManualBalance(bank, account) }
                 saveRuleApplications(rowId, ruleApps)
@@ -283,7 +287,7 @@ internal class ScanTransactionWriter(
     } catch (e: Exception) {
         if (e is CancellationException) throw e
         Log.e(TAG, "Error saving transaction: ${e.message}")
-        SaveOutcome.SKIPPED
+        SaveOutcome.FAILED
     }
 
     private suspend fun replaceRuleApplications(

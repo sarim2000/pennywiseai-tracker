@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.worker.smsscan
 
+import com.pennywiseai.tracker.domain.smsimport.SmsScanCounts
 import java.util.concurrent.atomic.AtomicInteger
 
 private const val ETA_WINDOW_MS = 2000L
@@ -30,7 +31,24 @@ internal class ProcessingStats(val total: Int) {
     val saved     = AtomicInteger(0)
     val duplicates = AtomicInteger(0)
     val blocked   = AtomicInteger(0)
+
+    // Per-message outcomes besides saved and duplicates: together they cover every
+    // processed message once. `blocked` (rules) is a part of `excluded`.
+    val excluded     = AtomicInteger(0)
+    val unrecognised = AtomicInteger(0)
+    val discarded    = AtomicInteger(0)
+    val special      = AtomicInteger(0)
+
     val startTime = System.currentTimeMillis()
+
+    fun counts() = SmsScanCounts(
+        saved = saved.get(),
+        duplicates = duplicates.get(),
+        excluded = excluded.get(),
+        unrecognised = unrecognised.get(),
+        discarded = discarded.get(),
+        special = special.get(),
+    )
 
     private val RING_SIZE          = 8192
     private val MIN_SAMPLES        = 10

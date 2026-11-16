@@ -2,18 +2,22 @@ package com.pennywiseai.tracker.data.repository
 
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
+import com.pennywiseai.tracker.data.database.dao.ExchangeRateDao
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
+import com.pennywiseai.tracker.data.database.entity.ExchangeRateEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.ledger.breakdownByCurrency
+import com.pennywiseai.tracker.data.ledger.convertedSpent
 import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.model.SpendingComparison
+import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import io.mockk.coEvery
 import io.mockk.every
@@ -55,13 +59,26 @@ class AiContextRepositoryTest {
     private lateinit var preferences: UserPreferencesRepository
     private lateinit var repository: AiContextRepository
 
+    // The app's own conversion, rounding included, with one JPY worth 0.0201 USD.
+    private val rated = CurrencyConversionService(
+        mockk<ExchangeRateDao> {
+            coEvery { getExchangeRate("JPY", "USD", any()) } returns ExchangeRateEntity(
+                fromCurrency = "JPY", toCurrency = "USD", rate = BigDecimal("0.0201"), provider = "test",
+                updatedAt = LocalDateTime.now(), expiresAt = LocalDateTime.now().plusDays(1)
+            )
+        },
+        mockk(relaxed = true),
+        mockk<CurrencyPreferences>(relaxed = true)
+    )
+
     // USD has a rate, XYZ never had one.
     private val conversion = mockk<CurrencyConversionService> {
-        coEvery { convertAmountOrNull(any(), any(), any(), any()) } answers {
+        coEvery { convertAmountOrNull(any(), any(), any(), any()) } coAnswers {
             val (amount, from, to) = Triple(firstArg<BigDecimal>(), secondArg<String>(), thirdArg<String>())
             when {
                 from == to -> amount
                 from == "USD" && to == "INR" -> amount * BigDecimal("80")
+                from == "JPY" && to == "USD" -> rated.convertAmountOrNull(amount, from, to)
                 else -> null
             }
         }
@@ -227,6 +244,19 @@ class AiContextRepositoryTest {
         assertEquals("INR", e.currency)
         assertEquals(0, BigDecimal("900").compareTo(e.total))
         assertEquals(mapOf("XYZ" to "7"), amounts(e.leftOut))
+    }
+
+    @Test
+    fun `the converted estimate rounds as Home's card does, spending and forgiven loans apart`() = runBlocking {
+        tx("50", currency = "JPY")
+        forgiven = mapOf("JPY" to BigDecimal("50"))
+        preferences.setUnifiedCurrencyMode(true)
+        preferences.setDisplayCurrency("USD")
+        val e = repository.spending(today).estimate!!
+        // Each 50 is 1.005, rounded to 1.01: Home shows 2.02, where 100 converted at once is 2.01.
+        assertEquals(BigDecimal("2.02"), e.total)
+        val home = convertedSpent(mapOf("JPY" to BigDecimal("50")), forgiven, "USD") { a, from, to -> conversion.convertAmountOrNull(a, from, to) }
+        assertEquals(home, e)
     }
 
     @Test

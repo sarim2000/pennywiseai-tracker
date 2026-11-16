@@ -19,6 +19,7 @@ import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.nameForBuiltin
 import com.pennywiseai.tracker.data.ledger.breakdownByCurrency
+import com.pennywiseai.tracker.data.ledger.convertedSpent
 import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.manager.InAppReviewManager
 import com.pennywiseai.tracker.data.manager.InAppUpdateManager
@@ -1541,11 +1542,15 @@ class HomeViewModel @Inject constructor(
                 val lastSamePoint = combinedBreakdown(lastMonthSamePointBreakdownMap, selectedCurrency, convert).expenses
                 val loanLoss = combinedTotal(currentMonthLoanLossByCurrency, selectedCurrency, convert)
                 val lent = combinedTotal(currentMonthLentByCurrency, selectedCurrency, convert)
+                // The chat's converted "Spent" comes from convertedSpent too, so the two agree to the cent.
+                val spent = convertedSpent(
+                    currentMonthBreakdownMap.mapValues { it.value.expenses }, currentMonthLoanLossByCurrency, selectedCurrency, convert
+                ).total
 
                 _uiState.value = _uiState.value.copy(
                     currentMonthTotal = currentBreakdown.total - loanLoss,
                     currentMonthIncome = currentBreakdown.income,
-                    currentMonthExpenses = currentBreakdown.expenses + loanLoss,
+                    currentMonthExpenses = spent,
                     currentMonthLent = lent,
                     lastMonthTotal = lastBreakdown.total,
                     lastMonthIncome = lastBreakdown.income,
@@ -1554,14 +1559,13 @@ class HomeViewModel @Inject constructor(
                     selectedCurrency = selectedCurrency,
                     availableCurrencies = availableCurrencies,
                     spendForecast = forecastFor(
-                        currentBreakdown.expenses + loanLoss,
+                        spent,
                         selectedCurrency,
                         previousCycleBreakdownMaps.mapIndexed { i, map ->
                             val loss = previousCycleLoanLoss.getOrNull(i).orEmpty()
                             // A cycle with only a settlement loss still counts as history.
                             if (map.isEmpty() && loss.isEmpty()) null
-                            else combinedBreakdown(map, selectedCurrency, convert).expenses +
-                                combinedTotal(loss, selectedCurrency, convert)
+                            else convertedSpent(map.mapValues { it.value.expenses }, loss, selectedCurrency, convert).total
                         }
                     )
                 )

@@ -80,3 +80,22 @@ suspend fun convertedEstimate(
     }
     return ConvertedEstimate(target, total, leftOut)
 }
+
+/**
+ * Home's "Spent" as one figure in [target]: [spent] and [forgiven] loans each converted, then
+ * added. A conversion rounds to [target]'s minor unit, so adding them first and converting
+ * once can land a cent away from Home's card; Home and the chat both total it here.
+ */
+suspend fun convertedSpent(
+    spent: Map<String, BigDecimal>,
+    forgiven: Map<String, BigDecimal>,
+    target: String,
+    convert: suspend (amount: BigDecimal, from: String, to: String) -> BigDecimal?
+): ConvertedEstimate {
+    val a = convertedEstimate(spent, target, convert)
+    val b = convertedEstimate(forgiven, target, convert)
+    val leftOut = (a.leftOut.keys + b.leftOut.keys).associateWith {
+        (a.leftOut[it] ?: BigDecimal.ZERO) + (b.leftOut[it] ?: BigDecimal.ZERO)
+    }
+    return ConvertedEstimate(target, a.total + b.total, leftOut)
+}

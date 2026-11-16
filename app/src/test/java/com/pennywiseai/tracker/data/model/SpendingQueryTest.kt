@@ -144,6 +144,26 @@ class SpendingQueryTest {
         assertNull(SpendingQuery.groupBy("day"))
     }
 
+    @Test
+    fun `a ranking of the one merchant, account or category asked about is its total`() {
+        // What Qwen2.5 sends for "how much at Swiggy?" and "how much from my HDFC account?".
+        assertEquals(GroupBy.NONE, SpendingQuery.grouping(GroupBy.CATEGORY, null, "Swiggy", null))
+        assertEquals(GroupBy.NONE, SpendingQuery.grouping(GroupBy.ACCOUNT, null, null, "HDFC_1234"))
+        assertEquals(GroupBy.NONE, SpendingQuery.grouping(GroupBy.CATEGORY, "Food & Dining", null, null))
+        // Rankings within what was asked stay: "where do I spend most on food?".
+        assertEquals(GroupBy.MERCHANT, SpendingQuery.grouping(GroupBy.MERCHANT, "Food & Dining", null, null))
+        assertEquals(GroupBy.CATEGORY, SpendingQuery.grouping(GroupBy.CATEGORY, null, null, "HDFC_1234"))
+        assertEquals(GroupBy.CATEGORY, SpendingQuery.grouping(GroupBy.CATEGORY, null, null, null))
+    }
+
+    @Test
+    fun `a category counts as named by a word of it`() {
+        assertTrue(SpendingQuery.namesCategory("Food & Dining", "how much on food at Swiggy?"))
+        assertTrue(SpendingQuery.namesCategory("Groceries", "grocery spend at Carrefour"))
+        assertTrue(!SpendingQuery.namesCategory("Shopping", "Swiggy spending this month?"))
+        assertTrue(!SpendingQuery.namesCategory("Food & Dining", "كم صرفت في ستاربكس هالشهر؟"))
+    }
+
     private fun account(bank: String, last4: String, alias: String? = null) = AccountBalanceEntity(
         bankName = bank, accountLast4 = last4, balance = BigDecimal.ZERO, timestamp = now, alias = alias
     )

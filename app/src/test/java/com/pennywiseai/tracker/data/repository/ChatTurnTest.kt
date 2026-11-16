@@ -1353,6 +1353,22 @@ class ChatTurnTest {
     }
 
     @Test
+    fun `a merchant's figure isn't narrowed or ranked by what the model guessed beside it`() = runTest {
+        every { context.getString(R.string.chat_reply_month_spend, any()) } answers { "SPENT ${(args[1] as Array<*>)[0]}" }
+        coEvery { accountBalances.getAllLatestBalancesOnce() } returns listOf(account("Emirates NBD", "1234"))
+        val filter = answerSpending()
+
+        // Seen on the emulator: "Nothing spent … · Shopping · Swiggy" for "how much at Swiggy?".
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("period" to "this_month", "category" to "Shopping", "merchant" to "Swiggy", "group_by" to "category")))
+        assertTrue(send("Swiggy spending this month?").startsWith("SPENT 1 Nov–16 Nov · Swiggy\n"))
+        assertEquals(SpendingFilter(merchant = "Swiggy"), filter.captured)
+        // And "Top accounts … Emirates NBD: Emirates NBD: AED127" for one account's spending.
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("account" to "Emirates NBD", "group_by" to "account")))
+        assertTrue(send("How much did I spend from my Emirates NBD account this month?").startsWith("SPENT 1 Nov–16 Nov · Emirates NBD ••1234\n"))
+        coVerify(exactly = 0) { aiContext.topCategories(any(), any(), any(), any()) }
+    }
+
+    @Test
     fun `merchants and accounts are ranked under their own heading, spending on no account named`() = runTest {
         every { context.getString(R.string.chat_reply_top_accounts, any()) } answers { "TOP_ACCOUNTS ${(args[1] as Array<*>)[0]}" }
         every { context.getString(R.string.chat_group_no_account) } returns "NONE"

@@ -207,6 +207,28 @@ object SpendingQuery {
         else -> null
     }
 
+    /**
+     * The grouping that answers the question. Qwen2.5 fills group_by in for a plain total
+     * ("category" for "how much at Swiggy?"): one merchant's figure, or a ranking by the very
+     * account or category asked about, is that total.
+     */
+    fun grouping(by: GroupBy, category: String?, merchant: String?, account: String?): GroupBy = when {
+        merchant != null -> GroupBy.NONE
+        by == GroupBy.ACCOUNT && account != null -> GroupBy.NONE
+        by == GroupBy.CATEGORY && category != null -> GroupBy.NONE
+        else -> by
+    }
+
+    /**
+     * Whether [message] names [category], by a word of it ("food" for "Food & Dining"). Beside a
+     * merchant Qwen2.5 adds a category of its own ("Shopping" for "how much at Swiggy?"), which
+     * narrows the merchant's figure to nothing; the merchant alone says what was spent there.
+     */
+    fun namesCategory(category: String, message: String): Boolean {
+        val words = norm(message).split(" ")
+        return norm(category).split(" ").filter { it.length >= 3 }.any { w -> words.any { it.startsWith(w.take(4)) } }
+    }
+
     sealed interface AccountMatch {
         data class One(val account: AccountBalanceEntity) : AccountMatch
         /** Several accounts answer to it, e.g. two cards ending in the same digits. */

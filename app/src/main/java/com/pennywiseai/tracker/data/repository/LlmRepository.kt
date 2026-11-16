@@ -673,19 +673,19 @@ class LlmRepository @Inject constructor(
      * with other days or every account instead.
      */
     private suspend fun querySpending(args: Map<String, Any?>, userMessage: String): String {
-        val groupBy = SpendingQuery.groupBy(args.arg("groupBy")) ?: return context.getString(R.string.chat_reply_query_group_unknown)
+        val asGrouped = SpendingQuery.groupBy(args.arg("groupBy")) ?: return context.getString(R.string.chat_reply_query_group_unknown)
         val window = when (val dates = datesAsked(args, userMessage)) {
             is SpendingQuery.Dates.Invalid -> return datesProblem(dates)
             is SpendingQuery.Dates.Of -> dates.window
             SpendingQuery.Dates.Home -> null
         }
         fun named(key: String) = (args[key] as? String)?.trim()?.takeUnless { it.isEmpty() || SpendingComparison.meansAllSpending(it) }
-        val asked = named("category")
+        val merchant = named("merchant")
+        val asked = named("category")?.takeUnless { merchant != null && !SpendingQuery.namesCategory(it, userMessage) }
         // Hidden categories still hold transactions, and a row can name a category that no
         // longer exists: a read-only lookup asks the transactions before saying it's unknown.
         val known = asked?.let { matchCategory(it, categoryRepository.getAllCategories().first()) }
         val category = known ?: asked
-        val merchant = named("merchant")
         val account = named("account")?.let { wanted ->
             // An ignored account is hidden everywhere else, so it's never offered here either.
             val ignored = ignoredAccountsStore.keys()
@@ -698,6 +698,7 @@ class LlmRepository @Inject constructor(
             }
         }
         val filter = SpendingFilter(window, merchant, account?.let { SpendingFilter.accountKey(it) })
+        val groupBy = SpendingQuery.grouping(asGrouped, category, merchant, filter.account)
         val narrowed = listOfNotNull(merchant, account?.displayLabel).joinToString("") { " · $it" }
         // The list can't be narrowed to a merchant as the figure was (its search reads notes and
         // SMS too), and matches a category's name exactly: "uber" would open on nothing.

@@ -153,11 +153,11 @@
     <string name="budget_edit_runs_once">Runs once, no rollover</string>
     <string name="budget_edit_current_window">Current window</string>
     <string name="budget_edit_rollover">Roll over unspent or overspent</string>
-    <string name="budget_edit_rollover_subtitle">What\'s left at the end adds to the next period; overspending comes off it. Only last period\'s leftover counts, never more than one full budget either way.</string>
+    <string name="budget_edit_rollover_subtitle">Unspent money adds to the next period and overspending comes off it, up to one budget\'s worth.</string>
     <string name="budget_rollover_carried_in">Base %1$s + %2$s carried over = %3$s</string>
     <string name="budget_rollover_carried_out">Base %1$s − %2$s overspent = %3$s</string>
     <string name="budget_rollover_incomplete">Nothing carried over: some of last period\'s spending couldn\'t be converted</string>
-    <string name="budget_rollover_other_currency">Nothing carried over: last period had spending in another currency</string>
+    <string name="budget_rollover_other_currency">Nothing carried over: last period had spending in another currency. Turn on Unified Currency Mode in Settings to count it.</string>
     <string name="budget_history_carried">Carried over: %1$s</string>
     <!-- %1$s = start date, %2$s = end date, %3$s = reset rule (e.g. "Resets every Monday") -->
     <string name="budget_edit_window_caption">%1$s – %2$s · %3$s</string>

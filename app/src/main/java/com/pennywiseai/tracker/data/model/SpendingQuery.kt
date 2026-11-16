@@ -363,12 +363,19 @@ object SpendingQuery {
      * Whether [message] names [category], or its [label] as the app shows it ("طعام ومطاعم" for
      * "Food & Dining"), by a word of it: "food", "الطعام". Beside a merchant Qwen2.5 adds a
      * category of its own ("Shopping" for "how much at Swiggy?"), which narrows the merchant's
-     * figure to nothing; the merchant alone says what was spent there.
+     * figure to nothing; the merchant alone says what was spent there. A word counts when it
+     * differs from the category's only in its ending ("grocery", "Groceries"): "transactions"
+     * isn't "Transportation". Pass [message] without the names the call gives ([withoutNames]).
      */
     fun namesCategory(category: String, message: String, label: String? = null): Boolean {
         val words = norm(message).split(" ").flatMap(::forms)
         return listOfNotNull(category, label).flatMap { norm(it).split(" ") }.flatMap(::forms).filter { it.length >= 3 }
-            .any { w -> words.any { it.startsWith(w.take(4)) } }
+            .any { w ->
+                words.any {
+                    val shared = it.commonPrefixWith(w).length
+                    shared >= minOf(4, w.length) && shared >= minOf(it.length, w.length) - 2
+                }
+            }
     }
 
     sealed interface AccountMatch {

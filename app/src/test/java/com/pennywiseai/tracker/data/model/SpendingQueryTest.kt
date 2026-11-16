@@ -259,6 +259,11 @@ class SpendingQueryTest {
         assertTrue(SpendingQuery.namesCategory("Food & Dining", "كم صرفت بالمطاعم في المول؟", "طعام ومطاعم"))
         assertTrue(SpendingQuery.namesCategory("Bills & Utilities", "كم دفعت للفواتير عن طريق STC Pay؟", "فواتير وخدمات"))
         assertTrue(!SpendingQuery.namesCategory("Food & Dining", "كم صرفت في ستاربكس هالشهر؟", "طعام ومطاعم"))
+        // A word that only starts like it, or the merchant's own name, isn't the category.
+        assertTrue(!SpendingQuery.namesCategory("Transportation", "Show my transactions at Careem"))
+        assertTrue(SpendingQuery.namesCategory("Transportation", "transport spend at Careem"))
+        assertTrue(SpendingQuery.namesCategory("Healthcare", "health spending at the pharmacy"))
+        assertTrue(!SpendingQuery.namesCategory("Travel", SpendingQuery.withoutNames("how much at Travelex?", "Travelex", null)))
     }
 
     private fun account(bank: String, last4: String, alias: String? = null) = AccountBalanceEntity(

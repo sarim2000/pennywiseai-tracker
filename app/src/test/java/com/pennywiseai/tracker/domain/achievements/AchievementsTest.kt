@@ -170,23 +170,33 @@ class AchievementsTest {
     fun `halfway unlocks on the contribution that reached half the target`() {
         val g = goal("1000", "100", "2026-01-10", "JOD", "2026-03-01" to "300", "2026-02-01" to "50", "2026-04-01" to "100")
         // 100 + 50 (Feb) + 300 (Mar) = 450, then 550 in April.
-        val a = goalHalfwayAchievement(listOf(g))
+        val a = goalHalfwayAchievement(listOf(g), today)
         assertTrue(a.earned)
         assertEquals(day("2026-04-01"), a.unlockedOn)
     }
 
     @Test
+    fun `a contribution dated after today doesn't unlock a goal badge yet`() {
+        val g = goal("1000", "0", "2026-01-10", "JOD", "2026-02-01" to "200", today.plusMonths(1).toString() to "900")
+        val halfway = goalHalfwayAchievement(listOf(g), today)
+        assertFalse(halfway.earned)
+        // Its bar shows what's saved so far, not the full amount the goal screen counts.
+        assertEquals(20, halfway.progress)
+        assertEquals(0, goalsReachedAchievement(listOf(g), today).tier)
+    }
+
+    @Test
     fun `a goal started at half or more is halfway on the day it was made`() {
-        val a = goalHalfwayAchievement(listOf(goal("1000", alreadySaved = "600", created = "2026-05-05")))
+        val a = goalHalfwayAchievement(listOf(goal("1000", alreadySaved = "600", created = "2026-05-05")), today)
         assertEquals(day("2026-05-05"), a.unlockedOn)
     }
 
     @Test
     fun `halfway stays earned after a withdrawal, and shows the best goal's percent while locked`() {
         val dipped = goal("1000", "0", "2026-01-10", "JOD", "2026-02-01" to "600", "2026-03-01" to "-400")
-        assertTrue(goalHalfwayAchievement(listOf(dipped)).earned)
+        assertTrue(goalHalfwayAchievement(listOf(dipped), today).earned)
 
-        val locked = goalHalfwayAchievement(listOf(goal("1000", "200"), goal("500", "150", currency = "USD")))
+        val locked = goalHalfwayAchievement(listOf(goal("1000", "200"), goal("500", "150", currency = "USD")), today)
         assertFalse(locked.earned)
         assertEquals(30, locked.progress)
     }
@@ -198,16 +208,16 @@ class AchievementsTest {
             goal("5000", "0", "2026-01-01", "INR", "2026-03-01" to "6000"),
             goal("900", "100"),
         )
-        val a = goalsReachedAchievement(goals)
+        val a = goalsReachedAchievement(goals, today)
         assertEquals(1, a.tier)
         assertEquals(2, a.progress)
         assertEquals(day("2026-03-01"), a.unlockedOn)
-        assertEquals(0, goalsReachedAchievement(emptyList()).tier)
+        assertEquals(0, goalsReachedAchievement(emptyList(), today).tier)
     }
 
     @Test
     fun `a goal without a target reaches nothing`() {
-        assertNull(dateReaching(GoalEntity(targetAmount = BigDecimal.ZERO), emptyList(), 100))
+        assertNull(dateReaching(GoalEntity(targetAmount = BigDecimal.ZERO), emptyList(), 100, today))
     }
 
     // --- Budgets

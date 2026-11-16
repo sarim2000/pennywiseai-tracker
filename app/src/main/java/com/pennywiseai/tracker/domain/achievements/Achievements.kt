@@ -6,12 +6,12 @@ import com.pennywiseai.tracker.data.database.entity.GoalEntity
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.data.repository.GoalDetail
-import com.pennywiseai.tracker.domain.goals.percent
 import com.pennywiseai.tracker.domain.review.CurrencyReview
 import com.pennywiseai.tracker.domain.review.PeriodReview
 import com.pennywiseai.tracker.domain.review.percentChange
 import com.pennywiseai.tracker.domain.share.savingsRatePercent
 import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.LocalDate
 import java.time.YearMonth
 import java.time.temporal.ChronoUnit
@@ -131,29 +131,40 @@ fun subscriptionsAchievement(found: List<LocalDate>): Achievement = countOf(Achi
 
 /**
  * The day [goal]'s saved total first reached [percent] of its target, replaying its
- * contributions in order; null if it never has. A withdrawal later doesn't undo it.
+ * contributions in order; null if it never has. A withdrawal later doesn't undo it, and a
+ * contribution dated after [today] hasn't happened yet.
  */
-internal fun dateReaching(goal: GoalEntity, contributions: List<GoalContributionEntity>, percent: Int): LocalDate? {
+internal fun dateReaching(goal: GoalEntity, contributions: List<GoalContributionEntity>, percent: Int, today: LocalDate): LocalDate? {
     if (goal.targetAmount.signum() <= 0) return null
     val needed = goal.targetAmount.multiply(BigDecimal(percent)).divide(BigDecimal(100))
     var saved = goal.alreadySaved
     if (saved >= needed) return goal.createdAt.toLocalDate()
-    for (c in contributions.sortedWith(compareBy({ it.date }, { it.id }))) {
+    for (c in contributions.through(today).sortedWith(compareBy({ it.date }, { it.id }))) {
         saved += c.amount
         if (saved >= needed) return c.date
     }
     return null
 }
 
+private fun List<GoalContributionEntity>.through(today: LocalDate) = filter { !it.date.isAfter(today) }
+
+/** Whole percent saved by [today], floored like the goal's own: what the locked badge shows. */
+private fun GoalDetail.percentBy(today: LocalDate): Int {
+    val goal = progress.goal
+    if (goal.targetAmount.signum() <= 0) return 0
+    val saved = goal.alreadySaved + contributions.through(today).sumOf { it.amount }
+    return saved.multiply(BigDecimal(100)).divide(goal.targetAmount, 0, RoundingMode.DOWN).toInt()
+}
+
 /** Each goal in its own currency; goals are counted, never added up. */
-fun goalHalfwayAchievement(goals: List<GoalDetail>): Achievement {
-    val first = goals.mapNotNull { dateReaching(it.progress.goal, it.contributions, 50) }.minOrNull()
-    val best = goals.maxOfOrNull { it.progress.percent() } ?: 0
+fun goalHalfwayAchievement(goals: List<GoalDetail>, today: LocalDate): Achievement {
+    val first = goals.mapNotNull { dateReaching(it.progress.goal, it.contributions, 50, today) }.minOrNull()
+    val best = goals.maxOfOrNull { it.percentBy(today) } ?: 0
     return fromTimeline(AchievementId.GOAL_HALFWAY, listOfNotNull(first?.let { it to 50 }), best.coerceIn(0, 100))
 }
 
-fun goalsReachedAchievement(goals: List<GoalDetail>): Achievement =
-    countOf(AchievementId.GOALS_REACHED, goals.mapNotNull { dateReaching(it.progress.goal, it.contributions, 100) })
+fun goalsReachedAchievement(goals: List<GoalDetail>, today: LocalDate): Achievement =
+    countOf(AchievementId.GOALS_REACHED, goals.mapNotNull { dateReaching(it.progress.goal, it.contributions, 100, today) })
 
 /** One finished month of spending limits: [kept] when every limit ended at or under its amount, null with none set. */
 data class BudgetMonth(val end: LocalDate, val kept: Boolean?)
@@ -269,8 +280,8 @@ fun achievementsOf(inputs: AchievementInputs, today: LocalDate): List<Achievemen
         trackedAchievement(inputs.recorded),
         streakAchievement(inputs.recorded, today),
         subscriptionsAchievement(inputs.subscriptions),
-        goalHalfwayAchievement(inputs.goals),
-        goalsReachedAchievement(inputs.goals),
+        goalHalfwayAchievement(inputs.goals, today),
+        goalsReachedAchievement(inputs.goals, today),
         budgetKeptAchievement(inputs.budgetMonths),
         savingsRateAchievement(cycles),
         savingsUpAchievement(cycles),

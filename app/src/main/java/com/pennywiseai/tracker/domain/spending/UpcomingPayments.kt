@@ -58,7 +58,12 @@ object UpcomingPayments {
         // A charge on an ignored account, or another profile's, pays nothing in this scope.
         val unpaid = subscriptions(subscriptions, posted.filter { !isExcluded(it.bankName, it.accountNumber) }, today, end, ::subCounts)
         val bills = cardBills.mapNotNull { it.bill }.filter { !it.isRetired && !it.dueDate.isAfter(end) }
-            .map { Bill(it.label, Money(it.remaining, it.currency), it.dueDate, isCardBill = true) }
+            .map {
+                Bill(
+                    it.label, Money(it.remaining, it.currency), it.dueDate,
+                    isCardBill = true, source = BillSource.Card(it.bankName, it.accountLast4),
+                )
+            }
         return (unpaid + templates + bills).sortedBy { it.dueDate }
     }
 
@@ -184,7 +189,7 @@ object UpcomingPayments {
                     .take(MAX_OCCURRENCES)
                     .takeWhile { !it.isAfter(end) }
                     .filter { !it.isBefore(today) && counts(s, it) }
-                    .map { s to Bill(s.merchantName, Money(s.amount, s.currency), it) }
+                    .map { s to Bill(s.merchantName, Money(s.amount, s.currency), it, source = BillSource.Subscription) }
                     .toList()
             }
 
@@ -207,7 +212,7 @@ object UpcomingPayments {
                     .take(MAX_OCCURRENCES)
                     .takeWhile { !it.isAfter(end) }
                     .filter { counts(t, it) }
-                    .map { Bill(t.merchantName, Money(t.amount, t.currency), it) }
+                    .map { Bill(t.merchantName, Money(t.amount, t.currency), it, source = BillSource.Recurring) }
                     .toList()
             }
 

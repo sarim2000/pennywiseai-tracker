@@ -255,8 +255,10 @@ private fun spendingCard(review: PeriodReview, c: CurrencyReview, details: Set<S
 @Composable
 private fun savingsCard(reviews: List<PeriodReview>, c: CurrencyReview, details: Set<ShareDetail>): ShareCardState {
     val review = reviews.first()
-    val rate = c.savingsRatePercent()
-        ?: return ShareCardState.Unavailable(stringResource(R.string.share_unavailable_income))
+    val rate = c.savingsRatePercent() ?: return ShareCardState.Unavailable(
+        // With income, no rate means spending ran past 100× it (see savingsRatePercent).
+        stringResource(if (c.income.signum() > 0) R.string.share_unavailable_overspent else R.string.share_unavailable_income)
+    )
     val amounts = ShareDetail.AMOUNTS in details
     val percents = ShareDetail.PERCENTAGES in details
     val previousRate = previousSavingsRate(c, reviews.getOrNull(1))

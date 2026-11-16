@@ -38,6 +38,7 @@ import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.ui.theme.investment
 import com.pennywiseai.tracker.ui.theme.spending
+import com.pennywiseai.tracker.ui.theme.transfer
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.Money
@@ -424,6 +425,8 @@ private fun GroupTransactionItem(
     val color = when (transaction.transactionType) {
         TransactionType.CREDIT -> MaterialTheme.colorScheme.credit
         TransactionType.INCOME -> MaterialTheme.colorScheme.income
+        TransactionType.TRANSFER -> MaterialTheme.colorScheme.transfer
+        TransactionType.INVESTMENT -> MaterialTheme.colorScheme.investment
         else -> MaterialTheme.colorScheme.spending
     }
     val sign = when (transaction.transactionType) {
@@ -550,6 +553,8 @@ private fun AddTransactionToGroupSheet(
                         val color = when (txn.transactionType) {
                             TransactionType.CREDIT -> MaterialTheme.colorScheme.credit
                             TransactionType.INCOME -> MaterialTheme.colorScheme.income
+                            TransactionType.TRANSFER -> MaterialTheme.colorScheme.transfer
+                            TransactionType.INVESTMENT -> MaterialTheme.colorScheme.investment
                             else -> MaterialTheme.colorScheme.spending
                         }
                         val sign = when (txn.transactionType) {

@@ -517,13 +517,16 @@ class ChatTurnTest {
         )
         repository.answerQuickAction(QuickAction.MONTH_SPEND)
         verify { context.getString(R.string.chat_reply_month_spend, "1 Nov–16 Nov · عمل") }
+        // Its link opens that profile's rows, whatever Home shows by the time it's tapped.
+        assertEquals(listOf(ProfileEntity.BUSINESS_ID), repository.links.value[saved.last().id]?.map { it.profileId })
 
         // A comparison covers the same profile, so it says so too.
         val w = SpendingComparison.Window(LocalDateTime.of(2026, 11, 1, 0, 0), LocalDateTime.of(2026, 11, 16, 23, 59))
-        val rows = SpendingComparison.Result.Rows(w, w, listOf(SpendingComparison.Row("INR", BigDecimal("700"), BigDecimal("500"), BigDecimal("40"))), business)
+        val rows = SpendingComparison.Result.Rows(w, w, listOf(SpendingComparison.Row("INR", BigDecimal("700"), BigDecimal("500"), BigDecimal("40"))), profile = business)
         coEvery { aiContext.compareSpending(any(), any(), any(), any()) } returns rows
         repository.answerQuickAction(QuickAction.COMPARE_MONTH)
         verify { context.getString(R.string.chat_reply_compare_title, "1 Nov–16 Nov", "1 Nov–16 Nov · عمل") }
+        assertEquals(listOf(ProfileEntity.BUSINESS_ID, ProfileEntity.BUSINESS_ID), repository.links.value[saved.last().id]?.map { it.profileId })
 
         // A renamed one shows as the user named it.
         coEvery { aiContext.compareSpending(any(), any(), any(), any()) } returns rows.copy(profile = business.copy(name = "Shop"))
@@ -582,7 +585,7 @@ class ChatTurnTest {
         send("how much this month?")
         // The user's own currency first, each pinned; a forgiven loan has no transactions to show.
         assertEquals(
-            listOf("INR", "AED", "USD").map { com.pennywiseai.tracker.data.model.ChatLink("SEE $it", nov1, nov16, null, it) },
+            listOf("INR", "AED", "USD").map { com.pennywiseai.tracker.data.model.ChatLink("SEE $it", nov1, nov16, null, it, null) },
             repository.links.value[saved.last().id]
         )
 
@@ -590,7 +593,7 @@ class ChatTurnTest {
         coEvery { aiContext.categorySpending(any(), any()) } returns spent("120").copy(category = "طعام")
         events = listOf(LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "طعام")))
         send("how much on food?")
-        assertEquals(listOf(com.pennywiseai.tracker.data.model.ChatLink("SEE طعام", nov1, nov16, "طعام", "INR")), repository.links.value[saved.last().id])
+        assertEquals(listOf(com.pennywiseai.tracker.data.model.ChatLink("SEE طعام", nov1, nov16, "طعام", "INR", null)), repository.links.value[saved.last().id])
 
         // Nothing found, nothing to open; the model's own words never get a link.
         coEvery { aiContext.categorySpending(any(), any()) } returns spent()
@@ -620,8 +623,8 @@ class ChatTurnTest {
         send("compare food with last month")
         assertEquals(
             listOf(
-                com.pennywiseai.tracker.data.model.ChatLink("SEE طعام · 1 Nov–16 Nov", nov1, nov16, "طعام", "INR"),
-                com.pennywiseai.tracker.data.model.ChatLink("SEE طعام · 1 Oct–16 Oct", oct1, oct16, "طعام", "INR"),
+                com.pennywiseai.tracker.data.model.ChatLink("SEE طعام · 1 Nov–16 Nov", nov1, nov16, "طعام", "INR", null),
+                com.pennywiseai.tracker.data.model.ChatLink("SEE طعام · 1 Oct–16 Oct", oct1, oct16, "طعام", "INR", null),
             ),
             repository.links.value[saved.last().id]
         )
@@ -632,10 +635,10 @@ class ChatTurnTest {
         repository.answerQuickAction(QuickAction.COMPARE_MONTH)
         assertEquals(
             listOf(
-                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Nov–16 Nov · INR", nov1, nov16, null, "INR"),
-                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Nov–16 Nov · USD", nov1, nov16, null, "USD"),
-                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Oct–16 Oct · INR", oct1, oct16, null, "INR"),
-                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Oct–16 Oct · USD", oct1, oct16, null, "USD"),
+                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Nov–16 Nov · INR", nov1, nov16, null, "INR", null),
+                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Nov–16 Nov · USD", nov1, nov16, null, "USD", null),
+                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Oct–16 Oct · INR", oct1, oct16, null, "INR", null),
+                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Oct–16 Oct · USD", oct1, oct16, null, "USD", null),
             ),
             repository.links.value[saved.last().id]
         )
@@ -649,9 +652,9 @@ class ChatTurnTest {
         repository.answerQuickAction(QuickAction.COMPARE_MONTH)
         assertEquals(
             listOf(
-                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Nov–16 Nov · INR", nov1, nov16, null, "INR"),
-                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Nov–16 Nov · USD", nov1, nov16, null, "USD"),
-                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Oct–16 Oct", oct1, oct16, null, "INR"),
+                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Nov–16 Nov · INR", nov1, nov16, null, "INR", null),
+                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Nov–16 Nov · USD", nov1, nov16, null, "USD", null),
+                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Oct–16 Oct", oct1, oct16, null, "INR", null),
             ),
             repository.links.value[saved.last().id]
         )

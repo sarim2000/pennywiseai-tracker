@@ -616,7 +616,7 @@ class LlmRepository @Inject constructor(
                     turnSubject = turnSubject?.copy(share = spend.share)
                     // Only for a name the category list spells: the figure matched the rows in any
                     // case, the list matches exactly, and "uber" would open on nothing.
-                    if (category != null) turnLinks += linksTo(spend.scope.window, category, spend.byCurrency.keys)
+                    if (category != null) turnLinks += linksTo(spend.scope, category, spend.byCurrency.keys)
                 }.let { if (category == null) it else it + refundNote(spend.refunded, spend.scope.window) }
             }
         }
@@ -662,7 +662,7 @@ class LlmRepository @Inject constructor(
             }
             QuickAction.TOP_CATEGORIES -> aiContextRepository.topCategories().let { top ->
                 subject = subject.copy(share = top.share)
-                links = linksTo(top.scope.window, null, top.ranking.keys)
+                links = linksTo(top.scope, null, top.ranking.keys)
                 topCategoriesText(top)
             }
         }
@@ -716,23 +716,25 @@ class LlmRepository @Inject constructor(
         if (refunded.isEmpty()) "" else "\n" + context.getString(R.string.chat_reply_refunds_taken_off, range(window), amounts(refunded))
 
     /** The transactions behind a month's spending and income; forgiven loans have none. */
-    private suspend fun spendingLinks(p: PeriodSpending) = linksTo(p.scope.window, null, p.spent.keys + p.income.keys)
+    private suspend fun spendingLinks(p: PeriodSpending) = linksTo(p.scope, null, p.spent.keys + p.income.keys)
 
     /**
-     * [window]'s transactions in [category]: one link per currency of the answer, the user's own
-     * first, each pinned to it. A link that leaves the currency to the list would open on the
-     * base currency alone, and could lose its category to the list's auto-clear. None when it
-     * had no figure. The label names the category, so two lookups in one reply aren't told
-     * apart by order alone; [dated] names the dates too, for a comparison's two periods.
+     * [scope]'s transactions in [category]: one link per currency of the answer, the user's own
+     * first, each pinned to it, and to the profile the figure counted. A link that leaves the
+     * currency to the list would open on the base currency alone, and could lose its category
+     * to the list's auto-clear. None when it had no figure. The label names the category, so
+     * two lookups in one reply aren't told apart by order alone; [dated] names the dates too,
+     * for a comparison's two periods.
      */
-    private suspend fun linksTo(window: SpendingComparison.Window, category: String?, currencies: Set<String>, dated: Boolean = false): List<ChatLink> {
+    private suspend fun linksTo(scope: ChatScope, category: String?, currencies: Set<String>, dated: Boolean = false): List<ChatLink> {
+        val window = scope.window
         val (start, end) = window.start.toLocalDate() to window.end.toLocalDate()
         val codes = ordered(currencies.associateWith { it }).map { it.first }
         return codes.map { code ->
             val names = listOfNotNull(category, range(window).takeIf { dated }, code.takeIf { codes.size > 1 })
             val label = if (names.isEmpty()) context.getString(R.string.chat_link_transactions)
             else context.getString(R.string.chat_link_transactions_in, names.joinToString(" · "))
-            ChatLink(label, start, end, category, code)
+            ChatLink(label, start, end, category, code, scope.profile?.id)
         }
     }
 
@@ -742,8 +744,8 @@ class LlmRepository @Inject constructor(
      */
     private suspend fun comparisonLinks(result: SpendingComparison.Result, category: String?): List<ChatLink> {
         val rows = (result as? SpendingComparison.Result.Rows)?.takeIf { it.rows.isNotEmpty() } ?: return emptyList()
-        return linksTo(rows.current, category, rows.currentSpentIn, dated = true) +
-            linksTo(rows.previous, category, rows.previousSpentIn, dated = true)
+        return linksTo(ChatScope(rows.current, rows.profile), category, rows.currentSpentIn, dated = true) +
+            linksTo(ChatScope(rows.previous, rows.profile), category, rows.previousSpentIn, dated = true)
     }
 
     /** Home's one converted figure, when it shows one, and what it had to leave out. */

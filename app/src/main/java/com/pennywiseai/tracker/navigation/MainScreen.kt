@@ -89,7 +89,7 @@ private fun rootOf(tab: BottomNavItem): NavKey = when (tab) {
     BottomNavItem.Chat -> Chat
 }
 
-/** The list behind a chat figure: its days, its category, and only its currency. */
+/** The list behind a chat figure: its days, its category, its profile, and only its currency. */
 internal fun transactionsFor(link: ChatLink) = Transactions(
     category = link.category,
     period = TimePeriod.CUSTOM.name,
@@ -97,6 +97,8 @@ internal fun transactionsFor(link: ChatLink) = Transactions(
     startDate = link.start.toEpochDay(),
     endDate = link.end.toEpochDay(),
     currencyOnly = true,
+    profilePinned = true,
+    profileId = link.profileId,
 )
 
 /** Pops this stack back to its first screen, which becomes [root]. */
@@ -356,6 +358,8 @@ fun MainScreen(
                 initialAccount = key.account,
                 initialTag = key.tag,
                 currencyOnly = key.currencyOnly,
+                profilePinned = key.profilePinned,
+                initialProfileId = key.profileId,
                 focusSearch = key.focusSearch,
                 initialTransactionType = key.type,
                 // No back arrow for a plain tab tap; show it for a filtered

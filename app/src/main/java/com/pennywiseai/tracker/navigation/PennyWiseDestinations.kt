@@ -34,6 +34,12 @@ data class Transactions(
     val tag: String? = null,
     /** Only rows written in [currency], even in unified mode: the list behind one currency's figure. */
     val currencyOnly: Boolean = false,
+    /**
+     * Only [profileId]'s rows (null for all profiles), whatever profile is selected: the list
+     * behind a figure worked out in that profile. The selection itself is left as it is.
+     */
+    val profilePinned: Boolean = false,
+    val profileId: Long? = null,
     // Set by an explicit open from Home ("See all", search): a new entry, so the
     // list's ViewModel starts over instead of keeping filters picked in the tab.
     val openId: Long = 0L

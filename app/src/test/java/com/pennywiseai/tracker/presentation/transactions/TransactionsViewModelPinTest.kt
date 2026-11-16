@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
@@ -70,6 +71,9 @@ class TransactionsViewModelPinTest {
     private val filtersSet = MutableStateFlow(false)
     private fun <T> afterFiltersSet(value: () -> T) = filtersSet.filter { it }.map { value() }
 
+    // The profile Home has selected.
+    private val homeProfile = MutableStateFlow<Long?>(null)
+
     @Before
     fun setUp() {
         Dispatchers.setMain(dispatcher)
@@ -99,7 +103,7 @@ class TransactionsViewModelPinTest {
             every { baseCurrency } returns flowOf("USD")
             every { displayCurrency } returns flowOf("USD")
             every { unifiedCurrencyMode } returns flowOf(true)
-            every { selectedProfileId } returns flowOf(null)
+            every { selectedProfileId } returns homeProfile
             every { budgetCycleStartDay } returns flowOf(1)
             coEvery { getBudgetCycleStartDay() } returns 1
             every { smsScanMonths } returns flowOf(3)
@@ -148,6 +152,20 @@ class TransactionsViewModelPinTest {
             viewModel.applyNavigationFilters(name, null, "CUSTOM", "USD", october.first.toEpochDay(), october.second.toEpochDay())
             assertEquals(name, viewModel.categoryFilter.value)
         }
+    }
+
+    @Test
+    fun `a list pinned to a figure's profile keeps it while Home switches`() = runTest(dispatcher) {
+        homeProfile.value = ProfileEntity.BUSINESS_ID
+        assertEquals(ProfileEntity.BUSINESS_ID, viewModel.selectedProfileId.value)
+        // The figure counted every profile: the list does too, Business still selected on Home.
+        viewModel.pinProfile(null)
+        assertEquals(null, viewModel.selectedProfileId.value)
+        homeProfile.value = ProfileEntity.PERSONAL_ID
+        assertEquals(null, viewModel.selectedProfileId.value)
+        // The screen pins again on every return: only the first counts.
+        viewModel.pinProfile(ProfileEntity.BUSINESS_ID)
+        assertEquals(null, viewModel.selectedProfileId.value)
     }
 
     @Test

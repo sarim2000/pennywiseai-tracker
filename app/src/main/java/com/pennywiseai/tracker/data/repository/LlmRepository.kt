@@ -757,14 +757,18 @@ class LlmRepository @Inject constructor(
     private suspend fun datesAsked(args: Map<String, Any?>, userMessage: String): SpendingQuery.Dates {
         var period = args["period"]
         val today = today()
-        if (SpendingQuery.defaultPeriod(period, args["from"], args["to"])) {
-            val words = SpendingQuery.withoutNames(userMessage, args["merchant"], args["account"])
+        val words = SpendingQuery.withoutNames(userMessage, args["merchant"], args["account"])
+        // A month the model spelled out ("October") is the user's too: their words carry its year
+        // ("October last year") or the days around it ("since October"), which the model drops.
+        if (SpendingQuery.defaultPeriod(period, args["from"], args["to"]) ||
+            (SpendingQuery.spelledMonth(period, args["from"], args["to"]) && SpendingQuery.namesMonth(words))
+        ) {
             SpendingQuery.daysNamed(words, today)?.let { return it }
             // "this year" alone is the year; "March this year" is days it can't look up.
             val year = SpendingQuery.yearNamed(words)
             val rest = year?.second ?: words
             // "in October": that month, this year's or last, never this one in its place.
-            SpendingQuery.monthNamed(rest, today, year?.first?.let { if (it == "this_year") today.year else today.year - 1 })?.let { return it }
+            SpendingQuery.monthNamed(rest, today, year?.let { SpendingQuery.yearOf(it.first, today) })?.let { return it }
             val previous = SpendingComparison.namesThePreviousPeriod(rest)
             val named = SpendingComparison.period(rest, null) ?: return SpendingQuery.Dates.Invalid(SpendingQuery.Problem.PERIOD)
             period = when {

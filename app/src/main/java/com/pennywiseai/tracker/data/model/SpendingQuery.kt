@@ -129,10 +129,42 @@ object SpendingQuery {
         RegexOption.IGNORE_CASE
     )
 
+    // Words just before a month that make its days fewer or more than the month: "since
+    // October", "the first week of October", "end of October", "mid-October", "منذ أكتوبر".
+    private val NOT_THE_MONTH_BEFORE = setOf(
+        "since", "from", "after", "before", "until", "till", "til", "untill", "upto", "through", "thru",
+        "week", "weeks", "fortnight", "half", "end", "middle", "mid", "start", "beginning", "early", "late", "first",
+        "منذ", "من", "بعد", "قبل", "حتى", "لغاية", "لحد", "إلى", "الى", "أسبوع", "اسبوع", "نصف", "نص",
+        "آخر", "اخر", "أول", "اول", "منتصف", "بداية", "نهاية", "أواخر", "اواخر", "أوائل", "اوائل", "مطلع",
+    )
+
+    // And just after it: "October onwards", "October till now", "أكتوبر وحتى اليوم".
+    private val NOT_THE_MONTH_AFTER = setOf(
+        "onward", "onwards", "since", "until", "till", "til", "untill", "upto", "through", "thru", "حتى", "لغاية", "لحد",
+    )
+
+    // "to" and "إلى" only reach a day ("October to date"): "paid in October to the landlord" is October.
+    private val TO = setOf("to", "إلى", "الى")
+    private val NOW = setOf("now", "today", "date", "الآن", "الان", "يوم", "هالحين")
+
+    // "last November", "نوفمبر الماضي": in November, last year's.
+    private val LAST_BEFORE = setOf("last", "previous", "past")
+    private val LAST_AFTER = setOf("ماضي", "ماضية", "فائت", "فائتة", "سابق", "منصرم")
+
+    // A word as written and without a leading Arabic و/ف/ب and ال: "والأسبوع" is أسبوع.
+    private fun forms(word: String): Set<String> {
+        val bare = word.removePrefix("و").removePrefix("ف")
+        return setOf(word, bare, bare.removePrefix("ب").removePrefix("ال")).filter { it.isNotEmpty() }.toSet()
+    }
+
+    private fun wordsOf(text: String): List<String> =
+        text.lowercase().replace(Regex("\\bup\\s+to\\b"), "upto").split(Regex("[^\\p{L}\\p{M}\\p{N}]+")).filter { it.isNotEmpty() }
+
     /**
      * The one calendar month [message] names ("in October", "في أكتوبر", "october_2025"), in the
-     * year written after it, else [year], else the latest one begun by [today]. Null when it names
-     * none, two, or a day in it.
+     * year written after it, else [year], else the latest one begun by [today] ("last November",
+     * in November, is last year's). Null when it names none, two, or a day in it; PERIOD when
+     * the words beside it ask for other days ("since October", "end of October").
      */
     fun monthNamed(message: String, today: LocalDate, year: Int? = null): Dates? {
         val found = MONTH_NAME.findAll(message).toList()
@@ -140,10 +172,30 @@ object SpendingQuery {
         if (DAY_IN_MONTH.containsMatchIn(message)) return null
         val written = found.mapNotNull { it.groupValues[2].toIntOrNull() }.toSet()
         if (written.size > 1) return null
-        val y = written.singleOrNull() ?: year ?: if (month.value > today.monthValue) today.year - 1 else today.year
-        val asked = YearMonth.of(y, month)
+        val before = found.map { wordsOf(message.substring(0, it.range.first)).takeLast(2).map(::forms) }
+        val after = found.map { wordsOf(message.substring(it.range.last + 1)).take(2).map(::forms) }
+        val otherDays = before.any { w -> w.any { it.any(NOT_THE_MONTH_BEFORE::contains) } } ||
+            after.any { w ->
+                w.firstOrNull()?.any(NOT_THE_MONTH_AFTER::contains) == true ||
+                    (w.firstOrNull()?.any(TO::contains) == true && w.getOrNull(1)?.any(NOW::contains) == true)
+            }
+        if (otherDays) return Dates.Invalid(Problem.PERIOD, message.trim())
+        val last = before.any { w -> w.lastOrNull()?.any(LAST_BEFORE::contains) == true } ||
+            after.any { w -> w.firstOrNull()?.any(LAST_AFTER::contains) == true || (w.firstOrNull()?.contains("اللي") == true && w.getOrNull(1)?.contains("فات") == true) }
+        val latest = if (month.value > today.monthValue || (last && month == today.month)) today.year - 1 else today.year
+        val asked = YearMonth.of(written.singleOrNull() ?: year ?: latest, month)
         return window(asked.atDay(1), asked.atEndOfMonth(), today, message.trim())
     }
+
+    /** Whether [text] names a month by name, as [monthNamed] reads one. */
+    fun namesMonth(text: String): Boolean = MONTH_NAME.containsMatchIn(text)
+
+    /** The model spelled a month out as the period ("October", "october_last_year"), no dates. */
+    fun spelledMonth(period: Any?, from: Any?, to: Any?): Boolean =
+        text(from) == null && text(to) == null && text(period)?.let { namesMonth(it) } == true
+
+    /** The year [yearNamed] names, "this_year" or "last_year", by [today]. */
+    fun yearOf(named: String, today: LocalDate): Int = if (named == "this_year") today.year else today.year - 1
 
     /**
      * [message] without the [merchant] and [account] the call names, the account's digits too:
@@ -208,7 +260,11 @@ object SpendingQuery {
             YEAR_MONTH.matches(raw) -> runCatching { YearMonth.parse(raw) }.getOrNull()
                 ?.let { window(it.atDay(1), it.atEndOfMonth(), today, raw) } ?: Dates.Invalid(Problem.PERIOD, raw)
             YEAR.matches(raw) -> Year.parse(raw).let { window(it.atDay(1), it.atMonth(12).atEndOfMonth(), today, raw) }
-            else -> monthNamed(raw, today) ?: Dates.Invalid(Problem.PERIOD, raw)
+            // "October", "october_2025", "october_last_year": a month by name, in the year it says.
+            else -> raw.replace(Regex("[_-]+"), " ").let { spelled ->
+                val year = yearNamed(spelled)
+                monthNamed(year?.second ?: spelled, today, year?.let { yearOf(it.first, today) })
+            } ?: Dates.Invalid(Problem.PERIOD, raw)
         }
     }
 

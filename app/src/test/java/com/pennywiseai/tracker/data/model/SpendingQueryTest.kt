@@ -141,6 +141,45 @@ class SpendingQueryTest {
         // The model's period, spelled out.
         assertEquals(window(day(10, 1), day(10, 31)), dates("October"))
         assertEquals(window(day(10, 1, 2025), day(10, 31, 2025)), dates("october_2025"))
+        // A year it says in words is that year's month, not the latest one begun.
+        assertEquals(window(day(10, 1, 2025), day(10, 31, 2025)), dates("october_last_year"))
+        assertEquals(window(day(10, 1, 2025), day(10, 31, 2025)), dates("October last year"))
+    }
+
+    @Test
+    fun `last November, in November, is last year's`() {
+        val today = now.toLocalDate()
+        fun month(message: String) = SpendingQuery.monthNamed(message, today)
+        assertEquals(window(day(11, 1, 2025), day(11, 30, 2025)), month("how much did I spend last November?"))
+        assertEquals(window(day(11, 1, 2025), day(11, 30, 2025)), month("كم صرفت في نوفمبر الماضي؟"))
+        assertEquals(window(day(11, 1, 2025), day(11, 30, 2025)), month("كم صرفت نوفمبر اللي فات"))
+        // Last October is the one just gone.
+        assertEquals(window(day(10, 1), day(10, 31)), month("how much did I spend last October?"))
+    }
+
+    @Test
+    fun `a month with other days around it is days it can't look up`() {
+        val today = now.toLocalDate()
+        fun month(message: String) = SpendingQuery.monthNamed(message, today)
+        listOf(
+            "How much have I spent since October?",
+            "how much did I spend in the first week of October?",
+            "spending till October",
+            "spending up to October",
+            "October till today",
+            "October to date",
+            "October onwards",
+            "how much at the end of October?",
+            "mid-October spending",
+            "كم صرفت منذ أكتوبر؟",
+            "كم صرفت في الأسبوع الأول من أكتوبر؟",
+            "كم صرفت في نهاية أكتوبر؟",
+            "من أكتوبر وحتى اليوم",
+        ).forEach { assertEquals(it, Dates.Invalid(Problem.PERIOD, it), month(it)) }
+        // A word that only sits beside it is no other days.
+        assertEquals(window(day(10, 1), day(10, 31)), month("how much did I pay in October to the landlord?"))
+        assertEquals(window(day(10, 1), day(10, 31)), month("how much did I top up in October?"))
+        assertEquals(window(day(10, 1), day(10, 31)), month("كم صرفت من راتبي في أكتوبر؟"))
     }
 
     @Test

@@ -1340,6 +1340,14 @@ class ChatTurnTest {
         assertEquals(asked("2026-10"), filter.captured.window)
         ask(emptyMap(), "كم صرفت في أكتوبر؟")
         assertEquals(asked("2026-10"), filter.captured.window)
+        // The model's "October" keeps the year and the days the user's words give it.
+        ask(mapOf("period" to "October"), "How much did I spend in October last year?")
+        assertEquals(asked("2025-10"), filter.captured.window)
+        ask(mapOf("period" to "November"), "how much did I spend last November?")
+        assertEquals(asked("2025-11"), filter.captured.window)
+        assertEquals("PERIOD", ask(mapOf("period" to "October"), "How much have I spent since October?"))
+        assertEquals("PERIOD", ask(emptyMap(), "how much did I spend in the first week of October?"))
+        assertEquals("PERIOD", ask(emptyMap(), "كم صرفت منذ أكتوبر؟"))
     }
 
     @Test

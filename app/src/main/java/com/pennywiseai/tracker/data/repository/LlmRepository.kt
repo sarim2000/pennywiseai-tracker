@@ -256,7 +256,10 @@ class LlmRepository @Inject constructor(
         // time, since a second proposal would replace the first unseen.
         // A comparison or a total is the code's figures alone: prose beside it could carry the
         // model's own arithmetic, or a figure from an earlier turn.
-        if (toolCalls.any { it.isComparison(userMessage) || it.name in MONTH_LOOKUPS }) {
+        val figures: (LlmEvent.ToolCall) -> Boolean = { it.isComparison(userMessage) || it.name in MONTH_LOOKUPS }
+        // Answered by figures alone: the reply stays out of the model's window (see [QUICK_ID]).
+        val figuresOnly = toolCalls.isNotEmpty() && toolCalls.all(figures)
+        if (toolCalls.any(figures)) {
             // The live conversation still holds that prose; the next turn rebuilds from what was saved.
             if (responseBuilder.isNotEmpty()) conversationBroken = true
             responseBuilder.clear()
@@ -309,6 +312,7 @@ class LlmRepository @Inject constructor(
         val finalResponse = responseBuilder.toString()
         Log.d(TAG, "Saving AI response (${finalResponse.length} chars)")
         val aiMessage = ChatMessage(
+            id = if (figuresOnly) QUICK_ID + UUID.randomUUID() else UUID.randomUUID().toString(),
             message = finalResponse,
             isUser = false
         )
@@ -382,7 +386,7 @@ class LlmRepository @Inject constructor(
 
         // Always fresh: the row saved when the chat began carries that day's date and lists.
         val systemPrompt = buildSystemPrompt()
-        val saved = chatDao.getAllMessagesForContext().filter { !it.isSystemPrompt && !it.id.startsWith(QUICK_ID) }
+        val saved = withoutFigureAnswers(chatDao.getAllMessagesForContext().filter { !it.isSystemPrompt })
         // A trailing message that got no reply isn't replayed: it's usually the one being sent,
         // saved while the warm-up loaded the model, and replaying it would mean building twice.
         var history = saved.filter { it.id != pending?.id && it.id !in droppedIds }.dropLastWhile { it.isUser }
@@ -817,12 +821,20 @@ class LlmRepository @Inject constructor(
         """.trimIndent()
 
         /**
-         * Marks a quick-action question and reply. They stay out of the model's window: replayed,
-         * they made Qwen2.5 copy their figures as the answer to the next question ("what about last
-         * week?" got this month's) on S23. A follow-up is answered from its own words instead:
-         * "last month" already routes to the comparison.
+         * Marks a quick-action question and reply, and a typed question's reply made of figures
+         * alone. They stay out of the model's window: replayed, they made Qwen2.5 copy their
+         * figures as the answer to the next question ("what about last week?" got this month's)
+         * on S23, and repeat a total from before a change instead of asking the tool again. A
+         * follow-up is answered from its own words instead: "last month" already routes to the
+         * comparison.
          */
         internal const val QUICK_ID = "quick-"
+
+        /** [saved] without the messages [QUICK_ID] marks, nor a typed question whose reply it marks. */
+        internal fun withoutFigureAnswers(saved: List<ChatMessage>): List<ChatMessage> = saved.filterIndexed { i, m ->
+            val next = saved.getOrNull(i + 1)
+            !m.id.startsWith(QUICK_ID) && !(m.isUser && next != null && !next.isUser && next.id.startsWith(QUICK_ID))
+        }
 
         /** The newer half of [history], from a user turn so the model never starts mid-exchange. */
         internal fun dropOlderHalf(history: List<ChatMessage>): List<ChatMessage> =

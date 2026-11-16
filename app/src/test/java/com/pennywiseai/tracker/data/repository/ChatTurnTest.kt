@@ -514,6 +514,25 @@ class ChatTurnTest {
     }
 
     @Test
+    fun `a typed total stays out of the rebuilt window, as a one-tap one does`() = runTest {
+        savedChat(1)
+        coEvery { aiContext.categorySpending(any(), any()) } returns spent("120")
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "طعام")))
+        send("how much on food?")
+        assertEquals(listOf("u0", "a0", "how much on food?", "SPEND"), saved.filter { !it.isSystemPrompt }.map { it.message })
+
+        // The screen closed and freed the model; the next message rebuilds the window from the save.
+        every { llmService.hasActiveConversation() } returns false
+        val histories = mutableListOf<List<Pair<String, Boolean>>>()
+        coEvery { llmService.createConversation(any(), capture(histories), any()) } returns Result.success(Unit)
+        coEvery { llmService.tokenCount() } returns 1500
+        events = listOf(LlmEvent.Text("hi"))
+        send("and now?")
+        // Replayed, that total was what the model said again after a change, instead of asking the tool.
+        assertEquals(listOf("u0" to true, "a0" to false), histories.single())
+    }
+
+    @Test
     fun `a chat that outgrew the window drops its oldest turns from it, not the chat`() = runTest {
         savedChat(4)
         every { llmService.hasActiveConversation() } returns false

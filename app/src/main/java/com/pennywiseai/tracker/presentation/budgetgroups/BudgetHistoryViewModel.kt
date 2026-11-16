@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.database.entity.BudgetEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.data.repository.BudgetWindow
@@ -13,7 +14,6 @@ import com.pennywiseai.tracker.data.repository.WindowBreakdown
 import com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.resolveBudgetWindow
 import com.pennywiseai.tracker.data.repository.windowsForMonth
-import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -114,6 +114,12 @@ class BudgetHistoryViewModel @Inject constructor(
             val displayedIsLive = isCurrentMonth &&
                 !today.isBefore(displayedWindow.start) && !today.isAfter(displayedWindow.end)
 
+            val baseAmount = if (budget.periodType == com.pennywiseai.tracker.data.database.entity.BudgetPeriodType.WEEKLY) {
+                budget.limitAmount.multiply(BigDecimal(history.size))
+            } else budget.limitAmount
+            // Rollover: each window's carry is in this same currency.
+            val carried = history.fold(BigDecimal.ZERO) { acc, w -> acc + (w.carry?.amount?.amount ?: BigDecimal.ZERO) }
+
             _uiState.value = BudgetHistoryUiState(
                 isLoading = false,
                 budget = budget,
@@ -126,9 +132,7 @@ class BudgetHistoryViewModel @Inject constructor(
                 totalSpent = totalSpent,
                 currency = displayCurrency,
                 baseCurrency = baseCurrency,
-                budgetAmount = if (budget.periodType == com.pennywiseai.tracker.data.database.entity.BudgetPeriodType.WEEKLY) {
-                    budget.limitAmount.multiply(BigDecimal(history.size))
-                } else budget.limitAmount
+                budgetAmount = baseAmount + carried
             )
         }
     }

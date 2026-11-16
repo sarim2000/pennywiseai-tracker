@@ -12,20 +12,20 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
-import com.pennywiseai.tracker.data.database.entity.BudgetWithCategories
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
+import com.pennywiseai.tracker.data.database.entity.BudgetWithCategories
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.BudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
-import com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
+import com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending
 import com.pennywiseai.tracker.domain.model.BudgetCycle
-import java.math.BigDecimal
-import java.math.RoundingMode
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.util.concurrent.TimeUnit
 
 @HiltWorker
@@ -146,7 +146,7 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                         }
                         val convertedBudget = currencyConversionService.convertAmount(cat.budgetAmount, baseCurrency, displayCurrency)
                         val boost = if (cat.matchType != null) BigDecimal.ZERO
-                            else categoryLimitBoosts[cat.categoryName] ?: BigDecimal.ZERO
+                        else categoryLimitBoosts[cat.categoryName] ?: BigDecimal.ZERO
                         BudgetCategorySpending(cat.categoryName, convertedBudget + boost, actual, 0f, BigDecimal.ZERO)
                     }
                     val convertedGroupLimit = currencyConversionService.convertAmount(
@@ -156,11 +156,17 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                     // is the source of truth when set (including when
                     // isTrackingAll), with the per-cat sum as a fallback for
                     // budgets that only define per-cat amounts.
-                    val totalBudget = if (convertedGroupLimit > BigDecimal.ZERO) {
-                        convertedGroupLimit
-                    } else {
-                        catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
+                    // Rollover: the same carry the Budgets screen and Home add.
+                    val carry = raw.carryFor(group, displayCurrency, baseCurrency) { fromCurrency, amount ->
+                        currencyConversionService.convertAmountOrNull(amount, fromCurrency, displayCurrency)
                     }
+                    val totalBudget = carry.appliedTo(
+                        if (convertedGroupLimit > BigDecimal.ZERO) {
+                            convertedGroupLimit
+                        } else {
+                            catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
+                        }
+                    )
                     val totalActual = if (isTrackingAll) {
                         categoryAmounts.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
                     } else {

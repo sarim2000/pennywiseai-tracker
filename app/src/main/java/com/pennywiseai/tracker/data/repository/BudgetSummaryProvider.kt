@@ -122,7 +122,10 @@ class BudgetSummaryProvider @Inject constructor(
                 windowedSpend = windowSpendByBudget[group.budget.id].orEmpty(),
                 currentWindow = perBudgetWindow,
                 displayCurrency = displayCurrency,
-                baseCurrency = baseCurrency
+                baseCurrency = baseCurrency,
+                carry = raw.carryFor(group, displayCurrency, baseCurrency) { fromCurrency, amount ->
+                    currencyConversionService.convertAmountOrNull(amount, fromCurrency, displayCurrency)
+                }
             )
         }
 
@@ -320,7 +323,8 @@ class BudgetSummaryProvider @Inject constructor(
         // instead of the budget's own monthStartDay anchor.
         currentWindow: com.pennywiseai.tracker.data.repository.BudgetWindow,
         displayCurrency: String,
-        baseCurrency: String
+        baseCurrency: String,
+        carry: BudgetCarry = BudgetCarry.none(displayCurrency)
     ): BudgetGroupSpending {
         val budget = group.budget
         val displayedWindow = currentWindow
@@ -408,13 +412,15 @@ class BudgetSummaryProvider @Inject constructor(
             }.filter { it.actualAmount > BigDecimal.ZERO }.sortedByDescending { it.actualAmount }
         }
 
-        val convertedTotalBudget = if (group.budget.limitAmount > BigDecimal.ZERO) {
-            currencyConversionService.convertAmountOrNull(
-                group.budget.limitAmount, baseCurrency, displayCurrency
-            ) ?: BigDecimal.ZERO
-        } else {
-            categorySpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
-        }
+        val convertedTotalBudget = carry.appliedTo(
+            if (group.budget.limitAmount > BigDecimal.ZERO) {
+                currencyConversionService.convertAmountOrNull(
+                    group.budget.limitAmount, baseCurrency, displayCurrency
+                ) ?: BigDecimal.ZERO
+            } else {
+                categorySpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
+            }
+        )
 
         val remaining = convertedTotalBudget - convertedTotalActual
         val pctUsed = if (convertedTotalBudget > BigDecimal.ZERO) {
@@ -530,7 +536,9 @@ class BudgetSummaryProvider @Inject constructor(
             displayedIsLive = isCurrentMonth,
             periodType = budget.periodType,
             previousWindows = previous,
-            hasUnconvertedSpend = hasUnconvertedSpend
+            hasUnconvertedSpend = hasUnconvertedSpend,
+            carry = carry.amount.amount,
+            carryIncomplete = carry.incomplete
         )
     }
 }

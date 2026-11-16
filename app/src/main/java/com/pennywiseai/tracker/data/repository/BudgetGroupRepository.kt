@@ -18,6 +18,7 @@ import com.pennywiseai.tracker.data.database.entity.parentNameOf
 import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.preferences.BudgetPreferences
 import com.pennywiseai.tracker.domain.model.BudgetCycle
+import com.pennywiseai.tracker.domain.spending.BudgetRollover
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -452,6 +453,7 @@ class BudgetGroupRepository @Inject constructor(
                 currency
             ).map { allTxs0 ->
                 val allTxs = allTxs0.forTotals()
+                val parentOf = parentOf()
                 val groupSpendings = perBudgetWindows.map { (group, windows) ->
                     val budget = group.budget
                     if (windows.isEmpty()) {
@@ -516,7 +518,11 @@ class BudgetGroupRepository @Inject constructor(
                             monthEnd = monthEnd,
                             currency = currency,
                             displayedCapDate = if (isCurrentWeekInCurrentMonth(displayWindow, today, isCurrentMonth)) today else monthEnd,
-                            displayedIsLive = isCurrentWeekInCurrentMonth(displayWindow, today, isCurrentMonth)
+                            displayedIsLive = isCurrentWeekInCurrentMonth(displayWindow, today, isCurrentMonth),
+                            carry = budgetCarry(
+                                group, carrySource(budget, displayWindow, startDay), currency, currency, parentOf,
+                                sameCurrencyOnly(currency)
+                            )
                         )
                     }
                 }
@@ -693,7 +699,11 @@ class BudgetGroupRepository @Inject constructor(
                     isCurrentMonth = isCurrentMonth,
                     prevCycleTransactions = prevCycleTransactions,
                     allTransactions = allTransactions.distinctBy { it.transaction.id },
-                    currentWindows = currentWindows
+                    currentWindows = currentWindows,
+                    carrySources = groups.mapNotNull { g ->
+                        currentWindows[g.budget.id]?.let { carrySource(g.budget, it, startDay) }?.let { g.budget.id to it }
+                    }.toMap(),
+                    parentOf = parentOf()
                 )
             }
         }
@@ -785,6 +795,26 @@ class BudgetGroupRepository @Inject constructor(
         !today.isAfter(window.end)
 
     /**
+     * Rollover: every transaction, in every currency, of the full period [budget]
+     * carries into [window] from. Null when it carries nothing.
+     */
+    private suspend fun carrySource(budget: BudgetEntity, window: BudgetWindow, startDay: Int): List<TransactionWithSplits>? {
+        if (window.days < 1) return null
+        val source = BudgetRollover.sourceWindow(budget, window, startDay) ?: return null
+        return transactionSplitDao.getTransactionsWithSplitsAllCurrencies(
+            source.start.atStartOfDay(),
+            source.end.atTime(23, 59, 59)
+        ).first()
+    }
+
+    /**
+     * Counts only [currency], as the single-currency figures do; anything else has no
+     * rate here, so a carry over it is left out as incomplete.
+     */
+    private fun sameCurrencyOnly(currency: String): suspend (String, BigDecimal) -> BigDecimal? =
+        { fromCurrency, amount -> amount.takeIf { fromCurrency.equals(currency, ignoreCase = true) } }
+
+    /**
      * Per-window history for a single budget at the selected (year, month).
      * Powers the Budget History screen — one entry per window, with
      * the cap date so the screen can label each row as "Live" or
@@ -809,6 +839,7 @@ class BudgetGroupRepository @Inject constructor(
         // Resolve the group once so the per-window spend query doesn't
         // re-hit the dao for every window.
         val group = getGroupOrFallback(budget)
+        val parentOf = parentOf()
         return windows.map { w ->
             val isLive = isCurrentWeekInCurrentMonth(w, today, isCurrentMonth)
             val cap = if (isLive) today else monthEnd
@@ -829,7 +860,10 @@ class BudgetGroupRepository @Inject constructor(
                 window = w,
                 spent = spent,
                 capDate = cap,
-                isLive = isLive
+                isLive = isLive,
+                carry = carrySource(budget, w, startDay)?.let {
+                    budgetCarry(group, it, currency, currency, parentOf, sameCurrencyOnly(currency))
+                }
             )
         }
     }
@@ -893,9 +927,14 @@ class BudgetGroupRepository @Inject constructor(
             // card's behaviour for isTrackingAllExpenses = true.
             emptyList()
         }
+        val carry = carrySource(budget, window, userPreferencesRepository.getBudgetCycleStartDay())?.let {
+            budgetCarry(group ?: BudgetWithCategories(budget, emptyList()), it, currency, currency, parentOf(), sameCurrencyOnly(currency))
+        } ?: BudgetCarry.none(currency)
         val totalBudget = (group?.budget?.limitAmount ?: BigDecimal.ZERO).let { gLimit ->
-            if (gLimit > BigDecimal.ZERO) gLimit
-            else categorySpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
+            carry.appliedTo(
+                if (gLimit > BigDecimal.ZERO) gLimit
+                else categorySpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
+            )
         }
         val totalActual = if (categorySpending.isNotEmpty()) {
             categorySpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
@@ -929,7 +968,8 @@ class BudgetGroupRepository @Inject constructor(
         monthEnd: LocalDate = displayWindow.end,
         currency: String,
         displayedCapDate: LocalDate = displayWindow.end,
-        displayedIsLive: Boolean = false
+        displayedIsLive: Boolean = false,
+        carry: BudgetCarry = BudgetCarry.none(currency)
     ): BudgetGroupSpending {
         val budget = group.budget
         val displayTxs = transactionsByWindow[displayWindow].orEmpty()
@@ -1017,7 +1057,7 @@ class BudgetGroupRepository @Inject constructor(
 
         val isTrackingAll = group.categories.isEmpty()
         val groupSpending = if (isTrackingAll) {
-            val totalBudget = group.budget.limitAmount
+            val totalBudget = carry.appliedTo(group.budget.limitAmount)
             val totalActual = totalAllExpenses
             val remaining = totalBudget - totalActual
             val pctUsed = if (totalBudget > BigDecimal.ZERO) {
@@ -1046,7 +1086,9 @@ class BudgetGroupRepository @Inject constructor(
                 periodType = budget.periodType,
                 previousWindows = previousWindows,
                 displayedCapDate = displayedCapDate,
-                displayedIsLive = displayedIsLive
+                displayedIsLive = displayedIsLive,
+                carry = carry.amount.amount,
+                carryIncomplete = carry.incomplete
             )
         } else {
             val catSpending = group.categories.map { cat ->
@@ -1072,11 +1114,13 @@ class BudgetGroupRepository @Inject constructor(
                     dailySpend = dailySpend
                 )
             }
-            val totalBudget = if (group.budget.limitAmount > BigDecimal.ZERO) {
-                group.budget.limitAmount
-            } else {
-                catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
-            }
+            val totalBudget = carry.appliedTo(
+                if (group.budget.limitAmount > BigDecimal.ZERO) {
+                    group.budget.limitAmount
+                } else {
+                    catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
+                }
+            )
             val covered = group.categories.withoutCoveredChildren(parentOf()).map { it.categoryName }.toSet()
             val totalActual = catSpending.filter { it.categoryName in covered }.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
             val remaining = totalBudget - totalActual
@@ -1108,7 +1152,9 @@ class BudgetGroupRepository @Inject constructor(
                 periodType = budget.periodType,
                 previousWindows = previousWindows,
                 displayedCapDate = displayedCapDate,
-                displayedIsLive = displayedIsLive
+                displayedIsLive = displayedIsLive,
+                carry = carry.amount.amount,
+                carryIncomplete = carry.incomplete
             )
         }
         return groupSpending

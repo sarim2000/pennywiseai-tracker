@@ -116,11 +116,16 @@ internal suspend fun homeBudgetSummary(
         // source of truth when set (including when isTrackingAll), with
         // the per-cat sum as a fallback for budgets that only define
         // per-cat amounts.
-        val totalBudget = if (convertedGroupLimit > BigDecimal.ZERO) {
-            convertedGroupLimit
-        } else {
-            catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
+        val carry = raw.carryFor(group, displayCurrency, baseCurrency) { fromCurrency, amount ->
+            convert(amount, fromCurrency, displayCurrency)
         }
+        val totalBudget = carry.appliedTo(
+            if (convertedGroupLimit > BigDecimal.ZERO) {
+                convertedGroupLimit
+            } else {
+                catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
+            }
+        )
         val totalActual = if (isTrackingAll) {
             categoryAmounts.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
         } else {
@@ -149,7 +154,9 @@ internal suspend fun homeBudgetSummary(
             windowStart = window?.start ?: LocalDate.now(),
             windowEnd = window?.end ?: LocalDate.now(),
             windowDays = window?.days ?: 0,
-            periodType = group.budget.periodType
+            periodType = group.budget.periodType,
+            carry = carry.amount.amount,
+            carryIncomplete = carry.incomplete
         )
     }
 

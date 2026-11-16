@@ -50,7 +50,9 @@ data class PastWindowSpending(
     val window: BudgetWindow,
     val spent: BigDecimal,
     val capDate: LocalDate = window.end,
-    val isLive: Boolean = false
+    val isLive: Boolean = false,
+    /** Carried into this window from the one before, when rollover is on (Budget History only). */
+    val carry: BudgetCarry? = null
 )
 
 /**
@@ -118,7 +120,14 @@ data class BudgetGroupSpending(
      * mode, #670) or isn't in the base currency (otherwise; only set when
      * [BudgetSummaryProvider.summary] is asked to flag it).
      */
-    val hasUnconvertedSpend: Boolean = false
+    val hasUnconvertedSpend: Boolean = false,
+    /**
+     * Rollover: what last period left (or overspent) that [totalBudget] already
+     * includes, so the budget's own limit is `totalBudget − carry`. Zero when
+     * rollover is off. [carryIncomplete]: it couldn't all be counted, so nothing carried.
+     */
+    val carry: BigDecimal = BigDecimal.ZERO,
+    val carryIncomplete: Boolean = false
 )
 
 data class BudgetOverallSummary(
@@ -191,5 +200,21 @@ data class BudgetGroupSpendingRaw(
      * a Weekly budget straddling a month boundary, where the same
      * window shows in both June and July views.
      */
-    val currentWindows: Map<Long, BudgetWindow> = emptyMap()
-)
+    val currentWindows: Map<Long, BudgetWindow> = emptyMap(),
+    /**
+     * Rollover: for each budget that carries into its current window, the
+     * transactions (every currency) of the period it carries from. Pass to
+     * [budgetCarry] with [parentOf].
+     */
+    val carrySources: Map<Long, List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>> = emptyMap(),
+    /** Sub-category → parent name, for [budgetCarry]. */
+    val parentOf: Map<String, String> = emptyMap()
+) {
+    /** What [group] carries into its current window, in [currency]; see [budgetCarry]. */
+    suspend fun carryFor(
+        group: BudgetWithCategories,
+        currency: String,
+        baseCurrency: String,
+        convert: suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?
+    ): BudgetCarry = budgetCarry(group, carrySources[group.budget.id], currency, baseCurrency, parentOf, convert)
+}

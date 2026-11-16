@@ -60,8 +60,8 @@ import androidx.compose.ui.unit.sp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.share.SHARE_CARD_URL
 import com.pennywiseai.tracker.domain.achievements.AchievementId
-import com.pennywiseai.tracker.presentation.achievements.AchievementBadge
-import com.pennywiseai.tracker.presentation.achievements.badgeArt
+import com.pennywiseai.tracker.ui.components.AchievementBadge
+import com.pennywiseai.tracker.ui.components.badgeArt
 import com.pennywiseai.tracker.ui.theme.GoogleSansFlexFamily
 import com.pennywiseai.tracker.ui.theme.GoogleSansFlexHeadingFamily
 import kotlin.math.abs

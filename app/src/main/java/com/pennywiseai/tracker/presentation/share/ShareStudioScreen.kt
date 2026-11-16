@@ -61,12 +61,12 @@ import com.pennywiseai.tracker.domain.achievements.Achievement
 import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.domain.review.isCalendarMonth
 import com.pennywiseai.tracker.domain.review.latestReviewOffset
-import com.pennywiseai.tracker.presentation.achievements.AchievementBadge
-import com.pennywiseai.tracker.presentation.achievements.achievementName
+import com.pennywiseai.tracker.ui.components.AchievementBadge
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.components.PeriodSwitcher
 import com.pennywiseai.tracker.ui.components.PreferenceSwitch
+import com.pennywiseai.tracker.ui.components.achievementName
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2

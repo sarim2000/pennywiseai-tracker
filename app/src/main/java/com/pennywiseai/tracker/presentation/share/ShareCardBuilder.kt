@@ -24,11 +24,11 @@ import com.pennywiseai.tracker.domain.share.savingsRatePercent
 import com.pennywiseai.tracker.domain.share.savingsTrend
 import com.pennywiseai.tracker.domain.share.spendingDrivers
 import com.pennywiseai.tracker.domain.share.topCategoryShares
+import com.pennywiseai.tracker.ui.components.achievementDescription
+import com.pennywiseai.tracker.ui.components.achievementName
 import com.pennywiseai.tracker.ui.components.comparisonTarget
 import com.pennywiseai.tracker.ui.components.shareLabel
-import com.pennywiseai.tracker.presentation.achievements.achievementDescription
-import com.pennywiseai.tracker.presentation.achievements.achievementName
-import com.pennywiseai.tracker.presentation.achievements.tierLabel
+import com.pennywiseai.tracker.ui.components.tierLabel
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter

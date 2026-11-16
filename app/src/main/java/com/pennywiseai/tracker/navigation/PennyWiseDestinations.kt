@@ -204,6 +204,10 @@ data class ShareStudio(
     val achievement: String? = null,
 ) : NavKey
 
+/** The links this phone has shared from the studio, to copy, open or delete. */
+@Serializable
+data object SharedLinks : NavKey
+
 // Screens inside MainScreen's tab stacks (Settings, SettingsPage, Categories, Faq
 // and ImportStatement live only there; UnrecognizedSms also opens on the root stack).
 @Serializable

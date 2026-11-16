@@ -10,7 +10,7 @@
     <string name="share_studio_section_currency">Currency</string>
     <string name="share_studio_section_details">On the card</string>
     <string name="share_studio_section_style">Style</string>
-    <string name="share_studio_footnote">The image is made on your phone. Only what the preview shows is shared, and only with the app you pick.</string>
+    <string name="share_studio_footnote">Share image makes the picture on your phone and sends it only to the app you pick. Share as link uploads a copy first, and shows you what it uploads.</string>
     <string name="share_studio_preview_description">Preview of the card to share</string>
     <string name="share_studio_hidden">Amounts are hidden. The card shows what you choose below.</string>
     <string name="share_studio_hidden_reveal">Show preview</string>
@@ -138,4 +138,46 @@
     </plurals>
     <!-- %1$s = the app's website -->
     <string name="share_text_achievements">My achievements, from PennyWise. It tracks spending from bank SMS on the phone itself. https://%1$s</string>
+
+    <!-- Share as link -->
+    <string name="share_studio_share_link">Share as link</string>
+    <string name="share_link_sheet_title">Share as a link</string>
+    <!-- %1$s = the web site the copy goes to -->
+    <string name="share_link_sheet_body">This uploads a copy of the card to %1$s. Anyone with the link can see it until it expires or you delete it in Shared links.</string>
+    <string name="share_link_preview_description">Preview of the image people see with the link</string>
+    <string name="share_link_expiry">Link expires after</string>
+    <plurals name="share_link_expiry_days">
+        <item quantity="one">%1$d day</item>
+        <item quantity="other">%1$d days</item>
+    </plurals>
+    <string name="share_link_expiry_never">Never</string>
+    <string name="share_link_create">Upload and share</string>
+    <!-- %1$s = the web site -->
+    <string name="share_link_error_network">Couldn\'t reach %1$s. Check your connection and try again.</string>
+    <string name="share_link_error_rate_limited">You\'ve made a lot of links recently. Try again later.</string>
+    <string name="share_link_error_too_large">This card\'s image is too large to upload.</string>
+    <!-- %1$s = the server's reason, in English -->
+    <string name="share_link_error_rejected">The server didn\'t accept this card: %1$s</string>
+    <!-- %1$d = HTTP status code -->
+    <string name="share_link_error_server">The server had a problem (%1$d). Try again later.</string>
+
+    <!-- Shared links screen -->
+    <string name="shared_links_title">Shared links</string>
+    <string name="shared_links_empty_title">No shared links</string>
+    <string name="shared_links_empty_body">Links you make with Share as link show up here, so you can copy or delete them.</string>
+    <!-- %1$s = a date -->
+    <string name="shared_links_expires">Expires %1$s</string>
+    <string name="shared_links_never_expires">Never expires</string>
+    <!-- %1$s = card type, %2$s = when it expires -->
+    <string name="shared_links_row_subtitle">%1$s · %2$s</string>
+    <string name="shared_links_copy">Copy link</string>
+    <string name="shared_links_copied">Link copied</string>
+    <string name="shared_links_delete">Delete link</string>
+    <string name="shared_links_delete_title">Delete this link?</string>
+    <string name="shared_links_delete_body">The page stops working for everyone. Anyone who already saved the image keeps their copy.</string>
+    <string name="shared_links_delete_confirm">Delete</string>
+    <string name="shared_links_delete_cancel">Cancel</string>
+    <string name="shared_links_deleted">Link deleted</string>
+    <string name="shared_links_delete_forbidden">This link can\'t be deleted from this phone.</string>
+    <string name="shared_links_footnote">This list is kept only on this phone and isn\'t in backups. If you clear the app\'s data, these links stay up until they expire.</string>
 </resources>

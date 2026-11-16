@@ -461,6 +461,13 @@ fun PennyWiseNavHost(
 
                     entry<ShareStudio> { key ->
                         com.pennywiseai.tracker.presentation.share.ShareStudioScreen(
+                            onNavigateBack = { backStack.pop(key) },
+                            onOpenSharedLinks = { backStack.navigate(SharedLinks) }
+                        )
+                    }
+
+                    entry<SharedLinks> { key ->
+                        com.pennywiseai.tracker.presentation.share.SharedLinksScreen(
                             onNavigateBack = { backStack.pop(key) }
                         )
                     }

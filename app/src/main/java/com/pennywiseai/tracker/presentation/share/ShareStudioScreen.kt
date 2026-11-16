@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.presentation.share
 
 import android.content.Context
+import android.content.Intent
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.navigationBarsPadding
@@ -18,6 +20,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -28,10 +31,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
@@ -45,12 +50,14 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.asAndroidBitmap
 import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.rememberGraphicsLayer
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -91,17 +98,30 @@ import kotlin.math.min
 @Composable
 fun ShareStudioScreen(
     onNavigateBack: () -> Unit,
+    onOpenSharedLinks: () -> Unit,
     viewModel: ShareStudioViewModel = hiltViewModel(),
+    linksViewModel: ShareLinksViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val scope = rememberCoroutineScope()
     val selection by viewModel.selection.collectAsStateWithLifecycle()
     val data by viewModel.data.collectAsStateWithLifecycle()
+    val publish by linksViewModel.publish.collectAsStateWithLifecycle()
     val card = shareCardState(selection, data)
     val graphicsLayer = rememberGraphicsLayer()
     // With amounts hidden app-wide, previews stay covered until the user asks to see them.
     // Hiding amounts again covers them again.
     var revealed by rememberSaveable(AmountPrivacy.hidden) { mutableStateOf(false) }
+    var linkSheetOpen by rememberSaveable { mutableStateOf(false) }
+
+    // Once uploaded, the link goes to the share sheet. Handled here rather than in the
+    // sheet, so a link that finishes after the sheet was swiped away is still shared.
+    LaunchedEffect(publish) {
+        val published = publish as? PublishState.Published ?: return@LaunchedEffect
+        linkSheetOpen = false
+        context.startActivity(linkShareIntent(published.link.url))
+        linksViewModel.publishHandled()
+    }
 
     PennyWiseScaffold(
         title = stringResource(R.string.share_studio_title),
@@ -110,29 +130,62 @@ fun ShareStudioScreen(
                 Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.share_studio_back))
             }
         },
+        actions = {
+            IconButton(onClick = onOpenSharedLinks, shapes = IconButtonDefaults.shapes()) {
+                Icon(Icons.Default.Link, contentDescription = stringResource(R.string.shared_links_title))
+            }
+        },
         bottomBar = {
             Surface(color = MaterialTheme.colorScheme.surface) {
-                Button(
-                    // Only an image the user has seen goes out: with amounts hidden
-                    // app-wide, that means after Show preview.
-                    enabled = card is ShareCardState.Ready && (revealed || !AmountPrivacy.hidden),
-                    onClick = {
-                        scope.launch {
-                            val bitmap = graphicsLayer.toImageBitmap().asAndroidBitmap()
-                            val uri = ShareCardExporter.writeCard(context, bitmap)
-                            context.startActivity(
-                                ShareCardExporter.shareIntent(uri, shareText(context, selection.kind))
-                            )
-                        }
-                    },
+                Row(
                     modifier = Modifier
                         .fillMaxWidth()
                         .navigationBarsPadding()
                         .padding(horizontal = Dimensions.Padding.content, vertical = Spacing.smd),
-                    shapes = ButtonDefaults.shapes(),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 ) {
-                    Icon(Icons.Default.Share, contentDescription = null)
-                    Text(stringResource(R.string.share_studio_share), modifier = Modifier.padding(start = Spacing.sm))
+                    // A link uploads a copy, so it is the quieter of the two buttons.
+                    OutlinedButton(
+                        enabled = card is ShareCardState.Ready,
+                        onClick = {
+                            linksViewModel.publishHandled()
+                            linkSheetOpen = true
+                        },
+                        modifier = Modifier.weight(1f),
+                        shapes = ButtonDefaults.shapes(),
+                    ) {
+                        Icon(Icons.Default.Link, contentDescription = null)
+                        Text(
+                            stringResource(R.string.share_studio_share_link),
+                            modifier = Modifier.padding(start = Spacing.sm),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                    Button(
+                        // Only an image the user has seen goes out: with amounts hidden
+                        // app-wide, that means after Show preview.
+                        enabled = card is ShareCardState.Ready && (revealed || !AmountPrivacy.hidden),
+                        onClick = {
+                            scope.launch {
+                                val bitmap = graphicsLayer.toImageBitmap().asAndroidBitmap()
+                                val uri = ShareCardExporter.writeCard(context, bitmap)
+                                context.startActivity(
+                                    ShareCardExporter.shareIntent(uri, shareText(context, selection.kind))
+                                )
+                            }
+                        },
+                        modifier = Modifier.weight(1f),
+                        shapes = ButtonDefaults.shapes(),
+                    ) {
+                        Icon(Icons.Default.Share, contentDescription = null)
+                        Text(
+                            stringResource(R.string.share_studio_share),
+                            modifier = Modifier.padding(start = Spacing.sm),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
                 }
             }
         },
@@ -184,9 +237,32 @@ fun ShareStudioScreen(
             }
         }
     }
+
+    val ready = card as? ShareCardState.Ready
+    if (linkSheetOpen && ready != null) {
+        val locale = LocalConfiguration.current.locales[0]
+        ShareLinkSheet(
+            content = ready.content,
+            theme = selection.theme,
+            revealed = revealed,
+            onReveal = { revealed = true },
+            state = publish,
+            onPublish = { expiry, og -> linksViewModel.publish(ready.content, selection.theme, locale, expiry, og) },
+            onDismiss = { linkSheetOpen = false },
+        )
+    }
 }
 
 private const val PREVIEW_HEIGHT_SHARE = 0.5f
+
+/** The link alone: the chat app builds its preview from the page's image. */
+private fun linkShareIntent(url: String): Intent = Intent.createChooser(
+    Intent(Intent.ACTION_SEND).apply {
+        type = "text/plain"
+        putExtra(Intent.EXTRA_TEXT, url)
+    },
+    null,
+)
 
 /**
  * The message that travels with the image.
@@ -237,21 +313,7 @@ private fun CardPreview(
                 // With amounts hidden app-wide, the figures stay covered on screen until
                 // asked for. The cover is drawn over the card, outside the recorded
                 // layer, so the shared image is still exactly what was chosen.
-                if (covered) {
-                    Placeholder {
-                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(Spacing.lg)) {
-                            Text(
-                                text = stringResource(R.string.share_studio_hidden),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                textAlign = TextAlign.Center,
-                            )
-                            TextButton(onClick = onReveal, shapes = ButtonDefaults.shapes()) {
-                                Text(stringResource(R.string.share_studio_hidden_reveal))
-                            }
-                        }
-                    }
-                }
+                if (covered) HiddenAmountsCover(onReveal)
             }
             ShareCardState.Loading -> Placeholder { LoadingIndicator() }
             is ShareCardState.Unavailable -> Placeholder {
@@ -262,6 +324,24 @@ private fun CardPreview(
                     textAlign = TextAlign.Center,
                     modifier = Modifier.padding(Spacing.lg),
                 )
+            }
+        }
+    }
+}
+
+/** Covers a preview while amounts are hidden app-wide; [onReveal] shows it. */
+@Composable
+internal fun HiddenAmountsCover(onReveal: () -> Unit) {
+    Placeholder {
+        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(Spacing.lg)) {
+            Text(
+                text = stringResource(R.string.share_studio_hidden),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center,
+            )
+            TextButton(onClick = onReveal, shapes = ButtonDefaults.shapes()) {
+                Text(stringResource(R.string.share_studio_hidden_reveal))
             }
         }
     }
@@ -461,7 +541,7 @@ private fun ThemeSwatch(theme: ShareTheme) {
 private val SwatchSize: Dp = Dimensions.Icon.small
 
 @Composable
-private fun kindLabel(kind: ShareKind): String = stringResource(
+internal fun kindLabel(kind: ShareKind): String = stringResource(
     when (kind) {
         ShareKind.RECAP -> R.string.share_kind_recap
         ShareKind.SPENDING -> R.string.share_kind_spending

@@ -9,7 +9,7 @@
     <string name="share_studio_section_currency">العملة</string>
     <string name="share_studio_section_details">على البطاقة</string>
     <string name="share_studio_section_style">النمط</string>
-    <string name="share_studio_footnote">تُصنع الصورة على هاتفك. لا يُشارَك إلا ما تعرضه المعاينة، ومع التطبيق الذي تختاره فقط.</string>
+    <string name="share_studio_footnote">«مشاركة الصورة» تصنع الصورة على هاتفك وترسلها فقط إلى التطبيق الذي تختاره. «مشاركة كرابط» ترفع نسخة أولًا، وتعرض لك ما سترفعه.</string>
     <string name="share_studio_preview_description">معاينة البطاقة التي ستُشارك</string>
     <string name="share_studio_hidden">المبالغ مخفية. تعرض البطاقة ما تختاره أدناه.</string>
     <string name="share_studio_hidden_reveal">إظهار المعاينة</string>
@@ -126,4 +126,44 @@
         <item quantity="other">إنجاز مُحقَّق</item>
     </plurals>
     <string name="share_text_achievements">إنجازاتي، من PennyWise. يتتبّع الإنفاق من رسائل البنك على الهاتف نفسه. https://%1$s</string>
+
+    <!-- Share as link -->
+    <string name="share_studio_share_link">مشاركة كرابط</string>
+    <string name="share_link_sheet_title">المشاركة كرابط</string>
+    <string name="share_link_sheet_body">يرفع هذا نسخة من البطاقة إلى %1$s. يستطيع أي شخص لديه الرابط رؤيتها حتى تنتهي صلاحيته أو تحذفه من «الروابط المشتركة».</string>
+    <string name="share_link_preview_description">معاينة الصورة التي تظهر مع الرابط</string>
+    <string name="share_link_expiry">تنتهي صلاحية الرابط بعد</string>
+    <plurals name="share_link_expiry_days">
+        <item quantity="zero">%1$d يوم</item>
+        <item quantity="one">%1$d يوم</item>
+        <item quantity="two">%1$d يوم</item>
+        <item quantity="few">%1$d أيام</item>
+        <item quantity="many">%1$d يومًا</item>
+        <item quantity="other">%1$d يوم</item>
+    </plurals>
+    <string name="share_link_expiry_never">بلا انتهاء</string>
+    <string name="share_link_create">رفع ومشاركة</string>
+    <string name="share_link_error_network">تعذّر الوصول إلى %1$s. تحقّق من الاتصال وحاول مرة أخرى.</string>
+    <string name="share_link_error_rate_limited">أنشأت روابط كثيرة مؤخرًا. حاول مرة أخرى لاحقًا.</string>
+    <string name="share_link_error_too_large">صورة هذه البطاقة أكبر من أن تُرفع.</string>
+    <string name="share_link_error_rejected">لم يقبل الخادم هذه البطاقة: %1$s</string>
+    <string name="share_link_error_server">حدثت مشكلة في الخادم (%1$d). حاول مرة أخرى لاحقًا.</string>
+
+    <!-- Shared links screen -->
+    <string name="shared_links_title">الروابط المشتركة</string>
+    <string name="shared_links_empty_title">لا توجد روابط مشتركة</string>
+    <string name="shared_links_empty_body">تظهر هنا الروابط التي تنشئها بـ«مشاركة كرابط»، لتنسخها أو تحذفها.</string>
+    <string name="shared_links_expires">تنتهي في %1$s</string>
+    <string name="shared_links_never_expires">بلا تاريخ انتهاء</string>
+    <string name="shared_links_row_subtitle">%1$s · %2$s</string>
+    <string name="shared_links_copy">نسخ الرابط</string>
+    <string name="shared_links_copied">نُسخ الرابط</string>
+    <string name="shared_links_delete">حذف الرابط</string>
+    <string name="shared_links_delete_title">حذف هذا الرابط؟</string>
+    <string name="shared_links_delete_body">ستتوقف الصفحة عن العمل للجميع. من حفظ الصورة من قبل يحتفظ بنسخته.</string>
+    <string name="shared_links_delete_confirm">حذف</string>
+    <string name="shared_links_delete_cancel">إلغاء</string>
+    <string name="shared_links_deleted">حُذف الرابط</string>
+    <string name="shared_links_delete_forbidden">لا يمكن حذف هذا الرابط من هذا الهاتف.</string>
+    <string name="shared_links_footnote">تُحفظ هذه القائمة على هذا الهاتف فقط ولا تدخل في النسخ الاحتياطية. إذا مسحت بيانات التطبيق تبقى هذه الروابط متاحة حتى تنتهي صلاحيتها.</string>
 </resources>

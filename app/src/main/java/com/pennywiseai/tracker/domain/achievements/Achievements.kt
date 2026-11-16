@@ -163,13 +163,14 @@ data class BudgetMonth(val end: LocalDate, val kept: Boolean?)
  * has none). Only limits in place from the start of their own first window in the month
  * count: one set up today wasn't kept through the year before it, and a limit whose cycle
  * starts after another budget's is judged from its own start. A weekly limit counts as
- * kept only when every week of the month was, not just the last one the summary shows. With nothing [recorded] in the
+ * kept only when every week of the month was, not just the last one the summary shows. A limit
+ * with no window in the month (a one-time limit that already ended) judges nothing. With nothing [recorded] in the
  * month, nothing was tracked, so it isn't a month kept.
  */
 internal fun budgetMonthOf(summary: BudgetOverallSummary, monthEnd: LocalDate, recorded: List<LocalDate>): BudgetMonth {
     val window = summary.pageWindow
     val limits = summary.groups.filter {
-        it.group.budget.groupType == BudgetGroupType.LIMIT && it.totalBudget.signum() > 0 &&
+        it.group.budget.groupType == BudgetGroupType.LIMIT && it.totalBudget.signum() > 0 && it.windowDays > 0 &&
             !it.group.budget.createdAt.toLocalDate().isAfter(it.firstWindowStart())
     }
     if (limits.isEmpty()) return BudgetMonth(monthEnd, kept = null)

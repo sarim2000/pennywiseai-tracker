@@ -152,4 +152,17 @@ class PlanningRepositoryTest {
         )
         assertEquals(listOf("Insurance", "Rent", "Coffee club"), due.overdue.map { it.merchantName })
     }
+
+    @Test
+    fun `a stale date is rolled on, and due when its next date falls in the week`() {
+        val due = billsDue(
+            // Stored 20 Jun, unmatched since: the screen says it's due 20 Nov.
+            bill("Gym", LocalDate.of(2026, 6, 20)),
+            // Rolls on to 30 Nov: past the week.
+            bill("Phone", LocalDate.of(2026, 9, 30)),
+            bill("Coffee club", today.minusDays(7), cycle = "Weekly"),
+        )
+        assertEquals(emptyList<String>(), due.overdue.map { it.merchantName })
+        assertEquals(listOf("Coffee club" to today, "Gym" to LocalDate.of(2026, 11, 20)), due.upcoming.map { it.merchantName to it.nextPaymentDate })
+    }
 }

@@ -60,7 +60,8 @@ class PlanningRepository @Inject constructor(
          * come. Recurring income added by hand is stored as EXPENSE, so one filed under an
          * [incomeCategories] isn't a bill, as the bill reminder leaves it out too. A date a whole
          * cycle ([advance]) or more behind is stale (its charge went unmatched, or a cash bill
-         * was never marked paid), not overdue: the Subscriptions screen shows it as coming up.
+         * was never marked paid), not overdue: the Subscriptions screen rolls it on and shows it
+         * as coming up, so it's rolled on to its next date from today and kept when that's due.
          */
         internal fun billsDue(
             subscriptions: List<SubscriptionEntity>,
@@ -73,7 +74,13 @@ class PlanningRepository @Inject constructor(
             val due = subscriptions
                 .filter { it.state == SubscriptionState.ACTIVE && it.direction == SubscriptionDirection.EXPENSE }
                 .filterNot { it.category in incomeCategories }
-                .filter { s -> s.nextPaymentDate?.let { !it.isAfter(through) && advance(it, s.billingCycle).isAfter(today) } == true }
+                .mapNotNull { s ->
+                    var date = s.nextPaymentDate ?: return@mapNotNull null
+                    if (!advance(date, s.billingCycle).isAfter(today)) {
+                        while (date.isBefore(today)) date = advance(date, s.billingCycle)
+                    }
+                    s.copy(nextPaymentDate = date).takeUnless { date.isAfter(through) }
+                }
                 .sortedBy { it.nextPaymentDate }
             val (overdue, upcoming) = due.partition { it.nextPaymentDate!!.isBefore(today) }
             return BillsDue(through, overdue, upcoming)

@@ -12,11 +12,14 @@ import java.math.RoundingMode
  */
 data class Runway(
     val currency: String,
-    /** What savings, current and cash accounts hold together; can be below zero. */
+    /** What savings, current and cash accounts with a known balance hold together; can be below zero. */
     val balance: BigDecimal,
     /** A usual cycle's spending, always above zero. */
     val monthlySpend: BigDecimal,
-    /** Some of [balance] was never anchored to a real figure, so it's an estimate. */
+    /**
+     * Some accounts were left out of [balance] because theirs was never anchored to a
+     * real figure, so [balance] may be short of what's really held.
+     */
     val lowConfidence: Boolean,
 ) {
     /** Months, to one place and rounded down so it never overstates; 0 once nothing is held. */
@@ -33,7 +36,9 @@ data class Runway(
          * One runway per currency held in a liquid account. [accounts] are already
          * scoped: the active profile, no ignored accounts. A currency without a usual
          * spend in [averages], or with none spent, has no runway, never an endless one.
-         * [unanchored] are (bank, last 4) keys whose balance is only an estimate.
+         * [unanchored] are (bank, last 4) keys whose balance is only a guess (0 ± every
+         * transaction since the first SMS): they're left out, and a currency held only in
+         * such accounts has no runway.
          */
         fun calculate(
             accounts: List<AccountBalanceEntity>,
@@ -42,11 +47,13 @@ data class Runway(
         ): List<Runway> =
             accounts.filter(::isLiquid).groupBy { it.currency }.mapNotNull { (currency, held) ->
                 val spend = averages[currency]?.spent?.takeIf { it.signum() > 0 } ?: return@mapNotNull null
+                val known = held.filter { (it.bankName to it.accountLast4) !in unanchored }
+                if (known.isEmpty()) return@mapNotNull null
                 Runway(
                     currency = currency,
-                    balance = held.fold(BigDecimal.ZERO) { sum, a -> sum + a.balance },
+                    balance = known.fold(BigDecimal.ZERO) { sum, a -> sum + a.balance },
                     monthlySpend = spend,
-                    lowConfidence = held.any { (it.bankName to it.accountLast4) in unanchored },
+                    lowConfidence = known.size < held.size,
                 )
             }
 

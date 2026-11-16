@@ -191,7 +191,7 @@
     <string name="insights_runway_low_body">في حساباتك %1$s مقابل إنفاق %2$s في شهر معتاد. يسعى كثيرون إلى ما يكفي %3$d أشهر.</string>
     <!-- %1$s = money in savings, current and cash accounts, %2$s = a usual month's spending, %3$d = months many aim for -->
     <string name="insights_runway_good_body">في حساباتك %1$s مقابل إنفاق %2$s في شهر معتاد، أي أكثر من %3$d أشهر يسعى إليها كثيرون.</string>
-    <string name="insights_runway_estimate">بعض الأرصدة محسوبة من المعاملات وحدها. حدّثها من الحسابات لرقم أدق.</string>
+    <string name="insights_runway_estimate">بعض الحسابات غير محسوبة لأن رصيدها غير معروف بعد. حدّثها من الحسابات لرقم أدق.</string>
 
     <!-- Goals fit what a usual month leaves over. %1$s = what all goals in progress need a month -->
     <string name="insights_goals_fit_title">%1$s شهريًا يحقق كل أهدافك</string>

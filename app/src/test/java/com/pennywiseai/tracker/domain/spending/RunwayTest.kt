@@ -75,13 +75,25 @@ class RunwayTest {
     }
 
     @Test
-    fun `an estimated balance lowers confidence`() {
+    fun `a guessed balance is left out and lowers confidence`() {
         val runway = Runway.calculate(
-            listOf(account("1111", "1000"), account("2222", "1000")),
+            listOf(account("1111", "1000"), account("2222", "-40000")),
             mapOf(usual("INR", "1000")),
             setOf("Test Bank" to "2222"),
         ).single()
+        assertEquals(d("1000"), runway.balance)
         assertTrue(runway.lowConfidence)
+    }
+
+    @Test
+    fun `money held only in guessed balances has no runway`() {
+        val runways = Runway.calculate(
+            listOf(account("1111", "-2500"), account("2222", "300", type = "CASH")),
+            mapOf(usual("INR", "1000")),
+            setOf("Test Bank" to "1111", "Test Bank" to "2222"),
+        )
+        assertTrue(runways.isEmpty())
+        assertTrue(InsightRules.runway(runways, "2026-11-01").isEmpty())
     }
 
     @Test
@@ -96,11 +108,20 @@ class RunwayTest {
         assertEquals(null, severityFor("4000"))
         assertEquals(InsightSeverity.GOOD, severityFor("6000"))
 
-        val insight = InsightRules.runway(listOf(Runway("INR", d("2400"), d("1000"), true)), "2026-11-01").single()
+        val insight = InsightRules.runway(listOf(Runway("INR", d("2400"), d("1000"), false)), "2026-11-01").single()
         assertEquals("runway:v1:2026-11-01:INR:held", insight.id)
         val fact = insight.fact as MoneyLasts
         assertEquals(d("2.4"), fact.months)
         assertEquals("INR", fact.balance.currency)
-        assertTrue(fact.lowConfidence)
+        assertFalse(fact.lowConfidence)
+    }
+
+    @Test
+    fun `a low figure that leaves accounts out is never a warning`() {
+        val partial = { balance: String -> Runway("INR", d(balance), d("1000"), lowConfidence = true) }
+        assertTrue(InsightRules.runway(listOf(partial("500")), "2026-11-01").isEmpty())
+        val good = InsightRules.runway(listOf(partial("7000")), "2026-11-01").single()
+        assertEquals(InsightSeverity.GOOD, good.severity)
+        assertTrue((good.fact as MoneyLasts).lowConfidence)
     }
 }

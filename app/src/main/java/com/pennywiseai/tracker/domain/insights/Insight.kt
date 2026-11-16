@@ -65,7 +65,7 @@ sealed interface InsightFact {
 
     /**
      * What's held ([balance]) would last [months] at [monthlySpend] a usual month.
-     * [lowConfidence]: some of it is an estimate from transactions alone.
+     * [lowConfidence]: accounts whose balance isn't known yet are left out of it.
      */
     data class MoneyLasts(
         val months: BigDecimal,

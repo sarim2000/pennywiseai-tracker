@@ -364,11 +364,12 @@ object InsightRules {
     /**
      * How long the money held would last at a usual month's spending: worth a word
      * below [LOW_RUNWAY_MONTHS], and as good news from [Runway.TARGET_MONTHS]. In
-     * between, the Insights summary still shows it.
+     * between, the Insights summary still shows it. A low figure that leaves some
+     * accounts out may only be low because of them, so it isn't a warning.
      */
     internal fun runway(runways: List<Runway>, period: String): List<Insight> = runways.mapNotNull { r ->
         val severity = when {
-            r.months < BigDecimal(LOW_RUNWAY_MONTHS) -> InsightSeverity.WARNING
+            r.months < BigDecimal(LOW_RUNWAY_MONTHS) && !r.lowConfidence -> InsightSeverity.WARNING
             r.months >= BigDecimal(Runway.TARGET_MONTHS) -> InsightSeverity.GOOD
             else -> return@mapNotNull null
         }

@@ -167,7 +167,7 @@
     <string name="insights_runway_low_body">That\'s %1$s in your accounts against %2$s spent in a usual month. Many people aim for %3$d months.</string>
     <!-- %1$s = money in savings, current and cash accounts, %2$s = a usual month's spending, %3$d = months many aim for -->
     <string name="insights_runway_good_body">That\'s %1$s in your accounts against %2$s spent in a usual month, past the %3$d months many people aim for.</string>
-    <string name="insights_runway_estimate">Some balances are worked out from transactions alone. Update them in Accounts for a truer figure.</string>
+    <string name="insights_runway_estimate">Some accounts are left out because their balance isn\'t known yet. Update them in Accounts for a truer figure.</string>
 
     <!-- Goals fit what a usual month leaves over. %1$s = what all goals in progress need a month -->
     <string name="insights_goals_fit_title">%1$s a month reaches all your goals</string>

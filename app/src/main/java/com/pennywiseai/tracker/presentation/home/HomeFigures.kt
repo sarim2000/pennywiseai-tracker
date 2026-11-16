@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.presentation.home
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.ledger.convertedEstimate
 import com.pennywiseai.tracker.data.ledger.countingTransferPairsOnce
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import java.math.BigDecimal
@@ -49,21 +50,12 @@ internal suspend fun combinedBreakdown(
     )
 }
 
-/** Per-currency amounts as one figure in [selectedCurrency]; a never-rated currency is left out. */
+/** Per-currency amounts as one figure in [selectedCurrency], by the rule the chat uses too: [convertedEstimate]. */
 internal suspend fun combinedTotal(
     byCurrency: Map<String, BigDecimal>,
     selectedCurrency: String,
     convert: ConvertAmount
-): BigDecimal {
-    if (byCurrency.isEmpty()) return BigDecimal.ZERO
-    var total = BigDecimal.ZERO
-    for ((currency, amount) in byCurrency) {
-        total += if (currency == selectedCurrency) amount
-        else convert(amount, currency, selectedCurrency)
-            ?: continue // never-rated pair — skip, don't face-value (#670)
-    }
-    return total
-}
+): BigDecimal = convertedEstimate(byCurrency, selectedCurrency, convert).total
 
 /** The "Money in motion" figures: money that moved but was neither income nor spend. */
 internal data class MotionTotals(

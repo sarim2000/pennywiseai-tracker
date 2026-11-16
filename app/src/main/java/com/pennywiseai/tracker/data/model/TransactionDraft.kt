@@ -61,7 +61,7 @@ data class TransactionDraft(
         )
 
         /** The type a row's clause says, or null when it doesn't. What was done beats what it was for: "received 500 for rent". */
-        private fun statedType(text: String, amount: BigDecimal, nounsCount: Boolean = true): TransactionType? = when {
+        internal fun statedType(text: String, amount: BigDecimal, nounsCount: Boolean = true): TransactionType? = when {
             SPEND_VERBS.containsMatchIn(text) -> TransactionType.EXPENSE
             RECEIVE_VERBS.containsMatchIn(text) -> TransactionType.INCOME
             ChatMessageFacts.gotMoney(text, amount) -> TransactionType.INCOME
@@ -88,6 +88,9 @@ data class TransactionDraft(
                 "haven't|have not|fictional|example|if i|my (?:brother|sister|friend|mom|dad|wife|husband|boss|son|daughter) (?:spent|bought|paid(?! me)))\\b",
             RegexOption.IGNORE_CASE
         )
+
+        /** Whether [text] is a plan, a question or someone else's spending rather than the user's own payment. */
+        internal fun saysNotYetPaid(text: String) = NOT_YET_PAID.containsMatchIn(text)
 
         /**
          * The review card for one message. A number the message doesn't state, or a row repeated

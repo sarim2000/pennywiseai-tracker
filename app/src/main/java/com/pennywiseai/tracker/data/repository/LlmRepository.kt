@@ -317,8 +317,6 @@ class LlmRepository @Inject constructor(
                 else context.getString(R.string.chat_reply_nothing_changed)
             )
         }
-        // Its state after a failed turn is unknown; the next message rebuilds it from the saved chat.
-        if (conversationBroken) llmService.closeConversation()
         // Last, so the check above doesn't take this line's "Nothing was changed" for a claim.
         // Also when the model said nothing at all, rather than leaving an empty bubble.
         if (unreadableToolCall || responseBuilder.isBlank()) addLine(context.getString(R.string.chat_reply_unreadable))
@@ -327,22 +325,29 @@ class LlmRepository @Inject constructor(
 
         // Shown whole, once every check above has had its say.
         val finalResponse = responseBuilder.toString()
-        emit(finalResponse)
-        Log.d(TAG, "Saving AI response (${finalResponse.length} chars)")
-        val aiMessage = ChatMessage(
-            id = (if (appWrote) QUICK_ID else MODEL_ID) + UUID.randomUUID(),
-            message = finalResponse,
-            isUser = false
-        )
-        // Lookups only: a card's request replayed is one the model can propose again.
-        if (toolCalls.isNotEmpty() && !unreadableToolCall && toolCalls.none { it.name in CARD_TOOLS }) {
-            callsMade[aiMessage.id] = callsText(toolCalls)
+        try {
+            emit(finalResponse)
+            Log.d(TAG, "Saving AI response (${finalResponse.length} chars)")
+            val aiMessage = ChatMessage(
+                id = (if (appWrote) QUICK_ID else MODEL_ID) + UUID.randomUUID(),
+                message = finalResponse,
+                isUser = false
+            )
+            // Lookups only: a card's request replayed is one the model can propose again.
+            if (toolCalls.isNotEmpty() && !unreadableToolCall && toolCalls.none { it.name in CARD_TOOLS }) {
+                callsMade[aiMessage.id] = callsText(toolCalls)
+            }
+            _lastReply.value = (turnSubject ?: ReplySubject()).copy(messageId = aiMessage.id)
+            // A repeated call, or a total beside a comparison of the same days, opens the same list once.
+            addLinks(aiMessage.id, turnLinks.distinctBy { it.copy(label = "") })
+            chatDao.insertMessage(aiMessage)
+            Log.d(TAG, "AI response saved")
+        } finally {
+            // Its state after a failed turn is unknown; the next message rebuilds it from the saved
+            // chat. Only once the reply is saved: a warm-up rebuilding before that would replay this
+            // question as unanswered, so leave it out, and the next send would keep that window.
+            if (conversationBroken) llmService.closeConversation()
         }
-        _lastReply.value = (turnSubject ?: ReplySubject()).copy(messageId = aiMessage.id)
-        // A repeated call, or a total beside a comparison of the same days, opens the same list once.
-        addLinks(aiMessage.id, turnLinks.distinctBy { it.copy(label = "") })
-        chatDao.insertMessage(aiMessage)
-        Log.d(TAG, "AI response saved")
     }
 
     // The chat screen the model is loaded for. A closed screen's late release must not

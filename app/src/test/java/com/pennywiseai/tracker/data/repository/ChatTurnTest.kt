@@ -918,6 +918,30 @@ class ChatTurnTest {
     }
 
     @Test
+    fun `a broken turn's window is rebuilt with its call, even when the screen warms up as it shows`() = runTest {
+        coEvery { aiContext.categorySpending(any(), any()) } returns spent("120")
+        var live = true
+        every { llmService.hasActiveConversation() } answers { live }
+        coEvery { llmService.closeConversation() } answers { live = false }
+        val histories = mutableListOf<List<Pair<String, Boolean>>>()
+        coEvery { llmService.createConversation(any(), capture(histories), any()) } answers { live = true; Result.success(Unit) }
+        coEvery { llmService.tokenCount() } returns 1500
+        // Prose beside a lookup: the live conversation holds it, so this turn closes it.
+        val lookup = LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "طعام"))
+        events = listOf(LlmEvent.Text("You spent ₹999. "), lookup)
+        // The user comes back to the chat while the reply shows, before it's saved.
+        repository.sendMessageStream("how much on food?").collect { repository.warmUp() }
+
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "طعام")))
+        send("and last month?")
+        // "and last month?" follows the call the model made, not a window without it.
+        assertEquals(
+            listOf("how much on food?" to true, call(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "طعام")) to false),
+            histories.single()
+        )
+    }
+
+    @Test
     fun `a chat that outgrew the window drops its oldest turns from it, not the chat`() = runTest {
         savedChat(4)
         every { llmService.hasActiveConversation() } returns false

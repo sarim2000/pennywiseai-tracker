@@ -103,13 +103,13 @@ data class VoiceEntry(
         private val SPOKEN = mapOf(
             "Food & Dining" to setOf("breakfast", "lunch", "dinner", "meal", "snack", "فطور", "فطار", "غداء", "غدا", "عشاء", "عشا", "قهوة", "مطعم"),
             "Groceries" to setOf("groceries", "بقالة", "خضار", "سوبرماركت"),
-            "Transportation" to setOf("تاكسي", "بنزين", "مواصلات", "اوبر", "أوبر", "كريم"),
+            "Transportation" to setOf("تاكسي", "بنزين", "مواصلات", "اوبر", "كريم"),
         )
 
         // Arabic writes "the" and a preposition onto the word: "القهوة", "بالتاكسي", "للبقالة" say قهوة, تاكسي, بقالة.
         private val ARABIC_ARTICLE = Regex("(?<![\\p{L}\\p{M}])[وف]?(?:بال|كال|لل|ال)(?=\\p{L}{2})")
 
-        private fun norm(x: String) = x.lowercase().replace("&", " and ").replace(Regex("[^\\p{L}\\p{M}\\p{N}]+"), " ")
+        private fun norm(x: String) = ChatMessageFacts.foldSpelling(x).replace("&", " and ").replace(Regex("[^\\p{L}\\p{M}\\p{N}]+"), " ")
             .replace(ARABIC_ARTICLE, "").trim()
 
         private fun categoryOf(merchant: String, type: TransactionType, categories: List<CategoryEntity>, label: (String) -> String): String? {

@@ -10,6 +10,17 @@ import java.math.BigDecimal
  * the JVM and Android's ICU regex.
  */
 internal object ChatMessageFacts {
+    /**
+     * Lowercased, with Arabic folded so spellings meet: no short vowels, "أ", "إ" and "آ" as
+     * "ا", "ة" as "ه", "ى" as "ي". "إيجار" equals "ايجار".
+     */
+    fun foldSpelling(text: String): String = text.lowercase()
+        .replace(ARABIC_SHORT_VOWELS, "")
+        .replace(ALEF_WITH_HAMZA, "ا").replace('ة', 'ه').replace('ى', 'ي')
+
+    private val ARABIC_SHORT_VOWELS = Regex("[\\u064B-\\u0652]")
+    private val ALEF_WITH_HAMZA = Regex("[أإآ]")
+
     private fun word(alternatives: String) = "(?<![\\p{L}\\p{M}])(?:$alternatives)(?![\\p{L}\\p{M}])"
     private fun regex(pattern: String) = Regex(pattern, RegexOption.IGNORE_CASE)
 

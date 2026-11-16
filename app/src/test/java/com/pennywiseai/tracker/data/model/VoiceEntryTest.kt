@@ -79,6 +79,15 @@ class VoiceEntryTest {
     }
 
     @Test
+    fun `arabic spellings meet across hamza and ta marbuta`() {
+        val withRent = categories + CategoryEntity(id = 7, name = "Rent", color = "#000")
+        val label = { name: String -> if (name == "Rent") "إيجار" else name }
+        assertEquals("Rent", VoiceEntry.parse("ايجار ٥٠٠", withRent, "JOD", today, label)?.category)
+        assertEquals("Food & Dining", entry("٢٠ قهوه").category)
+        assertEquals("Transportation", entry("٢٠ أوبر").category)
+    }
+
+    @Test
     fun `money in is income`() {
         val salary = entry("received 5000 salary")
         assertEquals(TransactionType.INCOME, salary.type)

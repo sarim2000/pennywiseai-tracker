@@ -427,6 +427,7 @@ class QuickAddActivity : FragmentActivity() {
                         FilterChip(
                             selected = income == isIncome,
                             shapes = FilterChipDefaults.shapes(),
+                            colors = FilterChipDefaults.filterChipColors(),
                             onClick = {
                                 if (income != isIncome) {
                                     income = isIncome
@@ -440,6 +441,8 @@ class QuickAddActivity : FragmentActivity() {
                     day?.let { d ->
                         InputChip(
                             selected = false,
+                            shapes = InputChipDefaults.shapes(),
+                            colors = InputChipDefaults.inputChipColors(),
                             onClick = { day = null },
                             label = { Text(d.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))) },
                             trailingIcon = {

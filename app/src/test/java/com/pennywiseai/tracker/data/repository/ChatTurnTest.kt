@@ -384,6 +384,27 @@ class ChatTurnTest {
     }
 
     @Test
+    fun `the welcome gives the estimate the answers give, and nothing spent in the currency Home shows`() = runTest {
+        every { context.getString(R.string.chat_reply_converted_estimate, any(), any()) } returns "ESTIMATE"
+        every { context.getString(R.string.chat_reply_converted_left_out, any()) } returns "LEFT_OUT"
+        every { preferences.unifiedCurrencyMode } returns flowOf(true)
+        every { preferences.displayCurrency } returns flowOf("USD")
+        val scope = com.pennywiseai.tracker.data.model.ChatScope(SpendingComparison.Window(LocalDateTime.of(2026, 11, 1, 0, 0), LocalDateTime.of(2026, 11, 16, 23, 59)))
+        coEvery { aiContext.spending(any()) } returns com.pennywiseai.tracker.data.model.PeriodSpending(
+            scope,
+            spent = mapOf("USD" to BigDecimal("5"), "INR" to BigDecimal("600")),
+            income = emptyMap(),
+            estimate = com.pennywiseai.tracker.data.ledger.ConvertedEstimate("USD", BigDecimal("12.50"), mapOf("XYZ" to BigDecimal("3"))),
+        )
+        repository.getFormattedContextForDisplay()
+        verify { context.getString(R.string.chat_welcome, "1 Nov–16 Nov", match<String> { it.lines().drop(1) == listOf("ESTIMATE", "LEFT_OUT") && "$" in it.lines()[0] }) }
+
+        coEvery { aiContext.spending(any()) } returns com.pennywiseai.tracker.data.model.PeriodSpending(scope, spent = emptyMap(), income = emptyMap())
+        repository.getFormattedContextForDisplay()
+        verify { context.getString(R.string.chat_welcome, "1 Nov–16 Nov", match<String> { "$" in it && "₹" !in it && "\n" !in it }) }
+    }
+
+    @Test
     fun `a seeded profile is named in the app's language, on totals and comparisons alike`() = runTest {
         val business = ProfileEntity(ProfileEntity.BUSINESS_ID, "Business", "#000")
         every { context.getString(R.string.profile_default_business) } returns "عمل"

@@ -9,6 +9,7 @@ import com.pennywiseai.tracker.data.database.entity.ChatMessage
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.ledger.ConvertedEstimate
 import com.pennywiseai.tracker.data.model.ChatMessageFacts
 import com.pennywiseai.tracker.data.model.ChatScope
 import com.pennywiseai.tracker.data.model.PendingChatAction
@@ -638,15 +639,18 @@ class LlmRepository @Inject constructor(
                     add(if (forgiven == null) money(a, c) else context.getString(R.string.chat_reply_spent_with_forgiven, money(a, c), money(forgiven, c)))
                 }
             }
-            p.estimate?.let { e ->
-                add(context.getString(R.string.chat_reply_converted_estimate, money(e.total, e.currency), e.currency))
-                if (e.leftOut.isNotEmpty()) add(context.getString(R.string.chat_reply_converted_left_out, amounts(e.leftOut)))
-            }
+            addAll(estimateLines(p.estimate))
             val income = if (typed) p.income.ifEmpty { mapOf(userPreferencesRepository.baseCurrency.first() to BigDecimal.ZERO) } else p.income
             if (income.isNotEmpty()) add(context.getString(R.string.chat_reply_received, amounts(income)))
             if (typed) add(context.getString(R.string.chat_reply_transaction_count, p.transactionCount))
         }.joinToString("\n")
     }
+
+    /** Home's one converted figure, when it shows one, and what it had to leave out. */
+    private suspend fun estimateLines(e: ConvertedEstimate?): List<String> = listOfNotNull(
+        e?.let { context.getString(R.string.chat_reply_converted_estimate, money(it.total, it.currency), it.currency) },
+        e?.leftOut?.takeIf { it.isNotEmpty() }?.let { context.getString(R.string.chat_reply_converted_left_out, amounts(it)) }
+    )
 
     /** A ranking per currency, a blank line between them; forgiven loans below, never ranked as a category. */
     private suspend fun topCategoriesText(top: TopCategories): String {
@@ -768,11 +772,16 @@ class LlmRepository @Inject constructor(
         Log.d(TAG, "System prompt updated with the latest categories and accounts")
     }
 
-    /** The chat's opening line: Home's "Spent this month", dated, each currency in its own. */
+    /**
+     * The chat's opening line: Home's "Spent this month", dated, each currency in its own, with
+     * the converted estimate the answers give. Nothing spent is zero in the currency Home shows.
+     */
     suspend fun getFormattedContextForDisplay(): String {
         val p = aiContextRepository.spending()
-        val spent = p.spentWithForgiven.ifEmpty { mapOf(userPreferencesRepository.baseCurrency.first() to BigDecimal.ZERO) }
-        return context.getString(R.string.chat_welcome, scopeLabel(p.scope), amounts(spent))
+        val shown = if (userPreferencesRepository.unifiedCurrencyMode.first()) userPreferencesRepository.displayCurrency.first()
+        else userPreferencesRepository.baseCurrency.first()
+        val spent = p.spentWithForgiven.ifEmpty { mapOf(shown to BigDecimal.ZERO) }
+        return context.getString(R.string.chat_welcome, scopeLabel(p.scope), (listOf(amounts(spent)) + estimateLines(p.estimate)).joinToString("\n"))
     }
 
     companion object {

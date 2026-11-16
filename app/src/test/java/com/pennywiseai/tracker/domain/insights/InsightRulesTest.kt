@@ -279,6 +279,17 @@ class InsightRulesTest {
     }
 
     @Test
+    fun `a category's median stays within its currency`() {
+        val usd = usualFood.map { tx(it.transaction.dateTime.toLocalDate().toString(), "100", currency = "USD") }
+        val insights = evaluate(
+            rows = usd + tx("2026-11-12", "450", currency = "USD") + tx("2026-11-12", "450", currency = "INR"),
+        )
+        // INR has one Food row, too few for a median of its own; USD's history doesn't lend it one.
+        assertEquals(listOf("USD"), insights.filter { it.fact is LargeTransaction }.map { it.currency })
+        assertEquals(Money(BigDecimal("450"), "USD"), insights.facts<LargeTransaction>().single().amount)
+    }
+
+    @Test
     fun `a charge marked recurring is not unusual`() {
         val insights = evaluate(rows = usualFood + tx("2026-11-12", "450", merchant = "Insurer", recurring = true))
         assertTrue(insights.facts<LargeTransaction>().isEmpty())
@@ -295,6 +306,23 @@ class InsightRulesTest {
         val change = insights.facts<PriceChange>().single()
         assertEquals(Money(BigDecimal("499"), "INR"), change.tracked)
         assertEquals(Money(BigDecimal("649"), "INR"), change.charged)
+    }
+
+    @Test
+    fun `a charge in another currency is not a price change`() {
+        val insights = evaluate(
+            rows = listOf(
+                tx("2026-11-15", "649", merchant = "Streamer", currency = "USD"),
+                tx("2026-11-15", "12", merchant = "Cloud", currency = "USD"),
+            ),
+            subscriptions = listOf(
+                subscription(7, "499", "2026-11-15"),
+                subscription(8, "10", "2026-11-15", currency = "USD", merchant = "Cloud"),
+            ),
+        )
+        val change = insights.single { it.fact is PriceChange }
+        assertEquals("USD", change.currency)
+        assertEquals(Money(BigDecimal("12"), "USD"), (change.fact as PriceChange).charged)
     }
 
     @Test

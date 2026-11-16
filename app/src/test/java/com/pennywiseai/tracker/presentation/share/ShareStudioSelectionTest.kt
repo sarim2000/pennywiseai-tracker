@@ -2,7 +2,7 @@ package com.pennywiseai.tracker.presentation.share
 
 import androidx.lifecycle.SavedStateHandle
 import com.pennywiseai.tracker.domain.review.ReviewKind
-import com.pennywiseai.tracker.presentation.review.ReviewSelection
+import com.pennywiseai.tracker.domain.review.ReviewSelection
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull

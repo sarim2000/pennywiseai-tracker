@@ -124,7 +124,8 @@ fun PeriodReviewScreen(
             }
         },
         actions = {
-            if (loaded != null && loaded.currencies.isNotEmpty()) {
+            // A report is for a month or a year; a week has the share card.
+            if (loaded != null && loaded.currencies.isNotEmpty() && loaded.range.kind != ReviewKind.WEEK) {
                 val title = periodLabel(loaded.range)
                 IconButton(
                     onClick = { viewModel.exportPdf(title) },

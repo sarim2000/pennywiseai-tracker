@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.add
 
+import android.content.ActivityNotFoundException
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -23,6 +25,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
@@ -797,6 +800,10 @@ fun ReceiptPickerSection(
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
     ) { uri -> uri?.let { onReceiptSelected(it) } }
+    // Some phones report a photo picker that is switched off; the plain file chooser still lists photos.
+    val galleryFallbackLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri -> uri?.let { onReceiptSelected(it) } }
 
     val pdfLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.OpenDocument()
@@ -806,6 +813,16 @@ fun ReceiptPickerSection(
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success -> if (success) cameraUri?.let { onReceiptSelected(it) } }
+
+    val context = LocalContext.current
+    // A picker with no app behind it says so instead of crashing.
+    val launchPicker: (() -> Unit) -> Unit = { launch ->
+        try {
+            launch()
+        } catch (_: ActivityNotFoundException) {
+            Toast.makeText(context, R.string.add_receipt_no_app, Toast.LENGTH_SHORT).show()
+        }
+    }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -856,9 +873,13 @@ fun ReceiptPickerSection(
             ) {
                 OutlinedButton(
                     onClick = {
-                        galleryLauncher.launch(
-                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                        )
+                        try {
+                            galleryLauncher.launch(
+                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
+                            )
+                        } catch (_: ActivityNotFoundException) {
+                            launchPicker { galleryFallbackLauncher.launch("image/*") }
+                        }
                     },
                     modifier = Modifier.weight(1f),
                     shapes = ButtonDefaults.shapes()
@@ -871,7 +892,7 @@ fun ReceiptPickerSection(
                     onClick = {
                         val uri = onCreateCameraUri()
                         cameraUri = uri
-                        cameraLauncher.launch(uri)
+                        launchPicker { cameraLauncher.launch(uri) }
                     },
                     modifier = Modifier.weight(1f),
                     shapes = ButtonDefaults.shapes()
@@ -882,7 +903,7 @@ fun ReceiptPickerSection(
                 }
             }
             OutlinedButton(
-                onClick = { pdfLauncher.launch(arrayOf(ReceiptManager.PDF_MIME)) },
+                onClick = { launchPicker { pdfLauncher.launch(arrayOf(ReceiptManager.PDF_MIME)) } },
                 modifier = Modifier.fillMaxWidth(),
                 shapes = ButtonDefaults.shapes()
             ) {

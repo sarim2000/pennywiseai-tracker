@@ -443,7 +443,59 @@ interface AccountBalanceDao {
         LEFT JOIN transactions t ON t.id = ab.transaction_id
     """)
     fun getBalanceSourceRows(): Flow<List<BalanceSourceRow>>
+
+    /**
+     * Per account, the newest balance the bank stated (`reportedAt`: an SMS whose
+     * transaction carried a balance, a balance notice, a linked card's balance) and the
+     * newest row not derived from a transaction (`fixedAt`: those, plus MANUAL rows).
+     * OPENING rows are left out; their timestamp is set early on purpose.
+     */
+    @Query("""
+        SELECT ab.bank_name AS bankName, ab.account_last4 AS accountLast4,
+            MAX(CASE WHEN """ + BANK_STATED + """ THEN ab.timestamp END) AS reportedAt,
+            MAX(CASE WHEN """ + BANK_STATED + """
+                OR ab.source_type IS NULL OR ab.source_type NOT IN ('TRANSACTION', 'OPENING')
+                THEN ab.timestamp END) AS fixedAt
+        FROM account_balances ab
+        LEFT JOIN transactions t ON t.id = ab.transaction_id
+        GROUP BY ab.bank_name, ab.account_last4
+    """)
+    fun getBalanceEvidence(): Flow<List<BalanceEvidenceRow>>
+
+    /**
+     * Balance rows from [start] on, plus each account's newest row before it, so a
+     * trend can carry every balance into its first day. OPENING rows are left out.
+     */
+    @Query("""
+        SELECT * FROM account_balances
+        WHERE timestamp >= :start AND (source_type IS NULL OR source_type != 'OPENING')
+        UNION ALL
+        SELECT ab1.* FROM account_balances ab1
+        INNER JOIN (
+            SELECT bank_name, account_last4, MAX(timestamp) AS max_timestamp
+            FROM account_balances
+            WHERE timestamp < :start AND (source_type IS NULL OR source_type != 'OPENING')
+            GROUP BY bank_name, account_last4
+        ) ab2
+        ON ab1.bank_name = ab2.bank_name
+        AND ab1.account_last4 = ab2.account_last4
+        AND ab1.timestamp = ab2.max_timestamp
+    """)
+    fun getTrendRows(start: LocalDateTime): Flow<List<AccountBalanceEntity>>
 }
+
+/** A row whose figure the bank gave; see [AccountBalanceDao.getBalanceEvidence]. */
+private const val BANK_STATED = """(ab.source_type = 'CARD_LINK'
+    OR (ab.source_type IS NULL AND ab.transaction_id IS NULL)
+    OR (ab.source_type = 'TRANSACTION' AND ab.sms_source IS NOT NULL AND t.balance_after IS NOT NULL))"""
+
+/** See [AccountBalanceDao.getBalanceEvidence]. */
+data class BalanceEvidenceRow(
+    val bankName: String,
+    val accountLast4: String,
+    val reportedAt: LocalDateTime?,
+    val fixedAt: LocalDateTime?
+)
 
 /** See [AccountBalanceDao.getBalanceRowsAfter]. */
 data class BalanceRowAfter(val id: Long, val balance: BigDecimal, val creditLimit: BigDecimal?, val derived: Boolean)

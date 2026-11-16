@@ -509,6 +509,20 @@ interface TransactionDao {
     ): List<TransactionEntity>
 
     /**
+     * Live transactions on an account after [after]: its own rows, and transfers into
+     * or out of it. What moved the balance since it was last pinned to a real figure.
+     */
+    @Query("""
+        SELECT COUNT(*) FROM transactions
+        WHERE is_deleted = 0 AND date_time > :after
+        AND ((bank_name = :bankName AND account_number = :accountLast4)
+            OR (transaction_type = 'TRANSFER' AND (
+                (from_account = :accountLast4 AND (from_bank_name IS NULL OR from_bank_name = :bankName))
+                OR (to_account = :accountLast4 AND (to_bank_name IS NULL OR to_bank_name = :bankName)))))
+    """)
+    suspend fun countTransactionsOnAccountSince(bankName: String, accountLast4: String, after: LocalDateTime): Int
+
+    /**
      * TRANSFER transactions touching an account on either side. A standalone transfer
      * is stored once with `from_account` / `to_account` (last-4 only, matching how the
      * transfer balance shift resolves accounts), so a manual account's recompute must

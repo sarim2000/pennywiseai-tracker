@@ -188,6 +188,10 @@ data class Review(val kind: String = "MONTH", val weekStart: String? = null) : N
 @Serializable
 data object Insights : NavKey
 
+/** What you own minus what you owe; opened from Home's balance and Manage Accounts. */
+@Serializable
+data object NetWorth : NavKey
+
 // Screens inside MainScreen's tab stacks (Settings, SettingsPage, Categories, Faq
 // and ImportStatement live only there; UnrecognizedSms also opens on the root stack).
 @Serializable

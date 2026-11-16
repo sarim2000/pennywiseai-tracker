@@ -330,4 +330,40 @@
     <string name="card_bill_amount_new_hint">The total on your new statement. Left blank, the last bill stays as it is.</string>
     <string name="card_bill_clear_title">Clear card bill?</string>
     <string name="card_bill_clear_message">The due day and statement amount are removed, and Safe to spend stops setting this bill aside.</string>
+
+    <!-- Net worth: what you own minus what you owe, per currency -->
+    <string name="net_worth_title">Net worth</string>
+    <string name="net_worth_back">Back</string>
+    <string name="net_worth_empty_headline">No accounts yet</string>
+    <string name="net_worth_empty_body">Add an account, or let PennyWise read your bank SMS, to see what you own minus what you owe.</string>
+    <string name="net_worth_summary_hint">What you own minus what you owe</string>
+    <string name="net_worth_assets">Accounts</string>
+    <string name="net_worth_cards">Credit cards</string>
+    <string name="net_worth_loans">Loans</string>
+    <string name="net_worth_includes_estimates">Includes balances estimated from transactions.</string>
+    <!-- %1$s = what people owe you. Person-to-person loans are shown but not counted. -->
+    <string name="net_worth_people_owe_you">Not counted: people owe you %1$s</string>
+    <string name="net_worth_you_owe_people">Not counted: you owe people %1$s</string>
+    <!-- %1$s = what people owe you, %2$s = what you owe people -->
+    <string name="net_worth_people_both">Not counted: people owe you %1$s, you owe people %2$s</string>
+    <string name="net_worth_trend">Trend</string>
+    <string name="net_worth_range_month">1M</string>
+    <string name="net_worth_range_quarter">3M</string>
+    <string name="net_worth_range_half_year">6M</string>
+    <string name="net_worth_range_year">1Y</string>
+    <string name="net_worth_trend_empty">Not enough balance history for this period yet. A cash account joins the trend once you update its balance.</string>
+    <!-- %1$s = amount, %2$s = date -->
+    <string name="net_worth_source_entered">You entered %1$s on %2$s</string>
+    <string name="net_worth_source_statement">From your statement: %1$s on %2$s</string>
+    <!-- %1$s = date -->
+    <string name="net_worth_source_reported">Reported by your bank on %1$s</string>
+    <string name="net_worth_source_estimated">Estimated from transactions</string>
+    <plurals name="net_worth_source_since">
+        <item quantity="one">+ %1$d transaction since</item>
+        <item quantity="other">+ %1$d transactions since</item>
+    </plurals>
+    <plurals name="net_worth_stale">
+        <item quantity="one">Not updated for %1$d day</item>
+        <item quantity="other">Not updated for %1$d days</item>
+    </plurals>
 </resources>

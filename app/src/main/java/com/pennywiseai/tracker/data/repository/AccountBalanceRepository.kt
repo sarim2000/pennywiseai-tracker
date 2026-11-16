@@ -14,6 +14,7 @@ import com.pennywiseai.tracker.data.ledger.ledgerType
 import com.pennywiseai.tracker.data.preferences.NotificationPreferences
 import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.domain.model.toDatabaseString
+import com.pennywiseai.tracker.domain.spending.BalanceEvidence
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -814,29 +815,52 @@ open class AccountBalanceRepository @Inject constructor(
         bankName: String,
         accountLast4: String,
         after: LocalDateTime? = null
-    ): BigDecimal {
-        fun inWindow(tx: TransactionEntity) = after == null || tx.dateTime > after
-        var sum = transactionDao.getTransactionsForAccountStrict(bankName, accountLast4)
-            .filter { it.transactionType != TransactionType.TRANSFER && inWindow(it) }
-            .fold(BigDecimal.ZERO) { acc, tx ->
-                if (tx.transactionType == TransactionType.INCOME) acc + tx.amount else acc - tx.amount
+    ): BigDecimal = manualBalanceEffects(bankName, accountLast4)
+        .filter { (at, _) -> after == null || at > after }
+        .fold(BigDecimal.ZERO) { acc, (_, effect) -> acc + effect }
+
+    /**
+     * What each of a manual account's transactions moved its balance by, signed as in
+     * [signedTransactionSum], with when it happened: the account's past, which its one
+     * refreshed MANUAL row doesn't keep.
+     */
+    suspend fun manualBalanceEffects(bankName: String, accountLast4: String): List<Pair<LocalDateTime, BigDecimal>> {
+        val effects = transactionDao.getTransactionsForAccountStrict(bankName, accountLast4)
+            .filter { it.transactionType != TransactionType.TRANSFER }
+            .mapTo(mutableListOf()) { tx ->
+                tx.dateTime to if (tx.transactionType == TransactionType.INCOME) tx.amount else tx.amount.negate()
             }
-        for (tx in transactionDao.getTransfersForAccount(accountLast4).filter(::inWindow)) {
+        for (tx in transactionDao.getTransfersForAccount(accountLast4)) {
             if (tx.isPairedTransferLeg) {
                 if (tx.bankName == bankName && tx.accountNumber == accountLast4) {
                     when (tx.ledgerType()) {
-                        TransactionType.INCOME -> sum += tx.amount
-                        TransactionType.EXPENSE -> sum -= tx.amount
+                        TransactionType.INCOME -> effects += tx.dateTime to tx.amount
+                        TransactionType.EXPENSE -> effects += tx.dateTime to tx.amount.negate()
                         else -> Unit
                     }
                 }
                 continue
             }
-            if (tx.toAccount == accountLast4 && (tx.toBankName == null || tx.toBankName == bankName)) sum += tx.amount
-            if (tx.fromAccount == accountLast4 && (tx.fromBankName == null || tx.fromBankName == bankName)) sum -= tx.amount
+            if (tx.toAccount == accountLast4 && (tx.toBankName == null || tx.toBankName == bankName)) effects += tx.dateTime to tx.amount
+            if (tx.fromAccount == accountLast4 && (tx.fromBankName == null || tx.fromBankName == bankName)) {
+                effects += tx.dateTime to tx.amount.negate()
+            }
         }
-        return sum
+        return effects
     }
+
+    /** See [TransactionDao.countTransactionsOnAccountSince]. */
+    suspend fun countTransactionsSince(bankName: String, accountLast4: String, after: LocalDateTime): Int =
+        transactionDao.countTransactionsOnAccountSince(bankName, accountLast4, after)
+
+    /** Per account, what its rows prove about where its balance came from; see [AccountBalanceDao.getBalanceEvidence]. */
+    fun getBalanceEvidence(): Flow<Map<Pair<String, String>, BalanceEvidence>> =
+        accountBalanceDao.getBalanceEvidence().map { rows ->
+            rows.associate { (it.bankName to it.accountLast4) to BalanceEvidence(it.reportedAt, it.fixedAt) }
+        }
+
+    /** See [AccountBalanceDao.getTrendRows]. */
+    fun getTrendRows(start: LocalDateTime): Flow<List<AccountBalanceEntity>> = accountBalanceDao.getTrendRows(start)
 
     /**
      * The account's balance at [end], as well as the ledger knows it (#13). A

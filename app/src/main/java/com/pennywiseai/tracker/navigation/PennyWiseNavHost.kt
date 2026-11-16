@@ -452,6 +452,15 @@ fun PennyWiseNavHost(
                         )
                     }
 
+                    entry<NetWorth> { key ->
+                        com.pennywiseai.tracker.presentation.accounts.NetWorthScreen(
+                            onNavigateBack = { backStack.pop(key) },
+                            onAccountClick = { bankName, accountLast4 ->
+                                backStack.navigate(AccountDetail(bankName, accountLast4))
+                            },
+                        )
+                    }
+
                     // Also a tab screen; here for an insight's "Open subscriptions".
                     entry<Subscriptions> { key ->
                         com.pennywiseai.tracker.presentation.subscriptions.SubscriptionsScreen(

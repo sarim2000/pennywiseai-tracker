@@ -6,9 +6,11 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
@@ -46,7 +48,9 @@ fun BalanceChart(
     primaryCurrency: String,
     balanceHistory: List<BalancePoint>,
     modifier: Modifier = Modifier,
-    height: Int = 200
+    height: Int = 200,
+    /** The legend's name for the line. */
+    seriesLabel: String = stringResource(R.string.balance_chart_label),
 ) {
     if (balanceHistory.isEmpty()) return
 
@@ -74,7 +78,9 @@ fun BalanceChart(
             smoothedHistory.first().timestamp.year != smoothedHistory.last().timestamp.year
         } else false
 
-        smoothedHistory.map {
+        // The library spreads the labels evenly over the axis and drops any that don't
+        // fit, so a long series named every point but showed only its first few dates.
+        xLabelIndices(smoothedHistory.size).map { smoothedHistory[it] }.map {
             val date = it.timestamp
             when {
                 isYearly -> date.format(DateTimeFormatter.ofPattern("yyyy"))
@@ -86,97 +92,114 @@ fun BalanceChart(
     }
 
     val animationsEnabled = rememberAnimationsEnabled()
-    LineChart(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(height.dp)
-            .padding(horizontal = Spacing.sm, vertical = Spacing.md),
-        data = listOf(
-            Line(
-                label = stringResource(R.string.balance_chart_label),
-                values = chartValues,
-                color = SolidColor(themeColors.primary),
-                firstGradientFillColor = themeColors.primary.copy(alpha = 0.3f),
-                secondGradientFillColor = Color.Transparent,
-                strokeAnimationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
-                gradientAnimationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
-                gradientAnimationDelay = 750,
-                drawStyle = DrawStyle.Stroke(width = 2.dp),
-                curvedEdges = true,
-                dotProperties = DotProperties(
-                    enabled = true,
+    // The line is drawn left to right in every locale; mirrored labels would sit under the wrong points.
+    CompositionLocalProvider(LocalLayoutDirection provides LayoutDirection.Ltr) {
+        LineChart(
+            modifier = modifier
+                .fillMaxWidth()
+                .height(height.dp)
+                .padding(horizontal = Spacing.sm, vertical = Spacing.md),
+            data = listOf(
+                Line(
+                    label = seriesLabel,
+                    values = chartValues,
                     color = SolidColor(themeColors.primary),
-                    strokeWidth = 3.dp,
-                    radius = 4.dp,
-                    strokeColor = SolidColor(themeColors.surface)
+                    firstGradientFillColor = themeColors.primary.copy(alpha = 0.3f),
+                    secondGradientFillColor = Color.Transparent,
+                    strokeAnimationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
+                    gradientAnimationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
+                    gradientAnimationDelay = 750,
+                    drawStyle = DrawStyle.Stroke(width = 2.dp),
+                    curvedEdges = true,
+                    dotProperties = DotProperties(
+                        enabled = true,
+                        color = SolidColor(themeColors.primary),
+                        strokeWidth = 3.dp,
+                        radius = 4.dp,
+                        strokeColor = SolidColor(themeColors.surface)
+                    )
                 )
-            )
-        ),
-        dividerProperties = DividerProperties(
-            enabled = true,
-            xAxisProperties = LineProperties(
-                color = SolidColor(themeColors.onSurface.copy(alpha = 0f)),
-                thickness = 0.dp
             ),
-            yAxisProperties = LineProperties(
-                color = SolidColor(themeColors.onSurface.copy(alpha = 0f)),
-                thickness = 0.dp
-            )
-        ),
-        indicatorProperties = HorizontalIndicatorProperties(
-            enabled = true,
-            textStyle = chartLabel.copy(
-                color = themeColors.onSurfaceVariant,
-                textAlign = TextAlign.Center
+            dividerProperties = DividerProperties(
+                enabled = true,
+                xAxisProperties = LineProperties(
+                    color = SolidColor(themeColors.onSurface.copy(alpha = 0f)),
+                    thickness = 0.dp
+                ),
+                yAxisProperties = LineProperties(
+                    color = SolidColor(themeColors.onSurface.copy(alpha = 0f)),
+                    thickness = 0.dp
+                )
             ),
-            contentBuilder = { value ->
-                // Keep the sign: a net worth or an overdraft can be below zero.
-                val figure = CurrencyFormatter.formatAbbreviated(abs(value), primaryCurrency)
-                if (value < 0 && figure != AmountPrivacy.MASK) "-$figure" else figure
-            }
-        ),
-        labelHelperProperties = LabelHelperProperties(
-            enabled = true,
-            textStyle = chartLabel.copy(
-                color = themeColors.onSurface,
-                textAlign = TextAlign.End
+            indicatorProperties = HorizontalIndicatorProperties(
+                enabled = true,
+                textStyle = chartLabel.copy(
+                    color = themeColors.onSurfaceVariant,
+                    textAlign = TextAlign.Center
+                ),
+                contentBuilder = { value ->
+                    // Keep the sign: a net worth or an overdraft can be below zero.
+                    val figure = CurrencyFormatter.formatAbbreviated(abs(value), primaryCurrency)
+                    if (value < 0 && figure != AmountPrivacy.MASK) "-$figure" else figure
+                }
             ),
-        ),
-        labelProperties = LabelProperties(
-            enabled = true,
-            textStyle = chartLabel.copy(
-                color = themeColors.onSurfaceVariant,
-                textAlign = TextAlign.End
+            labelHelperProperties = LabelHelperProperties(
+                enabled = true,
+                textStyle = chartLabel.copy(
+                    color = themeColors.onSurface,
+                    textAlign = TextAlign.End
+                ),
             ),
-            labels = labels,
-            padding = 16.dp,
-            rotation = LabelProperties.Rotation(
-                mode = LabelProperties.Rotation.Mode.Force,
-                degree = -45f
-            )
-        ),
-        zeroLineProperties = ZeroLineProperties(
-            enabled = true,
-            style = StrokeStyle.Dashed(),
-            color = SolidColor(themeColors.onSurface.copy(alpha = 0.1f)),
-        ),
-        gridProperties = GridProperties(
-            enabled = true,
-            xAxisProperties = GridProperties.AxisProperties(
+            labelProperties = LabelProperties(
+                enabled = true,
+                textStyle = chartLabel.copy(
+                    color = themeColors.onSurfaceVariant,
+                    textAlign = TextAlign.End
+                ),
+                labels = labels,
+                padding = 16.dp,
+                rotation = LabelProperties.Rotation(
+                    mode = LabelProperties.Rotation.Mode.Force,
+                    degree = -45f
+                )
+            ),
+            zeroLineProperties = ZeroLineProperties(
                 enabled = true,
                 style = StrokeStyle.Dashed(),
-                color = SolidColor(themeColors.onSurface.copy(alpha = 0.1f))
+                color = SolidColor(themeColors.onSurface.copy(alpha = 0.1f)),
             ),
-            yAxisProperties = GridProperties.AxisProperties(
+            gridProperties = GridProperties(
                 enabled = true,
-                style = StrokeStyle.Dashed(),
-                color = SolidColor(themeColors.onSurface.copy(alpha = 0.1f))
-            )
-        ),
-        // The library's coroutine delays ignore Remove animations; None draws it at once.
-        animationMode = if (animationsEnabled) AnimationMode.Together(delayBuilder = { it * 200L }) else AnimationMode.None,
-    )
+                xAxisProperties = GridProperties.AxisProperties(
+                    enabled = true,
+                    style = StrokeStyle.Dashed(),
+                    color = SolidColor(themeColors.onSurface.copy(alpha = 0.1f))
+                ),
+                yAxisProperties = GridProperties.AxisProperties(
+                    enabled = true,
+                    style = StrokeStyle.Dashed(),
+                    color = SolidColor(themeColors.onSurface.copy(alpha = 0.1f))
+                )
+            ),
+            // The library's coroutine delays ignore Remove animations; None draws it at once.
+            animationMode = if (animationsEnabled) AnimationMode.Together(delayBuilder = { it * 200L }) else AnimationMode.None,
+        )
+    }
 }
+
+/** Most dates the X axis names; more crowd past the chart's width. */
+private const val MAX_X_LABELS = 5
+
+/**
+ * Which of [count] evenly spaced points get a date: all of a short series, else
+ * [max] spread from the first point to the last, so each label sits under its point.
+ */
+internal fun xLabelIndices(count: Int, max: Int = MAX_X_LABELS): List<Int> =
+    if (count <= max) {
+        (0 until count).toList()
+    } else {
+        (0 until max).map { j -> ((j.toLong() * (count - 1) + (max - 1) / 2) / (max - 1)).toInt() }.distinct()
+    }
 
 /**
  * Smooth balance data to reduce noise in the chart

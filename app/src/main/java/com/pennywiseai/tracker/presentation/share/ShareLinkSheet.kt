@@ -117,7 +117,9 @@ internal fun ShareLinkSheet(
                 )
             }
             Button(
-                enabled = !publishing,
+                // A link is public, so it goes up only once its image has been seen: with
+                // amounts hidden app-wide, that means after Show preview.
+                enabled = !publishing && (revealed || !AmountPrivacy.hidden),
                 onClick = {
                     scope.launch { onPublish(expiry, ogLayer.toImageBitmap().asAndroidBitmap()) }
                 },

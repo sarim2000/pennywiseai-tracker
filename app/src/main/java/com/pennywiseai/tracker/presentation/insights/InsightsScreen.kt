@@ -479,16 +479,19 @@ private fun CycleBars(cycles: List<CycleTotal>, currency: String) {
 private fun SeverityHeader(severity: InsightSeverity) {
     val (icon, color) = severityStyle(severity)
     SectionHeaderV2(
-        title = stringResource(
-            when (severity) {
-                InsightSeverity.ALERT -> R.string.insights_section_alert
-                InsightSeverity.WARNING -> R.string.insights_section_warning
-                InsightSeverity.GOOD -> R.string.insights_section_good
-            }
-        ),
+        title = severityLabel(severity),
         leading = { Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(Dimensions.Icon.inline)) },
     )
 }
+
+@Composable
+internal fun severityLabel(severity: InsightSeverity): String = stringResource(
+    when (severity) {
+        InsightSeverity.ALERT -> R.string.insights_section_alert
+        InsightSeverity.WARNING -> R.string.insights_section_warning
+        InsightSeverity.GOOD -> R.string.insights_section_good
+    }
+)
 
 @Composable
 internal fun severityStyle(severity: InsightSeverity): Pair<ImageVector, Color> = when (severity) {

@@ -20,6 +20,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.zIndex
@@ -662,11 +663,18 @@ internal fun HomeInsightsSection(
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.smd)) {
                 insights.forEach { insight ->
                     val (icon, color) = com.pennywiseai.tracker.presentation.insights.severityStyle(insight.severity)
+                    // Without section headers here, the icon says how much it matters: "Needs attention, …".
                     Row(
+                        modifier = Modifier.semantics(mergeDescendants = true) {},
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(Spacing.smd)
                     ) {
-                        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(Dimensions.Icon.medium))
+                        Icon(
+                            icon,
+                            contentDescription = com.pennywiseai.tracker.presentation.insights.severityLabel(insight.severity),
+                            tint = color,
+                            modifier = Modifier.size(Dimensions.Icon.medium)
+                        )
                         Text(
                             text = com.pennywiseai.tracker.presentation.insights.insightText(insight).title,
                             style = MaterialTheme.typography.bodyLarge,

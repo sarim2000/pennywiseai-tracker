@@ -617,6 +617,18 @@ object PennyWiseMigrations {
     }
 
     /**
+     * A purchase's warranty end date on `transactions`: unset for every existing row.
+     * A plain ADD COLUMN that SQLite 3.18 runs.
+     */
+    val MIGRATION_70_71 = object : Migration(70, 71) {
+        override suspend fun migrate(db: SQLiteConnection) {
+            if (!db.hasColumn("transactions", "warranty_until")) {
+                db.execSQL("ALTER TABLE transactions ADD COLUMN warranty_until TEXT DEFAULT NULL")
+            }
+        }
+    }
+
+    /**
      * Single source of truth for the migration list. Both the Hilt-built
      * database (DatabaseModule.providePennyWiseDatabase) and the
      * BroadcastReceiver fallback path (PennyWiseDatabase.getInstance) reference this
@@ -654,6 +666,7 @@ object PennyWiseMigrations {
         MIGRATION_67_68,
         MIGRATION_68_69,
         MIGRATION_69_70,
+        MIGRATION_70_71,
     )
 }
 

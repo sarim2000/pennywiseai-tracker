@@ -511,7 +511,7 @@ internal fun InsightCard(
     expanded: Boolean,
     onToggle: () -> Unit,
     onAction: (InsightAction) -> Unit,
-    secondaryLabel: String?,
+    secondaryLabel: String,
     onSecondary: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
@@ -565,9 +565,7 @@ internal fun InsightCard(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.End),
                 verticalAlignment = Alignment.CenterVertically,
             ) {
-                if (secondaryLabel != null) {
-                    TextButton(onClick = onSecondary, shapes = ButtonDefaults.shapes()) { Text(secondaryLabel) }
-                }
+                TextButton(onClick = onSecondary, shapes = ButtonDefaults.shapes()) { Text(secondaryLabel) }
                 insight.action?.let { action ->
                     FilledTonalButton(onClick = { onAction(action) }, shapes = ButtonDefaults.shapes()) {
                         Text(actionLabel(action))

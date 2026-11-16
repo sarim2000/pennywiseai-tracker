@@ -11,7 +11,7 @@ enum class InsightSeverity { ALERT, WARNING, GOOD }
  * decides which destination shows it (domain never imports navigation).
  */
 sealed interface InsightAction {
-    data class OpenBudget(val budgetId: Long) : InsightAction
+    data object OpenBudgets : InsightAction
     data class OpenCategory(val category: String, val currency: String, val start: LocalDate, val end: LocalDate) :
         InsightAction
     data class OpenTransaction(val transactionId: Long) : InsightAction

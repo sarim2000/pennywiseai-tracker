@@ -96,7 +96,6 @@ object InsightRules {
             if (pace.daysOver < 1 && !pace.isOverBudget) return@mapNotNull null
             val spent = Money(b.spent, b.currency)
             val limit = Money(b.limit, b.currency)
-            val action = InsightAction.OpenBudget(b.id)
             val daysLeft = b.windowDays - b.daysElapsed + 1
             // Rounded down, so following it never ends over.
             val perDayLeft = (b.limit - b.spent).divide(BigDecimal(daysLeft), 2, RoundingMode.DOWN)
@@ -104,7 +103,7 @@ object InsightRules {
                 // Nothing left a day with days to go reads as over, not as "0 a day".
                 pace.isOverBudget || perDayLeft.signum() <= 0 -> Insight(
                     id("budget_over", period, b.currency, b.windowKey), InsightSeverity.ALERT, b.currency,
-                    BudgetOver(b.name, spent, limit, b.incomplete), action,
+                    BudgetOver(b.name, spent, limit, b.incomplete), InsightAction.OpenBudgets,
                 )
                 b.daysElapsed * 4 >= b.windowDays -> Insight(
                     id("budget_pace", period, b.currency, b.windowKey), InsightSeverity.WARNING, b.currency,
@@ -121,7 +120,7 @@ object InsightRules {
                         windowEnd = b.windowEnd,
                         incomplete = b.incomplete,
                     ),
-                    action,
+                    InsightAction.OpenBudgets,
                 )
                 else -> null
             }

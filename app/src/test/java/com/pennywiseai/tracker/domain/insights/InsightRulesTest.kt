@@ -131,7 +131,7 @@ class InsightRulesTest {
         val insights = evaluate(budgets = listOf(budget(1, "3500"), budget(2, "1500")))
         val over = insights.single { it.fact is BudgetOver }
         assertEquals(InsightSeverity.ALERT, over.severity)
-        assertEquals(InsightAction.OpenBudget(1), over.action)
+        assertEquals(InsightAction.OpenBudgets, over.action)
 
         val pace = insights.facts<BudgetPace>().single()
         // 1,500 in 10 of 30 days heads for 4,500; 1,500 left over the 21 days still to come.

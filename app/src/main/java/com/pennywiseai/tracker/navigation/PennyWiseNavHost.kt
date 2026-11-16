@@ -485,7 +485,7 @@ fun PennyWiseNavHost(
 
 /** Where an insight's button leads; the domain names the target, the app picks the screen. */
 private fun insightDestination(action: InsightAction): NavKey = when (action) {
-    is InsightAction.OpenBudget -> BudgetGroups()
+    InsightAction.OpenBudgets -> BudgetGroups()
     is InsightAction.OpenCategory -> TransactionsWithFilter(
         category = action.category,
         period = com.pennywiseai.tracker.presentation.common.TimePeriod.CUSTOM.name,

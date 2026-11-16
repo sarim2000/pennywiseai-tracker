@@ -119,7 +119,7 @@ internal fun insightText(insight: Insight): InsightText = when (val f = insight.
 @Composable
 internal fun actionLabel(action: InsightAction): String = stringResource(
     when (action) {
-        is InsightAction.OpenBudget -> R.string.insights_action_budgets
+        InsightAction.OpenBudgets -> R.string.insights_action_budgets
         is InsightAction.OpenCategory -> R.string.insights_action_transactions
         is InsightAction.OpenTransaction -> R.string.insights_action_transaction
         is InsightAction.OpenAccount -> R.string.insights_action_account

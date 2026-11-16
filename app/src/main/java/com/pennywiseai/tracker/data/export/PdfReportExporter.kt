@@ -75,6 +75,15 @@ internal fun reportSlug(range: ReviewRange): String = when {
     else -> range.start.toString()
 }
 
+/**
+ * A merchant name that carries an account or phone number, such as a parser's
+ * "UPI Transfer to A/C XX1234": left out of the report, which carries no account numbers.
+ */
+internal fun looksLikeAccountLabel(name: String): Boolean = ACCOUNT_DIGITS.containsMatchIn(name)
+
+/** Four or more digits in a row, or masked digits such as `XX12` / `**12`. */
+private val ACCOUNT_DIGITS = Regex("""\d{4,}|(?i)(?:x{2,}|\*{2,})\d{2,}""")
+
 /** The share sheet for a report [PdfReportExporter.export] wrote. */
 fun pdfShareIntent(uri: Uri): Intent {
     val send = Intent(Intent.ACTION_SEND).apply {
@@ -89,7 +98,8 @@ fun pdfShareIntent(uri: Uri): Intent {
  * A month's or year's review as a PDF, drawn on-device with [PdfDocument]: the same
  * [PeriodReview] the Review screen shows, so the totals match it. Amounts are always
  * printed (the file leaves the screen), and nothing carries an SMS body, an account
- * number or a receipt.
+ * number or a receipt: merchant names built from account digits are left out
+ * ([looksLikeAccountLabel]).
  *
  * Text is laid out with [StaticLayout] in the app's language and direction, so Arabic
  * shapes and the columns mirror right to left.
@@ -227,7 +237,8 @@ class PdfReportExporter @Inject constructor(
                     )
                 }
             }
-            if (review.merchants.isNotEmpty()) {
+            val merchants = review.merchants.filterNot { looksLikeAccountLabel(it.name) }
+            if (merchants.isNotEmpty()) {
                 blocks += text(context.getString(R.string.review_pdf_merchants), bodyBold, before = 12f, after = 2f, keepWithNext = true)
                 val header = row(
                     NAME_AMOUNT_COLUMNS,
@@ -236,7 +247,7 @@ class PdfReportExporter @Inject constructor(
                     keepWithNext = true,
                 )
                 blocks += header
-                review.merchants.forEach { blocks += row(NAME_AMOUNT_COLUMNS, listOf(it.name, money(it.amount, currency)), body, header = header) }
+                merchants.forEach { blocks += row(NAME_AMOUNT_COLUMNS, listOf(it.name, money(it.amount, currency)), body, header = header) }
             }
             return blocks
         }

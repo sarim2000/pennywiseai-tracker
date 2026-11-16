@@ -514,7 +514,7 @@ class ChatTurnTest {
     }
 
     @Test
-    fun `a typed total stays out of the rebuilt window, as a one-tap one does`() = runTest {
+    fun `a typed total's figures stay out of the rebuilt window, as a one-tap one's do`() = runTest {
         savedChat(1)
         coEvery { aiContext.categorySpending(any(), any()) } returns spent("120")
         events = listOf(LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "طعام")))
@@ -529,7 +529,36 @@ class ChatTurnTest {
         events = listOf(LlmEvent.Text("hi"))
         send("and now?")
         // Replayed, that total was what the model said again after a change, instead of asking the tool.
-        assertEquals(listOf("u0" to true, "a0" to false), histories.single())
+        // The question stays, so the model still knows what the next message follows on from.
+        assertEquals(
+            listOf("u0" to true, "a0" to false, "how much on food?" to true, LlmRepository.FIGURES_REPLAYED to false),
+            histories.single()
+        )
+    }
+
+    @Test
+    fun `a follow-up after a rebuild still sees the comparison it follows`() = runTest {
+        val w = SpendingComparison.Window(LocalDateTime.of(2026, 10, 1, 0, 0), LocalDateTime.of(2026, 10, 9, 0, 0))
+        coEvery { aiContext.compareSpending(any(), any(), any(), any()) } returns
+            SpendingComparison.Result.Rows(w, w, listOf(SpendingComparison.Row("INR", BigDecimal("700"), BigDecimal("500"), BigDecimal("40"))))
+        // Prose before the call: the live conversation holds it, so it closes and the next turn rebuilds.
+        events = listOf(LlmEvent.Text("Let me check. "), LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "طعام")))
+        send("compare food with last month")
+        coEvery { aiContext.spending(any()) } returns com.pennywiseai.tracker.data.model.PeriodSpending(
+            com.pennywiseai.tracker.data.model.ChatScope(w),
+            spent = mapOf("INR" to BigDecimal("700")),
+            income = emptyMap(),
+        )
+        repository.answerQuickAction(QuickAction.MONTH_SPEND)
+
+        every { llmService.hasActiveConversation() } returns false
+        val histories = mutableListOf<List<Pair<String, Boolean>>>()
+        coEvery { llmService.createConversation(any(), capture(histories), any()) } returns Result.success(Unit)
+        coEvery { llmService.tokenCount() } returns 1500
+        events = listOf(LlmEvent.Text("hi"))
+        send("and transport?")
+        // The typed comparison keeps its words, not its figures; the one-tap exchange leaves whole.
+        assertEquals(listOf("compare food with last month" to true, LlmRepository.FIGURES_REPLAYED to false), histories.single())
     }
 
     @Test

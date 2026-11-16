@@ -257,7 +257,7 @@ class LlmRepository @Inject constructor(
         // A comparison or a total is the code's figures alone: prose beside it could carry the
         // model's own arithmetic, or a figure from an earlier turn.
         val figures: (LlmEvent.ToolCall) -> Boolean = { it.isComparison(userMessage) || it.name in MONTH_LOOKUPS }
-        // Answered by figures alone: the reply stays out of the model's window (see [QUICK_ID]).
+        // Answered by figures alone: they stay out of the model's window (see [QUICK_ID]).
         val figuresOnly = toolCalls.isNotEmpty() && toolCalls.all(figures)
         if (toolCalls.any(figures)) {
             // The live conversation still holds that prose; the next turn rebuilds from what was saved.
@@ -822,18 +822,29 @@ class LlmRepository @Inject constructor(
 
         /**
          * Marks a quick-action question and reply, and a typed question's reply made of figures
-         * alone. They stay out of the model's window: replayed, they made Qwen2.5 copy their
-         * figures as the answer to the next question ("what about last week?" got this month's)
-         * on S23, and repeat a total from before a change instead of asking the tool again. A
+         * alone. Their figures stay out of the model's window: replayed, they made Qwen2.5 copy
+         * them as the answer to the next question ("what about last week?" got this month's) on
+         * S23, and repeat a total from before a change instead of asking the tool again. A
          * follow-up is answered from its own words instead: "last month" already routes to the
          * comparison.
          */
         internal const val QUICK_ID = "quick-"
 
-        /** [saved] without the messages [QUICK_ID] marks, nor a typed question whose reply it marks. */
-        internal fun withoutFigureAnswers(saved: List<ChatMessage>): List<ChatMessage> = saved.filterIndexed { i, m ->
-            val next = saved.getOrNull(i + 1)
-            !m.id.startsWith(QUICK_ID) && !(m.isUser && next != null && !next.isUser && next.id.startsWith(QUICK_ID))
+        /** Replayed in place of a typed question's figures: the topic stays for a follow-up, the figures don't. */
+        internal const val FIGURES_REPLAYED = "(answered with the app's figures)"
+
+        /**
+         * [saved] as the model may see it again: a one-tap exchange [QUICK_ID] marks leaves, and a
+         * typed question keeps its words while its figures give way to [FIGURES_REPLAYED], so
+         * "and transport?" after "compare food with last month" still knows what was asked.
+         */
+        internal fun withoutFigureAnswers(saved: List<ChatMessage>): List<ChatMessage> = saved.mapIndexedNotNull { i, m ->
+            val asked = saved.getOrNull(i - 1)
+            when {
+                !m.id.startsWith(QUICK_ID) -> m
+                !m.isUser && asked != null && asked.isUser && !asked.id.startsWith(QUICK_ID) -> m.copy(message = FIGURES_REPLAYED)
+                else -> null
+            }
         }
 
         /** The newer half of [history], from a user turn so the model never starts mid-exchange. */

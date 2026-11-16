@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -515,7 +516,8 @@ internal fun WarrantyField(
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
             Icon(
-                Icons.Default.VerifiedUser,
+                // An outline until a date is set, so an empty row doesn't look already covered.
+                if (warrantyUntil != null) Icons.Default.VerifiedUser else Icons.Outlined.Shield,
                 contentDescription = null,
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
@@ -525,13 +527,19 @@ internal fun WarrantyField(
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Text(
-                    text = warrantyUntil?.format(AppDates.dateFormatter())
-                        ?: stringResource(R.string.warranty_field_empty),
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = if (warrantyUntil != null) MaterialTheme.colorScheme.onSurface
-                    else MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                if (warrantyUntil != null) {
+                    Text(
+                        text = warrantyUntil.format(AppDates.dateFormatter()),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                } else {
+                    Text(
+                        text = stringResource(R.string.warranty_field_empty),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
             if (warrantyUntil != null) {
                 IconButton(onClick = { onWarrantyChange(null) }, shapes = IconButtonDefaults.shapes()) {
@@ -542,9 +550,18 @@ internal fun WarrantyField(
     }
 
     if (showDatePicker) {
-        // DatePicker works in UTC midnights.
+        // DatePicker works in UTC midnights. A warranty that has already ended has nothing to remind about.
+        val today = remember { LocalDate.now() }
         val pickerState = rememberDatePickerState(
-            initialSelectedDateMillis = warrantyUntil?.atStartOfDay(ZoneOffset.UTC)?.toInstant()?.toEpochMilli()
+            initialSelectedDateMillis = warrantyUntil?.atStartOfDay(ZoneOffset.UTC)?.toInstant()?.toEpochMilli(),
+            selectableDates = remember(today) {
+                object : SelectableDates {
+                    override fun isSelectableDate(utcTimeMillis: Long) =
+                        !Instant.ofEpochMilli(utcTimeMillis).atZone(ZoneOffset.UTC).toLocalDate().isBefore(today)
+
+                    override fun isSelectableYear(year: Int) = year >= today.year
+                }
+            }
         )
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
@@ -564,7 +581,16 @@ internal fun WarrantyField(
                 }
             }
         ) {
-            DatePicker(state = pickerState)
+            DatePicker(
+                state = pickerState,
+                title = {
+                    Text(
+                        text = stringResource(R.string.warranty_field_label),
+                        // DatePicker's own title padding.
+                        modifier = Modifier.padding(start = 24.dp, end = 12.dp, top = 16.dp)
+                    )
+                }
+            )
         }
     }
 }

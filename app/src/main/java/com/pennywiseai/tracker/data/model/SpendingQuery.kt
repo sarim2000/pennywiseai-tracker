@@ -4,6 +4,7 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.domain.model.BudgetCycle
+import com.pennywiseai.tracker.utils.toLatinDigits
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -116,9 +117,22 @@ object SpendingQuery {
     )
     private val MONTH_ALT = MONTHS.keys.sortedByDescending { it.length }.joinToString("|") { Regex.escape(it) }
 
-    // The month, an Arabic و/ف/ب/ل in front, and the year right after it: "October 2025", "oct" isn't one.
+    // The month, an Arabic و/ف/ب/ل in front, and the year after it: "October 2025.", "October of
+    // 2025", "أكتوبر عام 2025"; "oct" isn't one. Digits are read as Latin ones first.
     private val MONTH_NAME = Regex(
-        "(?<![\\p{L}\\p{M}])[وفبل]{0,2}($MONTH_ALT)(?![\\p{L}\\p{M}])(?:[\\s,_-]+((?:19|20)\\d\\d)(?![\\d.,]))?",
+        "(?<![\\p{L}\\p{M}])[وفبل]{0,2}($MONTH_ALT)(?![\\p{L}\\p{M}])" +
+            "(?:[\\s,،_-]+(?:(?:of|من|عام|سنة)\\s+)?((?:19|20)\\d\\d)(?!\\d|[.,]\\d))?",
+        RegexOption.IGNORE_CASE
+    )
+
+    // A year written elsewhere as a date: "in 2025, how much in October?". A lone number, or one
+    // after "than" or "of", is more likely an amount ("more than 2000 in October?").
+    private val OTHER_YEAR = Regex(
+        "(?:\\b(?:in|from|since|during|vs\\.?|versus)|في|عام|سنة)\\s+(?:19|20)\\d\\d(?!\\d|[.,]\\d)",
+        RegexOption.IGNORE_CASE
+    )
+    private val YEAR_BEFORE_MONTH = Regex(
+        "(?<![\\d.,])(?:19|20)\\d\\d[\\s,،_-]+[وفبل]{0,2}(?:$MONTH_ALT)(?![\\p{L}\\p{M}])",
         RegexOption.IGNORE_CASE
     )
 
@@ -169,13 +183,20 @@ object SpendingQuery {
      * the words beside it ask for other days ("since October", "end of October").
      */
     fun monthNamed(message: String, today: LocalDate, year: Int? = null): Dates? {
-        val found = MONTH_NAME.findAll(message).toList()
+        val text = message.toLatinDigits()
+        val found = MONTH_NAME.findAll(text).toList()
         val month = found.mapNotNull { MONTHS[it.groupValues[1].lowercase()] }.toSet().singleOrNull() ?: return null
-        if (DAY_IN_MONTH.containsMatchIn(message)) return null
+        if (DAY_IN_MONTH.containsMatchIn(text)) return null
         val written = found.mapNotNull { it.groupValues[2].toIntOrNull() }.toSet()
         if (written.size > 1) return null
-        val before = found.map { wordsOf(message.substring(0, it.range.first)).takeLast(2).map(::forms) }
-        val after = found.map { wordsOf(message.substring(it.range.last + 1)).take(2).map(::forms) }
+        // A year written apart from the month ("in 2025, ... October", "2025 October") is never
+        // swapped for the latest month begun.
+        val rest = found.foldRight(text) { m, t -> t.replaceRange(m.range, " ") }
+        if (OTHER_YEAR.containsMatchIn(rest) || YEAR_BEFORE_MONTH.containsMatchIn(text)) {
+            return Dates.Invalid(Problem.PERIOD, message.trim())
+        }
+        val before = found.map { wordsOf(text.substring(0, it.range.first)).takeLast(2).map(::forms) }
+        val after = found.map { wordsOf(text.substring(it.range.last + 1)).take(2).map(::forms) }
         val otherDays = before.any { w -> w.any { it.any(NOT_THE_MONTH_BEFORE::contains) } } ||
             after.any { w ->
                 w.firstOrNull()?.any(NOT_THE_MONTH_AFTER::contains) == true ||

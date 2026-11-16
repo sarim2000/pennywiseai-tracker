@@ -131,6 +131,17 @@ class SpendingQueryTest {
         assertEquals(window(day(12, 1, 2025), day(12, 31, 2025)), month("spending in December"))
         assertEquals(window(day(3, 1, 2025), day(3, 31, 2025)), month("March 2025 spending"))
         assertEquals(window(day(3, 1, 2025), day(3, 31, 2025)), month("in March", year = 2025))
+        // At the end of a sentence, after "of" or عام, and in Arabic-Indic digits.
+        assertEquals(window(day(10, 1, 2025), day(10, 31, 2025)), month("How much did I spend in October 2025."))
+        assertEquals(window(day(10, 1, 2025), day(10, 31, 2025)), month("October 2025, at Carrefour"))
+        assertEquals(window(day(10, 1, 2025), day(10, 31, 2025)), month("spending in October of 2025"))
+        assertEquals(window(day(10, 1, 2025), day(10, 31, 2025)), month("كم صرفت في أكتوبر ٢٠٢٥"))
+        assertEquals(window(day(10, 1, 2025), day(10, 31, 2025)), month("كم صرفت في أكتوبر عام ٢٠٢٥؟"))
+        // A year written apart from it is said, never swapped for this year's October.
+        assertEquals(Dates.Invalid(Problem.PERIOD, "In 2025, how much in October?"), month("In 2025, how much in October?"))
+        assertEquals(Dates.Invalid(Problem.PERIOD, "2025 October spending"), month("2025 October spending"))
+        // An amount isn't a year.
+        assertEquals(window(day(10, 1), day(10, 31)), month("did I spend more than 2000 in October?"))
         // This month so far.
         assertEquals(window(day(11, 1), day(11, 16)), month("November"))
         // None, two, or a day in it: not a month's figure.

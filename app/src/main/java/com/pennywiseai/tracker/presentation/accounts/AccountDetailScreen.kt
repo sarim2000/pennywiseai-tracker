@@ -1,14 +1,5 @@
 package com.pennywiseai.tracker.presentation.accounts
 
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.pennywiseai.tracker.domain.model.AccountType
-import com.pennywiseai.tracker.ui.animations.pwCollapse
-import com.pennywiseai.tracker.ui.animations.pwExpand
-import com.pennywiseai.tracker.utils.AppDates
-
-
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.shrinkVertically
@@ -16,11 +7,9 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
-import com.pennywiseai.tracker.ui.effects.overScrollVertical
-import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ShowChart
@@ -30,23 +19,32 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.outlined.Receipt
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
-import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.domain.model.AccountType
+import com.pennywiseai.tracker.ui.animations.pwCollapse
+import com.pennywiseai.tracker.ui.animations.pwExpand
 import com.pennywiseai.tracker.ui.components.*
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.*
+import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
@@ -146,14 +144,14 @@ fun AccountDetailScreen(
                     hasMultipleCurrencies = uiState.hasMultipleCurrencies
                 )
             }
-            
+
             // Transactions Header
             item {
                 SectionHeaderV2(
                     title = stringResource(R.string.account_detail_transactions_header, uiState.transactions.size)
                 )
             }
-            
+
             // Transaction List
             if (uiState.transactions.isEmpty() && !uiState.isLoading) {
                 item {
@@ -176,7 +174,7 @@ fun AccountDetailScreen(
                     )
                 }
             }
-            
+
             // Loading State
             if (uiState.isLoading) {
                 item {
@@ -200,7 +198,7 @@ private fun ExpandableBalanceChart(
     selectedTimeframe: String
 ) {
     var isExpanded by remember { mutableStateOf(false) }
-    
+
     PennyWiseCardV2(
         modifier = Modifier
             .fillMaxWidth()
@@ -240,7 +238,7 @@ private fun ExpandableBalanceChart(
                         modifier = Modifier.padding(start = 28.dp)
                     )
                 }
-                
+
                 Icon(
                     imageVector = Icons.Default.KeyboardArrowDown,
                     contentDescription = if (isExpanded) stringResource(R.string.accounts_collapse) else stringResource(R.string.accounts_expand),
@@ -250,7 +248,7 @@ private fun ExpandableBalanceChart(
                     tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            
+
             AnimatedVisibility(
                 visible = isExpanded,
                 enter = pwExpand(),
@@ -282,7 +280,7 @@ private fun CurrentBalanceCard(
 ) {
     // A limit left over from an account re-typed from credit card to loan is ignored (#792).
     val isCreditCard = creditLimit != null && !isLoan
-    
+
     PennyWiseCardV2(
         modifier = Modifier.fillMaxWidth()
     ) {
@@ -339,7 +337,7 @@ private fun CurrentBalanceCard(
                                     text = CurrencyFormatter.formatCurrency(unbilledOutstanding, primaryCurrency),
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.tertiary
+                                    color = MaterialTheme.colorScheme.credit
                                 )
                                 Text(
                                     text = stringResource(R.string.account_detail_unbilled),
@@ -354,7 +352,7 @@ private fun CurrentBalanceCard(
                 // Regular account layout
                 Text(
                     text = if (isLoan) stringResource(R.string.manage_accounts_outstanding)
-                           else stringResource(R.string.account_detail_current_balance),
+                    else stringResource(R.string.account_detail_current_balance),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -366,7 +364,7 @@ private fun CurrentBalanceCard(
                     color = MaterialTheme.colorScheme.onSurface
                 )
             }
-            
+
             Spacer(modifier = Modifier.height(Spacing.xs))
             Row(
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
@@ -415,7 +413,7 @@ private fun SummaryStatistics(
                 fontWeight = FontWeight.Bold
             )
             Spacer(modifier = Modifier.height(Spacing.md))
-            
+
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceEvenly
@@ -541,7 +539,7 @@ private fun AccountTransactionItem(
         TransactionType.EXPENSE, TransactionType.CREDIT, TransactionType.INVESTMENT -> "-"
         TransactionType.TRANSFER -> ""
     }
-    
+
     Card(
         modifier = modifier
             .fillMaxWidth()
@@ -568,7 +566,7 @@ private fun AccountTransactionItem(
                     size = 48.dp,
                     showBackground = true
                 )
-                
+
                 Column(
                     modifier = Modifier.weight(1f)
                 ) {
@@ -590,7 +588,7 @@ private fun AccountTransactionItem(
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        
+
                         // Show balance after if available
                         transaction.balanceAfter?.let { balance ->
                             Text(
@@ -602,7 +600,7 @@ private fun AccountTransactionItem(
                     }
                 }
             }
-            
+
             Column(
                 horizontalAlignment = Alignment.End
             ) {
@@ -612,7 +610,7 @@ private fun AccountTransactionItem(
                     fontWeight = FontWeight.Bold,
                     color = amountColor
                 )
-                
+
                 // Transaction type indicator
                 when (transaction.transactionType) {
                     TransactionType.CREDIT -> Icon(
@@ -639,4 +637,3 @@ private fun AccountTransactionItem(
         }
     }
 }
-

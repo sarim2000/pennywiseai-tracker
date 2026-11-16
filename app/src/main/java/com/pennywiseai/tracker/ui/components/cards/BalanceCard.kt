@@ -64,6 +64,7 @@ import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.expense
 import com.pennywiseai.tracker.ui.theme.income
+import com.pennywiseai.tracker.ui.theme.loan
 import com.pennywiseai.tracker.ui.theme.money
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -346,7 +347,7 @@ fun BalanceCard(
                                 SummaryItem(
                                     label = stringResource(R.string.balance_card_summary_lent),
                                     value = if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(currentMonthLent, currency),
-                                    accentColor = MaterialTheme.colorScheme.tertiary
+                                    accentColor = MaterialTheme.colorScheme.loan
                                 )
                             }
                             SummaryItem(

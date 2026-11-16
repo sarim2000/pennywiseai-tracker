@@ -119,7 +119,9 @@ fun LoanDetailScreen(
             if (loan?.status == LoanStatus.ACTIVE) {
                 FloatingActionButton(
                     onClick = { viewModel.showRecordPayment() },
-                    containerColor = MaterialTheme.colorScheme.loan
+                    containerColor = MaterialTheme.colorScheme.loan,
+                    // contentColorFor() can't infer ink for a custom role.
+                    contentColor = MaterialTheme.colorScheme.loan.bestInk()
                 ) {
                     Icon(Icons.Default.Add, contentDescription = stringResource(R.string.loan_detail_record_payment))
                 }

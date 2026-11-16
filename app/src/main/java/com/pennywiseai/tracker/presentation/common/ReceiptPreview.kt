@@ -6,13 +6,18 @@ import android.net.Uri
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.PictureAsPdf
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -64,14 +69,40 @@ fun ReceiptPreview(
     }
     val firstPage = page
     if (firstPage != null) {
-        Image(
-            bitmap = firstPage,
-            contentDescription = contentDescription,
-            // A PDF page is white paper in either theme.
-            modifier = modifier.background(Color.White),
-            contentScale = ContentScale.Crop,
-            alignment = Alignment.TopCenter
-        )
+        Box(modifier = modifier) {
+            Image(
+                bitmap = firstPage,
+                contentDescription = contentDescription,
+                // A PDF page is white paper in either theme.
+                modifier = Modifier.fillMaxWidth().background(Color.White),
+                contentScale = ContentScale.Crop,
+                alignment = Alignment.TopCenter
+            )
+            // Marks the page as a document, which opens in a PDF app rather than zooming here.
+            Surface(
+                modifier = Modifier.align(Alignment.BottomStart).padding(Spacing.sm),
+                shape = MaterialTheme.shapes.small,
+                color = MaterialTheme.colorScheme.secondaryContainer
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xs),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+                ) {
+                    Icon(
+                        Icons.Default.PictureAsPdf,
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimensions.Icon.small),
+                        tint = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                    Text(
+                        text = stringResource(R.string.receipt_pdf_label),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                    )
+                }
+            }
+        }
     } else {
         Column(
             modifier = modifier

@@ -1,17 +1,21 @@
 package com.pennywiseai.tracker.data.backup
 
 import android.util.Log
+import com.pennywiseai.tracker.data.receipt.ReceiptFiles
 import java.io.File
 import java.util.Base64
 
 /**
- * Receipt photos in a backup (#839). Pure file I/O against a given `filesDir`
+ * Receipt photos and PDFs in a backup (#839). Pure file I/O against a given `filesDir`
  * so it runs in JVM unit tests.
  */
 object BackupReceipts {
 
     private const val TAG = "BackupReceipts"
     private const val RECEIPTS_DIR = "receipts"
+
+    /** All receipts in one backup together, before encoding (Base64 adds a third). */
+    const val MAX_TOTAL_BYTES: Long = 50L * 1024 * 1024
 
     /**
      * Resolves a backup's receipt [path] to a file directly inside
@@ -34,40 +38,76 @@ object BackupReceipts {
         }
     }
 
+    /** Receipts read for a backup, and how many were left out for being too large. */
+    data class Collected(val receipts: List<BackupReceipt>, val skipped: Int)
+
     /**
      * Reads and encodes each receipt file one at a time. Missing, unsafe or
-     * unreadable files are skipped (and logged) — a bad photo never fails the
-     * backup.
+     * unreadable files are skipped (and logged) — a bad file never fails the
+     * backup. A file over [maxFileBytes], or one that would take the backup past
+     * [maxTotalBytes], is left out and counted in [Collected.skipped], so the
+     * caller can say so.
      *
-     * ponytail: every encoded photo is held in memory until the JSON is
-     * written; move to a streaming encoder if users with hundreds of receipts
-     * hit OOM.
+     * ponytail: every encoded file is held in memory until the JSON is written;
+     * the size caps keep that bounded. Move to a streaming encoder if users ask
+     * for bigger backups.
      */
-    fun collect(filesDir: File, paths: Collection<String>): List<BackupReceipt> =
-        paths.distinct().mapNotNull { path ->
+    fun collect(
+        filesDir: File,
+        paths: Collection<String>,
+        maxFileBytes: Long = ReceiptFiles.MAX_RECEIPT_BYTES,
+        maxTotalBytes: Long = MAX_TOTAL_BYTES
+    ): Collected {
+        var total = 0L
+        var skipped = 0
+        val receipts = paths.distinct().mapNotNull { path ->
             val file = safeReceiptFile(filesDir, path) ?: return@mapNotNull null
             if (!file.isFile) return@mapNotNull null
+            val size = file.length()
+            if (size > maxFileBytes || total + size > maxTotalBytes) {
+                Log.w(TAG, "Left a receipt out of the backup: ${if (size > maxFileBytes) "file" else "backup"} too large")
+                skipped++
+                return@mapNotNull null
+            }
             try {
-                BackupReceipt(path, Base64.getEncoder().encodeToString(file.readBytes()))
+                BackupReceipt(path, Base64.getEncoder().encodeToString(file.readBytes())).also { total += size }
             } catch (e: Exception) {
                 Log.w(TAG, "Skipped unreadable receipt: ${e.message}")
                 null
             }
         }
+        return Collected(receipts, skipped)
+    }
+
+    /** Receipts written by a restore, and how many were left out for being too large. */
+    data class Restored(val written: Int, val skipped: Int)
 
     /**
      * Writes receipts back under `filesDir`, but only those whose path a
      * transaction in the DB still points at ([referencedPaths]) — so a merge
      * restores exactly the photos of the rows it kept. An existing file is
-     * never overwritten. Returns how many files were written.
+     * never overwritten. A receipt whose Base64 text is longer than [maxFileBytes]
+     * encodes to is skipped before it's decoded, so a hostile backup can't make
+     * the restore allocate a huge array.
      */
-    fun restore(filesDir: File, receipts: List<BackupReceipt>, referencedPaths: Set<String>): Int {
+    fun restore(
+        filesDir: File,
+        receipts: List<BackupReceipt>,
+        referencedPaths: Set<String>,
+        maxFileBytes: Long = ReceiptFiles.MAX_RECEIPT_BYTES
+    ): Restored {
         var written = 0
+        var skipped = 0
         for (receipt in receipts) {
             if (receipt.path !in referencedPaths) continue
             val target = safeReceiptFile(filesDir, receipt.path)
             if (target == null) {
                 Log.w(TAG, "Rejected unsafe receipt path in backup")
+                continue
+            }
+            if (receipt.dataBase64.length > encodedLength(maxFileBytes)) {
+                Log.w(TAG, "Skipped an oversized receipt in backup")
+                skipped++
                 continue
             }
             try {
@@ -92,6 +132,9 @@ object BackupReceipts {
                 Log.w(TAG, "Skipped a receipt during import: ${e.message}")
             }
         }
-        return written
+        return Restored(written, skipped)
     }
+
+    /** Standard Base64 length of [bytes] bytes, padding included. */
+    internal fun encodedLength(bytes: Long): Long = (bytes + 2) / 3 * 4
 }

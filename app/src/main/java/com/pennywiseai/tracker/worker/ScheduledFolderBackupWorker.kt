@@ -52,6 +52,9 @@ class ScheduledFolderBackupWorker @AssistedInject constructor(
                             System.currentTimeMillis()
                         )
                         Log.i(TAG, "Scheduled folder backup completed")
+                        if (exportResult.skippedReceipts > 0) {
+                            Log.w(TAG, "Left ${exportResult.skippedReceipts} oversized receipts out of the backup")
+                        }
                         Result.success()
                     }
                     is FolderBackupWriter.Result.Failure -> {

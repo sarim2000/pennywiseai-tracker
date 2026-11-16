@@ -187,6 +187,10 @@
     <!-- Data Management → Backup / import status -->
     <string name="settings_backup_status_title">Backup Status</string>
     <string name="settings_backup_created_choose">Backup created successfully! Choose where to save it.</string>
+    <plurals name="settings_backup_created_skipped_receipts">
+        <item quantity="one">Backup created, but %d receipt was too large and was left out. Choose where to save it.</item>
+        <item quantity="other">Backup created, but %d receipts were too large and were left out. Choose where to save it.</item>
+    </plurals>
     <!-- %1$s = technical error detail -->
     <string name="settings_export_failed">Export failed: %1$s</string>
     <string name="settings_export_error">Export error: %1$s</string>
@@ -195,6 +199,10 @@
     <string name="settings_importing_backup">Importing backup...</string>
     <string name="settings_import_backup_success">Import successful! Imported %1$d transactions, %2$d categories. Skipped %3$d duplicates.</string>
     <string name="settings_import_backup_success_with_skipped_rows">Import successful! Imported %1$d transactions, %2$d categories. Skipped %3$d duplicates. %4$d rows could not be imported.</string>
+    <plurals name="settings_import_backup_success_skipped_receipts">
+        <item quantity="one">Import successful! Imported %1$d transactions, %2$d categories. Skipped %3$d duplicates. %4$d receipt was too large to restore.</item>
+        <item quantity="other">Import successful! Imported %1$d transactions, %2$d categories. Skipped %3$d duplicates. %4$d receipts were too large to restore.</item>
+    </plurals>
     <string name="settings_import_failed">Import failed: %1$s</string>
     <string name="settings_import_error">Import error: %1$s</string>
     <string name="settings_importing_transactions">Importing transactions...</string>
@@ -205,6 +213,10 @@
     <string name="settings_folder_select_first">Select a backup folder first</string>
     <string name="settings_folder_not_writable">Cannot write to the selected backup folder</string>
     <string name="settings_folder_backup_saved">Backup saved to folder</string>
+    <plurals name="settings_folder_backup_saved_skipped_receipts">
+        <item quantity="one">Backup saved to folder. %d receipt was too large and was left out.</item>
+        <item quantity="other">Backup saved to folder. %d receipts were too large and were left out.</item>
+    </plurals>
     <string name="settings_folder_backup_enabled">Automatic folder backup enabled. Backups run daily at 2:00 AM.</string>
 
     <!-- Data Management → Save backup dialog -->

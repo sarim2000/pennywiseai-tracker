@@ -575,7 +575,11 @@ class SettingsViewModel @Inject constructor(
                     is ExportResult.Success -> {
                         // Store the file for later saving
                         _exportedBackupFile.value = result.file
-                        _importExportMessage.value = UiText.Res(R.string.settings_backup_created_choose)
+                        _importExportMessage.value = if (result.skippedReceipts > 0) {
+                            UiText.Plural(R.plurals.settings_backup_created_skipped_receipts, result.skippedReceipts)
+                        } else {
+                            UiText.Res(R.string.settings_backup_created_choose)
+                        }
                     }
                     is ExportResult.Error -> {
                         _importExportMessage.value = UiText.Res(R.string.settings_export_failed, listOf("${result.message}"))
@@ -658,6 +662,8 @@ class SettingsViewModel @Inject constructor(
                         val counts = listOf(result.importedTransactions, result.importedCategories, result.skippedDuplicates)
                         _importExportMessage.value = if (result.skippedRows > 0) {
                             UiText.Res(R.string.settings_import_backup_success_with_skipped_rows, counts + result.skippedRows)
+                        } else if (result.skippedReceipts > 0) {
+                            UiText.Plural(R.plurals.settings_import_backup_success_skipped_receipts, result.skippedReceipts, counts + result.skippedReceipts)
                         } else {
                             UiText.Res(R.string.settings_import_backup_success, counts)
                         }
@@ -794,7 +800,11 @@ class SettingsViewModel @Inject constructor(
                             System.currentTimeMillis()
                         )
                         if (showSuccessMessage) {
-                            _importExportMessage.value = UiText.Res(R.string.settings_folder_backup_saved)
+                            _importExportMessage.value = if (exportResult.skippedReceipts > 0) {
+                                UiText.Plural(R.plurals.settings_folder_backup_saved_skipped_receipts, exportResult.skippedReceipts)
+                            } else {
+                                UiText.Res(R.string.settings_folder_backup_saved)
+                            }
                         }
                         true
                     }

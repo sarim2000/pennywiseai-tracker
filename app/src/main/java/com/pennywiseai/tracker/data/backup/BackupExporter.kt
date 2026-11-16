@@ -49,7 +49,7 @@ class BackupExporter @Inject constructor(
         includeReceipts: Boolean = false
     ): ExportResult {
         return try {
-            val backup = createBackup(privacy, includeReceipts)
+            val (backup, skippedReceipts) = createBackup(privacy, includeReceipts)
             val file = createBackupFile()
             try {
                 // Streamed so the photos aren't held twice more as one big JSON string.
@@ -58,7 +58,7 @@ class BackupExporter @Inject constructor(
                 file.delete() // don't leave a partial backup in cache
                 throw e
             }
-            ExportResult.Success(file)
+            ExportResult.Success(file, skippedReceipts)
         } catch (e: Exception) {
             ExportResult.Error("Export failed: ${e.message}")
         } catch (e: OutOfMemoryError) {
@@ -66,10 +66,8 @@ class BackupExporter @Inject constructor(
         }
     }
 
-    /**
-     * Create backup data structure
-     */
-    private suspend fun createBackup(privacy: ExportPrivacy, includeReceipts: Boolean): PennyWiseBackup {
+    /** Creates the backup, and counts the receipts too large to go in it. */
+    private suspend fun createBackup(privacy: ExportPrivacy, includeReceipts: Boolean): Pair<PennyWiseBackup, Int> {
         // Get all database data
         val transactions = database.transactionDao().getAllTransactions().first()
         val categories = database.categoryDao().getAllCategories().first()
@@ -191,11 +189,12 @@ class BackupExporter @Inject constructor(
         } else emptyList()
         // Receipt photos (#839): only when the caller opts in, and only in FULL
         // exports — a photo of a bill is exactly what masking is meant to hide.
-        val exportedReceipts = if (includeReceipts && privacy == ExportPrivacy.FULL) {
+        val collectedReceipts = if (includeReceipts && privacy == ExportPrivacy.FULL) {
             withContext(Dispatchers.IO) {
                 BackupReceipts.collect(context.filesDir, finalTransactions.mapNotNull { it.receiptPath })
             }
-        } else emptyList()
+        } else BackupReceipts.Collected(emptyList(), skipped = 0)
+        val exportedReceipts = collectedReceipts.receipts
 
         return PennyWiseBackup(
             metadata = BackupMetadata(
@@ -306,7 +305,7 @@ class BackupExporter @Inject constructor(
                 settings = settings
             ),
             receipts = exportedReceipts
-        )
+        ) to collectedReceipts.skipped
     }
 
     /**

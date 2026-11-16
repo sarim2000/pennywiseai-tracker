@@ -89,9 +89,10 @@ private fun rootOf(tab: BottomNavItem): NavKey = when (tab) {
     BottomNavItem.Chat -> Chat
 }
 
-/** The list behind a chat figure: its days, its category, its profile, and only its currency. */
+/** The list behind a chat figure: its days, its category and account, its profile, and only its currency. */
 internal fun transactionsFor(link: ChatLink) = Transactions(
     category = link.category,
+    account = link.account,
     period = TimePeriod.CUSTOM.name,
     currency = link.currency,
     startDate = link.start.toEpochDay(),

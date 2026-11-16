@@ -24,27 +24,27 @@ data class ReplyTopic(
     val saved: Boolean = false,
 )
 
-/** The shape a reply answered by [tool] (a [PennyWiseTools] name) takes; the model's own words are the owl. */
-internal fun replyShape(tool: String?): MascotShape = when (tool) {
+/**
+ * The shape a reply answered by [tool] (a [PennyWiseTools] name) takes; the model's own words
+ * are the owl. A spending figure with a [share] of all spending (a category's, or the biggest
+ * one's) is a pie; a total is a coin.
+ */
+internal fun replyShape(tool: String?, share: Float? = null): MascotShape = when (tool) {
     PennyWiseTools.ADD_TRANSACTIONS, PennyWiseTools.DELETE_TRANSACTION, PennyWiseTools.UPDATE_TRANSACTION -> MascotShape.Receipt
-    PennyWiseTools.SPENDING_BY_CATEGORY -> MascotShape.Pie
+    PennyWiseTools.QUERY_SPENDING -> if (share != null) MascotShape.Pie else MascotShape.Coin
     PennyWiseTools.COMPARE_SPENDING -> MascotShape.Bars
-    PennyWiseTools.MONTH_SUMMARY -> MascotShape.Coin
     else -> MascotShape.Owl
 }
 
-/** A slice for a category the reply couldn't put a share on: visibly a slice, not a claim. */
-private const val UNKNOWN_SHARE = 0.25f
-
 internal fun replyTopic(subject: ReplySubject): ReplyTopic {
-    val shape = replyShape(subject.tool)
+    val shape = replyShape(subject.tool, subject.share)
     return ReplyTopic(
         messageId = subject.messageId,
         shape = shape,
         // Happy only for rows just saved; the screen keeps it to the beat after the save.
         mood = if (subject.saved) MascotMood.Happy else MascotMood.Calm,
         value = when (shape) {
-            MascotShape.Pie -> subject.share ?: UNKNOWN_SHARE
+            MascotShape.Pie -> subject.share ?: 0f
             MascotShape.Bars -> subject.trend.toFloat()
             else -> 0f
         },

@@ -56,7 +56,10 @@ data class CategorySpend(
     val cardPurchases: Boolean = false,
 )
 
-/** Each currency's biggest categories in [scope]; [forgiven] loans are listed apart, never as a category. */
+/**
+ * Each currency's biggest categories in [scope] (or merchants, or accounts); [forgiven] loans
+ * are listed apart, never as one of them.
+ */
 data class TopCategories(
     val scope: ChatScope,
     val ranking: Map<String, List<Pair<String, BigDecimal>>>,
@@ -68,11 +71,11 @@ data class TopCategories(
 
 /**
  * A way from a chat figure to the transactions behind it: [start] to [end] (whole days), in
- * [category] and its subcategories when set, and only rows written in [currency]: the list
- * left to its own currency would open on the base one alone. [profileId] is the profile the
- * figure counted (null for all), whatever Home shows by the time it's opened. Forgiven loans
- * aren't transactions: the answer names them in its own text. The screen's only: never
- * saved, so a chat restored later is text.
+ * [category] and its subcategories when set, on [account] (a "bank_last4" key) when set, and
+ * only rows written in [currency]: the list left to its own currency would open on the base
+ * one alone. [profileId] is the profile the figure counted (null for all), whatever Home shows
+ * by the time it's opened. Forgiven loans aren't transactions: the answer names them in its own
+ * text. The screen's only: never saved, so a chat restored later is text.
  */
 data class ChatLink(
     val label: String,
@@ -81,6 +84,7 @@ data class ChatLink(
     val category: String?,
     val currency: String,
     val profileId: Long?,
+    val account: String? = null,
 )
 
 /**
@@ -94,7 +98,7 @@ data class ReplySubject(
     val tool: String? = null,
     /** A confirmed Add card's rows were saved. */
     val saved: Boolean = false,
-    /** The category's share of the month's spending, 0..1. */
+    /** The figure's share of all spending in its days (a category's, or the biggest one's), 0..1. */
     val share: Float? = null,
     /** Spending rose (1) or fell (-1) in every currency; 0 when it held, went both ways or can't tell. */
     val trend: Int = 0,

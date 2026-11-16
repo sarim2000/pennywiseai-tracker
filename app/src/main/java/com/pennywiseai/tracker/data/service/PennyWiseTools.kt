@@ -29,12 +29,15 @@ class PennyWiseTools : ToolSet {
         @ToolParam(description = "The new merchant name, or empty to keep it") newMerchant: String
     ): String = ""
 
-    @Tool(description = "Look up this month's totals: money spent, money received and number of transactions.")
-    fun monthSummary(): String = ""
-
-    @Tool(description = "Look up how much the user has spent in a category this month.")
-    fun spendingByCategory(
-        @ToolParam(description = "One of the known category names") category: String
+    @Tool(description = "Look up how much the user spent or received: a total, or the biggest categories, merchants or accounts. The app works out the figures.")
+    fun querySpending(
+        @ToolParam(description = "this_month, last_month, this_week, last_week, today, yesterday, a month as YYYY-MM or a year as YYYY; empty for this month") period: String,
+        @ToolParam(description = "First day as YYYY-MM-DD only when the user gave dates, else empty") from: String,
+        @ToolParam(description = "Last day as YYYY-MM-DD, or empty for today") to: String,
+        @ToolParam(description = "One of the known category names, or empty for all spending") category: String,
+        @ToolParam(description = "Merchant or shop name the user asked about, or empty") merchant: String,
+        @ToolParam(description = "One of the accounts if the user named one, else empty") account: String,
+        @ToolParam(description = "none for a total, or category, merchant or account for the biggest ones") groupBy: String
     ): String = ""
 
     @Tool(description = "Compare the user's spending so far this month with last month, or this week with last week. The app works out the figures.")
@@ -46,10 +49,9 @@ class PennyWiseTools : ToolSet {
     companion object {
         const val COMPARE_SPENDING = "compare_spending"
         const val ADD_TRANSACTIONS = "add_transactions"
-        const val SPENDING_BY_CATEGORY = "spending_by_category"
+        const val QUERY_SPENDING = "query_spending"
         const val DELETE_TRANSACTION = "delete_transaction"
         const val UPDATE_TRANSACTION = "update_transaction"
-        const val MONTH_SUMMARY = "month_summary"
     }
 }
 

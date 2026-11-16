@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.data.model
 
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.ledger.breakdownByCurrency
@@ -213,11 +214,36 @@ object SpendingComparison {
      * Each currency's biggest categories, largest first: split shares in, refunds given back to a
      * category out (floored at zero, and a category refunded in full drops off). Never ranked across currencies.
      */
-    fun topCategories(rows: List<TransactionWithSplits>, limit: Int = 5, creditAsExpense: Boolean = true): Map<String, List<Pair<String, BigDecimal>>> {
-        val refunded = refunds(rows).groupBy({ it.first to it.second }, { it.third })
+    fun topCategories(rows: List<TransactionWithSplits>, limit: Int = 5, creditAsExpense: Boolean = true): Map<String, List<Pair<String, BigDecimal>>> =
+        ranking(rows, null, null, limit, creditAsExpense)
+
+    /**
+     * [topCategories] by any [key] of a transaction (its merchant, its account), or by category
+     * when [key] is null. With [categories], only their split shares count, and only refunds
+     * given back to them come off. A refund comes off the group its own row falls in.
+     */
+    fun ranking(
+        rows: List<TransactionWithSplits>,
+        key: ((TransactionEntity) -> String)?,
+        categories: Set<String>? = null,
+        limit: Int = 5,
+        creditAsExpense: Boolean = true,
+    ): Map<String, List<Pair<String, BigDecimal>>> {
+        val refunded = rows.forTotals()
+            .filter { it.transaction.transactionType == TransactionType.INCOME && it.transaction.budgetImpactType == BudgetImpactType.DEDUCT_SPENT }
+            .mapNotNull { row ->
+                val category = (row.transaction.budgetCategory ?: "").ifEmpty { "Others" }
+                if (categories != null && !categories.includes(category)) return@mapNotNull null
+                (row.transaction.currency to (key?.invoke(row.transaction) ?: category)) to row.transaction.amount
+            }
+            .groupBy({ it.first }, { it.second })
             .mapValues { (_, a) -> a.fold(BigDecimal.ZERO, BigDecimal::add) }
         return spending(rows, creditAsExpense)
-            .flatMap { row -> row.getAmountByCategory().map { (category, amount) -> Triple(row.transaction.currency, category, amount) } }
+            .flatMap { row ->
+                val parts = row.getAmountByCategory().filterKeys { categories == null || categories.includes(it) }
+                if (key == null) parts.map { (category, amount) -> Triple(row.transaction.currency, category, amount) }
+                else listOfNotNull(parts.takeIf { it.isNotEmpty() }?.let { Triple(row.transaction.currency, key(row.transaction), it.values.fold(BigDecimal.ZERO, BigDecimal::add)) })
+            }
             .groupBy { it.first }
             .mapValues { (currency, items) ->
                 items.groupBy({ it.second }, { it.third })

@@ -4,8 +4,10 @@ import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.dao.AccountBalanceDao
 import com.pennywiseai.tracker.data.database.dao.CardDao
 import com.pennywiseai.tracker.data.database.dao.CategoryDao
+import com.pennywiseai.tracker.data.database.dao.MerchantAliasDao
 import com.pennywiseai.tracker.data.database.dao.ProfileDao
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
+import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -18,6 +20,8 @@ import com.pennywiseai.tracker.data.model.CategorySpend
 import com.pennywiseai.tracker.data.model.ChatScope
 import com.pennywiseai.tracker.data.model.PeriodSpending
 import com.pennywiseai.tracker.data.model.SpendingComparison
+import com.pennywiseai.tracker.data.model.SpendingFilter
+import com.pennywiseai.tracker.data.model.SpendingQuery
 import com.pennywiseai.tracker.data.model.TopCategories
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
@@ -50,6 +54,7 @@ class AiContextRepository @Inject constructor(
     private val profileDao: ProfileDao,
     private val ignoredAccountsStore: IgnoredAccountsStore,
     private val cardDao: CardDao,
+    private val merchantAliasDao: MerchantAliasDao,
 ) {
 
     /** Home's period: this budget cycle up to the end of [today], in the profile Home shows. */
@@ -89,9 +94,16 @@ class AiContextRepository @Inject constructor(
         return Scope(ChatScope(window, shown.profile), shown.id, ignored, buildProfileAccountKeys(balances))
     }
 
-    private suspend fun rows(scope: Scope): List<TransactionWithSplits> =
-        transactionSplitDao.getTransactionsWithSplitsAllCurrencies(scope.start, scope.end).first()
-            .filter { scope.keeps(it.transaction) }
+    /** [filter]'s days, or Home's period when it names none. */
+    private suspend fun scopeOf(filter: SpendingFilter, today: LocalDate) = filter.window?.let { scope(it, shown()) } ?: homeScope(today)
+
+    private suspend fun rows(scope: Scope, filter: SpendingFilter = SpendingFilter()): List<TransactionWithSplits> {
+        val aliases = if (filter.merchant == null) emptyMap() else aliases()
+        return transactionSplitDao.getTransactionsWithSplitsAllCurrencies(scope.start, scope.end).first()
+            .filter { scope.keeps(it.transaction) && filter.keeps(it.transaction, aliases) }
+    }
+
+    private suspend fun aliases(): Map<String, String> = merchantAliasDao.getAllAliasesList().associate { it.merchantName to it.alias }
 
     /** Lent balances forgiven in [scope], per currency, in its profile: Home adds these to "Spent" (#938). */
     private suspend fun forgiven(scope: Scope): Map<String, BigDecimal> = loanRepository.settlementLossByCurrency(
@@ -101,10 +113,14 @@ class AiContextRepository @Inject constructor(
 
     private suspend fun creditAsExpense() = userPreferencesRepository.countCreditCardAsExpense.first()
 
-    /** Home's "Spent this month" and income, with one converted figure only when Home shows one. */
-    suspend fun spending(today: LocalDate = LocalDate.now()): PeriodSpending {
-        val scope = homeScope(today)
-        val rows = rows(scope)
+    /**
+     * Home's "Spent this month" and income, with one converted figure only when Home shows one.
+     * [filter] picks other days, or narrows it to a merchant or account: forgiven loans belong
+     * to neither, so they're only in a figure of all spending.
+     */
+    suspend fun spending(today: LocalDate = LocalDate.now(), filter: SpendingFilter = SpendingFilter()): PeriodSpending {
+        val scope = scopeOf(filter, today)
+        val rows = rows(scope, filter)
         val transactions = rows.map { it.transaction }
         val credit = creditAsExpense()
         val breakdown = breakdownByCurrency(transactions, credit)
@@ -112,7 +128,7 @@ class AiContextRepository @Inject constructor(
             scope = scope.chat,
             spent = breakdown.mapValues { it.value.expenses }.filterValues { it.signum() > 0 },
             income = breakdown.mapValues { it.value.income }.filterValues { it.signum() > 0 },
-            forgiven = forgiven(scope),
+            forgiven = if (filter.narrowed) emptyMap() else forgiven(scope),
             // The rows the breakdown adds up: not transfers or investments, card purchases only when counted.
             transactionCount = transactions.forTotals().count {
                 it.transactionType == TransactionType.INCOME || it.transactionType == TransactionType.EXPENSE ||
@@ -131,13 +147,13 @@ class AiContextRepository @Inject constructor(
     }
 
     /**
-     * One category's spending in Home's period, for the chat's lookup tool (#170): its
-     * subcategories and split shares in, refunds given back to it out. No currencies when
-     * nothing in the period was spent in it.
+     * One category's spending in Home's period (or [filter]'s), for the chat's lookup tool
+     * (#170): its subcategories and split shares in, refunds given back to it out. No
+     * currencies when nothing in the period was spent in it.
      */
-    suspend fun categorySpending(category: String, today: LocalDate = LocalDate.now()): CategorySpend {
-        val scope = homeScope(today)
-        val rows = rows(scope)
+    suspend fun categorySpending(category: String, today: LocalDate = LocalDate.now(), filter: SpendingFilter = SpendingFilter()): CategorySpend {
+        val scope = scopeOf(filter, today)
+        val rows = rows(scope, filter)
         val credit = creditAsExpense()
         val names = categoriesNamed(category)
         // A currency refunded in full is nothing spent, as spending() leaves it out.
@@ -153,14 +169,33 @@ class AiContextRepository @Inject constructor(
         )
     }
 
-    /** Each currency's biggest categories in Home's period, with forgiven loans beside them. */
-    suspend fun topCategories(today: LocalDate = LocalDate.now()): TopCategories {
-        val scope = homeScope(today)
-        val rows = rows(scope)
+    /**
+     * Each currency's biggest categories in Home's period, with forgiven loans beside them. Or,
+     * per [by], its biggest merchants (named as the user aliased them) or accounts, in
+     * [filter]'s days and rows; with [category], only that category's part of each. Forgiven
+     * loans are no category, merchant or account: only a ranking of all categories lists them.
+     */
+    suspend fun topCategories(
+        today: LocalDate = LocalDate.now(),
+        filter: SpendingFilter = SpendingFilter(),
+        by: SpendingQuery.GroupBy = SpendingQuery.GroupBy.CATEGORY,
+        category: String? = null,
+    ): TopCategories {
+        val scope = scopeOf(filter, today)
+        val rows = rows(scope, filter)
         val credit = creditAsExpense()
-        val ranking = SpendingComparison.topCategories(rows, creditAsExpense = credit)
+        val key: ((TransactionEntity) -> String)? = when (by) {
+            SpendingQuery.GroupBy.MERCHANT -> aliases().let { aliases -> { tx: TransactionEntity -> aliases[tx.merchantName] ?: tx.merchantName } }
+            SpendingQuery.GroupBy.ACCOUNT -> accountBalanceDao.getAllLatestBalancesOnce().associateBy { SpendingFilter.accountKey(it) }.let { accounts ->
+                { tx: TransactionEntity -> accounts[SpendingFilter.accountKey(tx)]?.displayLabel ?: tx.bankName?.let { AccountBalanceEntity.accountLabel(it, tx.accountNumber) } ?: NO_ACCOUNT }
+            }
+            else -> null
+        }
+        val names = category?.let { categoriesNamed(it) }
+        val ranking = SpendingComparison.ranking(rows, key, names, creditAsExpense = credit)
         val top = ranking.mapValues { (_, cats) -> cats.first().second }
-        return TopCategories(scope.chat, ranking, forgiven(scope), shareOfSpending(rows, credit, top), SpendingComparison.countsCardPurchases(rows, creditAsExpense = credit))
+        val forgiven = if (key == null && category == null && !filter.narrowed) forgiven(scope) else emptyMap()
+        return TopCategories(scope.chat, ranking, forgiven, shareOfSpending(rows, credit, top), SpendingComparison.countsCardPurchases(rows, names, credit))
     }
 
     /**
@@ -192,6 +227,11 @@ class AiContextRepository @Inject constructor(
     private suspend fun categoriesNamed(asked: String): Set<String> {
         val all = categoryDao.getAllCategoriesList()
         return all.expandWithChildren(listOf(all.firstOrNull { it.name.equals(asked, ignoreCase = true) }?.name ?: asked))
+    }
+
+    companion object {
+        /** A ranking's name for spending on no account (cash typed in without one); the screen words it. */
+        const val NO_ACCOUNT = ""
     }
 
     /** [part]'s share of all spending, in the user's own currency when it has some, else the first. */

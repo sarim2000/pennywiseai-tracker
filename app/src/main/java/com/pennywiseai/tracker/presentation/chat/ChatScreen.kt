@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -92,8 +93,20 @@ fun ChatScreen(
         onStopOrDispose { viewModel.onScreenHidden() }
     }
 
-    var inputText by remember { mutableStateOf("") }
+    // Saveable: a question carried in from the quick add mic must survive a rotation.
+    var inputText by rememberSaveable { mutableStateOf("") }
     val voice = rememberVoiceInput(onText = { inputText = it })
+    // A question from the quick add mic lands in the box, not sent, once the box is there:
+    // with no model it waits, shown below.
+    val chatDraft by viewModel.chatDraft.collectAsStateWithLifecycle()
+    val composerShown = modelState == ModelState.READY || modelState == ModelState.LOADING
+    LaunchedEffect(chatDraft, composerShown) {
+        val draft = chatDraft ?: return@LaunchedEffect
+        if (!composerShown) return@LaunchedEffect
+        voice.cancel()
+        inputText = draft.text
+        viewModel.takeChatDraft(draft)
+    }
     // The mic stops with the screen; words already heard stay in the box.
     androidx.lifecycle.compose.LifecycleStartEffect(voice) {
         onStopOrDispose {
@@ -263,6 +276,16 @@ fun ChatScreen(
                             }
                         }
 
+                        chatDraft?.let { draft ->
+                            Text(
+                                text = stringResource(R.string.chat_draft_waiting, draft.text),
+                                style = MaterialTheme.typography.bodyMedium.copy(textDirection = TextDirection.Content),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = Dimensions.Padding.content, vertical = Spacing.sm)
+                            )
+                        }
                         // These need no model, so they stay usable while there's none.
                         QuickActionChips(enabled = !uiState.isLoading && !isConfirming, onClick = viewModel::runQuickAction)
                         Spacer(modifier = Modifier.height(Spacing.sm))

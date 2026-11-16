@@ -48,7 +48,13 @@ class ChatViewModel @Inject constructor(
     private val modelDownloader: ModelDownloader,
     private val transactionEvents: TransactionEvents,
     @com.pennywiseai.tracker.core.ApplicationScope private val appScope: kotlinx.coroutines.CoroutineScope,
+    private val chatDrafts: ChatDraftInbox,
 ) : ViewModel() {
+
+    /** A question asked from the quick add mic, for the message box. */
+    val chatDraft: StateFlow<ChatDraftInbox.Draft?> = chatDrafts.draft
+
+    fun takeChatDraft(draft: ChatDraftInbox.Draft) = chatDrafts.take(draft)
 
     val downloadProgress: StateFlow<Int> = modelDownloader.progress
         .map { (it.downloadedBytes * 100 / it.totalBytes.coerceAtLeast(1)).toInt() }

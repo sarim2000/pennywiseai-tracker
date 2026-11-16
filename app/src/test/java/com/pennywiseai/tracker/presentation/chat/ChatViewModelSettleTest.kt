@@ -96,6 +96,7 @@ class ChatViewModelSettleTest {
         },
         transactionEvents = events,
         appScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined),
+        chatDrafts = ChatDraftInbox(),
     )
 
     @Test

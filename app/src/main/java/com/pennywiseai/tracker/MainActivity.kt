@@ -53,6 +53,9 @@ class MainActivity : FragmentActivity() {
         const val EXTRA_OPEN_BUDGETS = "com.pennywiseai.tracker.OPEN_BUDGETS"
         const val EXTRA_CREATE_GOAL = "com.pennywiseai.tracker.CREATE_GOAL"
 
+        /** A question said to the quick add mic: Chat opens with it in the box, not sent. */
+        const val EXTRA_CHAT_TEXT = "com.pennywiseai.tracker.CHAT_TEXT"
+
         /**
          * Deep link that jumps straight to Add Transaction: `pennywise://add`.
          * The single entry point every quick-add surface routes through — the
@@ -84,6 +87,7 @@ class MainActivity : FragmentActivity() {
         private set
 
     @Inject lateinit var appLockRepository: AppLockRepository
+    @Inject lateinit var chatDrafts: com.pennywiseai.tracker.presentation.chat.ChatDraftInbox
 
     override fun attachBaseContext(newBase: android.content.Context) {
         super.attachBaseContext(newBase.withLatinDigits())
@@ -204,6 +208,8 @@ class MainActivity : FragmentActivity() {
             // Capped: it travels as a navigation argument and ends up as a note.
             sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)?.trim()?.take(MAX_SHARED_TEXT)?.ifEmpty { null }
         }
+        // Held in the inbox, so it needs no pending flag: MainScreen opens Chat behind the lock screen.
+        intent?.getStringExtra(EXTRA_CHAT_TEXT)?.take(MAX_SHARED_TEXT)?.let(chatDrafts::put)
         if (intent?.getBooleanExtra(EXTRA_OPEN_ADD_TRANSACTION, false) == true || intent.isAddDeepLink()) {
             openAddTransaction = com.pennywiseai.tracker.navigation.AddTransaction(
                 amount = intent?.getStringExtra(EXTRA_ADD_AMOUNT),

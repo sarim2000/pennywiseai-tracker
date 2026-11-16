@@ -25,8 +25,12 @@ class MainViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val merchantAliasRepository: MerchantAliasRepository,
-    internal val contactsResolver: ContactsResolver
+    internal val contactsResolver: ContactsResolver,
+    chatDrafts: com.pennywiseai.tracker.presentation.chat.ChatDraftInbox
 ) : ViewModel() {
+
+    /** A question from the quick add mic: MainScreen opens Chat for it. */
+    val chatDraft = chatDrafts.draft
 
     private val _whatsNewVersion = MutableStateFlow<WhatsNewVersion?>(null)
     val whatsNewVersion: StateFlow<WhatsNewVersion?> = _whatsNewVersion.asStateFlow()

@@ -595,6 +595,22 @@ class UserPreferencesStorageGoldenTest {
     }
 
     @Test
+    fun `dismissed insights last for their own cycle`() = runBlocking {
+        val dismissed = stringSet("dismissed_insights")
+
+        repository.dismissInsight("budget_over:v1:2026-10-01:INR:1")
+        repository.dismissInsight("savings_rate:v1:2026-10-01:INR:cycle")
+        assertEquals(2, stored()[dismissed]?.size)
+
+        // A new cycle's dismissal drops the last cycle's: their ids can't come back anyway.
+        repository.dismissInsight("budget_over:v1:2026-11-01:INR:1")
+        assertEquals(setOf("budget_over:v1:2026-11-01:INR:1"), stored()[dismissed])
+
+        repository.restoreInsight("budget_over:v1:2026-11-01:INR:1")
+        assertEquals(emptySet<String>(), stored()[dismissed])
+    }
+
+    @Test
     fun `one-shot claims fire once`() = runBlocking {
         assertTrue(repository.claimShakeToHideHint())
         assertFalse(repository.claimShakeToHideHint())

@@ -77,3 +77,6 @@ data class Insight(
     val fact: InsightFact,
     val action: InsightAction?,
 )
+
+/** The cycle an [Insight.id] belongs to (its third part), or null for an id in another form. */
+fun insightCycleOf(id: String): String? = id.split(':').getOrNull(2)

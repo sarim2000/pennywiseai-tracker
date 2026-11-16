@@ -107,6 +107,7 @@ class UserPreferencesKeysGoldenTest {
             "dark_theme_enabled" to "Boolean",
             "date_format_style" to "String",
             "developer_mode_enabled" to "Boolean",
+            "dismissed_insights" to "Set<String>",
             "dismissed_recurring_suggestions" to "Set<String>",
             "display_currency" to "String",
             "dynamic_color_enabled" to "Boolean",

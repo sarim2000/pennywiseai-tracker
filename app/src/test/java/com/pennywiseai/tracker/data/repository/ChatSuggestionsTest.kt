@@ -58,7 +58,15 @@ class ChatSuggestionsTest {
         assertEquals(Ask(QuickAction.BUDGETS), ChatSuggestions.pick(0, noBills, listOf(budget("10").copy(limit = null))).first())
     }
 
-    private fun row(id: Long, category: String, profileId: Long? = null, excluded: Boolean = false, deleted: Boolean = false) = TransactionEntity(
+    private fun row(
+        id: Long,
+        category: String,
+        profileId: Long? = null,
+        excluded: Boolean = false,
+        deleted: Boolean = false,
+        bank: String? = null,
+        account: String? = null,
+    ) = TransactionEntity(
         id = id,
         amount = BigDecimal.TEN,
         merchantName = "Shop",
@@ -70,6 +78,8 @@ class ChatSuggestionsTest {
         profileId = profileId,
         excludedFromAnalytics = excluded,
         isDeleted = deleted,
+        bankName = bank,
+        accountNumber = account,
     )
 
     @Test
@@ -96,6 +106,8 @@ class ChatSuggestionsTest {
             },
             userPreferencesRepository = mockk<UserPreferencesRepository> { every { selectedProfileId } returns profile },
             accountBalanceRepository = mockk { every { getAllLatestBalances() } returns flowOf(emptyList()) },
+            ignoredAccountsStore = mockk { every { keysFlow } returns flowOf(emptySet()) },
+            cardRepository = mockk { every { getAllCards() } returns flowOf(emptyList()) },
         )
         assertEquals(Uncategorized(1), suggestions.observe(today).first().first())
         assertEquals(listOf(1L), suggestions.uncategorized().first().map { it.id })
@@ -105,5 +117,23 @@ class ChatSuggestionsTest {
 
         unsorted.value = emptyList()
         assertEquals(standing, suggestions.observe(today).first())
+    }
+
+    @Test
+    fun `rows of an ignored account aren't counted or walked, as no list shows them`() = runTest {
+        val rows = listOf(row(1, "Others", bank = "Bank", account = "1234"), row(2, "Others", bank = "Bank", account = "5678"))
+        val suggestions = ChatSuggestions(
+            transactionRepository = mockk { every { observeUncategorized() } returns flowOf(rows) },
+            planningRepository = mockk {
+                every { observeBillsDue(today, any()) } returns flowOf(noBills)
+                every { observeBudgets(today) } returns flowOf(emptyList())
+            },
+            userPreferencesRepository = mockk<UserPreferencesRepository> { every { selectedProfileId } returns flowOf(null) },
+            accountBalanceRepository = mockk { every { getAllLatestBalances() } returns flowOf(emptyList()) },
+            ignoredAccountsStore = mockk { every { keysFlow } returns flowOf(setOf("Bank_1234")) },
+            cardRepository = mockk { every { getAllCards() } returns flowOf(emptyList()) },
+        )
+        assertEquals(listOf(2L), suggestions.uncategorized().first().map { it.id })
+        assertEquals(Uncategorized(1), suggestions.observe(today).first().first())
     }
 }

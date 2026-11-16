@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.data.repository
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.model.BillsDue
 import com.pennywiseai.tracker.data.model.BudgetStatus
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
 import com.pennywiseai.tracker.domain.model.filterTransactionsByProfile
@@ -35,6 +36,8 @@ class ChatSuggestions @Inject constructor(
     private val planningRepository: PlanningRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
+    private val ignoredAccountsStore: IgnoredAccountsStore,
+    private val cardRepository: CardRepository,
 ) {
     /** The prompts for [today]: bills and budgets are read against it. */
     fun observe(today: LocalDate): Flow<List<ChatSuggestion>> = combine(
@@ -43,14 +46,27 @@ class ChatSuggestions @Inject constructor(
         planningRepository.observeBudgets(today),
     ) { unsorted, bills, budgets -> pick(unsorted, bills, budgets) }.distinctUntilChanged()
 
-    /** Rows still to file in the profile Home shows, newest first: the picker walks these. */
+    /**
+     * Rows still to file in the profile Home shows, ignored accounts left out (#826) as every
+     * list does, newest first: the picker walks these.
+     */
     fun uncategorized(): Flow<List<TransactionEntity>> = combine(
         transactionRepository.observeUncategorized(),
         userPreferencesRepository.selectedProfileId,
         accountBalanceRepository.getAllLatestBalances(),
-    ) { rows, profileId, accounts ->
-        if (profileId == null) rows else filterTransactionsByProfile(rows, profileId, buildProfileAccountKeys(accounts))
+        ignoredKeys(),
+    ) { rows, profileId, accounts, ignored ->
+        // Ignored first and apart from the profile, as the Transactions list's filterTrackedByProfile does.
+        val tracked = rows.filterNot { IgnoredAccountsStore.isIgnored(ignored, it.bankName, it.accountNumber) }
+        filterTransactionsByProfile(tracked, profileId, buildProfileAccountKeys(accounts))
     }
+
+    private fun ignoredKeys(): Flow<Set<String>> = combine(
+        ignoredAccountsStore.keysFlow,
+        cardRepository.getAllCards(),
+        accountBalanceRepository.getAllLatestBalances(),
+        IgnoredAccountsStore.Companion::withLinkedCards,
+    )
 
     companion object {
         /** More than this and they compete instead of suggesting. */

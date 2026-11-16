@@ -17,7 +17,7 @@ import java.math.BigDecimal
 class BackupImporterGoalMergeTest {
     private val goalDao = mockk<GoalDao>(relaxed = true)
     private val database = mockk<PennyWiseDatabase> { every { goalDao() } returns goalDao }
-    private val importer = BackupImporter(mockk(relaxed = true), database, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true))
+    private val importer = BackupImporter(mockk(relaxed = true), database, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true))
 
     private fun goal(id: Long, uid: String, currency: String) =
         GoalEntity(id = id, uid = uid, name = "Goal $uid", targetAmount = BigDecimal("100"), currency = currency)

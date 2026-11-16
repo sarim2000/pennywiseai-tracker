@@ -38,6 +38,11 @@ class TrackedNotificationAppsStore @Inject constructor(
         prefs.edit().putStringSet(KEY_PACKAGES, updated).apply()
     }
 
+    /** Restore: the backup's choice replaces this device's. */
+    fun replaceAll(packages: Set<String>) {
+        prefs.edit().putStringSet(KEY_PACKAGES, packages).apply()
+    }
+
     private companion object {
         const val PREFS_NAME = "tracked_notification_apps"
         const val KEY_PACKAGES = "packages"

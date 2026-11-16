@@ -24,7 +24,9 @@ private const val BUDGET_MONTHS_AT_ONCE = 4
 
 /**
  * Gathers what the achievement rules read, over the same rows as Home and the reviews
- * (selected profile, no ignored accounts), and works them out. Nothing is stored: badges
+ * (selected profile, no ignored accounts), except budgets, which are judged exactly as the
+ * Budgets screen shows them (base-currency limits, every account), so a badge never
+ * disagrees with the screen it's about. Nothing is stored: badges
  * describe the data as it is now, so turning off a budget or deleting a goal can take one back.
  */
 class AchievementLoader @Inject constructor(

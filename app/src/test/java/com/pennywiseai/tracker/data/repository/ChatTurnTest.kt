@@ -560,11 +560,11 @@ class ChatTurnTest {
             repository.links.value[saved.last().id]
         )
 
-        // A category in one currency: one plain link, pinned, with the category.
+        // A category in one currency: one link, pinned, named after the category.
         coEvery { aiContext.categorySpending(any(), any()) } returns spent("120").copy(category = "طعام")
         events = listOf(LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "طعام")))
         send("how much on food?")
-        assertEquals(listOf(com.pennywiseai.tracker.data.model.ChatLink("SEE", nov1, nov16, "طعام", "INR")), repository.links.value[saved.last().id])
+        assertEquals(listOf(com.pennywiseai.tracker.data.model.ChatLink("SEE طعام", nov1, nov16, "طعام", "INR")), repository.links.value[saved.last().id])
 
         // Nothing found, nothing to open; the model's own words never get a link.
         coEvery { aiContext.categorySpending(any(), any()) } returns spent()
@@ -594,8 +594,8 @@ class ChatTurnTest {
         send("compare food with last month")
         assertEquals(
             listOf(
-                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Nov–16 Nov", nov1, nov16, "طعام", "INR"),
-                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Oct–16 Oct", oct1, oct16, "طعام", "INR"),
+                com.pennywiseai.tracker.data.model.ChatLink("SEE طعام · 1 Nov–16 Nov", nov1, nov16, "طعام", "INR"),
+                com.pennywiseai.tracker.data.model.ChatLink("SEE طعام · 1 Oct–16 Oct", oct1, oct16, "طعام", "INR"),
             ),
             repository.links.value[saved.last().id]
         )
@@ -614,6 +614,24 @@ class ChatTurnTest {
             ),
             repository.links.value[saved.last().id]
         )
+    }
+
+    @Test
+    fun `links from several lookups in a turn say what each opens, once each`() = runTest {
+        every { context.getString(R.string.chat_link_transactions) } returns "SEE"
+        every { context.getString(R.string.chat_link_transactions_in, any()) } answers { "SEE ${(args[1] as Array<*>)[0]}" }
+        coEvery { aiContext.categorySpending("طعام", any()) } returns spent("120").copy(category = "طعام")
+        coEvery { aiContext.categorySpending("Hobbies", any()) } returns spent("40").copy(category = "Hobbies")
+        coEvery { aiContext.spending(any()) } returns com.pennywiseai.tracker.data.model.PeriodSpending(
+            spent("1").scope,
+            spent = mapOf("INR" to BigDecimal("700")),
+            income = emptyMap(),
+        )
+        val food = LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "طعام"))
+        events = listOf(food, LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "Hobbies")), food,
+            LlmEvent.ToolCall(PennyWiseTools.MONTH_SUMMARY, emptyMap()))
+        send("how much on food and hobbies, and this month?")
+        assertEquals(listOf("SEE طعام", "SEE Hobbies", "SEE"), repository.links.value[saved.last().id]?.map { it.label })
     }
 
     /** A category lookup's result: nothing spent, or [inr] rupees. */

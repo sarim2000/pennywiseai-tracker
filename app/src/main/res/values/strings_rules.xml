@@ -363,7 +363,7 @@
     <string name="chat_done_added">Added %1$s (%2$s).</string>
     <string name="chat_done_deleted">Deleted %1$s.</string>
     <string name="chat_done_updated">Updated %1$s.</string>
-    <!-- Under a chat answer: opens the transactions behind its figures. %1$s in _in is what they are, joined by " · ": a date range like "1 Nov–16 Nov" and/or a currency code like "USD" -->
+    <!-- Under a chat answer: opens the transactions behind its figures. %1$s in _in is what they are, joined by " · ": a category name, a date range like "1 Nov–16 Nov" and/or a currency code like "USD" -->
     <string name="chat_link_transactions">See transactions</string>
     <string name="chat_link_transactions_in">See %1$s transactions</string>
     <string name="chat_welcome">Hi! I\'m PennyWise AI.\n\nTell me what you spent and I\'ll add it after you confirm — e.g. \"coffee 120 at Starbucks\" or \"got 50000 salary\". Ask \"how much on groceries this month?\" for a total.\n\nSpent so far (%1$s): %2$s.\nNothing is saved without your tap.</string>

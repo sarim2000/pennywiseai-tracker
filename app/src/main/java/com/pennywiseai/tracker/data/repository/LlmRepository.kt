@@ -323,7 +323,8 @@ class LlmRepository @Inject constructor(
             callsMade[aiMessage.id] = callsText(toolCalls)
         }
         _lastReply.value = (turnSubject ?: ReplySubject()).copy(messageId = aiMessage.id)
-        addLinks(aiMessage.id, turnLinks)
+        // A repeated call, or a total beside a comparison of the same days, opens the same list once.
+        addLinks(aiMessage.id, turnLinks.distinctBy { it.copy(label = "") })
         chatDao.insertMessage(aiMessage)
         Log.d(TAG, "AI response saved")
     }
@@ -686,13 +687,14 @@ class LlmRepository @Inject constructor(
      * [window]'s transactions in [category]: one link per currency of the answer, the user's own
      * first, each pinned to it. A link that leaves the currency to the list would open on the
      * base currency alone, and could lose its category to the list's auto-clear. None when it
-     * had no figure. [dated] names the dates, for a comparison's two periods.
+     * had no figure. The label names the category, so two lookups in one reply aren't told
+     * apart by order alone; [dated] names the dates too, for a comparison's two periods.
      */
     private suspend fun linksTo(window: SpendingComparison.Window, category: String?, currencies: Set<String>, dated: Boolean = false): List<ChatLink> {
         val (start, end) = window.start.toLocalDate() to window.end.toLocalDate()
         val codes = ordered(currencies.associateWith { it }).map { it.first }
         return codes.map { code ->
-            val names = listOfNotNull(range(window).takeIf { dated }, code.takeIf { codes.size > 1 })
+            val names = listOfNotNull(category, range(window).takeIf { dated }, code.takeIf { codes.size > 1 })
             val label = if (names.isEmpty()) context.getString(R.string.chat_link_transactions)
             else context.getString(R.string.chat_link_transactions_in, names.joinToString(" · "))
             ChatLink(label, start, end, category, code)

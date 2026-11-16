@@ -133,6 +133,18 @@ class SpendingCalendarTest {
         assertEquals(d("400"), days(card, creditAsExpense = true)[date("2026-11-07")]!!.spent["INR"])
     }
 
+    @Test
+    fun `a paired transfer and a loan's share aren't spend`() {
+        val legs = listOf(tx("2026-11-08", "300", type = TransactionType.TRANSFER), tx("2026-11-08", "300", type = TransactionType.TRANSFER))
+            .map { it.copy(transferPairId = "pair") }
+        val lent = tx("2026-11-08", "70").copy(loanId = 9)
+        val partLent = tx("2026-11-08", "1000", type = TransactionType.CREDIT).copy(loanId = 9, loanContribution = d("400"))
+
+        val result = days(legs + lent + partLent + tx("2026-11-08", "500"), creditAsExpense = true)
+
+        assertEquals(mapOf("INR" to d("1100")), result.getValue(date("2026-11-08")).spent)
+    }
+
     // --- Planned
 
     @Test

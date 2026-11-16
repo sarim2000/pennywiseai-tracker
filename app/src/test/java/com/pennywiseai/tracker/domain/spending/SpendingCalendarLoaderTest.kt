@@ -1,5 +1,9 @@
 package com.pennywiseai.tracker.domain.spending
 
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
@@ -47,6 +51,15 @@ class SpendingCalendarLoaderTest {
         every { upcoming.observe(any(), any(), any()) } returns flowOf(Upcoming(listOf(cardBill), emptyList()))
     }
 
+    private fun row(day: Int, account: String, profileId: Long? = null) = TransactionWithSplits(
+        TransactionEntity(
+            id = day.toLong(), amount = BigDecimal("100"), merchantName = "Test Shop", category = "Shopping",
+            currency = "INR", transactionType = TransactionType.EXPENSE, dateTime = october.atDay(day).atTime(12, 0),
+            transactionHash = "h$day", bankName = "Test Bank", accountNumber = account, profileId = profileId,
+        ),
+        emptyList(),
+    )
+
     @Test
     fun `a month that's over still shows its card bill that's owed`() = runTest {
         val days = loader.observe(october, today).first()
@@ -61,5 +74,19 @@ class SpendingCalendarLoaderTest {
         val days = loader.observe(YearMonth.from(today), today).first()
 
         assertEquals(listOf(cardBill), days.getValue(today).planned)
+    }
+
+    @Test
+    fun `spend from an ignored account or another profile stays out`() = runTest {
+        every { upcoming.observe(any(), any(), any()) } returns flowOf(Upcoming(emptyList(), emptyList()))
+        every { prefs.selectedProfileId } returns flowOf(ProfileEntity.PERSONAL_ID)
+        every { ignored.keysFlow } returns flowOf(setOf(IgnoredAccountsStore.keyFor("Test Bank", "1111")))
+        every { transactions.getTransactionsWithSplitsFiltered(any<LocalDate>(), any<LocalDate>()) } returns flowOf(
+            listOf(row(3, "1111"), row(4, "2222", profileId = 2), row(5, "2222"))
+        )
+
+        val days = loader.observe(october, today).first()
+
+        assertEquals(listOf(october.atDay(5)), days.keys.toList())
     }
 }

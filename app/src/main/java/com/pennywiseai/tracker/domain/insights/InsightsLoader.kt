@@ -11,10 +11,8 @@ import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.data.repository.BudgetSummaryProvider
-import com.pennywiseai.tracker.data.repository.GoalProgress
-import com.pennywiseai.tracker.data.repository.GoalRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
-import com.pennywiseai.tracker.domain.goals.GoalAffordability
+import com.pennywiseai.tracker.domain.goals.GoalAffordabilityLoader
 import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
 import com.pennywiseai.tracker.domain.review.PeriodReview
 import com.pennywiseai.tracker.domain.review.PeriodReviewLoader
@@ -63,7 +61,7 @@ class InsightsLoader @Inject constructor(
     private val budgetSummaryProvider: BudgetSummaryProvider,
     private val subscriptionRepository: SubscriptionRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
-    private val goalRepository: GoalRepository,
+    private val goalAffordabilityLoader: GoalAffordabilityLoader,
     private val ignoredAccountsStore: IgnoredAccountsStore,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val insightPreferences: InsightPreferences,
@@ -71,7 +69,7 @@ class InsightsLoader @Inject constructor(
     fun observe(today: LocalDate = LocalDate.now()): Flow<InsightsSnapshot> = combine(
         periodReviewLoader.observe(ReviewKind.MONTH, 0, today, detail = true),
         budgets(today),
-        combine(subscriptions(), goals(today), ::Pair),
+        combine(subscriptions(), goalAffordabilityLoader.goalsToWeigh(today), ::Pair),
         accounts(),
         combine(insightPreferences.dismissedInsights, userPreferencesRepository.selectedProfileId, ::Pair),
     ) { review, budgets, (subscriptions, goals), (accounts, unanchored), (dismissed, profileId) ->
@@ -80,7 +78,7 @@ class InsightsLoader @Inject constructor(
         val inputs = InsightInputs(
             today, review, budgets, subscriptions, accounts.filter { it.isCreditCard }, profileId,
             runways = runways,
-            goals = GoalAffordability.of(goals, averages),
+            goals = GoalAffordabilityLoader.affordability(goals, review.detail),
         )
         InsightsSnapshot(
             review, InsightRules.evaluate(inputs), dismissed, scores(review, budgets),
@@ -123,15 +121,6 @@ class InsightsLoader @Inject constructor(
         accountBalanceRepository.getAllLatestBalances(),
         ::scopedSubscriptions,
     )
-
-    /**
-     * Goals have no profile, so they're weighed against every profile's surplus: left
-     * out while one profile is selected, when the review holds only that profile's.
-     */
-    private fun goals(today: LocalDate): Flow<List<GoalProgress>> =
-        userPreferencesRepository.selectedProfileId.distinctUntilChanged().flatMapLatest { profileId ->
-            if (profileId != null) flowOf(emptyList()) else goalRepository.observeActiveGoals(today)
-        }
 
     /**
      * The active profile's accounts the user hasn't ignored, with the (bank, last 4)

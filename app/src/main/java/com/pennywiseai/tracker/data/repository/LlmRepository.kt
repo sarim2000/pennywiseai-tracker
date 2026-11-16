@@ -707,7 +707,8 @@ class LlmRepository @Inject constructor(
 
     /**
      * A line under a figure that counted card purchases (the user folds them into spending):
-     * the list its link opens totals them under Credit, not Expenses. Empty when it didn't.
+     * the figure nets their refunds, the list its link opens totals them under Credit, before
+     * refunds, not Expenses. Empty when it didn't.
      */
     private fun cardNote(counted: Boolean): String =
         if (counted) "\n" + context.getString(R.string.chat_reply_card_purchases) else ""

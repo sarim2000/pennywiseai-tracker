@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
@@ -48,6 +49,7 @@ fun ManageAccountsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToAddAccount: () -> Unit,
     onNavigateToBalanceHistory: (bankName: String, accountLast4: String) -> Unit,
+    onNavigateToNetWorth: () -> Unit = {},
     viewModel: ManageAccountsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -164,6 +166,14 @@ fun ManageAccountsScreen(
                     }
                 },
                 actionContent = {
+                    if (uiState.accounts.isNotEmpty()) {
+                        IconButton(onClick = onNavigateToNetWorth, shapes = IconButtonDefaults.shapes()) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ShowChart,
+                                contentDescription = stringResource(R.string.net_worth_title)
+                            )
+                        }
+                    }
                     // Show Merge only when there are at least 2 accounts to choose between.
                     // Pro-only feature — free users see the icon (so the feature is
                     // discoverable) but the tap routes to the paywall instead.

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Visibility
@@ -50,6 +52,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -102,6 +105,8 @@ fun BalanceCard(
     totalAvailableCredit: BigDecimal = BigDecimal.ZERO,
     forecast: SpendForecast? = null,
     onAccountClick: (String, String) -> Unit = { _, _ -> },
+    /** Opens Net worth from the balance line; null leaves the line as plain text. */
+    onOpenNetWorth: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     blurEffects: Boolean = false,
     hazeState: HazeState = remember { HazeState() },
@@ -196,6 +201,7 @@ fun BalanceCard(
                         if (accountBalances.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(Spacing.sm))
                             Row(
+                                modifier = Modifier.netWorthLink(onOpenNetWorth),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
@@ -214,6 +220,7 @@ fun BalanceCard(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
+                                if (onOpenNetWorth != null) NetWorthChevron()
                             }
                         }
                     }
@@ -453,7 +460,7 @@ fun BalanceCard(
                             )
                             Spacer(modifier = Modifier.height(Spacing.xs))
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier.fillMaxWidth().netWorthLink(onOpenNetWorth),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -463,16 +470,19 @@ fun BalanceCard(
                                     color = MaterialTheme.colorScheme.onSurface,
                                     fontWeight = FontWeight.Bold
                                 )
-                                Text(
-                                    text = if (isBalanceHidden) {
-                                        "••••••"
-                                    } else {
-                                        "${CurrencyFormatter.formatCurrency(totalBalance, currency)}${if (isApproximate) "*" else ""}"
-                                    },
-                                    style = MaterialTheme.typography.titleSmall.money(),
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onSurface
-                                )
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        text = if (isBalanceHidden) {
+                                            "••••••"
+                                        } else {
+                                            "${CurrencyFormatter.formatCurrency(totalBalance, currency)}${if (isApproximate) "*" else ""}"
+                                        },
+                                        style = MaterialTheme.typography.titleSmall.money(),
+                                        fontWeight = FontWeight.Bold,
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    if (onOpenNetWorth != null) NetWorthChevron()
+                                }
                             }
                             if (isApproximate) {
                                 Spacer(modifier = Modifier.height(Spacing.xs))
@@ -501,6 +511,27 @@ fun BalanceCard(
             }
         }
     }
+}
+
+/** The balance line opens Net worth, with a 48dp target and a label TalkBack reads. */
+@Composable
+private fun Modifier.netWorthLink(onOpen: (() -> Unit)?): Modifier {
+    if (onOpen == null) return this
+    val label = stringResource(R.string.net_worth_title)
+    return this
+        .clip(RoundedCornerShape(Dimensions.CornerRadius.medium))
+        .clickable(onClickLabel = label, role = Role.Button, onClick = onOpen)
+        .defaultMinSize(minHeight = Dimensions.Component.minTouchTarget)
+}
+
+@Composable
+private fun NetWorthChevron() {
+    Icon(
+        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        modifier = Modifier.size(Dimensions.Icon.small)
+    )
 }
 
 @Composable

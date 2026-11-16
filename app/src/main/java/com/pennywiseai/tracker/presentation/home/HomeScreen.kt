@@ -77,6 +77,7 @@ fun HomeScreen(
     onNavigateToSubscriptions: () -> Unit = {},
     onNavigateToReview: (ReviewKind) -> Unit = {},
     onNavigateToInsights: () -> Unit = {},
+    onNavigateToNetWorth: () -> Unit = {},
     onNavigateToBudgets: () -> Unit = {},
     onNavigateToLoans: () -> Unit = {},
     onNavigateToTransactionGroups: () -> Unit = {},
@@ -382,7 +383,8 @@ fun HomeScreen(
                                 creditCards = uiState.creditCards,
                                 totalAvailableCredit = uiState.totalAvailableCredit,
                                 forecast = uiState.spendForecast,
-                                onAccountClick = onAccountClick
+                                onAccountClick = onAccountClick,
+                                onOpenNetWorth = onNavigateToNetWorth
                             )
                         }
                     }

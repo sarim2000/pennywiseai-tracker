@@ -293,6 +293,9 @@ fun MainScreen(
                 onNavigateToInsights = {
                     openRoot(Insights)
                 },
+                onNavigateToNetWorth = {
+                    openRoot(NetWorth)
+                },
                 onNavigateToSubscriptions = {
                     open(tab, Subscriptions)
                 },
@@ -488,6 +491,9 @@ fun MainScreen(
                 },
                 onNavigateToBalanceHistory = { bankName, accountLast4 ->
                     open(tab, BalanceHistory(bankName, accountLast4))
+                },
+                onNavigateToNetWorth = {
+                    openRoot(NetWorth)
                 }
             )
         }

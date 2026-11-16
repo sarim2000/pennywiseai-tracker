@@ -31,6 +31,8 @@ class SmsScanManager @Inject constructor(
             .setInputData(workDataOf(OptimizedSmsReaderWorker.INPUT_RESCAN_ALL to rescanAll))
             .addTag("sms_logging")
             .addTag("optimized_sms_processing")
+            // Home watches this tag, so it shows a scan started here as running.
+            .addTag(OptimizedSmsReaderWorker.WORK_NAME)
             .build()
 
         workManager.enqueueUniqueWork(

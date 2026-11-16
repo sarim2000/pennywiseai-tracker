@@ -74,7 +74,8 @@ fun SmsCheckupScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val background by backgroundAccessViewModel.state.collectAsStateWithLifecycle()
     val permissions by permissionViewModel.uiState.collectAsStateWithLifecycle()
-    val smsAccess = rememberSmsAccess()
+    // Home's own catch-up scan won't fire: it's composed again with access already granted.
+    val smsAccess = rememberSmsAccess(onGranted = viewModel::onSmsAccessGranted)
     // Every fix happens in system Settings, so every check reruns on return.
     var canReceiveSms by remember { mutableStateOf(context.canReceiveSms()) }
     LifecycleResumeEffect(Unit) {

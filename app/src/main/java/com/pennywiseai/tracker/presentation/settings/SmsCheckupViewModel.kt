@@ -45,4 +45,7 @@ class SmsCheckupViewModel @Inject constructor(
 
     /** Re-reads the whole scan window: adds what was missed, keeps every edit. */
     fun rescan() = smsScanManager.startSmsLoggingScan(rescanAll = true)
+
+    /** Access came back: catch up on what arrived while it was off, as Home does. */
+    fun onSmsAccessGranted() = smsScanManager.startSmsLoggingScan()
 }

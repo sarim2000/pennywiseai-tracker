@@ -74,10 +74,18 @@
     <string name="txn_detail_unmark_loan_title">Retirer le marquage comme prêt ?</string>
     <string name="txn_detail_unmark_loan_message">Cela supprime le lien de crédit de cette transaction. Si aucune autre transaction n\'est liée, le crédit sera également supprimé.</string>
     <string name="txn_detail_unmark_loan_confirm">Retirer</string>
+    <!-- Unmarking leaves the loan's other transactions running the other way (e.g. undoing an overpayment that turned the loan around) -->
+    <!-- %1$s = person name, %2$s = formatted amount -->
+    <!-- %1$s = person name, %2$s = formatted amount -->
     <string name="txn_detail_unmark_loan">Retirer le marquage comme prêt</string>
     <string name="txn_detail_mark_as_loan">Marquer comme prêt</string>
     <string name="txn_detail_loan_lent_to">Carême à %1$s</string>
     <string name="txn_detail_loan_borrowed_from">Emprunté à %1$s</string>
+    <!-- A repayment row on a loan. %1$s = person name -->
+    <!-- A repayment row on a loan. %1$s = person name -->
+    <!-- Part of a loan-linked transaction that is on the loan. %1$s = formatted amount -->
+    <!-- Part of a loan-linked transaction that counts as the user's own spending. %1$s = formatted amount -->
+    <!-- Part of a loan-linked transaction that counts as the user's own income. %1$s = formatted amount -->
     <string name="txn_detail_receipt_full_screen">Reçu en plein écran</string>
     <string name="txn_detail_close">Fermer</string>
     <string name="txn_detail_exclude_analytics_title">Exclure des analyses</string>

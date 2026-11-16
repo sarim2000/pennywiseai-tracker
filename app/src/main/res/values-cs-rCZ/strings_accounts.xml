@@ -275,6 +275,11 @@
     <string name="loan_detail_settle_message">Označit tuto půjčku jako uhrazenou? Zbývající zůstatek bude odpuštěn.</string>
     <string name="loan_detail_expected_return_title">Očekávaná vratka</string>
     <string name="loan_detail_expected_return_label">Očekávaná částka zpět</string>
+    <!-- A repayment larger than what's left on the loan. %1$s = formatted extra amount -->
+    <!-- %1$s = person name, %2$s = formatted extra amount -->
+    <!-- %1$s = person name, %2$s = formatted extra amount -->
+    <!-- %1$s = person name -->
+    <!-- %1$s = person name -->
     <string name="loan_detail_delete_title">Odstranit úvěr</string>
     <string name="loan_detail_delete_message">Smazat tento úvěr? Propojené transakce budou odpojeny, ale nebudou smazány.</string>
     <string name="loan_detail_original_chip">Originál</string>

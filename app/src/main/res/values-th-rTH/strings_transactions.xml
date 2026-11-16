@@ -72,10 +72,18 @@
     <string name="txn_detail_unmark_loan_title">ยกเลิกการทำเครื่องหมายเป็นเงินกู้?</string>
     <string name="txn_detail_unmark_loan_message">การนี้จะเอาลิงก์เงินกู้ออกจากธุรกรรมนี้ ถ้าไม่มีธุรกรรมอื่นที่ลิงก์อยู่ เงินกู้จะถูกลบไปด้วย</string>
     <string name="txn_detail_unmark_loan_confirm">ยกเลิกเครื่องหมาย</string>
+    <!-- Unmarking leaves the loan's other transactions running the other way (e.g. undoing an overpayment that turned the loan around) -->
+    <!-- %1$s = person name, %2$s = formatted amount -->
+    <!-- %1$s = person name, %2$s = formatted amount -->
     <string name="txn_detail_unmark_loan">ยกเลิกการทำเครื่องหมายเป็นเงินกู้</string>
     <string name="txn_detail_mark_as_loan">ทำเครื่องหมายเป็นเงินกู้</string>
     <string name="txn_detail_loan_lent_to">ให้ %1$s ยืม</string>
     <string name="txn_detail_loan_borrowed_from">ยืมจาก %1$s</string>
+    <!-- A repayment row on a loan. %1$s = person name -->
+    <!-- A repayment row on a loan. %1$s = person name -->
+    <!-- Part of a loan-linked transaction that is on the loan. %1$s = formatted amount -->
+    <!-- Part of a loan-linked transaction that counts as the user's own spending. %1$s = formatted amount -->
+    <!-- Part of a loan-linked transaction that counts as the user's own income. %1$s = formatted amount -->
     <string name="txn_detail_receipt_full_screen">ใบเสร็จแบบเต็มจอ</string>
     <string name="txn_detail_close">ปิด</string>
     <string name="txn_detail_exclude_analytics_title">ไม่รวมในการวิเคราะห์</string>

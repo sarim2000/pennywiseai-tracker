@@ -258,6 +258,7 @@
     <!-- Theme style -->
     <string name="appearance_style_dynamic">Dynamique</string>
     <string name="appearance_style_default">Par défaut</string>
+    <!-- Fixed palettes ported from Mihon: proper names, not translated -->
     <!-- Toggles -->
     <string name="appearance_amoled_title">Noir AMOLED</string>
     <string name="appearance_amoled_subtitle">Utiliser un fond noir pur pour un contraste plus profond</string>

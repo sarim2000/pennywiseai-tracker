@@ -263,6 +263,11 @@
     <string name="loan_detail_settle_message">Marquer ce prêt comme réglé ? Tout solde restant sera pardonné.</string>
     <string name="loan_detail_expected_return_title">Retour attendu</string>
     <string name="loan_detail_expected_return_label">Montant attendu en arrière</string>
+    <!-- A repayment larger than what's left on the loan. %1$s = formatted extra amount -->
+    <!-- %1$s = person name, %2$s = formatted extra amount -->
+    <!-- %1$s = person name, %2$s = formatted extra amount -->
+    <!-- %1$s = person name -->
+    <!-- %1$s = person name -->
     <string name="loan_detail_delete_title">Supprimer le prêt</string>
     <string name="loan_detail_delete_message">Supprimer ce prêt ? Les transactions liées seront dissociées mais non supprimées.</string>
     <string name="loan_detail_original_chip">Originale</string>

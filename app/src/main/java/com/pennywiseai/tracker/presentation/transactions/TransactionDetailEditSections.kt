@@ -441,7 +441,8 @@ internal fun EditableExtractedInfoCard(
             onReceiptSelected = { uri -> viewModel.updatePendingReceiptUri(uri) },
             onReceiptRemoved = { viewModel.removeReceipt() },
             onCreateCameraUri = { viewModel.createCameraUri() },
-            receiptError = viewModel.receiptError.collectAsStateWithLifecycle().value?.asString()
+            receiptError = viewModel.receiptError.collectAsStateWithLifecycle().value?.asString(),
+            checking = viewModel.checkingReceipt.collectAsStateWithLifecycle().value
         )
 
         // Warranty: for things bought; still shown if one was set before a type change, so it can be cleared.

@@ -26,6 +26,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -44,6 +47,7 @@ import com.pennywiseai.tracker.presentation.accounts.icon
 import com.pennywiseai.tracker.presentation.categories.CategoryEditDialog
 import com.pennywiseai.tracker.presentation.common.ReceiptPreview
 import com.pennywiseai.tracker.presentation.transactions.transactionTypeLabel
+import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.ui.components.AmountCalculatorSheet
 import com.pennywiseai.tracker.ui.components.CategoryChip
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
@@ -675,7 +679,8 @@ fun TransactionTabContent(
                 onReceiptSelected = { uri -> viewModel.updateReceiptUri(uri) },
                 onReceiptRemoved = { viewModel.updateReceiptUri(null) },
                 onCreateCameraUri = { viewModel.createCameraUri() },
-                receiptError = uiState.receiptError?.asString()
+                receiptError = uiState.receiptError?.asString(),
+                checking = uiState.checkingReceipt
             )
 
             // Bottom padding for save button overlay
@@ -699,7 +704,7 @@ fun TransactionTabContent(
         ) {
             Button(
                 onClick = { viewModel.saveTransaction(onSuccess = onSave) },
-                enabled = uiState.isValid && !uiState.isLoading,
+                enabled = uiState.isValid && !uiState.isLoading && !uiState.checkingReceipt,
                 modifier = Modifier
                     .padding(top = Spacing.lg)
                     .navigationBarsPadding()
@@ -786,7 +791,8 @@ fun ReceiptPickerSection(
     onReceiptSelected: (android.net.Uri) -> Unit,
     onReceiptRemoved: () -> Unit,
     onCreateCameraUri: () -> android.net.Uri,
-    receiptError: String? = null
+    receiptError: String? = null,
+    checking: Boolean = false
 ) {
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
@@ -886,15 +892,42 @@ fun ReceiptPickerSection(
             }
         }
 
+        if (checking) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(Dimensions.Icon.small),
+                    strokeWidth = 2.dp
+                )
+                Text(
+                    text = stringResource(R.string.add_receipt_checking),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
         receiptError?.let {
             Text(
                 text = it,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error
+                color = MaterialTheme.colorScheme.error,
+                // TalkBack reads out a rejected file, which appears without a screen change.
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
             )
         }
     }
 }
+
+/** What the receipt picker says when a picked PDF is turned away. */
+fun ReceiptManager.PdfProblem.message(): UiText = UiText.Res(
+    when (this) {
+        ReceiptManager.PdfProblem.TOO_LARGE -> R.string.add_receipt_pdf_too_large
+        ReceiptManager.PdfProblem.UNREADABLE -> R.string.add_receipt_pdf_unreadable
+    }
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

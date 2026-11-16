@@ -33,7 +33,6 @@ import androidx.core.graphics.createBitmap
 import coil3.compose.AsyncImage
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.receipt.ReceiptManager
-import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import kotlinx.coroutines.Dispatchers
@@ -96,14 +95,6 @@ fun ReceiptPreview(
         }
     }
 }
-
-/** What the receipt picker says when a picked PDF is turned away. */
-fun ReceiptManager.PdfProblem.message(): UiText = UiText.Res(
-    when (this) {
-        ReceiptManager.PdfProblem.TOO_LARGE -> R.string.add_receipt_pdf_too_large
-        ReceiptManager.PdfProblem.UNREADABLE -> R.string.add_receipt_pdf_unreadable
-    }
-)
 
 private const val THUMBNAIL_WIDTH_PX = 720
 

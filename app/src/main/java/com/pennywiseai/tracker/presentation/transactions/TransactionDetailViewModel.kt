@@ -45,7 +45,7 @@ import com.pennywiseai.tracker.domain.model.rule.TransactionField
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
-import com.pennywiseai.tracker.presentation.common.message
+import com.pennywiseai.tracker.presentation.add.message
 import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.ui.components.SplitItem
 import com.pennywiseai.tracker.ui.components.pickerDefault
@@ -482,6 +482,7 @@ class TransactionDetailViewModel @Inject constructor(
         _editableTransaction.value = _transaction.value?.copy()
         _isEditMode.value = true
         _errorMessage.value = null
+        cancelReceiptCheck()
         _pendingReceiptUri.value = null
         _receiptRemoved.value = false
         _receiptError.value = null
@@ -521,6 +522,7 @@ class TransactionDetailViewModel @Inject constructor(
         _existingTransactionCount.value = 0
         _merchantAlias.value = ""
         _originalMerchantAlias = ""
+        cancelReceiptCheck()
         _pendingReceiptUri.value = null
         _receiptRemoved.value = false
         _receiptError.value = null
@@ -897,6 +899,7 @@ class TransactionDetailViewModel @Inject constructor(
 
     fun saveChanges() {
         val toSave = _editableTransaction.value ?: return
+        if (_checkingReceipt.value) return
 
         // Validate before saving
         if (toSave.merchantName.isBlank()) {
@@ -1310,15 +1313,31 @@ class TransactionDetailViewModel @Inject constructor(
     private val _receiptError = MutableStateFlow<UiText?>(null)
     val receiptError: StateFlow<UiText?> = _receiptError.asStateFlow()
 
+    // A picked receipt is still being checked; Save waits for it.
+    private val _checkingReceipt = MutableStateFlow(false)
+    val checkingReceipt: StateFlow<Boolean> = _checkingReceipt.asStateFlow()
+
+    // The check of the receipt last picked; a newer pick or a removal cancels it.
+    private var receiptCheck: Job? = null
+
+    private fun cancelReceiptCheck() {
+        receiptCheck?.cancel()
+        _checkingReceipt.value = false
+    }
+
     fun updatePendingReceiptUri(uri: Uri?) {
-        if (uri == null || !receiptManager.isPdf(uri)) {
-            setPendingReceipt(uri)
+        cancelReceiptCheck()
+        if (uri == null) {
+            setPendingReceipt(null)
             return
         }
         // A PDF is checked as it's picked, so a bad one never waits until Save.
-        viewModelScope.launch {
-            val problem = receiptManager.checkPdf(uri)
+        _checkingReceipt.value = true
+        _receiptError.value = null
+        receiptCheck = viewModelScope.launch {
+            val problem = receiptManager.checkReceipt(uri)
             if (problem == null) setPendingReceipt(uri) else _receiptError.value = problem.message()
+            _checkingReceipt.value = false
         }
     }
 
@@ -1329,6 +1348,7 @@ class TransactionDetailViewModel @Inject constructor(
     }
 
     fun removeReceipt() {
+        cancelReceiptCheck()
         _pendingReceiptUri.value = null
         _receiptRemoved.value = true
         _receiptError.value = null

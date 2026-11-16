@@ -78,6 +78,7 @@ fun TransactionDetailScreen(
     val isEditMode by viewModel.isEditMode.collectAsStateWithLifecycle()
     val editableTransaction by viewModel.editableTransaction.collectAsStateWithLifecycle()
     val isSaving by viewModel.isSaving.collectAsStateWithLifecycle()
+    val checkingReceipt by viewModel.checkingReceipt.collectAsStateWithLifecycle()
     val saveSuccess by viewModel.saveSuccess.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val applyToAllFromMerchant by viewModel.applyToAllFromMerchant.collectAsStateWithLifecycle()
@@ -319,7 +320,7 @@ fun TransactionDetailScreen(
                     } else if (isEditMode) {
                         TextButton(
                             onClick = { viewModel.saveChanges() },
-                            enabled = !isSaving,
+                            enabled = !isSaving && !checkingReceipt,
                             shapes = ButtonDefaults.shapes()
                         ) {
                             if (isSaving) {

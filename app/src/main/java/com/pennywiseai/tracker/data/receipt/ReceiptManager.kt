@@ -30,15 +30,19 @@ class ReceiptManager @Inject constructor(
     /** Why a picked PDF can't be attached. */
     enum class PdfProblem { TOO_LARGE, UNREADABLE }
 
-    /** True for a picked PDF, or a stored `.pdf` receipt. */
-    fun isPdf(uri: Uri): Boolean = isPdf(context, uri)
-
     /**
-     * Checks a picked PDF before it's shown as the pending receipt, so the user hears
-     * about a too-large, damaged or password-protected file straight away. Null = fine.
+     * Checks a picked receipt before it's shown as the pending one, so the user hears
+     * about a too-large, damaged or password-protected PDF straight away. A photo
+     * isn't checked. Null = fine.
      */
-    suspend fun checkPdf(sourceUri: Uri): PdfProblem? = withContext(Dispatchers.IO) {
-        val staged = File.createTempFile("check", ".pdf", pdfStagingDir)
+    suspend fun checkReceipt(sourceUri: Uri): PdfProblem? = withContext(Dispatchers.IO) {
+        if (!isPdf(context, sourceUri)) return@withContext null
+        // ponytail: savePdf copies and opens it once more at Save; a pick is rare enough not to cache.
+        val staged = try {
+            File.createTempFile("check", ".pdf", pdfStagingDir)
+        } catch (_: Exception) {
+            return@withContext PdfProblem.UNREADABLE
+        }
         try {
             copyPdf(sourceUri, staged)
         } finally {
@@ -49,10 +53,10 @@ class ReceiptManager @Inject constructor(
     /**
      * Saves the receipt and returns its path relative to `filesDir`, or null when the
      * file can't be used. A photo is scaled and re-encoded as JPEG; a PDF is copied
-     * byte for byte, after the same checks as [checkPdf].
+     * byte for byte, after the same checks as [checkReceipt].
      */
     suspend fun saveReceipt(sourceUri: Uri): String? = withContext(Dispatchers.IO) {
-        if (isPdf(sourceUri)) return@withContext savePdf(sourceUri)
+        if (isPdf(context, sourceUri)) return@withContext savePdf(sourceUri)
         try {
             val inputStream = context.contentResolver.openInputStream(sourceUri)
                 ?: return@withContext null
@@ -85,7 +89,11 @@ class ReceiptManager @Inject constructor(
     }
 
     private fun savePdf(sourceUri: Uri): String? {
-        val staged = File.createTempFile("save", ".pdf", pdfStagingDir)
+        val staged = try {
+            File.createTempFile("save", ".pdf", pdfStagingDir)
+        } catch (_: Exception) {
+            return null
+        }
         try {
             if (copyPdf(sourceUri, staged) != null) return null
             val outputFile = File(receiptsDir, "receipt_${System.currentTimeMillis()}.pdf")

@@ -33,8 +33,9 @@ sealed interface BalanceSource {
 
 /**
  * What the balance rows say about one account, worked out by the database: the newest
- * row the bank stated ([reportedAt]) and the newest row of any kind that isn't derived
- * from a transaction ([fixedAt]: a bank figure, a MANUAL or balance-notice row).
+ * row the bank stated ([reportedAt]: an SMS that carried the balance, a balance notice,
+ * a linked card's) and the newest row of any kind that isn't derived from a transaction
+ * ([fixedAt]: those, plus a MANUAL row).
  */
 data class BalanceEvidence(val reportedAt: LocalDateTime?, val fixedAt: LocalDateTime?)
 
@@ -121,7 +122,7 @@ object NetWorth {
      * - the figure the user gave, unless the bank stated a newer one;
      * - the bank's newest stated balance, unless something other than the bank set it after;
      * - an estimate, when nothing ever pinned it ([unanchored]);
-     * - otherwise nothing (an older MANUAL override, a balance notice), rather than a guess.
+     * - otherwise nothing (a MANUAL override after the bank's figure), rather than a guess.
      */
     fun source(account: AccountBalanceEntity, evidence: BalanceEvidence?, unanchored: Boolean): BalanceSource? {
         val reportedAt = evidence?.reportedAt

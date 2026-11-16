@@ -129,12 +129,18 @@ class AiContextRepository @Inject constructor(
     }
 
     /**
-     * [SpendingComparison] on the saved transactions, as of now: months are Home's budget
-     * cycles, in the profile Home shows. Also for one-tap questions that skip the model (M8).
+     * [SpendingComparison] on the saved transactions, up to the end of [today] as Home counts:
+     * months are Home's budget cycles, in the profile Home shows. Also for one-tap questions
+     * that skip the model (M8).
      */
-    suspend fun compareSpending(period: SpendingComparison.Period, category: String?, creditAsExpense: Boolean): SpendingComparison.Result {
+    suspend fun compareSpending(
+        period: SpendingComparison.Period,
+        category: String?,
+        creditAsExpense: Boolean,
+        today: LocalDate = LocalDate.now(),
+    ): SpendingComparison.Result {
         val windows = SpendingComparison.windows(
-            period, LocalDateTime.now(), WeekFields.of(Locale.getDefault()).firstDayOfWeek,
+            period, today.atTime(LocalTime.MAX), WeekFields.of(Locale.getDefault()).firstDayOfWeek,
             userPreferencesRepository.budgetCycleStartDay.first()
         )
         val (current, previous) = windows.toList().map { scope(it) }

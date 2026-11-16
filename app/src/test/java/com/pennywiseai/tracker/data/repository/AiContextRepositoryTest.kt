@@ -264,6 +264,17 @@ class AiContextRepositoryTest {
     }
 
     @Test
+    fun `a comparison runs to the end of today, as Home does, and the same point last cycle`() = runBlocking {
+        tx("100", at = today.atTime(23, 30))
+        tx("40", at = today.minusMonths(1).atTime(23, 30))
+        tx("1000", at = today.minusMonths(1).plusDays(1).atTime(0, 0))
+        val result = repository.compareSpending(SpendingComparison.Period.MONTH, null, creditAsExpense = false, today = today) as SpendingComparison.Result.Rows
+        assertEquals(repository.spending(today).scope.window, result.current)
+        assertEquals(today.minusMonths(1).atTime(LocalTime.MAX), result.previous.end)
+        assertEquals(listOf("100" to "40"), result.rows.map { it.current.stripTrailingZeros().toPlainString() to it.previous.stripTrailingZeros().toPlainString() })
+    }
+
+    @Test
     fun `comparing a parent counts its children, whatever casing the model used`() = runBlocking {
         val now = LocalDateTime.now()
         tx("10", at = now.withHour(0).withMinute(0))

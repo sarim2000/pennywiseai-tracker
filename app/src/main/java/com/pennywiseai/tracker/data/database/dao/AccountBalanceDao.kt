@@ -315,6 +315,16 @@ interface AccountBalanceDao {
         anchorSource: String?,
     ): Int
 
+    /**
+     * Pins the account's balance to a figure the user gave, on every row of the
+     * account (account-level, like the alias): [amount] as of [at], from [source].
+     */
+    @Query("""
+        UPDATE account_balances SET anchor_amount = :amount, anchor_at = :at, anchor_source = :source
+        WHERE bank_name = :bankName AND account_last4 = :accountLast4
+    """)
+    suspend fun setAnchor(bankName: String, accountLast4: String, amount: BigDecimal, at: LocalDateTime, source: String): Int
+
     @Query("UPDATE account_balances SET profile_id = :profileId WHERE bank_name = :bankName AND account_last4 = :accountLast4")
     suspend fun setAccountProfile(bankName: String, accountLast4: String, profileId: Long): Int
 

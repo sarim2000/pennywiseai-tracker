@@ -251,6 +251,7 @@ class ManageAccountsViewModel @Inject constructor(
                 // owed, which the income-positive recompute would get backwards) —
                 // single snapshot as before.
                 accountBalanceRepository.insertBalance(template)
+                accountBalanceRepository.setAnchor(template.bankName, template.accountLast4, template.balance, template.timestamp)
             } else {
                 // Cash/regular manual account: seed an OPENING anchor + current row so
                 // its balance derives from opening + Σ(transactions) going forward.
@@ -294,6 +295,7 @@ class ManageAccountsViewModel @Inject constructor(
                     sourceType = "MANUAL"
                 ).withAccountFieldsOf(latestBalance)
             )
+            accountBalanceRepository.setAnchor(bankName, accountLast4, newBalance)
         }
     }
 
@@ -806,6 +808,8 @@ class ManageAccountsViewModel @Inject constructor(
                     bankName = newBankName
                 )
 
+                // Only a changed balance is one the user just gave; a rename leaves the anchor alone.
+                val balanceChanged = latestBalance == null || latestBalance.balance.compareTo(newBalance) != 0
                 if (latestBalance?.isLiability != true && accountBalanceRepository.isManualAccount(newBankName, accountLast4)) {
                     // Manual/cash account: balance is derived. Atomically update the
                     // currency on its anchor rows and back-solve the opening from the
@@ -817,6 +821,7 @@ class ManageAccountsViewModel @Inject constructor(
                         currency = resolvedCurrency,
                         targetBalance = newBalance
                     )
+                    if (balanceChanged) accountBalanceRepository.setAnchor(newBankName, accountLast4, newBalance)
                 } else if (latestBalance == null || !latestBalance.matches(newBalance, newCreditLimit, resolvedCurrency)) {
                     // Insert new balance record with updated values. Skipped when only the
                     // name or type changed: a MANUAL row would make an SMS account look
@@ -841,6 +846,7 @@ class ManageAccountsViewModel @Inject constructor(
                             sourceType = "MANUAL"
                         ).withAccountFieldsOf(latestBalance)
                     )
+                    if (balanceChanged) accountBalanceRepository.setAnchor(newBankName, accountLast4, newBalance)
                 }
 
                 _uiState.update {

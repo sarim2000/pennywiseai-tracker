@@ -32,7 +32,26 @@ open class AccountBalanceRepository @Inject constructor(
     companion object {
         const val SOURCE_OPENING = "OPENING"
         const val SOURCE_MANUAL = "MANUAL"
+
+        /** `anchor_source` of a balance the user typed. */
+        const val ANCHOR_ENTERED = "MANUAL"
+
+        /** `anchor_source` of a balance set from an imported statement. */
+        const val ANCHOR_STATEMENT = "STATEMENT"
     }
+
+    /**
+     * Records that the user gave [amount] as the account's balance at [at]. Net worth
+     * shows it as where the balance comes from; a MANUAL row can't say, because
+     * those rows are refreshed and their timestamp moves.
+     */
+    suspend fun setAnchor(
+        bankName: String,
+        accountLast4: String,
+        amount: BigDecimal,
+        at: LocalDateTime = LocalDateTime.now(),
+        source: String = ANCHOR_ENTERED,
+    ): Int = accountBalanceDao.setAnchor(bankName, accountLast4, amount, at, source)
 
     suspend fun insertBalance(balance: AccountBalanceEntity): Long {
         return accountBalanceDao.insertBalance(balance)
@@ -846,10 +865,12 @@ open class AccountBalanceRepository @Inject constructor(
         accountLast4: String,
         newBalance: BigDecimal,
         // When the figure was true (a statement's end); a manual account's row is always "now".
-        at: LocalDateTime = LocalDateTime.now()
+        at: LocalDateTime = LocalDateTime.now(),
+        anchorSource: String = ANCHOR_ENTERED,
     ) {
         if (isManualAccount(bankName, accountLast4)) {
             setManualCurrentBalance(bankName, accountLast4, newBalance)
+            setAnchor(bankName, accountLast4, newBalance, LocalDateTime.now(), anchorSource)
             return
         }
         val latestBalance = getLatestBalance(bankName, accountLast4)
@@ -878,6 +899,7 @@ open class AccountBalanceRepository @Inject constructor(
                 timestamp = at
             ).withAccountFieldsOf(latestBalance)
         )
+        setAnchor(bankName, accountLast4, newBalance, at, anchorSource)
     }
 
     /** One-shot account list; see [AccountBalanceDao.getAllLatestBalancesOnce]. */
@@ -1065,9 +1087,10 @@ open class AccountBalanceRepository @Inject constructor(
      */
     suspend fun seedManualAccount(template: AccountBalanceEntity, openingBalance: BigDecimal) {
         val now = LocalDateTime.now()
+        val anchored = template.copy(anchorAmount = openingBalance, anchorAt = now, anchorSource = ANCHOR_ENTERED)
         database.withTransaction {
             accountBalanceDao.insertBalance(
-                template.copy(
+                anchored.copy(
                     id = 0,
                     balance = openingBalance,
                     timestamp = now.minusSeconds(1),
@@ -1077,7 +1100,7 @@ open class AccountBalanceRepository @Inject constructor(
                 )
             )
             accountBalanceDao.insertBalance(
-                template.copy(
+                anchored.copy(
                     id = 0,
                     balance = openingBalance,
                     timestamp = now,

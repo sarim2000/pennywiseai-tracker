@@ -627,8 +627,9 @@ class QuickAddActivity : FragmentActivity() {
         private val AMOUNT_INPUT = Regex("""\d*\.?\d*""")
 
         /**
-         * One entry fills the sheet. Anything else (a question, two amounts) goes to Chat,
-         * which has the model for it, unless the user hid Chat.
+         * One entry fills the sheet. A question, a plan or two amounts go to Chat, which has
+         * the model for them, unless the user hid Chat. Anything else (no amount heard) is
+         * unclear: Chat with no model could only keep it.
          */
         internal fun voiceRoute(
             text: String,
@@ -638,7 +639,7 @@ class QuickAddActivity : FragmentActivity() {
             today: LocalDate = LocalDate.now(),
             label: (String) -> String = { it }
         ): VoiceRoute = VoiceEntry.parse(text, categories, baseCurrency, today, label)?.let { VoiceRoute.Fill(it) }
-            ?: if (chatOpen && text.isNotBlank()) VoiceRoute.Chat else VoiceRoute.Unclear
+            ?: if (chatOpen && VoiceEntry.isForChat(text)) VoiceRoute.Chat else VoiceRoute.Unclear
 
         /**
          * The cash accounts the sheet can charge, last used first: the

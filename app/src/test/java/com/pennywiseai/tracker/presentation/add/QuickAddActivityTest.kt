@@ -100,6 +100,14 @@ class QuickAddActivityTest {
     }
 
     @Test
+    fun `a spend whose amount wasn't heard stays here, not Chat`() {
+        // The recognizer dropped the digits, or said the number in words.
+        assertEquals(QuickAddActivity.VoiceRoute.Unclear, route("lunch cash"))
+        assertEquals(QuickAddActivity.VoiceRoute.Unclear, route("دفعت خمسين ريال قهوة"))
+        assertEquals(QuickAddActivity.VoiceRoute.Unclear, route("0 lunch"))
+    }
+
+    @Test
     fun `with Chat hidden a question has nowhere to go`() {
         assertEquals(QuickAddActivity.VoiceRoute.Unclear, route("how much did I spend on food", chatOpen = false))
         assertTrue(route("200 lunch", chatOpen = false) is QuickAddActivity.VoiceRoute.Fill)

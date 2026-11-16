@@ -36,7 +36,7 @@ data class VoiceEntry(
             today: LocalDate = LocalDate.now(),
             label: (String) -> String = { it },
         ): VoiceEntry? {
-            if (text.isBlank() || asks(text) || TransactionDraft.saysNotYetPaid(text) || ARABIC_PLAN.containsMatchIn(text)) return null
+            if (text.isBlank() || asksOrPlans(text)) return null
             val daysAgo = ChatMessageFacts.spokenDaysAgo(text) ?: return null
             val amount = ChatMessageFacts.statedAmounts(ChatMessageFacts.withoutDays(text)).singleOrNull()
                 ?.abs()?.takeIf { it.signum() > 0 } ?: return null
@@ -51,6 +51,18 @@ data class VoiceEntry(
                 date = today.minusDays(daysAgo.toLong()),
             )
         }
+
+        /**
+         * Whether [text], not read as one entry, is for Chat: a question, a plan, more than one
+         * amount, or a day this can't count. A spend whose amount wasn't heard ("lunch cash",
+         * or an amount said in words) is none of these: the user says it again or types it.
+         */
+        fun isForChat(text: String): Boolean = asksOrPlans(text) ||
+            ChatMessageFacts.spokenDaysAgo(text) == null ||
+            ChatMessageFacts.statedAmounts(ChatMessageFacts.withoutDays(text)).size > 1
+
+        private fun asksOrPlans(text: String) =
+            asks(text) || TransactionDraft.saysNotYetPaid(text) || ARABIC_PLAN.containsMatchIn(text)
 
         private fun asks(text: String) = '?' in text || '؟' in text || QUESTION_START.containsMatchIn(text)
 

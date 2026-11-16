@@ -19,6 +19,7 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.domain.review.CurrencyReview
 import com.pennywiseai.tracker.domain.review.PeriodReview
 import com.pennywiseai.tracker.domain.review.ReviewKind
+import com.pennywiseai.tracker.domain.review.ReviewRange
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.Money
@@ -30,6 +31,7 @@ import java.io.File
 import java.io.FileOutputStream
 import java.math.BigDecimal
 import java.time.LocalDate
+import java.time.YearMonth
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -61,6 +63,13 @@ internal fun pageStarts(blocks: List<ReportBlock>, pageHeight: Float): List<Int>
         used += block.height
     }
     return starts
+}
+
+/** The period in the file's name, so a kept report says what it covers: `2026`, `2026-10`, or a cycle's first day. */
+internal fun reportSlug(range: ReviewRange): String = when {
+    range.kind == ReviewKind.YEAR -> range.start.year.toString()
+    range.kind == ReviewKind.MONTH && range.start.dayOfMonth == 1 -> YearMonth.from(range.start).toString()
+    else -> range.start.toString()
 }
 
 /** The share sheet for a report [PdfReportExporter.export] wrote. */
@@ -102,7 +111,7 @@ class PdfReportExporter @Inject constructor(
         // Bounded by age, not by overwriting: a file just shared may still be read (see ShareCardExporter).
         dir.listFiles()?.filter { it.name.endsWith(".pdf") && now - it.lastModified() > MAX_AGE_MS }?.forEach { it.delete() }
 
-        val file = File.createTempFile("pennywise-report-", ".pdf", dir)
+        val file = File.createTempFile("pennywise-report-${reportSlug(review.range)}-", ".pdf", dir)
         val document = PdfDocument()
         try {
             Renderer(appContext.inAppLanguage(), categoryLabel).render(document, review, title, profileName)

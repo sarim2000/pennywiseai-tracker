@@ -1,7 +1,10 @@
 package com.pennywiseai.tracker.data.export
 
+import com.pennywiseai.tracker.domain.review.ReviewKind
+import com.pennywiseai.tracker.domain.review.ReviewRange
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import java.time.LocalDate
 
 class PdfReportPaginationTest {
     private fun blocks(vararg heights: Float) = heights.map { ReportBlock(it) }
@@ -40,5 +43,14 @@ class PdfReportPaginationTest {
     @Test
     fun `an empty report is still one page`() {
         assertEquals(listOf(0), pageStarts(emptyList(), pageHeight = 100f))
+    }
+
+    @Test
+    fun `the file name says which period it covers`() {
+        fun range(kind: ReviewKind, start: LocalDate, end: LocalDate) =
+            ReviewRange(kind, start, end, start, end, isComplete = true)
+        assertEquals("2026", reportSlug(range(ReviewKind.YEAR, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31))))
+        assertEquals("2026-10", reportSlug(range(ReviewKind.MONTH, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31))))
+        assertEquals("2026-10-25", reportSlug(range(ReviewKind.MONTH, LocalDate.of(2026, 10, 25), LocalDate.of(2026, 11, 24))))
     }
 }

@@ -54,7 +54,9 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
@@ -204,22 +206,27 @@ fun BalanceCard(
                                 modifier = Modifier.netWorthLink(onOpenNetWorth),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
+                                val balanceText = if (isBalanceHidden) {
+                                    stringResource(R.string.balance_card_balance, "••••••")
+                                } else {
+                                    stringResource(R.string.balance_card_balance, "${CurrencyFormatter.formatCurrency(totalBalance, currency)}${if (isApproximate) "*" else ""}")
+                                }
+                                val countText = if (accountBalances.size > 1) {
+                                    pluralStringResource(R.plurals.balance_card_account_count, accountBalances.size, accountBalances.size)
+                                } else {
+                                    null
+                                }
+                                val countStyle = MaterialTheme.typography.bodySmall.toSpanStyle()
+                                // One text that wraps as a whole and leaves the chevron its room at large font sizes.
                                 Text(
-                                    text = if (isBalanceHidden) {
-                                        stringResource(R.string.balance_card_balance, "••••••")
-                                    } else {
-                                        stringResource(R.string.balance_card_balance, "${CurrencyFormatter.formatCurrency(totalBalance, currency)}${if (isApproximate) "*" else ""}")
+                                    text = buildAnnotatedString {
+                                        append(balanceText)
+                                        if (countText != null) withStyle(countStyle) { append(countText) }
                                     },
                                     style = PennyWiseText.amountSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.weight(1f, fill = false)
                                 )
-                                if (accountBalances.size > 1) {
-                                    Text(
-                                        text = pluralStringResource(R.plurals.balance_card_account_count, accountBalances.size, accountBalances.size),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
                                 if (onOpenNetWorth != null) NetWorthChevron()
                             }
                         }

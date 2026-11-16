@@ -396,9 +396,9 @@
     <string name="chat_group_no_account">بدون حساب</string>
     <string name="chat_reply_planning_unknown">يمكنني عرض المتبقي من ميزانياتك، أو الفواتير المستحقة هذا الأسبوع.</string>
     <string name="chat_reply_budgets_title">ميزانياتك:</string>
-    <string name="chat_reply_budget_left">ميزانية %1$s (%2$s): صرفت %3$s من %4$s، والمتبقي %5$s</string>
-    <string name="chat_reply_budget_over">ميزانية %1$s (%2$s): صرفت %3$s من %4$s، متجاوزًا الحد بمبلغ %5$s</string>
-    <string name="chat_reply_budget_no_rate">ميزانية %1$s (%2$s): صرفت %3$s. لا يوجد سعر صرف لعرض حدّها بعملة %4$s، لذا لا يمكن حساب المتبقي.</string>
+    <string name="chat_reply_budget_left">\u200F%1$s (%2$s): صرفت %3$s من %4$s، والمتبقي %5$s</string>
+    <string name="chat_reply_budget_over">\u200F%1$s (%2$s): صرفت %3$s من %4$s، متجاوزًا الحد بمبلغ %5$s</string>
+    <string name="chat_reply_budget_no_rate">\u200F%1$s (%2$s): صرفت %3$s. لا يوجد سعر صرف لعرض حدّها بعملة %4$s، لذا لا يمكن حساب المتبقي.</string>
     <string name="chat_reply_budgets_none">لا توجد حدود ميزانية سارية اليوم. يمكنك إضافة حد من شاشة الميزانيات.</string>
     <string name="chat_reply_bills_none">لا توجد فواتير مستحقة حتى %1$s.</string>
     <string name="chat_reply_bills_overdue">متأخرة:</string>

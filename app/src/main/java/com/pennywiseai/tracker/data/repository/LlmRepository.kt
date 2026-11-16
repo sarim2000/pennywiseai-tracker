@@ -272,7 +272,7 @@ class LlmRepository @Inject constructor(
         if (toolCalls.any { it.name == PennyWiseTools.ADD_TRANSACTIONS }) {
             val items = toolCalls.filter { it.name == PennyWiseTools.ADD_TRANSACTIONS }.flatMap { TransactionDraft.itemsOfCall(it.arguments) }
             if (ChatMessageFacts.asksOnly(userMessage, items.mapNotNull { ChatMessageFacts.parseAmount(it["amount"]) })) {
-                val lookup = lookupAsked(items)
+                val lookup = lookupAsked(items, userMessage)
                 toolCalls.removeAll { it.name == PennyWiseTools.ADD_TRANSACTIONS }
                 if (lookup != null) toolCalls.add(lookup) else unreadableToolCall = true
                 // The live conversation holds the add call; the next turn rebuilds from the save.
@@ -515,11 +515,18 @@ class LlmRepository @Inject constructor(
             ?: categories.firstOrNull { norm(it.name).split(" ").first() == w.split(" ").first() }?.name
     }
 
-    /** The spending lookup a question's add call names: its one item's merchant or category. */
-    private fun lookupAsked(items: List<Map<String, Any?>>): LlmEvent.ToolCall? {
+    /**
+     * The spending lookup a question's add call names: its one item's merchant or category, on
+     * the account it names when the user's words name it too ("coffee on HDFC 1234?"), which
+     * the lookup then finds or asks about: never every account instead.
+     */
+    private fun lookupAsked(items: List<Map<String, Any?>>, userMessage: String): LlmEvent.ToolCall? {
         val item = items.singleOrNull() ?: return null
-        val args = listOf("merchant", "category").mapNotNull { key -> (item[key] as? String)?.trim()?.takeIf { it.isNotEmpty() }?.let { key to it } }.toMap()
-        return if (args.isEmpty()) null else LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, args)
+        fun text(key: String) = (item[key] as? String)?.trim()?.takeIf { it.isNotEmpty() }
+        val args = listOf("merchant", "category").mapNotNull { key -> text(key)?.let { key to it } }.toMap()
+        if (args.isEmpty()) return null
+        val account = text("account")?.takeIf { SpendingQuery.namesAccount(userMessage, it) }
+        return LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, args + listOfNotNull(account?.let { "account" to it }))
     }
 
     private fun addCall(items: List<Map<String, Any?>>) = LlmEvent.ToolCall(PennyWiseTools.ADD_TRANSACTIONS, mapOf("items" to items))

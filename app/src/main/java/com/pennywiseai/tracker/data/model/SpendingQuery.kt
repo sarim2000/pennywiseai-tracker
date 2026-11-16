@@ -389,6 +389,18 @@ object SpendingQuery {
         "بنك", "البنك", "بنكي", "مصرف", "المصرف",
     )
 
+    /**
+     * Whether [message] names the [account] a call gave: its last digits, or a word of it that
+     * isn't a generic one ("HDFC", not "card"). An account the model filled in on its own
+     * restricts nothing the user asked about.
+     */
+    fun namesAccount(message: String, account: String): Boolean {
+        val digits = account.filter(Char::isDigit)
+        val said = norm(message).split(" ")
+        return (digits.length >= 3 && digits.takeLast(4) in message.filter(Char::isDigit)) ||
+            norm(account.filterNot(Char::isDigit)).split(" ").any { it.isNotEmpty() && it !in ACCOUNT_WORDS && it in said }
+    }
+
     sealed interface AccountMatch {
         data class One(val account: AccountBalanceEntity) : AccountMatch
         /** Several accounts answer to it, e.g. two cards ending in the same digits. */

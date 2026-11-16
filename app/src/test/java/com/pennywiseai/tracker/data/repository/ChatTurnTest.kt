@@ -326,6 +326,24 @@ class ChatTurnTest {
         assertEquals("PERIOD", send("كم صرفت في ستاربكس في 2026"))
         assertEquals(null, repository.pendingAction.value)
 
+        // The account the user named stays on the lookup: one account's figure, not all of them.
+        coEvery { accountBalances.getAllLatestBalancesOnce() } returns listOf(account("HDFC", "1234"), account("SBI", "5678"))
+        events = listOf(spentIn(1234.0, account = "HDFC 1234"))
+        assertTrue(send("how much coffee spending at Starbucks on HDFC 1234?").startsWith("SPENT"))
+        assertEquals(SpendingFilter(merchant = "Starbucks", account = "HDFC_1234"), filter.captured)
+        events = listOf(spentIn(1234.0, account = "بطاقة 1234"))
+        assertTrue(send("كم صرفت في ستاربكس على بطاقة 1234؟").startsWith("SPENT"))
+        assertEquals("HDFC_1234", filter.captured.account)
+        // One it can't find is said, not answered across every account.
+        every { context.getString(R.string.chat_reply_unknown_account, any()) } returns "NO_ACCOUNT"
+        events = listOf(spentIn(9999.0, account = "ICICI 9999"))
+        assertEquals("NO_ACCOUNT", send("how much at Starbucks on ICICI 9999?"))
+        // One only the model named restricts nothing the user asked.
+        events = listOf(spentIn(25.0, account = "SBI 5678"))
+        assertTrue(send("how much at Starbucks?").startsWith("SPENT"))
+        assertEquals(null, filter.captured.account)
+        assertEquals(null, repository.pendingAction.value)
+
         // Asked to add, or stating the amount, it's still a card.
         events = listOf(income("Starbucks"))
         assertEquals("CARD", send("can you add 25 from Starbucks?"))

@@ -6,6 +6,9 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.model.SpendingComparison.Period
 import com.pennywiseai.tracker.data.model.SpendingComparison.Result
+import com.pennywiseai.tracker.presentation.transactions.CategorySplitShares
+import com.pennywiseai.tracker.presentation.transactions.calculateCurrencyGroupedTotals
+import com.pennywiseai.tracker.presentation.transactions.filterByCategories
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -338,6 +341,23 @@ class SpendingComparisonTest {
             tx("50", type = TransactionType.INCOME, category = "Refund", refundTo = "Shopping")
         )
         assertEquals(mapOf("INR" to BigDecimal("30")), SpendingComparison.refundedOutside(both, setOf("Shopping")))
+    }
+
+    @Test
+    fun `a refund split partly into the category notes the part its list doesn't net`() {
+        // A ₹40 refund given back to Food, split ₹10 Food and ₹30 Others: the figure takes off
+        // ₹40, the Food list holds the row and nets its ₹10 share only.
+        val rows = listOf(
+            tx("100", category = "Food"),
+            tx("40", type = TransactionType.INCOME, category = "Food", refundTo = "Food", splits = listOf("Food" to "10", "Others" to "30"))
+        )
+        val food = setOf("Food")
+        assertEquals(mapOf("INR" to BigDecimal("60")), SpendingComparison.spend(rows, food))
+        assertEquals(mapOf("INR" to BigDecimal("30")), SpendingComparison.refundedOutside(rows, food))
+        // The list behind the figure: ₹90, the figure and the note's gap together.
+        val splits = rows.flatMap { it.splits }
+        val listed = filterByCategories(rows.map { it.transaction }, food, splits).mapNotNull(CategorySplitShares(food, splits)::forTotals)
+        assertEquals(BigDecimal("90"), calculateCurrencyGroupedTotals(listed).getTotalsForCurrency("INR").expenses)
     }
 
     @Test

@@ -254,6 +254,7 @@ private fun InsightsContent(
                         onAction = onAction,
                         secondaryLabel = stringResource(R.string.insights_restore),
                         onSecondary = { onRestore(insight.id) },
+                        dismissed = true,
                         modifier = Modifier.animateItem(),
                     )
                 }
@@ -523,9 +524,12 @@ internal fun InsightCard(
     secondaryLabel: String,
     onSecondary: () -> Unit,
     modifier: Modifier = Modifier,
+    dismissed: Boolean = false,
 ) {
     val text = insightText(insight)
-    val (icon, color) = severityStyle(insight.severity)
+    val (icon, severityColor) = severityStyle(insight.severity)
+    // A dismissed card is muted and says so, so it can't pass for an active one.
+    val color = if (dismissed) MaterialTheme.colorScheme.onSurfaceVariant else severityColor
     val stateLabel = stringResource(if (expanded) R.string.insights_collapse else R.string.insights_expand)
     PennyWiseCardV2(
         modifier = modifier.fillMaxWidth().semantics { stateDescription = stateLabel },
@@ -539,11 +543,20 @@ internal fun InsightCard(
                 tint = color,
                 modifier = Modifier.size(Dimensions.Icon.medium),
             )
-            Text(
-                text = text.title,
-                style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier.weight(1f),
-            )
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = text.title,
+                    style = MaterialTheme.typography.titleSmall,
+                    color = if (dismissed) MaterialTheme.colorScheme.onSurfaceVariant else Color.Unspecified,
+                )
+                if (dismissed) {
+                    Text(
+                        text = stringResource(R.string.insights_dismissed_label),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
+            }
             Icon(
                 if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                 contentDescription = null,

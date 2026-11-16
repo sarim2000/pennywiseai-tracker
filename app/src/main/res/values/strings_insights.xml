@@ -28,6 +28,8 @@
     <string name="insights_dismissed">Insight dismissed</string>
     <string name="insights_undo">Undo</string>
     <string name="insights_restore">Show again</string>
+    <!-- Under the title of an insight the user dismissed, in the "Show dismissed" list -->
+    <string name="insights_dismissed_label">Dismissed</string>
     <!-- %1$d = how many insights were dismissed this cycle -->
     <string name="insights_show_dismissed">Show dismissed (%1$d)</string>
     <string name="insights_hide_dismissed">Hide dismissed</string>

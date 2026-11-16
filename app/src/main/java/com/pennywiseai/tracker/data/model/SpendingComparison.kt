@@ -43,7 +43,7 @@ object SpendingComparison {
             val rows: List<Row>,
             val currentSpentIn: Set<String> = rows.filter { it.current.signum() > 0 }.mapTo(mutableSetOf()) { it.currency },
             val previousSpentIn: Set<String> = rows.filter { it.previous.signum() > 0 }.mapTo(mutableSetOf()) { it.currency },
-            /** What each window's category list adds up to beyond its figure, as [refundedOutside] gives it. */
+            /** What each window's category list adds up to beyond its figure (negative: short of it), as [refundedOutside] gives it. */
             val currentRefunded: Map<String, BigDecimal> = emptyMap(),
             val previousRefunded: Map<String, BigDecimal> = emptyMap(),
             /** Either window counted a card purchase: see [countsCardPurchases]. */
@@ -165,10 +165,12 @@ object SpendingComparison {
 
     /**
      * How much more the list of [categories]' transactions adds up to than [spend]'s figure, per
-     * currency. The figure takes off each refund given back to them whole; the list nets only a
-     * refund row's own part in them (all of it, or its splits there), so a refund filed under
-     * another category, or split partly into one, leaves the list higher. Both floor at zero, so
-     * this is the gap between the two and no more. Currencies with no gap are left out.
+     * currency; negative where the list adds up to less. The figure takes off each refund given
+     * back to them whole; the list nets only a refund row's own part in them (all of it, or its
+     * splits there). A refund given back to them but filed under another category, or split
+     * partly into one, leaves the list higher; one given back elsewhere but split partly into
+     * them leaves it lower. Both floor at zero, so this is the gap between the two and no more.
+     * Currencies with no gap are left out.
      */
     fun refundedOutside(rows: List<TransactionWithSplits>, categories: Set<String>, creditAsExpense: Boolean = true): Map<String, BigDecimal> {
         val byFigure = refundedTo(rows, categories)
@@ -180,7 +182,7 @@ object SpendingComparison {
             .mapValues { (c, gross) ->
                 (gross - (byList[c] ?: BigDecimal.ZERO)).max(BigDecimal.ZERO) - (gross - (byFigure[c] ?: BigDecimal.ZERO)).max(BigDecimal.ZERO)
             }
-            .filterValues { it.signum() > 0 }
+            .filterValues { it.signum() != 0 }
     }
 
     /**

@@ -717,11 +717,17 @@ class LlmRepository @Inject constructor(
     }
 
     /**
-     * A line under a category's figure for the refunds it took off in [window]: they're rows of
-     * their own category, so the list its link opens adds up to more. Empty when there were none.
+     * Lines under a category's figure for the gap to the list its link opens in [window], per
+     * currency as [SpendingComparison.refundedOutside] gives it: refunds the figure took off that
+     * the list doesn't net (the list is higher), and another category's refund split partly into
+     * this one, which the list nets and the figure doesn't (the list is lower). Empty when none.
      */
-    private suspend fun refundNote(refunded: Map<String, BigDecimal>, window: SpendingComparison.Window): String =
-        if (refunded.isEmpty()) "" else "\n" + context.getString(R.string.chat_reply_refunds_taken_off, range(window), amounts(refunded))
+    private suspend fun refundNote(gap: Map<String, BigDecimal>, window: SpendingComparison.Window): String {
+        val higher = gap.filterValues { it.signum() > 0 }
+        val lower = gap.filterValues { it.signum() < 0 }.mapValues { it.value.negate() }
+        return (if (higher.isEmpty()) "" else "\n" + context.getString(R.string.chat_reply_refunds_taken_off, range(window), amounts(higher))) +
+            (if (lower.isEmpty()) "" else "\n" + context.getString(R.string.chat_reply_refunds_list_lower, range(window), amounts(lower)))
+    }
 
     /** The transactions behind a month's spending and income; forgiven loans have none. */
     private suspend fun spendingLinks(p: PeriodSpending) = linksTo(p.scope, null, p.spent.keys + p.income.keys)

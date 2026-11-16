@@ -366,6 +366,7 @@
     <string name="chat_reply_received_nothing">لم تستلم أي مبالغ</string>
     <string name="chat_reply_card_purchases">يشمل مشتريات البطاقة، وتجمعها القائمة تحت «ائتمان».</string>
     <string name="chat_reply_refunds_taken_off">المبالغ المستردة المخصومة (%1$s): %2$s. تظهر في القائمة تحت فئتها الخاصة.</string>
+    <string name="chat_reply_refunds_list_lower">القائمة أقل بمقدار %2$s (%1$s): فهي تخصم جزءًا من مبلغ مسترد مسجَّل تحت فئة أخرى.</string>
     <plurals name="chat_reply_transaction_count">
         <item quantity="zero">لا معاملات</item>
         <item quantity="one">%1$d معاملة</item>

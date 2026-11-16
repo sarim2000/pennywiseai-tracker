@@ -361,6 +361,22 @@ class SpendingComparisonTest {
     }
 
     @Test
+    fun `another category's refund split partly into the category leaves its list lower`() {
+        // A ₹40 refund given back to Others, split ₹10 Food and ₹30 Others: the Food figure takes
+        // nothing off, the Food list holds the row and nets its ₹10 share.
+        val rows = listOf(
+            tx("100", category = "Food"),
+            tx("40", type = TransactionType.INCOME, category = "Others", refundTo = "Others", splits = listOf("Food" to "10", "Others" to "30"))
+        )
+        val food = setOf("Food")
+        assertEquals(mapOf("INR" to BigDecimal("100")), SpendingComparison.spend(rows, food))
+        assertEquals(mapOf("INR" to BigDecimal("-10")), SpendingComparison.refundedOutside(rows, food))
+        val splits = rows.flatMap { it.splits }
+        val listed = filterByCategories(rows.map { it.transaction }, food, splits).mapNotNull(CategorySplitShares(food, splits)::forTotals)
+        assertEquals(BigDecimal("90"), calculateCurrencyGroupedTotals(listed).getTotalsForCurrency("INR").expenses)
+    }
+
+    @Test
     fun `card purchases count only when the user folds them into spending`() {
         val mixed = listOf(tx("100"), tx("40", type = TransactionType.CREDIT, category = "Shopping"))
         assertEquals(mapOf("INR" to BigDecimal("100")), SpendingComparison.spend(mixed, creditAsExpense = false))

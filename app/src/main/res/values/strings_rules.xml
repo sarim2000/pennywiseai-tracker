@@ -333,6 +333,8 @@
     <string name="chat_reply_received_nothing">Nothing received</string>
     <string name="chat_reply_card_purchases">Includes card purchases, which the list totals under Credit.</string>
     <string name="chat_reply_refunds_taken_off">Refunds taken off (%1$s): %2$s. The list shows them under their own category.</string>
+    <!-- %2$s = how much lower the list is than the figure, per currency -->
+    <string name="chat_reply_refunds_list_lower">The list is %2$s lower (%1$s): it takes off part of a refund filed under another category.</string>
     <plurals name="chat_reply_transaction_count">
         <item quantity="one">%1$d transaction</item>
         <item quantity="other">%1$d transactions</item>

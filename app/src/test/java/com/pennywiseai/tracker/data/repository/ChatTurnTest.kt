@@ -700,6 +700,23 @@ class ChatTurnTest {
     }
 
     @Test
+    fun `a category's list that nets another category's refund says it is lower, and by how much`() = runTest {
+        every { context.getString(R.string.chat_reply_refunds_taken_off, any(), any()) } answers { "REFUNDED ${(args[1] as Array<*>)[1]}" }
+        every { context.getString(R.string.chat_reply_refunds_list_lower, any(), any()) } answers { "LOWER ${(args[1] as Array<*>)[1]}" }
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "طعام")))
+        coEvery { aiContext.categorySpending(any(), any()) } returns spent("100").copy(category = "طعام", refunded = mapOf("INR" to BigDecimal("-10")))
+        assertEquals("SPEND\nLOWER ₹10", send("how much on food?"))
+
+        // Both ways at once, one currency each: each its own line.
+        coEvery { aiContext.categorySpending(any(), any()) } returns spent("100").copy(
+            category = "طعام",
+            byCurrency = mapOf("INR" to BigDecimal("100"), "USD" to BigDecimal("8")),
+            refunded = mapOf("INR" to BigDecimal("-10"), "USD" to BigDecimal("2")),
+        )
+        assertEquals("SPEND\nREFUNDED $2\nLOWER ₹10", send("how much on food?"))
+    }
+
+    @Test
     fun `a figure that counted card purchases says the list totals them under Credit`() = runTest {
         every { context.getString(R.string.chat_reply_card_purchases) } returns "CARD"
         coEvery { aiContext.categorySpending(any(), any()) } returns spent("120").copy(category = "طعام", cardPurchases = true)

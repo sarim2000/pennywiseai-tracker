@@ -46,7 +46,11 @@ data class CategorySpend(
     val byCurrency: Map<String, BigDecimal>,
     val transactionCount: Int,
     val share: Float? = null,
-    /** Refunds taken off [byCurrency], in its currencies: its transaction list doesn't hold them. */
+    /**
+     * How much more its transaction list adds up to than [byCurrency], in its currencies:
+     * refunds the figure took off that the list doesn't net, or (negative) refunds the list nets
+     * that the figure didn't take off. See [SpendingComparison.refundedOutside].
+     */
     val refunded: Map<String, BigDecimal> = emptyMap(),
     /** [byCurrency] counted card purchases, which the Transactions list totals under Credit. */
     val cardPurchases: Boolean = false,

@@ -170,14 +170,14 @@ class ShareRoutesTest {
     }
 
     @Test
-    fun `og image is re-encoded without metadata and cached long`() = shareApp {
+    fun `og image is re-encoded without metadata and cached briefly`() = shareApp {
         val res0 = publish(og = png(comment = "device-model-xyz"))
         assertEquals(HttpStatusCode.Created, res0.status)
         val id = Json.parseToJsonElement(res0.bodyAsText()).jsonObject["id"]!!.jsonPrimitive.content
         val res = client.get("/s/$id/og.png")
         assertEquals(HttpStatusCode.OK, res.status)
         assertEquals(ContentType.Image.PNG, res.contentType()?.withoutParameters())
-        assertEquals("public, max-age=86400, immutable", res.headers[HttpHeaders.CacheControl])
+        assertEquals("public, max-age=300", res.headers[HttpHeaders.CacheControl])
         val bytes = res.readRawBytes()
         assertFalse(String(bytes, Charsets.ISO_8859_1).contains("device-model-xyz"))
         val image = ImageIO.read(bytes.inputStream())

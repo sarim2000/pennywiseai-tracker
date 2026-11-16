@@ -18,7 +18,14 @@ import kotlinx.io.readByteArray
 const val MAX_SHARE_BODY_BYTES = 1_572_864L
 
 private const val PAGE_CACHE = "public, max-age=300"
-private const val OG_CACHE = "public, max-age=86400, immutable"
+
+/**
+ * Same short lifetime as the page. The image carries the publisher's numbers, and a delete
+ * can only purge the edge cache in one data centre, so a long max-age would keep a deleted
+ * image public elsewhere for that long. Crawlers fetch it seconds after the page, so a
+ * longer cache buys nothing.
+ */
+private const val OG_CACHE = PAGE_CACHE
 
 fun Application.configureShares(service: ShareService) {
     routing {

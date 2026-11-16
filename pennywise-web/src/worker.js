@@ -48,7 +48,7 @@ async function forwardToContainer(c) {
 // WhatsApp, iMessage and friends fetch the page and its og.png the moment a link
 // is pasted and give up after a few seconds, so a cold container would cost the
 // preview. Successful responses stay in the edge cache for as long as the
-// origin's Cache-Control allows (page: minutes, image: a day).
+// origin's Cache-Control allows (five minutes for both).
 const SHARE_PATH = /^\/s\/([A-Za-z0-9_-]{22})(\/og\.png)?$/;
 
 function shareCacheKeys(origin, id) {

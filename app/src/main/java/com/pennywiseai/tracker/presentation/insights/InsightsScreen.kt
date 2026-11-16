@@ -37,6 +37,7 @@ import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
@@ -146,11 +147,19 @@ fun InsightsScreen(
                         viewModel.dismiss(id)
                         scope.launch {
                             snackbarHostState.currentSnackbarData?.dismiss()
-                            val result = snackbarHostState.showSnackbar(dismissedMessage, actionLabel = undoLabel)
+                            val result = snackbarHostState.showSnackbar(
+                                dismissedMessage,
+                                actionLabel = undoLabel,
+                                duration = SnackbarDuration.Long,
+                            )
                             if (result == SnackbarResult.ActionPerformed) viewModel.restore(id)
                         }
                     },
-                    onRestore = viewModel::restore,
+                    onRestore = { id ->
+                        // Brought back by hand: an Undo still on screen would offer nothing.
+                        snackbarHostState.currentSnackbarData?.dismiss()
+                        viewModel.restore(id)
+                    },
                 )
             }
         }

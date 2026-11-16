@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Spending calendar: a month grid of what was spent each day and what's due -->
-    <string name="calendar_title">Calendar</string>
+    <string name="calendar_title">Spending calendar</string>
     <!-- The Analytics toolbar button that opens the calendar -->
     <string name="calendar_open">Spending calendar</string>
     <string name="calendar_back">Back</string>

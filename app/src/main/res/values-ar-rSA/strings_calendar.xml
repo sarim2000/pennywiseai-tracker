@@ -1,0 +1,38 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Spending calendar: a month grid of what was spent each day and what's due -->
+    <string name="calendar_title">تقويم الإنفاق</string>
+    <!-- The Analytics toolbar button that opens the calendar -->
+    <string name="calendar_open">تقويم الإنفاق</string>
+    <string name="calendar_back">رجوع</string>
+    <string name="calendar_previous_month">الشهر السابق</string>
+    <string name="calendar_next_month">الشهر التالي</string>
+    <string name="calendar_this_month">العودة إلى هذا الشهر</string>
+    <string name="calendar_legend_due">دفعة مستحقة</string>
+    <string name="calendar_legend_shade">كلما كان اليوم أغمق، زاد الإنفاق</string>
+    <!-- %1$s = a month, e.g. "November 2026" -->
+    <string name="calendar_empty_headline">لا إنفاق ولا مستحقات في %1$s</string>
+    <string name="calendar_empty_body">يظهر هنا إنفاقك من رسائل البنك، والاشتراكات والدفعات المتكررة وفواتير البطاقات التي تتابعها.</string>
+
+    <!-- Read out for a day; %1$s = what was spent, e.g. "₹500" or "₹500, $10" -->
+    <string name="calendar_day_spent">أنفقت %1$s</string>
+    <plurals name="calendar_day_due">
+        <item quantity="zero">%d دفعة مستحقة</item>
+        <item quantity="one">%d دفعة مستحقة</item>
+        <item quantity="two">%d دفعة مستحقة</item>
+        <item quantity="few">%d دفعات مستحقة</item>
+        <item quantity="many">%d دفعة مستحقة</item>
+        <item quantity="other">%d دفعة مستحقة</item>
+    </plurals>
+    <string name="calendar_day_today">اليوم</string>
+
+    <!-- The sheet for one day -->
+    <string name="calendar_day_section_spent">المصروف</string>
+    <string name="calendar_day_section_due">المستحق</string>
+    <string name="calendar_day_transactions">عرض معاملات هذا اليوم</string>
+    <string name="calendar_day_empty">لا إنفاق ولا مستحقات في هذا اليوم.</string>
+    <string name="calendar_kind_subscription">اشتراك</string>
+    <string name="calendar_kind_recurring">دفعة متكررة</string>
+    <string name="calendar_kind_card">فاتورة البطاقة</string>
+    <string name="calendar_kind_card_overdue">فاتورة البطاقة، متأخرة</string>
+</resources>

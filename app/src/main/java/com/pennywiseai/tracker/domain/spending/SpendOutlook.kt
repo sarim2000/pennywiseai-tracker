@@ -73,10 +73,11 @@ data class Bill(
     val name: String,
     val amount: Money,
     val dueDate: LocalDate,
-    val isCardBill: Boolean = false,
     /** What the bill is for, so a screen can open it; null when not known. */
     val source: BillSource? = null,
-)
+) {
+    val isCardBill: Boolean get() = source is BillSource.Card
+}
 
 /** Where a [Bill] comes from. */
 sealed interface BillSource {

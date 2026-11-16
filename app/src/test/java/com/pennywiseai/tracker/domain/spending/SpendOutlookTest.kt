@@ -172,7 +172,7 @@ class SpendOutlookTest {
         val r = SafeToSpend.calculate(
             listOf(Money(d("10000"), "INR")),
             listOf(
-                Bill("Card", Money(d("2500"), "INR"), LocalDate.of(2026, 10, 20), isCardBill = true),
+                Bill("Card", Money(d("2500"), "INR"), LocalDate.of(2026, 10, 20), source = card),
                 Bill("Old", Money(d("500"), "INR"), LocalDate.of(2026, 10, 20)),
             ),
             today, end,
@@ -216,14 +216,14 @@ class SpendOutlookTest {
         // bill comes off the balance. The figure is the lower of the two, not both.
         val r = SafeToSpend.calculate(
             listOf(Money(d("20000"), "INR")),
-            listOf(Bill("Card", Money(d("6000"), "INR"), end, isCardBill = true)),
+            listOf(Bill("Card", Money(d("6000"), "INR"), end, source = card)),
             today, end, budgetLeft = Money(d("9000"), "INR"),
         ).single()
         assertEquals(d("9000"), r.amount)
         assertTrue(r.isCapped)
         val uncapped = SafeToSpend.calculate(
             listOf(Money(d("20000"), "INR")),
-            listOf(Bill("Card", Money(d("6000"), "INR"), end, isCardBill = true)),
+            listOf(Bill("Card", Money(d("6000"), "INR"), end, source = card)),
             today, end,
         ).single()
         assertEquals(d("14000"), uncapped.amount)
@@ -236,7 +236,7 @@ class SpendOutlookTest {
         suspend fun inr(m: Money) = SafeToSpend.inDisplay(m, "INR") { a, from, _ -> rates[from]?.let { a * it } }
         val r = SafeToSpend.calculate(
             listOf(Money(d("9100"), "INR"), Money(d("10"), "EUR")).map { inr(it) },
-            listOf(Bill("US card", Money(d("120"), "USD"), end, isCardBill = true)).map { it.copy(amount = inr(it.amount)) },
+            listOf(Bill("US card", Money(d("120"), "USD"), end, source = card)).map { it.copy(amount = inr(it.amount)) },
             today, end,
         ).associateBy { it.currency }
         assertEquals(d("10000"), r.getValue("INR").amount)
@@ -251,4 +251,6 @@ class SpendOutlookTest {
         assertEquals(Money(d("41636"), "INR"), inr(Money(d("500"), "USD")))
         assertEquals(Money(d("96763.70"), "INR"), inr(Money(d("96763.70"), "INR")))
     }
+
+    private val card = BillSource.Card("Bank", "1234")
 }

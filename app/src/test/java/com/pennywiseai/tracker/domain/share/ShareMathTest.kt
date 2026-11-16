@@ -81,6 +81,16 @@ class ShareMathTest {
         assertEquals(listOf(10), savingsTrend(reviews, "USD").map { it.ratePercent })
     }
 
+    @Test
+    fun `the previous rate is compared only when the previous period is covered`() {
+        val september = month("2026-09-01", currency("JOD", spent = "500", income = "1000"), currency("USD", spent = "10", income = "100"))
+        // Covered: the review found a fair comparison, so last period's rate in the same currency.
+        assertEquals(50, previousSavingsRate(currency("JOD", spent = "300", income = "1000", previous = "500"), september))
+        // Records start too late in September: the review left out the comparison, and so does the card.
+        assertNull(previousSavingsRate(currency("JOD", spent = "300", income = "1000"), september))
+        assertNull(previousSavingsRate(currency("JOD", spent = "300", income = "1000", previous = "500"), null))
+    }
+
     // --- Spending change
 
     @Test

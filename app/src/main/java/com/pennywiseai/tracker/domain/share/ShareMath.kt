@@ -28,6 +28,16 @@ fun savingsRatePercent(income: BigDecimal, spent: BigDecimal): Int? {
 
 fun CurrencyReview.savingsRatePercent(): Int? = savingsRatePercent(income, spent)
 
+/**
+ * [previous]'s savings rate in [current]'s currency, to compare against. Null when the
+ * review found no fair comparison ([CurrencyReview.previousSpent] is null), e.g. records
+ * that start partway into the previous period: its rate would be built on half its data.
+ */
+fun previousSavingsRate(current: CurrencyReview, previous: PeriodReview?): Int? {
+    if (current.previousSpent == null) return null
+    return previous?.currencies?.firstOrNull { it.currency == current.currency }?.savingsRatePercent()
+}
+
 /** One period's savings rate, for the trend line. */
 data class SavingsPoint(val start: LocalDate, val end: LocalDate, val ratePercent: Int)
 

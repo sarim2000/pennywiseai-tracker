@@ -18,6 +18,7 @@ import com.pennywiseai.tracker.domain.review.isCalendarMonth
 import com.pennywiseai.tracker.domain.review.percentChange
 import com.pennywiseai.tracker.domain.share.budgetResult
 import com.pennywiseai.tracker.domain.share.categoryChangePercent
+import com.pennywiseai.tracker.domain.share.previousSavingsRate
 import com.pennywiseai.tracker.domain.share.savingsRatePercent
 import com.pennywiseai.tracker.domain.share.savingsTrend
 import com.pennywiseai.tracker.domain.share.spendingDrivers
@@ -258,7 +259,7 @@ private fun savingsCard(reviews: List<PeriodReview>, c: CurrencyReview, details:
         ?: return ShareCardState.Unavailable(stringResource(R.string.share_unavailable_income))
     val amounts = ShareDetail.AMOUNTS in details
     val percents = ShareDetail.PERCENTAGES in details
-    val previousRate = reviews.getOrNull(1)?.currencies?.firstOrNull { it.currency == c.currency }?.savingsRatePercent()
+    val previousRate = previousSavingsRate(c, reviews.getOrNull(1))
     val saved = c.income - c.spent
     val change = previousRate?.let { rate - it }
     // The trend's previous point is the whole period before, so a year so far is compared

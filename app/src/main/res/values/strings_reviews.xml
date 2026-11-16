@@ -6,6 +6,8 @@
     <string name="review_share">Share</string>
     <string name="review_export_pdf">Export PDF</string>
     <string name="review_export_pdf_failed">Couldn\'t create the PDF. Try again.</string>
+    <!-- Shown as a PDF is shared while the user hides amounts in the app -->
+    <string name="review_export_pdf_shows_amounts">The PDF shows amounts, even while they\'re hidden in the app.</string>
     <string name="review_kind_week">Week</string>
     <string name="review_kind_month">Month</string>
     <string name="review_kind_year">Year</string>

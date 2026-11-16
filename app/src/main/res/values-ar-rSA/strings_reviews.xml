@@ -6,6 +6,8 @@
     <string name="review_share">مشاركة</string>
     <string name="review_export_pdf">تصدير PDF</string>
     <string name="review_export_pdf_failed">تعذّر إنشاء ملف PDF. حاول مرة أخرى.</string>
+    <!-- Shown as a PDF is shared while the user hides amounts in the app -->
+    <string name="review_export_pdf_shows_amounts">يعرض ملف PDF المبالغ، حتى وهي مخفية في التطبيق.</string>
     <string name="review_kind_week">أسبوع</string>
     <string name="review_kind_month">شهر</string>
     <string name="review_kind_year">سنة</string>

@@ -123,6 +123,10 @@ fun PeriodReviewScreen(
     LaunchedEffect(viewModel) {
         viewModel.pdfReady.collect { uri ->
             if (uri != null) {
+                // The file leaves the screen, so it carries the amounts the screen hides.
+                if (AmountPrivacy.hidden) {
+                    Toast.makeText(context, R.string.review_export_pdf_shows_amounts, Toast.LENGTH_LONG).show()
+                }
                 sharePdf.launch(pdfShareIntent(uri))
             } else {
                 Toast.makeText(context, R.string.review_export_pdf_failed, Toast.LENGTH_SHORT).show()

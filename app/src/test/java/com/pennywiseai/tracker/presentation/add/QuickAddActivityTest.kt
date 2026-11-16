@@ -76,8 +76,8 @@ class QuickAddActivityTest {
         CategoryEntity(name = "Salary", color = "#000000", isIncome = true),
     )
 
-    private fun route(text: String, chatOpen: Boolean = true) =
-        QuickAddActivity.voiceRoute(text, voiceCategories, "JOD", chatOpen, today = LocalDate.of(2026, 3, 10))
+    private fun route(text: String, chatOpen: Boolean = true, modelReady: Boolean = true) =
+        QuickAddActivity.voiceRoute(text, voiceCategories, "JOD", chatOpen, modelReady, today = LocalDate.of(2026, 3, 10))
 
     @Test
     fun `a spend said fills the sheet, type and currency included`() {
@@ -97,6 +97,15 @@ class QuickAddActivityTest {
         assertEquals(QuickAddActivity.VoiceRoute.Chat, route("how much did I spend on food this month"))
         assertEquals(QuickAddActivity.VoiceRoute.Chat, route("كم صرفت هذا الشهر"))
         assertEquals(QuickAddActivity.VoiceRoute.Chat, route("lunch 200 and taxi 50"))
+    }
+
+    @Test
+    fun `with no model two amounts stay here, a question still goes to Chat`() {
+        // Chat could only keep these, not record them.
+        assertEquals(QuickAddActivity.VoiceRoute.Unclear, route("2 coffees 10", modelReady = false))
+        assertEquals(QuickAddActivity.VoiceRoute.Unclear, route("taxi 30 last monday", modelReady = false))
+        assertEquals(QuickAddActivity.VoiceRoute.Chat, route("how much did I spend on food", modelReady = false))
+        assertEquals(QuickAddActivity.VoiceRoute.Chat, route("I will pay 500 rent tomorrow", modelReady = false))
     }
 
     @Test

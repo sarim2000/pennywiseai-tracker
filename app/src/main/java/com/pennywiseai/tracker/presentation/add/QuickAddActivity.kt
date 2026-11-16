@@ -73,6 +73,7 @@ import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.AppLockRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
+import com.pennywiseai.tracker.data.repository.ModelRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase
 import com.pennywiseai.tracker.navigation.BottomNavItem
@@ -131,6 +132,7 @@ class QuickAddActivity : FragmentActivity() {
     @Inject lateinit var accountBalanceRepository: AccountBalanceRepository
     @Inject lateinit var userPreferencesRepository: UserPreferencesRepository
     @Inject lateinit var appLockRepository: AppLockRepository
+    @Inject lateinit var modelRepository: ModelRepository
     @Inject lateinit var biometricAuthManager: BiometricAuthManager
 
     // The save outlives finish(): the sheet closes as soon as Save is tapped.
@@ -213,6 +215,8 @@ class QuickAddActivity : FragmentActivity() {
         val profileId: Long?,
         /** False when the user hid the Chat tab: a question then has nowhere to go. */
         val chatOpen: Boolean,
+        /** The chat model is downloaded: Chat can read what this can't, not just keep it. */
+        val modelReady: Boolean,
     )
 
     @OptIn(ExperimentalMaterial3Api::class)
@@ -232,7 +236,8 @@ class QuickAddActivity : FragmentActivity() {
                 },
                 balances = accountBalanceRepository.getAllLatestBalances().first(),
                 profileId = userPreferencesRepository.selectedProfileId.first(),
-                chatOpen = BottomNavItem.Chat.route !in userPreferencesRepository.userPreferences.first().hiddenNavTabs
+                chatOpen = BottomNavItem.Chat.route !in userPreferencesRepository.userPreferences.first().hiddenNavTabs,
+                modelReady = withContext(Dispatchers.IO) { modelRepository.isModelDownloaded() }
             )
         }
         val s = setup ?: return
@@ -272,7 +277,7 @@ class QuickAddActivity : FragmentActivity() {
         val categories = setup.expenseCategories + setup.incomeCategories
         fun route(text: String) {
             midRecording = false
-            when (val route = voiceRoute(text, categories, setup.baseCurrency, setup.chatOpen) { CategoryMapping.label(this, it) }) {
+            when (val route = voiceRoute(text, categories, setup.baseCurrency, setup.chatOpen, setup.modelReady) { CategoryMapping.label(this, it) }) {
                 is VoiceRoute.Fill -> onEntry(route.entry)
                 VoiceRoute.Chat -> openChat(text)
                 VoiceRoute.Unclear -> unclear = true
@@ -637,19 +642,26 @@ class QuickAddActivity : FragmentActivity() {
         private val AMOUNT_INPUT = Regex("""\d*\.?\d*""")
 
         /**
-         * One entry fills the sheet. A question, a plan or two amounts go to Chat, which has
-         * the model for them, unless the user hid Chat. Anything else (no amount heard) is
-         * unclear: Chat with no model could only keep it.
+         * One entry fills the sheet. A question or a plan goes to Chat, unless the user hid
+         * it; with no model it waits there. Two amounts go to Chat only with the model there
+         * to read them: a cash spend said as "2 coffees 10" must not end up where it can't be
+         * recorded. Anything else (no amount heard) is unclear.
          */
         internal fun voiceRoute(
             text: String,
             categories: List<CategoryEntity>,
             baseCurrency: String,
             chatOpen: Boolean,
+            modelReady: Boolean,
             today: LocalDate = LocalDate.now(),
             label: (String) -> String = { it }
         ): VoiceRoute = VoiceEntry.parse(text, categories, baseCurrency, today, label)?.let { VoiceRoute.Fill(it) }
-            ?: if (chatOpen && VoiceEntry.isForChat(text)) VoiceRoute.Chat else VoiceRoute.Unclear
+            ?: when {
+                !chatOpen -> VoiceRoute.Unclear
+                VoiceEntry.asksOrPlans(text) -> VoiceRoute.Chat
+                modelReady && VoiceEntry.needsModel(text) -> VoiceRoute.Chat
+                else -> VoiceRoute.Unclear
+            }
 
         /**
          * The cash accounts the sheet can charge, last used first: the

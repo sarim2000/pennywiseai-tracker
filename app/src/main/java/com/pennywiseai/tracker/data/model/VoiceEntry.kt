@@ -11,7 +11,7 @@ import java.time.LocalDate
  * One spend or income said out loud for the quick add sheet: "200 lunch cash",
  * "spent 45 dollars on coffee yesterday", "دفعت ٥٠ ريال قهوة". Read by rules, not the
  * model, so it works with no model downloaded; the sheet shows every field and the user
- * saves. Anything else (a question, a plan, two amounts) goes to Chat instead.
+ * saves. A question or a plan goes to Chat instead, and two amounts too once the model is there.
  */
 data class VoiceEntry(
     val amount: BigDecimal,
@@ -52,17 +52,17 @@ data class VoiceEntry(
             )
         }
 
-        /**
-         * Whether [text], not read as one entry, is for Chat: a question, a plan, more than one
-         * amount, or a day this can't count. A spend whose amount wasn't heard ("lunch cash",
-         * or an amount said in words) is none of these: the user says it again or types it.
-         */
-        fun isForChat(text: String): Boolean = asksOrPlans(text) ||
-            ChatMessageFacts.spokenDaysAgo(text) == null ||
-            ChatMessageFacts.statedAmounts(ChatMessageFacts.withoutDays(text)).size > 1
-
-        private fun asksOrPlans(text: String) =
+        /** A question or a plan: for Chat, which keeps it until the model is there. */
+        fun asksOrPlans(text: String) =
             asks(text) || TransactionDraft.saysNotYetPaid(text) || ARABIC_PLAN.containsMatchIn(text)
+
+        /**
+         * More than one amount, or a day this can't count: only the model can read it. A spend
+         * whose amount wasn't heard ("lunch cash", or an amount said in words) is not one of
+         * these: the user says it again or types it.
+         */
+        fun needsModel(text: String): Boolean = ChatMessageFacts.spokenDaysAgo(text) == null ||
+            ChatMessageFacts.statedAmounts(ChatMessageFacts.withoutDays(text)).size > 1
 
         private fun asks(text: String) = '?' in text || '؟' in text || QUESTION_START.containsMatchIn(text)
 

@@ -125,14 +125,14 @@ class VoiceEntryTest {
 
     @Test
     fun `a question after a lead-in word is still for Chat`() {
-        assertTrue(VoiceEntry.isForChat("okay how much did I spend this month"))
-        assertTrue(VoiceEntry.isForChat("hey what's my balance"))
-        assertTrue(VoiceEntry.isForChat("so, show my spending"))
-        assertTrue(VoiceEntry.isForChat("طيب كم صرفت هذا الشهر"))
+        assertTrue(VoiceEntry.asksOrPlans("okay how much did I spend this month"))
+        assertTrue(VoiceEntry.asksOrPlans("hey what's my balance"))
+        assertTrue(VoiceEntry.asksOrPlans("so, show my spending"))
+        assertTrue(VoiceEntry.asksOrPlans("طيب كم صرفت هذا الشهر"))
         assertNull(parse("okay how much is 200"))
         // Not a question word: "so" leads into a spend.
-        assertFalse(VoiceEntry.isForChat("so lunch 20"))
-        assertFalse(VoiceEntry.isForChat("okay"))
+        assertFalse(VoiceEntry.asksOrPlans("so lunch 20"))
+        assertFalse(VoiceEntry.asksOrPlans("okay"))
     }
 
     @Test

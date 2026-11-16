@@ -61,7 +61,10 @@ class BudgetGroupRepository @Inject constructor(
         val now = LocalDateTime.now()
         budgetDao.updateBudgetsAndCategories(
             budgetDao.getAllBudgets().first()
-                .map { it.copy(limitAmount = converted(it.limitAmount), currency = currency, updatedAt = now) },
+                .map {
+                    val moved = it.copy(limitAmount = converted(it.limitAmount), currency = currency, updatedAt = now)
+                    moved.copy(rolloverSince = BudgetRollover.sinceAfterEdit(it, moved, now.toLocalDate()))
+                },
             budgetDao.getAllBudgetCategories().first()
                 .map { it.copy(budgetAmount = converted(it.budgetAmount)) }
         )
@@ -122,7 +125,9 @@ class BudgetGroupRepository @Inject constructor(
         monthStartDay: Int? = null,
         // For CUSTOM: the literal start date the user picked.
         startDate: LocalDate? = null,
-        endDate: LocalDate? = null
+        endDate: LocalDate? = null,
+        // Weekly / monthly spending limits only; ignored for anything else.
+        rollover: Boolean = false
     ): Long {
         val resolvedDisplayOrder = if (displayOrder < 0) budgetDao.getMaxDisplayOrder() + 1 else displayOrder
         val totalAmount = limitAmount ?: buckets.fold(BigDecimal.ZERO) { acc, b -> acc + b.amount }
@@ -159,8 +164,9 @@ class BudgetGroupRepository @Inject constructor(
             groupType = groupType,
             displayOrder = resolvedDisplayOrder,
             createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now()
-        )
+            updatedAt = LocalDateTime.now(),
+            rolloverEnabled = rollover && BudgetRollover.isAvailable(groupType, periodType)
+        ).let { it.copy(rolloverSince = BudgetRollover.sinceAfterEdit(null, it, now)) }
 
         val budgetId = budgetDao.insertBudget(budget)
 
@@ -191,7 +197,9 @@ class BudgetGroupRepository @Inject constructor(
         weekStartDay: Int? = null,
         monthStartDay: Int? = null,
         startDate: LocalDate? = null,
-        endDate: LocalDate? = null
+        endDate: LocalDate? = null,
+        // Null keeps the budget's setting; off wherever rollover isn't available.
+        rollover: Boolean? = null
     ) {
         val existing = budgetDao.getBudgetById(budgetId) ?: return
         val totalAmount = limitAmount ?: buckets.fold(BigDecimal.ZERO) { acc, b -> acc + b.amount }
@@ -224,22 +232,22 @@ class BudgetGroupRepository @Inject constructor(
             }
         }
 
-        budgetDao.updateBudget(
-            existing.copy(
-                name = name,
-                groupType = groupType,
-                color = color,
-                currency = currency ?: existing.currency,
-                limitAmount = totalAmount,
-                periodType = effectivePeriod,
-                startDate = newStart,
-                endDate = newEnd,
-                weekStartDay = newWeek,
-                monthStartDay = newMonth,
-                includeAllCategories = buckets.isEmpty(),
-                updatedAt = LocalDateTime.now()
-            )
+        val updated = existing.copy(
+            name = name,
+            groupType = groupType,
+            color = color,
+            currency = currency ?: existing.currency,
+            limitAmount = totalAmount,
+            periodType = effectivePeriod,
+            startDate = newStart,
+            endDate = newEnd,
+            weekStartDay = newWeek,
+            monthStartDay = newMonth,
+            includeAllCategories = buckets.isEmpty(),
+            updatedAt = LocalDateTime.now(),
+            rolloverEnabled = (rollover ?: existing.rolloverEnabled) && BudgetRollover.isAvailable(groupType, effectivePeriod)
         )
+        budgetDao.updateBudget(updated.copy(rolloverSince = BudgetRollover.sinceAfterEdit(existing, updated, now)))
 
         budgetDao.deleteCategoriesForBudget(budgetId)
         if (buckets.isNotEmpty()) {

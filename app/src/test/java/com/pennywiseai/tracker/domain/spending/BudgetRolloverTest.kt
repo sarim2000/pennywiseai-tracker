@@ -145,4 +145,33 @@ class BudgetRolloverTest {
         val march = resolveBudgetWindow(b, LocalDate.of(2028, 3, 31), 1)
         assertEquals(window("2028-02-29", "2028-03-30"), BudgetRollover.sourceWindow(b, march, 1))
     }
+
+    // ── when rollover starts again ───────────────────────────────────────
+
+    private val today = LocalDate.of(2026, 11, 16)
+
+    @Test
+    fun `turning rollover on starts it today, turning it off clears it`() {
+        val off = budget(enabled = false, since = null)
+        assertEquals(today, BudgetRollover.sinceAfterEdit(off, off.copy(rolloverEnabled = true), today))
+        assertEquals(today, BudgetRollover.sinceAfterEdit(null, off.copy(rolloverEnabled = true), today))
+        assertNull(BudgetRollover.sinceAfterEdit(budget(), budget(enabled = false), today))
+    }
+
+    @Test
+    fun `renaming or a new limit keeps the start`() {
+        val b = budget()
+        assertEquals(b.rolloverSince, BudgetRollover.sinceAfterEdit(b, b.copy(name = "Food", limitAmount = BigDecimal("150")), today))
+    }
+
+    @Test
+    fun `a new currency or period starts it again`() {
+        val b = budget()
+        assertEquals(today, BudgetRollover.sinceAfterEdit(b, b.copy(currency = "USD"), today))
+        assertEquals(today, BudgetRollover.sinceAfterEdit(b, b.copy(weekStartDay = 3), today))
+        assertEquals(
+            today,
+            BudgetRollover.sinceAfterEdit(b, b.copy(periodType = BudgetPeriodType.MONTHLY, weekStartDay = null, monthStartDay = 1), today)
+        )
+    }
 }

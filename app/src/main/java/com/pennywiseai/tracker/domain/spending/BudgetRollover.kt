@@ -6,6 +6,7 @@ import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.repository.BudgetWindow
 import com.pennywiseai.tracker.data.repository.previousBudgetWindow
 import com.pennywiseai.tracker.utils.Money
+import java.time.LocalDate
 
 /**
  * Budget rollover: what was left of last period's limit, or spent past it, carries
@@ -45,5 +46,21 @@ object BudgetRollover {
         if (!budget.rolloverEnabled || !isAvailable(budget.groupType, budget.periodType)) return null
         val since = budget.rolloverSince ?: return null
         return previousBudgetWindow(budget, window, globalStartDay).takeIf { !it.end.isBefore(since) }
+    }
+
+    /**
+     * [BudgetEntity.rolloverSince] for [after], the budget as it's being saved on
+     * [today] ([before]: as it was, null for a new one). Rollover turned on, or a
+     * change of currency or period, starts it again today, since last period no
+     * longer measures this one; turned off, it's null; otherwise it stays.
+     */
+    fun sinceAfterEdit(before: BudgetEntity?, after: BudgetEntity, today: LocalDate): LocalDate? = when {
+        !after.rolloverEnabled -> null
+        before == null || !before.rolloverEnabled || before.rolloverSince == null -> today
+        !before.currency.equals(after.currency, ignoreCase = true) ||
+            before.periodType != after.periodType ||
+            before.weekStartDay != after.weekStartDay ||
+            before.monthStartDay != after.monthStartDay -> today
+        else -> before.rolloverSince
     }
 }

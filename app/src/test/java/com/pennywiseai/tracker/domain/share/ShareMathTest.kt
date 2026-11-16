@@ -210,7 +210,9 @@ class ShareMathTest {
     }
 
     @Test
-    fun `a rate too large for an Int is unavailable, not wrapped into a positive one`() {
+    fun `a rate below -10000 percent is unavailable, so changes between rates can't wrap`() {
         assertNull(savingsRatePercent(BigDecimal("0.01"), BigDecimal("300000")))
+        assertNull(savingsRatePercent(BigDecimal("0.01"), BigDecimal("214748.37")))
+        assertEquals(-10_000, savingsRatePercent(BigDecimal("1"), BigDecimal("101")))
     }
 }

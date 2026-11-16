@@ -680,11 +680,15 @@ class LlmRepository @Inject constructor(
             SpendingQuery.Dates.Home -> null
         }
         fun named(key: String) = (args[key] as? String)?.trim()?.takeUnless { it.isEmpty() || SpendingComparison.meansAllSpending(it) }
-        val merchant = named("merchant")
+        val categories = categoryRepository.getAllCategories().first()
+        // A category's name as the merchant ("Others" beside an account) is no shop the user named.
+        val merchant = named("merchant")?.takeUnless { m ->
+            categories.any { it.name.equals(m, ignoreCase = true) } && !SpendingQuery.namesCategory(m, userMessage)
+        }
         val asked = named("category")?.takeUnless { merchant != null && !SpendingQuery.namesCategory(it, userMessage) }
         // Hidden categories still hold transactions, and a row can name a category that no
         // longer exists: a read-only lookup asks the transactions before saying it's unknown.
-        val known = asked?.let { matchCategory(it, categoryRepository.getAllCategories().first()) }
+        val known = asked?.let { matchCategory(it, categories) }
         val category = known ?: asked
         val account = named("account")?.let { wanted ->
             // An ignored account is hidden everywhere else, so it's never offered here either.

@@ -1370,6 +1370,10 @@ class ChatTurnTest {
         events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("period" to "this_month", "category" to "Shopping", "merchant" to "Swiggy", "group_by" to "category")))
         assertTrue(send("Swiggy spending this month?").startsWith("SPENT 1 Nov–16 Nov · Swiggy\n"))
         assertEquals(SpendingFilter(merchant = "Swiggy"), filter.captured)
+        // And "Nothing spent … · Others · Emirates NBD ••1234": a category's name put in as the merchant.
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("account" to "Emirates NBD", "merchant" to "Hobbies")))
+        assertTrue(send("How much did I spend from my Emirates NBD account this month?").startsWith("SPENT 1 Nov–16 Nov · Emirates NBD ••1234\n"))
+        assertEquals(SpendingFilter(account = "Emirates NBD_1234"), filter.captured)
         // And "Top accounts … Emirates NBD: Emirates NBD: AED127" for one account's spending.
         events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("account" to "Emirates NBD", "group_by" to "account")))
         assertTrue(send("How much did I spend from my Emirates NBD account this month?").startsWith("SPENT 1 Nov–16 Nov · Emirates NBD ••1234\n"))

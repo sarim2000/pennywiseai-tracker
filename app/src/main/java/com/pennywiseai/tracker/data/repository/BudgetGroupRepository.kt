@@ -24,6 +24,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -455,13 +456,24 @@ class BudgetGroupRepository @Inject constructor(
             val queryEnd = maxEnd
             val queryStart = minStart
 
-            transactionSplitDao.getTransactionsWithSplitsFiltered(
-                queryStart.atStartOfDay(),
-                queryEnd.atTime(23, 59, 59),
-                currency
-            ).map { allTxs0 ->
+            // Rollover reads last period in every currency: observed alongside, so a
+            // late or edited transaction back there updates the carry too.
+            val carryWindows = perBudgetWindows.mapNotNull { (g, windows) ->
+                if (windows.isEmpty()) return@mapNotNull null
+                val displayWindow = if (isCurrentMonth) resolveBudgetWindow(g.budget, today, startDay) else windows.last()
+                carryWindow(g.budget, displayWindow, startDay)?.let { g.budget.id to it }
+            }.toMap()
+
+            combine(
+                transactionSplitDao.getTransactionsWithSplitsFiltered(
+                    queryStart.atStartOfDay(),
+                    queryEnd.atTime(23, 59, 59),
+                    currency
+                ),
+                carryTransactions(carryWindows.values)
+            ) { allTxs0, carryTxs ->
                 val allTxs = allTxs0.forTotals()
-                val parentOf = parentOf()
+                val parentOf = if (carryWindows.isEmpty()) emptyMap() else parentOf()
                 val groupSpendings = perBudgetWindows.map { (group, windows) ->
                     val budget = group.budget
                     if (windows.isEmpty()) {
@@ -528,7 +540,7 @@ class BudgetGroupRepository @Inject constructor(
                             displayedCapDate = if (isCurrentWeekInCurrentMonth(displayWindow, today, isCurrentMonth)) today else monthEnd,
                             displayedIsLive = isCurrentWeekInCurrentMonth(displayWindow, today, isCurrentMonth),
                             carry = budgetCarry(
-                                group, carrySource(budget, displayWindow, startDay), currency, currency, parentOf,
+                                group, carryWindows[budget.id]?.let { carryTxs.within(it) }, currency, currency, parentOf,
                                 sameCurrencyOnly(currency)
                             )
                         )
@@ -650,8 +662,18 @@ class BudgetGroupRepository @Inject constructor(
                 prevCycleQueryEnd = null
             }
 
-            val unionMinStart = if (prevCycleQueryStart != null && prevCycleQueryStart.isBefore(queryStart)) prevCycleQueryStart else queryStart
-            val unionMaxEnd = if (prevCycleQueryEnd != null && prevCycleQueryEnd.isAfter(queryEnd)) prevCycleQueryEnd else queryEnd
+            // Rollover's source periods are part of the one observed range, so a late or
+            // edited transaction back there updates the carry too.
+            val carryWindows = groups.mapNotNull { group ->
+                val displayed = if (isCurrentMonth) {
+                    resolveBudgetWindow(group.budget, today, startDay)
+                } else {
+                    windowsForMonth(group.budget, year, month, startDay).lastOrNull() ?: BudgetWindow(monthStart, monthStart, 0)
+                }
+                carryWindow(group.budget, displayed, startDay)?.let { group.budget.id to it }
+            }.toMap()
+            val unionMinStart = (listOfNotNull(queryStart, prevCycleQueryStart) + carryWindows.values.map { it.start }).min()
+            val unionMaxEnd = (listOfNotNull(queryEnd, prevCycleQueryEnd) + carryWindows.values.map { it.end }).max()
 
             transactionSplitDao.getTransactionsWithSplitsAllCurrencies(
                 unionMinStart.atStartOfDay(),
@@ -697,9 +719,7 @@ class BudgetGroupRepository @Inject constructor(
                     }
                 } else emptyList()
 
-                val carrySources = groups.mapNotNull { g ->
-                    currentWindows[g.budget.id]?.let { carrySource(g.budget, it, startDay) }?.let { g.budget.id to it }
-                }.toMap()
+                val carrySources = carryWindows.mapValues { (_, w) -> unionTxs0.within(w) }
                 BudgetGroupSpendingRaw(
                     budgetsWithCategories = groups,
                     windowedSpend = windowed,
@@ -803,18 +823,32 @@ class BudgetGroupRepository @Inject constructor(
         !today.isBefore(window.start) &&
         !today.isAfter(window.end)
 
-    /**
-     * Rollover: every transaction, in every currency, of the full period [budget]
-     * carries into [window] from. Null when it carries nothing.
-     */
-    private suspend fun carrySource(budget: BudgetEntity, window: BudgetWindow, startDay: Int): List<TransactionWithSplits>? {
-        if (window.days < 1) return null
-        val source = BudgetRollover.sourceWindow(budget, window, startDay) ?: return null
-        return transactionSplitDao.getTransactionsWithSplitsAllCurrencies(
-            source.start.atStartOfDay(),
-            source.end.atTime(23, 59, 59)
-        ).first()
+    /** Rollover: the full period [budget] carries into [window] from, or null when it carries nothing. */
+    private fun carryWindow(budget: BudgetEntity, window: BudgetWindow, startDay: Int): BudgetWindow? =
+        if (window.days < 1) null else BudgetRollover.sourceWindow(budget, window, startDay)
+
+    /** Every transaction, in every currency, across [windows]; observed, so edits back there re-emit. */
+    private fun carryTransactions(windows: Collection<BudgetWindow>): Flow<List<TransactionWithSplits>> =
+        if (windows.isEmpty()) {
+            flowOf(emptyList())
+        } else {
+            transactionSplitDao.getTransactionsWithSplitsAllCurrencies(
+                windows.minOf { it.start }.atStartOfDay(),
+                windows.maxOf { it.end }.atTime(23, 59, 59)
+            )
+        }
+
+    private fun List<TransactionWithSplits>.within(window: BudgetWindow) = filter {
+        val d = it.transaction.dateTime.toLocalDate()
+        !d.isBefore(window.start) && !d.isAfter(window.end)
     }
+
+    /**
+     * Rollover, read once (Budget History): every transaction, in every currency, of
+     * the full period [budget] carries into [window] from. Null when it carries nothing.
+     */
+    private suspend fun carrySource(budget: BudgetEntity, window: BudgetWindow, startDay: Int): List<TransactionWithSplits>? =
+        carryWindow(budget, window, startDay)?.let { carryTransactions(listOf(it)).first() }
 
     /**
      * Counts only [currency], as the single-currency figures do; anything else has no

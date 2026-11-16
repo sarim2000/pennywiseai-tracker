@@ -24,9 +24,16 @@ import com.pennywiseai.tracker.worker.DailySummaryWorker
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -67,16 +74,23 @@ class BudgetRolloverRoutingTest {
             emptyList()
         )
 
-    private fun repository(group: BudgetWithCategories, transactions: List<TransactionWithSplits>): BudgetGroupRepository {
-        fun between(start: LocalDateTime, end: LocalDateTime) =
-            transactions.filter { !it.transaction.dateTime.isBefore(start) && !it.transaction.dateTime.isAfter(end) }
+    private fun repository(group: BudgetWithCategories, transactions: List<TransactionWithSplits>) =
+        repository(group, MutableStateFlow(transactions))
+
+    // Each query re-emits only when its own range changes, so a figure that reads a
+    // range it doesn't observe goes stale.
+    private fun repository(group: BudgetWithCategories, transactions: StateFlow<List<TransactionWithSplits>>): BudgetGroupRepository {
+        fun between(start: LocalDateTime, end: LocalDateTime) = transactions.map { all ->
+            all.filter { !it.transaction.dateTime.isBefore(start) && !it.transaction.dateTime.isAfter(end) }
+        }.distinctUntilChanged()
         val budgetDao = mockk<BudgetDao> {
             every { getActiveBudgetsWithCategories() } returns flowOf(listOf(group))
         }
         val splitDao = mockk<TransactionSplitDao> {
-            every { getTransactionsWithSplitsAllCurrencies(any(), any()) } answers { flowOf(between(firstArg(), secondArg())) }
+            every { getTransactionsWithSplitsAllCurrencies(any(), any()) } answers { between(firstArg(), secondArg()) }
             every { getTransactionsWithSplitsFiltered(any(), any(), any()) } answers {
-                flowOf(between(firstArg(), secondArg()).filter { it.transaction.currency == thirdArg<String>() })
+                val currency = thirdArg<String>()
+                between(firstArg(), secondArg()).map { list -> list.filter { it.transaction.currency == currency } }
             }
         }
         val prefs = mockk<BudgetPreferences> {
@@ -157,6 +171,25 @@ class BudgetRolloverRoutingTest {
                 DailySummaryWorker.budgetsLeft(overall, today)
             )
             assertTrue(InsightRules.budgets(budgetStatuses(overall, today), "p").single().fact is InsightFact.BudgetOver)
+        }
+    }
+
+    @Test
+    fun `a transaction landing in last week afterwards updates this week's carry`() = runBlocking {
+        val transactions = MutableStateFlow(listOf(spend("60", at = lastWeek), spend("30")))
+        val repo = repository(budget(), transactions)
+        val native = repo.getGroupSpending(today.year, today.monthValue, "JOD").map { it.groups.single().carry }
+        val raw = repo.getGroupSpendingAllCurrencies(today.year, today.monthValue).map { raw ->
+            raw.carryFor(raw.budgetsWithCategories.single(), "JOD", "JOD") { _, amount -> amount }.amount.amount
+        }
+        for (carries in listOf(native, raw)) {
+            transactions.value = listOf(spend("60", at = lastWeek), spend("30"))
+            val seen = Channel<BigDecimal>(Channel.UNLIMITED)
+            val collecting = launch { carries.collect { seen.send(it) } }
+            assertEquals(0, BigDecimal("40").compareTo(withTimeout(5_000) { seen.receive() }))
+            transactions.value = transactions.value + spend("25", at = lastWeek)
+            withTimeout(5_000) { while (BigDecimal("15").compareTo(seen.receive()) != 0) Unit }
+            collecting.cancel()
         }
     }
 

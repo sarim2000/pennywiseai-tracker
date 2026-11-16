@@ -1,4 +1,4 @@
-package com.pennywiseai.tracker.presentation.chat
+package com.pennywiseai.tracker.ui.voice
 
 import android.Manifest
 import android.content.ComponentName
@@ -90,10 +90,11 @@ import kotlinx.coroutines.delay
 import java.util.Locale
 
 /**
- * Chat voice input (M5). The phone's on-device recognizer by default. A phone language it
- * can't recognize offline (Arabic on Google's recognizer today) can run on the phone's
- * online speech service, but only after the user agrees once. The words only fill the
- * message box: nothing is sent, and no audio is kept.
+ * Voice input for chat and quick add (M5). The phone's on-device recognizer by default. A
+ * phone language it can't recognize offline (Arabic on Google's recognizer today) can run on
+ * the phone's online speech service, but only after the user agrees once. The words only
+ * fill a box ([onText]) and, once the user is done, are handed over once ([onDone]): nothing
+ * is sent from here, and no audio is kept.
  */
 @Stable
 class VoiceInput internal constructor(
@@ -106,8 +107,7 @@ class VoiceInput internal constructor(
     data class Note(@param:StringRes val text: Int, val arg: String? = null, val isError: Boolean = true)
 
     // ponytail: API 33+ only, where language lists and downloads exist; older phones get no mic.
-    val available: Boolean =
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && SpeechRecognizer.isOnDeviceRecognitionAvailable(context)
+    val available: Boolean = isAvailable(context)
 
     var state by mutableStateOf(State.Idle)
         private set
@@ -163,6 +163,12 @@ class VoiceInput internal constructor(
 
     internal var requestPermission: () -> Unit = {}
     internal var onText: (String) -> Unit = {}
+
+    /**
+     * The whole text once, when a recording ends with words heard and no error: never per
+     * partial, and not on [cancel], so a caller can act on what was said exactly once.
+     */
+    internal var onDone: (String) -> Unit = {}
     private var recognizer: SpeechRecognizer? = null
     private val downloads = mutableListOf<SpeechRecognizer>()
     private var prefix = ""
@@ -307,7 +313,11 @@ class VoiceInput internal constructor(
         state = State.Idle
         level = 0f
         note = result
+        if (result == null && heard.isNotEmpty()) onDone(spoken())
     }
+
+    /** What was in the box before the mic, then the words heard. */
+    private fun spoken() = listOf(prefix.trimEnd(), heard).filter { it.isNotEmpty() }.joinToString(" ")
 
     private inner class Listener(private val r: SpeechRecognizer) : RecognitionListener {
         private fun show(bundle: Bundle) {
@@ -315,7 +325,7 @@ class VoiceInput internal constructor(
             val text = bundle.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()?.trim()
             if (text.isNullOrEmpty()) return
             heard = text
-            onText(listOf(prefix.trimEnd(), text).filter { it.isNotEmpty() }.joinToString(" "))
+            onText(spoken())
         }
 
         // Google's on-device recognizer sends the final words as a partial with
@@ -513,6 +523,10 @@ class VoiceInput internal constructor(
 
         val QUIET_ERRORS = setOf(SpeechRecognizer.ERROR_NO_MATCH, SpeechRecognizer.ERROR_SPEECH_TIMEOUT)
 
+        /** Whether this phone gets a mic at all; widgets ask before showing one. */
+        fun isAvailable(context: Context): Boolean =
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && SpeechRecognizer.isOnDeviceRecognitionAvailable(context)
+
         fun sameLanguage(a: String, b: String) = Locale.forLanguageTag(a).language == Locale.forLanguageTag(b).language
 
         /**
@@ -561,18 +575,23 @@ class VoiceInput internal constructor(
     }
 }
 
-/** [onText] gets the whole box text: what was there before the mic, then the words heard. */
+/**
+ * [onText] gets the whole box text: what was there before the mic, then the words heard.
+ * [onDone] gets it once more when the user is done speaking.
+ */
 @Composable
-fun rememberVoiceInput(onText: (String) -> Unit): VoiceInput {
+fun rememberVoiceInput(onText: (String) -> Unit, onDone: (String) -> Unit = {}): VoiceInput {
     val context = LocalContext.current
     val activity = LocalActivity.current
     val prefs = remember { context.getSharedPreferences(VoiceInput.PREFS, Context.MODE_PRIVATE) }
     val voice = remember { VoiceInput(context.applicationContext, prefs) }
     val currentOnText by rememberUpdatedState(onText)
+    val currentOnDone by rememberUpdatedState(onDone)
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         voice.onPermission(it)
     }
     voice.onText = { currentOnText(it) }
+    voice.onDone = { currentOnDone(it) }
     voice.requestPermission = {
         // Android stops showing the dialog after repeated denials; settings is the only way back.
         val blocked = prefs.getBoolean(VoiceInput.KEY_ASKED, false) && activity != null &&

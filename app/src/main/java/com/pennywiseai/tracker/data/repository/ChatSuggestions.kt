@@ -6,7 +6,7 @@ import com.pennywiseai.tracker.data.model.BudgetStatus
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
-import com.pennywiseai.tracker.domain.model.filterTransactionsByProfile
+import com.pennywiseai.tracker.domain.model.filterTrackedByProfile
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
@@ -67,9 +67,7 @@ class ChatSuggestions @Inject constructor(
         accountBalanceRepository.getAllLatestBalances(),
         ignoredKeys(),
     ) { rows, profileId, accounts, ignored ->
-        // Ignored first and apart from the profile, as the Transactions list's filterTrackedByProfile does.
-        val tracked = rows.filterNot { IgnoredAccountsStore.isIgnored(ignored, it.bankName, it.accountNumber) }
-        filterTransactionsByProfile(tracked, profileId, buildProfileAccountKeys(accounts))
+        filterTrackedByProfile(rows, profileId, ignored, buildProfileAccountKeys(accounts))
     }
 
     private fun ignoredKeys(): Flow<Set<String>> = combine(

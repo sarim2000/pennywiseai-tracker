@@ -94,6 +94,7 @@ class QuickCategoryPickerActivity : FragmentActivity() {
     private var walkQueue: List<Long>? = null
     private val walked = mutableStateOf(0)
     // Walk opened inside the app (the chat): no "Saved as" notes, the screen is right there.
+    // A row's own alert still goes, or its buttons could re-file the row later.
     private var quiet = false
     private var saving = false
     // Bumped by each (re)start: a walk's pending step must not steer a picker re-targeted meanwhile.
@@ -118,7 +119,7 @@ class QuickCategoryPickerActivity : FragmentActivity() {
             walkQueue = queue.toList()
             walked.value = savedInstanceState.getInt(KEY_WALKED)
             quiet = savedInstanceState.getBoolean(KEY_QUIET)
-            queue.firstOrNull()?.let { currentArgs.value = PickerArgs(it, alertId(it)) }
+            queue.firstOrNull()?.let { currentArgs.value = PickerArgs(it, it.toInt()) }
         }
 
         if (savedInstanceState?.getBoolean(KEY_UNLOCKED) == true) {
@@ -225,12 +226,9 @@ class QuickCategoryPickerActivity : FragmentActivity() {
             (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).cancel(DailySummaryWorker.NOTIFICATION_ID)
             finish()
         } else {
-            currentArgs.value = PickerArgs(next.id, alertId(next.id))
+            currentArgs.value = PickerArgs(next.id, next.id.toInt())
         }
     }
-
-    /** The alert a walk's pick answers: the transaction's own, none for a quiet walk. */
-    private fun alertId(txnId: Long) = if (quiet) -1 else txnId.toInt()
 
     /** Shows the sheet only once the app lock (if on) is satisfied; a cancel closes the picker. */
     private fun checkLock() {
@@ -318,9 +316,11 @@ class QuickCategoryPickerActivity : FragmentActivity() {
                         if (walkQueue == null) finish() else answer(txn.id) {}
                         return@QuickCategoryPickerSheet
                     }
+                    val note = !quiet
                     answer(txn.id) {
                         learnCategory(txn.id, newCategory) { learned ->
-                            SmsBroadcastReceiver.showLearnedNotification(applicationContext, activeNotificationId, learned)
+                            // Quiet: the row's alert just clears, as for a pick on a vanished row.
+                            SmsBroadcastReceiver.showLearnedNotification(applicationContext, activeNotificationId, learned.takeIf { note })
                         }
                         transactionWidgets.refresh()
                     }
@@ -370,7 +370,7 @@ class QuickCategoryPickerActivity : FragmentActivity() {
         const val EXTRA_NOTIFICATION_ID = "notification_id"
         /** Walk mode: the recap's unsorted transaction ids, newest first. */
         const val EXTRA_WALK_IDS = "walk_ids"
-        /** Walk mode: posts no "Saved as" notes ([review]). */
+        /** Walk mode: posts no "Saved as" notes, only clears each row's alert ([review]). */
         const val EXTRA_QUIET = "quiet"
         private const val KEY_UNLOCKED = "unlocked"
         private const val KEY_WALK_QUEUE = "walk_queue"
@@ -396,13 +396,14 @@ class QuickCategoryPickerActivity : FragmentActivity() {
             )
 
         /**
-         * The walk over [ids] (non-empty), opened from inside the app: no alert to answer, so no
-         * "Saved as" notes either. The screen it was opened from shows what changed.
+         * The walk over [ids] (non-empty), opened from inside the app: no "Saved as" notes, the
+         * screen it was opened from shows what changed. A row's own alert, if still in the shade,
+         * is cleared as it's answered, so its buttons can't re-file it afterwards.
          */
         fun review(context: Context, ids: List<Long>): Intent =
             Intent(context, QuickCategoryPickerActivity::class.java).apply {
                 putExtra(EXTRA_TRANSACTION_ID, ids.first())
-                putExtra(EXTRA_NOTIFICATION_ID, -1)
+                putExtra(EXTRA_NOTIFICATION_ID, ids.first().toInt())
                 putExtra(EXTRA_WALK_IDS, ids.toLongArray())
                 putExtra(EXTRA_QUIET, true)
             }

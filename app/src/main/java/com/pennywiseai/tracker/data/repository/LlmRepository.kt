@@ -257,17 +257,12 @@ class LlmRepository @Inject constructor(
         // model's own arithmetic, a figure from an earlier turn, or a claim that it saved
         // something, and checking it for digits misses numbers in words.
         val figures: (LlmEvent.ToolCall) -> Boolean = { it.isComparison(userMessage) || it.name in MONTH_LOOKUPS }
+        var prose = ""
         if (toolCalls.isNotEmpty() || unreadableToolCall) {
-            // The live conversation still holds that prose; the next turn rebuilds from what was
-            // saved. A rebuild prefills the whole chat again, so a filler "Sure!" beside a card
-            // stays: only prose beside figures (their turn leaves the window), or with a number
-            // or a claimed change, could mislead a later turn.
-            val prose = responseBuilder.toString()
-            if (prose.isNotBlank() && (toolCalls.any(figures) || prose.any(Char::isDigit) || claimsAChange(prose, emptyList()))) {
-                conversationBroken = true
-            }
+            prose = responseBuilder.toString()
             responseBuilder.clear()
         }
+        val cardBefore = _pendingAction.value
         // A reply holding any line the app wrote is never replayed to the model as it reads (see [MODEL_ID]).
         var appWrote = false
         fun addLine(line: String) {
@@ -292,6 +287,18 @@ class LlmRepository @Inject constructor(
             }
         }
         if (skippedCards > 0) addLine(context.getString(R.string.chat_reply_one_card_at_a_time))
+        // The live conversation still holds that prose; the next turn rebuilds from what was
+        // saved. A rebuild prefills the whole chat again, so prose beside a card stays when it
+        // can't mislead a later turn: a filler "Sure!", or "Adding ₹120." for the card's own
+        // ₹120. Prose beside figures (their turn leaves the window), with any other number,
+        // or with a claimed change, goes.
+        if (prose.isNotBlank()) {
+            val onCard = _pendingAction.value?.takeIf { it !== cardBefore }?.let(::amountsOf).orEmpty()
+            val numbers = ChatMessageFacts.numbersIn(prose)
+            // A digit it can't read as an amount ("12,50") is a number all the same.
+            val strayNumber = numbers.any { n -> onCard.none { it.compareTo(n) == 0 } } || (numbers.isEmpty() && prose.any(Char::isDigit))
+            if (toolCalls.any(figures) || strayNumber || claimsAChange(prose, emptyList())) conversationBroken = true
+        }
         // A small model sometimes narrates a change instead of calling the tool. Unless it's about
         // the card just saved, nothing happened: the facts replace the claim, or the user reads
         // "Yes, I added it" above the correction and walks away believing it (#1083).
@@ -806,6 +813,13 @@ class LlmRepository @Inject constructor(
         is PendingChatAction.Add -> card.rows.flatMap { listOf(it.draft.merchant, plain(it.draft.amount)) }
         is PendingChatAction.Delete -> listOf(card.transaction.merchantName, plain(card.transaction.amount))
         is PendingChatAction.Update -> listOfNotNull(card.transaction.merchantName, card.newMerchant, plain(card.transaction.amount))
+    }
+
+    /** The amounts a card shows. */
+    private fun amountsOf(card: PendingChatAction): List<BigDecimal> = when (card) {
+        is PendingChatAction.Add -> card.rows.map { it.draft.amount }
+        is PendingChatAction.Delete -> listOf(card.transaction.amount)
+        is PendingChatAction.Update -> listOf(card.transaction.amount)
     }
 
     private fun plain(amount: BigDecimal) = amount.stripTrailingZeros().toPlainString()

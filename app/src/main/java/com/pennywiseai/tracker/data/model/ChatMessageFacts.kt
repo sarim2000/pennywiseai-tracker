@@ -59,6 +59,9 @@ internal object ChatMessageFacts {
     fun timesStated(message: String, amount: BigDecimal): Int =
         statedNumbers(latin(message)).count { it.second.compareTo(amount.abs()) == 0 }
 
+    /** Every usable number in [text], scale included. */
+    fun numbersIn(text: String): List<BigDecimal> = statedNumbers(latin(text)).map { it.second }
+
     /** Every usable number in [text], scale included, with where it stands. */
     private fun statedNumbers(text: String): List<Pair<IntRange, BigDecimal>> = NUMBER.findAll(text).mapNotNull { m ->
         val number = m.groupValues[1].trimEnd(',').takeIf { PLAIN_NUMBER.matches(it) } ?: return@mapNotNull null

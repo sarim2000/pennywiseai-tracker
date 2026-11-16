@@ -167,10 +167,22 @@ class ChatTurnTest {
         // Rebuilding would prefill the whole chat again for nothing that could mislead a later turn.
         coVerify(exactly = 0) { llmService.closeConversation() }
 
+        // The card's own amount in the preamble says nothing the saved card line doesn't.
+        repository.clearPendingAction()
+        events = listOf(LlmEvent.Text("Adding ₹120 for coffee. "), add(120.0))
+        assertEquals("CARD", send("coffee 120"))
+        coVerify(exactly = 0) { llmService.closeConversation() }
+
         repository.clearPendingAction()
         events = listOf(LlmEvent.Text("Done, I've added it. "), add(120.0))
         assertEquals("CARD", send("coffee 120"))
         coVerify(exactly = 1) { llmService.closeConversation() }
+
+        // Any other number could mislead the next turn.
+        repository.clearPendingAction()
+        events = listOf(LlmEvent.Text("Adding ₹150 for coffee. "), add(120.0))
+        assertEquals("CARD", send("coffee 120"))
+        coVerify(exactly = 2) { llmService.closeConversation() }
     }
 
     @Test

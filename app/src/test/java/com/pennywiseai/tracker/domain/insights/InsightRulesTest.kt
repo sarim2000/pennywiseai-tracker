@@ -134,9 +134,10 @@ class InsightRulesTest {
         assertEquals(InsightAction.OpenBudgets, over.action)
 
         val pace = insights.facts<BudgetPace>().single()
-        // 1,500 in 10 of 30 days heads for 4,500; 1,500 left over the 21 days still to come.
-        assertEquals(Money(BigDecimal("4500.00"), "INR"), pace.projected)
-        assertEquals(Money(BigDecimal("71.42"), "INR"), pace.perDayLeft)
+        // 1,500 in 10 of 30 days heads for 4,500; 1,500 left over the 21 days still to come,
+        // in whole units as Home's budget card shows it.
+        assertEquals(Money(BigDecimal("4500"), "INR"), pace.projected)
+        assertEquals(Money(BigDecimal("71"), "INR"), pace.perDayLeft)
     }
 
     @Test

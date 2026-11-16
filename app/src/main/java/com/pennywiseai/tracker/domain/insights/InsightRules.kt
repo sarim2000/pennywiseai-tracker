@@ -97,10 +97,10 @@ object InsightRules {
             val spent = Money(b.spent, b.currency)
             val limit = Money(b.limit, b.currency)
             val daysLeft = b.windowDays - b.daysElapsed + 1
-            // Rounded down, so following it never ends over.
-            val perDayLeft = (b.limit - b.spent).divide(BigDecimal(daysLeft), 2, RoundingMode.DOWN)
+            // Whole units, rounded as Home's budget card and forecast round them, so the two agree.
+            val perDayLeft = (b.limit - b.spent).divide(BigDecimal(daysLeft), 0, RoundingMode.HALF_UP)
             when {
-                // Nothing left a day with days to go reads as over, not as "0 a day".
+                // Nothing left a day with days to go reads as used up, not as "0 a day".
                 pace.isOverBudget || perDayLeft.signum() <= 0 -> Insight(
                     id("budget_over", period, b.currency, b.windowKey), InsightSeverity.ALERT, b.currency,
                     BudgetOver(b.name, spent, limit, b.incomplete), InsightAction.OpenBudgets,
@@ -113,7 +113,7 @@ object InsightRules {
                         limit = limit,
                         projected = Money(
                             b.spent.multiply(BigDecimal(b.windowDays))
-                                .divide(BigDecimal(b.daysElapsed), 2, RoundingMode.HALF_UP),
+                                .divide(BigDecimal(b.daysElapsed), 0, RoundingMode.HALF_UP),
                             b.currency,
                         ),
                         perDayLeft = Money(perDayLeft, b.currency),

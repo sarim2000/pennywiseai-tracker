@@ -4,6 +4,8 @@
     <string name="review_title">Reviews</string>
     <string name="review_back">Back</string>
     <string name="review_share">Share</string>
+    <string name="review_export_pdf">Export PDF</string>
+    <string name="review_export_pdf_failed">Couldn\'t create the PDF. Try again.</string>
     <string name="review_kind_week">Week</string>
     <string name="review_kind_month">Month</string>
     <string name="review_kind_year">Year</string>

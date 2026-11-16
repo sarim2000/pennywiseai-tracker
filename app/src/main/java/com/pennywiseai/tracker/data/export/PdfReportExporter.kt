@@ -63,6 +63,16 @@ internal fun pageStarts(blocks: List<ReportBlock>, pageHeight: Float): List<Int>
     return starts
 }
 
+/** The share sheet for a report [PdfReportExporter.export] wrote. */
+fun pdfShareIntent(uri: Uri): Intent {
+    val send = Intent(Intent.ACTION_SEND).apply {
+        type = "application/pdf"
+        putExtra(Intent.EXTRA_STREAM, uri)
+        addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
+    }
+    return Intent.createChooser(send, null)
+}
+
 /**
  * A month's or year's review as a PDF, drawn on-device with [PdfDocument]: the same
  * [PeriodReview] the Review screen shows, so the totals match it. Amounts are always
@@ -104,15 +114,6 @@ class PdfReportExporter @Inject constructor(
             document.close()
         }
         FileProvider.getUriForFile(appContext, "${appContext.packageName}.fileprovider", file)
-    }
-
-    fun shareIntent(uri: Uri): Intent {
-        val send = Intent(Intent.ACTION_SEND).apply {
-            type = "application/pdf"
-            putExtra(Intent.EXTRA_STREAM, uri)
-            addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
-        }
-        return Intent.createChooser(send, null)
     }
 
     private class Renderer(private val context: Context, private val categoryLabel: (String) -> String) {

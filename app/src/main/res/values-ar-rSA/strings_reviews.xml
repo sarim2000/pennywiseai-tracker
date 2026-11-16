@@ -4,6 +4,8 @@
     <string name="review_title">المراجعات</string>
     <string name="review_back">رجوع</string>
     <string name="review_share">مشاركة</string>
+    <string name="review_export_pdf">تصدير PDF</string>
+    <string name="review_export_pdf_failed">تعذّر إنشاء ملف PDF. حاول مرة أخرى.</string>
     <string name="review_kind_week">أسبوع</string>
     <string name="review_kind_month">شهر</string>
     <string name="review_kind_year">سنة</string>

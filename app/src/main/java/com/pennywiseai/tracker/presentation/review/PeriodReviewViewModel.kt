@@ -1,8 +1,15 @@
 package com.pennywiseai.tracker.presentation.review
 
+import android.content.Context
+import android.net.Uri
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.export.PdfReportExporter
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.repository.ProfileRepository
 import com.pennywiseai.tracker.domain.review.PeriodReview
 import com.pennywiseai.tracker.domain.review.PeriodReviewLoader
 import com.pennywiseai.tracker.domain.review.ReviewKind
@@ -10,15 +17,25 @@ import com.pennywiseai.tracker.domain.review.defaultReviewOffset
 import com.pennywiseai.tracker.domain.review.latestReviewOffset
 import com.pennywiseai.tracker.domain.review.localFirstDayOfWeek
 import com.pennywiseai.tracker.domain.review.weekOffsetOf
+import com.pennywiseai.tracker.ui.components.seededNameRes
+import com.pennywiseai.tracker.ui.icons.CategoryMapping
+import com.pennywiseai.tracker.utils.inAppLanguage
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.channels.Channel
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.receiveAsFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import javax.inject.Inject
 
@@ -29,6 +46,10 @@ data class ReviewSelection(val kind: ReviewKind, val offset: Int, val today: Loc
 class PeriodReviewViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
     private val loader: PeriodReviewLoader,
+    private val pdfReportExporter: PdfReportExporter,
+    private val profileRepository: ProfileRepository,
+    private val userPreferencesRepository: UserPreferencesRepository,
+    @param:ApplicationContext private val context: Context,
 ) : ViewModel() {
 
     // The route says which tab to open on; once chosen, the choice survives process death.
@@ -50,6 +71,41 @@ class PeriodReviewViewModel @Inject constructor(
             loader.observe(kind, offset, today).onStart<PeriodReview?> { emit(null) }
         }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    private val _exportingPdf = MutableStateFlow(false)
+    val exportingPdf: StateFlow<Boolean> = _exportingPdf.asStateFlow()
+
+    private val _pdfReady = Channel<Uri?>(Channel.BUFFERED)
+
+    /** Each finished PDF export: the file to share, or null when it couldn't be written. */
+    val pdfReady: Flow<Uri?> = _pdfReady.receiveAsFlow()
+
+    /** Writes the review on screen, headed [title] as the screen labels it, as a PDF. */
+    fun exportPdf(title: String) {
+        val shown = review.value ?: return
+        if (_exportingPdf.value) return
+        _exportingPdf.value = true
+        viewModelScope.launch {
+            val uri = try {
+                // The report's words in the app's language, as the screen shows them.
+                val text = context.inAppLanguage()
+                val profile = userPreferencesRepository.selectedProfileId.first()?.let { profileRepository.getById(it) }
+                val profileName = profile?.let { it.seededNameRes()?.let(text::getString) ?: it.name }
+                    ?: text.getString(R.string.txn_list_all_profiles)
+                pdfReportExporter.export(shown, title, profileName) { name ->
+                    CategoryMapping.labelRes(name)?.let(text::getString) ?: name
+                }
+            } catch (e: CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                Log.e(TAG, "PDF report export failed", e)
+                null
+            } finally {
+                _exportingPdf.value = false
+            }
+            _pdfReady.send(uri)
+        }
+    }
 
     fun selectKind(kind: ReviewKind) = select(selectionFor(kind))
 
@@ -84,6 +140,7 @@ class PeriodReviewViewModel @Inject constructor(
     }
 
     private companion object {
+        const val TAG = "PeriodReviewViewModel"
         const val KEY_KIND = "selectedKind"
         const val KEY_OFFSET = "selectedOffset"
         const val KEY_TODAY = "selectedToday"

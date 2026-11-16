@@ -37,7 +37,7 @@ class PeriodReviewViewModelTest {
         val state = SavedStateHandle(
             mapOf("selectedKind" to "WEEK", "selectedOffset" to -3, "selectedToday" to chosenOn.toEpochDay())
         )
-        val viewModel = PeriodReviewViewModel(state, loader)
+        val viewModel = PeriodReviewViewModel(state, loader, mockk(), mockk(), mockk(), mockk())
         backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { viewModel.review.collect {} }
 
         assertEquals(ReviewSelection(ReviewKind.WEEK, -3, chosenOn), viewModel.selection.value)
@@ -50,7 +50,7 @@ class PeriodReviewViewModelTest {
         val state = SavedStateHandle(
             mapOf("selectedKind" to "WEEK", "selectedOffset" to -3, "selectedToday" to chosenOn.toEpochDay())
         )
-        val viewModel = PeriodReviewViewModel(state, loader)
+        val viewModel = PeriodReviewViewModel(state, loader, mockk(), mockk(), mockk(), mockk())
 
         viewModel.older()
 

@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.review
 
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.fadeIn
@@ -24,6 +25,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -52,6 +54,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.export.pdfShareIntent
 import com.pennywiseai.tracker.data.share.ShareWindow
 import com.pennywiseai.tracker.domain.review.CategoryLine
 import com.pennywiseai.tracker.domain.review.CurrencyReview
@@ -100,6 +103,18 @@ fun PeriodReviewScreen(
     var hasAnimated by rememberSaveable { mutableStateOf(false) }
     val loaded = review
     val shareLabel = loaded?.let { shareLabel(it) }
+    val exportingPdf by viewModel.exportingPdf.collectAsStateWithLifecycle()
+    val context = LocalContext.current
+
+    LaunchedEffect(viewModel) {
+        viewModel.pdfReady.collect { uri ->
+            if (uri != null) {
+                context.startActivity(pdfShareIntent(uri))
+            } else {
+                Toast.makeText(context, R.string.review_export_pdf_failed, Toast.LENGTH_SHORT).show()
+            }
+        }
+    }
 
     PennyWiseScaffold(
         title = stringResource(R.string.review_title),
@@ -109,6 +124,16 @@ fun PeriodReviewScreen(
             }
         },
         actions = {
+            if (loaded != null && loaded.currencies.isNotEmpty()) {
+                val title = periodLabel(loaded.range)
+                IconButton(
+                    onClick = { viewModel.exportPdf(title) },
+                    enabled = !exportingPdf,
+                    shapes = IconButtonDefaults.shapes(),
+                ) {
+                    Icon(Icons.Outlined.PictureAsPdf, contentDescription = stringResource(R.string.review_export_pdf))
+                }
+            }
             if (loaded != null && shareLabel != null && loaded.firstRecorded != null) {
                 IconButton(
                     onClick = { shareWindow = ShareWindow(loaded.range.start, loaded.range.end, shareLabel) },

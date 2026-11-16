@@ -92,9 +92,87 @@ class ChatTurnTest {
         mapOf("items" to amounts.map { mapOf("amount" to it, "merchant" to "shop") })
     )
 
-    // What the screen ends up showing: ChatViewModel folds a reset the same way.
-    private suspend fun send(message: String) =
-        repository.sendMessageStream(message).toList().fold("") { shown, part -> if (part == LlmRepository.RESET_REPLY) "" else shown + part }
+    // Everything the screen was shown during the turn, in order.
+    private val shown = mutableListOf<String>()
+
+    // What the screen ends up showing: ChatViewModel joins the parts the same way.
+    private suspend fun send(message: String) = repository.sendMessageStream(message).toList().also { shown += it }.joinToString("")
+
+    @Test
+    fun `prose beside any tool call never reaches the screen or the save`() = runTest {
+        val w = SpendingComparison.Window(LocalDateTime.of(2026, 10, 1, 0, 0), LocalDateTime.of(2026, 10, 9, 0, 0))
+        coEvery { aiContext.compareSpending(any(), any(), any(), any()) } returns SpendingComparison.Result.NoData(w, w, w)
+        coEvery { aiContext.categorySpending(any(), any()) } returns spent("120")
+        coEvery { aiContext.spending(any()) } returns com.pennywiseai.tracker.data.model.PeriodSpending(
+            com.pennywiseai.tracker.data.model.ChatScope(w),
+            spent = mapOf("INR" to BigDecimal("700")),
+            income = emptyMap(),
+        )
+        every { context.getString(R.string.chat_reply_add, any()) } returns "CARD"
+        every { context.getString(R.string.chat_reply_delete, any()) } returns "DELETE"
+        every { context.getString(R.string.chat_reply_update, any(), any()) } returns "UPDATE"
+        every { context.getString(R.string.chat_reply_compare_no_data, any()) } returns "NO_DATA"
+        every { context.getString(R.string.chat_reply_month_spend, any()) } returns "SPENT"
+        val now = LocalDateTime.now()
+        val row = TransactionEntity(
+            id = 1, amount = BigDecimal("50"), merchantName = "coffee", category = "Food",
+            transactionType = TransactionType.EXPENSE, dateTime = now, transactionHash = "h1"
+        )
+        every { transactions.getTransactionsBetweenDates(any<LocalDateTime>(), any<LocalDateTime>()) } returns flowOf(listOf(row))
+        val calls = listOf(
+            add(120.0),
+            LlmEvent.ToolCall(PennyWiseTools.DELETE_TRANSACTION, mapOf("merchant" to "coffee")),
+            LlmEvent.ToolCall(PennyWiseTools.UPDATE_TRANSACTION, mapOf("merchant" to "coffee", "new_category" to "طعام")),
+            LlmEvent.ToolCall(PennyWiseTools.MONTH_SUMMARY, emptyMap()),
+            LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "طعام")),
+            LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month")),
+        )
+        for (call in calls) {
+            for (before in listOf(true, false)) {
+                repository.clearPendingAction()
+                shown.clear()
+                val prose = LlmEvent.Text("Done, I saved ₹999 and you spent nine hundred. ")
+                events = if (before) listOf(prose, call) else listOf(call, prose)
+                val reply = send("coffee")
+                val where = "${call.name}, prose ${if (before) "before" else "after"}"
+                assertTrue(where, shown.none { "999" in it || "nine" in it })
+                assertFalse(where, "999" in saved.last().message || "nine" in saved.last().message)
+                assertEquals(where, reply, saved.last().message)
+                assertFalse(where, "UNREADABLE" in reply)
+            }
+        }
+        // Each of those turns left prose in the live conversation: the next one rebuilds without it.
+        coVerify(exactly = calls.size * 2) { llmService.closeConversation() }
+    }
+
+    @Test
+    fun `prose beside a card and a total in one turn is dropped, the app's lines kept`() = runTest {
+        every { context.getString(R.string.chat_reply_add, any()) } returns "CARD"
+        coEvery { aiContext.categorySpending(any(), any()) } returns spent("120")
+        events = listOf(
+            LlmEvent.Text("Sure! "),
+            add(120.0),
+            LlmEvent.Text("You have spent ₹5,000. "),
+            LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "طعام")),
+        )
+        assertEquals("CARD\nSPEND", send("coffee 120, and how much on food?"))
+        assertEquals(listOf("CARD\nSPEND"), shown)
+    }
+
+    @Test
+    fun `prose in front of a call that breaks is dropped for the note that nothing changed`() = runTest {
+        events = listOf(LlmEvent.Text("I've added ₹300 for shoes. "))
+        failure = RuntimeException("Failed to parse tool calls from code block: {\"name\"")
+        assertEquals("UNREADABLE", send("shoes 300"))
+        assertEquals(listOf("UNREADABLE"), shown)
+    }
+
+    @Test
+    fun `a reply with no tool call is shown once, whole`() = runTest {
+        events = listOf(LlmEvent.Text("Hello"), LlmEvent.Text(" there!"))
+        assertEquals("Hello there!", send("hi"))
+        assertEquals(listOf("Hello there!"), shown)
+    }
 
     @Test
     fun `prose streamed before a comparison leaves the screen, and the save`() = runTest {

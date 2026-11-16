@@ -198,7 +198,6 @@ class LlmRepository @Inject constructor(
 
         var unreadableToolCall = false
         var conversationBroken = false
-        var shownUpTo = 0
         var retried = false
         while (true) {
             try {
@@ -211,19 +210,10 @@ class LlmRepository @Inject constructor(
                     }
                     .collect { event ->
                         when (event) {
-                            is LlmEvent.Text -> {
-                                // The model can open with bare newlines before a tool call: no empty lines on top.
-                                val text = if (responseBuilder.isEmpty()) event.delta.trimStart() else event.delta
-                                if (text.isNotEmpty()) {
-                                    responseBuilder.append(text)
-                                    // A tool call the runtime didn't catch: never show its JSON, or the start of its tag.
-                                    val written = responseBuilder.toString()
-                                    if (!written.startsWith(TOOL_CALL_TAG) && !TOOL_CALL_TAG.startsWith(written)) {
-                                        emit(written.substring(shownUpTo))
-                                        shownUpTo = written.length
-                                    }
-                                }
-                            }
+                            // Held, not shown: a tool call can still come after it, and then the
+                            // figures or the card say what happened, not the model.
+                            // The model can open with bare newlines before a tool call: no empty lines on top.
+                            is LlmEvent.Text -> responseBuilder.append(if (responseBuilder.isEmpty()) event.delta.trimStart() else event.delta)
                             is LlmEvent.ToolCall -> toolCalls.add(event)
                         }
                     }
@@ -239,7 +229,8 @@ class LlmRepository @Inject constructor(
                 ensureConversation(incoming = prompt, shrink = true)
             }
         }
-        // A broken wrapper can also come through as plain text. It's no reply, so it isn't saved as one.
+        // A broken wrapper can also come through as plain text: never shown, its JSON or the
+        // start of its tag. It's no reply, so it isn't saved as one.
         val written = responseBuilder.toString()
         if (written.startsWith(TOOL_CALL_TAG)) {
             TransactionDraft.itemsInBrokenCall(written)?.let { toolCalls.add(addCall(it)) } ?: run {
@@ -247,29 +238,25 @@ class LlmRepository @Inject constructor(
                 conversationBroken = true
             }
             responseBuilder.clear()
-        } else if (written.isNotEmpty() && TOOL_CALL_TAG.startsWith(written)) {
-            // Text held back in case it became a tag, and it didn't.
-            if (toolCalls.isEmpty()) emit(written) else responseBuilder.clear()
+        }
+        // A turn that called a tool, readably or not, is answered by the app alone: the
+        // repository's figures, or the card it proposes. Prose beside them could carry the
+        // model's own arithmetic, a figure from an earlier turn, or a claim that it saved
+        // something, and checking it for digits misses numbers in words.
+        if (toolCalls.isNotEmpty() || unreadableToolCall) {
+            // The live conversation still holds that prose; the next turn rebuilds from what was saved.
+            if (responseBuilder.isNotBlank()) conversationBroken = true
+            responseBuilder.clear()
         }
         // A reply holding any line the app wrote is never replayed to the model as it reads (see [MODEL_ID]).
         var appWrote = false
-        suspend fun addLine(line: String) {
+        fun addLine(line: String) {
             appWrote = true
-            if (responseBuilder.isNotEmpty() && !responseBuilder.endsWith("\n")) { responseBuilder.append("\n"); emit("\n") }
-            responseBuilder.append(line); emit(line)
+            if (responseBuilder.isNotEmpty() && !responseBuilder.endsWith("\n")) responseBuilder.append("\n")
+            responseBuilder.append(line)
         }
         // Everything to add in a turn shares one review card. Any other card stays one at a
         // time, since a second proposal would replace the first unseen.
-        // A comparison or a total is the code's figures alone: prose beside it could carry the
-        // model's own arithmetic, or a figure from an earlier turn.
-        val figures: (LlmEvent.ToolCall) -> Boolean = { it.isComparison(userMessage) || it.name in MONTH_LOOKUPS }
-        if (toolCalls.any(figures)) {
-            // The live conversation still holds that prose; the next turn rebuilds from what was saved.
-            if (responseBuilder.isNotEmpty()) conversationBroken = true
-            responseBuilder.clear()
-            // Off the screen too, before the figures land beside it.
-            if (shownUpTo > 0) emit(RESET_REPLY)
-        }
         val adds = toolCalls.filter { it.name == PennyWiseTools.ADD_TRANSACTIONS }
         var addsProposed = false
         var skippedCards = 0
@@ -296,7 +283,6 @@ class LlmRepository @Inject constructor(
             claimsAChange(reply, card?.takeIf { !it.saved }?.mentions.orEmpty())
         ) {
             responseBuilder.clear()
-            emit(RESET_REPLY)
             // The live conversation still holds the claim; the next turn rebuilds from the save.
             conversationBroken = true
             addLine(
@@ -312,8 +298,9 @@ class LlmRepository @Inject constructor(
 
         llmService.tokenCount()?.let { _contextTokens.value = it }
 
-        // Save the complete AI response
+        // Shown whole, once every check above has had its say.
         val finalResponse = responseBuilder.toString()
+        emit(finalResponse)
         Log.d(TAG, "Saving AI response (${finalResponse.length} chars)")
         val aiMessage = ChatMessage(
             id = (if (appWrote) QUICK_ID else MODEL_ID) + UUID.randomUUID(),
@@ -943,8 +930,6 @@ class LlmRepository @Inject constructor(
         private val MONTH_LOOKUPS = setOf(PennyWiseTools.MONTH_SUMMARY, PennyWiseTools.SPENDING_BY_CATEGORY)
         private val CARD_TOOLS = setOf(PennyWiseTools.ADD_TRANSACTIONS, PennyWiseTools.DELETE_TRANSACTION, PennyWiseTools.UPDATE_TRANSACTION)
         private const val TOOL_CALL_TAG = "<tool_call>"
-        /** Emitted in place of text: drop what was streamed so far. */
-        internal const val RESET_REPLY = "\u0000reset"
         // Matched by ChatViewModel.sendErrorText: these exception messages are never shown.
         internal const val MESSAGE_TOO_LONG = "Message too long for the model"
         internal const val INTEGRITY_FAILED = "AI model failed its integrity check and was removed"

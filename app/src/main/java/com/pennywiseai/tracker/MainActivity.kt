@@ -1,6 +1,5 @@
 package com.pennywiseai.tracker
 
-import com.pennywiseai.tracker.utils.withLatinDigits
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -20,6 +19,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import com.pennywiseai.tracker.data.repository.AppLockRepository
 import com.pennywiseai.tracker.receiver.SmsBroadcastReceiver
+import com.pennywiseai.tracker.utils.withLatinDigits
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch

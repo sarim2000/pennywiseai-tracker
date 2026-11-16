@@ -7,7 +7,6 @@ import com.pennywiseai.tracker.BuildConfig
 import com.pennywiseai.tracker.data.contacts.ContactsResolver
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.MerchantAliasRepository
-import kotlinx.coroutines.flow.map
 import com.pennywiseai.tracker.ui.components.WhatsNewContent
 import com.pennywiseai.tracker.ui.components.WhatsNewVersion
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,6 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject

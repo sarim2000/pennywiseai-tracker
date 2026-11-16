@@ -41,6 +41,7 @@ import dagger.assisted.AssistedInject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import java.math.BigDecimal
+import java.math.MathContext
 import java.time.Duration
 import java.time.LocalDate
 import java.time.LocalTime
@@ -120,8 +121,10 @@ class DailySummaryWorker @AssistedInject constructor(
 
         // The recap is built outside any Activity, so it needs the Latin-digit context too (14b00ada).
         val context = applicationContext.withLatinDigits()
+        // Only the tightest budgets, so the recap stays short; the rest are a count.
         val budgetLines = budgetSummary?.let { summary ->
-            budgetsLeft(summary, today).map { budget ->
+            val budgets = budgetsLeft(summary, today)
+            budgets.take(MAX_BUDGET_LINES).map { budget ->
                 val amount = CurrencyFormatter.formatCurrency(budget.left.abs(), summary.currency, maskIfHidden = false)
                 val line = context.getString(
                     if (budget.left.signum() < 0) R.string.notif_daily_budget_over else R.string.notif_daily_budget_left,
@@ -129,7 +132,10 @@ class DailySummaryWorker @AssistedInject constructor(
                     budget.name
                 )
                 if (budget.incomplete) context.getString(R.string.notif_daily_budget_incomplete, line) else line
-            }
+            } + listOfNotNull(
+                (budgets.size - MAX_BUDGET_LINES).takeIf { it > 0 }
+                    ?.let { context.resources.getQuantityString(R.plurals.notif_daily_budget_more, it, it) }
+            )
         }.orEmpty()
         val text = listOfNotNull(
             transactions.size.takeIf { it > 0 }
@@ -212,6 +218,7 @@ class DailySummaryWorker @AssistedInject constructor(
         /** Input flag: skip the 9 PM gate (debug probe only). */
         const val KEY_FORCE = "force"
         private const val SUMMARY_HOUR = 21
+        private const val MAX_BUDGET_LINES = 2
 
         /** The next local 9 PM strictly after [now]; zone-aware, so DST shifts keep it at 9 PM. */
         internal fun nextRun(now: ZonedDateTime): ZonedDateTime {
@@ -247,10 +254,11 @@ class DailySummaryWorker @AssistedInject constructor(
         }
 
         /**
-         * Each LIMIT budget running today, once, in the summary's one currency: a
-         * budget's figures already come resolved and converted per budget, so its
-         * allowance is never repeated per spending currency. A budget whose window
-         * isn't today's (a one-time budget that ended) or with no limit is left out.
+         * Each LIMIT budget running today, in the summary's one currency: a
+         * budget's figures already come resolved and converted per budget (one
+         * entry each), so its allowance is never repeated per spending currency.
+         * A budget whose window isn't today's (a one-time budget that ended) or
+         * with no limit is left out. Tightest first: the least left for its limit.
          */
         internal fun budgetsLeft(summary: BudgetOverallSummary, today: LocalDate): List<BudgetLeft> =
             summary.groups
@@ -259,7 +267,7 @@ class DailySummaryWorker @AssistedInject constructor(
                         it.totalBudget.signum() > 0 &&
                         !today.isBefore(it.windowStart) && !today.isAfter(it.windowEnd)
                 }
-                .distinctBy { it.group.budget.id }
+                .sortedBy { it.remaining.divide(it.totalBudget, MathContext.DECIMAL64) }
                 .map { BudgetLeft(it.group.budget.name, it.remaining, it.hasUnconvertedSpend) }
 
         /**

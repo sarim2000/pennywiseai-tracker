@@ -161,21 +161,23 @@ class DailySummaryWorkerTest {
     }
 
     @Test
-    fun `each LIMIT budget running today shows once, over budget as a negative`() {
+    fun `each LIMIT budget running today shows once, tightest first, over budget as a negative`() {
         val left = DailySummaryWorker.budgetsLeft(
             summary(
                 spending(1, "Food", "120.5"),
-                spending(1, "Food", "120.5"),
                 spending(2, "Fun", "-30"),
                 spending(3, "Trip", "90", start = LocalDate.of(2026, 10, 1), end = LocalDate.of(2026, 10, 31)),
-                spending(4, "Empty", "0", limit = "0")
+                spending(4, "Empty", "0", limit = "0"),
+                // Less left than Food in amount, more for its limit.
+                spending(5, "Coffee", "40", limit = "50")
             ),
             today
         )
         assertEquals(
             listOf(
+                DailySummaryWorker.BudgetLeft("Fun", BigDecimal("-30"), incomplete = false),
                 DailySummaryWorker.BudgetLeft("Food", BigDecimal("120.5"), incomplete = false),
-                DailySummaryWorker.BudgetLeft("Fun", BigDecimal("-30"), incomplete = false)
+                DailySummaryWorker.BudgetLeft("Coffee", BigDecimal("40"), incomplete = false)
             ),
             left
         )

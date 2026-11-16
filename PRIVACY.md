@@ -11,7 +11,7 @@ PennyWise AI is built with privacy as the core principle. We believe your financ
 **Transaction processing and AI run locally on your device.** AI features use an on-device LLM (Qwen 2.5, via Google AI Edge LiteRT-LM). The only data that ever leaves your device goes through the explicit outbound requests listed under Internet Permission below:
 
 - ✅ **On-device AI** - Parsing and AI processing run locally; your transaction database never uploads anywhere
-- ✅ **No data collection** - No analytics, telemetry, or accounts; the one exception is the parse-report flow (see Internet Permission)
+- ✅ **No data collection** - No analytics, telemetry, or accounts; the exceptions are the parse-report flow and share links you choose to create (see Internet Permission)
 - ✅ **No tracking** - No analytics, no telemetry, no user tracking
 - ✅ **No ads** - No advertising networks or tracking pixels
 - ✅ **Offline AI** - Once downloaded, AI works completely offline
@@ -62,6 +62,7 @@ PennyWise AI is built with privacy as the core principle. We believe your financ
 - **Exchange Rates**: Multi-currency features fetch current rates from open.er-api.com; only the currency code is sent
 - **Parse Reports**: The "report a parsing problem" action opens pennywise.zynth.dev with the SMS text and sender ID pre-filled. The link also carries an encrypted device identifier — your Android device ID plus a timestamp, RSA-encrypted on-device before it leaves. Opening the page sends these details to the server right away to generate a parsed preview; submitting the report itself remains a separate user action
 - **AI Access (optional, off by default)**: Only while you have started an AI session, answers to a connected AI app's questions travel from your phone through PennyWise's relay (see "Connected AI Apps" below)
+- **Share links (optional)**: Only when you tap Share as link and then Upload and share, the card you just previewed goes to pennywise.zynth.dev (see "Share Cards and Links" below)
 - **Online voice (optional)**: Only for voice languages marked online, and only after you agreed for that speech service, your speech goes to your phone's default speech service (see Microphone above). PennyWise itself receives nothing
 - **App Updates**: Google Play Store variant uses Play Services for app updates (F-Droid variant does not)
 - **After Model Download**: AI works completely offline, no internet required for core features
@@ -99,6 +100,16 @@ You can connect Claude, ChatGPT or another app that supports MCP so it can answe
 - **What it never gets**: SMS text, full account numbers, UPI or reference numbers, notes, receipts, budgets, goals, loans or your settings. It cannot add, change or delete anything.
 - **The AI provider** (for example Anthropic or OpenAI) receives the answers it reads, under its own privacy policy.
 - **Control**: stop the session any time from the notification, disconnect one app or all of them in Settings → Connect Claude / ChatGPT. Disconnecting all also deletes your phone's ID from the relay.
+
+## Share Cards and Links
+
+The Share screen makes a card from your figures. You choose exactly what it shows (amounts and percentages are separate switches) and see it before anything happens.
+
+- **Share image** draws the picture on your phone and hands it to the app you pick. Nothing is uploaded.
+- **Share as link** uploads a copy, and only after you tap Upload and share on a screen that shows the image being uploaded. The copy is the card's text exactly as previewed (already formatted on your phone), plus that 1200×630 image for chat link previews. Nothing else from the app goes with it: no transactions, account details or settings.
+- **Who can see it**: anyone who has the link. Links are unlisted: the page asks search engines not to index it, and there is no public list of shares.
+- **How long it stays**: 7, 30 or 90 days, or until you delete it, as you chose. When it expires or you delete it, the server erases the card's text and image. To limit how many links one connection can make, the server stores a salted hash of the uploading IP address with each link, never the address itself.
+- **Deleting**: Share → Shared links lists the links this phone made, with Delete. The delete keys stay on this phone, outside PennyWise backups, so clearing the app's data means those links stay up until they expire. Anyone you sent the link to may have saved the image already.
 
 ## Data Export
 

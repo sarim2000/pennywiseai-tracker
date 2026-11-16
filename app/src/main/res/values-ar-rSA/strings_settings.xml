@@ -515,7 +515,7 @@
     <!-- Privacy & Data -->
     <string name="faq_privacy_section">الخصوصية والبيانات</string>
     <string name="faq_data_secure_question">هل بياناتي المالية آمنة؟</string>
-    <string name="faq_data_secure_answer">نعم! تبقى جميع البيانات على جهازك. ليس لدينا خوادم أو تخزين سحابي. يعمل نموذج الذكاء الاصطناعي محليا للخصوصية الكاملة.</string>
+    <string name="faq_data_secure_answer">نعم! تبقى بياناتك على جهازك ويعمل نموذج الذكاء الاصطناعي محليًا. لا يُرفع شيء إلا إذا اخترت ذلك، كأن تشارك بطاقة كرابط.</string>
     <string name="faq_backup_question">هل يمكنني نسخ بياناتي احتياطيًا؟</string>
     <string name="faq_backup_answer">حاليًا تُخزَّن البيانات محليًا فقط. ميزات التصدير والنسخ الاحتياطي مخطط لها في تحديثات قادمة.</string>
     <string name="faq_data_access_question">ما البيانات التي يصل إليها التطبيق؟</string>

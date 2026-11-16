@@ -41,6 +41,9 @@ class NetWorthLoader @Inject constructor(
             !IgnoredAccountsStore.isIgnored(ignored, it.bankName, it.accountLast4) &&
                 (profileId == null || it.profileId == profileId)
         }
+            // Two rows can share an account's newest timestamp; count the account once.
+            .sortedByDescending { it.id }
+            .distinctBy { it.bankName to it.accountLast4 }
     }
 
     fun observe(): Flow<NetWorthSnapshot> = combine(

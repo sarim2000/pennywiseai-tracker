@@ -605,7 +605,9 @@ open class TransactionRepository @Inject constructor(
     }
 
     suspend fun getUncategorizedTransactions(): List<TransactionEntity> {
-        // Without a category, or in "Others" under whatever name the user gave it.
+        // Without a category, or in "Others" under whatever name the user gave it. Rows kept out
+        // of totals stay in, unlike [needsCategory]: a rule run over them is still right, and
+        // files them for the day they're counted again; only the picker leaves them alone.
         val others = com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames.current("Others")
         return getAllTransactionsList().filter { transaction ->
             transaction.category.isNullOrBlank() || transaction.category == others

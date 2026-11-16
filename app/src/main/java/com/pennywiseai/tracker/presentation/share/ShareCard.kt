@@ -37,6 +37,7 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
@@ -438,15 +439,15 @@ private fun StatsRow(stats: List<ShareCardStat>, p: SharePalette, compact: Boole
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                 )
+                // Shrinks rather than cuts: "₹12,34,5…" in three columns would be a wrong figure.
                 Text(
                     text = stat.value,
                     style = Figures.copy(
-                        fontSize = if (compact) 15.sp else 17.sp,
                         fontWeight = FontWeight.Bold,
                         color = if (stat.sentiment == Sentiment.NEUTRAL) p.text else p.colorFor(stat.sentiment),
                     ),
                     maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+                    autoSize = TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = if (compact) 15.sp else 17.sp),
                 )
             }
         }
@@ -499,8 +500,8 @@ private val ChartLabel = Body.copy(fontSize = 13.sp, fontWeight = FontWeight.Sem
 private fun BarsChart(chart: ShareChart, p: SharePalette, modifier: Modifier) {
     val points = chart.points.take(MAX_BAR_ROWS)
     val max = points.maxOfOrNull { it.value }?.takeIf { it > 0 } ?: 1.0
-    // One width for every row, so the bars all end on the same line.
-    val valueWidth = if (points.any { (it.display?.length ?: 0) > 5 }) 76.dp else 40.dp
+    val valueStyle = Figures.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = p.text, textAlign = TextAlign.End)
+    val valueWidth = valueColumnWidth(points, valueStyle)
     Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically)) {
         points.forEachIndexed { i, point ->
             val highlighted = i == (chart.highlightIndex ?: 0)
@@ -527,14 +528,7 @@ private fun BarsChart(chart: ShareChart, p: SharePalette, modifier: Modifier) {
                             .background(if (highlighted) p.accent else p.accent.copy(alpha = 0.55f)),
                     )
                 }
-                point.display?.let {
-                    Text(
-                        text = it,
-                        style = Figures.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = p.text, textAlign = TextAlign.End),
-                        maxLines = 1,
-                        modifier = Modifier.padding(start = 10.dp).width(valueWidth),
-                    )
-                }
+                point.display?.let { ChartValue(it, valueStyle, Modifier.padding(start = 10.dp).width(valueWidth)) }
             }
         }
     }
@@ -548,6 +542,8 @@ private fun BarsChart(chart: ShareChart, p: SharePalette, modifier: Modifier) {
 private fun DivergingChart(chart: ShareChart, p: SharePalette, modifier: Modifier) {
     val points = chart.points.take(MAX_BAR_ROWS)
     val max = points.maxOfOrNull { abs(it.value) }?.takeIf { it > 0 } ?: 1.0
+    val valueStyle = Figures.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.End)
+    val valueWidth = valueColumnWidth(points, valueStyle)
     Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically)) {
         points.forEach { point ->
             val fraction = (abs(point.value) / max).toFloat().coerceIn(0.04f, 1f)
@@ -571,16 +567,39 @@ private fun DivergingChart(chart: ShareChart, p: SharePalette, modifier: Modifie
                     }
                 }
                 point.display?.let {
-                    Text(
-                        text = it,
-                        style = Figures.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = color, textAlign = TextAlign.End),
-                        maxLines = 1,
-                        modifier = Modifier.width(72.dp),
-                    )
+                    ChartValue(it, valueStyle.copy(color = color), Modifier.padding(start = 8.dp).width(valueWidth))
                 }
             }
         }
     }
+}
+
+/**
+ * One width for every row's figure, so the bars all end on the same line: as wide as the
+ * longest figure, up to [MaxValueWidth]. A figure is never cut ("+₹1,23,4"): past that
+ * width [ChartValue] shrinks it instead.
+ */
+@Composable
+private fun valueColumnWidth(points: List<ShareChartPoint>, style: TextStyle): Dp {
+    val measurer = rememberTextMeasurer()
+    val widest = points.maxOfOrNull { point ->
+        point.display?.let { measurer.measure(it, style, maxLines = 1).size.width } ?: 0
+    } ?: 0
+    // A dp over, so rounding never makes an exact fit step the font down.
+    return with(LocalDensity.current) { widest.toDp() + 1.dp }.coerceAtMost(MaxValueWidth)
+}
+
+private val MaxValueWidth = 104.dp
+
+@Composable
+private fun ChartValue(text: String, style: TextStyle, modifier: Modifier) {
+    Text(
+        text = text,
+        style = style,
+        maxLines = 1,
+        autoSize = TextAutoSize.StepBased(minFontSize = 8.sp, maxFontSize = style.fontSize),
+        modifier = modifier,
+    )
 }
 
 @Composable

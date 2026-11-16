@@ -936,7 +936,9 @@ class LlmRepository @Inject constructor(
                 else m.length >= 3 && flat.contains(m, ignoreCase = true)
             }
         }
-        private val DAY_MONTH = java.time.format.DateTimeFormatter.ofPattern("d MMM")
+        // Built per use: a formatter keeps the locale it was made in, and the app's language can
+        // change while the process lives (Arabic month names in an English reply, and back).
+        private val DAY_MONTH get() = java.time.format.DateTimeFormatter.ofPattern("d MMM")
         private val MONTH_LOOKUPS = setOf(PennyWiseTools.MONTH_SUMMARY, PennyWiseTools.SPENDING_BY_CATEGORY)
         private val CARD_TOOLS = setOf(PennyWiseTools.ADD_TRANSACTIONS, PennyWiseTools.DELETE_TRANSACTION, PennyWiseTools.UPDATE_TRANSACTION)
         private const val TOOL_CALL_TAG = "<tool_call>"

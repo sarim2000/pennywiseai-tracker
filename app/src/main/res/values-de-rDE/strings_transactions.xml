@@ -373,26 +373,6 @@
     <string name="recurring_day_of_week_any">Alle</string>
     <string name="recurring_field_note">Notiz (optional)</string>
     <string name="recurring_field_active">Aktiv</string>
-    <!-- Share card, sheet and banner -->
-    <string name="share_card_caption_transactions">bank Texte verfolgt. 0 eingegeben.</string>
-    <plurals name="share_card_caption_subscriptions">
-        <item quantity="one">abonnement, das ich vergessen habe</item>
-        <item quantity="other">vergaß ich</item>
-    </plurals>
-    <string name="share_card_period_all_time">ALLE ZEIT</string>
-    <string name="share_card_tagline">Lesen Sie von meiner Bank-SMS. Nichts hat mein Telefon verlassen.</string>
-    <string name="share_sheet_no_amounts">Es sind keine Beträge enthalten.</string>
-    <string name="share_sheet_share">Teilen</string>
-    <string name="share_sheet_done">Fertig</string>
-    <string name="share_sheet_customise">Anpassen</string>
-    <string name="share_sheet_show">Zeigen</string>
-    <string name="share_sheet_transactions">Zeitleiste</string>
-    <string name="share_sheet_subscriptions">Abonnements</string>
-    <string name="share_sheet_no_subscriptions">Noch keine Abonnements gefunden – PennyWise findet diese bei wiederkehrenden Zahlungen in Ihren SMS.</string>
-    <string name="share_sheet_period">Zeitraum</string>
-    <string name="share_sheet_this_month">Diesen Monat</string>
-    <string name="share_sheet_last_month">Letzten Monat</string>
-    <string name="share_sheet_all_time">Gesamt</string>
     <!-- %1$s = month name -->
     <string name="share_banner_title">%1$s, zusammengefasst</string>
     <string name="share_banner_subtitle">Sieh was PennyWise für dich verfolgt hat</string>

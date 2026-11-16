@@ -372,26 +372,6 @@
     <string name="recurring_day_of_week_any">जुनसुकै</string>
     <string name="recurring_field_note">नोट (वैकल्पिक)</string>
     <string name="recurring_field_active">सक्रिय</string>
-    <!-- Share card, sheet and banner -->
-    <string name="share_card_caption_transactions">बैंक सन्देश ट्र्याक भए। 0 टाइप गरियो।</string>
-    <plurals name="share_card_caption_subscriptions">
-        <item quantity="one">मैले बिर्सेको सदस्यता</item>
-        <item quantity="other">मैले बिर्सेका सदस्यताहरू</item>
-    </plurals>
-    <string name="share_card_period_all_time">सधैंको</string>
-    <string name="share_card_tagline">मेरो बैंक SMS बाट पढियो। मेरो फोनबाट केही बाहिर गएन।</string>
-    <string name="share_sheet_no_amounts">कुनै रकम समावेश छैन।</string>
-    <string name="share_sheet_share">सेयर गर्नुहोस्</string>
-    <string name="share_sheet_done">समाप्त</string>
-    <string name="share_sheet_customise">मिलाउनुहोस्</string>
-    <string name="share_sheet_show">देखाउनुहोस्</string>
-    <string name="share_sheet_transactions">टाइमलाइन</string>
-    <string name="share_sheet_subscriptions">सदस्यताहरू</string>
-    <string name="share_sheet_no_subscriptions">अझै कुनै सदस्यता भेटिएन — PennyWise ले तपाईंको SMS मा दोहोरिने भुक्तानीबाट यिनलाई पत्ता लगाउँछ।</string>
-    <string name="share_sheet_period">अवधि</string>
-    <string name="share_sheet_this_month">यो महिना</string>
-    <string name="share_sheet_last_month">गत महिना</string>
-    <string name="share_sheet_all_time">सधैं</string>
     <!-- %1$s = month name -->
     <string name="share_banner_title">%1$s को सारांश</string>
     <string name="share_banner_subtitle">PennyWise ले तपाईंका लागि के ट्र्याक गर्‍यो हेर्नुहोस्</string>

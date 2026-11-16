@@ -373,26 +373,6 @@
     <string name="recurring_day_of_week_any">Qualquer</string>
     <string name="recurring_field_note">Nota (opcional)</string>
     <string name="recurring_field_active">ativo</string>
-    <!-- Share card, sheet and banner -->
-    <string name="share_card_caption_transactions">Textos bancários rastreados. 0 digitados.</string>
-    <plurals name="share_card_caption_subscriptions">
-        <item quantity="one">assinatura que esqueci</item>
-        <item quantity="other">inscrições que esqueci</item>
-    </plurals>
-    <string name="share_card_period_all_time">TODOS OS TEMPO</string>
-    <string name="share_card_tagline">Ler do meu banco SMS. Nada deixou o meu telefone.</string>
-    <string name="share_sheet_no_amounts">Nenhum montante está incluído.</string>
-    <string name="share_sheet_share">Compartilhar</string>
-    <string name="share_sheet_done">Concluído</string>
-    <string name="share_sheet_customise">Personalizar</string>
-    <string name="share_sheet_show">Apresentar</string>
-    <string name="share_sheet_transactions">Linha do Tempo</string>
-    <string name="share_sheet_subscriptions">Inscrições</string>
-    <string name="share_sheet_no_subscriptions">Nenhuma assinatura detectada ainda — A PennyWise encontra em seus pagamentos recorrentes em seu SMS.</string>
-    <string name="share_sheet_period">Menstruação</string>
-    <string name="share_sheet_this_month">Este Mês</string>
-    <string name="share_sheet_last_month">Mês anterior</string>
-    <string name="share_sheet_all_time">Desde o início</string>
     <!-- %1$s = month name -->
     <string name="share_banner_title">%1$s, resumido</string>
     <string name="share_banner_subtitle">Veja o que o PennyWise monitorou para você</string>

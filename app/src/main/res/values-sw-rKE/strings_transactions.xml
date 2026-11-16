@@ -372,26 +372,6 @@
     <string name="recurring_day_of_week_any">Yoyote</string>
     <string name="recurring_field_note">Kumbuka (si lazima)</string>
     <string name="recurring_field_active">Inatumika</string>
-    <!-- Share card, sheet and banner -->
-    <string name="share_card_caption_transactions">SMS za benki zimefuatiliwa. 0 zimeandikwa.</string>
-    <plurals name="share_card_caption_subscriptions">
-        <item quantity="one">usajili niliousahau</item>
-        <item quantity="other">usajili niliousahau</item>
-    </plurals>
-    <string name="share_card_period_all_time">MUDA WOTE</string>
-    <string name="share_card_tagline">Imesomwa kutoka SMS za benki yangu. Hakuna kilichotoka kwenye simu yangu.</string>
-    <string name="share_sheet_no_amounts">Hakuna kiasi kilichojumuishwa.</string>
-    <string name="share_sheet_share">Shiriki</string>
-    <string name="share_sheet_done">Imekamilika</string>
-    <string name="share_sheet_customise">Badilisha</string>
-    <string name="share_sheet_show">Onyesha</string>
-    <string name="share_sheet_transactions">Miamala</string>
-    <string name="share_sheet_subscriptions">Usajili</string>
-    <string name="share_sheet_no_subscriptions">Bado hakuna usajili uliogunduliwa — PennyWise huupata kutoka kwa malipo yanayojirudia kwenye SMS zako.</string>
-    <string name="share_sheet_period">Kipindi</string>
-    <string name="share_sheet_this_month">Mwezi huu</string>
-    <string name="share_sheet_last_month">Mwezi uliopita</string>
-    <string name="share_sheet_all_time">Muda wote</string>
     <!-- %1$s = month name -->
     <string name="share_banner_title">Muhtasari wa %1$s</string>
     <string name="share_banner_subtitle">Ona kile PennyWise imekufuatilia</string>

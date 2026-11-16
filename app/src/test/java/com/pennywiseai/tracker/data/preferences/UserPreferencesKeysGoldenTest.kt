@@ -151,8 +151,6 @@ class UserPreferencesKeysGoldenTest {
             "selected_profile_id" to "Long",
             "shake_to_hide_amounts" to "Boolean",
             "shake_to_hide_hint_shown" to "Boolean",
-            "share_card_hero" to "String",
-            "share_card_period" to "String",
             "share_prompt_handled_month" to "String",
             "sms_scan_all_time" to "Boolean",
             "sms_scan_custom_date" to "Long",

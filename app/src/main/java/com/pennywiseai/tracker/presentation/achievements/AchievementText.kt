@@ -6,7 +6,7 @@ import androidx.compose.ui.res.stringResource
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.domain.achievements.Achievement
 import com.pennywiseai.tracker.domain.achievements.AchievementId
-import com.pennywiseai.tracker.presentation.share.count
+import com.pennywiseai.tracker.utils.formatCount
 
 @Composable
 fun achievementName(id: AchievementId): String = stringResource(
@@ -26,7 +26,7 @@ fun achievementName(id: AchievementId): String = stringResource(
 /** What the tier at [threshold] asks for, said as done: "500 transactions tracked". */
 @Composable
 fun achievementDescription(id: AchievementId, threshold: Int): String {
-    val n = count(threshold)
+    val n = formatCount(threshold)
     return when (id) {
         AchievementId.TRACKED -> pluralStringResource(R.plurals.achievement_tracked_desc, threshold, n)
         AchievementId.STREAK -> pluralStringResource(R.plurals.achievement_streak_desc, threshold, n)
@@ -56,7 +56,7 @@ fun progressLabel(a: Achievement): String? {
     val inPercent = a.id == AchievementId.SAVINGS_RATE || a.id == AchievementId.SPENDING_DOWN || a.id == AchievementId.GOAL_HALFWAY
     // Points up are a yes or no: the progress figure would only ever read "0 / 1".
     if (a.id == AchievementId.SAVINGS_UP) return null
-    val format: @Composable (Int) -> String = { if (inPercent) percentText(it) else count(it) }
+    val format: @Composable (Int) -> String = { if (inPercent) percentText(it) else formatCount(it) }
     return stringResource(R.string.achievements_progress, format(a.progress.coerceAtMost(next)), format(next))
 }
 

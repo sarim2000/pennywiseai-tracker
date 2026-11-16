@@ -33,9 +33,8 @@ import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.DateRangeUtils
+import com.pennywiseai.tracker.utils.formatCount
 import java.math.BigDecimal
-import java.text.NumberFormat
-import java.util.Locale
 import kotlin.math.abs
 
 /** The card the studio can show right now. */
@@ -118,13 +117,7 @@ private fun sign(signum: Int): String = when {
     else -> ""
 }
 
-/**
- * A count with the language's grouping but Latin digits, as every amount and percent on
- * the card has: an Arabic "٨" beside "52%" reads as two different number systems.
- */
-internal fun count(value: Int): String = NumberFormat.getIntegerInstance(
-    Locale.Builder().setLocale(Locale.getDefault()).setUnicodeLocaleKeyword("nu", "latn").build()
-).format(value)
+private fun count(value: Int): String = formatCount(value)
 
 /** Bar lengths, scaled so the largest magnitude is 1. */
 private fun relative(values: List<Double>): List<Double> {

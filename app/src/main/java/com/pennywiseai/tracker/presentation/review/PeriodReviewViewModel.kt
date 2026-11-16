@@ -80,7 +80,11 @@ class PeriodReviewViewModel @Inject constructor(
     /** Each finished PDF export: the file to share, or null when it couldn't be written. */
     val pdfReady: Flow<Uri?> = _pdfReady.receiveAsFlow()
 
-    /** Writes the review on screen, headed [title] as the screen labels it, as a PDF. */
+    /**
+     * Writes the review on screen, headed [title] as the screen labels it, as a PDF. Export
+     * stays busy until the screen reports the share sheet closed ([pdfShareClosed]): the file
+     * is written in a blink, so a quick second tap would otherwise open a second sheet.
+     */
     fun exportPdf(title: String) {
         val shown = review.value ?: return
         if (_exportingPdf.value) return
@@ -100,11 +104,15 @@ class PeriodReviewViewModel @Inject constructor(
             } catch (e: Exception) {
                 Log.e(TAG, "PDF report export failed", e)
                 null
-            } finally {
-                _exportingPdf.value = false
             }
+            if (uri == null) _exportingPdf.value = false
             _pdfReady.send(uri)
         }
+    }
+
+    /** The share sheet for the last export has closed: another export may start. */
+    fun pdfShareClosed() {
+        _exportingPdf.value = false
     }
 
     fun selectKind(kind: ReviewKind) = select(selectionFor(kind))

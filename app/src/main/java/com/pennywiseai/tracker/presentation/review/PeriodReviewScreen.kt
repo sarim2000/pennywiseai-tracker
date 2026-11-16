@@ -2,6 +2,8 @@ package com.pennywiseai.tracker.presentation.review
 
 import android.content.Context
 import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.fadeIn
@@ -107,10 +109,15 @@ fun PeriodReviewScreen(
     val exportingPdf by viewModel.exportingPdf.collectAsStateWithLifecycle()
     val context = LocalContext.current
 
+    // For its result alone: it says when the share sheet has closed.
+    val sharePdf = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        viewModel.pdfShareClosed()
+    }
+
     LaunchedEffect(viewModel) {
         viewModel.pdfReady.collect { uri ->
             if (uri != null) {
-                context.startActivity(pdfShareIntent(uri))
+                sharePdf.launch(pdfShareIntent(uri))
             } else {
                 Toast.makeText(context, R.string.review_export_pdf_failed, Toast.LENGTH_SHORT).show()
             }

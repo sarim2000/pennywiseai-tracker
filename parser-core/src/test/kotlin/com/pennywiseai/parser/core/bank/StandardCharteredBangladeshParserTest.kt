@@ -72,9 +72,8 @@ class StandardCharteredBangladeshParserTest {
                     expected = ExpectedTransaction(amount = BigDecimal("2915.45"), type = TransactionType.CREDIT,
                         merchant = "EXAMPLE *SUBSCRIPTION +14155550123 US", currency = "BDT",
                         accountLast4 = "1234", isFromCard = true)),
-                ParserTestCase(name = "credit card repayment is not income", sender = "StanChartBD", message = payment(),
-                    expected = ExpectedTransaction(amount = BigDecimal("25000.00"), type = TransactionType.TRANSFER,
-                        merchant = "Credit Card Payment", currency = "BDT", accountLast4 = "1234", isFromCard = true)),
+                ParserTestCase(name = "credit card repayment excluded until debt adjustment is supported",
+                    sender = "StanChartBD", message = payment(), shouldParse = false),
                 ParserTestCase(name = "credit card finance charge", sender = "StanChartBD", message = charge(),
                     expected = ExpectedTransaction(amount = BigDecimal("347.89"), type = TransactionType.CREDIT,
                         merchant = "Finance Charges", currency = "BDT", accountLast4 = "1234", isFromCard = true)),
@@ -110,10 +109,8 @@ class StandardCharteredBangladeshParserTest {
             assertEquals(BigDecimal("50000.00"), actual?.creditLimit)
             assertEquals(12345L, actual?.timestamp)
         },
-        DynamicTest.dynamicTest("card repayment carries available credit and is transfer") {
-            val actual = parser.parse(payment(), "StanChartBD", 12345L)
-            assertEquals(TransactionType.TRANSFER, actual?.type)
-            assertEquals(BigDecimal("75000.00"), actual?.creditLimit)
+        DynamicTest.dynamicTest("card repayment is excluded until debt adjustment is supported") {
+            assertNull(parser.parse(payment(), "StanChartBD", 12345L))
         },
         DynamicTest.dynamicTest("malformed deposit account balance is not silently repaired") {
             val actual = parser.parse(account("100.00", "deposited to", "1,1111,057.22"), "StanChartBD", 1L)

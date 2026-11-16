@@ -22,10 +22,6 @@ class StandardCharteredBangladeshParser : BankParser() {
             """^(?:Intl\.\s*e-trxn\s+of\s+)?BDT\s+($RAW)\s+(?:transaction\s+was\s+made|was\s+made)\s+on\s+card\s+ending\s+([0-9]{4})\s+at\s+(.+?)\s+on\s+$DATE\.\s+Available\s+credit:\s*BDT\s+($RAW)\.\s+Enquiries:\s*[0-9]+\.?\s*$""",
             RegexOption.IGNORE_CASE
         )
-        private val CARD_PAYMENT = Regex(
-            """^Dear\s+Client,\s*BDT\s+($RAW)\s+has\s+been\s+credited\s+to\s+card\s+ending\s+([0-9]{4})\s+on\s+$DATE\s+pertaining\s+to\s+PAYMENT\s+RECD\.-CASH\.\s+Available\s+Credit:\s*BDT\s+($RAW)\.\s+Enquiries:\s*[0-9]+\.?\s*$""",
-            RegexOption.IGNORE_CASE
-        )
         private val FINANCE_CHARGE = Regex(
             """^Dear\s+Client,\s*BDT\s+($RAW)\s+has\s+been\s+debited\s+from\s+card\s+ending\s+([0-9]{4})\s+on\s+$DATE\s+pertaining\s+to\s+FINANCE\s+CHARGES\.{1,2}\s+Available\s+Credit:\s*BDT\s+($RAW)\.\s+Enquiries:\s*[0-9]+\.?\s*$""",
             RegexOption.IGNORE_CASE
@@ -68,10 +64,6 @@ class StandardCharteredBangladeshParser : BankParser() {
             val merchant = m.groupValues[3].trim().ifEmpty { return null }
             return build(money(m.groupValues[1]), TransactionType.CREDIT, m.groupValues[2],
                 merchant = merchant, availableCredit = money(m.groupValues[4]), card = true)
-        }
-        CARD_PAYMENT.matchEntire(body)?.let { m ->
-            return build(money(m.groupValues[1]), TransactionType.TRANSFER, m.groupValues[2],
-                merchant = "Credit Card Payment", availableCredit = money(m.groupValues[3]), card = true)
         }
         FINANCE_CHARGE.matchEntire(body)?.let { m ->
             return build(money(m.groupValues[1]), TransactionType.CREDIT, m.groupValues[2],

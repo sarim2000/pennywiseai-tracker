@@ -147,6 +147,7 @@ class UserPreferencesKeysGoldenTest {
             "recurring_offer_log" to "Set<String>",
             "review_prompt_handled_year" to "String",
             "safe_to_spend_excluded_accounts" to "Set<String>",
+            "reserve_goal_savings" to "Boolean",
             "scheduled_folder_backup_enabled" to "Boolean",
             "scheduled_folder_backup_last_timestamp" to "Long",
             "scheduled_folder_backup_tree_uri" to "String",

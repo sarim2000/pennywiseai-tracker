@@ -234,6 +234,9 @@ open class UserPreferencesRepository internal constructor(
         // Accounts left out of Home's "Safe to spend", as "bankName_last4" keys
         val SAFE_TO_SPEND_EXCLUDED = stringSetPreferencesKey("safe_to_spend_excluded_accounts")
 
+        // Safe to spend sets goal savings aside too (off by default)
+        val RESERVE_GOAL_SAVINGS = booleanPreferencesKey("reserve_goal_savings")
+
         // Profile & Onboarding
         val USER_NAME = stringPreferencesKey("user_name")
         val PROFILE_IMAGE_URI = stringPreferencesKey("profile_image_uri")
@@ -275,7 +278,7 @@ open class UserPreferencesRepository internal constructor(
             K.WEEKLY_SUMMARY_ENABLED, K.CONSCIENCE_ENABLED, K.SMS_SCAN_ALL_TIME, K.SMS_SCAN_USE_CUSTOM_DATE,
             K.UNIFIED_CURRENCY_MODE, K.BALANCE_HIDDEN, K.SHAKE_TO_HIDE_AMOUNTS, K.BLUR_EFFECTS_ENABLED, K.RED_SPENDING,
             K.BASE_CURRENCY_USER_SET, K.USE_CONTACTS_FOR_VPA, K.EXPORT_INCLUDE_RECEIPTS,
-            K.FOLDER_BACKUP_INCLUDE_RECEIPTS
+            K.FOLDER_BACKUP_INCLUDE_RECEIPTS, K.RESERVE_GOAL_SAVINGS
         )
         val INTS = listOf(K.SMS_SCAN_MONTHS, K.BUDGET_CYCLE_START_DAY, K.PROFILE_BACKGROUND_COLOR)
         val LONGS = listOf(K.SMS_SCAN_CUSTOM_DATE, K.SELECTED_PROFILE_ID)
@@ -1527,6 +1530,14 @@ open class UserPreferencesRepository internal constructor(
             val current = preferences[PreferencesKeys.SAFE_TO_SPEND_EXCLUDED] ?: emptySet()
             preferences[PreferencesKeys.SAFE_TO_SPEND_EXCLUDED] = if (included) current - key else current + key
         }
+    }
+
+    /** Safe to spend also sets aside what goals need this cycle. Off by default. */
+    val reserveGoalSavings: Flow<Boolean> = dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.RESERVE_GOAL_SAVINGS] ?: false }
+
+    suspend fun setReserveGoalSavings(enabled: Boolean) {
+        dataStore.edit { preferences -> preferences[PreferencesKeys.RESERVE_GOAL_SAVINGS] = enabled }
     }
 
     // Profile & Onboarding

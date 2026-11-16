@@ -73,8 +73,8 @@ data class Bill(val name: String, val amount: Money, val dueDate: LocalDate, val
 
 /**
  * Money free to spend in one currency until the period ends: spendable balance
- * minus the bills due before then, and never more than [budgetLeft]. [amount] can
- * be negative (bills exceed balance).
+ * minus the bills due before then and the [goalReserve] the user asked to keep,
+ * and never more than [budgetLeft]. [amount] can be negative (bills exceed balance).
  */
 data class SafeToSpend(
     val currency: String,
@@ -84,11 +84,15 @@ data class SafeToSpend(
     val days: Int,
     /** What's left in the user's overall budget, never below 0; null when there's none. */
     val budgetLeft: BigDecimal? = null,
+    /** Set aside for goals; zero unless the user opted in. */
+    val goalReserve: BigDecimal = BigDecimal.ZERO,
 ) {
-    /** True when the budget, not the balance, sets [amount]. */
-    val isCapped: Boolean get() = budgetLeft != null && budgetLeft < balance - bills
+    private val afterReserves: BigDecimal get() = balance - bills - goalReserve
 
-    val amount: BigDecimal get() = budgetLeft?.let { minOf(it, balance - bills) } ?: (balance - bills)
+    /** True when the budget, not the balance, sets [amount]. */
+    val isCapped: Boolean get() = budgetLeft != null && budgetLeft < afterReserves
+
+    val amount: BigDecimal get() = budgetLeft?.let { minOf(it, afterReserves) } ?: afterReserves
 
     /** Even daily share of [amount]; null when nothing is left. Rounded down, so it never overstates. */
     val perDay: BigDecimal?
@@ -97,8 +101,11 @@ data class SafeToSpend(
     companion object {
         /**
          * One result per currency: amounts are only ever netted within a currency.
-         * Bills outside today..[periodEnd] are ignored. [budgetLeft] caps only the
-         * result in its own currency; a negative one caps at 0.
+         * Bills outside today..[periodEnd] are ignored, except overdue card bills.
+         * [budgetLeft] caps only the result in its own currency; a negative one caps
+         * at 0. A [goalReserves] amount comes off its own currency's figure, and only
+         * where there's money or a bill in it: a goal alone doesn't open a line.
+         * Card purchases aren't here at all: they're inside the card's bill.
          */
         fun calculate(
             balances: List<Money>,
@@ -106,6 +113,7 @@ data class SafeToSpend(
             today: LocalDate,
             periodEnd: LocalDate,
             budgetLeft: Money? = null,
+            goalReserves: List<Money> = emptyList(),
         ): List<SafeToSpend> {
             val days = (ChronoUnit.DAYS.between(today, periodEnd) + 1).toInt().coerceAtLeast(1)
             val due = billsInWindow(bills, today, periodEnd)
@@ -117,6 +125,7 @@ data class SafeToSpend(
                     bills = due.filter { it.amount.currency == c }.fold(BigDecimal.ZERO) { a, b -> a + b.amount.amount },
                     days = days,
                     budgetLeft = budgetLeft?.takeIf { it.currency == c }?.amount?.max(BigDecimal.ZERO),
+                    goalReserve = goalReserves.filter { it.currency == c }.fold(BigDecimal.ZERO) { a, m -> a + m.amount },
                 )
             }
         }

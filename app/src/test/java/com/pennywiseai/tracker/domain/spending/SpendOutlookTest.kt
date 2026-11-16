@@ -165,4 +165,78 @@ class SpendOutlookTest {
         assertEquals(BigDecimal.ZERO, r.amount)
         assertNull(r.perDay)
     }
+
+    @Test
+    fun `an overdue card bill stays reserved, other overdue bills don't`() {
+        val r = SafeToSpend.calculate(
+            listOf(Money(d("10000"), "INR")),
+            listOf(
+                Bill("Card", Money(d("2500"), "INR"), LocalDate.of(2026, 10, 20), isCardBill = true),
+                Bill("Old", Money(d("500"), "INR"), LocalDate.of(2026, 10, 20)),
+            ),
+            today, end,
+        ).single()
+        assertEquals(d("2500"), r.bills)
+        assertEquals(d("7500"), r.amount)
+    }
+
+    @Test
+    fun `payday today gives the whole cycle and counts what's due today`() {
+        val payday = LocalDate.of(2026, 10, 25)
+        val (start, cycleEnd) = com.pennywiseai.tracker.domain.model.BudgetCycle.currentCycle(payday, 25)
+        val r = SafeToSpend.calculate(
+            listOf(Money(d("31000"), "INR")),
+            listOf(Bill("Rent", Money(d("10000"), "INR"), payday)),
+            payday, cycleEnd,
+        ).single()
+        assertEquals(payday, start)
+        assertEquals(31, r.days)
+        assertEquals(d("21000"), r.amount)
+    }
+
+    @Test
+    fun `goal savings come off their own currency only`() {
+        val r = SafeToSpend.calculate(
+            listOf(Money(d("10000"), "INR"), Money(d("400"), "USD")),
+            listOf(Bill("Netflix", Money(d("649"), "INR"), today)),
+            today, end,
+            goalReserves = listOf(Money(d("1500"), "INR"), Money(d("50"), "EUR")),
+        ).associateBy { it.currency }
+        assertEquals(d("1500"), r.getValue("INR").goalReserve)
+        assertEquals(d("7851"), r.getValue("INR").amount)
+        assertEquals(d("400"), r.getValue("USD").amount)
+        // A goal in a currency the user holds nothing in doesn't open a line of its own.
+        assertFalse("EUR" in r)
+    }
+
+    @Test
+    fun `the budget cap and the card bill are never both taken off`() {
+        // Counting card spend as expense lowers what's left in the budget; the card's
+        // bill comes off the balance. The figure is the lower of the two, not both.
+        val r = SafeToSpend.calculate(
+            listOf(Money(d("20000"), "INR")),
+            listOf(Bill("Card", Money(d("6000"), "INR"), end, isCardBill = true)),
+            today, end, budgetLeft = Money(d("9000"), "INR"),
+        ).single()
+        assertEquals(d("9000"), r.amount)
+        assertTrue(r.isCapped)
+        val uncapped = SafeToSpend.calculate(
+            listOf(Money(d("20000"), "INR")),
+            listOf(Bill("Card", Money(d("6000"), "INR"), end, isCardBill = true)),
+            today, end,
+        ).single()
+        assertEquals(d("14000"), uncapped.amount)
+    }
+
+    @Test
+    fun `a card bill with no exchange rate stays its own line`() {
+        // Unified mode converts what it can; a USD card bill with no rate stays in USD.
+        val r = SafeToSpend.calculate(
+            listOf(Money(d("10000"), "INR")),
+            listOf(Bill("US card", Money(d("120"), "USD"), end, isCardBill = true)),
+            today, end,
+        ).associateBy { it.currency }
+        assertEquals(d("10000"), r.getValue("INR").amount)
+        assertEquals(d("-120"), r.getValue("USD").amount)
+    }
 }

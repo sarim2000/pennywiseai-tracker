@@ -167,6 +167,7 @@ class UserPreferencesStorageGoldenTest {
             repository.homeSectionLayout.first().map { (section, visible) -> section.name to visible }
         )
         assertEquals(emptySet<String>(), repository.safeToSpendExcludedAccounts.first())
+        assertEquals(false, repository.reserveGoalSavings.first())
         assertEquals(emptySet<String>(), repository.dismissedRecurringSuggestions.first())
         assertEquals(emptySet<String>(), repository.recurringHomeCardSeen.first())
         assertNull(repository.recurringHomeCardDismissedAt.first())

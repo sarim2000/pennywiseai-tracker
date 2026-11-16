@@ -81,6 +81,31 @@ class ShareLinksViewModelTest {
     }
 
     @Test
+    fun `a page that couldn't be taken down is taken down before the next one is made`() = runTest(dispatcher) {
+        coEvery { client.publish(any(), any()) } returns created
+        coEvery { client.delete(any(), any()) } throws ShareLinkError.Network
+        coEvery { store.add(any(), any()) } throws IOException("disk full")
+        val viewModel = ShareLinksViewModel(client, store)
+        viewModel.publishSample()
+        viewModel.settledPublish()
+        viewModel.publishHandled()
+
+        // Still offline: the retry fails on the old page and makes no new one.
+        viewModel.publishSample()
+        assertEquals(PublishState.Failed(ShareLinkError.Network), viewModel.settledPublish())
+        coVerify(exactly = 1) { client.publish(any(), any()) }
+        viewModel.publishHandled()
+
+        // Back online, with room to save: the old page goes, the new one is kept.
+        coEvery { client.delete(any(), any()) } returns Unit
+        coEvery { store.add(any(), any()) } returns Unit
+        viewModel.publishSample()
+        assertEquals(true, viewModel.settledPublish() is PublishState.Published)
+        coVerify(exactly = 3) { client.delete("abc", "token") }
+        coVerify(exactly = 2) { client.publish(any(), any()) }
+    }
+
+    @Test
     fun `a delete the phone can't record is reported, not thrown`() = runTest(dispatcher) {
         coEvery { client.delete(any(), any()) } returns Unit
         coEvery { store.remove(any()) } throws IOException("disk full")

@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.presentation.share
 import android.graphics.Bitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pennywiseai.tracker.data.share.CreatedShare
 import com.pennywiseai.tracker.data.share.ShareLinkClient
 import com.pennywiseai.tracker.data.share.ShareLinkError
 import com.pennywiseai.tracker.data.share.ShareLinkExpiry
@@ -67,6 +68,13 @@ class ShareLinksViewModel @Inject constructor(
     private val _deleting = MutableStateFlow<Set<String>>(emptySet())
     val deleting: StateFlow<Set<String>> = _deleting.asStateFlow()
 
+    /**
+     * A page this phone made but could neither save nor take down: its key lives only here.
+     * The next publish takes it down before making another, so retrying never piles up pages.
+     */
+    // ponytail: in memory only (storage just failed); lost if the screen is closed, then it stays unseen until it expires.
+    private var orphan: CreatedShare? = null
+
     private val _deleteOutcomes = Channel<DeleteOutcome>(Channel.BUFFERED)
     val deleteOutcomes: Flow<DeleteOutcome> = _deleteOutcomes.receiveAsFlow()
 
@@ -85,6 +93,10 @@ class ShareLinksViewModel @Inject constructor(
                 // Once sent, finished even if the screen is left: a page the server made
                 // but whose delete key was never saved could not be taken down from here.
                 val link = withContext(NonCancellable) {
+                    orphan?.let {
+                        client.delete(it.id, it.deleteToken)
+                        orphan = null
+                    }
                     val created = client.publish(snapshot, png)
                     val link = SharedLink(
                         id = created.id,
@@ -103,7 +115,8 @@ class ShareLinksViewModel @Inject constructor(
                         try {
                             client.delete(created.id, created.deleteToken)
                         } catch (rollback: ShareLinkError) {
-                            // Reported as the storage failure below.
+                            // Reported as the storage failure below; the next publish retries it.
+                            orphan = created
                         }
                         throw ShareLinkError.Storage
                     }

@@ -84,4 +84,16 @@ class ShareStudioSelectionTest {
         assertEquals(YearMonth.of(2026, 10), budgetMonth(budget.period))
         assertEquals(YearMonth.of(2025, 12), budgetMonth(ReviewSelection(ReviewKind.MONTH, -11, today)))
     }
+
+    @Test
+    fun `a new kind of period starts from today, not the review's day`() {
+        // A November 30 review still open on December 1.
+        val opened = ShareStudioSelection(kind = ShareKind.RECAP, period = ReviewSelection(ReviewKind.WEEK, -1, LocalDate.of(2026, 11, 30)))
+        val dec1 = LocalDate.of(2026, 12, 1)
+        val budget = opened.withKind(ShareKind.BUDGET, dec1)
+        assertEquals(YearMonth.of(2026, 11), budgetMonth(budget.period))
+        assertEquals(ReviewSelection(ReviewKind.MONTH, -1, dec1), opened.withPeriodKind(ReviewKind.MONTH, dec1).period)
+        // A card switch that keeps the period keeps its day too.
+        assertEquals(opened.period, opened.withKind(ShareKind.SPENDING, dec1).period)
+    }
 }

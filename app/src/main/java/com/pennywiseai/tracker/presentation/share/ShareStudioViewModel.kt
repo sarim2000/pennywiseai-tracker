@@ -116,17 +116,9 @@ class ShareStudioViewModel @Inject constructor(
         }
     }
 
-    fun selectKind(kind: ShareKind) = _selection.update { current ->
-        // Budgets are monthly: the budget card has no week or year.
-        val period = if (kind == ShareKind.BUDGET && current.period.kind != ReviewKind.MONTH) {
-            defaultSelection(ReviewKind.MONTH, current.period.today)
-        } else current.period
-        current.copy(kind = kind, period = period)
-    }
+    fun selectKind(kind: ShareKind) = _selection.update { it.withKind(kind, LocalDate.now()) }
 
-    fun selectPeriodKind(kind: ReviewKind) = _selection.update {
-        it.copy(period = defaultSelection(kind, it.period.today), currency = null)
-    }
+    fun selectPeriodKind(kind: ReviewKind) = _selection.update { it.withPeriodKind(kind, LocalDate.now()) }
 
     fun older() = _selection.update { it.copy(period = it.period.copy(offset = it.period.offset - 1)) }
 
@@ -145,6 +137,19 @@ class ShareStudioViewModel @Inject constructor(
         it.copy(details = if (shown) it.details + detail else it.details - detail)
     }
 }
+
+/**
+ * A card switch keeps the period, except that budgets are monthly: a week or year becomes the
+ * default month as of [today], not as of the day the review was opened.
+ */
+internal fun ShareStudioSelection.withKind(kind: ShareKind, today: LocalDate): ShareStudioSelection {
+    val period = if (kind == ShareKind.BUDGET && period.kind != ReviewKind.MONTH) defaultSelection(ReviewKind.MONTH, today) else period
+    return copy(kind = kind, period = period)
+}
+
+/** A new kind of period starts at its default as of [today]; the review's own day only fixes the period it opened on. */
+internal fun ShareStudioSelection.withPeriodKind(kind: ReviewKind, today: LocalDate): ShareStudioSelection =
+    copy(period = defaultSelection(kind, today), currency = null)
 
 /** The calendar month the Budgets screen would show for [period]: the current one, counted back. */
 internal fun budgetMonth(period: ReviewSelection): YearMonth = YearMonth.from(period.today).plusMonths(period.offset.toLong())

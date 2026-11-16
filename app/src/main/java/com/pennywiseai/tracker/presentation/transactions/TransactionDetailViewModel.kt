@@ -1370,6 +1370,8 @@ class TransactionDetailViewModel @Inject constructor(
     val receiptMissing: StateFlow<Boolean> = _receiptMissing.asStateFlow()
 
     private fun loadReceiptUri(transaction: TransactionEntity) {
+        // Cleared first, so a receipt removed in an edit doesn't linger on screen.
+        _receiptUri.value = null
         _receiptMissing.value = false
         transaction.receiptPath?.let { path ->
             val file = receiptManager.getReceiptFile(path)

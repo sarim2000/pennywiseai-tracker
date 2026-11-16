@@ -760,7 +760,14 @@ class LlmRepository @Inject constructor(
                 when {
                     got.byCurrency.isEmpty() && known == null -> context.getString(R.string.chat_reply_unknown_category, asked)
                     got.byCurrency.isEmpty() -> context.getString(R.string.chat_reply_nothing_received_in, category, label)
-                    else -> context.getString(R.string.chat_reply_category_income, amounts(got.byCurrency), category, label, got.transactionCount).also {
+                    else -> context.resources.getQuantityString(
+                        R.plurals.chat_reply_category_income,
+                        got.transactionCount,
+                        amounts(got.byCurrency),
+                        category,
+                        label,
+                        got.transactionCount
+                    ).also {
                         if (linked) turnLinks += linksTo(got.scope, category, got.byCurrency.keys, account)
                     }
                 }

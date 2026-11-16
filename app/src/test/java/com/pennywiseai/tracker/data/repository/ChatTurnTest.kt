@@ -1342,8 +1342,8 @@ class ChatTurnTest {
 
     @Test
     fun `an income question totals what came in under its category, never compared as spending`() = runTest {
-        every { context.getString(R.string.chat_reply_category_income, any(), any(), any(), any()) } answers {
-            (args[1] as Array<*>).let { "RECEIVED ${it[0]} ${it[1]}" }
+        every { context.resources.getQuantityString(R.plurals.chat_reply_category_income, any(), any(), any(), any(), any()) } answers {
+            (args[2] as Array<*>).let { "RECEIVED ${it[0]} ${it[1]}" }
         }
         every { context.getString(R.string.chat_reply_nothing_received_in, any(), any()) } returns "NOTHING_RECEIVED"
         every { categories.getAllCategories() } returns flowOf(
@@ -1570,8 +1570,8 @@ class ChatTurnTest {
     @Test
     fun `a money-in question sent to the plans is looked up instead`() = runTest {
         every { context.getString(R.string.chat_reply_planning_unknown) } returns "UNKNOWN"
-        every { context.getString(R.string.chat_reply_category_income, any(), any(), any(), any()) } answers {
-            (args[1] as Array<*>).let { "RECEIVED ${it[0]} ${it[1]}" }
+        every { context.resources.getQuantityString(R.plurals.chat_reply_category_income, any(), any(), any(), any(), any()) } answers {
+            (args[2] as Array<*>).let { "RECEIVED ${it[0]} ${it[1]}" }
         }
         every { categories.getAllCategories() } returns flowOf(listOf(CategoryEntity(id = 3, name = "Salary", color = "#000", isIncome = true)))
         coEvery { aiContext.categoryIncome("Salary", any(), any()) } returns spent("500").copy(category = "Salary")

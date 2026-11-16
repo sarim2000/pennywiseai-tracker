@@ -42,6 +42,7 @@ import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -137,7 +138,8 @@ class QuickAddActivity : FragmentActivity() {
 
     private val unlocked = mutableStateOf(false)
 
-    private val voiceMode by lazy { intent.getBooleanExtra(QuickAddIntent.EXTRA_VOICE, false) }
+    /** Opened by a mic: listen first. State, since a later tap can bring this same sheet back (onNewIntent). */
+    private var voiceMode by mutableStateOf(false)
 
     override fun attachBaseContext(newBase: android.content.Context) {
         super.attachBaseContext(newBase.withLatinDigits())
@@ -146,17 +148,31 @@ class QuickAddActivity : FragmentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         if (savedInstanceState?.getBoolean(KEY_UNLOCKED) == true) unlocked.value = true else checkLock()
+        voiceMode = savedInstanceState?.getBoolean(KEY_VOICE) ?: intent.getBooleanExtra(QuickAddIntent.EXTRA_VOICE, false)
         setContent {
             PennyWiseUserTheme {
-                if (unlocked.value) Host()
+                // A new mode starts the sheet over: listening, or plain typing.
+                if (unlocked.value) key(voiceMode) { Host() }
             }
         }
+    }
+
+    /**
+     * singleTask: a sheet left behind the lock prompt (only an unlocked one closes on
+     * onStop) comes back for the next tap, which may be the other button: the mic's
+     * sheet listens, the +'s doesn't.
+     */
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+        voiceMode = intent.getBooleanExtra(QuickAddIntent.EXTRA_VOICE, false)
     }
 
     // Kept across a rotation only: an unlocked sheet doesn't outlive leaving it (onStop).
     override fun onSaveInstanceState(outState: Bundle) {
         super.onSaveInstanceState(outState)
         outState.putBoolean(KEY_UNLOCKED, unlocked.value)
+        outState.putBoolean(KEY_VOICE, voiceMode)
     }
 
     /**
@@ -579,6 +595,7 @@ class QuickAddActivity : FragmentActivity() {
     companion object {
         private const val TAG = "QuickAddActivity"
         private const val KEY_UNLOCKED = "unlocked"
+        private const val KEY_VOICE = "voice"
         private const val CASH = "CASH"
 
         /** How long the mic waits for the language list before starting anyway. */

@@ -22,7 +22,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -151,7 +150,7 @@ private fun Summary(all: List<Achievement>) {
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
             )
-            LinearWavyProgressIndicator(
+            LinearProgressIndicator(
                 progress = { if (all.isEmpty()) 0f else earned.toFloat() / all.size },
                 modifier = Modifier.fillMaxWidth(),
             )

@@ -61,6 +61,14 @@ class ShareStudioSelectionTest {
     }
 
     @Test
+    fun `a review's offset counts from the day the review chose it, not from now`() {
+        // Opened just after midnight on a review chosen the day before.
+        val chosen = today.minusDays(1)
+        val route = mapOf("reviewKind" to "WEEK", "offset" to -1, "today" to chosen.toEpochDay())
+        assertEquals(ReviewSelection(ReviewKind.WEEK, -1, chosen), routeSelection(SavedStateHandle(route), today).period)
+    }
+
+    @Test
     fun `a goal opens on that goal, and an unknown kind falls back to the recap`() {
         val goal = routeSelection(SavedStateHandle(mapOf("kind" to "GOAL", "goalId" to 7L)), today)
         assertEquals(ShareKind.GOAL, goal.kind)

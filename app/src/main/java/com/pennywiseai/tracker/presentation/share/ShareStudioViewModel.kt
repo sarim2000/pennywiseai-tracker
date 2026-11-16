@@ -161,7 +161,9 @@ internal fun routeSelection(savedStateHandle: SavedStateHandle, today: LocalDate
     val period = if (reviewKind != null) {
         val offset = (savedStateHandle.get<Int>("offset") ?: latestReviewOffset(reviewKind))
             .coerceAtMost(latestReviewOffset(reviewKind))
-        ReviewSelection(reviewKind, offset, today)
+        // The review's own day, so a period shared across midnight is still the one it showed.
+        val from = savedStateHandle.get<Long>("today")?.let(LocalDate::ofEpochDay) ?: today
+        ReviewSelection(reviewKind, offset, from)
     } else {
         defaultSelection(ReviewKind.MONTH, today)
     }

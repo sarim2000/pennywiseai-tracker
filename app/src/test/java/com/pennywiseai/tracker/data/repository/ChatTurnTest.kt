@@ -1307,6 +1307,35 @@ class ChatTurnTest {
     }
 
     @Test
+    fun `a merchant or account the call names is no date, and a year named is that year`() = runTest {
+        every { context.getString(R.string.chat_reply_query_period_unknown) } returns "PERIOD"
+        every { context.getString(R.string.chat_reply_month_spend, any()) } returns "SPENT"
+        coEvery { accountBalances.getAllLatestBalancesOnce() } returns listOf(account("HDFC", "2019"))
+        val filter = answerSpending()
+        fun asked(period: String) = (SpendingQuery.dates(period, null, null, LocalDateTime.now(), WeekFields.of(Locale.getDefault()).firstDayOfWeek, 1) as SpendingQuery.Dates.Of).window
+        suspend fun ask(args: Map<String, Any?>, message: String): String {
+            events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, args))
+            return send(message)
+        }
+
+        // "24/7" reads as a date, "in 2019" as a year: here they're the shop and the card.
+        assertTrue(ask(mapOf("merchant" to "24/7"), "how much did I spend at 24/7 this month?").startsWith("SPENT"))
+        assertEquals(SpendingFilter(merchant = "24/7"), filter.captured)
+        assertTrue(ask(mapOf("account" to "2019"), "how much on the card ending in 2019?").startsWith("SPENT"))
+        assertEquals(SpendingFilter(account = "HDFC_2019"), filter.captured)
+        // A shop named for a day is no day.
+        assertTrue(ask(mapOf("merchant" to "Today Mart"), "how much at today mart?").startsWith("SPENT"))
+        assertEquals(null, filter.captured.window)
+        // This year or last, left at this month by the model: the year, not "can't look up".
+        ask(mapOf("period" to "this_month"), "how much did I spend this year?")
+        assertEquals(asked("this_year"), filter.captured.window)
+        ask(emptyMap(), "كم صرفت السنة الماضية؟")
+        assertEquals(asked("last_year"), filter.captured.window)
+        // A month within it is days it can't look up, not the whole year.
+        assertEquals("PERIOD", ask(emptyMap(), "how much in March this year?"))
+    }
+
+    @Test
     fun `merchants and accounts are ranked under their own heading, spending on no account named`() = runTest {
         every { context.getString(R.string.chat_reply_top_accounts, any()) } answers { "TOP_ACCOUNTS ${(args[1] as Array<*>)[0]}" }
         every { context.getString(R.string.chat_group_no_account) } returns "NONE"

@@ -71,7 +71,55 @@ object SpendingQuery {
     // A count of days: "the last 10 days", "آخر ٣ أيام", "पिछले 10 दिन".
     private val DAYS = Regex("\\bdays\\b|أيام|ايام|يومين|يومان|दिन", RegexOption.IGNORE_CASE)
 
+    // "till today", "aaj tak", "right now": the days so far, not today alone.
+    private val SO_FAR = Regex(
+        "\\b(?:right now|just now|(?:till|until|untill|up to|upto|as of|through) today|aaj tak)\\b|आज तक" +
+            "|(?:حتى|لحد|لغاية|إلى|الى)\\s*(?:ال)?يوم(?![\\p{L}\\p{M}])",
+        RegexOption.IGNORE_CASE
+    )
+
+    // "a week ago", "two months back", "قبل أسبوع": a day, or days, before this week or month.
+    private val WEEKS_OR_MONTHS_AGO = Regex(
+        "\\b(?:weeks?|months?)\\s+(?:ago|back)\\b|\\b(?:hafte|hafta|mahine|mahina)\\s*(?:pehle|pahle)\\b" +
+            "|(?:हफ्ते|हफ़्ते|हफ्ता|महीने|महीना)\\s*पहले" +
+            "|قبل\\s*(?:[\\d٠-٩]+\\s*)?(?:ال)?(?:اسبوع|أسبوع|اسابيع|أسابيع|شهر|اشهر|أشهر|شهور)",
+        RegexOption.IGNORE_CASE
+    )
+
+    private val THIS_YEAR = Regex(
+        "\\b(?:this|current)\\s+year\\b|\\bis\\s+saal\\b|इस\\s+(?:साल|वर्ष)|هالسنة" +
+            "|(?:هذه|هذي)\\s+السنة|هذا\\s+العام|(?:السنة|العام)\\s+(?:الحالية|الحالي|دي)",
+        RegexOption.IGNORE_CASE
+    )
+    private val LAST_YEAR = Regex(
+        "\\b(?:last|previous)\\s+year\\b|\\bpichh?le\\s+saal\\b|पिछले\\s+(?:साल|वर्ष)" +
+            "|(?:السنة|العام)\\s+(?:الماضية|الماضي|الفائتة|الفائت|السابقة|السابق|اللي فاتت|اللي فات)",
+        RegexOption.IGNORE_CASE
+    )
+
     private fun text(value: Any?) = value?.toString()?.trim()?.takeIf { it.isNotEmpty() }
+
+    /**
+     * [message] without the [merchant] and [account] the call names, the account's digits too:
+     * "24/7" or "the card ending in 2019" is a name there, not a date or a year.
+     */
+    fun withoutNames(message: String, merchant: Any?, account: Any?): String =
+        listOfNotNull(text(merchant), text(account), text(account)?.filter(Char::isDigit)?.takeIf { it.length >= 3 })
+            .sortedByDescending { it.length }
+            .fold(message) { m, name -> m.replace(name, " ", ignoreCase = true) }
+
+    /**
+     * "this_year" or "last_year" when [message] names one of them (not both), with the rest of
+     * the message, which can still name days within it ("March this year"). Null for neither.
+     */
+    fun yearNamed(message: String): Pair<String, String>? {
+        val (thisYear, lastYear) = THIS_YEAR.containsMatchIn(message) to LAST_YEAR.containsMatchIn(message)
+        return when {
+            thisYear == lastYear -> null
+            thisYear -> "this_year" to THIS_YEAR.replace(message, " ")
+            else -> "last_year" to LAST_YEAR.replace(message, " ")
+        }
+    }
 
     /** The model left the period to the app: no period beyond this month, and no dates. */
     fun defaultPeriod(period: Any?, from: Any?, to: Any?): Boolean =
@@ -120,16 +168,20 @@ object SpendingQuery {
 
     /**
      * The days [message] names when the model left the period empty: one day ("today", "yesterday",
-     * "3 days ago") is that day; days the app can't count ("on Monday", "the last 10 days") are
-     * PERIOD, never this month instead. Null when it names none, or names a week or a month:
-     * those decide.
+     * "3 days ago", "a week ago") is that day; days the app can't count ("on Monday", "the last
+     * 10 days", "a month ago") are PERIOD, never this month instead. Null when it names none,
+     * only the days so far ("till today", "aaj tak"), or a week or a month: those decide.
      */
     fun daysNamed(message: String, today: LocalDate): Dates? {
-        if (SpendingComparison.namesWeekOrMonth(message)) return null
-        val days = ChatMessageFacts.statedDays(message)
+        val text = SO_FAR.replace(message, " ")
+        val days = ChatMessageFacts.statedDays(text)
+        fun day(): Dates? = days.singleOrNull()?.let { today.minusDays(it.toLong()) }?.let { window(it, it, today, message) }
+        if (SpendingComparison.namesWeekOrMonth(text)) {
+            return if (WEEKS_OR_MONTHS_AGO.containsMatchIn(text)) day() ?: Dates.Invalid(Problem.PERIOD) else null
+        }
         return when {
-            days.size == 1 -> today.minusDays(days.single().toLong()).let { window(it, it, today, message) }
-            days.isNotEmpty() || ChatMessageFacts.statesADay(message) || DAYS.containsMatchIn(message) -> Dates.Invalid(Problem.PERIOD)
+            days.size == 1 -> day()
+            days.isNotEmpty() || ChatMessageFacts.statesADay(text) || DAYS.containsMatchIn(text) -> Dates.Invalid(Problem.PERIOD)
             else -> null
         }
     }

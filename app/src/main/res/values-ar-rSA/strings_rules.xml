@@ -381,7 +381,7 @@
     <string name="chat_reply_unknown_account">لا يوجد لديك حساب باسم %1$s.</string>
     <string name="chat_reply_account_ambiguous">قد يكون %1$s أيًّا من: %2$s. أيّها تقصد؟</string>
     <string name="chat_reply_query_group_unknown">يمكنني عرض الفئات أو التجار أو الحسابات الأعلى إنفاقًا.</string>
-    <string name="chat_reply_query_period_unknown">لا يمكنني البحث في هذه الأيام. جرّب هذا الشهر أو الشهر الماضي أو هذا الأسبوع أو الأسبوع الماضي أو شهرًا مثل 2026-10 أو تاريخ بداية ونهاية.</string>
+    <string name="chat_reply_query_period_unknown">لا يمكنني البحث في هذه الأيام. جرّب هذا الشهر أو الشهر الماضي أو هذا الأسبوع أو الأسبوع الماضي أو هذه السنة أو السنة الماضية أو شهرًا مثل 2026-10 أو تاريخ بداية ونهاية.</string>
     <string name="chat_reply_query_date_unreadable">لم أستطع قراءة التاريخ %1$s. جرّب تاريخًا مثل 2026-10-31.</string>
     <string name="chat_reply_query_no_start">من أي يوم تبدأ هذه الفترة؟</string>
     <string name="chat_reply_query_dates_reversed">%1$s يأتي بعد %2$s. ابدأ بالتاريخ الأقدم.</string>

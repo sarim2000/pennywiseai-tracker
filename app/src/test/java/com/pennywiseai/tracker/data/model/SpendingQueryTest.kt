@@ -80,6 +80,36 @@ class SpendingQueryTest {
         // No day named, or a week or month that decides instead.
         assertNull(SpendingQuery.daysNamed("how much have I spent?", today))
         assertNull(SpendingQuery.daysNamed("how much this month up to today?", today))
+        assertNull(SpendingQuery.daysNamed("how much this week?", today))
+        // The days so far, not today alone: Home's period decides.
+        assertNull(SpendingQuery.daysNamed("how much have I spent right now?", today))
+        assertNull(SpendingQuery.daysNamed("aaj tak kitna kharch hua?", today))
+        assertNull(SpendingQuery.daysNamed("كم صرفت حتى اليوم؟", today))
+        assertNull(SpendingQuery.daysNamed("how much till today?", today))
+        assertEquals(window(day(11, 16), day(11, 16)), SpendingQuery.daysNamed("aaj kitna kharch hua?", today))
+        // A week or a month ago is before this week or month: the day, or days it can't count.
+        assertEquals(window(day(11, 9), day(11, 9)), SpendingQuery.daysNamed("how much did I spend a week ago?", today))
+        assertEquals(window(day(11, 2), day(11, 2)), SpendingQuery.daysNamed("spent 2 weeks ago", today))
+        assertEquals(Dates.Invalid(Problem.PERIOD), SpendingQuery.daysNamed("how much did I spend a month ago?", today))
+        assertEquals(Dates.Invalid(Problem.PERIOD), SpendingQuery.daysNamed("كم صرفت قبل شهر؟", today))
+    }
+
+    @Test
+    fun `a year named by its words, alone, with the rest of the message`() {
+        assertEquals("this_year", SpendingQuery.yearNamed("how much this year?")?.first)
+        assertEquals("last_year", SpendingQuery.yearNamed("كم صرفت العام الماضي")?.first)
+        assertEquals("last_year", SpendingQuery.yearNamed("pichle saal kitna kharcha?")?.first)
+        assertEquals("how much in March  ?", SpendingQuery.yearNamed("how much in March this year?")?.second)
+        // Both, or neither, is no one year.
+        assertNull(SpendingQuery.yearNamed("this year vs last year"))
+        assertNull(SpendingQuery.yearNamed("how much this month?"))
+    }
+
+    @Test
+    fun `the merchant and account named leave the words read for dates`() {
+        assertEquals("spent at   this month", SpendingQuery.withoutNames("spent at 24/7 this month", "24/7", null))
+        assertEquals("card ending in  ", SpendingQuery.withoutNames("card ending in 2019", null, "HDFC 2019"))
+        assertEquals("how much?", SpendingQuery.withoutNames("how much?", "", null))
     }
 
     @Test

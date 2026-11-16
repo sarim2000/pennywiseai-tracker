@@ -745,17 +745,24 @@ class LlmRepository @Inject constructor(
 
     /**
      * The days a querySpending call asks about. Left at this month by the model while the user
-     * named a day, a week, the month before, or days the app won't guess at, the user's words decide.
+     * named a day, a week, the month before, a year, or days the app won't guess at, the user's
+     * words decide. The merchant and account the call names aren't read as dates.
      */
     private suspend fun datesAsked(args: Map<String, Any?>, userMessage: String): SpendingQuery.Dates {
         var period = args["period"]
         if (SpendingQuery.defaultPeriod(period, args["from"], args["to"])) {
-            SpendingQuery.daysNamed(userMessage, LocalDate.now())?.let { return it }
-            val previous = SpendingComparison.namesThePreviousPeriod(userMessage)
-            period = when (SpendingComparison.period(userMessage, null)) {
-                null -> return SpendingQuery.Dates.Invalid(SpendingQuery.Problem.PERIOD)
-                SpendingComparison.Period.WEEK -> if (previous) "last_week" else "this_week"
-                SpendingComparison.Period.MONTH -> if (previous) "last_month" else period
+            val words = SpendingQuery.withoutNames(userMessage, args["merchant"], args["account"])
+            SpendingQuery.daysNamed(words, LocalDate.now())?.let { return it }
+            // "this year" alone is the year; "March this year" is days it can't look up.
+            val year = SpendingQuery.yearNamed(words)
+            val rest = year?.second ?: words
+            val previous = SpendingComparison.namesThePreviousPeriod(rest)
+            val named = SpendingComparison.period(rest, null) ?: return SpendingQuery.Dates.Invalid(SpendingQuery.Problem.PERIOD)
+            period = when {
+                year != null && !SpendingComparison.namesWeekOrMonth(rest) -> year.first
+                named == SpendingComparison.Period.WEEK -> if (previous) "last_week" else "this_week"
+                previous -> "last_month"
+                else -> period
             }
         }
         return SpendingQuery.dates(

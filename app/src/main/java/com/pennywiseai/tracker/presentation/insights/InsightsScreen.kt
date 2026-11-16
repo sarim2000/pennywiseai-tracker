@@ -84,6 +84,7 @@ import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.success
 import com.pennywiseai.tracker.ui.theme.warning
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.DateRangeUtils
@@ -319,21 +320,22 @@ private fun ScoreBreakdownSheet(score: PeriodScore, onDismiss: () -> Unit) {
                 ScorePartRow(
                     stringResource(R.string.insights_score_savings),
                     stringResource(R.string.insights_score_savings_detail, percent(it.percent)),
-                    it.points,
+                    // Its points are the savings rate scaled, so they hide with it.
+                    if (AmountPrivacy.hidden) AmountPrivacy.MASK else stringResource(R.string.insights_score_points, it.points),
                 )
             }
             score.budgets?.let {
                 ScorePartRow(
                     stringResource(R.string.insights_score_budgets),
                     pluralStringResource(R.plurals.insights_score_budgets_detail, it.total, it.onTrack, it.total),
-                    it.points,
+                    stringResource(R.string.insights_score_points, it.points),
                 )
             }
             score.categorised.let {
                 ScorePartRow(
                     stringResource(R.string.insights_score_categorised),
                     pluralStringResource(R.plurals.insights_score_categorised_detail, it.total, it.categorised, it.total),
-                    it.points,
+                    stringResource(R.string.insights_score_points, it.points),
                 )
             }
             Text(
@@ -346,7 +348,7 @@ private fun ScoreBreakdownSheet(score: PeriodScore, onDismiss: () -> Unit) {
 }
 
 @Composable
-private fun ScorePartRow(title: String, detail: String, points: Int) {
+private fun ScorePartRow(title: String, detail: String, points: String) {
     Row(
         modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
         verticalAlignment = Alignment.CenterVertically,
@@ -356,7 +358,7 @@ private fun ScorePartRow(title: String, detail: String, points: Int) {
             Text(text = title, style = PennyWiseText.rowTitle)
             Text(text = detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
-        Text(text = stringResource(R.string.insights_score_points, points), style = PennyWiseText.amountRow)
+        Text(text = points, style = PennyWiseText.amountRow)
     }
 }
 

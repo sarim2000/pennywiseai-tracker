@@ -86,7 +86,7 @@ internal fun insightText(insight: Insight): InsightText = when (val f = insight.
         )
     }
     is InsightFact.LargeTransaction -> InsightText(
-        title = stringResource(R.string.insights_large_title, f.amount.format(), merchant(f.merchant), f.times),
+        title = stringResource(R.string.insights_large_title, f.amount.format(), merchant(f.merchant), times(f.times)),
         body = stringResource(R.string.insights_large_body, categoryLabel(f.category), f.usual.format(), date(f.date)),
         metrics = listOf(
             stringResource(R.string.insights_metric_amount) to f.amount.format(),
@@ -131,6 +131,11 @@ internal fun actionLabel(action: InsightAction): String = stringResource(
 @Composable
 internal fun percent(value: Int): String =
     if (AmountPrivacy.hidden) AmountPrivacy.MASK else stringResource(R.string.insights_percent, value)
+
+/** "4×" says how two amounts relate, so it hides with them too. */
+@Composable
+private fun times(value: Int): String =
+    if (AmountPrivacy.hidden) AmountPrivacy.MASK else stringResource(R.string.insights_times, value)
 
 @Composable
 private fun savingsMetrics(f: InsightFact.SavingsRate) = listOf(

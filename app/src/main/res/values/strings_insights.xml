@@ -113,8 +113,10 @@
     <!-- %1$s = income -->
     <string name="insights_savings_negative_body">Income recorded so far this cycle is %1$s.</string>
 
-    <!-- Large transaction. %1$s = amount, %2$s = merchant, %3$d = how many times -->
-    <string name="insights_large_title">%1$s at %2$s, %3$d× your usual</string>
+    <!-- Large transaction. %1$s = amount, %2$s = merchant, %3$s = how many times, e.g. "4×" -->
+    <string name="insights_large_title">%1$s at %2$s, %3$s your usual</string>
+    <!-- %1$d = how many times the usual amount -->
+    <string name="insights_times">%1$d×</string>
     <!-- %1$s = category, %2$s = typical amount, %3$s = date -->
     <string name="insights_large_body">A typical %1$s spend is about %2$s. This one was on %3$s.</string>
 

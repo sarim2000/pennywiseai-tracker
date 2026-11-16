@@ -28,18 +28,22 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -51,6 +55,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
@@ -64,6 +69,7 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.domain.insights.Insight
 import com.pennywiseai.tracker.domain.insights.InsightAction
 import com.pennywiseai.tracker.domain.insights.InsightSeverity
+import com.pennywiseai.tracker.domain.insights.PeriodScore
 import com.pennywiseai.tracker.domain.review.CycleTotal
 import com.pennywiseai.tracker.domain.review.ReviewRange
 import com.pennywiseai.tracker.domain.review.isCalendarMonth
@@ -151,6 +157,7 @@ private fun InsightsContent(
 ) {
     var expanded by rememberSaveable { mutableStateOf<String?>(null) }
     var showDismissed by rememberSaveable { mutableStateOf(false) }
+    var showScore by rememberSaveable { mutableStateOf(false) }
     val sections = InsightSeverity.entries.mapNotNull { severity ->
         state.insights.filter { it.severity == severity }.takeIf { it.isNotEmpty() }?.let { severity to it }
     }
@@ -176,6 +183,9 @@ private fun InsightsContent(
             }
         }
         item(key = "summary") { PeriodSummaryCard(state) }
+        state.score?.let { score ->
+            item(key = "score") { ScoreCard(score, onOpen = { showScore = true }) }
+        }
 
         if (sections.isEmpty()) {
             item(key = "clear") {
@@ -240,6 +250,104 @@ private fun InsightsContent(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
+    }
+
+    state.score?.takeIf { showScore }?.let { score ->
+        ScoreBreakdownSheet(score, onDismiss = { showScore = false })
+    }
+}
+
+/** The 0–100 tracking health: one number, its parts a tap away. */
+@Composable
+private fun ScoreCard(score: PeriodScore, onOpen: () -> Unit) {
+    PennyWiseCardV2(modifier = Modifier.fillMaxWidth(), onClick = onOpen) {
+        Text(
+            text = stringResource(R.string.insights_score_title),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            Text(text = score.score.toString(), style = PennyWiseText.amountLarge)
+            Text(
+                text = stringResource(R.string.insights_score_out_of),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(bottom = Spacing.xs),
+            )
+        }
+        LinearProgressIndicator(
+            progress = { score.score / 100f },
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = Spacing.sm)
+                .height(Dimensions.Component.progressBarHeight),
+        )
+        Text(
+            text = stringResource(R.string.insights_score_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ScoreBreakdownSheet(score: PeriodScore, onDismiss: () -> Unit) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Dimensions.Padding.dialog)
+                .padding(bottom = Dimensions.Padding.dialog),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        ) {
+            Text(
+                text = stringResource(R.string.insights_score_breakdown_title),
+                style = MaterialTheme.typography.titleMedium,
+                modifier = Modifier.semantics { heading() },
+            )
+            score.savings?.let {
+                ScorePartRow(
+                    stringResource(R.string.insights_score_savings),
+                    stringResource(R.string.insights_score_savings_detail, percent(it.percent)),
+                    it.points,
+                )
+            }
+            score.budgets?.let {
+                ScorePartRow(
+                    stringResource(R.string.insights_score_budgets),
+                    pluralStringResource(R.plurals.insights_score_budgets_detail, it.total, it.onTrack, it.total),
+                    it.points,
+                )
+            }
+            score.categorised.let {
+                ScorePartRow(
+                    stringResource(R.string.insights_score_categorised),
+                    pluralStringResource(R.plurals.insights_score_categorised_detail, it.total, it.categorised, it.total),
+                    it.points,
+                )
+            }
+            Text(
+                text = stringResource(R.string.insights_score_footnote),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+        }
+    }
+}
+
+@Composable
+private fun ScorePartRow(title: String, detail: String, points: Int) {
+    Row(
+        modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+    ) {
+        Column(Modifier.weight(1f)) {
+            Text(text = title, style = PennyWiseText.rowTitle)
+            Text(text = detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        }
+        Text(text = stringResource(R.string.insights_score_points, points), style = PennyWiseText.amountRow)
     }
 }
 

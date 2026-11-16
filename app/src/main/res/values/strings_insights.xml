@@ -31,6 +31,30 @@
     <!-- %1$d = a whole percentage -->
     <string name="insights_percent">%1$d%%</string>
 
+    <!-- Tracking health: a 0-100 indicator of how the cycle is going and being tracked -->
+    <string name="insights_score_title">Tracking health</string>
+    <string name="insights_score_out_of">out of 100</string>
+    <string name="insights_score_hint">From your savings, budgets and how much is categorised. Tap to see how.</string>
+    <string name="insights_score_breakdown_title">How tracking health is worked out</string>
+    <string name="insights_score_savings">Savings</string>
+    <!-- %1$s = percentage of income kept -->
+    <string name="insights_score_savings_detail">%1$s of income kept. A fifth or more gets full marks.</string>
+    <string name="insights_score_budgets">Budgets</string>
+    <!-- %1$d = budgets on track, %2$d = all budgets -->
+    <plurals name="insights_score_budgets_detail">
+        <item quantity="one">%1$d of %2$d budget on track</item>
+        <item quantity="other">%1$d of %2$d budgets on track</item>
+    </plurals>
+    <string name="insights_score_categorised">Categorised</string>
+    <!-- %1$d = spends with a category, %2$d = all spends -->
+    <plurals name="insights_score_categorised_detail">
+        <item quantity="one">%1$d of %2$d spend has a category</item>
+        <item quantity="other">%1$d of %2$d spends have a category</item>
+    </plurals>
+    <!-- %1$d = points for one part -->
+    <string name="insights_score_points">%1$d/100</string>
+    <string name="insights_score_footnote">Parts without data are left out. Dismissing an insight doesn\'t change it.</string>
+
     <!-- Metric labels on an expanded insight -->
     <string name="insights_metric_spent">Spent</string>
     <string name="insights_metric_budget">Budget</string>

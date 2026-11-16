@@ -7,6 +7,7 @@ import com.pennywiseai.tracker.data.preferences.InsightPreferences
 import com.pennywiseai.tracker.domain.insights.Insight
 import com.pennywiseai.tracker.domain.insights.InsightsLoader
 import com.pennywiseai.tracker.domain.insights.InsightsSnapshot
+import com.pennywiseai.tracker.domain.insights.PeriodScore
 import com.pennywiseai.tracker.domain.review.CurrencyReview
 import com.pennywiseai.tracker.domain.review.CycleTotal
 import com.pennywiseai.tracker.domain.review.ReviewRange
@@ -30,6 +31,7 @@ data class InsightsUiState(
     val cycles: List<CycleTotal>,
     val insights: List<Insight>,
     val dismissed: List<Insight>,
+    val score: PeriodScore? = null,
 ) {
     /** Nothing recorded and nothing to say: a new user. */
     val isEmpty: Boolean get() = currencies.isEmpty()
@@ -49,6 +51,7 @@ internal fun insightsUiState(snapshot: InsightsSnapshot, chosen: String?): Insig
         cycles = currency?.let { snapshot.review.detail?.cycles?.get(it) }.orEmpty(),
         insights = inCurrency.filter { it.id !in snapshot.dismissed },
         dismissed = inCurrency.filter { it.id in snapshot.dismissed },
+        score = currency?.let { snapshot.scores[it] },
     )
 }
 

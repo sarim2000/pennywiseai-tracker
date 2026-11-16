@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.domain.insights
 
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
+import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.InsightPreferences
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
@@ -31,6 +32,8 @@ data class InsightsSnapshot(
     /** Every insight, dismissed ones included, most severe first. */
     val insights: List<Insight>,
     val dismissed: Set<String>,
+    /** Per currency; a currency with too little data has none. Dismissals don't touch it. */
+    val scores: Map<String, PeriodScore> = emptyMap(),
 ) {
     val active: List<Insight> get() = insights.filter { it.id !in dismissed }
 }
@@ -58,7 +61,19 @@ class InsightsLoader @Inject constructor(
         insightPreferences.dismissedInsights,
     ) { review, budgets, subscriptions, cards, dismissed ->
         val inputs = InsightInputs(today, review, budgets, subscriptions, cards)
-        InsightsSnapshot(review, InsightRules.evaluate(inputs), dismissed)
+        InsightsSnapshot(review, InsightRules.evaluate(inputs), dismissed, scores(review, budgets))
+    }
+
+    private fun scores(review: PeriodReview, budgets: List<BudgetStatus>): Map<String, PeriodScore> {
+        val uncategorised = BuiltinCategoryNames.current("Others")
+        val spends = review.detail?.spendRows.orEmpty().map { it.transaction }
+            .filter { it.dateTime.toLocalDate() in review.range.start..review.range.end }
+            .groupBy { it.currency }
+        return review.currencies.mapNotNull { c ->
+            PeriodScore.of(c.currency, c.income, c.spent, budgets, spends[c.currency].orEmpty()) {
+                it.isBlank() || it == uncategorised
+            }
+        }.associateBy { it.currency }
     }
 
     /**

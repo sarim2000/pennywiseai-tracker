@@ -7,18 +7,19 @@ import java.time.LocalDate
 /**
  * One spending limit as the Budgets screen shows it today: its own window ([start] to [end])
  * and the one [currency] that screen shows it in. Budgets are never added together: two
- * limits over different windows have no shared "remaining".
+ * limits over different windows have no shared "remaining". [limit] is null when there's no
+ * exchange rate to show it in [currency]: the limit is set, but what's left can't be told.
  */
 data class BudgetStatus(
     val name: String,
     val currency: String,
-    val limit: BigDecimal,
+    val limit: BigDecimal?,
     val spent: BigDecimal,
     val start: LocalDate,
     val end: LocalDate,
 ) {
-    /** Negative once the limit is passed. */
-    val remaining: BigDecimal get() = limit - spent
+    /** Negative once the limit is passed; null without the limit in [currency]. */
+    val remaining: BigDecimal? get() = limit?.minus(spent)
 }
 
 /**

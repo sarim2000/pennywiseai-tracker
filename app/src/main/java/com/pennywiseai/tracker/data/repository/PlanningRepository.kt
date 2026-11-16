@@ -42,14 +42,18 @@ class PlanningRepository @Inject constructor(
 
         /**
          * LIMIT groups live today with something to spend against. Targets and expected
-         * amounts aren't limits: "left" means nothing for them.
+         * amounts aren't limits: "left" means nothing for them. A limit the screen shows as
+         * zero for want of an exchange rate is still a limit: kept, without a figure for it.
          */
         internal fun budgetStatuses(summary: BudgetOverallSummary, today: LocalDate): List<BudgetStatus> = summary.groups
             .filter { g ->
-                g.group.budget.groupType == BudgetGroupType.LIMIT && g.totalBudget.signum() > 0 &&
+                g.group.budget.groupType == BudgetGroupType.LIMIT &&
+                    (g.totalBudget.signum() > 0 || g.group.budget.limitAmount.signum() > 0) &&
                     !today.isBefore(g.windowStart) && !today.isAfter(g.windowEnd)
             }
-            .map { g -> BudgetStatus(g.group.budget.name, summary.currency, g.totalBudget, g.totalActual, g.windowStart, g.windowEnd) }
+            .map { g ->
+                BudgetStatus(g.group.budget.name, summary.currency, g.totalBudget.takeIf { it.signum() > 0 }, g.totalActual, g.windowStart, g.windowEnd)
+            }
 
         /**
          * Active outgoing payments with a date, by date; overdue ones apart from those still to

@@ -626,15 +626,21 @@ class LlmRepository @Inject constructor(
         return buildList {
             add(context.getString(R.string.chat_reply_budgets_title))
             budgets.forEach { b ->
+                val days = range(SpendingComparison.Window(b.start.atStartOfDay(), b.end.atStartOfDay()))
+                val (limit, remaining) = b.limit to b.remaining
                 add(
-                    context.getString(
-                        if (b.remaining.signum() >= 0) R.string.chat_reply_budget_left else R.string.chat_reply_budget_over,
-                        b.name,
-                        range(SpendingComparison.Window(b.start.atStartOfDay(), b.end.atStartOfDay())),
-                        money(b.spent, b.currency),
-                        money(b.limit, b.currency),
-                        money(b.remaining.abs(), b.currency),
-                    )
+                    if (limit == null || remaining == null) {
+                        context.getString(R.string.chat_reply_budget_no_rate, b.name, days, money(b.spent, b.currency), b.currency)
+                    } else {
+                        context.getString(
+                            if (remaining.signum() >= 0) R.string.chat_reply_budget_left else R.string.chat_reply_budget_over,
+                            b.name,
+                            days,
+                            money(b.spent, b.currency),
+                            money(limit, b.currency),
+                            money(remaining.abs(), b.currency),
+                        )
+                    }
                 )
             }
         }.joinToString("\n")

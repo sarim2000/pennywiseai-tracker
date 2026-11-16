@@ -23,13 +23,14 @@ class PlanningRepositoryTest {
         start: LocalDate = LocalDate.of(2026, 11, 1),
         end: LocalDate = LocalDate.of(2026, 11, 30),
         type: BudgetGroupType = BudgetGroupType.LIMIT,
+        shown: String = limit,
     ) = BudgetGroupSpending(
         group = BudgetWithCategories(
             BudgetEntity(name = name, limitAmount = BigDecimal(limit), periodType = BudgetPeriodType.MONTHLY, startDate = start, endDate = end, groupType = type),
             emptyList()
         ),
         categorySpending = emptyList(),
-        totalBudget = BigDecimal(limit),
+        totalBudget = BigDecimal(shown),
         totalActual = BigDecimal(spent),
         remaining = BigDecimal(limit) - BigDecimal(spent),
         percentageUsed = 0f,
@@ -76,6 +77,15 @@ class PlanningRepositoryTest {
         // Past the limit reads as negative remaining, not zero.
         assertEquals(BigDecimal("-30"), statuses[1].remaining)
         assertEquals(LocalDate.of(2026, 11, 22), statuses[1].end)
+    }
+
+    @Test
+    fun `a limit the screen can't convert is kept, without a figure`() {
+        // Unified currency with no cached rate: the screen's limit reads zero.
+        val statuses = PlanningRepository.budgetStatuses(summary(group("Food", "2000", "150", shown = "0")), today)
+        assertEquals(listOf("Food"), statuses.map { it.name })
+        assertEquals(null, statuses.single().limit)
+        assertEquals(null, statuses.single().remaining)
     }
 
     @Test

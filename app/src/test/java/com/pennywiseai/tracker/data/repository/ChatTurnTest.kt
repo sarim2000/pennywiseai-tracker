@@ -1343,6 +1343,17 @@ class ChatTurnTest {
         assertEquals(PennyWiseTools.PLANNING_STATUS, repository.lastReply.value?.tool)
         assertTrue(saved.last().id.startsWith(LlmRepository.QUICK_ID))
 
+        // A limit with no exchange rate into the shown currency: named, never dropped or made zero.
+        every { context.getString(R.string.chat_reply_budget_no_rate, any(), any(), any(), any()) } answers {
+            "NO_RATE " + (args[1] as Array<*>).joinToString("|")
+        }
+        coEvery { planning.budgets(any()) } returns listOf(
+            BudgetStatus("Food", "USD", null, BigDecimal("40"), LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 30)),
+        )
+        val noRate = send("budget left?").lines()
+        assertEquals("BUDGETS", noRate[0])
+        assertTrue(noRate[1], noRate[1].startsWith("NO_RATE Food|1 Nov–30 Nov|") && noRate[1].endsWith("|USD"))
+
         every { context.getString(R.string.chat_reply_budgets_none) } returns "NO_BUDGETS"
         coEvery { planning.budgets(any()) } returns emptyList()
         assertEquals("NO_BUDGETS", send("budget?"))

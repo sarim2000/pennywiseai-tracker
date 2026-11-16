@@ -80,7 +80,7 @@ class NetWorthLoader @Inject constructor(
                 (account.bankName to account.accountLast4) to DerivedHistory(
                     currency = account.currency,
                     current = account.balance,
-                    knownFrom = account.anchorAt,
+                    anchored = account.anchorAt != null,
                     effects = accountBalanceRepository.manualBalanceEffects(account.bankName, account.accountLast4),
                 )
             }

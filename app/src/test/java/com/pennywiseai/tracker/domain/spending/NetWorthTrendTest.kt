@@ -80,25 +80,25 @@ class NetWorthTrendTest {
     }
 
     @Test
-    fun `a manual account comes from its transactions, and is a gap before its balance was given`() {
+    fun `a manual account comes from its transactions, and updating its balance keeps the earlier days`() {
         val cash = DerivedHistory(
             currency = "INR",
             current = d("700"),
-            knownFrom = day(2, hour = 8),
+            // The balance was last given on Nov 4; that must not cut the line there.
+            anchored = true,
             effects = listOf(day(3) to d("-200"), day(4) to d("-100"), LocalDateTime.of(2026, 10, 1, 9, 0) to d("50")),
         )
         val trend = NetWorth.trend(
             listOf(row("1111", "1000", day(1))),
             mapOf(("Cash" to "0000") to cash), start, end,
         )
-        // Nov 1 isn't known for cash, so INR starts on Nov 2, never with a flat guess.
-        assertEquals(day(2).toLocalDate(), trend.getValue("INR").first().date)
-        assertEquals(listOf("2000", "1800", "1700", "1700"), values(trend["INR"]))
+        assertEquals(start, trend.getValue("INR").first().date)
+        assertEquals(listOf("2000", "2000", "1800", "1700", "1700"), values(trend["INR"]))
     }
 
     @Test
     fun `a manual account never given a balance leaves its currency with no line`() {
-        val cash = DerivedHistory("INR", d("700"), knownFrom = null, effects = emptyList())
+        val cash = DerivedHistory("INR", d("700"), anchored = false, effects = emptyList())
         val trend = NetWorth.trend(
             listOf(row("1111", "1000", day(1)), row("2222", "10", day(1), currency = "USD")),
             mapOf(("Cash" to "0000") to cash), start, end,

@@ -81,8 +81,12 @@ data class NetWorthPoint(val date: LocalDate, val net: BigDecimal)
 data class DerivedHistory(
     val currency: String,
     val current: BigDecimal,
-    /** When the user last gave the balance; before it (or at all, when null) the past is unknown. */
-    val knownFrom: LocalDateTime?,
+    /**
+     * The user has given its balance at some point. Every later balance moves only by
+     * transactions, so the whole past follows from today's figure. An account never
+     * given one (from before balances were remembered) has an unknown past.
+     */
+    val anchored: Boolean,
     /** Each transaction's signed effect on the balance, with when it happened. */
     val effects: List<Pair<LocalDateTime, BigDecimal>>,
 )
@@ -143,9 +147,9 @@ object NetWorth {
      * last balance forward day by day. A row counts in its own currency, so an account
      * whose currency changed leaves one line and joins the other; no line crosses it.
      * Accounts in [derived] (manual accounts) are worked out from their transactions
-     * instead, and only from when their balance is known: a currency with one of them
-     * still unknown on a day has no point that day, and its line starts after the last
-     * such day. An account not seen yet on a day adds nothing to it.
+     * instead, once the user has given their balance; a currency with one never given
+     * a balance has no line at all, rather than a guess. An account not seen yet on a
+     * day adds nothing to it.
      */
     fun trend(
         rows: List<AccountBalanceEntity>,
@@ -165,12 +169,12 @@ object NetWorth {
         val appliedSum = Array(manual.size) { BigDecimal.ZERO }
         val totals = manual.map { (_, effects) -> effects.fold(BigDecimal.ZERO) { sum, it -> sum + it.second } }
 
-        val points = mutableMapOf<String, MutableList<NetWorthPoint?>>()
+        val unknown = derived.values.filterNot { it.anchored }.map { it.currency }.toSet()
+        val points = mutableMapOf<String, MutableList<NetWorthPoint>>()
         var day = start
         while (!day.isAfter(end)) {
             val endOfDay = day.atTime(LocalTime.MAX)
             val net = mutableMapOf<String, BigDecimal>()
-            val unknown = mutableSetOf<String>()
             histories.forEachIndexed { i, history ->
                 while (next[i] < history.size && !history[next[i]].timestamp.isAfter(endOfDay)) next[i]++
                 val row = history.getOrNull(next[i] - 1) ?: return@forEachIndexed
@@ -182,23 +186,16 @@ object NetWorth {
                     appliedSum[i] += effects[applied[i]].second
                     applied[i]++
                 }
-                val knownFrom = history.knownFrom?.toLocalDate()
-                if (knownFrom == null || day.isBefore(knownFrom)) {
-                    unknown += history.currency
-                } else {
-                    // Today's balance less everything after this day.
-                    val value = history.current - (totals[i] - appliedSum[i])
-                    net[history.currency] = (net[history.currency] ?: BigDecimal.ZERO) + value
-                }
+                // Today's balance less everything after this day.
+                val value = history.current - (totals[i] - appliedSum[i])
+                net[history.currency] = (net[history.currency] ?: BigDecimal.ZERO) + value
             }
-            (net.keys + unknown).forEach { currency ->
-                val list = points.getOrPut(currency) { mutableListOf() }
-                list += if (currency in unknown) null else NetWorthPoint(day, net.getValue(currency))
+            net.forEach { (currency, value) ->
+                if (currency !in unknown) points.getOrPut(currency) { mutableListOf() } += NetWorthPoint(day, value)
             }
             day = day.plusDays(1)
         }
-        return points.mapValues { (_, list) -> list.subList(list.lastIndexOf(null) + 1, list.size).filterNotNull() }
-            .filterValues { it.isNotEmpty() }
+        return points
     }
 
     fun daysSince(at: LocalDateTime, now: LocalDateTime): Long = ChronoUnit.DAYS.between(at, now).coerceAtLeast(0)

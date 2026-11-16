@@ -6,7 +6,9 @@ import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.LoanStatus
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import java.math.BigDecimal
+import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.temporal.ChronoUnit
 
 /** What an account's balance rests on. No source at all means there's no evidence either way. */
@@ -69,6 +71,22 @@ data class NetWorthTotal(
     val net: BigDecimal get() = assets - cards - loans
 }
 
+/** One day's net worth in one currency, as of the end of [date]. */
+data class NetWorthPoint(val date: LocalDate, val net: BigDecimal)
+
+/**
+ * A manual account's past, which its rows don't keep (its one MANUAL row is rewritten
+ * on every change): today's balance less what each later transaction moved it by.
+ */
+data class DerivedHistory(
+    val currency: String,
+    val current: BigDecimal,
+    /** When the user last gave the balance; before it (or at all, when null) the past is unknown. */
+    val knownFrom: LocalDateTime?,
+    /** Each transaction's signed effect on the balance, with when it happened. */
+    val effects: List<Pair<LocalDateTime, BigDecimal>>,
+)
+
 /** Person-to-person IOUs in one currency. Shown beside net worth, not counted in it. */
 data class PeopleOwed(val currency: String, val owedToYou: BigDecimal, val youOwe: BigDecimal)
 
@@ -115,6 +133,72 @@ object NetWorth {
             return BalanceSource.Reported(reportedAt)
         }
         return if (unanchored) BalanceSource.Estimated else null
+    }
+
+    /**
+     * Net worth per currency at the end of each day from [start] to [end].
+     *
+     * [rows] are the balance rows of the accounts in scope from [start] on, plus each
+     * one's newest row before it (OPENING rows left out): every account carries its
+     * last balance forward day by day. A row counts in its own currency, so an account
+     * whose currency changed leaves one line and joins the other; no line crosses it.
+     * Accounts in [derived] (manual accounts) are worked out from their transactions
+     * instead, and only from when their balance is known: a currency with one of them
+     * still unknown on a day has no point that day, and its line starts after the last
+     * such day. An account not seen yet on a day adds nothing to it.
+     */
+    fun trend(
+        rows: List<AccountBalanceEntity>,
+        derived: Map<Pair<String, String>, DerivedHistory>,
+        start: LocalDate,
+        end: LocalDate,
+    ): Map<String, List<NetWorthPoint>> {
+        if (end.isBefore(start)) return emptyMap()
+        val histories = rows.filter { (it.bankName to it.accountLast4) !in derived }
+            .groupBy { it.bankName to it.accountLast4 }
+            .values.map { it.sortedBy { row -> row.timestamp } }
+        val next = IntArray(histories.size)
+        val manual = derived.values.map { history ->
+            history to history.effects.sortedBy { it.first }
+        }
+        val applied = IntArray(manual.size)
+        val appliedSum = Array(manual.size) { BigDecimal.ZERO }
+        val totals = manual.map { (_, effects) -> effects.fold(BigDecimal.ZERO) { sum, it -> sum + it.second } }
+
+        val points = mutableMapOf<String, MutableList<NetWorthPoint?>>()
+        var day = start
+        while (!day.isAfter(end)) {
+            val endOfDay = day.atTime(LocalTime.MAX)
+            val net = mutableMapOf<String, BigDecimal>()
+            val unknown = mutableSetOf<String>()
+            histories.forEachIndexed { i, history ->
+                while (next[i] < history.size && !history[next[i]].timestamp.isAfter(endOfDay)) next[i]++
+                val row = history.getOrNull(next[i] - 1) ?: return@forEachIndexed
+                val signed = if (row.isLiability) row.balance.negate() else row.balance
+                net[row.currency] = (net[row.currency] ?: BigDecimal.ZERO) + signed
+            }
+            manual.forEachIndexed { i, (history, effects) ->
+                while (applied[i] < effects.size && !effects[applied[i]].first.isAfter(endOfDay)) {
+                    appliedSum[i] += effects[applied[i]].second
+                    applied[i]++
+                }
+                val knownFrom = history.knownFrom?.toLocalDate()
+                if (knownFrom == null || day.isBefore(knownFrom)) {
+                    unknown += history.currency
+                } else {
+                    // Today's balance less everything after this day.
+                    val value = history.current - (totals[i] - appliedSum[i])
+                    net[history.currency] = (net[history.currency] ?: BigDecimal.ZERO) + value
+                }
+            }
+            (net.keys + unknown).forEach { currency ->
+                val list = points.getOrPut(currency) { mutableListOf() }
+                list += if (currency in unknown) null else NetWorthPoint(day, net.getValue(currency))
+            }
+            day = day.plusDays(1)
+        }
+        return points.mapValues { (_, list) -> list.subList(list.lastIndexOf(null) + 1, list.size).filterNotNull() }
+            .filterValues { it.isNotEmpty() }
     }
 
     fun daysSince(at: LocalDateTime, now: LocalDateTime): Long = ChronoUnit.DAYS.between(at, now).coerceAtLeast(0)

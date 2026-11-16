@@ -86,6 +86,10 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE id = :transactionId")
     suspend fun getTransactionById(transactionId: Long): TransactionEntity?
 
+    /** Rows by id, in no order; ids under SQLite's bind limit (the repository chunks). */
+    @Query("SELECT * FROM transactions WHERE id IN (:ids)")
+    suspend fun getTransactionsByIds(ids: List<Long>): List<TransactionEntity>
+
     @Query("""
         SELECT * FROM transactions
         WHERE is_deleted = 0

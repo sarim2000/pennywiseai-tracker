@@ -211,7 +211,7 @@ class QuickCategoryPickerActivity : FragmentActivity() {
     private suspend fun advance(gen: Int, txnId: Long, answered: Boolean) {
         val queue = walkQueue ?: return
         val left = stillUnsorted(
-            queue.filter { it != txnId }.mapNotNull { transactionRepository.getTransactionById(it) },
+            transactionRepository.getTransactionsByIds(queue.filter { it != txnId }),
             BuiltinCategoryNames.current("Others")
         )
         // Re-targeted by another notification during the reads: the old walk stops here.

@@ -63,6 +63,12 @@ open class TransactionRepository @Inject constructor(
     open suspend fun getTransactionById(id: Long): TransactionEntity? =
         transactionDao.getTransactionById(id)
 
+    /** The rows for [ids] that exist, in [ids]' order: one read, chunked under SQLite's bind limit. */
+    suspend fun getTransactionsByIds(ids: List<Long>): List<TransactionEntity> {
+        val byId = ids.chunked(900).flatMap { transactionDao.getTransactionsByIds(it) }.associateBy { it.id }
+        return ids.mapNotNull(byId::get)
+    }
+
     fun getTransactionsBetweenDates(
         startDate: LocalDateTime,
         endDate: LocalDateTime

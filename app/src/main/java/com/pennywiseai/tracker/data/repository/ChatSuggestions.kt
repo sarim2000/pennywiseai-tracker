@@ -56,6 +56,9 @@ class ChatSuggestions @Inject constructor(
         /** More than this and they compete instead of suggesting. */
         const val MAX_SHOWN = 4
 
+        /** Rows one "N uncategorized" tap walks, newest first: years of Others aren't one sitting. */
+        const val REVIEW_MAX = 50
+
         internal fun pick(unsorted: Int, bills: BillsDue, budgets: List<BudgetStatus>): List<ChatSuggestion> = buildList {
             if (unsorted > 0) add(ChatSuggestion.Uncategorized(unsorted))
             if (bills.overdue.isNotEmpty() || bills.upcoming.isNotEmpty()) {

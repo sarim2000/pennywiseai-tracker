@@ -243,7 +243,12 @@ private fun TrendCard(state: NetWorthUiState, currency: String, onSelectRange: (
                     date(last.date.atStartOfDay()),
                 )
                 Box(Modifier.clearAndSetSemantics { contentDescription = description }) {
-                    BalanceChart(primaryCurrency = currency, balanceHistory = points, height = 200)
+                    BalanceChart(
+                        primaryCurrency = currency,
+                        balanceHistory = points,
+                        height = 200,
+                        seriesLabel = stringResource(R.string.net_worth_title),
+                    )
                 }
             }
         }

@@ -40,6 +40,20 @@ data class NetWorthUiState(
     val isEmpty: Boolean get() = currencies.isEmpty()
 }
 
+/** Most points the trend draws; the chart averages anything longer. */
+private const val MAX_TREND_POINTS = 50
+
+/**
+ * Every few days of a long trend, counted back from the last so the line still ends
+ * on today's figure. The chart would otherwise average days together, and its line
+ * wouldn't end at the net worth above it.
+ */
+internal fun List<NetWorthPoint>.sampled(max: Int = MAX_TREND_POINTS): List<NetWorthPoint> {
+    if (size <= max) return this
+    val every = (size + max - 1) / max
+    return indices.reversed().step(every).map { this[it] }.reversed()
+}
+
 internal fun netWorthUiState(
     snapshot: NetWorthSnapshot,
     trends: Map<String, List<NetWorthPoint>>?,
@@ -58,7 +72,7 @@ internal fun netWorthUiState(
         },
         range = range,
         // A single day isn't a line.
-        trend = trends?.let { it[currency].orEmpty().takeIf { points -> points.size > 1 }.orEmpty() },
+        trend = trends?.let { it[currency].orEmpty().takeIf { points -> points.size > 1 }.orEmpty().sampled() },
     )
 }
 

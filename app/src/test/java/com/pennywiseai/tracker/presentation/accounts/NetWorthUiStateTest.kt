@@ -58,4 +58,14 @@ class NetWorthUiStateTest {
         val two = netWorthUiState(snapshot, mapOf("INR" to listOf(point(1), point(2))), null, NetWorthRange.MONTH)
         assertEquals(2, two.trend!!.size)
     }
+
+    @Test
+    fun `a year of days is thinned, still ending on today`() {
+        val year = (0L..365L).map { NetWorthPoint(LocalDate.of(2025, 11, 16).plusDays(it), BigDecimal(it)) }
+        val drawn = netWorthUiState(snapshot, mapOf("INR" to year), null, NetWorthRange.YEAR).trend!!
+        assertTrue(drawn.size <= 50)
+        assertEquals(year.last(), drawn.last())
+        // Each point is a real day's figure, never an average of several.
+        assertTrue(drawn.all { it in year })
+    }
 }

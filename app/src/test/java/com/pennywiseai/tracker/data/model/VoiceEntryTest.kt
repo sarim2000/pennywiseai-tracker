@@ -3,7 +3,9 @@ package com.pennywiseai.tracker.data.model
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -119,6 +121,18 @@ class VoiceEntryTest {
         assertNull(parse("كم صرفت على الأكل"))
         assertNull(parse("هل دفعت ٢٠٠ للإيجار"))
         assertNull(parse("صرفت ٢٠٠ على الأكل؟"))
+    }
+
+    @Test
+    fun `a question after a lead-in word is still for Chat`() {
+        assertTrue(VoiceEntry.isForChat("okay how much did I spend this month"))
+        assertTrue(VoiceEntry.isForChat("hey what's my balance"))
+        assertTrue(VoiceEntry.isForChat("so, show my spending"))
+        assertTrue(VoiceEntry.isForChat("طيب كم صرفت هذا الشهر"))
+        assertNull(parse("okay how much is 200"))
+        // Not a question word: "so" leads into a spend.
+        assertFalse(VoiceEntry.isForChat("so lunch 20"))
+        assertFalse(VoiceEntry.isForChat("okay"))
     }
 
     @Test

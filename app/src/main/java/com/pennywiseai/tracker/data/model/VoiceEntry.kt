@@ -66,8 +66,12 @@ data class VoiceEntry(
 
         private fun asks(text: String) = '?' in text || '؟' in text || QUESTION_START.containsMatchIn(text)
 
+        // Said before a question: "okay how much …", "طيب كم …". The recognizer adds no "?".
+        private const val LEAD_IN = "(?:(?:okay|ok|hey|so|um|umm|uh|well|and|but|right|alright|" +
+            "طيب|طب|يعني|اه|آه|اوكي|أوكي|هلا)(?![\\p{L}\\p{M}'])[\\s,،.!]*)*"
+
         private val QUESTION_START = Regex(
-            "^\\s*(?:(?:what|what's|whats|how|when|where|why|which|who|show|list|tell|did|do|does|is|are|was|were|can|could|" +
+            "^\\s*$LEAD_IN(?:(?:what|what's|whats|how|when|where|why|which|who|show|list|tell|did|do|does|is|are|was|were|can|could|" +
                 "should|would|will|am|have|has|compare|give)(?![\\p{L}\\p{M}'])" +
                 "|(?:كم|قديش|كيف|متى|وين|أين|اين|ماذا|شو|ايش|إيش|هل|ليش|لماذا|ما|اعرض|ورجيني|وريني|قارن)(?![\\p{L}\\p{M}]))",
             RegexOption.IGNORE_CASE

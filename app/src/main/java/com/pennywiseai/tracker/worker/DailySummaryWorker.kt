@@ -38,6 +38,7 @@ import com.pennywiseai.tracker.utils.sumByCurrency
 import com.pennywiseai.tracker.utils.withLatinDigits
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
 import java.math.BigDecimal
 import java.time.Duration
@@ -109,7 +110,11 @@ class DailySummaryWorker @AssistedInject constructor(
             null
         } else {
             runCatching { budgetSummaryProvider.summary(YearMonth.from(today), flagUncounted = true).first() }
-                .onFailure { Log.w(TAG, "Budget figures unavailable for the recap", it) }
+                .onFailure {
+                    // A stopped worker must stop, not carry on without budgets.
+                    if (it is CancellationException) throw it
+                    Log.w(TAG, "Budget figures unavailable for the recap", it)
+                }
                 .getOrNull()
         }
 

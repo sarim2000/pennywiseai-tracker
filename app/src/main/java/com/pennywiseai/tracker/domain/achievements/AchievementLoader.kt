@@ -6,7 +6,6 @@ import com.pennywiseai.tracker.data.repository.BudgetSummaryProvider
 import com.pennywiseai.tracker.data.repository.GoalRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.domain.review.PeriodReviewLoader
-import com.pennywiseai.tracker.domain.share.budgetResult
 import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.coroutineScope
@@ -52,21 +51,15 @@ class AchievementLoader @Inject constructor(
     }
 
     /**
-     * The finished months before this one, oldest first, as the Budgets screen shows them.
-     * A month with nothing recorded in it isn't one kept under its limits: nothing was tracked.
+     * The finished months before this one, oldest first, as the Budgets screen shows them,
+     * judged by [budgetMonthOf].
      */
     private suspend fun budgetMonths(count: Int, today: LocalDate, recorded: List<LocalDate>): List<BudgetMonth> = coroutineScope {
         // Each month is a query of its own; read them side by side.
         (count downTo 1).map { back ->
             async {
                 val month = YearMonth.from(today).minusMonths(back.toLong())
-                val summary = budgetSummaryProvider.summary(month).first()
-                // A month without budgets has no window of its own: date it by the calendar.
-                val result = budgetResult(summary)
-                    ?: return@async BudgetMonth(month.atEndOfMonth(), kept = null)
-                val window = summary.pageWindow
-                val tracked = recorded.any { !it.isBefore(window.start) && !it.isAfter(window.end) }
-                BudgetMonth(window.end, if (tracked) result.kept == result.total else null)
+                budgetMonthOf(budgetSummaryProvider.summary(month).first(), month.atEndOfMonth(), recorded)
             }
         }.awaitAll()
     }

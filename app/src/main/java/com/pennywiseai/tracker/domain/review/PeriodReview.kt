@@ -105,6 +105,12 @@ data class CurrencyReview(
      * cycle lists what changed most, which can leave out the largest steady category.
      */
     val topCategories: List<CategoryLine> = emptyList(),
+    /**
+     * The categories that moved most since the previous period, biggest move first, for
+     * every kind: a year's [categories] rank by amount, which can drop a category that
+     * fell to nothing. Empty without a fair comparison.
+     */
+    val changes: List<CategoryLine> = emptyList(),
     /** Year only. Months are net of refunds; a forgiven loan counts in [spent] alone. */
     val months: List<MonthPoint>,
 ) {
@@ -221,6 +227,7 @@ internal suspend fun buildPeriodReview(
             transactionCount = current[currency].orEmpty().forTotals().size,
             categories = categoryLines(range, spend, before),
             topCategories = topCategoryLines(spend),
+            changes = if (before == null) emptyList() else changedCategoryLines(spend, before),
             months = if (range.kind == ReviewKind.YEAR) monthPoints(range, spend) else emptyList(),
         )
     }
@@ -240,21 +247,24 @@ internal suspend fun buildPeriodReview(
 
 /** A year reads as "where it went"; a week or cycle as "what changed", when that's known. */
 private fun categoryLines(range: ReviewRange, spend: Spend, before: Spend?): List<CategoryLine> {
+    if (before != null && range.kind != ReviewKind.YEAR) return changedCategoryLines(spend, before)
+    return comparedLines(spend, before).sortedByDescending { it.amount }.take(CATEGORY_LINES)
+}
+
+private fun changedCategoryLines(spend: Spend, before: Spend): List<CategoryLine> =
+    comparedLines(spend, before)
+        .sortedByDescending { (it.amount - (it.previous ?: BigDecimal.ZERO)).abs() }
+        .take(CATEGORY_LINES)
+
+private fun comparedLines(spend: Spend, before: Spend?): List<CategoryLine> {
     val names = spend.byCategory.keys + before?.byCategory?.keys.orEmpty()
-    val lines = names.map { name ->
+    return names.map { name ->
         CategoryLine(
             name = name,
             amount = spend.byCategory[name] ?: BigDecimal.ZERO,
             previous = before?.let { it.byCategory[name] ?: BigDecimal.ZERO },
         )
     }.filter { it.amount.signum() > 0 || (it.previous?.signum() ?: 0) > 0 }
-
-    val sorted = if (before == null || range.kind == ReviewKind.YEAR) {
-        lines.sortedByDescending { it.amount }
-    } else {
-        lines.sortedByDescending { (it.amount - (it.previous ?: BigDecimal.ZERO)).abs() }
-    }
-    return sorted.take(CATEGORY_LINES)
 }
 
 private fun topCategoryLines(spend: Spend): List<CategoryLine> =

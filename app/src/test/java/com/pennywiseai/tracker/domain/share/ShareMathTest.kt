@@ -32,7 +32,7 @@ class ShareMathTest {
         top: List<CategoryLine> = emptyList(),
     ) = CurrencyReview(
         currency = code, spent = bd(spent), previousSpent = previous?.let(::bd), income = bd(income),
-        transactionCount = 1, categories = categories, topCategories = top, months = emptyList(),
+        transactionCount = 1, categories = categories, topCategories = top, changes = categories, months = emptyList(),
     )
 
     private fun month(start: String, vararg currencies: CurrencyReview): PeriodReview {

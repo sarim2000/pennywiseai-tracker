@@ -10,8 +10,11 @@ import com.pennywiseai.tracker.data.repository.ChatSuggestion.Ask
 import com.pennywiseai.tracker.data.repository.ChatSuggestion.Uncategorized
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -94,21 +97,29 @@ class ChatSuggestionsTest {
         assertFalse(row(7, "Others", deleted = true).needsCategory("Others"))
     }
 
+    private fun suggestions(
+        rows: Flow<List<TransactionEntity>>,
+        profile: Flow<Long?> = flowOf(null),
+        ignored: Set<String> = emptySet(),
+        bills: Flow<BillsDue> = flowOf(noBills),
+        budgets: Flow<List<BudgetStatus>> = flowOf(emptyList()),
+    ) = ChatSuggestions(
+        transactionRepository = mockk { every { observeUncategorized() } returns rows },
+        planningRepository = mockk {
+            every { observeBillsDue(today, any()) } returns bills
+            every { observeBudgets(today) } returns budgets
+        },
+        userPreferencesRepository = mockk<UserPreferencesRepository> { every { selectedProfileId } returns profile },
+        accountBalanceRepository = mockk { every { getAllLatestBalances() } returns flowOf(emptyList()) },
+        ignoredAccountsStore = mockk { every { keysFlow } returns flowOf(ignored) },
+        cardRepository = mockk { every { getAllCards() } returns flowOf(emptyList()) },
+    )
+
     @Test
     fun `the count follows the profile Home shows, and goes as rows are filed`() = runTest {
         val unsorted = MutableStateFlow(listOf(row(1, "Others", profileId = 2), row(2, "Others", profileId = 1)))
         val profile = MutableStateFlow<Long?>(2)
-        val suggestions = ChatSuggestions(
-            transactionRepository = mockk { every { observeUncategorized() } returns unsorted },
-            planningRepository = mockk {
-                every { observeBillsDue(today, any()) } returns flowOf(noBills)
-                every { observeBudgets(today) } returns flowOf(emptyList())
-            },
-            userPreferencesRepository = mockk<UserPreferencesRepository> { every { selectedProfileId } returns profile },
-            accountBalanceRepository = mockk { every { getAllLatestBalances() } returns flowOf(emptyList()) },
-            ignoredAccountsStore = mockk { every { keysFlow } returns flowOf(emptySet()) },
-            cardRepository = mockk { every { getAllCards() } returns flowOf(emptyList()) },
-        )
+        val suggestions = suggestions(unsorted, profile)
         assertEquals(Uncategorized(1), suggestions.observe(today).first().first())
         assertEquals(listOf(1L), suggestions.uncategorized().first().map { it.id })
 
@@ -122,18 +133,24 @@ class ChatSuggestionsTest {
     @Test
     fun `rows of an ignored account aren't counted or walked, as no list shows them`() = runTest {
         val rows = listOf(row(1, "Others", bank = "Bank", account = "1234"), row(2, "Others", bank = "Bank", account = "5678"))
-        val suggestions = ChatSuggestions(
-            transactionRepository = mockk { every { observeUncategorized() } returns flowOf(rows) },
-            planningRepository = mockk {
-                every { observeBillsDue(today, any()) } returns flowOf(noBills)
-                every { observeBudgets(today) } returns flowOf(emptyList())
-            },
-            userPreferencesRepository = mockk<UserPreferencesRepository> { every { selectedProfileId } returns flowOf(null) },
-            accountBalanceRepository = mockk { every { getAllLatestBalances() } returns flowOf(emptyList()) },
-            ignoredAccountsStore = mockk { every { keysFlow } returns flowOf(setOf("Bank_1234")) },
-            cardRepository = mockk { every { getAllCards() } returns flowOf(emptyList()) },
-        )
+        val suggestions = suggestions(flowOf(rows), ignored = setOf("Bank_1234"))
         assertEquals(listOf(2L), suggestions.uncategorized().first().map { it.id })
         assertEquals(Uncategorized(1), suggestions.observe(today).first().first())
+    }
+
+    @Test
+    fun `a source that fails or is slow drops only its own prompt`() = runTest {
+        // Bills fail to read; budgets wait on a rate fetch that hasn't come back.
+        val suggestions = suggestions(
+            flowOf(listOf(row(1, "Others"))),
+            bills = flow { throw IllegalStateException("boom") },
+            budgets = flow { awaitCancellation() },
+        )
+        assertEquals(listOf(Uncategorized(1)) + standing, suggestions.observe(today).first())
+    }
+
+    @Test
+    fun `the standing questions are what pick shows with nothing to act on`() {
+        assertEquals(ChatSuggestions.STANDING, ChatSuggestions.pick(0, noBills, emptyList()))
     }
 }

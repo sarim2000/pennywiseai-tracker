@@ -8,9 +8,11 @@ import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
 import com.pennywiseai.tracker.domain.model.filterTransactionsByProfile
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.onStart
 import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -39,12 +41,21 @@ class ChatSuggestions @Inject constructor(
     private val ignoredAccountsStore: IgnoredAccountsStore,
     private val cardRepository: CardRepository,
 ) {
-    /** The prompts for [today]: bills and budgets are read against it. */
+    /**
+     * The prompts for [today]: bills and budgets are read against it. A source that fails only
+     * drops its own prompt. Budgets may wait on exchange rates over the network, so the rest
+     * don't wait for them: their prompt joins once they're read.
+     */
     fun observe(today: LocalDate): Flow<List<ChatSuggestion>> = combine(
-        uncategorized().map { it.size }.distinctUntilChanged(),
-        planningRepository.observeBillsDue(today),
-        planningRepository.observeBudgets(today),
+        uncategorized().map { it.size }.distinctUntilChanged().orElse(0),
+        planningRepository.observeBillsDue(today).orElse(BillsDue(today, emptyList(), emptyList())),
+        planningRepository.observeBudgets(today).onStart { emit(emptyList()) }.orElse(emptyList()),
     ) { unsorted, bills, budgets -> pick(unsorted, bills, budgets) }.distinctUntilChanged()
+
+    private fun <T> Flow<T>.orElse(fallback: T): Flow<T> = catch { e ->
+        android.util.Log.w("ChatSuggestions", "A suggestion source failed (${e.javaClass.simpleName})")
+        emit(fallback)
+    }
 
     /**
      * Rows still to file in the profile Home shows, ignored accounts left out (#826) as every
@@ -72,6 +83,13 @@ class ChatSuggestions @Inject constructor(
         /** More than this and they compete instead of suggesting. */
         const val MAX_SHOWN = 4
 
+        /** The questions that always apply, answered from the rows alone: shown before anything is read. */
+        val STANDING: List<ChatSuggestion> = listOf(
+            ChatSuggestion.Ask(QuickAction.MONTH_SPEND),
+            ChatSuggestion.Ask(QuickAction.TOP_CATEGORIES),
+            ChatSuggestion.Ask(QuickAction.COMPARE_MONTH),
+        )
+
         /** Rows one "N uncategorized" tap walks, newest first: years of Others aren't one sitting. */
         const val REVIEW_MAX = 50
 
@@ -81,9 +99,7 @@ class ChatSuggestions @Inject constructor(
                 add(ChatSuggestion.Ask(QuickAction.BILLS, overdue = bills.overdue.size))
             }
             if (budgets.isNotEmpty()) add(ChatSuggestion.Ask(QuickAction.BUDGETS))
-            add(ChatSuggestion.Ask(QuickAction.MONTH_SPEND))
-            add(ChatSuggestion.Ask(QuickAction.TOP_CATEGORIES))
-            add(ChatSuggestion.Ask(QuickAction.COMPARE_MONTH))
+            addAll(STANDING)
         }.take(MAX_SHOWN)
     }
 }

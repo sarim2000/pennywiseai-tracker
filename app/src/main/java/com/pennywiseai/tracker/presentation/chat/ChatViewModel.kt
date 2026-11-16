@@ -106,11 +106,13 @@ class ChatViewModel @Inject constructor(
     val suggestions: StateFlow<List<com.pennywiseai.tracker.data.repository.ChatSuggestion>> = today
         .flatMapLatest { chatSuggestions.observe(it) }
         .catch { e ->
-            // Suggestions are a convenience: a failed read must not take the chat down with it.
+            // Suggestions are a convenience: a failed read must not take the chat down with it,
+            // nor the standing questions, which need nothing read up front.
             android.util.Log.w("ChatViewModel", "Suggestions unavailable (${e.javaClass.simpleName})")
-            emit(emptyList())
+            emit(com.pennywiseai.tracker.data.repository.ChatSuggestions.STANDING)
         }
-        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+        // The standing questions show from the first frame; what needs doing joins as it's read.
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), com.pennywiseai.tracker.data.repository.ChatSuggestions.STANDING)
 
     private val _currentResponse = MutableStateFlow("")
     val currentResponse: StateFlow<String> = _currentResponse.asStateFlow()

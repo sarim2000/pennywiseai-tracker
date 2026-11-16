@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -77,7 +78,9 @@ import java.time.temporal.ChronoUnit
 fun SubscriptionsScreen(
     viewModel: SubscriptionsViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit = {},
-    onAddSubscriptionClick: () -> Unit = {}
+    onAddSubscriptionClick: () -> Unit = {},
+    // A tab root has no back arrow; opened over another screen (an insight's link), it needs one.
+    showBack: Boolean = false,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val accounts by viewModel.accounts.collectAsStateWithLifecycle()
@@ -182,6 +185,17 @@ fun SubscriptionsScreen(
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 title = stringResource(R.string.subscriptions_title),
+                hasBackButton = showBack,
+                navigationContent = {
+                    if (showBack) {
+                        IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ArrowBack,
+                                contentDescription = stringResource(R.string.subscriptions_back)
+                            )
+                        }
+                    }
+                },
                 hazeState = hazeState
             )
         },

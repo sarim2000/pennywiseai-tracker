@@ -237,6 +237,7 @@
 
     <!-- ══ Subscriptions screen ══ -->
     <string name="subscriptions_title">Subscriptions</string>
+    <string name="subscriptions_back">Back</string>
     <string name="subscriptions_add">Add Subscription</string>
     <string name="subscriptions_undo">Undo</string>
     <!-- %1$s = merchant name -->

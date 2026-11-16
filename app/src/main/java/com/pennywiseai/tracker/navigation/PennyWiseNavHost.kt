@@ -457,6 +457,7 @@ fun PennyWiseNavHost(
                         com.pennywiseai.tracker.presentation.subscriptions.SubscriptionsScreen(
                             onNavigateBack = { backStack.pop(key) },
                             onAddSubscriptionClick = { backStack.navigate(AddTransaction()) },
+                            showBack = true,
                         )
                     }
 

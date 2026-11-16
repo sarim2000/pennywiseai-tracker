@@ -26,11 +26,13 @@ class MainViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val merchantAliasRepository: MerchantAliasRepository,
     internal val contactsResolver: ContactsResolver,
-    chatDrafts: com.pennywiseai.tracker.presentation.chat.ChatDraftInbox
+    private val chatDrafts: com.pennywiseai.tracker.presentation.chat.ChatDraftInbox
 ) : ViewModel() {
 
-    /** A question from the quick add mic: MainScreen opens Chat for it. */
-    val chatDraft = chatDrafts.draft
+    /** A question from the quick add mic, cleared to Home: MainScreen switches to Chat for it, once. */
+    val openChat = chatDrafts.openChat
+
+    fun chatOpened() = chatDrafts.opened()
 
     private val _whatsNewVersion = MutableStateFlow<WhatsNewVersion?>(null)
     val whatsNewVersion: StateFlow<WhatsNewVersion?> = _whatsNewVersion.asStateFlow()

@@ -1,8 +1,10 @@
 package com.pennywiseai.tracker.presentation.chat
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /** A question carried into Chat from the quick add mic. */
@@ -38,6 +40,19 @@ class ChatDraftInboxTest {
         inbox.take(first)
         inbox.put("same")
         assertNotEquals(first.id, inbox.draft.value!!.id)
+    }
+
+    @Test
+    fun `switching to Chat is asked once, apart from the draft`() {
+        val inbox = ChatDraftInbox()
+        inbox.put("how much on food")
+        assertFalse(inbox.openChat.value)
+        inbox.requestOpen()
+        assertTrue(inbox.openChat.value)
+        inbox.opened()
+        // No model yet: the words still wait for Chat, but a later launch stays on Home.
+        assertFalse(inbox.openChat.value)
+        assertEquals("how much on food", inbox.draft.value?.text)
     }
 
     @Test

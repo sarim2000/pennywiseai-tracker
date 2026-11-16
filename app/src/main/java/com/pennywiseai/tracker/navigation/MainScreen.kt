@@ -259,14 +259,12 @@ fun MainScreen(
         }
     }
 
-    // A question said to the quick add mic opens Chat, once per question: Chat puts it in
-    // the box when the box is there. Saveable, so coming back to Home doesn't reopen Chat.
-    val chatDraft by mainViewModel.chatDraft.collectAsStateWithLifecycle()
-    var chatDraftShown by rememberSaveable { mutableStateOf(0L) }
-    LaunchedEffect(chatDraft, themeState.isLoading) {
-        val draft = chatDraft ?: return@LaunchedEffect
-        if (themeState.isLoading || draft.id == chatDraftShown) return@LaunchedEffect
-        chatDraftShown = draft.id
+    // A question said to the quick add mic: once the app is unlocked and back on Home
+    // (PennyWiseApp), Chat shows, once; Chat puts the question in its box when the box is there.
+    val openChat by mainViewModel.openChat.collectAsStateWithLifecycle()
+    LaunchedEffect(openChat, themeState.isLoading) {
+        if (!openChat || themeState.isLoading) return@LaunchedEffect
+        mainViewModel.chatOpened()
         if (BottomNavItem.Chat.route in hiddenTabs) return@LaunchedEffect
         tabStacks.getValue(BottomNavItem.Chat).resetTo(Chat)
         selectTab(BottomNavItem.Chat)

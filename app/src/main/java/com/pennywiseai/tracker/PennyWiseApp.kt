@@ -34,6 +34,7 @@ import com.pennywiseai.tracker.navigation.Home
 import com.pennywiseai.tracker.navigation.OnBoarding
 import com.pennywiseai.tracker.navigation.PennyWiseNavHost
 import com.pennywiseai.tracker.navigation.navigate
+import com.pennywiseai.tracker.navigation.replaceLast
 import com.pennywiseai.tracker.presentation.applock.AppLockViewModel
 import com.pennywiseai.tracker.ui.ShakeToHideAmounts
 import com.pennywiseai.tracker.ui.theme.PennyWiseTheme
@@ -51,7 +52,9 @@ fun PennyWiseApp(
     sharedText: String? = null,
     onSharedTextHandled: (() -> Unit)? = null,
     widgetDestination: NavKey? = null,
-    onWidgetDestinationHandled: (() -> Unit)? = null
+    onWidgetDestinationHandled: (() -> Unit)? = null,
+    openChat: Long? = null,
+    onOpenChatHandled: (() -> Unit)? = null
 ) {
     val owner = androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner.current ?: error("No ViewModelStoreOwner")
     val actualThemeViewModel: ThemeViewModel = themeViewModel ?: hiltViewModel(viewModelStoreOwner = owner, key = null)
@@ -120,7 +123,8 @@ fun PennyWiseApp(
     }
 
     // Every outside entry point — notification and Recent-widget transaction taps,
-    // the Add widget/shortcut, "Share to PennyWise" and goal widget taps (#914) —
+    // the Add widget/shortcut, "Share to PennyWise", goal widget taps (#914) and a
+    // question said to the quick add mic —
     // opens a screen with private data, so they all wait for onboarding and an
     // unlocked app (see NavigateWhenUnlocked).
     val currentRoute = backStack.lastOrNull()
@@ -175,6 +179,18 @@ fun PennyWiseApp(
             backStack.add(destination)
         }
         onWidgetDestinationHandled?.invoke()
+    }
+    NavigateWhenUnlocked(
+        request = openChat,
+        onboarded = themeUiState.hasCompletedOnboarding,
+        lock = appLockUiState,
+        currentRoute = currentRoute,
+        refreshLock = actualAppLockViewModel::refreshLockState,
+        showLockScreen = showLockScreen,
+    ) {
+        // Chat is a tab: back to Home, which switches to it (MainScreen).
+        backStack.replaceLast(Home) { it == Home }
+        onOpenChatHandled?.invoke()
     }
 
     // Shake to hide / show amounts (opt-in in Settings), only while unlocked: a shake

@@ -86,6 +86,10 @@ class MainActivity : FragmentActivity() {
     var sharedText by mutableStateOf<String?>(null)
         private set
 
+    // A question said to the quick add mic (its words wait in ChatDraftInbox): when it was asked.
+    var openChat by mutableStateOf<Long?>(null)
+        private set
+
     @Inject lateinit var appLockRepository: AppLockRepository
     @Inject lateinit var chatDrafts: com.pennywiseai.tracker.presentation.chat.ChatDraftInbox
 
@@ -135,7 +139,12 @@ class MainActivity : FragmentActivity() {
                 sharedText = sharedText,
                 onSharedTextHandled = sharedTextCallback,
                 widgetDestination = widgetDestination,
-                onWidgetDestinationHandled = { widgetDestination = null }
+                onWidgetDestinationHandled = { widgetDestination = null },
+                openChat = openChat,
+                onOpenChatHandled = {
+                    openChat = null
+                    chatDrafts.requestOpen()
+                }
             )
         }
     }
@@ -161,7 +170,8 @@ class MainActivity : FragmentActivity() {
         super.onSaveInstanceState(outState)
         outState.putBoolean(
             KEY_LAUNCH_PENDING,
-            editTransactionId != null || openAddTransaction != null || sharedText != null || widgetDestination != null
+            editTransactionId != null || openAddTransaction != null || sharedText != null || widgetDestination != null ||
+                openChat != null
         )
     }
 
@@ -208,8 +218,10 @@ class MainActivity : FragmentActivity() {
             // Capped: it travels as a navigation argument and ends up as a note.
             sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)?.trim()?.take(MAX_SHARED_TEXT)?.ifEmpty { null }
         }
-        // Held in the inbox, so it needs no pending flag: MainScreen opens Chat behind the lock screen.
-        intent?.getStringExtra(EXTRA_CHAT_TEXT)?.take(MAX_SHARED_TEXT)?.let(chatDrafts::put)
+        intent?.getStringExtra(EXTRA_CHAT_TEXT)?.take(MAX_SHARED_TEXT)?.let {
+            chatDrafts.put(it)
+            openChat = android.os.SystemClock.elapsedRealtime()
+        }
         if (intent?.getBooleanExtra(EXTRA_OPEN_ADD_TRANSACTION, false) == true || intent.isAddDeepLink()) {
             openAddTransaction = com.pennywiseai.tracker.navigation.AddTransaction(
                 amount = intent?.getStringExtra(EXTRA_ADD_AMOUNT),

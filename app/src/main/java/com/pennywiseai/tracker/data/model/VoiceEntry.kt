@@ -104,6 +104,7 @@ data class VoiceEntry(
             "Food & Dining" to setOf("breakfast", "lunch", "dinner", "meal", "snack", "فطور", "فطار", "غداء", "غدا", "عشاء", "عشا", "قهوة", "مطعم"),
             "Groceries" to setOf("groceries", "بقالة", "خضار", "سوبرماركت"),
             "Transportation" to setOf("تاكسي", "بنزين", "مواصلات", "اوبر", "كريم"),
+            "Salary" to setOf("راتب", "معاش"),
         )
 
         // Arabic writes "the" and a preposition onto the word: "القهوة", "بالتاكسي", "للبقالة" say قهوة, تاكسي, بقالة.
@@ -123,8 +124,7 @@ data class VoiceEntry(
                 SharedCategoryMapping.determineCategory(merchant, "INCOME").takeIf { it != "Income" }
             } else {
                 SharedCategoryMapping.getCategory(merchant).takeIf { it != "Others" }
-                    ?: SPOKEN.entries.firstOrNull { (_, said) -> said.any { " ${norm(it)} " in words } }?.key
-            }
+            } ?: SPOKEN.entries.firstOrNull { (_, said) -> said.any { " ${norm(it)} " in words } }?.key
             // The mapping's names are the built-ins'; the user may have renamed them.
             return guess?.let(BuiltinCategoryNames::current)?.takeIf { g -> ofType.any { it.name == g } }
         }

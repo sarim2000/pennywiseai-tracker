@@ -97,6 +97,9 @@ class VoiceEntryTest {
         assertEquals(TransactionType.INCOME, entry("استلمت راتب ٣٠٠٠").type)
         // "Got paid", spoken.
         assertEquals(TransactionType.INCOME, entry("قبضت ٥٠٠ من الشغل").type)
+        // Said in Arabic with the app in English: "راتب" is salary.
+        assertEquals("Salary", entry("قبضت ٥٠٠ ريال راتب").category)
+        assertEquals("Salary", entry("استلمت الراتب ٣٠٠٠").category)
         assertEquals(TransactionType.INCOME, entry("تقاضيت ٢٠٠٠ راتب").type)
     }
 

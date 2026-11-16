@@ -103,7 +103,9 @@ class AiContextRepository @Inject constructor(
         val spent = result.spentWithForgiven
         val display = userPreferencesRepository.displayCurrency.first()
         if (!userPreferencesRepository.unifiedCurrencyMode.first() || spent.isEmpty() || spent.keys == setOf(display)) return result
-        return result.copy(estimate = convertedEstimate(spent, display) { a, from, to -> currencyConversionService.convertAmountOrNull(a, from, to) })
+        val estimate = convertedEstimate(spent, display) { a, from, to -> currencyConversionService.convertAmountOrNull(a, from, to) }
+        // Nothing converted is no estimate: "about ₹0 in all" would be a false figure.
+        return result.copy(estimate = estimate.takeIf { it.leftOut.size < spent.size })
     }
 
     /**

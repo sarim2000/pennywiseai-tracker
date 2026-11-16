@@ -230,6 +230,16 @@ class AiContextRepositoryTest {
     }
 
     @Test
+    fun `no estimate when no currency spent has a rate`() = runBlocking {
+        tx("100")
+        tx("7", currency = "XYZ")
+        preferences.setUnifiedCurrencyMode(true)
+        // Neither INR nor XYZ converts to USD: "about $0 in all" would be false.
+        preferences.setDisplayCurrency("USD")
+        assertNull(repository.spending(today).estimate)
+    }
+
+    @Test
     fun `a category takes its subcategories, split shares and refunds, per currency`() = runBlocking {
         tx("10000", category = "Others", splits = listOf("Others" to "7000", "Food" to "3000"))
         tx("200", category = "Coffee")

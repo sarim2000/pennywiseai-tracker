@@ -15,9 +15,9 @@ data class ChatScope(val window: SpendingComparison.Window, val profile: Profile
  * Spending in [scope] as Home works it out: per currency, never added across currencies.
  * [spent] is spending net of refunds (card purchases only when the user counts them);
  * [forgiven] is lent balances forgiven in the scope, which Home adds to "Spent" (#938).
- * [estimate] is one converted figure, only when Home shows one (unified currency mode).
- * [transactionCount] is the income, refunds and spending (card purchases only when counted)
- * that make up those figures.
+ * [estimate] is one converted figure, only when Home shows one (unified currency mode) and
+ * at least one currency had a rate. [transactionCount] is the income, refunds and spending
+ * (card purchases only when counted) that make up those figures.
  */
 data class PeriodSpending(
     val scope: ChatScope,

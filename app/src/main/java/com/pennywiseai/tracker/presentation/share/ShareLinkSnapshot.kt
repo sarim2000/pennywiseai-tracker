@@ -46,23 +46,26 @@ fun ShareCardContent.toSnapshot(theme: ShareTheme, locale: Locale, expiry: Share
 private fun ShareChart.toSnapshot(): ShareSnapshot.Chart? {
     val kept = points.take(12)
     if (kept.isEmpty()) return null
+    // The point the image emphasises, spelled out: the card falls back to the largest
+    // bar and the latest point on a line, and the page should stress the same one.
+    val highlight = when (type) {
+        ShareChartType.BARS -> highlightIndex ?: 0
+        ShareChartType.LINE -> highlightIndex ?: kept.lastIndex
+        ShareChartType.DIVERGING, ShareChartType.RING -> highlightIndex
+    }?.takeIf { it in kept.indices }
     return ShareSnapshot.Chart(
         type = type.name.lowercase(Locale.ROOT),
-        points = kept.map {
-            val value = if (it.value.isFinite()) it.value else 0.0
+        points = kept.mapIndexed { i, point ->
+            val value = if (point.value.isFinite()) point.value else 0.0
             ShareSnapshot.Point(
-                label = it.label.fit(24),
+                label = point.label.fit(24),
                 value = if (type == ShareChartType.RING) value.coerceIn(0.0, 1.0) else value,
-                display = it.display?.fit(30)?.ifBlank { null },
+                // A line prints only its emphasised point's figure, the rest is shape. The
+                // page prints every figure it gets, so the others aren't sent.
+                display = point.display?.takeIf { type != ShareChartType.LINE || i == highlight }?.fit(30)?.ifBlank { null },
             )
         },
-        // The point the image emphasises, spelled out: the card falls back to the largest
-        // bar and the latest point on a line, and the page should stress the same one.
-        highlightIndex = when (type) {
-            ShareChartType.BARS -> highlightIndex ?: 0
-            ShareChartType.LINE -> highlightIndex ?: kept.lastIndex
-            ShareChartType.DIVERGING, ShareChartType.RING -> highlightIndex
-        }?.takeIf { it in kept.indices },
+        highlightIndex = highlight,
     )
 }
 

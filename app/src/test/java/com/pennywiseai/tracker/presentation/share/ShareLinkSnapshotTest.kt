@@ -68,6 +68,18 @@ class ShareLinkSnapshotTest {
     }
 
     @Test
+    fun `a line sends only the figure the card prints`() {
+        // The card prints the emphasised point's figure alone; the page would print all six.
+        val points = previewSavings.toSnapshot(ShareTheme.MIDNIGHT, en, ShareLinkExpiry.DEFAULT).chart!!.points
+        assertEquals(listOf(null, null, null, null, null, "24%"), points.map { it.display })
+        val fallback = previewSavings.copy(chart = previewSavings.chart!!.copy(highlightIndex = 2))
+            .toSnapshot(ShareTheme.MIDNIGHT, en, ShareLinkExpiry.DEFAULT).chart!!.points
+        assertEquals(listOf(null, null, "15%", null, null, null), fallback.map { it.display })
+        // Bars print every figure, so every figure goes.
+        assertTrue(previewRecap.toSnapshot(ShareTheme.MIDNIGHT, en, ShareLinkExpiry.DEFAULT).chart!!.points.all { it.display != null })
+    }
+
+    @Test
     fun `a ring stays within 0 to 1 and values stay finite`() {
         val ring = previewGoal.copy(chart = ShareChart(ShareChartType.RING, listOf(ShareChartPoint("", 1.4, "140%"))))
         assertEquals(1.0, ring.toSnapshot(ShareTheme.PAPER, en, ShareLinkExpiry.DEFAULT).chart!!.points.single().value, 0.0)

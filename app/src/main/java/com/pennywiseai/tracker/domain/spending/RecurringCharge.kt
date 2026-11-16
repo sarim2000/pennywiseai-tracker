@@ -58,6 +58,14 @@ object RecurringCharge {
     }
 
     /**
+     * A posted charge on [chargeDate] settles the payment due [dueDate]: within
+     * [DUE_WINDOW_DAYS] either side of it. Unlike [canPayCycle] this is bounded
+     * after the due date too, so last month's charge can't settle this month's.
+     */
+    fun settles(dueDate: LocalDate, chargeDate: LocalDate): Boolean =
+        Math.abs(ChronoUnit.DAYS.between(dueDate, chargeDate)) <= DUE_WINDOW_DAYS
+
+    /**
      * A charge can pay the cycle due [dueDate] from [DUE_WINDOW_DAYS] before it
      * on. A same-amount purchase earlier in the cycle doesn't; one any time
      * after does, so a bill whose schedule fell behind still catches up.

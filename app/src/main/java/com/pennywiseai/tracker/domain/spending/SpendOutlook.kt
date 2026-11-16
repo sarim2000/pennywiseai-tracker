@@ -1,8 +1,5 @@
 package com.pennywiseai.tracker.domain.spending
 
-import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
-import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
-import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.utils.Money
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -68,8 +65,11 @@ data class SpendForecast(
     }
 }
 
-/** A payment due on [dueDate], in its own currency. */
-data class Bill(val name: String, val amount: Money, val dueDate: LocalDate)
+/**
+ * A payment due on [dueDate], in its own currency. A card bill ([isCardBill]) past
+ * its due date is still owed, so it stays in the window ([SafeToSpend.billsInWindow]).
+ */
+data class Bill(val name: String, val amount: Money, val dueDate: LocalDate, val isCardBill: Boolean = false)
 
 /**
  * Money free to spend in one currency until the period ends: spendable balance
@@ -121,18 +121,8 @@ data class SafeToSpend(
             }
         }
 
+        /** Bills due today..[periodEnd], and overdue card bills: those are still owed. */
         fun billsInWindow(bills: List<Bill>, today: LocalDate, periodEnd: LocalDate): List<Bill> =
-            bills.filter { !it.dueDate.isBefore(today) && !it.dueDate.isAfter(periodEnd) }
-
-        /**
-         * Bills from active expense subscriptions (EMIs tracked as subscriptions
-         * included). Only the next payment counts; a weekly one due twice in the
-         * window is counted once.
-         */
-        // ponytail: next payment only; expand recurrences if weekly bills turn out to matter.
-        fun billsFrom(subscriptions: List<SubscriptionEntity>): List<Bill> =
-            subscriptions
-                .filter { it.state == SubscriptionState.ACTIVE && it.direction == SubscriptionDirection.EXPENSE }
-                .mapNotNull { s -> s.nextPaymentDate?.let { Bill(s.merchantName, Money(s.amount, s.currency), it) } }
+            bills.filter { (it.isCardBill || !it.dueDate.isBefore(today)) && !it.dueDate.isAfter(periodEnd) }
     }
 }

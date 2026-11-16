@@ -1,8 +1,5 @@
 package com.pennywiseai.tracker.domain.spending
 
-import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
-import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
-import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.utils.Money
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -167,20 +164,5 @@ class SpendOutlookTest {
         assertTrue(r.isCapped)
         assertEquals(BigDecimal.ZERO, r.amount)
         assertNull(r.perDay)
-    }
-
-    @Test
-    fun `bills come from active expense subscriptions with a date`() {
-        fun sub(name: String, date: LocalDate?, state: SubscriptionState = SubscriptionState.ACTIVE, dir: SubscriptionDirection = SubscriptionDirection.EXPENSE) =
-            SubscriptionEntity(merchantName = name, amount = d("100"), nextPaymentDate = date, state = state, direction = dir)
-        val bills = SafeToSpend.billsFrom(
-            listOf(
-                sub("Netflix", today),
-                sub("No date", null),
-                sub("Ended", today, state = SubscriptionState.ENDED),
-                sub("Salary", today, dir = SubscriptionDirection.INCOME),
-            )
-        )
-        assertEquals(listOf("Netflix"), bills.map { it.name })
     }
 }

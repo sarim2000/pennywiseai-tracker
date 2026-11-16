@@ -49,6 +49,7 @@ import com.pennywiseai.tracker.domain.spending.Bill
 import com.pennywiseai.tracker.domain.spending.SafeToSpend
 import com.pennywiseai.tracker.domain.spending.SpendForecast
 import com.pennywiseai.tracker.domain.spending.SubscriptionCost
+import com.pennywiseai.tracker.domain.spending.UpcomingPayments
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.RestoreTransactionUseCase
 import com.pennywiseai.tracker.presentation.common.filterAccountsByProfile
@@ -347,7 +348,7 @@ class HomeViewModel @Inject constructor(
             if (!unified || currency == primaryCurrency) this
             else currencyConversionService.convertAmountOrNull(amount, currency, primaryCurrency)
                 ?.let { Money(it, primaryCurrency) } ?: this // no rate: keep it apart (#670)
-        val bills = SafeToSpend.billsInWindow(SafeToSpend.billsFrom(subscriptions), today, periodEnd)
+        val bills = UpcomingPayments.subscriptions(subscriptions, today, periodEnd)
         val results = SafeToSpend.calculate(
             balances = countedInSafeToSpend(accounts, excluded).map { Money(it.balance, it.currency).forTotal() },
             bills = bills.map { it.copy(amount = it.amount.forTotal()) },

@@ -3,11 +3,11 @@ package com.pennywiseai.tracker.data.database.entity
 import androidx.room3.ColumnInfo
 import androidx.room3.Entity
 import androidx.room3.PrimaryKey
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.Serializable
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
-import kotlinx.serialization.Contextual
-import kotlinx.serialization.Serializable
 
 /**
  * A user-defined recurring / scheduled MANUAL transaction template (#706).
@@ -115,6 +115,19 @@ data class RecurringTransactionEntity(
             val ym = java.time.YearMonth.from(from).plusMonths(1)
             ym.atDay((dayOfMonth ?: from.dayOfMonth).coerceIn(1, ym.lengthOfMonth()))
         }
+    }
+
+    /**
+     * The first occurrence strictly after [today], stepping by the cadence from
+     * [nextDueDate]: where the schedule lands once a missed run has posted the due
+     * one, rather than re-firing for every cycle it slept through.
+     */
+    fun nextDueDateAfter(today: LocalDate): LocalDate {
+        var next = nextDueAfter(nextDueDate)
+        while (!next.isAfter(today)) {
+            next = nextDueAfter(next)
+        }
+        return next
     }
 }
 

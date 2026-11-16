@@ -703,7 +703,7 @@ class LlmRepository @Inject constructor(
             }
         }
         val filter = SpendingFilter(window, merchant, account?.let { SpendingFilter.accountKey(it) })
-        val groupBy = SpendingQuery.grouping(asGrouped, category, merchant, filter.account)
+        val groupBy = SpendingQuery.grouping(asGrouped, category, merchant, filter.account, userMessage)
         val narrowed = listOfNotNull(merchant, account?.displayLabel).joinToString("") { " · $it" }
         // The list can't be narrowed to a merchant as the figure was (its search reads notes and
         // SMS too), and matches a category's name exactly: "uber" would open on nothing.

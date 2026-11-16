@@ -1402,6 +1402,10 @@ class ChatTurnTest {
         // The biggest one's share: the mascot is a pie.
         assertEquals(0.6f, repository.lastReply.value?.share)
         assertEquals(PennyWiseTools.QUERY_SPENDING, repository.lastReply.value?.tool)
+        // At one merchant, the cards asked for are ranked too: not the merchant's one total.
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("group_by" to "account", "merchant" to "Amazon")))
+        assertTrue(send("How much did I spend at Amazon on each card?").startsWith("TOP_ACCOUNTS"))
+        coVerify { aiContext.topCategories(any(), SpendingFilter(merchant = "Amazon"), SpendingQuery.GroupBy.ACCOUNT, null) }
     }
 
     @Test

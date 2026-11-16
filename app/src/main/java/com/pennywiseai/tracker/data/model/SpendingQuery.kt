@@ -309,13 +309,21 @@ object SpendingQuery {
         else -> null
     }
 
+    // "by card", "per category", "each account", "which card", "حسب البطاقة", "لكل فئة".
+    private val BREAKDOWN = Regex(
+        "\\b(?:by|per|each|which|breakdown|split)\\b|(?<![\\p{L}\\p{M}])(?:حسب|بحسب|لكل|أي|اي|توزيع|تقسيم)(?![\\p{L}\\p{M}])",
+        RegexOption.IGNORE_CASE
+    )
+
     /**
-     * The grouping that answers the question. Qwen2.5 fills group_by in for a plain total
-     * ("category" for "how much at Swiggy?"): one merchant's figure, or a ranking by the very
-     * account or category asked about, is that total.
+     * The grouping that answers [message]. Qwen2.5 fills group_by in for a plain total
+     * ("category" for "how much at Swiggy?"): a ranking of the one merchant, account or category
+     * asked about is that total, and so is a merchant's figure the words don't ask to break down.
+     * "Amazon spending by card" keeps its accounts.
      */
-    fun grouping(by: GroupBy, category: String?, merchant: String?, account: String?): GroupBy = when {
-        merchant != null -> GroupBy.NONE
+    fun grouping(by: GroupBy, category: String?, merchant: String?, account: String?, message: String): GroupBy = when {
+        by == GroupBy.MERCHANT && merchant != null -> GroupBy.NONE
+        merchant != null && !BREAKDOWN.containsMatchIn(message) -> GroupBy.NONE
         by == GroupBy.ACCOUNT && account != null -> GroupBy.NONE
         by == GroupBy.CATEGORY && category != null -> GroupBy.NONE
         else -> by

@@ -208,14 +208,21 @@ class SpendingQueryTest {
 
     @Test
     fun `a ranking of the one merchant, account or category asked about is its total`() {
+        fun grouping(by: GroupBy, category: String?, merchant: String?, account: String?, message: String = "") =
+            SpendingQuery.grouping(by, category, merchant, account, message)
         // What Qwen2.5 sends for "how much at Swiggy?" and "how much from my HDFC account?".
-        assertEquals(GroupBy.NONE, SpendingQuery.grouping(GroupBy.CATEGORY, null, "Swiggy", null))
-        assertEquals(GroupBy.NONE, SpendingQuery.grouping(GroupBy.ACCOUNT, null, null, "HDFC_1234"))
-        assertEquals(GroupBy.NONE, SpendingQuery.grouping(GroupBy.CATEGORY, "Food & Dining", null, null))
+        assertEquals(GroupBy.NONE, grouping(GroupBy.CATEGORY, null, "Swiggy", null, "how much at Swiggy?"))
+        assertEquals(GroupBy.NONE, grouping(GroupBy.MERCHANT, null, "Swiggy", null, "Swiggy spending by merchant"))
+        assertEquals(GroupBy.NONE, grouping(GroupBy.ACCOUNT, null, null, "HDFC_1234"))
+        assertEquals(GroupBy.NONE, grouping(GroupBy.CATEGORY, "Food & Dining", null, null))
         // Rankings within what was asked stay: "where do I spend most on food?".
-        assertEquals(GroupBy.MERCHANT, SpendingQuery.grouping(GroupBy.MERCHANT, "Food & Dining", null, null))
-        assertEquals(GroupBy.CATEGORY, SpendingQuery.grouping(GroupBy.CATEGORY, null, null, "HDFC_1234"))
-        assertEquals(GroupBy.CATEGORY, SpendingQuery.grouping(GroupBy.CATEGORY, null, null, null))
+        assertEquals(GroupBy.MERCHANT, grouping(GroupBy.MERCHANT, "Food & Dining", null, null))
+        assertEquals(GroupBy.CATEGORY, grouping(GroupBy.CATEGORY, null, null, "HDFC_1234"))
+        assertEquals(GroupBy.CATEGORY, grouping(GroupBy.CATEGORY, null, null, null))
+        // A breakdown asked for at one merchant stays.
+        assertEquals(GroupBy.ACCOUNT, grouping(GroupBy.ACCOUNT, null, "Amazon", null, "How much did I spend at Amazon on each card?"))
+        assertEquals(GroupBy.CATEGORY, grouping(GroupBy.CATEGORY, null, "Carrefour", null, "my Carrefour spending by category"))
+        assertEquals(GroupBy.ACCOUNT, grouping(GroupBy.ACCOUNT, null, "أمازون", null, "كم صرفت في أمازون حسب البطاقة؟"))
     }
 
     @Test

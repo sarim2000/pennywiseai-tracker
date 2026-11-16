@@ -60,14 +60,14 @@ import com.pennywiseai.tracker.data.share.ShareCardExporter
 import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.domain.review.isCalendarMonth
 import com.pennywiseai.tracker.domain.review.latestReviewOffset
-import com.pennywiseai.tracker.presentation.review.PeriodSwitcher
-import com.pennywiseai.tracker.presentation.review.periodLabel
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
+import com.pennywiseai.tracker.ui.components.PeriodSwitcher
 import com.pennywiseai.tracker.ui.components.PreferenceSwitch
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
+import com.pennywiseai.tracker.ui.components.periodLabel
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.AmountPrivacy

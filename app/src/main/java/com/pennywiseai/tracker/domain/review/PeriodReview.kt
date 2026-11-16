@@ -38,6 +38,9 @@ data class ReviewRange(
     val isComplete: Boolean,
 )
 
+/** [offset] counts back from [today], the day it was chosen: a period can't turn into another while the screen waits. */
+data class ReviewSelection(val kind: ReviewKind, val offset: Int, val today: LocalDate)
+
 /** The newest period that can be reviewed: a week or cycle only once it has ended. */
 internal fun latestReviewOffset(kind: ReviewKind): Int = if (kind == ReviewKind.YEAR) 0 else -1
 

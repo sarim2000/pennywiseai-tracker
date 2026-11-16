@@ -12,9 +12,9 @@ import com.pennywiseai.tracker.data.repository.GoalStatus
 import com.pennywiseai.tracker.domain.review.PeriodReview
 import com.pennywiseai.tracker.domain.review.PeriodReviewLoader
 import com.pennywiseai.tracker.domain.review.ReviewKind
+import com.pennywiseai.tracker.domain.review.ReviewSelection
 import com.pennywiseai.tracker.domain.review.defaultReviewOffset
 import com.pennywiseai.tracker.domain.review.latestReviewOffset
-import com.pennywiseai.tracker.presentation.review.ReviewSelection
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow

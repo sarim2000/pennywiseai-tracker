@@ -23,8 +23,8 @@ import com.pennywiseai.tracker.domain.share.savingsRatePercent
 import com.pennywiseai.tracker.domain.share.savingsTrend
 import com.pennywiseai.tracker.domain.share.spendingDrivers
 import com.pennywiseai.tracker.domain.share.topCategoryShares
-import com.pennywiseai.tracker.presentation.review.comparisonTarget
-import com.pennywiseai.tracker.presentation.review.shareLabel
+import com.pennywiseai.tracker.ui.components.comparisonTarget
+import com.pennywiseai.tracker.ui.components.shareLabel
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter

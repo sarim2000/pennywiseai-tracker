@@ -269,6 +269,8 @@ class QuickAddActivity : FragmentActivity() {
     private fun VoicePane(setup: Setup, onEntry: (VoiceEntry) -> Unit, onType: () -> Unit) {
         var transcript by rememberSaveable { mutableStateOf("") }
         var unclear by rememberSaveable { mutableStateOf(false) }
+        // A question, with the Chat tab hidden: not the user's mistake, so a different line.
+        var chatHidden by rememberSaveable { mutableStateOf(false) }
         // Starts by itself once; a rotation doesn't start it again.
         var started by rememberSaveable { mutableStateOf(false) }
         // Words from a recording still going: only these are routed after a rotation, not
@@ -281,12 +283,14 @@ class QuickAddActivity : FragmentActivity() {
                 is VoiceRoute.Fill -> onEntry(route.entry)
                 VoiceRoute.Chat -> openChat(text)
                 VoiceRoute.Unclear -> unclear = true
+                VoiceRoute.ChatHidden -> chatHidden = true
             }
         }
         val voice = rememberVoiceInput(
             onText = {
                 transcript = it
                 unclear = false
+                chatHidden = false
                 midRecording = true
             },
             onDone = ::route
@@ -338,9 +342,9 @@ class QuickAddActivity : FragmentActivity() {
                 color = if (transcript.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.fillMaxWidth()
             )
-            if (unclear) {
+            if (unclear || chatHidden) {
                 Text(
-                    text = stringResource(R.string.quick_add_voice_unclear),
+                    text = stringResource(if (chatHidden) R.string.quick_add_voice_chat_hidden else R.string.quick_add_voice_unclear),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.error
                 )
@@ -352,6 +356,7 @@ class QuickAddActivity : FragmentActivity() {
                     enabled = true,
                     onTap = {
                         unclear = false
+                        chatHidden = false
                         // A new recording: the last one's words are done with.
                         if (!voice.active) midRecording = false
                         voice.toggle("")
@@ -608,6 +613,9 @@ class QuickAddActivity : FragmentActivity() {
         data class Fill(val entry: VoiceEntry) : VoiceRoute
         data object Chat : VoiceRoute
         data object Unclear : VoiceRoute
+
+        /** A question or a plan, with the Chat tab hidden. */
+        data object ChatHidden : VoiceRoute
     }
 
     companion object {
@@ -642,8 +650,8 @@ class QuickAddActivity : FragmentActivity() {
         private val AMOUNT_INPUT = Regex("""\d*\.?\d*""")
 
         /**
-         * One entry fills the sheet. A question or a plan goes to Chat, unless the user hid
-         * it; with no model it waits there. Two amounts go to Chat only with the model there
+         * One entry fills the sheet. A question or a plan goes to Chat (with no model it waits
+         * there), or, with Chat hidden, says so. Two amounts go to Chat only with the model there
          * to read them: a cash spend said as "2 coffees 10" must not end up where it can't be
          * recorded. Anything else (no amount heard) is unclear.
          */
@@ -657,8 +665,8 @@ class QuickAddActivity : FragmentActivity() {
             label: (String) -> String = { it }
         ): VoiceRoute = VoiceEntry.parse(text, categories, baseCurrency, today, label)?.let { VoiceRoute.Fill(it) }
             ?: when {
+                VoiceEntry.asksOrPlans(text) -> if (chatOpen) VoiceRoute.Chat else VoiceRoute.ChatHidden
                 !chatOpen -> VoiceRoute.Unclear
-                VoiceEntry.asksOrPlans(text) -> VoiceRoute.Chat
                 modelReady && VoiceEntry.needsModel(text) -> VoiceRoute.Chat
                 else -> VoiceRoute.Unclear
             }

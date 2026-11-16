@@ -118,7 +118,8 @@ class QuickAddActivityTest {
 
     @Test
     fun `with Chat hidden a question has nowhere to go`() {
-        assertEquals(QuickAddActivity.VoiceRoute.Unclear, route("how much did I spend on food", chatOpen = false))
+        assertEquals(QuickAddActivity.VoiceRoute.ChatHidden, route("how much did I spend on food", chatOpen = false))
+        assertEquals(QuickAddActivity.VoiceRoute.Unclear, route("lunch 200 and taxi 50", chatOpen = false))
         assertTrue(route("200 lunch", chatOpen = false) is QuickAddActivity.VoiceRoute.Fill)
         assertEquals(QuickAddActivity.VoiceRoute.Unclear, route("  "))
     }

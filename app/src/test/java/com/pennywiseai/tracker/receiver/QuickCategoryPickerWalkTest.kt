@@ -21,4 +21,10 @@ class QuickCategoryPickerWalkTest {
         val rows = listOf(tx(4), tx(3, deleted = true), tx(2, category = "Food"), tx(1, excluded = true), tx(0))
         assertEquals(listOf(4L, 0L), QuickCategoryPickerActivity.stillUnsorted(rows, "Others").map { it.id })
     }
+
+    @Test
+    fun `a row with no category is still waiting too, as the chat counts it`() {
+        val rows = listOf(tx(2, category = ""), tx(1, category = "Food"), tx(0, category = "Misc"))
+        assertEquals(listOf(2L, 0L), QuickCategoryPickerActivity.stillUnsorted(rows, "Misc").map { it.id })
+    }
 }

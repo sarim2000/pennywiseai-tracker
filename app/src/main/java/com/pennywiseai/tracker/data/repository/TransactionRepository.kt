@@ -47,6 +47,10 @@ open class TransactionRepository @Inject constructor(
     fun getAllTransactions(): Flow<List<TransactionEntity>> =
         transactionDao.getAllTransactions()
 
+    /** Every row still to file ([needsCategory]), newest first, as it changes. */
+    fun observeUncategorized(): Flow<List<TransactionEntity>> =
+        transactionDao.getUncategorized(com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames.current("Others"))
+
     open suspend fun getTransactionById(id: Long): TransactionEntity? =
         transactionDao.getTransactionById(id)
 
@@ -694,3 +698,11 @@ open class TransactionRepository @Inject constructor(
     suspend fun deleteSplit(split: TransactionSplitEntity) =
         transactionSplitDao.deleteSplit(split)
 }
+
+/**
+ * A row still to file: no category, or "Others" under whatever name the user gave it ([others]).
+ * Deleted rows and ones kept out of totals aren't waiting on anything. The chat's "N
+ * uncategorized" counts these and the category picker walks them, so the two agree.
+ */
+fun TransactionEntity.needsCategory(others: String): Boolean =
+    !isDeleted && !excludedFromAnalytics && (category.isBlank() || category == others)

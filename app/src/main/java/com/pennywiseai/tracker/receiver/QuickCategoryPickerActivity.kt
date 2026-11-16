@@ -26,6 +26,7 @@ import com.pennywiseai.tracker.data.repository.AppLockRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.data.repository.needsCategory
 import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
 import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
 import com.pennywiseai.tracker.ui.components.forPicker
@@ -92,6 +93,8 @@ class QuickCategoryPickerActivity : FragmentActivity() {
     // and how many were already answered, for the "2 of 3".
     private var walkQueue: List<Long>? = null
     private val walked = mutableStateOf(0)
+    // Walk opened inside the app (the chat): no "Saved as" notes, the screen is right there.
+    private var quiet = false
     private var saving = false
     // Bumped by each (re)start: a walk's pending step must not steer a picker re-targeted meanwhile.
     private var walkGen = 0
@@ -114,7 +117,8 @@ class QuickCategoryPickerActivity : FragmentActivity() {
         savedInstanceState?.getLongArray(KEY_WALK_QUEUE)?.let { queue ->
             walkQueue = queue.toList()
             walked.value = savedInstanceState.getInt(KEY_WALKED)
-            queue.firstOrNull()?.let { currentArgs.value = PickerArgs(it, it.toInt()) }
+            quiet = savedInstanceState.getBoolean(KEY_QUIET)
+            queue.firstOrNull()?.let { currentArgs.value = PickerArgs(it, alertId(it)) }
         }
 
         if (savedInstanceState?.getBoolean(KEY_UNLOCKED) == true) {
@@ -141,6 +145,7 @@ class QuickCategoryPickerActivity : FragmentActivity() {
         walkQueue?.let {
             outState.putLongArray(KEY_WALK_QUEUE, it.toLongArray())
             outState.putInt(KEY_WALKED, walked.value)
+            outState.putBoolean(KEY_QUIET, quiet)
         }
     }
 
@@ -162,6 +167,7 @@ class QuickCategoryPickerActivity : FragmentActivity() {
 
     private fun startWalk(intent: Intent) {
         walkQueue = intent.getLongArrayExtra(EXTRA_WALK_IDS)?.toList()
+        quiet = intent.getBooleanExtra(EXTRA_QUIET, false)
         walked.value = 0
         saving = false
         walkGen++
@@ -219,9 +225,12 @@ class QuickCategoryPickerActivity : FragmentActivity() {
             (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).cancel(DailySummaryWorker.NOTIFICATION_ID)
             finish()
         } else {
-            currentArgs.value = PickerArgs(next.id, next.id.toInt())
+            currentArgs.value = PickerArgs(next.id, alertId(next.id))
         }
     }
+
+    /** The alert a walk's pick answers: the transaction's own, none for a quiet walk. */
+    private fun alertId(txnId: Long) = if (quiet) -1 else txnId.toInt()
 
     /** Shows the sheet only once the app lock (if on) is satisfied; a cancel closes the picker. */
     private fun checkLock() {
@@ -361,13 +370,16 @@ class QuickCategoryPickerActivity : FragmentActivity() {
         const val EXTRA_NOTIFICATION_ID = "notification_id"
         /** Walk mode: the recap's unsorted transaction ids, newest first. */
         const val EXTRA_WALK_IDS = "walk_ids"
+        /** Walk mode: posts no "Saved as" notes ([review]). */
+        const val EXTRA_QUIET = "quiet"
         private const val KEY_UNLOCKED = "unlocked"
         private const val KEY_WALK_QUEUE = "walk_queue"
         private const val KEY_WALKED = "walked"
+        private const val KEY_QUIET = "quiet"
 
         /** The walk's rows still waiting, in order: sorted (perhaps by a merchant just learned), excluded or deleted ones drop out. */
         internal fun stillUnsorted(rows: List<TransactionEntity>, others: String): List<TransactionEntity> =
-            rows.filter { it.category == others && !it.excludedFromAnalytics && !it.isDeleted }
+            rows.filter { it.needsCategory(others) }
 
         /** Opens the picker on [ids]' first and walks the rest; each alert's id is its transaction's. */
         fun walkIntent(context: Context, ids: List<Long>, requestCode: Int): PendingIntent =
@@ -382,5 +394,17 @@ class QuickCategoryPickerActivity : FragmentActivity() {
                 },
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
+
+        /**
+         * The walk over [ids] (non-empty), opened from inside the app: no alert to answer, so no
+         * "Saved as" notes either. The screen it was opened from shows what changed.
+         */
+        fun review(context: Context, ids: List<Long>): Intent =
+            Intent(context, QuickCategoryPickerActivity::class.java).apply {
+                putExtra(EXTRA_TRANSACTION_ID, ids.first())
+                putExtra(EXTRA_NOTIFICATION_ID, -1)
+                putExtra(EXTRA_WALK_IDS, ids.toLongArray())
+                putExtra(EXTRA_QUIET, true)
+            }
     }
 }

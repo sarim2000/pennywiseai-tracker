@@ -76,6 +76,13 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE is_deleted = 0 ORDER BY date_time DESC")
     fun getAllTransactions(): Flow<List<TransactionEntity>>
 
+    /** Rows still to file, newest first: [TransactionEntity.needsCategory] in SQL. */
+    @Query(
+        "SELECT * FROM transactions WHERE is_deleted = 0 AND excluded_from_analytics = 0 " +
+            "AND (TRIM(category) = '' OR category = :others) ORDER BY date_time DESC"
+    )
+    fun getUncategorized(others: String): Flow<List<TransactionEntity>>
+
     @Query("SELECT * FROM transactions WHERE id = :transactionId")
     suspend fun getTransactionById(transactionId: Long): TransactionEntity?
 

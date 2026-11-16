@@ -84,14 +84,14 @@
     <string name="insights_action_subscriptions">Open subscriptions</string>
     <string name="insights_action_account">Open account</string>
 
-    <!-- Budget over. %1$s = amount over, %2$s = budget name -->
-    <string name="insights_budget_over_title">%1$s over your %2$s budget</string>
+    <!-- Budget over. %1$s = amount over, %2$s = budget name (often already ends in "Budget", so don't add the word) -->
+    <string name="insights_budget_over_title">%1$s over on %2$s</string>
     <!-- Budget limit reached with days still to go. %1$s = budget name -->
-    <string name="insights_budget_used_up_title">Your %1$s budget is used up</string>
+    <string name="insights_budget_used_up_title">Nothing left in %1$s</string>
     <!-- %1$s = spent, %2$s = budget limit -->
     <string name="insights_budget_over_body">You\'ve spent %1$s of %2$s.</string>
     <!-- Budget pace. %1$s = amount per day, %2$s = budget name -->
-    <string name="insights_budget_pace_title">%1$s a day keeps %2$s on budget</string>
+    <string name="insights_budget_pace_title">%1$s a day keeps %2$s on track</string>
     <!-- %1$s = projected spend, %2$s = end date, %3$s = budget limit -->
     <string name="insights_budget_pace_body">At this pace you\'d spend %1$s by %2$s, against a budget of %3$s.</string>
     <string name="insights_budget_incomplete">Some spending in other currencies has no exchange rate yet, so the real figure may be higher.</string>

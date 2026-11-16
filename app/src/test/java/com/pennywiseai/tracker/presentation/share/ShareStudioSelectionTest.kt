@@ -96,4 +96,26 @@ class ShareStudioSelectionTest {
         // A card switch that keeps the period keeps its day too.
         assertEquals(opened.period, opened.withKind(ShareKind.SPENDING, dec1).period)
     }
+
+    @Test
+    fun `an achievement opens on that one alone, Share all on every one earned`() {
+        val one = routeSelection(SavedStateHandle(mapOf("kind" to "ACHIEVEMENTS", "achievement" to "goal_halfway")), today)
+        assertEquals(ShareKind.ACHIEVEMENTS, one.kind)
+        assertEquals(setOf("goal_halfway"), one.achievements)
+        assertNull(routeSelection(SavedStateHandle(mapOf("kind" to "ACHIEVEMENTS")), today).achievements)
+    }
+
+    @Test
+    fun `picking achievements goes back to every one once all are on`() {
+        val earned = listOf("a", "b", "c")
+        assertEquals(setOf("a", "c"), toggleAchievement(null, "b", shown = false, earned))
+        assertEquals(emptySet<String>(), toggleAchievement(setOf("a"), "a", shown = false, earned))
+        assertNull(toggleAchievement(setOf("a", "c"), "b", shown = true, earned))
+    }
+
+    @Test
+    fun `an achievements card leads with badges, not a figure, and only offers its date`() {
+        assertFalse(ShareKind.ACHIEVEMENTS.needsFigure)
+        assertEquals(setOf(ShareDetail.PERIOD), effectiveDetails(ShareKind.ACHIEVEMENTS, ShareDetail.entries.toSet()))
+    }
 }

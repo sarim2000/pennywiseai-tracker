@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Achievements screen -->
+    <string name="achievements_title">Achievements</string>
+    <string name="achievements_back">Back</string>
+    <string name="achievements_share_all">Share all</string>
+    <!-- %1$s = an achievement's name -->
+    <string name="achievements_share_one">Share %1$s</string>
+    <!-- %1$d = achievements earned, %2$d = all achievements -->
+    <string name="achievements_summary">%1$d of %2$d earned</string>
+    <string name="achievements_summary_hint">Worked out on your phone from what you\'ve tracked. Nothing extra is stored.</string>
+    <string name="achievements_section_earned">Earned</string>
+    <string name="achievements_section_locked">Still to earn</string>
+    <!-- %1$d = tiers earned, %2$d = all tiers -->
+    <string name="achievements_tier">Tier %1$d of %2$d</string>
+    <!-- %1$s = a date -->
+    <string name="achievements_earned_on">Earned %1$s</string>
+    <!-- %1$s = what the next tier asks for, e.g. "1,000 transactions tracked" -->
+    <string name="achievements_next">Next: %1$s</string>
+    <!-- Progress toward a tier. %1$s = where you are, %2$s = what it takes, e.g. "120 / 500" -->
+    <string name="achievements_progress">%1$s / %2$s</string>
+
+    <!-- Each achievement: a name, and what its tier asks for, said as done -->
+    <string name="achievement_tracked_name">Bookkeeper</string>
+    <!-- %1$s = a number of transactions -->
+    <plurals name="achievement_tracked_desc">
+        <item quantity="one">%1$s transaction tracked</item>
+        <item quantity="other">%1$s transactions tracked</item>
+    </plurals>
+    <string name="achievement_streak_name">Steady habit</string>
+    <!-- %1$s = a number of months -->
+    <plurals name="achievement_streak_desc">
+        <item quantity="one">Tracked %1$s month</item>
+        <item quantity="other">Tracked %1$s months in a row</item>
+    </plurals>
+    <string name="achievement_subscriptions_name">Subscription spotter</string>
+    <!-- %1$s = a number of subscriptions -->
+    <plurals name="achievement_subscriptions_desc">
+        <item quantity="one">%1$s subscription found</item>
+        <item quantity="other">%1$s subscriptions found</item>
+    </plurals>
+    <string name="achievement_goal_halfway_name">Halfway there</string>
+    <string name="achievement_goal_halfway_desc">Saved half of a goal\'s target</string>
+    <string name="achievement_goals_reached_name">Goal getter</string>
+    <!-- %1$s = a number of goals -->
+    <plurals name="achievement_goals_reached_desc">
+        <item quantity="one">Reached %1$s goal</item>
+        <item quantity="other">Reached %1$s goals</item>
+    </plurals>
+    <string name="achievement_budget_kept_name">Within limits</string>
+    <!-- %1$s = a number of months -->
+    <plurals name="achievement_budget_kept_desc">
+        <item quantity="one">%1$s month under every spending limit</item>
+        <item quantity="other">%1$s months in a row under every spending limit</item>
+    </plurals>
+    <string name="achievement_savings_rate_name">Saver</string>
+    <!-- %1$s = a percentage, e.g. "20%" -->
+    <string name="achievement_savings_rate_desc">Kept %1$s of a month\'s income</string>
+    <string name="achievement_savings_up_name">On the rise</string>
+    <string name="achievement_savings_up_desc">Kept a bigger share of income than the month before</string>
+    <string name="achievement_spending_down_name">Trimmed</string>
+    <!-- %1$s = a percentage, e.g. "10%" -->
+    <string name="achievement_spending_down_desc">Spent %1$s less than the month before</string>
+</resources>

@@ -15,6 +15,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -27,7 +28,6 @@ import com.pennywiseai.tracker.domain.review.partialYearSpan
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.DateRangeUtils
-import java.util.Locale
 
 // The period picker and labels the review and the share studio both show.
 
@@ -95,12 +95,13 @@ internal fun periodLabel(range: ReviewRange): String = when (range.kind) {
 
 @Composable
 internal fun shareLabel(review: PeriodReview): String {
-    if (review.range.kind != ReviewKind.YEAR) return periodLabel(review.range).uppercase(Locale.getDefault())
+    val locale = LocalConfiguration.current.locales[0]
+    if (review.range.kind != ReviewKind.YEAR) return periodLabel(review.range).uppercase(locale)
     val span = partialYearSpan(review.firstRecorded, review.lastRecorded)
         ?: return review.range.start.year.toString()
     val months = AppDates.pattern("MMM")
     return "${span.first.format(months)} – ${span.second.format(months)} ${span.first.year}"
-        .uppercase(Locale.getDefault())
+        .uppercase(locale)
 }
 
 private fun ReviewRange.isCalendarMonth(): Boolean = isCalendarMonth(start, end)

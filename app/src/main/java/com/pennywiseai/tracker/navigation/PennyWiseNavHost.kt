@@ -452,6 +452,24 @@ fun PennyWiseNavHost(
                         )
                     }
 
+                    entry<SpendCalendar> { key ->
+                        com.pennywiseai.tracker.presentation.calendar.SpendingCalendarScreen(
+                            onNavigateBack = { backStack.pop(key) },
+                            onOpenTransactions = { day, currency ->
+                                backStack.navigate(
+                                    TransactionsWithFilter(
+                                        period = com.pennywiseai.tracker.presentation.common.TimePeriod.CUSTOM.name,
+                                        currency = currency,
+                                        startDate = day.toEpochDay(),
+                                        endDate = day.toEpochDay(),
+                                        currencyOnly = true,
+                                    )
+                                )
+                            },
+                            onOpenBill = { source -> backStack.navigate(billDestination(source)) },
+                        )
+                    }
+
                     // Also a tab screen; here for an insight's "Open subscriptions".
                     entry<Subscriptions> { key ->
                         com.pennywiseai.tracker.presentation.subscriptions.SubscriptionsScreen(
@@ -505,6 +523,13 @@ fun PennyWiseNavHost(
             )
         }
     }
+}
+
+/** Where a bill on the calendar leads: the subscriptions, the recurring payments, or the card. */
+private fun billDestination(source: com.pennywiseai.tracker.domain.spending.BillSource): NavKey = when (source) {
+    com.pennywiseai.tracker.domain.spending.BillSource.Subscription -> Subscriptions
+    com.pennywiseai.tracker.domain.spending.BillSource.Recurring -> RecurringTransactions
+    is com.pennywiseai.tracker.domain.spending.BillSource.Card -> AccountDetail(source.bankName, source.accountLast4)
 }
 
 /** Where an insight's button leads; the domain names the target, the app picks the screen. */

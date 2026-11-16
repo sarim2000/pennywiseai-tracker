@@ -1,0 +1,34 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Spending calendar: a month grid of what was spent each day and what's due -->
+    <string name="calendar_title">Calendar</string>
+    <!-- The Analytics toolbar button that opens the calendar -->
+    <string name="calendar_open">Spending calendar</string>
+    <string name="calendar_back">Back</string>
+    <string name="calendar_previous_month">Previous month</string>
+    <string name="calendar_next_month">Next month</string>
+    <string name="calendar_this_month">Back to this month</string>
+    <string name="calendar_legend_due">Payment due</string>
+    <string name="calendar_legend_shade">Darker days, more spent</string>
+    <!-- %1$s = a month, e.g. "November 2026" -->
+    <string name="calendar_empty_headline">Nothing spent or due in %1$s</string>
+    <string name="calendar_empty_body">Spending from your bank texts, and the subscriptions, recurring payments and card bills you track, show up here.</string>
+
+    <!-- Read out for a day; %1$s = what was spent, e.g. "₹500" or "₹500, $10" -->
+    <string name="calendar_day_spent">Spent %1$s</string>
+    <plurals name="calendar_day_due">
+        <item quantity="one">%d payment due</item>
+        <item quantity="other">%d payments due</item>
+    </plurals>
+    <string name="calendar_day_today">Today</string>
+
+    <!-- The sheet for one day -->
+    <string name="calendar_day_section_spent">Spent</string>
+    <string name="calendar_day_section_due">Due</string>
+    <string name="calendar_day_transactions">Transactions</string>
+    <string name="calendar_day_empty">Nothing spent or due on this day.</string>
+    <string name="calendar_kind_subscription">Subscription</string>
+    <string name="calendar_kind_recurring">Recurring payment</string>
+    <string name="calendar_kind_card">Card bill</string>
+    <string name="calendar_kind_card_overdue">Card bill, overdue</string>
+</resources>

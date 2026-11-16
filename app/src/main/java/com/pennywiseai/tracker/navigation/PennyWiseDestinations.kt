@@ -168,7 +168,8 @@ data object LearnedCategories : NavKey
 
 @Serializable
 data class TransactionsWithFilter(
-    val category: String,
+    /** Null lists every category: a calendar day's transactions. */
+    val category: String? = null,
     val period: String? = null,
     val currency: String? = null,
     val startDate: Long? = null,
@@ -187,6 +188,10 @@ data class Review(val kind: String = "MONTH", val weekStart: String? = null) : N
 /** What needs attention this cycle; opened from Home, Analytics and the evening recap. */
 @Serializable
 data object Insights : NavKey
+
+/** A month of daily spend and payments due; opened from Analytics. */
+@Serializable
+data object SpendCalendar : NavKey
 
 // Screens inside MainScreen's tab stacks (Settings, SettingsPage, Categories, Faq
 // and ImportStatement live only there; UnrecognizedSms also opens on the root stack).

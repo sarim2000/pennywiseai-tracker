@@ -88,7 +88,8 @@ fun AnalyticsScreen(
     onNavigateToChat: () -> Unit = {},
     onNavigateToTransactions: (TransactionsDrillDown) -> Unit = {},
     onNavigateToHome: () -> Unit = {},
-    onNavigateToInsights: () -> Unit = {}
+    onNavigateToInsights: () -> Unit = {},
+    onNavigateToCalendar: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val selectedPeriod by viewModel.selectedPeriod.collectAsStateWithLifecycle()
@@ -179,6 +180,9 @@ fun AnalyticsScreen(
                 title = stringResource(R.string.analytics_title),
                 hazeState = hazeState,
                 actionContent = {
+                    IconButton(onClick = onNavigateToCalendar, shapes = IconButtonDefaults.shapes()) {
+                        Icon(Icons.Default.CalendarMonth, contentDescription = stringResource(R.string.calendar_open))
+                    }
                     IconButton(onClick = onNavigateToInsights, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.Default.Insights, contentDescription = stringResource(R.string.insights_title))
                     }

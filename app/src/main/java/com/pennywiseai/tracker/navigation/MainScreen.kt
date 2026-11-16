@@ -404,6 +404,9 @@ fun MainScreen(
                 },
                 onNavigateToInsights = {
                     openRoot(Insights)
+                },
+                onNavigateToCalendar = {
+                    openRoot(SpendCalendar)
                 }
             )
         }

@@ -40,12 +40,15 @@ internal class ReportBlock(
     val height: Float,
     /** A heading: it moves to the next page with the block after it rather than end a page alone. */
     val keepWithNext: Boolean = false,
+    /** A table row's column names, drawn again above it when the row starts a page. */
+    val header: ReportBlock? = null,
     val draw: Canvas.(top: Float) -> Unit = {},
 )
 
 /**
  * The index of the first block on each page, filling [pageHeight] in order. A block
- * taller than a page still gets a page to itself; one never starts a page empty.
+ * taller than a page still gets a page to itself; one never starts a page empty. A page
+ * that starts mid-table makes room for the table's [ReportBlock.header] first.
  */
 internal fun pageStarts(blocks: List<ReportBlock>, pageHeight: Float): List<Int> {
     if (blocks.isEmpty()) return listOf(0)
@@ -58,7 +61,7 @@ internal fun pageStarts(blocks: List<ReportBlock>, pageHeight: Float): List<Int>
         while (blocks[next].keepWithNext && next + 1 < blocks.size) needed += blocks[++next].height
         if (used > 0f && used + needed > pageHeight) {
             starts += index
-            used = 0f
+            used = block.header?.height ?: 0f
         }
         used += block.height
     }
@@ -146,6 +149,11 @@ class PdfReportExporter @Inject constructor(
             starts.forEachIndexed { index, first ->
                 val page = document.startPage(PdfDocument.PageInfo.Builder(PAGE_WIDTH, PAGE_HEIGHT, index + 1).create())
                 var top = MARGIN
+                // A table that runs on from the page before gets its column names again.
+                blocks[first].header?.takeIf { index > 0 }?.let { header ->
+                    header.draw(page.canvas, top)
+                    top += header.height
+                }
                 for (block in blocks.subList(first, starts.getOrElse(index + 1) { blocks.size })) {
                     block.draw(page.canvas, top)
                     top += block.height
@@ -192,7 +200,7 @@ class PdfReportExporter @Inject constructor(
                 val compared = review.previousSpent != null
                 val columns = if (compared) CATEGORY_COLUMNS else NAME_AMOUNT_COLUMNS
                 blocks += text(context.getString(R.string.review_pdf_categories), bodyBold, before = 12f, after = 2f, keepWithNext = true)
-                blocks += row(
+                val header = row(
                     columns,
                     listOfNotNull(
                         context.getString(R.string.review_pdf_category),
@@ -202,6 +210,7 @@ class PdfReportExporter @Inject constructor(
                     label,
                     keepWithNext = true,
                 )
+                blocks += header
                 review.categories.sortedByDescending { it.amount }.forEach { line ->
                     val delta = line.amount - (line.previous ?: line.amount)
                     blocks += row(
@@ -214,18 +223,20 @@ class PdfReportExporter @Inject constructor(
                             else Money(delta.abs(), currency).format(if (delta.signum() > 0) "+" else "−", maskIfHidden = false),
                         ),
                         body,
+                        header = header,
                     )
                 }
             }
             if (review.merchants.isNotEmpty()) {
                 blocks += text(context.getString(R.string.review_pdf_merchants), bodyBold, before = 12f, after = 2f, keepWithNext = true)
-                blocks += row(
+                val header = row(
                     NAME_AMOUNT_COLUMNS,
                     listOf(context.getString(R.string.review_pdf_merchant), context.getString(R.string.review_pdf_amount)),
                     label,
                     keepWithNext = true,
                 )
-                review.merchants.forEach { blocks += row(NAME_AMOUNT_COLUMNS, listOf(it.name, money(it.amount, currency)), body) }
+                blocks += header
+                review.merchants.forEach { blocks += row(NAME_AMOUNT_COLUMNS, listOf(it.name, money(it.amount, currency)), body, header = header) }
             }
             return blocks
         }
@@ -261,7 +272,13 @@ class PdfReportExporter @Inject constructor(
         }
 
         /** One table row; [columns] are fractions of the width, the first holding a name, the rest amounts. */
-        private fun row(columns: List<Float>, cells: List<String>, paint: TextPaint, keepWithNext: Boolean = false): ReportBlock {
+        private fun row(
+            columns: List<Float>,
+            cells: List<String>,
+            paint: TextPaint,
+            keepWithNext: Boolean = false,
+            header: ReportBlock? = null,
+        ): ReportBlock {
             var offset = 0f
             val laid = cells.mapIndexed { index, text ->
                 val width = columns[index] * CONTENT_WIDTH
@@ -271,7 +288,7 @@ class PdfReportExporter @Inject constructor(
                 x to layout(text, paint, width - CELL_GAP, align, maxLines = 2)
             }
             val height = laid.maxOf { it.second.height } + ROW_PADDING * 2
-            return ReportBlock(height, keepWithNext) { top ->
+            return ReportBlock(height, keepWithNext, header) { top ->
                 laid.forEach { (x, layout) -> draw(layout, x, top + ROW_PADDING) }
                 drawLine(MARGIN, top + height, PAGE_WIDTH - MARGIN, top + height, rule)
             }

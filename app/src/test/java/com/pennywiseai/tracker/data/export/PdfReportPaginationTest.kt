@@ -46,6 +46,14 @@ class PdfReportPaginationTest {
     }
 
     @Test
+    fun `a table that runs onto the next page leaves room for its column names there`() {
+        val columns = ReportBlock(20f, keepWithNext = true)
+        val rows = List(5) { ReportBlock(30f, header = columns) }
+        // Page 1: columns + 2 rows (80). Page 2 repeats the columns: 20 + 2 rows, then 20 + the last.
+        assertEquals(listOf(0, 3, 5), pageStarts(listOf(columns) + rows, pageHeight = 85f))
+    }
+
+    @Test
     fun `the file name says which period it covers`() {
         fun range(kind: ReviewKind, start: LocalDate, end: LocalDate) =
             ReviewRange(kind, start, end, start, end, isComplete = true)

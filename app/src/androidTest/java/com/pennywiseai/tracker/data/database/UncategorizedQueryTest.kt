@@ -4,6 +4,7 @@ import androidx.room3.Room
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.repository.needsCategory
 import kotlinx.coroutines.flow.first
@@ -40,11 +41,18 @@ class UncategorizedQueryTest {
             row(5, "Food"),
             row(6, "Misc", excluded = true),
             row(7, "Misc", deleted = true),
+            row(8, "Misc"), // split across categories: filed by its splits
         )
         rows.forEach { dao.insertTransaction(it) }
+        db.transactionSplitDao().insertSplits(
+            listOf(TransactionSplitEntity(transactionId = 8, category = "Food", amount = BigDecimal("4")),
+                TransactionSplitEntity(transactionId = 8, category = "Transport", amount = BigDecimal("6")))
+        )
 
         val counted = dao.getUncategorized("Misc").first().map { it.id }
         assertEquals(listOf(3L, 2L, 1L), counted) // newest first
-        assertEquals(rows.filter { it.needsCategory("Misc") }.map { it.id }.sortedDescending(), counted)
+        val split = db.transactionSplitDao().getSplitTransactionIds(rows.map { it.id }).toSet()
+        assertEquals(setOf(8L), split)
+        assertEquals(rows.filter { it.needsCategory("Misc", split = it.id in split) }.map { it.id }.sortedDescending(), counted)
     }
 }

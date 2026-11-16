@@ -211,10 +211,7 @@ class QuickCategoryPickerActivity : FragmentActivity() {
      */
     private suspend fun advance(gen: Int, txnId: Long, answered: Boolean) {
         val queue = walkQueue ?: return
-        val left = stillUnsorted(
-            transactionRepository.getTransactionsByIds(queue.filter { it != txnId }),
-            BuiltinCategoryNames.current("Others")
-        )
+        val left = unsorted(transactionRepository.getTransactionsByIds(queue.filter { it != txnId }))
         // Re-targeted by another notification during the reads: the old walk stops here.
         if (gen != walkGen) return
         walkQueue = left.map { it.id }
@@ -229,6 +226,9 @@ class QuickCategoryPickerActivity : FragmentActivity() {
             currentArgs.value = PickerArgs(next.id, next.id.toInt())
         }
     }
+
+    private suspend fun unsorted(rows: List<TransactionEntity>): List<TransactionEntity> =
+        stillUnsorted(rows, BuiltinCategoryNames.current("Others"), transactionRepository.getSplitTransactionIds(rows.map { it.id }))
 
     /** Shows the sheet only once the app lock (if on) is satisfied; a cancel closes the picker. */
     private fun checkLock() {
@@ -269,7 +269,7 @@ class QuickCategoryPickerActivity : FragmentActivity() {
             val loaded = transactionRepository.getTransactionById(args.transactionId)
             // Walk: a row deleted, sorted or excluded since the recap (or answered just
             // before a rotation) is skipped, not shown, and a missing one doesn't end the walk.
-            if (walkQueue != null && stillUnsorted(listOfNotNull(loaded), BuiltinCategoryNames.current("Others")).isEmpty()) {
+            if (walkQueue != null && unsorted(listOfNotNull(loaded)).isEmpty()) {
                 advance(walkGen, args.transactionId, answered = false)
                 return@LaunchedEffect
             }
@@ -377,9 +377,12 @@ class QuickCategoryPickerActivity : FragmentActivity() {
         private const val KEY_WALKED = "walked"
         private const val KEY_QUIET = "quiet"
 
-        /** The walk's rows still waiting, in order: sorted (perhaps by a merchant just learned), excluded or deleted ones drop out. */
-        internal fun stillUnsorted(rows: List<TransactionEntity>, others: String): List<TransactionEntity> =
-            rows.filter { it.needsCategory(others) }
+        /**
+         * The walk's rows still waiting, in order: sorted (perhaps by a merchant just learned),
+         * split ([splitIds]), excluded or deleted ones drop out.
+         */
+        internal fun stillUnsorted(rows: List<TransactionEntity>, others: String, splitIds: Set<Long>): List<TransactionEntity> =
+            rows.filter { it.needsCategory(others, split = it.id in splitIds) }
 
         /** Opens the picker on [ids]' first and walks the rest; each alert's id is its transaction's. */
         fun walkIntent(context: Context, ids: List<Long>, requestCode: Int): PendingIntent =

@@ -87,14 +87,16 @@ class ChatSuggestionsTest {
 
     @Test
     fun `a row needs a category when it has none or sits in Others, whatever Others is called`() {
-        assertTrue(row(1, "").needsCategory("Others"))
-        assertTrue(row(2, "  ").needsCategory("Others"))
-        assertTrue(row(3, "Misc").needsCategory("Misc"))
-        assertFalse(row(4, "Others").needsCategory("Misc"))
-        assertFalse(row(5, "Food").needsCategory("Others"))
+        assertTrue(row(1, "").needsCategory("Others", split = false))
+        assertTrue(row(2, "  ").needsCategory("Others", split = false))
+        assertTrue(row(3, "Misc").needsCategory("Misc", split = false))
+        assertFalse(row(4, "Others").needsCategory("Misc", split = false))
+        assertFalse(row(5, "Food").needsCategory("Others", split = false))
         // Kept out of totals or deleted: nothing waits on it.
-        assertFalse(row(6, "Others", excluded = true).needsCategory("Others"))
-        assertFalse(row(7, "Others", deleted = true).needsCategory("Others"))
+        assertFalse(row(6, "Others", excluded = true).needsCategory("Others", split = false))
+        assertFalse(row(7, "Others", deleted = true).needsCategory("Others", split = false))
+        // Split across categories: the splits are its answer, whatever the row itself says.
+        assertFalse(row(8, "Others").needsCategory("Others", split = true))
     }
 
     private fun suggestions(

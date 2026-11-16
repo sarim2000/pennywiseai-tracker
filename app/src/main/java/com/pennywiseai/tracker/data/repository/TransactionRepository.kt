@@ -678,6 +678,10 @@ open class TransactionRepository @Inject constructor(
     suspend fun hasSplits(transactionId: Long): Boolean =
         transactionSplitDao.hasSplits(transactionId)
 
+    /** Which of [ids] have splits: one read, chunked under SQLite's bind limit. */
+    suspend fun getSplitTransactionIds(ids: List<Long>): Set<Long> =
+        ids.chunked(900).flatMap { transactionSplitDao.getSplitTransactionIds(it) }.toSet()
+
     /**
      * Saves splits for a transaction, replacing any existing splits.
      */
@@ -718,8 +722,9 @@ open class TransactionRepository @Inject constructor(
 
 /**
  * A row still to file: no category, or "Others" under whatever name the user gave it ([others]).
- * Deleted rows and ones kept out of totals aren't waiting on anything. The chat's "N
- * uncategorized" counts these and the category picker walks them, so the two agree.
+ * Deleted rows and ones kept out of totals aren't waiting on anything, nor is one already
+ * [split] across categories (its own category stays as it was). The chat's "N uncategorized"
+ * counts these and the category picker walks them, so the two agree.
  */
-fun TransactionEntity.needsCategory(others: String): Boolean =
-    !isDeleted && !excludedFromAnalytics && (category.isBlank() || category == others)
+fun TransactionEntity.needsCategory(others: String, split: Boolean): Boolean =
+    !isDeleted && !excludedFromAnalytics && !split && (category.isBlank() || category == others)

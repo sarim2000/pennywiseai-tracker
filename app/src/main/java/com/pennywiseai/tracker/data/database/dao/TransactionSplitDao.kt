@@ -102,4 +102,8 @@ interface TransactionSplitDao {
 
     @Query("SELECT EXISTS(SELECT 1 FROM transaction_splits WHERE transaction_id = :transactionId LIMIT 1)")
     suspend fun hasSplits(transactionId: Long): Boolean
+
+    /** Which of [ids] (under SQLite's bind limit: the repository chunks) have splits. */
+    @Query("SELECT DISTINCT transaction_id FROM transaction_splits WHERE transaction_id IN (:ids)")
+    suspend fun getSplitTransactionIds(ids: List<Long>): List<Long>
 }

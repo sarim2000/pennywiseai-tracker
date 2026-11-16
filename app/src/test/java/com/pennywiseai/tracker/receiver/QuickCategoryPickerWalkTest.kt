@@ -19,12 +19,18 @@ class QuickCategoryPickerWalkTest {
     @Test
     fun `rows sorted meanwhile, excluded or deleted drop out, the rest keep their order`() {
         val rows = listOf(tx(4), tx(3, deleted = true), tx(2, category = "Food"), tx(1, excluded = true), tx(0))
-        assertEquals(listOf(4L, 0L), QuickCategoryPickerActivity.stillUnsorted(rows, "Others").map { it.id })
+        assertEquals(listOf(4L, 0L), QuickCategoryPickerActivity.stillUnsorted(rows, "Others", emptySet()).map { it.id })
     }
 
     @Test
     fun `a row with no category is still waiting too, as the chat counts it`() {
         val rows = listOf(tx(2, category = ""), tx(1, category = "Food"), tx(0, category = "Misc"))
-        assertEquals(listOf(2L, 0L), QuickCategoryPickerActivity.stillUnsorted(rows, "Misc").map { it.id })
+        assertEquals(listOf(2L, 0L), QuickCategoryPickerActivity.stillUnsorted(rows, "Misc", emptySet()).map { it.id })
+    }
+
+    @Test
+    fun `a row split across categories meanwhile drops out though its own category is still Others`() {
+        val rows = listOf(tx(2), tx(1), tx(0))
+        assertEquals(listOf(2L, 0L), QuickCategoryPickerActivity.stillUnsorted(rows, "Others", setOf(1L)).map { it.id })
     }
 }

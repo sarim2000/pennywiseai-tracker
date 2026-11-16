@@ -96,7 +96,8 @@ fun ShareStudioScreen(
     val card = shareCardState(selection, data)
     val graphicsLayer = rememberGraphicsLayer()
     // With amounts hidden app-wide, previews stay covered until the user asks to see them.
-    var revealed by rememberSaveable { mutableStateOf(false) }
+    // Hiding amounts again covers them again.
+    var revealed by rememberSaveable(AmountPrivacy.hidden) { mutableStateOf(false) }
 
     PennyWiseScaffold(
         title = stringResource(R.string.share_studio_title),

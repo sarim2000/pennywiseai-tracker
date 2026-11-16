@@ -1336,6 +1336,23 @@ class ChatTurnTest {
     }
 
     @Test
+    fun `a lookup that asks which one keeps the live conversation, and is never replayed`() = runTest {
+        every { context.getString(R.string.chat_reply_account_ambiguous, any(), any()) } returns "WHICH"
+        every { context.getString(R.string.chat_reply_month_spend, any()) } returns "SPENT"
+        coEvery { accountBalances.getAllLatestBalancesOnce() } returns listOf(account("HDFC", "1234"), account("HDFC", "5678"))
+        answerSpending()
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("account" to "HDFC")))
+        assertEquals("WHICH", send("how much on my HDFC card?"))
+        // The app's line: a rebuilt window leaves it out, as any other, so it can't be written back.
+        assertTrue(saved.last().id.startsWith(LlmRepository.QUICK_ID))
+        // The live conversation holds the call the model made, so "the 5678 one" follows it there.
+        coVerify(exactly = 0) { llmService.closeConversation() }
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("account" to "HDFC 5678")))
+        assertTrue(send("the 5678 one").startsWith("SPENT"))
+        coVerify(exactly = 0) { llmService.createConversation(any(), any(), any()) }
+    }
+
+    @Test
     fun `merchants and accounts are ranked under their own heading, spending on no account named`() = runTest {
         every { context.getString(R.string.chat_reply_top_accounts, any()) } answers { "TOP_ACCOUNTS ${(args[1] as Array<*>)[0]}" }
         every { context.getString(R.string.chat_group_no_account) } returns "NONE"

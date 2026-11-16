@@ -1276,6 +1276,8 @@ class ChatTurnTest {
         ignored = setOf("SBI_1234")
         every { context.getString(R.string.chat_reply_month_spend, any()) } returns "SPENT"
         assertTrue(ask(mapOf("account" to "1234")).startsWith("SPENT"))
+        // Named, the ignored card isn't swapped for the other one ending the same.
+        assertEquals("NO_ACCOUNT", ask(mapOf("account" to "SBI 1234")))
     }
 
     @Test

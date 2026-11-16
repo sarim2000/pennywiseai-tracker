@@ -292,4 +292,17 @@ class SpendingQueryTest {
         assertEquals(AccountMatch.None, SpendingQuery.account("Barclays", all))
         assertEquals(AccountMatch.None, SpendingQuery.account("9999", all))
     }
+
+    @Test
+    fun `digits never override a bank the user named`() {
+        val sbi = account("SBI", "1234")
+        // HDFC's card isn't there (or is ignored): SBI's card ending 1234 is no answer to it.
+        assertEquals(AccountMatch.None, SpendingQuery.account("HDFC 1234", listOf(sbi)))
+        assertEquals(AccountMatch.None, SpendingQuery.account("hdfc card ••1234", listOf(sbi)))
+        // Digits with words that name no bank still find it.
+        assertEquals(AccountMatch.One(sbi), SpendingQuery.account("1234", listOf(sbi)))
+        assertEquals(AccountMatch.One(sbi), SpendingQuery.account("my credit card ending 1234", listOf(sbi)))
+        assertEquals(AccountMatch.One(sbi), SpendingQuery.account("XX1234", listOf(sbi)))
+        assertEquals(AccountMatch.One(sbi), SpendingQuery.account("بطاقة 1234", listOf(sbi)))
+    }
 }

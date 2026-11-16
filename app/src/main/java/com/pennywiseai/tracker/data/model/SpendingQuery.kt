@@ -378,6 +378,13 @@ object SpendingQuery {
             }
     }
 
+    /** Words around an account's digits that name no bank or alias: "my credit card ending 1234". */
+    private val ACCOUNT_WORDS = setOf(
+        "my", "the", "a", "c", "ac", "acc", "acct", "account", "card", "credit", "debit", "savings", "saving", "current",
+        "bank", "ending", "ends", "end", "in", "with", "no", "number", "x", "xx", "xxx", "xxxx",
+        "بطاقة", "بطاقتي", "البطاقة", "حساب", "حسابي", "الحساب", "رقم", "ائتمان", "ائتمانية", "الائتمانية", "مدى", "المنتهية", "تنتهي", "في",
+    )
+
     sealed interface AccountMatch {
         data class One(val account: AccountBalanceEntity) : AccountMatch
         /** Several accounts answer to it, e.g. two cards ending in the same digits. */
@@ -389,8 +396,9 @@ object SpendingQuery {
 
     /**
      * The account the user named: its alias or "Bank 1234" exactly first (or "Paytm WALLET", as
-     * the chat's prompt lists a wallet), then its last digits
-     * (with a word of its name first, when one was given), then the bank or alias alone. The
+     * the chat's prompt lists a wallet), then its last digits (with a word of its name first,
+     * when one was given; without one only when no other name came with them), then the bank or
+     * alias alone. The
      * first of those that matches anything decides; two accounts there is a question for the
      * user, not a guess.
      */
@@ -408,7 +416,9 @@ object SpendingQuery {
             },
             // "sbi card 1234": the digits, and a word of its name.
             { a -> endsIn(a) && words.any { w -> names(a).any { w in it.split(" ") } } },
-            { a -> endsIn(a) },
+            // "card 1234", "1234": the digits alone, unless they came with a name no account has.
+            // "HDFC 1234" isn't SBI's card ending 1234, nor another one when HDFC's is ignored.
+            { a -> endsIn(a) && words.all { it in ACCOUNT_WORDS } },
             { a -> digits.isEmpty() && names(a).any { it == wanted || it.startsWith(wanted) } },
         )
         for (tier in tiers) {

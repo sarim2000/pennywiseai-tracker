@@ -124,32 +124,38 @@ data class SharePalette(
     val text: Color,
     val muted: Color,
     val accent: Color,
+    /** The second hue, for growth on a chart of changes. */
+    val warm: Color,
     val good: Color,
     val bad: Color,
     val track: Color,
 )
 
+/**
+ * The same palettes as the share link's web page (pennywise-web `ui/ShareViews.kt`), so
+ * the link preview, the page and the image all look like one card.
+ */
 fun ShareTheme.palette(): SharePalette = when (this) {
     ShareTheme.MIDNIGHT -> SharePalette(
-        top = Color(0xFF0B0E13), bottom = Color(0xFF141B26),
-        glow = Color(0x40FFB74D), glowSecondary = Color(0x00000000),
-        text = Color(0xFFEFF3F8), muted = Color(0xFF8D99AA),
-        accent = Color(0xFFFFB74D), good = Color(0xFF7FE0A7), bad = Color(0xFFFF8F87),
-        track = Color(0xFF222B37),
+        top = Color(0xFF0F1626), bottom = Color(0xFF090C14),
+        glow = Color(0x6B406EBE), glowSecondary = Color(0x00000000),
+        text = Color(0xFFEEF3FA), muted = Color(0xFF8E9BB2),
+        accent = Color(0xFF6FB2FF), warm = Color(0xFFFFB74D), good = Color(0xFF5BD9A5), bad = Color(0xFFFF8A7A),
+        track = Color(0x17FFFFFF),
     )
     ShareTheme.AURORA -> SharePalette(
-        top = Color(0xFF081A2B), bottom = Color(0xFF1C1140),
-        glow = Color(0x5530D5C8), glowSecondary = Color(0x55A78BFA),
-        text = Color(0xFFF2F5FF), muted = Color(0xFFA3AECB),
-        accent = Color(0xFF5EEAD4), good = Color(0xFFA7F3D0), bad = Color(0xFFFDA4AF),
-        track = Color(0xFF26304F),
+        top = Color(0xFF0A1B20), bottom = Color(0xFF120E26),
+        glow = Color(0x572EE6B8), glowSecondary = Color(0x6B8B5CF6),
+        text = Color(0xFFF1F7F5), muted = Color(0xFFA0B4B1),
+        accent = Color(0xFF6EF0CC), warm = Color(0xFFC9AEFF), good = Color(0xFF6EF0CC), bad = Color(0xFFFF9D8C),
+        track = Color(0x1AFFFFFF),
     )
     ShareTheme.PAPER -> SharePalette(
-        top = Color(0xFFF8F3EA), bottom = Color(0xFFEDE3D2),
-        glow = Color(0x33E8590C), glowSecondary = Color(0x00000000),
-        text = Color(0xFF1E1B17), muted = Color(0xFF6B6358),
-        accent = Color(0xFFC2410C), good = Color(0xFF2E7A4E), bad = Color(0xFFB42330),
-        track = Color(0xFFE0D5C2),
+        top = Color(0xFFFBF8F1), bottom = Color(0xFFF1EBDD),
+        glow = Color(0x33D6A048), glowSecondary = Color(0x00000000),
+        text = Color(0xFF1B1915), muted = Color(0xFF6F685D),
+        accent = Color(0xFF2C5ACF), warm = Color(0xFFB86E0B), good = Color(0xFF1B8457), bad = Color(0xFFC1432D),
+        track = Color(0x171B1915),
     )
 }
 
@@ -576,8 +582,8 @@ private fun BarsChart(chart: ShareChart, p: SharePalette, modifier: Modifier) {
 }
 
 /**
- * Change either side of a centre line: growth toward the end edge in the accent, a drop
- * toward the start edge in the "good" colour. Rows mirror on their own in RTL.
+ * Change either side of a centre line: growth toward the end edge in the warm hue, a drop
+ * toward the start edge in the accent, as on the web page. Rows mirror on their own in RTL.
  */
 @Composable
 private fun DivergingChart(chart: ShareChart, p: SharePalette, modifier: Modifier) {
@@ -589,7 +595,7 @@ private fun DivergingChart(chart: ShareChart, p: SharePalette, modifier: Modifie
         points.forEach { point ->
             val fraction = (abs(point.value) / max).toFloat().coerceIn(0.04f, 1f)
             val positive = point.value >= 0
-            val color = if (positive) p.accent else p.good
+            val color = if (positive) p.warm else p.accent
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = point.label,

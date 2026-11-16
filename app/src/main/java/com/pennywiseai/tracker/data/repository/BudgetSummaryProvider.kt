@@ -34,7 +34,13 @@ class BudgetSummaryProvider @Inject constructor(
     private val userPreferencesRepository: CurrencyPreferences,
     private val currencyConversionService: CurrencyConversionService
 ) {
-    fun summary(yearMonth: YearMonth): Flow<BudgetOverallSummary> =
+    /**
+     * [flagUncounted]: outside unified mode, also set
+     * [BudgetGroupSpending.hasUnconvertedSpend] for spending in other currencies,
+     * which the base-currency figures leave out. It costs a second, all-currency
+     * query, so only a caller that shows the flag asks for it.
+     */
+    fun summary(yearMonth: YearMonth, flagUncounted: Boolean = false): Flow<BudgetOverallSummary> =
         combine(
             userPreferencesRepository.baseCurrency,
             userPreferencesRepository.unifiedCurrencyMode,
@@ -45,6 +51,28 @@ class BudgetSummaryProvider @Inject constructor(
             if (unifiedMode) {
                 budgetGroupRepository.getGroupSpendingAllCurrencies(yearMonth.year, yearMonth.monthValue)
                     .map { raw -> convertRawToSummary(raw, displayCurrency, baseCurrency) }
+            } else if (flagUncounted) {
+                combine(
+                    budgetGroupRepository.getGroupSpending(yearMonth.year, yearMonth.monthValue, baseCurrency),
+                    budgetGroupRepository.getGroupSpendingAllCurrencies(yearMonth.year, yearMonth.monthValue)
+                ) { summary, raw ->
+                    val windowedByBudget = raw.windowedSpend.groupBy { it.budgetId }
+                    summary.copy(
+                        groups = summary.groups.map { g ->
+                            val txs = transactionsInWindow(
+                                g.group.budget.id,
+                                windowedByBudget[g.group.budget.id].orEmpty(),
+                                BudgetWindow(g.windowStart, g.windowEnd, g.windowDays)
+                            )
+                            // Same match as the base-currency query: anything else isn't counted.
+                            g.copy(
+                                hasUnconvertedSpend = hasUncountedSpend(g.group, txs) { fromCurrency, amount ->
+                                    amount.takeIf { fromCurrency == baseCurrency }
+                                }
+                            )
+                        }
+                    )
+                }
             } else {
                 budgetGroupRepository.getGroupSpending(yearMonth.year, yearMonth.monthValue, baseCurrency)
             }
@@ -237,6 +265,25 @@ class BudgetSummaryProvider @Inject constructor(
         }
     }
 
+    private fun transactionsInWindow(
+        budgetId: Long,
+        windowedSpend: List<WindowSpending>,
+        displayedWindow: com.pennywiseai.tracker.data.repository.BudgetWindow
+    ): List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits> {
+        val matchedWindow = windowedSpend.firstOrNull { ws ->
+            !ws.window.start.isAfter(displayedWindow.start) &&
+                !ws.window.end.isBefore(displayedWindow.end)
+        } ?: windowedSpend.firstOrNull { ws ->
+            // Fallback: pick the window with the largest overlap.
+            val overlapStart = maxOf(ws.window.start, displayedWindow.start)
+            val overlapEnd = minOf(ws.window.end, displayedWindow.end)
+            !overlapStart.isAfter(overlapEnd)
+        }
+        return matchedWindow?.transactions
+            ?: getTransactionsForOverlappingWindows(budgetId, windowedSpend, displayedWindow)
+            ?: emptyList()
+    }
+
     private fun getTransactionsForOverlappingWindows(
         budgetId: Long,
         windowedSpend: List<WindowSpending>,
@@ -279,18 +326,7 @@ class BudgetSummaryProvider @Inject constructor(
         // (Sep 25, Oct 24) but windowedSpend keys are (Sep 1, Sep 30)
         // clipped per month. Match by containment: pick the window whose
         // [start, end] range fully contains displayedWindow.
-        val matchedWindow = windowedSpend.firstOrNull { ws ->
-            !ws.window.start.isAfter(displayedWindow.start) &&
-                !ws.window.end.isBefore(displayedWindow.end)
-        } ?: windowedSpend.firstOrNull { ws ->
-            // Fallback: pick the window with the largest overlap.
-            val overlapStart = maxOf(ws.window.start, displayedWindow.start)
-            val overlapEnd = minOf(ws.window.end, displayedWindow.end)
-            !overlapStart.isAfter(overlapEnd)
-        }
-        val txsInDisplay = matchedWindow?.transactions
-            ?: getTransactionsForOverlappingWindows(group.budget.id, windowedSpend, displayedWindow)
-            ?: emptyList()
+        val txsInDisplay = transactionsInWindow(group.budget.id, windowedSpend, displayedWindow)
         val convertedTotalActual = getBudgetWindowFilteredSpend(group, txsInDisplay, displayCurrency, baseCurrency)
         // Spending with no rate is skipped above, not counted at face value.
         val hasUnconvertedSpend = hasUncountedSpend(group, txsInDisplay) { fromCurrency, amount ->

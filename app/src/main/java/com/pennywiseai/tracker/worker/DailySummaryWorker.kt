@@ -103,7 +103,7 @@ class DailySummaryWorker @AssistedInject constructor(
         val unsorted = transactions.filter { it.category == BuiltinCategoryNames.current("Others") }
         // The Budgets screen's own figures, as the budget alerts use; a rate fetch
         // that fails mustn't cost the user the whole recap.
-        val budgetSummary = runCatching { budgetSummaryProvider.summary(YearMonth.from(today)).first() }
+        val budgetSummary = runCatching { budgetSummaryProvider.summary(YearMonth.from(today), flagUncounted = true).first() }
             .onFailure { Log.w(TAG, "Budget figures unavailable for the recap", it) }
             .getOrNull()
 

@@ -113,8 +113,10 @@ data class BudgetGroupSpending(
      */
     val displayedIsLive: Boolean = false,
     /**
-     * Unified mode only: some spending in the displayed window has no exchange
-     * rate, so it's left out of [totalActual] (#670) and [remaining] reads high.
+     * Some spending this budget counts in the displayed window was left out of
+     * [totalActual], so [remaining] reads high: it had no exchange rate (unified
+     * mode, #670) or isn't in the base currency (otherwise; only set when
+     * [BudgetSummaryProvider.summary] is asked to flag it).
      */
     val hasUnconvertedSpend: Boolean = false
 )

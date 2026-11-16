@@ -66,8 +66,25 @@ class BudgetSummaryProviderTest {
             isCurrentMonth = true,
             currentWindows = budgets.associate { it.budget.id to window }
         )
+        // The base-currency path's own figures; only the flag is under test here.
+        val baseSummary = BudgetOverallSummary(
+            groups = budgets.map {
+                BudgetGroupSpending(
+                    group = it, categorySpending = emptyList(), totalBudget = BigDecimal("500"),
+                    totalActual = BigDecimal.ZERO, remaining = BigDecimal("500"), percentageUsed = 0f,
+                    dailyAllowance = BigDecimal.ZERO, daysRemaining = 15, daysElapsed = 16,
+                    windowStart = window.start, windowEnd = window.end, windowDays = window.days
+                )
+            },
+            totalIncome = BigDecimal.ZERO, totalLimitBudget = BigDecimal.ZERO, totalLimitSpent = BigDecimal.ZERO,
+            totalTargetGoal = BigDecimal.ZERO, totalTargetActual = BigDecimal.ZERO,
+            totalExpectedBudget = BigDecimal.ZERO, totalExpectedActual = BigDecimal.ZERO,
+            netSavings = BigDecimal.ZERO, savingsRate = 0f, dailyAllowance = BigDecimal.ZERO,
+            daysRemaining = 15, currency = "JOD"
+        )
         val repo = mockk<BudgetGroupRepository> {
             every { getGroupSpendingAllCurrencies(any(), any()) } returns flowOf(raw)
+            every { getGroupSpending(any(), any(), "JOD") } returns flowOf(baseSummary)
         }
         // USD converts 1:1; XYZ has never had a rate.
         val conversion = mockk<CurrencyConversionService> {
@@ -79,7 +96,8 @@ class BudgetSummaryProviderTest {
     }
 
     private fun flags(provider: BudgetSummaryProvider) = runBlocking {
-        provider.summary(YearMonth.from(today)).first().groups.associate { it.group.budget.name to it.hasUnconvertedSpend }
+        provider.summary(YearMonth.from(today), flagUncounted = true).first()
+            .groups.associate { it.group.budget.name to it.hasUnconvertedSpend }
     }
 
     @Test
@@ -105,5 +123,18 @@ class BudgetSummaryProviderTest {
             mapOf("Everything" to true),
             flags(provider(true, listOf(all), listOf(tx(1, "10", "Others", "XYZ"))))
         )
+    }
+
+    @Test
+    fun `base currency only - this budget's spending in another currency is incomplete`() {
+        // The base-currency figures leave USD out, though it would convert in unified mode.
+        val flags = flags(
+            provider(
+                unified = false,
+                budgets = listOf(budget(1, "Food", "Food"), budget(2, "Fun", "Fun")),
+                transactions = listOf(tx(1, "10", "Food", "USD"), tx(2, "20", "Fun", "JOD"))
+            )
+        )
+        assertEquals(mapOf("Food" to true, "Fun" to false), flags)
     }
 }

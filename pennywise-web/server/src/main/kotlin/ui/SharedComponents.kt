@@ -18,12 +18,22 @@ object SharedComponents {
      *   pages actually use it, and the landing pages shouldn't disclose a visitor's IP,
      *   User-Agent and Referer to a third party — nor block rendering on it — for a
      *   script they never call.
+     * @param ogTitle link-preview title when it should differ from the tab title.
+     * @param ogImage a page-specific link-preview image; switches the Twitter card to
+     *   `summary_large_image`. Null keeps the site logo and the small card.
+     * @param noindex keep the page out of search results (crawlers may still fetch it,
+     *   which link previews need).
      */
+    data class OgImage(val url: String, val width: Int, val height: Int, val type: String = "image/png", val alt: String? = null)
+
     fun HEAD.commonHead(
         pageTitle: String,
         description: String? = null,
         canonicalPath: String? = null,
         htmx: Boolean = false,
+        ogTitle: String? = null,
+        ogImage: OgImage? = null,
+        noindex: Boolean = false,
     ) {
         title { +pageTitle }
         meta { charset = "utf-8" }
@@ -35,13 +45,25 @@ object SharedComponents {
             link { rel = "canonical"; href = SITE_ORIGIN + canonicalPath }
             meta { attributes["property"] = "og:url"; content = SITE_ORIGIN + canonicalPath }
         }
-        meta { attributes["property"] = "og:title"; content = pageTitle }
+        if (noindex) meta { name = "robots"; content = "noindex" }
+        meta { attributes["property"] = "og:title"; content = ogTitle ?: pageTitle }
         if (description != null) {
             meta { attributes["property"] = "og:description"; content = description }
         }
         meta { attributes["property"] = "og:type"; content = "website" }
-        meta { attributes["property"] = "og:image"; content = "$SITE_ORIGIN/static/logo.png" }
-        meta { name = "twitter:card"; content = "summary" }
+        if (ogImage == null) {
+            meta { attributes["property"] = "og:image"; content = "$SITE_ORIGIN/static/logo.png" }
+            meta { name = "twitter:card"; content = "summary" }
+        } else {
+            meta { attributes["property"] = "og:image"; content = ogImage.url }
+            meta { attributes["property"] = "og:image:type"; content = ogImage.type }
+            meta { attributes["property"] = "og:image:width"; content = ogImage.width.toString() }
+            meta { attributes["property"] = "og:image:height"; content = ogImage.height.toString() }
+            if (ogImage.alt != null) meta { attributes["property"] = "og:image:alt"; content = ogImage.alt }
+            meta { name = "twitter:card"; content = "summary_large_image" }
+            meta { name = "twitter:title"; content = ogTitle ?: pageTitle }
+            meta { name = "twitter:image"; content = ogImage.url }
+        }
         meta { name = "theme-color"; content = "#0A0C10" }
         link { rel = "icon"; href = "/static/logo.png" }
         // Archivo carries the headings; IBM Plex Mono renders the SMS and the parsed

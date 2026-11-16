@@ -40,6 +40,7 @@
     <string name="share_unavailable_empty">Nothing was recorded in this period.</string>
     <string name="share_unavailable_compare">There\'s no earlier period with enough records to compare with.</string>
     <string name="share_unavailable_income">No income was recorded in this currency for this period.</string>
+    <string name="share_unavailable_overspent">Spending was more than 100 times income in this currency, so a savings rate wouldn\'t mean much.</string>
     <string name="share_unavailable_goals">You don\'t have any goals yet.</string>
     <string name="share_unavailable_budget">No spending limits were set for this month.</string>
 

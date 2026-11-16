@@ -39,6 +39,7 @@
     <string name="share_unavailable_empty">لم يُسجَّل شيء في هذه الفترة.</string>
     <string name="share_unavailable_compare">لا توجد فترة سابقة فيها سجلات كافية للمقارنة.</string>
     <string name="share_unavailable_income">لم يُسجَّل دخل بهذه العملة في هذه الفترة.</string>
+    <string name="share_unavailable_overspent">تجاوز الإنفاق 100 ضعف الدخل بهذه العملة، فلن تعني نسبة الادخار شيئًا يُذكر.</string>
     <string name="share_unavailable_goals">ليست لديك أهداف بعد.</string>
     <string name="share_unavailable_budget">لم تُحدَّد حدود إنفاق لهذا الشهر.</string>
 

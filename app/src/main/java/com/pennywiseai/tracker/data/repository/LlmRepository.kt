@@ -290,7 +290,7 @@ class LlmRepository @Inject constructor(
         // The live conversation still holds that prose; the next turn rebuilds from what was
         // saved. A rebuild prefills the whole chat again, so prose beside a card stays when it
         // can't mislead a later turn: a filler "Sure!", or "Adding ₹120." for the card's own
-        // ₹120. Prose beside figures (their turn leaves the window), with any other number,
+        // ₹120. Prose beside figures (a rebuild replays only their call), with any other number,
         // or with a claimed change, goes.
         if (prose.isNotBlank()) {
             val onCard = _pendingAction.value?.takeIf { it !== cardBefore }?.let(::amountsOf).orEmpty()

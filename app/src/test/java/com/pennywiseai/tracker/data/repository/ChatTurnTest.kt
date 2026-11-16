@@ -160,6 +160,20 @@ class ChatTurnTest {
     }
 
     @Test
+    fun `a filler preamble beside a card keeps the live conversation, a claim doesn't`() = runTest {
+        every { context.getString(R.string.chat_reply_add, any()) } returns "CARD"
+        events = listOf(LlmEvent.Text("Sure! "), add(120.0))
+        assertEquals("CARD", send("coffee 120"))
+        // Rebuilding would prefill the whole chat again for nothing that could mislead a later turn.
+        coVerify(exactly = 0) { llmService.closeConversation() }
+
+        repository.clearPendingAction()
+        events = listOf(LlmEvent.Text("Done, I've added it. "), add(120.0))
+        assertEquals("CARD", send("coffee 120"))
+        coVerify(exactly = 1) { llmService.closeConversation() }
+    }
+
+    @Test
     fun `prose in front of a call that breaks is dropped for the note that nothing changed`() = runTest {
         events = listOf(LlmEvent.Text("I've added ₹300 for shoes. "))
         failure = RuntimeException("Failed to parse tool calls from code block: {\"name\"")

@@ -256,9 +256,16 @@ class LlmRepository @Inject constructor(
         // repository's figures, or the card it proposes. Prose beside them could carry the
         // model's own arithmetic, a figure from an earlier turn, or a claim that it saved
         // something, and checking it for digits misses numbers in words.
+        val figures: (LlmEvent.ToolCall) -> Boolean = { it.isComparison(userMessage) || it.name in MONTH_LOOKUPS }
         if (toolCalls.isNotEmpty() || unreadableToolCall) {
-            // The live conversation still holds that prose; the next turn rebuilds from what was saved.
-            if (responseBuilder.isNotBlank()) conversationBroken = true
+            // The live conversation still holds that prose; the next turn rebuilds from what was
+            // saved. A rebuild prefills the whole chat again, so a filler "Sure!" beside a card
+            // stays: only prose beside figures (their turn leaves the window), or with a number
+            // or a claimed change, could mislead a later turn.
+            val prose = responseBuilder.toString()
+            if (prose.isNotBlank() && (toolCalls.any(figures) || prose.any(Char::isDigit) || claimsAChange(prose, emptyList()))) {
+                conversationBroken = true
+            }
             responseBuilder.clear()
         }
         // A reply holding any line the app wrote is never replayed to the model as it reads (see [MODEL_ID]).

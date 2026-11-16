@@ -107,7 +107,8 @@ class ShareStudioViewModel @Inject constructor(
                 (0 until savingsTrendLength(kind)).map { back -> loader.observe(kind, offset - back, today) }
             ) { ShareStudioData.Reviews(it.toList()) }
             // An archived goal stays shareable from its own screen, after the active ones.
-            Source.GOALS -> goalRepository.observeGoals(today).map { goals ->
+            // Today's date, not the review's: a goal due yesterday is past its date, whatever period was open.
+            Source.GOALS -> goalRepository.observeGoals(LocalDate.now()).map { goals ->
                 val opened = goals.filter { it.status == GoalStatus.ARCHIVED && it.goal.id == routeGoalId }
                 ShareStudioData.Goals(GoalRules.orderForDisplay(goals) + opened)
             }

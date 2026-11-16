@@ -45,6 +45,8 @@ android {
             buildConfigField("String", "RSA_PUBLIC_KEY", "\"\"")
             buildConfigField("String", "LICENSE_MOVE_URL", "\"\"")
         }
+        // Debug builds may point share links at a local server (see buildTypes.debug).
+        buildConfigField("String", "SHARE_SERVER_OVERRIDE", "\"\"")
     }
 
     signingConfigs {
@@ -115,6 +117,9 @@ android {
             // en-XA / ar-XB pseudo-locales: untranslated (hardcoded) text stands
             // out as plain English, and RTL layout bugs show up without a translation.
             isPseudoLocalesEnabled = true
+            // Share links go to a local web server instead of pennywise.zynth.dev when
+            // built with -PshareServer=http://localhost:8080 (plus `adb reverse tcp:8080 tcp:8080`).
+            buildConfigField("String", "SHARE_SERVER_OVERRIDE", "\"${providers.gradleProperty("shareServer").getOrElse("")}\"")
         }
         release {
             isMinifyEnabled = true

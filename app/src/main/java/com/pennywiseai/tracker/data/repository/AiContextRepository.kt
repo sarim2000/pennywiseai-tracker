@@ -41,7 +41,8 @@ import javax.inject.Singleton
 /**
  * The figures the AI chat reads, typed or one-tap. Each is worked out the way Home works out
  * "Spent this month": the budget cycle so far, the profile Home shows without ignored accounts
- * (#826), the credit-card setting, refunds netted and forgiven loans added (#938), per currency.
+ * (#826), the credit-card setting (for all spending; see [creditAsExpense]), refunds netted and
+ * forgiven loans added (#938), per currency.
  */
 @Singleton
 class AiContextRepository @Inject constructor(
@@ -114,6 +115,16 @@ class AiContextRepository @Inject constructor(
     private suspend fun creditAsExpense() = userPreferencesRepository.countCreditCardAsExpense.first()
 
     /**
+     * Home's card setting, for a figure of all spending: left off, a card's purchases wait for
+     * its bill, paid from another account, and counting both would count them twice. A figure
+     * narrowed to an account or a merchant (or a ranking of accounts) is that account's or
+     * merchant's own: the bill is paid elsewhere, so left off, a card would read "nothing
+     * spent" beside a list full of its purchases.
+     */
+    private suspend fun creditAsExpense(filter: SpendingFilter, byAccount: Boolean = false) =
+        filter.narrowed || byAccount || creditAsExpense()
+
+    /**
      * Home's "Spent this month" and income, with one converted figure only when Home shows one.
      * [filter] picks other days, or narrows it to a merchant or account: forgiven loans belong
      * to neither, so they're only in a figure of all spending.
@@ -122,7 +133,7 @@ class AiContextRepository @Inject constructor(
         val scope = scopeOf(filter, today)
         val rows = rows(scope, filter)
         val transactions = rows.map { it.transaction }
-        val credit = creditAsExpense()
+        val credit = creditAsExpense(filter)
         val breakdown = breakdownByCurrency(transactions, credit)
         val result = PeriodSpending(
             scope = scope.chat,
@@ -154,7 +165,7 @@ class AiContextRepository @Inject constructor(
     suspend fun categorySpending(category: String, today: LocalDate = LocalDate.now(), filter: SpendingFilter = SpendingFilter()): CategorySpend {
         val scope = scopeOf(filter, today)
         val rows = rows(scope, filter)
-        val credit = creditAsExpense()
+        val credit = creditAsExpense(filter)
         val names = categoriesNamed(category)
         // A currency refunded in full is nothing spent, as spending() leaves it out.
         val byCurrency = SpendingComparison.spend(rows, names, credit).filterValues { it.signum() > 0 }
@@ -183,7 +194,7 @@ class AiContextRepository @Inject constructor(
     ): TopCategories {
         val scope = scopeOf(filter, today)
         val rows = rows(scope, filter)
-        val credit = creditAsExpense()
+        val credit = creditAsExpense(filter, byAccount = by == SpendingQuery.GroupBy.ACCOUNT)
         val key: ((TransactionEntity) -> String)? = when (by) {
             SpendingQuery.GroupBy.MERCHANT -> aliases().let { aliases -> { tx: TransactionEntity -> aliases[tx.merchantName] ?: tx.merchantName } }
             SpendingQuery.GroupBy.ACCOUNT -> accountBalanceDao.getAllLatestBalancesOnce().associateBy { SpendingFilter.accountKey(it) }.let { accounts ->

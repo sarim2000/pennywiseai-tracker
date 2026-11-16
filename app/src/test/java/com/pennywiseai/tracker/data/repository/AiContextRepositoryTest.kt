@@ -455,6 +455,26 @@ class AiContextRepositoryTest {
     }
 
     @Test
+    fun `a card's purchases count once narrowed to the card or a merchant, whatever Home's card setting`() = runBlocking {
+        preferences.setCountCreditCardAsExpense(false)
+        accounts += AccountBalanceEntity(bankName = "Bank", accountLast4 = "1234", balance = BigDecimal.ZERO, timestamp = today.atStartOfDay(), isCreditCard = true)
+        tx("300", type = TransactionType.CREDIT, merchant = "Amazon", account = "1234")
+        // Part of the card's bill, paid from the bank account.
+        tx("250", merchant = "Card bill", account = "9999")
+
+        // Home's figure counts the bill, not the purchase as well.
+        assertEquals(mapOf("INR" to "250"), amounts(repository.spending(today).spentWithForgiven))
+        val card = repository.spending(today, SpendingFilter(account = "Bank_1234"))
+        assertEquals(mapOf("INR" to "300"), amounts(card.spentWithForgiven))
+        assertEquals(1, card.transactionCount)
+        assertEquals(mapOf("INR" to "300"), amounts(repository.spending(today, SpendingFilter(merchant = "amazon")).spentWithForgiven))
+        assertEquals(mapOf("INR" to "300"), amounts(repository.categorySpending("food", today, SpendingFilter(account = "Bank_1234")).byCurrency))
+        // Each account's own spending: the card is ranked too.
+        val byAccount = repository.topCategories(today, by = SpendingQuery.GroupBy.ACCOUNT)
+        assertEquals(listOf("Bank ••1234", "Bank ••9999"), byAccount.ranking.getValue("INR").map { it.first })
+    }
+
+    @Test
     fun `other days are their own window, in the profile Home shows`() = runBlocking {
         val october = SpendingComparison.Window(LocalDate.of(2026, 10, 1).atStartOfDay(), LocalDate.of(2026, 10, 31).atTime(LocalTime.MAX))
         tx("100", at = LocalDateTime.of(2026, 10, 31, 23, 59))

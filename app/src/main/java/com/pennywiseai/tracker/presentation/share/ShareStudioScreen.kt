@@ -428,14 +428,16 @@ private fun ProgressControls(selection: ShareStudioSelection, data: ShareStudioD
     }
     if (data == null) return
 
-    if (ProgressSection.ACHIEVEMENTS in selection.sections && data.earned.size > 1) {
+    if (ProgressSection.ACHIEVEMENTS in selection.sections &&
+        showsPicker(data.earned.size, selectedAchievements(data.earned, selection.achievements).size)
+    ) {
         SectionHeaderV2(title = stringResource(R.string.share_studio_section_achievements))
         AchievementPicker(data.earned, selection.achievements, viewModel)
     }
-    if (ProgressSection.GOALS in selection.sections && data.goals.size > 1) {
+    val goalIds = data.goals.map { it.goal.id }
+    if (ProgressSection.GOALS in selection.sections && showsPicker(goalIds.size, progressGoalIds(selection.goalIds, goalIds).size)) {
         SectionHeaderV2(title = stringResource(R.string.share_studio_section_goals, PROGRESS_MAX_GOALS))
-        val ids = data.goals.map { it.goal.id }
-        val picked = progressGoalIds(selection.goalIds, ids)
+        val picked = progressGoalIds(selection.goalIds, goalIds)
         FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
             data.goals.forEach { goal ->
                 val on = goal.goal.id in picked
@@ -443,7 +445,7 @@ private fun ProgressControls(selection: ShareStudioSelection, data: ShareStudioD
                     selected = on,
                     // Full: another goal needs one unticked first, rather than a card that quietly drops one.
                     enabled = on || picked.size < PROGRESS_MAX_GOALS,
-                    onClick = { viewModel.setGoal(goal.goal.id, !on, ids) },
+                    onClick = { viewModel.setGoal(goal.goal.id, !on, goalIds) },
                     label = { Text(goal.goal.name, maxLines = 1) },
                     shapes = FilterChipDefaults.shapes(),
                     colors = FilterChipDefaults.filterChipColors(),

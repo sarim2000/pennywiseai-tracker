@@ -207,6 +207,13 @@ internal fun ShareStudioSelection.withKind(kind: ShareKind, today: LocalDate): S
 internal fun ShareStudioSelection.withPeriodKind(kind: ReviewKind, today: LocalDate): ShareStudioSelection =
     copy(period = defaultSelection(kind, today), currency = null)
 
+/**
+ * A picker for one item would only repeat its section's chip, so it shows for one item
+ * only when nothing is picked: a pick that went stale (a goal deleted, a route's badge
+ * not earned here) would otherwise leave the section on, empty, with nothing to tap.
+ */
+internal fun showsPicker(options: Int, shown: Int): Boolean = options > 1 || (options == 1 && shown == 0)
+
 /** The goals a progress card shows: those picked, or the first few, never more than it has room for. */
 internal fun progressGoalIds(picked: Set<Long>?, shown: List<Long>): List<Long> =
     (if (picked == null) shown else shown.filter { it in picked }).take(PROGRESS_MAX_GOALS)

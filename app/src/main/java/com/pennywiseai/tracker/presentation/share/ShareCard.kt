@@ -1030,7 +1030,9 @@ private fun ProgressRow(row: ShareCardRow, p: SharePalette) {
                     textAlign = TextAlign.End,
                 ),
                 maxLines = 1,
-                autoSize = TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = 17.sp),
+                // 8sp floor like the chart figures: "₹10,00,00,000 of ₹20,00,00,000 · 50%" still fits.
+                // ponytail: a figure longer than that clips; a stacked row is the upgrade if anyone gets there.
+                autoSize = TextAutoSize.StepBased(minFontSize = 8.sp, maxFontSize = 17.sp),
                 // Measured first, so the label takes what's left and the figure ends the row.
                 modifier = Modifier.widthIn(max = 168.dp),
             )

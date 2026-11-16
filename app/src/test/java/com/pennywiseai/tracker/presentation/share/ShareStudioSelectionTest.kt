@@ -147,4 +147,17 @@ class ShareStudioSelectionTest {
         val some = none.copy(achievements = setOf("saver"))
         assertEquals(setOf("saver"), some.withKind(ShareKind.PROGRESS, today).achievements)
     }
+
+    @Test
+    fun `a stale pick brings its picker back instead of leaving an empty section`() {
+        // Goal 1 was picked, then deleted: only goal 2 is left and nothing shows.
+        assertTrue(progressGoalIds(setOf(1L), listOf(2L)).isEmpty())
+        assertTrue(showsPicker(options = 1, shown = 0))
+        // Picking it from there puts it on the card.
+        assertEquals(listOf(2L), progressGoalIds(toggleGoal(setOf(1L), 2L, on = true, listOf(2L)), listOf(2L)))
+        // One item already on the card: its section chip is enough.
+        assertFalse(showsPicker(options = 1, shown = 1))
+        assertTrue(showsPicker(options = 2, shown = 2))
+        assertFalse(showsPicker(options = 0, shown = 0))
+    }
 }

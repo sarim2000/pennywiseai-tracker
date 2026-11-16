@@ -24,7 +24,7 @@ fun savingsRatePercent(income: BigDecimal, spent: BigDecimal): Int? {
     if (income.signum() <= 0) return null
     return (income - spent).multiply(BigDecimal(100))
         .divide(income, 0, RoundingMode.HALF_UP)
-        // Below −10,000% (spending 100× income) a rate says nothing, and bounding it keeps
+        // A rounded rate below −10,000% (spending past ~101× income) says nothing, and bounding it keeps
         // the Int arithmetic on rates (period-to-period changes) from wrapping.
         .takeIf { it >= MIN_SAVINGS_RATE }
         ?.toInt()

@@ -109,7 +109,7 @@ The Share screen makes a card from your figures. You choose exactly what it show
 - **Share as link** uploads a copy, and only after you tap Upload and share on a screen that shows the image being uploaded. The copy is the card's text exactly as previewed (already formatted on your phone), plus that 1200×630 image for chat link previews. Nothing else from the app goes with it: no transactions, account details or settings.
 - **Who can see it**: anyone who has the link. Links are unlisted: the page asks search engines not to index it, and there is no public list of shares.
 - **How long it stays**: 7, 30 or 90 days, or until you delete it, as you chose. When it expires or you delete it, the server erases the card's text and image. To limit how many links one connection can make, the server stores a salted hash of the uploading IP address with each link, never the address itself.
-- **Deleting**: Share → Shared links lists the links this phone made, with Delete. The delete keys stay on this phone, outside PennyWise backups, so clearing the app's data means those links stay up until they expire. Anyone you sent the link to may have saved the image already.
+- **Deleting**: Share → Shared links lists the links this phone made, with Delete. The delete keys stay on this phone, outside PennyWise backups, so after clearing the app's data or uninstalling it those links stay up until they expire, and a link set to never expire stays up for good. Anyone you sent the link to may have saved the image already.
 
 ## Data Export
 

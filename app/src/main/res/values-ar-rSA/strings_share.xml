@@ -165,5 +165,5 @@
     <string name="shared_links_delete_cancel">إلغاء</string>
     <string name="shared_links_deleted">حُذف الرابط</string>
     <string name="shared_links_delete_forbidden">لا يمكن حذف هذا الرابط من هذا الهاتف.</string>
-    <string name="shared_links_footnote">تُحفظ هذه القائمة على هذا الهاتف فقط ولا تدخل في النسخ الاحتياطية. إذا مسحت بيانات التطبيق تبقى هذه الروابط متاحة حتى تنتهي صلاحيتها.</string>
+    <string name="shared_links_footnote">تُحفظ هذه القائمة على هذا الهاتف فقط ولا تدخل في النسخ الاحتياطية. إذا مسحت بيانات التطبيق أو حذفته تبقى هذه الروابط متاحة حتى تنتهي صلاحيتها، ويبقى الرابط المضبوط على «بلا انتهاء» متاحًا دائمًا.</string>
 </resources>

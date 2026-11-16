@@ -179,5 +179,5 @@
     <string name="shared_links_delete_cancel">Cancel</string>
     <string name="shared_links_deleted">Link deleted</string>
     <string name="shared_links_delete_forbidden">This link can\'t be deleted from this phone.</string>
-    <string name="shared_links_footnote">This list is kept only on this phone and isn\'t in backups. If you clear the app\'s data, these links stay up until they expire.</string>
+    <string name="shared_links_footnote">This list is kept only on this phone and isn\'t in backups. If you clear the app\'s data or uninstall it, these links stay up until they expire, and one set to Never stays up for good.</string>
 </resources>

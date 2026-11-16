@@ -30,6 +30,22 @@
     <string name="review_coverage">مبني على المعاملات المسجّلة، ولا يشمل الدفع النقدي الذي لم تضفه.</string>
     <!-- %1$s, %2$s = first and last recorded dates -->
     <string name="review_coverage_span">مبني على المعاملات المسجّلة من %1$s إلى %2$s، ولا يشمل الدفع النقدي الذي لم تضفه.</string>
+
+    <!-- PDF report -->
+    <string name="review_pdf_title">تقرير PennyWise</string>
+    <!-- %1$s = profile name, or "All profiles" -->
+    <string name="review_pdf_profile">الملف الشخصي: %1$s</string>
+    <!-- %1$s = date the report was made -->
+    <string name="review_pdf_created">أُنشئ في %1$s</string>
+    <string name="review_pdf_net">الصافي</string>
+    <string name="review_pdf_categories">الفئات</string>
+    <string name="review_pdf_category">الفئة</string>
+    <string name="review_pdf_amount">المبلغ</string>
+    <string name="review_pdf_change">التغيّر عن السابق</string>
+    <string name="review_pdf_merchants">أعلى التجار</string>
+    <string name="review_pdf_merchant">التاجر</string>
+    <!-- %1$d = this page, %2$d = number of pages -->
+    <string name="review_pdf_page">صفحة %1$d من %2$d</string>
     <!-- Home -->
     <string name="home_menu_share_card">بطاقة مشاركة</string>
     <!-- %1$s = year -->

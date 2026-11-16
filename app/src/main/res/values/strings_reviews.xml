@@ -31,6 +31,22 @@
     <!-- %1$s, %2$s = first and last recorded dates -->
     <string name="review_coverage_span">Based on transactions recorded from %1$s to %2$s. Cash you didn\'t add isn\'t included.</string>
 
+    <!-- PDF report: printed, so worded for paper rather than the screen -->
+    <string name="review_pdf_title">PennyWise report</string>
+    <!-- %1$s = profile name, or "All profiles" -->
+    <string name="review_pdf_profile">Profile: %1$s</string>
+    <!-- %1$s = date the report was made -->
+    <string name="review_pdf_created">Created %1$s</string>
+    <string name="review_pdf_net">Net</string>
+    <string name="review_pdf_categories">Categories</string>
+    <string name="review_pdf_category">Category</string>
+    <string name="review_pdf_amount">Amount</string>
+    <string name="review_pdf_change">Change from before</string>
+    <string name="review_pdf_merchants">Top merchants</string>
+    <string name="review_pdf_merchant">Merchant</string>
+    <!-- %1$d = this page, %2$d = number of pages -->
+    <string name="review_pdf_page">Page %1$d of %2$d</string>
+
     <!-- Home -->
     <string name="home_menu_share_card">Share card</string>
     <!-- %1$s = year -->

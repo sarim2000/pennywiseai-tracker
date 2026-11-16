@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -31,8 +32,10 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
@@ -44,6 +47,7 @@ import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.SHORT_DATE
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
+import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -311,25 +315,28 @@ fun SafeToSpendSheet(
 
             if (state.goals.available) {
                 SectionHeaderV2(title = stringResource(R.string.safe_to_spend_goals_header))
+                // Only what was actually taken off: a goal in a currency with no line isn't.
+                val setAside = (listOf(primary) + state.others)
+                    .filter { it.goalReserve.signum() > 0 }
+                    .associate { it.currency to Money(it.goalReserve, it.currency) }
+                val position = ListItemPosition.from(0, 1)
                 GroupedList {
                     GroupedRow(
-                        position = ListItemPosition.from(0, 1),
-                        onClick = { onSetReserveGoals(!state.goals.on) }
+                        position = position,
+                        // The whole row is the switch, for touch and TalkBack alike.
+                        modifier = Modifier
+                            .clip(position.toShape())
+                            .toggleable(value = state.goals.on, role = Role.Switch, onValueChange = onSetReserveGoals)
                     ) {
                         SheetRowLabels(
                             title = stringResource(R.string.safe_to_spend_goals_toggle),
-                            subtitle = if (state.goals.on && state.goals.amounts.isNotEmpty()) {
-                                stringResource(
-                                    R.string.safe_to_spend_goals_on,
-                                    CurrencyFormatter.formatByCurrency(state.goals.amounts.associateBy { it.currency }),
-                                    until
-                                )
+                            subtitle = if (state.goals.on && setAside.isNotEmpty()) {
+                                stringResource(R.string.safe_to_spend_goals_on, CurrencyFormatter.formatByCurrency(setAside), until)
                             } else {
                                 stringResource(R.string.safe_to_spend_goals_off, until)
                             },
                             modifier = Modifier.weight(1f)
                         )
-                        // The whole row toggles; the switch only shows the state.
                         Switch(checked = state.goals.on, onCheckedChange = null)
                     }
                 }

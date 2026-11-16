@@ -55,14 +55,15 @@ class UpcomingPaymentsTest {
         timestamp = today.atStartOfDay(), isCreditCard = true,
     )
 
+    /** The card's latest bill is entered and paid off, unless [cardBills] says otherwise. */
     private fun upcoming(
         subscriptions: List<SubscriptionEntity> = emptyList(),
         recurring: List<RecurringTransactionEntity> = emptyList(),
-        bills: List<CardBill> = emptyList(),
+        cardBills: List<CardBillStatus> = listOf(CardBillStatus(card, null, needsBill = false, isKnown = true)),
         posted: List<TransactionEntity> = emptyList(),
         on: LocalDate = today,
         isExcluded: (String?, String?) -> Boolean = { _, _ -> false },
-    ) = UpcomingPayments.of(subscriptions, recurring, bills, listOf(card), posted, on, end, isExcluded)
+    ) = UpcomingPayments.of(subscriptions, recurring, cardBills, listOf(card), posted, on, end, isExcluded)
 
     @Test
     fun `only active expense subscriptions with a date count`() {
@@ -179,6 +180,17 @@ class UpcomingPaymentsTest {
     }
 
     @Test
+    fun `a subscription on a card with no bill entered still counts`() {
+        val bills = upcoming(
+            subscriptions = listOf(sub("Spotify", "2026-10-28", bank = "Test Bank", last4 = "4444")),
+            recurring = listOf(template("Fuel", "2026-10-30", last4 = "4444")),
+            cardBills = listOf(CardBillStatus(card, null, needsBill = true, isKnown = false)),
+        )
+
+        assertEquals(listOf("Spotify", "Fuel"), bills.map { it.name })
+    }
+
+    @Test
     fun `payments from an excluded account don't count`() {
         val bills = upcoming(
             subscriptions = listOf(sub("Rent", "2026-11-01", bank = "Other Bank", last4 = "9999"), sub("Gym", "2026-11-01")),
@@ -194,12 +206,12 @@ class UpcomingPaymentsTest {
             "Test Bank", "4444", "Card", "INR", d(amount), d(paid), date(due).minusDays(20), date(due),
         )
         val bills = upcoming(
-            bills = listOf(
+            cardBills = listOf(
                 bill("2026-10-20", paid = "1500"), // overdue, part paid
                 bill("2026-11-05"),
                 bill("2026-11-10", paid = "4000"), // paid off
                 bill("2026-12-02"), // after payday
-            )
+            ).map { CardBillStatus(card, it, needsBill = false) }
         )
 
         assertEquals(listOf(Money(d("2500"), "INR"), Money(d("4000"), "INR")), bills.map { it.amount })

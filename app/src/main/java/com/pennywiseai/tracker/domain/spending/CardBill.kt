@@ -42,6 +42,11 @@ data class CardBillStatus(
     val card: AccountBalanceEntity,
     val bill: CardBill?,
     val needsBill: Boolean,
+    /**
+     * The latest statement's bill is entered, paid off or not: what's charged to
+     * the card is counted through its bills, not one payment at a time.
+     */
+    val isKnown: Boolean = bill != null,
 )
 
 /** Pure rules for a card's bill: statement dates, due dates and payments. */
@@ -105,7 +110,7 @@ object CardBills {
         val dueDay = card.cardDueDay
         val amount = card.cardBillAmount
         val asOf = card.cardBillAsOf?.toLocalDate()
-        if (dueDay == null || amount == null || asOf == null) return CardBillStatus(card, null, needsBill = owes)
+        if (dueDay == null || amount == null || asOf == null) return CardBillStatus(card, null, needsBill = owes, isKnown = false)
 
         val statement = card.statementDay?.let { statementDate(it, asOf) } ?: asOf
         val bill = CardBill(
@@ -119,7 +124,9 @@ object CardBills {
             dueDate = dueDate(statement, dueDay),
         )
         val newerStatement = card.statementDay?.let { statementDate(it, today).isAfter(statement) } == true
-        return CardBillStatus(card, bill.takeIf { !it.isRetired }, needsBill = owes && newerStatement)
+        return CardBillStatus(
+            card, bill.takeIf { !it.isRetired }, needsBill = owes && newerStatement, isKnown = !newerStatement,
+        )
     }
 
     private fun YearMonth.dayClamped(day: Int): LocalDate = atDay(day.coerceIn(1, lengthOfMonth()))

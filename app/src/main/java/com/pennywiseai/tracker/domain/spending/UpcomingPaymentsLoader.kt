@@ -59,7 +59,7 @@ class UpcomingPaymentsLoader @Inject constructor(
                 bills = UpcomingPayments.of(
                     subscriptions = subscriptions,
                     recurring = recurring.filter { profileId == null || it.profileId == profileId },
-                    cardBills = cardBills.mapNotNull { it.bill },
+                    cardBills = cardBills,
                     cards = cards,
                     posted = posted,
                     today = today,

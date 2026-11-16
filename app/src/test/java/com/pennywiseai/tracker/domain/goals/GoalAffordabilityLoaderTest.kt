@@ -59,7 +59,7 @@ class GoalAffordabilityLoaderTest {
 
     init {
         every { goals.observeActiveGoals(today) } returns flowOf(listOf(goal))
-        every { goals.observeLinkedContributions() } returns flowOf(emptyList())
+        every { goals.observeContributions() } returns flowOf(emptyList())
         every { reviews.observe(ReviewKind.MONTH, 0, today, detail = true) } returns flowOf(review)
     }
 

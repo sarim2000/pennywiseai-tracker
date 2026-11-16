@@ -341,7 +341,7 @@ class HomeViewModel @Inject constructor(
             GoalReserveState(
                 available = goals != null,
                 on = on,
-                amounts = if (on && goals != null) GoalReserve.of(goals.goals, day, window.first, window.second) else emptyList(),
+                amounts = if (on && goals != null) GoalReserve.of(goals.goals, goals.contributions, day, window.first, window.second) else emptyList(),
             )
         }
     }

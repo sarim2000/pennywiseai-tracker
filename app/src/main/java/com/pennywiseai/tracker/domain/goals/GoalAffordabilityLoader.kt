@@ -20,8 +20,11 @@ import kotlinx.coroutines.flow.map
 import java.time.LocalDate
 import javax.inject.Inject
 
-/** The goals in progress, and every contribution taken from a transaction. */
-data class GoalsToWeigh(val goals: List<GoalProgress>, val linked: List<GoalContributionEntity>)
+/** The goals in progress, and every goal's contributions. */
+data class GoalsToWeigh(val goals: List<GoalProgress>, val contributions: List<GoalContributionEntity>) {
+    /** The contributions taken from a transaction. */
+    val linked: List<GoalContributionEntity> get() = contributions.filter { it.transactionId != null }
+}
 
 /**
  * Loads [GoalAffordability] for the Goals list and Insights. Goals have no profile,
@@ -40,11 +43,11 @@ class GoalAffordabilityLoader @Inject constructor(
      */
     fun goalsToWeigh(today: LocalDate): Flow<GoalsToWeigh?> = combine(
         goalRepository.observeActiveGoals(today),
-        goalRepository.observeLinkedContributions(),
+        goalRepository.observeContributions(),
         userPreferencesRepository.selectedProfileId,
-    ) { goals, linked, profileId ->
+    ) { goals, contributions, profileId ->
         val inProgress = goals.filter { it.status == GoalStatus.IN_PROGRESS }
-        if (profileId != null || inProgress.isEmpty()) null else GoalsToWeigh(inProgress, linked)
+        if (profileId != null || inProgress.isEmpty()) null else GoalsToWeigh(inProgress, contributions)
     }.distinctUntilChanged()
 
     /** Loads the cycles behind it too, and only while there's something to weigh. */

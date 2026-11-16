@@ -57,9 +57,8 @@ class GoalRepository @Inject constructor(
     fun observeLinkedMerchants(goalId: Long): Flow<Map<Long, String>> =
         goalDao.observeLinkedMerchants(goalId).map { rows -> rows.associate { it.id to it.merchantName } }
 
-    /** Every goal's effective contributions that came from a transaction. */
-    fun observeLinkedContributions(): Flow<List<GoalContributionEntity>> =
-        goalDao.observeEffectiveContributions().map { all -> all.filter { it.transactionId != null } }
+    /** Every goal's effective contributions. */
+    fun observeContributions(): Flow<List<GoalContributionEntity>> = goalDao.observeEffectiveContributions()
 
     /** All contributions linked to [transactionId], across goals (soft-deleted transaction or not). */
     fun observeContributionsForTransaction(transactionId: Long): Flow<List<GoalContributionEntity>> =

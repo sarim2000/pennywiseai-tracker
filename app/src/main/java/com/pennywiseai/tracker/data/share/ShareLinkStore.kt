@@ -2,14 +2,17 @@ package com.pennywiseai.tracker.data.share
 
 import android.content.Context
 import androidx.datastore.preferences.core.edit
+import androidx.datastore.preferences.core.emptyPreferences
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.map
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.builtins.ListSerializer
 import kotlinx.serialization.json.Json
+import java.io.IOException
 import java.time.Instant
 import java.time.format.DateTimeParseException
 import javax.inject.Inject
@@ -56,7 +59,10 @@ class ShareLinkStore @Inject constructor(@ApplicationContext private val context
 
     private val key = stringPreferencesKey("links")
 
-    val links: Flow<List<SharedLink>> = context.shareLinks.data.map { decodeLinks(it[key]) }
+    /** An unreadable file shows an empty list instead of crashing the screen that collects it. */
+    val links: Flow<List<SharedLink>> = context.shareLinks.data
+        .catch { if (it is IOException) emit(emptyPreferences()) else throw it }
+        .map { decodeLinks(it[key]) }
 
     /** Saves [link] first and drops any that have expired: their pages are gone already. */
     suspend fun add(link: SharedLink, now: Instant = Instant.now()) {

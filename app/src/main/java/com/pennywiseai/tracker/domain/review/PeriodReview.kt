@@ -108,7 +108,7 @@ data class CurrencyReview(
     val categories: List<CategoryLine>,
     /** Year only. Months are net of refunds; a forgiven loan counts in [spent] alone. */
     val months: List<MonthPoint>,
-    /** The biggest [MERCHANT_LINES], largest first. */
+    /** The biggest [MERCHANT_LINES], largest first, leaving out names that carry account digits. */
     val merchants: List<MerchantLine> = emptyList(),
 ) {
     /** False for a currency shown only because it fell to nothing since the previous period. */
@@ -303,7 +303,7 @@ internal suspend fun buildPeriodReview(
             categories = categoryLines(range, spend, before),
             months = if (range.kind == ReviewKind.YEAR) monthPoints(range, spend) else emptyList(),
             merchants = spend.byMerchant
-                .filterValues { it.signum() > 0 }
+                .filter { (name, amount) -> amount.signum() > 0 && !looksLikeAccountLabel(name) }
                 .map { (name, amount) -> MerchantLine(name, amount) }
                 .sortedWith(compareByDescending<MerchantLine> { it.amount }.thenBy { it.name })
                 .take(MERCHANT_LINES),
@@ -352,6 +352,17 @@ private fun monthPoints(range: ReviewRange, spend: Spend): List<MonthPoint> =
 internal const val REVIEW_CATEGORY_LINES = 5
 
 private const val MERCHANT_LINES = 10
+
+/**
+ * A merchant name that carries an account or phone number, such as a parser's
+ * "UPI Transfer to A/C XX1234": kept out of the top merchants, which a PDF report
+ * prints and which must carry no account numbers. Left out before the list is cut
+ * to [MERCHANT_LINES], so it still holds ten names when there are ten.
+ */
+internal fun looksLikeAccountLabel(name: String): Boolean = ACCOUNT_DIGITS.containsMatchIn(name)
+
+/** Four or more digits in a row, or masked digits such as `XX12` / `**12`. */
+private val ACCOUNT_DIGITS = Regex("""\d{4,}|(?i)(?:x{2,}|\*{2,})\d{2,}""")
 
 /** Fewer rows than this and a period isn't worth a Home banner. */
 internal const val MIN_ROWS_FOR_REVIEW_PROMPT = 20

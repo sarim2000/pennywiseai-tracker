@@ -3,8 +3,6 @@ package com.pennywiseai.tracker.data.export
 import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.domain.review.ReviewRange
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.time.LocalDate
 
@@ -62,15 +60,5 @@ class PdfReportPaginationTest {
         assertEquals("2026", reportSlug(range(ReviewKind.YEAR, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31))))
         assertEquals("2026-10", reportSlug(range(ReviewKind.MONTH, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31))))
         assertEquals("2026-10-25", reportSlug(range(ReviewKind.MONTH, LocalDate.of(2026, 10, 25), LocalDate.of(2026, 11, 24))))
-    }
-
-    @Test
-    fun `merchant names built from account digits stay out of the report`() {
-        assertTrue(looksLikeAccountLabel("UPI Transfer to A/C XX1234"))
-        assertTrue(looksLikeAccountLabel("UPI Transfer to 001234567890"))
-        assertTrue(looksLikeAccountLabel("Card **42"))
-        assertFalse(looksLikeAccountLabel("Swiggy"))
-        assertFalse(looksLikeAccountLabel("7-Eleven"))
-        assertFalse(looksLikeAccountLabel("Coffee 24"))
     }
 }

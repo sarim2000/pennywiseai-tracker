@@ -268,6 +268,23 @@ class PeriodReviewTest {
     }
 
     @Test
+    fun `merchant names built from account digits stay out, and ten names still show`() {
+        assertTrue(looksLikeAccountLabel("UPI Transfer to A/C XX1234"))
+        assertTrue(looksLikeAccountLabel("UPI Transfer to 001234567890"))
+        assertTrue(looksLikeAccountLabel("Card **42"))
+        assertFalse(looksLikeAccountLabel("Swiggy"))
+        assertFalse(looksLikeAccountLabel("7-Eleven"))
+        assertFalse(looksLikeAccountLabel("Coffee 24"))
+
+        fun at(merchant: String, row: TransactionWithSplits) = row.copy(transaction = row.transaction.copy(merchantName = merchant))
+        // The biggest spend went to an account label; the ten named merchants after it all show.
+        val rows = (1..10).map { at("M$it", tx("2026-10-0${it % 9 + 1}", "${it * 10}")) } +
+            at("A/c XX1234", tx("2026-10-09", "500"))
+        val merchants = review(range(ReviewKind.MONTH, -1, "2026-11-04"), rows).currencies.single().merchants
+        assertEquals((10 downTo 1).map { "M$it" }, merchants.map { it.name })
+    }
+
+    @Test
     fun `a year has every month, net of that month's refunds`() {
         val year = review(
             range(ReviewKind.YEAR, -1, "2026-11-04"),

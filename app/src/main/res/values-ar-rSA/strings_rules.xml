@@ -356,6 +356,7 @@
     <string name="chat_reply_spent_with_forgiven">%1$s، منها %2$s قروض متنازَل عنها</string>
     <string name="chat_reply_forgiven_loans">قروض متنازَل عنها: %1$s</string>
     <string name="chat_reply_received">المبالغ المستلَمة: %1$s</string>
+    <string name="chat_reply_received_nothing">لم تستلم أي مبالغ</string>
     <string name="chat_reply_transaction_count">عدد المعاملات: %1$d</string>
     <string name="chat_reply_converted_estimate">نحو %1$s إجمالًا: تقدير محوَّل إلى %2$s</string>
     <string name="chat_reply_converted_left_out">خارج التقدير لعدم توفر سعر صرف: %1$s</string>

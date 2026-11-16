@@ -631,7 +631,8 @@ class LlmRepository @Inject constructor(
      * Home's "Spent this month" as chat lines: the dated scope, then each currency on its own,
      * forgiven loans named inside the figure they're part of. A converted estimate only when
      * Home shows one, with what it had to leave out. [typed] answers monthSummary, which income
-     * and count questions reach too: it always says what was received, and how many transactions.
+     * and count questions reach too: it always says what was received, if anything, and how many
+     * transactions.
      */
     private suspend fun spendingText(p: PeriodSpending, typed: Boolean = false): String {
         val spent = ordered(p.spentWithForgiven)
@@ -646,8 +647,9 @@ class LlmRepository @Inject constructor(
                 }
             }
             addAll(estimateLines(p.estimate))
-            val income = if (typed) p.income.ifEmpty { mapOf(userPreferencesRepository.baseCurrency.first() to BigDecimal.ZERO) } else p.income
-            if (income.isNotEmpty()) add(context.getString(R.string.chat_reply_received, amounts(income)))
+            // Only currencies that received money: a zero in one with no activity isn't an answer.
+            if (p.income.isNotEmpty()) add(context.getString(R.string.chat_reply_received, amounts(p.income)))
+            else if (typed) add(context.getString(R.string.chat_reply_received_nothing))
             if (typed) add(context.getString(R.string.chat_reply_transaction_count, p.transactionCount))
         }.joinToString("\n")
     }

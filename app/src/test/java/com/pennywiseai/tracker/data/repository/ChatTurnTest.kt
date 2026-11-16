@@ -431,17 +431,21 @@ class ChatTurnTest {
     }
 
     @Test
-    fun `a typed month summary says what was received, even nothing`() = runTest {
+    fun `a typed month summary says nothing was received, in no currency it had no activity in`() = runTest {
         every { context.getString(R.string.chat_reply_month_spend, any()) } returns "SPENT"
+        every { context.getString(R.string.chat_reply_received_nothing) } returns "NOTHING_RECEIVED"
+        // The user's own currency is USD; all of the month was spent in rupees, and nothing came in.
+        every { preferences.baseCurrency } returns flowOf("USD")
         coEvery { aiContext.spending(any()) } returns com.pennywiseai.tracker.data.model.PeriodSpending(
             com.pennywiseai.tracker.data.model.ChatScope(SpendingComparison.Window(LocalDateTime.of(2026, 11, 1, 0, 0), LocalDateTime.of(2026, 11, 16, 23, 59))),
             spent = mapOf("INR" to BigDecimal("700")),
             income = emptyMap(),
         )
         events = listOf(LlmEvent.ToolCall(PennyWiseTools.MONTH_SUMMARY, emptyMap()))
-        send("how much did I earn this month?")
-        // The user's own currency, at zero: the question is answered, not skipped.
-        verify { context.getString(R.string.chat_reply_received, match<String> { "₹" in it && "0" in it && "7" !in it }) }
+        val reply = send("how much did I earn this month?")
+        // The question is answered, with no "Received: $0" in a currency nothing happened in.
+        assertTrue(reply, "NOTHING_RECEIVED" in reply.lines())
+        verify(exactly = 0) { context.getString(R.string.chat_reply_received, any()) }
     }
 
     @Test

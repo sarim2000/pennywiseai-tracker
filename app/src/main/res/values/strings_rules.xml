@@ -327,6 +327,7 @@
     <string name="chat_reply_spent_with_forgiven">%1$s, including %2$s in forgiven loans</string>
     <string name="chat_reply_forgiven_loans">Forgiven loans: %1$s</string>
     <string name="chat_reply_received">Received: %1$s</string>
+    <string name="chat_reply_received_nothing">Nothing received</string>
     <string name="chat_reply_transaction_count">Transactions: %1$d</string>
     <string name="chat_reply_converted_estimate">About %1$s in all: a converted estimate in %2$s</string>
     <string name="chat_reply_converted_left_out">Left out of the estimate, no exchange rate: %1$s</string>

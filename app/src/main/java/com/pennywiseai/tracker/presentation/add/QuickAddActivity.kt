@@ -388,8 +388,9 @@ class QuickAddActivity : FragmentActivity() {
         val decimalComma = remember {
             DecimalFormatSymbols.getInstance(resources.configuration.locales[0]).decimalSeparator == ','
         }
-        // Filled by voice: what's left is a tap on a category, not typing.
-        LaunchedEffect(Unit) { if (amountText.isEmpty()) focus.requestFocus() }
+        // Filled by voice: what's left is a tap on a category, not typing. The plain sheet
+        // types, so its amount field takes focus again after a rotation too.
+        LaunchedEffect(Unit) { if (!voiceMode || amountText.isEmpty()) focus.requestFocus() }
 
         Column(
             modifier = Modifier

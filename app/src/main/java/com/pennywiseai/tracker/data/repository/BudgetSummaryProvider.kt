@@ -267,6 +267,14 @@ class BudgetSummaryProvider @Inject constructor(
             ?: getTransactionsForOverlappingWindows(group.budget.id, windowedSpend, displayedWindow)
             ?: emptyList()
         val convertedTotalActual = getBudgetWindowFilteredSpend(group, txsInDisplay, displayCurrency, baseCurrency)
+        // Spending with no rate is skipped above, not counted at face value. Flag
+        // any (even outside this budget's categories) so nothing claims a full total.
+        val hasUnconvertedSpend = txsInDisplay
+            .map { it.transaction }
+            .filter { it.transactionType != TransactionType.INCOME && it.transactionType != TransactionType.TRANSFER }
+            .map { it.currency }
+            .distinct()
+            .any { currencyConversionService.convertAmountOrNull(BigDecimal.ONE, it, displayCurrency) == null }
 
         // previousWindows: Weekly historical only. The displayed window
         // is the budget's own current window; older per-week windows
@@ -457,7 +465,8 @@ class BudgetSummaryProvider @Inject constructor(
             displayedCapDate = today,
             displayedIsLive = isCurrentMonth,
             periodType = budget.periodType,
-            previousWindows = previous
+            previousWindows = previous,
+            hasUnconvertedSpend = hasUnconvertedSpend
         )
     }
 }

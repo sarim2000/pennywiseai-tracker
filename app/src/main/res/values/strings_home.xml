@@ -360,6 +360,12 @@
         <item quantity="one">sort it so only real spending counts</item>
         <item quantity="other">sort them so only real spending counts</item>
     </plurals>
+    <!-- %1$s amount with currency, %2$s the budget's name -->
+    <string name="notif_daily_budget_left">%1$s left in %2$s</string>
+    <!-- %1$s amount with currency, %2$s the budget's name -->
+    <string name="notif_daily_budget_over">%1$s over in %2$s</string>
+    <!-- Wraps notif_daily_budget_left/over when some spending had no exchange rate, so the figure may be high -->
+    <string name="notif_daily_budget_incomplete">%1$s (incomplete)</string>
     <string name="notif_daily_action_sort">Sort it</string>
     <string name="notif_daily_action_sort_all">Sort them</string>
     <string name="notif_daily_action_cash">+ Cash</string>

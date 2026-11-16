@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
@@ -15,6 +16,7 @@ import androidx.work.WorkerParameters
 import com.pennywiseai.tracker.MainActivity
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.QuickAddIntent
+import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -23,6 +25,8 @@ import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
+import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
+import com.pennywiseai.tracker.data.repository.BudgetSummaryProvider
 import com.pennywiseai.tracker.data.repository.LoanRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
@@ -37,7 +41,9 @@ import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
 import java.math.BigDecimal
 import java.time.Duration
+import java.time.LocalDate
 import java.time.LocalTime
+import java.time.YearMonth
 import java.time.ZonedDateTime
 import java.util.concurrent.TimeUnit
 
@@ -54,7 +60,8 @@ class DailySummaryWorker @AssistedInject constructor(
     private val loanRepository: LoanRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
-    private val ignoredAccountsStore: IgnoredAccountsStore
+    private val ignoredAccountsStore: IgnoredAccountsStore,
+    private val budgetSummaryProvider: BudgetSummaryProvider
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
@@ -94,12 +101,29 @@ class DailySummaryWorker @AssistedInject constructor(
         val spent = daySpent(transactions, userPreferencesRepository.countCreditCardAsExpense.first(), loss)
             ?: return Result.success()
         val unsorted = transactions.filter { it.category == BuiltinCategoryNames.current("Others") }
+        // The Budgets screen's own figures, as the budget alerts use; a rate fetch
+        // that fails mustn't cost the user the whole recap.
+        val budgetSummary = runCatching { budgetSummaryProvider.summary(YearMonth.from(today)).first() }
+            .onFailure { Log.w(TAG, "Budget figures unavailable for the recap", it) }
+            .getOrNull()
 
         // The recap is built outside any Activity, so it needs the Latin-digit context too (14b00ada).
         val context = applicationContext.withLatinDigits()
+        val budgetLines = budgetSummary?.let { summary ->
+            budgetsLeft(summary, today).map { budget ->
+                val amount = CurrencyFormatter.formatCurrency(budget.left.abs(), summary.currency, maskIfHidden = false)
+                val line = context.getString(
+                    if (budget.left.signum() < 0) R.string.notif_daily_budget_over else R.string.notif_daily_budget_left,
+                    amount,
+                    budget.name
+                )
+                if (budget.incomplete) context.getString(R.string.notif_daily_budget_incomplete, line) else line
+            }
+        }.orEmpty()
         val text = listOfNotNull(
             transactions.size.takeIf { it > 0 }
                 ?.let { context.resources.getQuantityString(R.plurals.notif_daily_count, it, it) },
+            *budgetLines.toTypedArray(),
             // Unsorted transfers count as spending until filed, so say why sorting matters.
             unsorted.size.takeIf { it > 0 }
                 ?.let {
@@ -165,7 +189,11 @@ class DailySummaryWorker @AssistedInject constructor(
         return Result.success()
     }
 
+    /** One LIMIT budget's line in the recap: what's [left] (negative: over) of its current window. */
+    internal data class BudgetLeft(val name: String, val left: BigDecimal, val incomplete: Boolean)
+
     companion object {
+        private const val TAG = "DailySummaryWorker"
         private const val WORK_NAME = "daily_summary"
         private const val CHANNEL_ID = "daily_summary"
         // Transaction alerts use the transaction id; ids are never negative.
@@ -206,6 +234,22 @@ class DailySummaryWorker @AssistedInject constructor(
             return (net + settlementLoss.map { (currency, amount) -> Money(amount, currency) })
                 .sumByCurrency({ it.currency }, { it.amount })
         }
+
+        /**
+         * Each LIMIT budget running today, once, in the summary's one currency: a
+         * budget's figures already come resolved and converted per budget, so its
+         * allowance is never repeated per spending currency. A budget whose window
+         * isn't today's (a one-time budget that ended) or with no limit is left out.
+         */
+        internal fun budgetsLeft(summary: BudgetOverallSummary, today: LocalDate): List<BudgetLeft> =
+            summary.groups
+                .filter {
+                    it.group.budget.groupType == BudgetGroupType.LIMIT &&
+                        it.totalBudget.signum() > 0 &&
+                        !today.isBefore(it.windowStart) && !today.isAfter(it.windowEnd)
+                }
+                .distinctBy { it.group.budget.id }
+                .map { BudgetLeft(it.group.budget.name, it.remaining, it.hasUnconvertedSpend) }
 
         /**
          * Schedules the recap while [enabled] (KEEP: an existing schedule stands)

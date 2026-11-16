@@ -70,22 +70,35 @@ data class TopCategories(
 )
 
 /**
+ * A way from a chat reply to the screen behind it, under the reply. The screen's only: never
+ * saved, so a chat restored later is text.
+ */
+sealed interface ReplyLink {
+    val label: String
+}
+
+/**
  * A way from a chat figure to the transactions behind it: [start] to [end] (whole days), in
  * [category] and its subcategories when set, on [account] (a "bank_last4" key) when set, and
  * only rows written in [currency]: the list left to its own currency would open on the base
  * one alone. [profileId] is the profile the figure counted (null for all), whatever Home shows
  * by the time it's opened. Forgiven loans aren't transactions: the answer names them in its own
- * text. The screen's only: never saved, so a chat restored later is text.
+ * text.
  */
 data class ChatLink(
-    val label: String,
+    override val label: String,
     val start: LocalDate,
     val end: LocalDate,
     val category: String?,
     val currency: String,
     val profileId: Long?,
     val account: String? = null,
-)
+) : ReplyLink
+
+/** A way from a budgets or bills answer to the screen that shows them. */
+data class PlanLink(override val label: String, val plan: Plan) : ReplyLink {
+    enum class Plan { BUDGETS, BILLS }
+}
 
 /**
  * What a chat reply answered, for the chat screen's mascot: the tool behind it (a

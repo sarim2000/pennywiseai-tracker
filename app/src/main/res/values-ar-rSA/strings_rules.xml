@@ -400,6 +400,24 @@
     <string name="chat_quick_month_spend">الإنفاق هذا الشهر</string>
     <string name="chat_quick_top_categories">الفئات الأعلى إنفاقًا</string>
     <string name="chat_quick_compare_month">قارن بالشهر الماضي</string>
+    <string name="chat_quick_bills">الفواتير المستحقة خلال 7 أيام</string>
+    <string name="chat_quick_budgets">المتبقي من الميزانية</string>
+    <plurals name="chat_quick_bills_overdue">
+        <item quantity="zero">لا فواتير متأخرة</item>
+        <item quantity="one">%d فاتورة متأخرة</item>
+        <item quantity="two">فاتورتان متأخرتان</item>
+        <item quantity="few">%d فواتير متأخرة</item>
+        <item quantity="many">%d فاتورة متأخرة</item>
+        <item quantity="other">%d فاتورة متأخرة</item>
+    </plurals>
+    <plurals name="chat_quick_uncategorized">
+        <item quantity="zero">لا معاملات بلا فئة</item>
+        <item quantity="one">%d معاملة بلا فئة</item>
+        <item quantity="two">معاملتان بلا فئة</item>
+        <item quantity="few">%d معاملات بلا فئة</item>
+        <item quantity="many">%d معاملة بلا فئة</item>
+        <item quantity="other">%d معاملة بلا فئة</item>
+    </plurals>
     <string name="chat_reply_month_spend">الإنفاق (%1$s):</string>
     <string name="chat_reply_top_categories">الفئات الأعلى إنفاقًا (%1$s):</string>
     <string name="chat_reply_top_merchants">التجار الأعلى إنفاقًا (%1$s):</string>
@@ -436,6 +454,7 @@
     <string name="chat_done_updated">تم تعديل %1$s.</string>
     <string name="chat_link_transactions">عرض المعاملات</string>
     <string name="chat_link_transactions_in">عرض معاملات %1$s</string>
+    <string name="chat_link_open">فتح %1$s</string>
     <string name="chat_welcome">مرحبًا! أنا PennyWise AI.\n\nأخبرني بما صرفته وسأضيفه بعد تأكيدك، مثل \"قهوة 120 في Starbucks\" أو \"استلمت راتب 50000\". واسأل \"كم صرفت على البقالة هذا الشهر؟\" لتعرف الإجمالي.\n\nالإنفاق حتى الآن (%1$s): %2$s.\nلا يُحفظ شيء دون ضغطة منك.</string>
     <!-- Chat errors -->
     <string name="chat_error_apply_failed">تعذّر تطبيق ذلك: %1$s</string>

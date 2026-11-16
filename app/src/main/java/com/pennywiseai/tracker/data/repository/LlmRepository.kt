@@ -19,6 +19,8 @@ import com.pennywiseai.tracker.data.model.ChatMessageFacts
 import com.pennywiseai.tracker.data.model.ChatScope
 import com.pennywiseai.tracker.data.model.PendingChatAction
 import com.pennywiseai.tracker.data.model.PeriodSpending
+import com.pennywiseai.tracker.data.model.PlanLink
+import com.pennywiseai.tracker.data.model.ReplyLink
 import com.pennywiseai.tracker.data.model.ReplySubject
 import com.pennywiseai.tracker.data.model.ReviewRow
 import com.pennywiseai.tracker.data.model.SpendingComparison
@@ -118,11 +120,11 @@ class LlmRepository @Inject constructor(
 
     // Each reply's links to the transactions behind its figures, by message id. Set before the
     // reply is saved, so it lands with them. Never saved: a chat restored later is text.
-    private val _links = MutableStateFlow<Map<String, List<ChatLink>>>(emptyMap())
-    val links: StateFlow<Map<String, List<ChatLink>>> = _links.asStateFlow()
+    private val _links = MutableStateFlow<Map<String, List<ReplyLink>>>(emptyMap())
+    val links: StateFlow<Map<String, List<ReplyLink>>> = _links.asStateFlow()
 
     // The links the turn in progress has found so far.
-    private val turnLinks = mutableListOf<ChatLink>()
+    private val turnLinks = mutableListOf<ReplyLink>()
 
     // Today, for dating answers: tests pin it so a label's year doesn't depend on when they run.
     internal var today: () -> LocalDate = { LocalDate.now() }
@@ -366,7 +368,7 @@ class LlmRepository @Inject constructor(
             }
             _lastReply.value = (turnSubject ?: ReplySubject()).copy(messageId = aiMessage.id)
             // A repeated call, or a total beside a comparison of the same days, opens the same list once.
-            addLinks(aiMessage.id, turnLinks.distinctBy { it.copy(label = "") })
+            addLinks(aiMessage.id, turnLinks.distinctBy { (it as? ChatLink)?.copy(label = "") ?: it })
             chatDao.insertMessage(aiMessage)
             Log.d(TAG, "AI response saved")
         } finally {
@@ -654,8 +656,15 @@ class LlmRepository @Inject constructor(
         }
         PennyWiseTools.QUERY_SPENDING -> querySpending(call.arguments, userMessage)
         PennyWiseTools.PLANNING_STATUS -> when (call.arguments["kind"]?.toString()?.trim()?.lowercase()?.removeSuffix("s")) {
-            "budget", "limit" -> budgetsText(planningRepository.budgets())
-            "bill", "subscription", "payment" -> billsText(planningRepository.billsDue())
+            "budget", "limit" -> planningRepository.budgets().let { budgets ->
+                turnSubject = turnSubject?.copy(share = budgetShare(budgets))
+                turnLinks += planLink(PlanLink.Plan.BUDGETS)
+                budgetsText(budgets)
+            }
+            "bill", "subscription", "payment" -> {
+                turnLinks += planLink(PlanLink.Plan.BILLS)
+                billsText(planningRepository.billsDue())
+            }
             // On device Qwen2.5 sent "How much salary did I receive?" here: money received is a
             // spending lookup's, in the category the kind names, or else the user's words name.
             // Neither naming one, it's said: all money in isn't the salary asked about.
@@ -678,8 +687,6 @@ class LlmRepository @Inject constructor(
      * different days have no shared "left", so none is made up.
      */
     private fun budgetsText(budgets: List<BudgetStatus>): String {
-        // The mascot's gauge: the most used limit, each against its own (never a sum across them).
-        turnSubject = turnSubject?.copy(share = budgets.mapNotNull { b -> b.limit?.let { b.spent.toFloat() / it.toFloat() } }.maxOrNull()?.coerceIn(0f, 1f) ?: 0f)
         if (budgets.isEmpty()) return context.getString(R.string.chat_reply_budgets_none)
         return buildList {
             add(context.getString(R.string.chat_reply_budgets_title))
@@ -703,6 +710,19 @@ class LlmRepository @Inject constructor(
             }
         }.joinToString("\n")
     }
+
+    /** The mascot's gauge: the most used limit, each against its own (never a sum across them). */
+    private fun budgetShare(budgets: List<BudgetStatus>): Float =
+        budgets.mapNotNull { b -> b.limit?.let { b.spent.toFloat() / it.toFloat() } }.maxOrNull()?.coerceIn(0f, 1f) ?: 0f
+
+    /** Under a budgets or bills answer: the screen that shows them, to act on what it says. */
+    private fun planLink(plan: PlanLink.Plan) = PlanLink(
+        context.getString(
+            R.string.chat_link_open,
+            context.getString(if (plan == PlanLink.Plan.BUDGETS) R.string.budgets_title else R.string.subscriptions_title)
+        ),
+        plan
+    )
 
     /** Overdue bills first, then those due by [BillsDue.through], each in its own currency. */
     private fun billsText(bills: BillsDue): String {
@@ -894,11 +914,11 @@ class LlmRepository @Inject constructor(
      */
     private suspend fun creditAsExpense() = userPreferencesRepository.countCreditCardAsExpense.first()
 
-    suspend fun answerQuickAction(action: QuickAction) {
+    suspend fun answerQuickAction(action: QuickAction, question: String = context.getString(action.label)) {
         _lastReply.value = null
         // For the reply's mascot: the shape of the tool asked the same question, and its figure.
         var subject = ReplySubject(tool = action.tool)
-        var links = emptyList<ChatLink>()
+        var links = emptyList<ReplyLink>()
         val answer = when (action) {
             QuickAction.COMPARE_MONTH -> aiContextRepository.compareSpending(SpendingComparison.Period.MONTH, null, creditAsExpense()).let {
                 subject = subject.copy(trend = SpendingComparison.direction(it))
@@ -914,6 +934,15 @@ class LlmRepository @Inject constructor(
                 links = linksTo(top.scope, null, top.ranking.keys)
                 topCategoriesText(top, SpendingQuery.GroupBy.CATEGORY)
             }
+            QuickAction.BUDGETS -> planningRepository.budgets().let { budgets ->
+                subject = subject.copy(share = budgetShare(budgets))
+                links = listOf(planLink(PlanLink.Plan.BUDGETS))
+                budgetsText(budgets)
+            }
+            QuickAction.BILLS -> {
+                links = listOf(planLink(PlanLink.Plan.BILLS))
+                billsText(planningRepository.billsDue())
+            }
         }
         val at = System.currentTimeMillis()
         val reply = ChatMessage(id = QUICK_ID + UUID.randomUUID(), message = answer, isUser = false, timestamp = at + 1)
@@ -921,7 +950,7 @@ class LlmRepository @Inject constructor(
         addLinks(reply.id, links)
         // The DAO orders by timestamp alone: the reply must sort after its question.
         chatDao.insertMessages(listOf(
-            ChatMessage(id = QUICK_ID + UUID.randomUUID(), message = context.getString(action.label), isUser = true, timestamp = at),
+            ChatMessage(id = QUICK_ID + UUID.randomUUID(), message = question, isUser = true, timestamp = at),
             reply
         ))
     }
@@ -963,7 +992,7 @@ class LlmRepository @Inject constructor(
     private fun cardNote(counted: Boolean): String =
         if (counted) "\n" + context.getString(R.string.chat_reply_card_purchases) else ""
 
-    private fun addLinks(messageId: String, links: List<ChatLink>) {
+    private fun addLinks(messageId: String, links: List<ReplyLink>) {
         if (links.isNotEmpty()) _links.update { it + (messageId to links.toList()) }
     }
 
@@ -1352,10 +1381,13 @@ class LlmRepository @Inject constructor(
 
 /**
  * M8's one-tap questions: an action the code answers, never text for the model. [tool] is
- * the tool that answers the same question, whose shape its reply's mascot takes.
+ * the tool that answers the same question, whose shape its reply's mascot takes. [BUDGETS]
+ * and [BILLS] are offered only while they have something to say (ChatSuggestions).
  */
 enum class QuickAction(@androidx.annotation.StringRes val label: Int, val tool: String) {
     MONTH_SPEND(R.string.chat_quick_month_spend, PennyWiseTools.QUERY_SPENDING),
     TOP_CATEGORIES(R.string.chat_quick_top_categories, PennyWiseTools.QUERY_SPENDING),
-    COMPARE_MONTH(R.string.chat_quick_compare_month, PennyWiseTools.COMPARE_SPENDING)
+    COMPARE_MONTH(R.string.chat_quick_compare_month, PennyWiseTools.COMPARE_SPENDING),
+    BILLS(R.string.chat_quick_bills, PennyWiseTools.PLANNING_STATUS),
+    BUDGETS(R.string.chat_quick_budgets, PennyWiseTools.PLANNING_STATUS),
 }

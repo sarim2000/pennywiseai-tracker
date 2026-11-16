@@ -7,7 +7,10 @@ import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.model.BillsDue
 import com.pennywiseai.tracker.data.model.BudgetStatus
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.map
 import java.time.LocalDate
 import java.time.YearMonth
 import javax.inject.Inject
@@ -25,17 +28,28 @@ class PlanningRepository @Inject constructor(
     private val categoryDao: CategoryDao,
 ) {
     /** The spending limits whose window holds [today], each with its own window and currency. */
-    suspend fun budgets(today: LocalDate = LocalDate.now()): List<BudgetStatus> =
-        budgetStatuses(budgetSummaryProvider.summary(YearMonth.from(today)).first(), today)
+    suspend fun budgets(today: LocalDate = LocalDate.now()): List<BudgetStatus> = observeBudgets(today).first()
+
+    /** [budgets], again whenever a budget or what's spent against it changes. */
+    fun observeBudgets(today: LocalDate): Flow<List<BudgetStatus>> =
+        budgetSummaryProvider.summary(YearMonth.from(today)).map { budgetStatuses(it, today) }
 
     /** Bills overdue, or due within [days] of [today]. */
-    suspend fun billsDue(today: LocalDate = LocalDate.now(), days: Long = BILLS_AHEAD_DAYS): BillsDue = billsDue(
-        subscriptionRepository.getActiveSubscriptions().first(),
-        today,
-        days,
-        incomeCategories = categoryDao.getAllCategoriesList().filter { it.isIncome }.map { it.name }.toSet(),
-        advance = subscriptionRepository::advance,
-    )
+    suspend fun billsDue(today: LocalDate = LocalDate.now(), days: Long = BILLS_AHEAD_DAYS): BillsDue = observeBillsDue(today, days).first()
+
+    /** [billsDue], again whenever a bill or a category changes (paying one moves its date on). */
+    fun observeBillsDue(today: LocalDate, days: Long = BILLS_AHEAD_DAYS): Flow<BillsDue> = combine(
+        subscriptionRepository.getActiveSubscriptions(),
+        categoryDao.getAllCategories(),
+    ) { subscriptions, categories ->
+        billsDue(
+            subscriptions,
+            today,
+            days,
+            incomeCategories = categories.filter { it.isIncome }.map { it.name }.toSet(),
+            advance = subscriptionRepository::advance,
+        )
+    }
 
     companion object {
         const val BILLS_AHEAD_DAYS = 7L

@@ -37,6 +37,9 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.model.ChatLink
+import com.pennywiseai.tracker.data.model.PlanLink
+import com.pennywiseai.tracker.data.model.ReplyLink
+import com.pennywiseai.tracker.data.repository.ChatSuggestion
 import com.pennywiseai.tracker.data.repository.ModelState
 import com.pennywiseai.tracker.data.repository.QuickAction
 import com.pennywiseai.tracker.ui.animations.pwCollapse
@@ -69,13 +72,14 @@ fun ChatScreen(
     modifier: Modifier = Modifier,
     viewModel: ChatViewModel = hiltViewModel(),
     onNavigateToSettings: () -> Unit,
-    onOpenTransactions: (ChatLink) -> Unit = {}
+    onOpenLink: (ReplyLink) -> Unit = {}
 ) {
     val messages by viewModel.messages.collectAsStateWithLifecycle()
     val modelState by viewModel.modelState.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val currentResponse by viewModel.currentResponse.collectAsStateWithLifecycle()
     val links by viewModel.links.collectAsStateWithLifecycle()
+    val suggestions by viewModel.suggestions.collectAsStateWithLifecycle()
     val pendingAction by viewModel.pendingAction.collectAsStateWithLifecycle()
     val categories by viewModel.categories.collectAsStateWithLifecycle()
     val isConfirming by viewModel.isConfirming.collectAsStateWithLifecycle()
@@ -102,6 +106,14 @@ fun ChatScreen(
     }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
+    val context = androidx.compose.ui.platform.LocalContext.current
+    // "N uncategorized": the picker walks the rows still waiting as of the tap, not the count shown.
+    val reviewUncategorized: () -> Unit = {
+        scope.launch {
+            val ids = viewModel.uncategorizedIds()
+            if (ids.isNotEmpty()) context.startActivity(com.pennywiseai.tracker.receiver.QuickCategoryPickerActivity.review(context, ids))
+        }
+    }
     val focusRequester = remember { FocusRequester() }
 
     // Auto-scroll to bottom when new messages arrive
@@ -258,14 +270,19 @@ fun ChatScreen(
                                         topic = uiState.replyTopic?.takeIf { it.messageId == message.id },
                                         celebrating = savedBeat,
                                         links = links[message.id].orEmpty(),
-                                        onOpenLink = onOpenTransactions
+                                        onOpenLink = onOpenLink
                                     )
                                 }
                             }
                         }
 
                         // These need no model, so they stay usable while there's none.
-                        QuickActionChips(enabled = !uiState.isLoading && !isConfirming, onClick = viewModel::runQuickAction)
+                        QuickActionChips(
+                            suggestions = suggestions,
+                            enabled = !uiState.isLoading && !isConfirming,
+                            onAsk = viewModel::runQuickAction,
+                            onReview = reviewUncategorized
+                        )
                         Spacer(modifier = Modifier.height(Spacing.sm))
 
                         // Show model required banner at bottom
@@ -446,7 +463,7 @@ fun ChatScreen(
                                         topic = uiState.replyTopic?.takeIf { it.messageId == message.id },
                                         celebrating = savedBeat,
                                         links = links[message.id].orEmpty(),
-                                        onOpenLink = onOpenTransactions
+                                        onOpenLink = onOpenLink
                                     )
                                 }
 
@@ -553,8 +570,10 @@ fun ChatScreen(
                                         VoiceStatusBar(voice)
                                     } else {
                                         QuickActionChips(
+                                            suggestions = suggestions,
                                             enabled = !uiState.isLoading && !isConfirming,
-                                            onClick = viewModel::runQuickAction,
+                                            onAsk = viewModel::runQuickAction,
+                                            onReview = reviewUncategorized,
                                             leading = { if (voice.available) VoiceLanguageChip(voice) }
                                         )
                                     }
@@ -853,8 +872,8 @@ fun ChatMessageItem(
     topic: ReplyTopic? = null,
     reserveMascot: Boolean = false,
     celebrating: Boolean = false,
-    links: List<ChatLink> = emptyList(),
-    onOpenLink: (ChatLink) -> Unit = {}
+    links: List<ReplyLink> = emptyList(),
+    onOpenLink: (ReplyLink) -> Unit = {}
 ) {
     val timeFormat = remember { SimpleDateFormat("h:mm a", Locale.getDefault()) }
 
@@ -920,14 +939,21 @@ fun ChatMessageItem(
 }
 
 @Composable
-private fun ChatLinkChip(link: ChatLink, onClick: () -> Unit) {
+private fun ChatLinkChip(link: ReplyLink, onClick: () -> Unit) {
     val color = MaterialTheme.colorScheme.onSecondaryContainer
     AssistChip(
         onClick = onClick,
         // A long category wraps to two lines: room above and below so they don't touch the border.
         label = { Text(link.label, modifier = Modifier.padding(vertical = Spacing.xs)) },
         leadingIcon = {
-            Icon(Icons.AutoMirrored.Filled.ReceiptLong, contentDescription = null, modifier = Modifier.size(AssistChipDefaults.IconSize))
+            Icon(
+                when (link) {
+                    is ChatLink -> Icons.AutoMirrored.Filled.ReceiptLong
+                    is PlanLink -> if (link.plan == PlanLink.Plan.BUDGETS) Icons.Default.Savings else Icons.Default.Event
+                },
+                contentDescription = null,
+                modifier = Modifier.size(AssistChipDefaults.IconSize)
+            )
         },
         colors = AssistChipDefaults.assistChipColors(labelColor = color, leadingIconContentColor = color),
         border = AssistChipDefaults.assistChipBorder(enabled = true, borderColor = color.copy(alpha = 0.4f))
@@ -1054,9 +1080,18 @@ private fun PendingActionCard(
     }
 }
 
-/** M8: one-tap questions the app answers itself, no model involved. */
+/**
+ * M8: one-tap prompts the app handles itself, no model involved: only those that apply now
+ * ([ChatViewModel.suggestions]). [onAsk] gets the question as the chip says it.
+ */
 @Composable
-private fun QuickActionChips(enabled: Boolean, onClick: (QuickAction) -> Unit, leading: @Composable () -> Unit = {}) {
+private fun QuickActionChips(
+    suggestions: List<ChatSuggestion>,
+    enabled: Boolean,
+    onAsk: (QuickAction, String) -> Unit,
+    onReview: () -> Unit,
+    leading: @Composable () -> Unit = {}
+) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1065,10 +1100,24 @@ private fun QuickActionChips(enabled: Boolean, onClick: (QuickAction) -> Unit, l
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
         leading()
-        QuickAction.entries.forEach { action ->
+        suggestions.forEach { suggestion ->
+            val label = when (suggestion) {
+                is ChatSuggestion.Uncategorized ->
+                    pluralStringResource(R.plurals.chat_quick_uncategorized, suggestion.count, suggestion.count)
+                is ChatSuggestion.Ask -> if (suggestion.overdue > 0) {
+                    pluralStringResource(R.plurals.chat_quick_bills_overdue, suggestion.overdue, suggestion.overdue)
+                } else {
+                    stringResource(suggestion.action.label)
+                }
+            }
             SuggestionChip(
-                onClick = { onClick(action) },
-                label = { Text(stringResource(action.label)) },
+                onClick = {
+                    when (suggestion) {
+                        is ChatSuggestion.Uncategorized -> onReview()
+                        is ChatSuggestion.Ask -> onAsk(suggestion.action, label)
+                    }
+                },
+                label = { Text(label) },
                 enabled = enabled
             )
         }

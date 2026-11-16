@@ -360,6 +360,18 @@
     <string name="chat_quick_month_spend">Spending this month</string>
     <string name="chat_quick_top_categories">Top categories</string>
     <string name="chat_quick_compare_month">Compare with last month</string>
+    <string name="chat_quick_bills">Bills due next 7 days</string>
+    <string name="chat_quick_budgets">Budget remaining</string>
+    <!-- Chat prompt shown while bills wait past their date; tapping it lists them -->
+    <plurals name="chat_quick_bills_overdue">
+        <item quantity="one">%d bill overdue</item>
+        <item quantity="other">%d bills overdue</item>
+    </plurals>
+    <!-- Chat prompt: transactions with no category yet; tapping it opens the category picker on them -->
+    <plurals name="chat_quick_uncategorized">
+        <item quantity="one">%d uncategorized</item>
+        <item quantity="other">%d uncategorized</item>
+    </plurals>
     <string name="chat_reply_month_spend">Spent %1$s:</string>
     <string name="chat_reply_top_categories">Top categories, %1$s:</string>
     <string name="chat_reply_top_merchants">Top merchants, %1$s:</string>
@@ -397,6 +409,8 @@
     <!-- Under a chat answer: opens the transactions behind its figures. %1$s in _in is what they are, joined by " · ": a category name, a date range like "1 Nov–16 Nov" and/or a currency code like "USD" -->
     <string name="chat_link_transactions">See transactions</string>
     <string name="chat_link_transactions_in">See %1$s transactions</string>
+    <!-- Under a chat answer: opens the screen it came from. %1$s is that screen's title, e.g. "Budgets" -->
+    <string name="chat_link_open">Open %1$s</string>
     <string name="chat_welcome">Hi! I\'m PennyWise AI.\n\nTell me what you spent and I\'ll add it after you confirm — e.g. \"coffee 120 at Starbucks\" or \"got 50000 salary\". Ask \"how much on groceries this month?\" for a total.\n\nSpent so far (%1$s): %2$s.\nNothing is saved without your tap.</string>
 
     <!-- Chat errors -->

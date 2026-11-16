@@ -113,6 +113,8 @@ class SpendingQueryTest {
         assertEquals(AccountMatch.One(salary), SpendingQuery.account("salary", all))
         assertEquals(AccountMatch.One(salary), SpendingQuery.account("5678", all))
         assertEquals(AccountMatch.One(cash), SpendingQuery.account("cash", all))
+        // The prompt lists an account without an alias as "bank last4", so a wallet as "Cash WALLET".
+        assertEquals(AccountMatch.One(cash), SpendingQuery.account("Cash WALLET", all))
         // Two cards end in 1234, and HDFC has two accounts: the user picks.
         assertEquals(AccountMatch.Several(listOf(hdfc, sbi)), SpendingQuery.account("1234", all))
         assertEquals(AccountMatch.Several(listOf(hdfc, salary)), SpendingQuery.account("hdfc", all))

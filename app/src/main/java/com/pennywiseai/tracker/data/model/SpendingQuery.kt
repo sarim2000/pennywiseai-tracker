@@ -142,7 +142,8 @@ object SpendingQuery {
     private fun norm(s: String) = s.lowercase().replace(Regex("[^\\p{L}\\p{M}\\p{N}]+"), " ").trim()
 
     /**
-     * The account the user named: its alias or "Bank 1234" exactly first, then its last digits
+     * The account the user named: its alias or "Bank 1234" exactly first (or "Paytm WALLET", as
+     * the chat's prompt lists a wallet), then its last digits
      * (with a word of its name first, when one was given), then the bank or alias alone. The
      * first of those that matches anything decides; two accounts there is a question for the
      * user, not a guess.
@@ -155,7 +156,10 @@ object SpendingQuery {
         fun names(a: AccountBalanceEntity) = listOfNotNull(a.alias?.takeIf { it.isNotBlank() }, a.bankName).map(::norm)
         fun endsIn(a: AccountBalanceEntity) = digits.length >= 3 && a.accountLast4.endsWith(digits.takeLast(4))
         val tiers = listOf<(AccountBalanceEntity) -> Boolean>(
-            { a -> wanted == norm(a.displayLabel) || wanted == norm(AccountBalanceEntity.accountLabel(a.bankName, a.accountLast4)) },
+            { a ->
+                wanted == norm(a.displayLabel) || wanted == norm(AccountBalanceEntity.accountLabel(a.bankName, a.accountLast4)) ||
+                    wanted == norm("${a.bankName} ${a.accountLast4}")
+            },
             // "sbi card 1234": the digits, and a word of its name.
             { a -> endsIn(a) && words.any { w -> names(a).any { w in it.split(" ") } } },
             { a -> endsIn(a) },

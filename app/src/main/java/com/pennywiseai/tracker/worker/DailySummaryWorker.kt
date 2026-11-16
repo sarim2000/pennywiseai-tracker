@@ -285,13 +285,15 @@ class DailySummaryWorker @AssistedInject constructor(
             summary.groups
                 .filter {
                     it.group.budget.groupType == BudgetGroupType.LIMIT &&
-                        (it.totalBudget.signum() > 0 || (it.hasZeroLimit() && it.remaining.signum() < 0)) &&
+                        (it.hasLimit || (it.hasZeroLimit() && it.remaining.signum() < 0)) &&
                         !today.isBefore(it.windowStart) && !today.isAfter(it.windowEnd)
                 }
+                // A limit rollover carried down to 0 is measured against the budget's own;
+                // one the user set to 0 has nothing to measure against, so it leads.
                 .sortedWith(
                     compareBy(nullsFirst()) {
-                        it.remaining.takeIf { _ -> it.totalBudget.signum() != 0 }
-                            ?.divide(it.totalBudget, MathContext.DECIMAL64)
+                        (it.totalBudget.takeIf { t -> t.signum() > 0 } ?: it.baseBudget.takeIf { b -> b.signum() > 0 })
+                            ?.let { limit -> it.remaining.divide(limit, MathContext.DECIMAL64) }
                     }
                 )
                 .map { BudgetLeft(it.group.budget.name, it.remaining, it.hasUnconvertedSpend) }

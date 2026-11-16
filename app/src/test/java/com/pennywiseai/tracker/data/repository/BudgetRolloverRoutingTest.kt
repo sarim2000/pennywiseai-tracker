@@ -14,7 +14,13 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.preferences.BudgetPreferences
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
+import com.pennywiseai.tracker.domain.insights.InsightFact
+import com.pennywiseai.tracker.domain.insights.InsightRules
+import com.pennywiseai.tracker.domain.insights.budgetStatuses
+import com.pennywiseai.tracker.domain.spending.BudgetAlertTier
+import com.pennywiseai.tracker.domain.spending.MoneyAlertRules
 import com.pennywiseai.tracker.presentation.home.homeBudgetSummary
+import com.pennywiseai.tracker.worker.DailySummaryWorker
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -92,14 +98,17 @@ class BudgetRolloverRoutingTest {
         }
     }
 
-    private fun summary(repo: BudgetGroupRepository, unified: Boolean): BudgetGroupSpending = runBlocking {
+    private fun overall(repo: BudgetGroupRepository, unified: Boolean): BudgetOverallSummary = runBlocking {
         val prefs = mockk<CurrencyPreferences> {
             every { baseCurrency } returns flowOf("JOD")
             every { unifiedCurrencyMode } returns flowOf(unified)
             every { displayCurrency } returns flowOf("JOD")
         }
-        BudgetSummaryProvider(repo, prefs, conversion).summary(YearMonth.from(today)).first().groups.single()
+        BudgetSummaryProvider(repo, prefs, conversion).summary(YearMonth.from(today)).first()
     }
+
+    private fun summary(repo: BudgetGroupRepository, unified: Boolean): BudgetGroupSpending =
+        overall(repo, unified).groups.single()
 
     private fun home(repo: BudgetGroupRepository): BudgetGroupSpending = runBlocking {
         val raw = repo.getGroupSpendingAllCurrencies(today.year, today.monthValue).first()
@@ -127,6 +136,28 @@ class BudgetRolloverRoutingTest {
         assertFigures(summary(repo, unified = false), carry = "-30", limit = "70", remaining = "40")
         assertFigures(summary(repo, unified = true), carry = "-30", limit = "70", remaining = "40")
         assertFigures(home(repo), carry = "-30", limit = "70", remaining = "40")
+    }
+
+    @Test
+    fun `overspending last week twice over uses up this week's limit, and it still counts as one`() {
+        val repo = repository(budget(), listOf(spend("250", at = lastWeek), spend("30")))
+        for (g in listOf(summary(repo, unified = false), summary(repo, unified = true), home(repo))) {
+            assertFigures(g, carry = "-100", limit = "0", remaining = "-30")
+            assertTrue(g.hasLimit)
+            assertEquals(100f, g.percentageUsed)
+            assertEquals(
+                BudgetAlertTier.OVER,
+                MoneyAlertRules.budgetTier(g.totalActual, g.totalBudget, g.windowStart, g.windowEnd, today, g.hasLimit)
+            )
+        }
+        for (unified in listOf(false, true)) {
+            val overall = overall(repo, unified)
+            assertEquals(
+                listOf(DailySummaryWorker.BudgetLeft("Food", BigDecimal("-30"), incomplete = false)),
+                DailySummaryWorker.budgetsLeft(overall, today)
+            )
+            assertTrue(InsightRules.budgets(budgetStatuses(overall, today), "p").single().fact is InsightFact.BudgetOver)
+        }
     }
 
     @Test

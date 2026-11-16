@@ -484,7 +484,7 @@ private fun BudgetCard(
                     horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    if (groupSpending.totalBudget > BigDecimal.ZERO) {
+                    if (groupSpending.hasLimit) {
                         Text(
                             text = stringResource(R.string.budgets_percent, pctUsed.toInt()),
                             style = MaterialTheme.typography.labelSmall,
@@ -576,7 +576,7 @@ private fun BudgetCard(
                 }
             }
 
-            if (groupSpending.totalBudget > BigDecimal.ZERO) {
+            if (groupSpending.hasLimit) {
                 Spacer(modifier = Modifier.height(Spacing.sm))
 
                 // Row 2: Custom rounded progress bar

@@ -423,9 +423,7 @@ class BudgetSummaryProvider @Inject constructor(
         )
 
         val remaining = convertedTotalBudget - convertedTotalActual
-        val pctUsed = if (convertedTotalBudget > BigDecimal.ZERO) {
-            (convertedTotalActual.toFloat() / convertedTotalBudget.toFloat() * 100f).coerceAtLeast(0f)
-        } else 0f
+        val pctUsed = budgetPercentUsed(convertedTotalActual, convertedTotalBudget, carry.amount.amount)
         val dailyAllowance = if (daysRemaining > 0 && remaining > BigDecimal.ZERO) {
             remaining.divide(BigDecimal(daysRemaining), 0, RoundingMode.HALF_UP)
         } else BigDecimal.ZERO

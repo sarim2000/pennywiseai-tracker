@@ -53,6 +53,13 @@ class MoneyAlertRulesTest {
     }
 
     @Test
+    fun `a limit rollover carried down to zero is over on any spending`() {
+        val day = start.plusDays(4)
+        assertEquals(BudgetAlertTier.OVER, MoneyAlertRules.budgetTier(BigDecimal("1"), BigDecimal.ZERO, start, end, day, hasLimit = true))
+        assertNull(MoneyAlertRules.budgetTier(BigDecimal.ZERO, BigDecimal.ZERO, start, end, day, hasLimit = true))
+    }
+
+    @Test
     fun `each tier fires once a window and only upward`() {
         val w = "2026-11-01|2026-11-30|1000"
         val warned = MoneyAlertRules.nextBudgetLatch(null, w, BudgetAlertTier.WARNING)

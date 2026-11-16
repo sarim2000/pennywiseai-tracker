@@ -11,6 +11,7 @@ import com.pennywiseai.tracker.data.repository.BudgetGroupSpendingRaw
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.data.repository.BudgetWindow
 import com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending
+import com.pennywiseai.tracker.data.repository.budgetPercentUsed
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
@@ -132,9 +133,7 @@ internal suspend fun homeBudgetSummary(
             catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
         }
         val remaining = totalBudget - totalActual
-        val pctUsed = if (totalBudget > BigDecimal.ZERO) {
-            (totalActual.toFloat() / totalBudget.toFloat() * 100f).coerceAtLeast(0f)
-        } else 0f
+        val pctUsed = budgetPercentUsed(totalActual, totalBudget, carry.amount.amount)
         val dailyAllowance = if (daysRemaining > 0 && remaining > BigDecimal.ZERO) {
             remaining.divide(BigDecimal(daysRemaining), 0, RoundingMode.HALF_UP)
         } else BigDecimal.ZERO

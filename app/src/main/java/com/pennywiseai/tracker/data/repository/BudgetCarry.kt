@@ -23,6 +23,16 @@ data class BudgetCarry(val amount: Money, val incomplete: Boolean = false) {
 }
 
 /**
+ * Percent of [limit] (with [carry] already in it) that [spent] used. Rollover can
+ * carry a budget's limit down to 0 (a negative [carry]): that limit is all used up.
+ */
+fun budgetPercentUsed(spent: BigDecimal, limit: BigDecimal, carry: BigDecimal): Float = when {
+    limit.signum() > 0 -> (spent.toFloat() / limit.toFloat() * 100f).coerceAtLeast(0f)
+    carry.signum() < 0 -> 100f
+    else -> 0f
+}
+
+/**
  * The budget's own limit in its stored (base) currency: the group limit, or the sum
  * of its categories' when it has none. Never a limit something was already added to.
  */

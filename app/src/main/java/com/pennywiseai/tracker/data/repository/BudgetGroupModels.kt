@@ -128,7 +128,16 @@ data class BudgetGroupSpending(
      */
     val carry: BigDecimal = BigDecimal.ZERO,
     val carryIncomplete: Boolean = false
-)
+) {
+    /** The budget's own limit, before rollover's [carry]. */
+    val baseBudget: BigDecimal get() = totalBudget - carry
+
+    /**
+     * There's a limit to measure against. Rollover can carry a real limit down to
+     * exactly 0: that limit is used up, not missing, so check this, not [totalBudget].
+     */
+    val hasLimit: Boolean get() = baseBudget.signum() > 0
+}
 
 data class BudgetOverallSummary(
     val groups: List<BudgetGroupSpending>,

@@ -1069,9 +1069,7 @@ class BudgetGroupRepository @Inject constructor(
             val totalBudget = carry.appliedTo(group.budget.limitAmount)
             val totalActual = totalAllExpenses
             val remaining = totalBudget - totalActual
-            val pctUsed = if (totalBudget > BigDecimal.ZERO) {
-                percentOf(totalActual, totalBudget)
-            } else 0f
+            val pctUsed = budgetPercentUsed(totalActual, totalBudget, carry.amount.amount)
             val dailyAllowance = if (daysRemaining > 0 && remaining > BigDecimal.ZERO) {
                 remaining.divide(BigDecimal(daysRemaining), 0, RoundingMode.HALF_UP)
             } else BigDecimal.ZERO
@@ -1133,9 +1131,7 @@ class BudgetGroupRepository @Inject constructor(
             val covered = group.categories.withoutCoveredChildren(parentOf()).map { it.categoryName }.toSet()
             val totalActual = catSpending.filter { it.categoryName in covered }.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
             val remaining = totalBudget - totalActual
-            val pctUsed = if (totalBudget > BigDecimal.ZERO) {
-                percentOf(totalActual, totalBudget)
-            } else 0f
+            val pctUsed = budgetPercentUsed(totalActual, totalBudget, carry.amount.amount)
             val dailyAllowance = if (daysRemaining > 0 && remaining > BigDecimal.ZERO) {
                 remaining.divide(BigDecimal(daysRemaining), 0, RoundingMode.HALF_UP)
             } else BigDecimal.ZERO

@@ -142,7 +142,7 @@ fun BudgetCard(
                 )
             }
 
-            if (groupSpending.totalBudget > BigDecimal.ZERO) {
+            if (groupSpending.hasLimit) {
                 Text(
                     text = stringResource(R.string.budget_card_percent, pillPercent),
                     // Tabular figures: the counting percent doesn't jitter in width.
@@ -173,7 +173,7 @@ fun BudgetCard(
 
         // Row 2: Custom rounded progress bar. Stays flat (a data meter); a
         // thin "today" tick marks where an even spend would be.
-        if (groupSpending.totalBudget > BigDecimal.ZERO) {
+        if (groupSpending.hasLimit) {
             val barShape = RoundedCornerShape(50)
             val tickColor = MaterialTheme.colorScheme.onSurface
             Box(

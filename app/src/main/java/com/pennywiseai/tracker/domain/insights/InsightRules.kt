@@ -48,8 +48,10 @@ data class BudgetStatus(
     val windowEnd: LocalDate,
     /** Some spending had no exchange rate, so [spent] reads low. */
     val incomplete: Boolean = false,
+    /** Rollover can carry a real limit down to a [limit] of 0: used up, not missing. */
+    val hasLimit: Boolean = limit.signum() > 0,
 ) {
-    val isRunning: Boolean get() = limit.signum() > 0 && daysElapsed in 1..windowDays
+    val isRunning: Boolean get() = hasLimit && daysElapsed in 1..windowDays
 
     /** A weekly budget's week 2 is news again after week 1 was dismissed. */
     internal val windowKey: String get() = "$id@$windowStart"
@@ -113,8 +115,10 @@ object InsightRules {
     internal fun budgets(budgets: List<BudgetStatus>, period: String): List<Insight> {
         val running = budgets.filter { it.isRunning }
         val flagged = running.mapNotNull { b ->
-            val pace = budgetPace(b.spent, b.limit, b.daysElapsed, b.windowDays) ?: return@mapNotNull null
-            if (pace.daysOver < 1 && !pace.isOverBudget) return@mapNotNull null
+            // No pace against a limit carried down to 0: it's all used up already.
+            val pace = budgetPace(b.spent, b.limit, b.daysElapsed, b.windowDays)
+            if (pace == null && b.limit.signum() != 0) return@mapNotNull null
+            if (pace != null && pace.daysOver < 1 && !pace.isOverBudget) return@mapNotNull null
             val spent = Money(b.spent, b.currency)
             val limit = Money(b.limit, b.currency)
             val daysLeft = b.windowDays - b.daysElapsed + 1
@@ -122,7 +126,7 @@ object InsightRules {
             val perDayLeft = (b.limit - b.spent).divide(BigDecimal(daysLeft), 0, RoundingMode.HALF_UP)
             when {
                 // Nothing left a day with days to go reads as used up, not as "0 a day".
-                pace.isOverBudget || perDayLeft.signum() <= 0 -> Insight(
+                pace == null || pace.isOverBudget || perDayLeft.signum() <= 0 -> Insight(
                     id("budget_over", period, b.currency, b.windowKey), InsightSeverity.ALERT, b.currency,
                     BudgetOver(b.name, spent, limit, b.incomplete), InsightAction.OpenBudgets,
                 )
@@ -420,6 +424,7 @@ object InsightRules {
             is BudgetPace -> f.projected to f.limit
             else -> return BigDecimal.ZERO
         }
+        if (limit.amount.signum() == 0) return BigDecimal.ONE
         return spent.amount.divide(limit.amount, 4, RoundingMode.HALF_UP)
     }
 

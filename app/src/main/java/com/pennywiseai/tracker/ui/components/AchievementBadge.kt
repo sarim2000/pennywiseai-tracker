@@ -1,4 +1,4 @@
-package com.pennywiseai.tracker.presentation.achievements
+package com.pennywiseai.tracker.ui.components
 
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.layout.size

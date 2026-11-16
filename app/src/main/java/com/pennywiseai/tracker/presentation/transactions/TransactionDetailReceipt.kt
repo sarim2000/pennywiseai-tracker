@@ -501,7 +501,7 @@ internal fun TransactionReceipt(
                 HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
                 DetailInfoRow(
                     icon = Icons.Default.VerifiedUser,
-                    label = stringResource(R.string.warranty_detail_label),
+                    label = stringResource(R.string.warranty_field_label),
                     value = until.format(AppDates.dateFormatter())
                 )
             }

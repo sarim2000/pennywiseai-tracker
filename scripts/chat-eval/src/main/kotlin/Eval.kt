@@ -61,9 +61,16 @@ internal fun systemPrompt(hint: String): String {
 """.trimIndent() + hint
 }
 
-/** The prompt the app sends today: LlmRepository.composeSystemPrompt names the array tool and adds these rules. */
+/** The prompt the app sends today: LlmRepository.composeSystemPrompt names the array tool, its lookup tools, and adds these rules. */
 internal fun appSystemPrompt() =
     systemPrompt(ONE_CALL_ITEMS + RULES).replace("call addTransaction.", "call addTransactions.").replace("Never call addTransaction for", "Never call addTransactions for")
+        .replace(OLD_LOOKUPS, APP_LOOKUPS)
+
+private const val OLD_LOOKUPS =
+    "When the user asks how much they spent on something, call spendingByCategory; for this month's overall totals call monthSummary."
+private const val APP_LOOKUPS = """When the user asks to compare spending with last month or last week, call compareSpending.
+When the user asks about their budgets or bills due, call planningStatus.
+When the user asks how much they spent or received, in all, on a category, at a merchant or from an account, call querySpending with the period or dates they named."""
 
 private const val ONE_CALL_EACH = "\nIf a message mentions several transactions, call addTransaction once for each of them."
 private const val RULES = """

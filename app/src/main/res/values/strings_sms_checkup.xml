@@ -16,6 +16,10 @@
     <string name="sms_checkup_turn_on">Turn on</string>
     <string name="sms_checkup_section_background">Background</string>
     <string name="sms_checkup_background_why">Android can pause PennyWise and stop new transactions from arriving.</string>
+    <plurals name="sms_checkup_background_steps_left">
+        <item quantity="one">Android can pause PennyWise and stop new transactions from arriving. %d step left.</item>
+        <item quantity="other">Android can pause PennyWise and stop new transactions from arriving. %d steps left.</item>
+    </plurals>
     <string name="sms_checkup_review">Review</string>
 
     <string name="sms_checkup_section_scan">Last scan</string>

@@ -58,6 +58,7 @@ import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.success
 import com.pennywiseai.tracker.ui.theme.warning
 import com.pennywiseai.tracker.utils.canReceiveSms
+import com.pennywiseai.tracker.utils.trackingProblem
 import java.text.NumberFormat
 
 /** One place that answers "why didn't my transaction show up?". */
@@ -99,7 +100,9 @@ fun SmsCheckupScreen(
         val scan = state ?: return@PennyWiseScaffold
         val smsOk = smsAccess.granted && canReceiveSms
         val stepsLeft = background?.stepsLeft
-        val issues = listOf(!smsOk, (stepsLeft ?: 0) > 0, scan.status.needsAttention).count { it }
+        // Only what stops tracking counts, as on Home: battery optimisation is every app's
+        // default, so the Background row lists it without raising the alarm.
+        val issues = listOf(trackingProblem(smsOk, background) != null, scan.status.needsAttention).count { it }
 
         Column(
             modifier = Modifier
@@ -153,8 +156,11 @@ fun SmsCheckupScreen(
                     ChecklistStep(
                         title = stringResource(R.string.background_access_title),
                         done = stepsLeft == 0,
-                        why = stringResource(R.string.sms_checkup_background_why) + " " +
-                            pluralStringResource(R.plurals.background_access_steps_left, stepsLeft, stepsLeft),
+                        why = if (stepsLeft == 0) {
+                            stringResource(R.string.sms_checkup_background_why)
+                        } else {
+                            pluralStringResource(R.plurals.sms_checkup_background_steps_left, stepsLeft, stepsLeft)
+                        },
                         actionLabel = stringResource(R.string.sms_checkup_review),
                         onAction = onOpenBackgroundAccess
                     ),

@@ -46,6 +46,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
@@ -94,6 +95,7 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
+import kotlinx.coroutines.withTimeoutOrNull
 import java.math.BigDecimal
 import java.text.DecimalFormatSymbols
 import java.time.LocalDate
@@ -266,8 +268,11 @@ class QuickAddActivity : FragmentActivity() {
             // A widget drawn before the phone lost its recognizer: type instead.
             if (!voice.available) return@LaunchedEffect onType()
             if (!started) {
+                // Until the recognizer says which languages it has, Arabic on Google's (online
+                // only) would start on-device and fail, or skip the consent question.
+                withTimeoutOrNull(LANGUAGES_WAIT_MS) { snapshotFlow { voice.ready }.first { it } }
                 started = true
-                voice.toggle("")
+                if (!voice.active) voice.toggle("")
             }
         }
         Column(
@@ -575,6 +580,9 @@ class QuickAddActivity : FragmentActivity() {
         private const val TAG = "QuickAddActivity"
         private const val KEY_UNLOCKED = "unlocked"
         private const val CASH = "CASH"
+
+        /** How long the mic waits for the language list before starting anyway. */
+        private const val LANGUAGES_WAIT_MS = 3_000L
 
         /**
          * What the amount field keeps of a keystroke: digits in any script

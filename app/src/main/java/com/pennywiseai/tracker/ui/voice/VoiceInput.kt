@@ -144,6 +144,13 @@ class VoiceInput internal constructor(
     /** False until the recognizer has said which languages it has (or if it couldn't). */
     private var supportKnown by mutableStateOf(false)
 
+    /**
+     * True once the first language query has answered, either way. Until then an online-only
+     * language looks on-device, so a mic that starts by itself waits for this.
+     */
+    var ready by mutableStateOf(false)
+        private set
+
     private var chosen by mutableStateOf(prefs.getString(KEY_LANGUAGE, null))
 
     /** Bumped on every pick, so a download can tell whether the user chose anything since. */
@@ -410,12 +417,14 @@ class VoiceInput internal constructor(
                     val onDevice = installed + pending + downloadable
                     online = if (onlineService() == null) emptyList() else onlineOnly(mine, onDevice)
                     supportKnown = true
+                    ready = true
                 }
 
                 override fun onError(error: Int) {
                     if (probe !== r) return
                     probe = null
                     r.destroy()
+                    ready = true
                 }
             }
         )

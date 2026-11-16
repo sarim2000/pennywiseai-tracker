@@ -51,6 +51,7 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.JsonPrimitive
 import java.math.BigDecimal
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.temporal.WeekFields
 import java.util.Locale
@@ -739,11 +740,12 @@ class LlmRepository @Inject constructor(
 
     /**
      * The days a querySpending call asks about. Left at this month by the model while the user
-     * named a week, the month before, or days the app won't guess at, the user's words decide.
+     * named a day, a week, the month before, or days the app won't guess at, the user's words decide.
      */
     private suspend fun datesAsked(args: Map<String, Any?>, userMessage: String): SpendingQuery.Dates {
         var period = args["period"]
         if (SpendingQuery.defaultPeriod(period, args["from"], args["to"])) {
+            SpendingQuery.daysNamed(userMessage, LocalDate.now())?.let { return it }
             val previous = SpendingComparison.namesThePreviousPeriod(userMessage)
             period = when (SpendingComparison.period(userMessage, null)) {
                 null -> return SpendingQuery.Dates.Invalid(SpendingQuery.Problem.PERIOD)

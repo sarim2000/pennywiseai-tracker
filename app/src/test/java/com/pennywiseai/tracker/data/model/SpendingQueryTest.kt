@@ -61,6 +61,25 @@ class SpendingQueryTest {
         assertEquals(window(day(11, 1), day(11, 16)), dates("2026-11"))
         assertEquals(window(day(1, 1, 2025), day(12, 31, 2025)), dates("2025"))
         assertEquals(window(day(1, 1), day(11, 16)), dates("2026"))
+        // A year by name, as models write it.
+        assertEquals(window(day(1, 1), day(11, 16)), dates("this_year"))
+        assertEquals(window(day(1, 1, 2025), day(12, 31, 2025)), dates("last year"))
+    }
+
+    @Test
+    fun `a day the user named decides when the model left the period empty`() {
+        val today = now.toLocalDate()
+        assertEquals(window(day(11, 16), day(11, 16)), SpendingQuery.daysNamed("how much did I spend today?", today))
+        assertEquals(window(day(11, 15), day(11, 15)), SpendingQuery.daysNamed("كم صرفت أمس؟", today))
+        assertEquals(window(day(11, 15), day(11, 15)), SpendingQuery.daysNamed("कल कितना खर्च हुआ?", today))
+        assertEquals(window(day(11, 13), day(11, 13)), SpendingQuery.daysNamed("spent 3 days ago", today))
+        // Days it can't count are said, not answered with this month.
+        assertEquals(Dates.Invalid(Problem.PERIOD), SpendingQuery.daysNamed("how much in the last 10 days?", today))
+        assertEquals(Dates.Invalid(Problem.PERIOD), SpendingQuery.daysNamed("كم صرفت في آخر ٣ أيام", today))
+        assertEquals(Dates.Invalid(Problem.PERIOD), SpendingQuery.daysNamed("how much on Monday?", today))
+        // No day named, or a week or month that decides instead.
+        assertNull(SpendingQuery.daysNamed("how much have I spent?", today))
+        assertNull(SpendingQuery.daysNamed("how much this month up to today?", today))
     }
 
     @Test

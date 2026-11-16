@@ -1299,6 +1299,10 @@ class ChatTurnTest {
         events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("period" to "last_month")))
         send("and how much last month?")
         assertEquals(asked("last_month"), filter.captured.window)
+        // A day the user named, not this month's figure under it.
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("period" to "")))
+        send("how much did I spend yesterday?")
+        assertEquals(asked("yesterday"), filter.captured.window)
     }
 
     @Test

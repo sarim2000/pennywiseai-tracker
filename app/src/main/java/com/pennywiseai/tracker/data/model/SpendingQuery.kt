@@ -68,6 +68,9 @@ object SpendingQuery {
     private val YEAR = Regex("(?:19|20)\\d\\d")
     private val HOME = setOf("this_month", "month", "current_month", "this_cycle", "cycle")
 
+    // A count of days: "the last 10 days", "آخر ٣ أيام", "पिछले 10 दिन".
+    private val DAYS = Regex("\\bdays\\b|أيام|ايام|يومين|يومان|दिन", RegexOption.IGNORE_CASE)
+
     private fun text(value: Any?) = value?.toString()?.trim()?.takeIf { it.isNotEmpty() }
 
     /** The model left the period to the app: no period beyond this month, and no dates. */
@@ -106,10 +109,28 @@ object SpendingQuery {
             }
             p == "today" -> window(today, today, today, raw)
             p == "yesterday" -> window(today.minusDays(1), today.minusDays(1), today, raw)
+            p == "this_year" || p == "year" || p == "current_year" -> window(today.withDayOfYear(1), today, today, raw)
+            p == "last_year" || p == "previous_year" -> Year.from(today).minusYears(1).let { window(it.atDay(1), it.atMonth(12).atEndOfMonth(), today, raw) }
             YEAR_MONTH.matches(raw) -> runCatching { YearMonth.parse(raw) }.getOrNull()
                 ?.let { window(it.atDay(1), it.atEndOfMonth(), today, raw) } ?: Dates.Invalid(Problem.PERIOD, raw)
             YEAR.matches(raw) -> Year.parse(raw).let { window(it.atDay(1), it.atMonth(12).atEndOfMonth(), today, raw) }
             else -> Dates.Invalid(Problem.PERIOD, raw)
+        }
+    }
+
+    /**
+     * The days [message] names when the model left the period empty: one day ("today", "yesterday",
+     * "3 days ago") is that day; days the app can't count ("on Monday", "the last 10 days") are
+     * PERIOD, never this month instead. Null when it names none, or names a week or a month:
+     * those decide.
+     */
+    fun daysNamed(message: String, today: LocalDate): Dates? {
+        if (SpendingComparison.namesWeekOrMonth(message)) return null
+        val days = ChatMessageFacts.statedDays(message)
+        return when {
+            days.size == 1 -> today.minusDays(days.single().toLong()).let { window(it, it, today, message) }
+            days.isNotEmpty() || ChatMessageFacts.statesADay(message) || DAYS.containsMatchIn(message) -> Dates.Invalid(Problem.PERIOD)
+            else -> null
         }
     }
 

@@ -241,7 +241,7 @@ internal object ChatMessageFacts {
     )
 
     /** Days ago the message states, as numbers. */
-    private fun statedDays(message: String): Set<Int> {
+    fun statedDays(message: String): Set<Int> {
         val text = latin(message)
         val days = mutableSetOf<Int>()
         // Longest phrases first, each removed so "day before yesterday" can't also read as yesterday.

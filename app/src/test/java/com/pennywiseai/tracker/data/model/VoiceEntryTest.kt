@@ -84,6 +84,9 @@ class VoiceEntryTest {
         assertEquals("Salary", salary.category)
 
         assertEquals(TransactionType.INCOME, entry("استلمت راتب ٣٠٠٠").type)
+        // "Got paid", spoken.
+        assertEquals(TransactionType.INCOME, entry("قبضت ٥٠٠ من الشغل").type)
+        assertEquals(TransactionType.INCOME, entry("تقاضيت ٢٠٠٠ راتب").type)
     }
 
     @Test

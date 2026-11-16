@@ -51,7 +51,7 @@ data class TransactionDraft(
         )
         private val RECEIVE_VERBS = Regex(
             "\\b(received|refund|refunded|cashback|credited|sold|won|earned|reimburse\\w*)\\b" +
-                "|${arabicWord("استلمت|$MONEY_CAME_BACK|استرجعت|استرجاع|استرداد|كاش باك")}|${hindiWord("रिफंड|कैशबैक")}",
+                "|${arabicWord("استلمت|قبضت|تقاضيت|$MONEY_CAME_BACK|استرجعت|استرجاع|استرداد|كاش باك")}|${hindiWord("रिफंड|कैशबैक")}",
             RegexOption.IGNORE_CASE
         )
         private val SPEND_NOUNS = Regex("\\b(bill|fee|fees|rent|recharge|subscription)\\b", RegexOption.IGNORE_CASE)

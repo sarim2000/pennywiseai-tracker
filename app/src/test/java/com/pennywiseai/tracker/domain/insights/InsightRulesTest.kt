@@ -354,14 +354,17 @@ class InsightRulesTest {
     fun `bills due within a week, one line per currency`() {
         val insights = evaluate(
             subscriptions = listOf(
+                subscription(2, "50", "2026-11-26", merchant = "Gym"),
                 subscription(1, "100", "2026-11-22"),
-                subscription(2, "50", "2026-11-26"),
                 subscription(3, "10", "2026-11-25", currency = "USD"),
                 subscription(4, "999", "2026-12-10"),
             ),
         )
         val bills = insights.filter { it.fact is BillsDue }.associate { it.currency to it.fact as BillsDue }
-        assertEquals(BillsDue(2, Money(BigDecimal("150"), "INR"), LocalDate.parse("2026-11-22"), 7), bills["INR"])
+        assertEquals(
+            BillsDue(2, Money(BigDecimal("150"), "INR"), LocalDate.parse("2026-11-22"), 7, listOf("Streamer", "Gym")),
+            bills["INR"],
+        )
         assertEquals(1, bills.getValue("USD").count)
     }
 

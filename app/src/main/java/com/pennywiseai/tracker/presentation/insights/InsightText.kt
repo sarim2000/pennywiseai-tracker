@@ -1,6 +1,8 @@
 package com.pennywiseai.tracker.presentation.insights
 
+import android.icu.text.ListFormatter
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.pennywiseai.tracker.R
@@ -111,7 +113,12 @@ internal fun insightText(insight: Insight): InsightText = when (val f = insight.
     )
     is InsightFact.BillsDue -> InsightText(
         title = pluralStringResource(R.plurals.insights_bills_title, f.withinDays, f.total.format(), f.withinDays),
-        body = pluralStringResource(R.plurals.insights_bills_body, f.count, f.count, date(f.firstDue)),
+        body = pluralStringResource(
+            R.plurals.insights_bills_body,
+            f.count,
+            ListFormatter.getInstance(LocalConfiguration.current.locales[0]).format(f.names.map { merchant(it) }),
+            date(f.firstDue),
+        ),
         metrics = emptyList(),
     )
 }

@@ -173,6 +173,7 @@ object InsightRules {
                         total = bills.sumByCurrency({ it.amount.currency }, { it.amount.amount }).getValue(currency),
                         firstDue = firstDue,
                         withinDays = BILLS_DAYS.toInt(),
+                        names = bills.sortedBy { it.dueDate }.map { it.name },
                     ),
                     InsightAction.OpenSubscriptions,
                 )

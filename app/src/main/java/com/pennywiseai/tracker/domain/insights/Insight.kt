@@ -61,7 +61,14 @@ sealed interface InsightFact {
 
     data class CardUtilisation(val label: String, val used: Money, val limit: Money, val percent: Int) : InsightFact
 
-    data class BillsDue(val count: Int, val total: Money, val firstDue: LocalDate, val withinDays: Int) : InsightFact
+    /** [names] are the subscriptions due, soonest first. */
+    data class BillsDue(
+        val count: Int,
+        val total: Money,
+        val firstDue: LocalDate,
+        val withinDays: Int,
+        val names: List<String>,
+    ) : InsightFact
 }
 
 /**

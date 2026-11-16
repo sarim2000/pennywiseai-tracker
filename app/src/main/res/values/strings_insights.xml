@@ -137,9 +137,9 @@
         <item quantity="one">%1$s due in the next %2$d day</item>
         <item quantity="other">%1$s due in the next %2$d days</item>
     </plurals>
-    <!-- %1$d = number of payments, %2$s = date of the first -->
+    <!-- %1$s = the subscriptions due, soonest first, as a list ("Spotify and Netflix"), %2$s = date of the first -->
     <plurals name="insights_bills_body">
-        <item quantity="one">%1$d payment, on %2$s.</item>
-        <item quantity="other">%1$d payments, the first on %2$s.</item>
+        <item quantity="one">%1$s, on %2$s.</item>
+        <item quantity="other">%1$s. The first is on %2$s.</item>
     </plurals>
 </resources>

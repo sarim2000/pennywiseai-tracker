@@ -5,9 +5,9 @@ import com.pennywiseai.tracker.data.database.entity.ChatMessage
 import com.pennywiseai.tracker.domain.service.LlmEvent
 import com.pennywiseai.tracker.domain.service.LlmService
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.coVerify
 import io.mockk.slot
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flowOf
@@ -22,8 +22,8 @@ class ChatHistoryReplayTest {
     fun `message being sent is not replayed as history`() = runTest {
         val saved = mutableListOf(
             ChatMessage(message = "system prompt", isUser = false, timestamp = 1, isSystemPrompt = true),
-            ChatMessage(message = "coffee 120", isUser = true, timestamp = 2),
-            ChatMessage(message = "Here's what I'll add", isUser = false, timestamp = 3)
+            ChatMessage(message = "hi", isUser = true, timestamp = 2),
+            ChatMessage(id = LlmRepository.MODEL_ID + "1", message = "Hello!", isUser = false, timestamp = 3)
         )
         val chatDao = mockk<ChatDao>(relaxed = true) {
             coEvery { getAllMessagesForContext() } answers { saved.sortedBy { it.timestamp } }
@@ -55,7 +55,7 @@ class ChatHistoryReplayTest {
 
         repository.sendMessageStream("how much on food?").collect()
 
-        assertEquals(listOf("coffee 120" to true, "Here's what I'll add" to false), history.captured)
+        assertEquals(listOf("hi" to true, "Hello!" to false), history.captured)
     }
 
     @Test

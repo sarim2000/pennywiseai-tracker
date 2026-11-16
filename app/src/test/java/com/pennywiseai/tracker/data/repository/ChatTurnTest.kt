@@ -514,7 +514,7 @@ class ChatTurnTest {
 
     private fun savedChat(pairs: Int) = repeat(pairs) { i ->
         saved += ChatMessage(message = "u$i", isUser = true, timestamp = i * 2L)
-        saved += ChatMessage(message = "a$i", isUser = false, timestamp = i * 2L + 1)
+        saved += ChatMessage(id = LlmRepository.MODEL_ID + i, message = "a$i", isUser = false, timestamp = i * 2L + 1)
     }
 
     /** The screen closed and freed the model: the next message rebuilds the window from the save. */
@@ -580,6 +580,18 @@ class ChatTurnTest {
         assertEquals("SPEND", send("كم صرفت على الطعام؟"))
         // Only the model's own words: an app line replayed as its reply is one it can write back.
         assertEquals(listOf("hi" to true, "Hello!" to false), histories.single())
+    }
+
+    @Test
+    fun `a reply saved before the model's replies were marked is not replayed, nor its question`() = runTest {
+        savedChat(1)
+        // As 2.26.0 and earlier saved every reply, the app's figures too.
+        saved += ChatMessage(message = "how much on food?", isUser = true, timestamp = 10)
+        saved += ChatMessage(message = "You spent ₹120 on food this month.", isUser = false, timestamp = 11)
+        val histories = rebuilt()
+        events = listOf(LlmEvent.Text("hi"))
+        send("and now?")
+        assertEquals(listOf("u0" to true, "a0" to false), histories.single())
     }
 
     @Test

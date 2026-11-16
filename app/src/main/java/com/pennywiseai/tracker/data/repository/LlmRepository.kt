@@ -249,7 +249,7 @@ class LlmRepository @Inject constructor(
             // Text held back in case it became a tag, and it didn't.
             if (toolCalls.isEmpty()) emit(written) else responseBuilder.clear()
         }
-        // A reply holding any line the app wrote leaves the model's window with its question (see [QUICK_ID]).
+        // A reply holding any line the app wrote is never replayed to the model (see [MODEL_ID]).
         var appWrote = false
         suspend fun addLine(line: String) {
             appWrote = true
@@ -314,7 +314,7 @@ class LlmRepository @Inject constructor(
         val finalResponse = responseBuilder.toString()
         Log.d(TAG, "Saving AI response (${finalResponse.length} chars)")
         val aiMessage = ChatMessage(
-            id = if (appWrote) QUICK_ID + UUID.randomUUID() else UUID.randomUUID().toString(),
+            id = (if (appWrote) QUICK_ID else MODEL_ID) + UUID.randomUUID(),
             message = finalResponse,
             isUser = false
         )
@@ -388,10 +388,8 @@ class LlmRepository @Inject constructor(
 
         // Always fresh: the row saved when the chat began carries that day's date and lists.
         val systemPrompt = buildSystemPrompt()
-        val saved = withoutAppReplies(chatDao.getAllMessagesForContext().filter { !it.isSystemPrompt })
-        // A trailing message that got no reply isn't replayed: it's usually the one being sent,
-        // saved while the warm-up loaded the model, and replaying it would mean building twice.
-        var history = saved.filter { it.id != pending?.id && it.id !in droppedIds }.dropLastWhile { it.isUser }
+        val saved = replayable(chatDao.getAllMessagesForContext().filter { !it.isSystemPrompt })
+        var history = saved.filter { it.id != pending?.id && it.id !in droppedIds }
         // Dropped only once a conversation takes the message: a message too long for any window
         // must not cost the model the rest of the chat.
         val dropping = mutableSetOf<String>()
@@ -825,23 +823,31 @@ class LlmRepository @Inject constructor(
         """.trimIndent()
 
         /**
-         * Marks a reply the app wrote, in whole or in part: a one-tap question and its answer, a
-         * typed question's figures, a card's line and the line saying what the card did, and any
-         * line the app put in place of the model's. Saved for the screen, never replayed to the
-         * model: as its own earlier replies they're text it can copy, and Qwen2.5 did, answering
-         * a new question with an old total ("what about last week?" got this month's, on S23),
-         * with a card's line and no card, or with whatever stood in for the figures, instead of
-         * calling the tool. Within a live conversation a follow-up still sees the tool call the
+         * Marks a reply the model wrote alone, the only kind a rebuilt window replays. Any other
+         * (a one-tap answer, a typed question's figures, a card's line and the line saying what
+         * the card did, a line the app put in place of the model's) is saved for the screen only:
+         * as the model's own earlier replies they're text it can copy, and Qwen2.5 did, answering
+         * a new question with an old total ("what about last week?" got this month's, on S23) or
+         * a card's line with no card, instead of calling the tool. Marking the model's replies
+         * rather than the app's also leaves out replies saved before this mark, when the app's
+         * looked the same. Within a live conversation a follow-up still sees the tool call the
          * model made; after a rebuild it is answered from its own words ("last month" already
          * routes to the comparison). Replaying the call itself isn't possible: only the text is
-         * saved. The stored prefix stays "quick-": saved chats carry it.
+         * saved.
          */
+        internal const val MODEL_ID = "model-"
+
+        /** Marks a one-tap question and a reply holding the app's lines; neither is replayed (see [MODEL_ID]). */
         internal const val QUICK_ID = "quick-"
 
-        /** [saved] as the model may see it again: without the replies [QUICK_ID] marks, nor the questions they answer. */
-        internal fun withoutAppReplies(saved: List<ChatMessage>): List<ChatMessage> = saved.filterIndexed { i, m ->
-            val next = saved.getOrNull(i + 1)
-            !m.id.startsWith(QUICK_ID) && !(m.isUser && next != null && !next.isUser && next.id.startsWith(QUICK_ID))
+        /**
+         * [saved] as the model may see it again: the replies [MODEL_ID] marks, each with the
+         * question it answers. A question with no reply replayed goes, such as the one being sent,
+         * saved while the warm-up loaded the model: replaying it would mean building twice.
+         */
+        internal fun replayable(saved: List<ChatMessage>): List<ChatMessage> = saved.filterIndexed { i, m ->
+            fun byModel(it: ChatMessage?) = it != null && !it.isUser && it.id.startsWith(MODEL_ID)
+            if (m.isUser) byModel(saved.getOrNull(i + 1)) else byModel(m)
         }
 
         /** The newer half of [history], from a user turn so the model never starts mid-exchange. */

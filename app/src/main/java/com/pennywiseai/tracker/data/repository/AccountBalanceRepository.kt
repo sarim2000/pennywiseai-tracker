@@ -859,6 +859,10 @@ open class AccountBalanceRepository @Inject constructor(
             rows.associate { (it.bankName to it.accountLast4) to BalanceEvidence(it.reportedAt, it.fixedAt) }
         }
 
+    /** When the account's first balance row is dated (a manual account's OPENING row). */
+    suspend fun getEarliestBalanceTimestamp(bankName: String, accountLast4: String): LocalDateTime? =
+        accountBalanceDao.getEarliestBalanceTimestamp(bankName, accountLast4)
+
     /** See [AccountBalanceDao.getTrendRows]. */
     fun getTrendRows(start: LocalDateTime): Flow<List<AccountBalanceEntity>> = accountBalanceDao.getTrendRows(start)
 

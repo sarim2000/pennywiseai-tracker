@@ -97,6 +97,24 @@ class NetWorthTrendTest {
     }
 
     @Test
+    fun `a manual account adds nothing before it existed`() {
+        // Added on Nov 4 with 3000: the days before must not show 3000.
+        val cash = DerivedHistory("INR", d("3000"), anchored = true, effects = emptyList(), existsFrom = day(4))
+        val trend = NetWorth.trend(
+            listOf(row("1111", "1000", day(1))),
+            mapOf(("Cash" to "0000") to cash), start, end,
+        )
+        assertEquals(listOf("1000", "1000", "1000", "4000", "4000"), values(trend["INR"]))
+
+        // Created today alongside today's only bank row: a single day, no history to draw.
+        val fresh = NetWorth.trend(
+            listOf(row("1111", "1000", day(5))),
+            mapOf(("Cash" to "0000") to cash.copy(existsFrom = day(5))), start, end,
+        )
+        assertEquals(listOf(end), fresh.getValue("INR").map { it.date })
+    }
+
+    @Test
     fun `a manual account never given a balance leaves its currency with no line`() {
         val cash = DerivedHistory("INR", d("700"), anchored = false, effects = emptyList())
         val trend = NetWorth.trend(

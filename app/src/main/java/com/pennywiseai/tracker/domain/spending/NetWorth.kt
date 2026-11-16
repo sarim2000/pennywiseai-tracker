@@ -90,6 +90,11 @@ data class DerivedHistory(
     val anchored: Boolean,
     /** Each transaction's signed effect on the balance, with when it happened. */
     val effects: List<Pair<LocalDateTime, BigDecimal>>,
+    /**
+     * When the account came to be: its first balance row, or an earlier transaction
+     * the user dated before it. It adds nothing before then, like any account not seen yet.
+     */
+    val existsFrom: LocalDateTime? = null,
 )
 
 /** Person-to-person IOUs in one currency. Shown beside net worth, not counted in it. */
@@ -150,7 +155,7 @@ object NetWorth {
      * Accounts in [derived] (manual accounts) are worked out from their transactions
      * instead, once the user has given their balance; a currency with one never given
      * a balance has no line at all, rather than a guess. An account not seen yet on a
-     * day adds nothing to it.
+     * day (a manual one before [DerivedHistory.existsFrom]) adds nothing to it.
      */
     fun trend(
         rows: List<AccountBalanceEntity>,
@@ -187,6 +192,7 @@ object NetWorth {
                     appliedSum[i] += effects[applied[i]].second
                     applied[i]++
                 }
+                if (history.existsFrom?.toLocalDate()?.isAfter(day) == true) return@forEachIndexed
                 // Today's balance less everything after this day.
                 val value = history.current - (totals[i] - appliedSum[i])
                 net[history.currency] = (net[history.currency] ?: BigDecimal.ZERO) + value

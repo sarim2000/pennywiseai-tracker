@@ -7,6 +7,7 @@ import com.pennywiseai.tracker.data.database.entity.BudgetWithCategories
 import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
+import io.mockk.mockk
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.math.BigDecimal
@@ -92,25 +93,53 @@ class PlanningRepositoryTest {
         currency: String = "SAR",
         direction: SubscriptionDirection = SubscriptionDirection.EXPENSE,
         state: SubscriptionState = SubscriptionState.ACTIVE,
-    ) = SubscriptionEntity(merchantName = name, amount = BigDecimal("10"), nextPaymentDate = due, currency = currency, direction = direction, state = state)
+        category: String? = null,
+        cycle: String = "Monthly",
+    ) = SubscriptionEntity(
+        merchantName = name, amount = BigDecimal("10"), nextPaymentDate = due, currency = currency, direction = direction, state = state,
+        category = category, billingCycle = cycle,
+    )
+
+    private val subscriptions = SubscriptionRepository(mockk(), mockk())
+
+    private fun billsDue(vararg bills: SubscriptionEntity) =
+        PlanningRepository.billsDue(bills.toList(), today, 7, incomeCategories = setOf("Salary"), advance = subscriptions::advance)
 
     @Test
     fun `bills due within the week, overdue ones apart, money in and undated ones left out`() {
-        val due = PlanningRepository.billsDue(
-            listOf(
-                bill("Gym", today.plusDays(7)),
-                bill("Netflix", today, currency = "USD"),
-                bill("Rent", today.minusDays(3)),
-                bill("Later", today.plusDays(8)),
-                bill("Allowance", today.plusDays(1), direction = SubscriptionDirection.INCOME),
-                bill("Undated", null),
-                bill("Hidden", today.plusDays(1), state = SubscriptionState.HIDDEN),
-            ),
-            today,
-            7
+        val due = billsDue(
+            bill("Gym", today.plusDays(7)),
+            bill("Netflix", today, currency = "USD"),
+            bill("Rent", today.minusDays(3)),
+            bill("Later", today.plusDays(8)),
+            bill("Allowance", today.plusDays(1), direction = SubscriptionDirection.INCOME),
+            bill("Undated", null),
+            bill("Hidden", today.plusDays(1), state = SubscriptionState.HIDDEN),
         )
         assertEquals(today.plusDays(7), due.through)
         assertEquals(listOf("Rent"), due.overdue.map { it.merchantName })
         assertEquals(listOf("Netflix", "Gym"), due.upcoming.map { it.merchantName })
+    }
+
+    @Test
+    fun `recurring income stored as an expense is no bill`() {
+        // Added by hand before income had its own direction: EXPENSE, but filed under an income category.
+        val due = billsDue(bill("Salary", today.plusDays(3), category = "Salary"), bill("Phone", today.plusDays(3), category = "Bills"))
+        assertEquals(listOf("Phone"), due.upcoming.map { it.merchantName })
+    }
+
+    @Test
+    fun `a date a whole cycle behind is stale, not overdue`() {
+        val due = billsDue(
+            // Last charged in June and never matched since: the screen rolls it on, so no "overdue".
+            bill("Gym", LocalDate.of(2026, 6, 16)),
+            bill("Phone", today.minusMonths(1)),
+            // Still within its cycle: really waiting.
+            bill("Rent", today.minusDays(20)),
+            bill("Coffee club", today.minusDays(6), cycle = "Weekly"),
+            bill("Insurance", today.minusMonths(2), cycle = "Yearly"),
+            bill("Paper", today.minusDays(7), cycle = "Weekly"),
+        )
+        assertEquals(listOf("Insurance", "Rent", "Coffee club"), due.overdue.map { it.merchantName })
     }
 }

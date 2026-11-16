@@ -22,9 +22,9 @@ data class BudgetStatus(
 }
 
 /**
- * Recurring payments going out by [through]: [overdue] were due before today and still wait
- * (paying one moves its date on), [upcoming] fall due from today to [through]. Each in its own
- * currency; money coming in is not a bill.
+ * Recurring payments going out by [through]: [overdue] were due before today, within their last
+ * cycle, and still wait (paying one moves its date on), [upcoming] fall due from today to
+ * [through]. Each in its own currency; money coming in is not a bill.
  */
 data class BillsDue(
     val through: LocalDate,

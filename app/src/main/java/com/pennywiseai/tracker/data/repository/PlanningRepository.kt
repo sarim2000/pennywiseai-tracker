@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.data.repository
 
+import com.pennywiseai.tracker.data.database.dao.CategoryDao
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
@@ -21,14 +22,20 @@ import javax.inject.Singleton
 class PlanningRepository @Inject constructor(
     private val budgetSummaryProvider: BudgetSummaryProvider,
     private val subscriptionRepository: SubscriptionRepository,
+    private val categoryDao: CategoryDao,
 ) {
     /** The spending limits whose window holds [today], each with its own window and currency. */
     suspend fun budgets(today: LocalDate = LocalDate.now()): List<BudgetStatus> =
         budgetStatuses(budgetSummaryProvider.summary(YearMonth.from(today)).first(), today)
 
     /** Bills overdue, or due within [days] of [today]. */
-    suspend fun billsDue(today: LocalDate = LocalDate.now(), days: Long = BILLS_AHEAD_DAYS): BillsDue =
-        billsDue(subscriptionRepository.getActiveSubscriptions().first(), today, days)
+    suspend fun billsDue(today: LocalDate = LocalDate.now(), days: Long = BILLS_AHEAD_DAYS): BillsDue = billsDue(
+        subscriptionRepository.getActiveSubscriptions().first(),
+        today,
+        days,
+        incomeCategories = categoryDao.getAllCategoriesList().filter { it.isIncome }.map { it.name }.toSet(),
+        advance = subscriptionRepository::advance,
+    )
 
     companion object {
         const val BILLS_AHEAD_DAYS = 7L
@@ -44,12 +51,25 @@ class PlanningRepository @Inject constructor(
             }
             .map { g -> BudgetStatus(g.group.budget.name, summary.currency, g.totalBudget, g.totalActual, g.windowStart, g.windowEnd) }
 
-        /** Active outgoing payments with a date, by date; overdue ones apart from those still to come. */
-        internal fun billsDue(subscriptions: List<SubscriptionEntity>, today: LocalDate, days: Long): BillsDue {
+        /**
+         * Active outgoing payments with a date, by date; overdue ones apart from those still to
+         * come. Recurring income added by hand is stored as EXPENSE, so one filed under an
+         * [incomeCategories] isn't a bill, as the bill reminder leaves it out too. A date a whole
+         * cycle ([advance]) or more behind is stale (its charge went unmatched, or a cash bill
+         * was never marked paid), not overdue: the Subscriptions screen shows it as coming up.
+         */
+        internal fun billsDue(
+            subscriptions: List<SubscriptionEntity>,
+            today: LocalDate,
+            days: Long,
+            incomeCategories: Set<String>,
+            advance: (LocalDate, String) -> LocalDate,
+        ): BillsDue {
             val through = today.plusDays(days)
             val due = subscriptions
                 .filter { it.state == SubscriptionState.ACTIVE && it.direction == SubscriptionDirection.EXPENSE }
-                .filter { s -> s.nextPaymentDate?.let { !it.isAfter(through) } == true }
+                .filterNot { it.category in incomeCategories }
+                .filter { s -> s.nextPaymentDate?.let { !it.isAfter(through) && advance(it, s.billingCycle).isAfter(today) } == true }
                 .sortedBy { it.nextPaymentDate }
             val (overdue, upcoming) = due.partition { it.nextPaymentDate!!.isBefore(today) }
             return BillsDue(through, overdue, upcoming)

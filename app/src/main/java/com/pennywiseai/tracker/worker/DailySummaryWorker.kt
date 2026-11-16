@@ -102,10 +102,16 @@ class DailySummaryWorker @AssistedInject constructor(
             ?: return Result.success()
         val unsorted = transactions.filter { it.category == BuiltinCategoryNames.current("Others") }
         // The Budgets screen's own figures, as the budget alerts use; a rate fetch
-        // that fails mustn't cost the user the whole recap.
-        val budgetSummary = runCatching { budgetSummaryProvider.summary(YearMonth.from(today), flagUncounted = true).first() }
-            .onFailure { Log.w(TAG, "Budget figures unavailable for the recap", it) }
-            .getOrNull()
+        // that fails mustn't cost the user the whole recap. Budgets span every
+        // profile, so with one profile selected they'd sit beside spending they
+        // don't match: leave them out then, as goal figures are (roadmap Decision 3).
+        val budgetSummary = if (profileId != null) {
+            null
+        } else {
+            runCatching { budgetSummaryProvider.summary(YearMonth.from(today), flagUncounted = true).first() }
+                .onFailure { Log.w(TAG, "Budget figures unavailable for the recap", it) }
+                .getOrNull()
+        }
 
         // The recap is built outside any Activity, so it needs the Latin-digit context too (14b00ada).
         val context = applicationContext.withLatinDigits()

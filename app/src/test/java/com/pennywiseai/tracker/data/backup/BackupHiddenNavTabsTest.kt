@@ -18,7 +18,7 @@ class BackupHiddenNavTabsTest {
     private val context = mockk<Context>(relaxed = true) {
         every { getSharedPreferences(any(), any()).edit().putStringSet(any(), any()).commit() } returns true
     }
-    private val importer = BackupImporter(context, mockk(relaxed = true), prefs, mockk(relaxed = true), mockk(relaxed = true))
+    private val importer = BackupImporter(context, mockk(relaxed = true), prefs, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true))
 
     // Shaped like a backup written before the field existed.
     private val olderBackup = """{ "preferences": { "theme": { "is_dark_theme_enabled": true, "is_dynamic_color_enabled": false } } }"""

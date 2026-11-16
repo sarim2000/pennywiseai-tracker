@@ -11,8 +11,12 @@ import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.ledger.findUnlinkedTransferPairs
 import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
+import com.pennywiseai.tracker.data.preferences.LearnedSendersStore
 import com.pennywiseai.tracker.data.preferences.TaughtTemplatesStore
+import com.pennywiseai.tracker.data.preferences.TrackedNotificationAppsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.data.webhook.WebhookPreferences
+import com.pennywiseai.tracker.utils.setAppLanguageTags
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.first
@@ -30,7 +34,10 @@ class BackupImporter @Inject constructor(
     private val database: PennyWiseDatabase,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val licenseRestorer: LicenseRestorer,
-    private val ignoredAccountsStore: IgnoredAccountsStore
+    private val ignoredAccountsStore: IgnoredAccountsStore,
+    private val trackedNotificationAppsStore: TrackedNotificationAppsStore,
+    private val learnedSendersStore: LearnedSendersStore,
+    private val webhookPreferences: WebhookPreferences
 ) {
 
     /**
@@ -61,6 +68,10 @@ class BackupImporter @Inject constructor(
                 findUnlinkedTransferPairs(dao.getUnlinkedTransfers()).forEach { (source, destination) ->
                     dao.linkTransferPair(UUID.randomUUID().toString(), listOf(source, destination))
                 }
+            }
+            // Last, since it recreates the screens. Settings re-syncs workers and widgets.
+            if (result is ImportResult.Success) {
+                backup.preferences.settings?.appLanguage?.let { context.setAppLanguageTags(it) }
             }
             // Receipt photos (#839), after the DB commit: write only the files
             // a transaction now in the DB points at, so a merge restores the
@@ -346,7 +357,7 @@ class BackupImporter @Inject constructor(
                 }
 
                 // Import preferences
-                importPreferences(backup.preferences)
+                importPreferences(backup.preferences) { profileIdMap[it] }
 
                 ImportResult.Success(
                     importedTransactions = importedTransactions,
@@ -625,7 +636,7 @@ class BackupImporter @Inject constructor(
                 }
 
                 // Import preferences (merge with existing)
-                importPreferences(backup.preferences)
+                importPreferences(backup.preferences) { profileIdMap[it] }
 
                 ImportResult.Success(
                     importedTransactions = importedTransactions,
@@ -968,7 +979,10 @@ class BackupImporter @Inject constructor(
      * Import user preferences
      */
     @androidx.annotation.VisibleForTesting
-    internal suspend fun importPreferences(preferences: PreferencesSnapshot) {
+    internal suspend fun importPreferences(
+        preferences: PreferencesSnapshot,
+        profileId: (Long) -> Long? = { it }
+    ) {
         // Theme preferences
         preferences.theme.isDarkThemeEnabled?.let {
             userPreferencesRepository.updateDarkTheme(it)
@@ -1030,6 +1044,15 @@ class BackupImporter @Inject constructor(
         // Like the license: fills in a missing UPI ID, never replaces one set here (#346).
         preferences.app.upiId?.takeIf { com.pennywiseai.tracker.domain.loan.UpiRequest.isValidUpiId(it) }?.let { id ->
             if (userPreferencesRepository.upiId.first() == null) userPreferencesRepository.setUpiId(id)
+        }
+
+        // Every other setting: after the sections above, so the
+        // backup's value wins where both carry one.
+        preferences.settings?.let { settings ->
+            userPreferencesRepository.restoreSettings(settings, profileId)
+            settings.webhookIntervalHours?.takeIf { it in 1..24 }?.let { webhookPreferences.setInterval(it) }
+            settings.trackedNotificationApps?.let { trackedNotificationAppsStore.replaceAll(it.toSet()) }
+            settings.learnedSenders?.let { learnedSendersStore.restore(it) }
         }
 
         // A license in the backup only overrides when this install has none —

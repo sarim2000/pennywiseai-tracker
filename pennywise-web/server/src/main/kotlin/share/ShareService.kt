@@ -1,6 +1,8 @@
 package com.example.share
 
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayInputStream
 import java.io.ByteArrayOutputStream
@@ -172,11 +174,19 @@ class ShareService(
     private fun now(): Instant = clock.instant().truncatedTo(ChronoUnit.SECONDS)
     private fun Instant.toOffset(): OffsetDateTime = OffsetDateTime.ofInstant(this, ZoneOffset.UTC)
 
-    suspend fun create(snapshot: ShareSnapshot, png: ByteArray, fingerprint: String): CreateResult = withContext(Dispatchers.IO) {
+    /** Makes the hourly cap's count-then-insert one step: parallel uploads could all see 19 otherwise. */
+    // ponytail: one lock per process; the container runs a single instance. Several would need a DB-level check.
+    private val publishLock = Mutex()
+
+    suspend fun create(snapshot: ShareSnapshot, png: ByteArray, fingerprint: String): CreateResult = publishLock.withLock {
+        withContext(Dispatchers.IO) { insert(snapshot, png, fingerprint) }
+    }
+
+    private fun insert(snapshot: ShareSnapshot, png: ByteArray, fingerprint: String): CreateResult {
         val now = now()
         purgeExpired(now)
         if (publishedSince(fingerprint, now.minus(Duration.ofHours(1))) >= MAX_SHARES_PER_HOUR) {
-            return@withContext CreateResult.RateLimited
+            return CreateResult.RateLimited
         }
         val id = newId()
         val token = newDeleteToken()
@@ -196,7 +206,7 @@ class ShareService(
             if (expiresAt != null) st.setObject(7, expiresAt.toOffset()) else st.setNull(7, Types.TIMESTAMP_WITH_TIMEZONE)
             st.executeUpdate()
         }
-        CreateResult.Ok(Created(id, token, expiresAt))
+        return CreateResult.Ok(Created(id, token, expiresAt))
     }
 
     suspend fun snapshot(id: String): Lookup<ShareSnapshot> = lookup(id, "snapshot") { rs ->

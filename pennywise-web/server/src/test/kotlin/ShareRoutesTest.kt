@@ -16,6 +16,10 @@ import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonNull
 import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.awaitAll
+import kotlinx.coroutines.runBlocking
 import java.awt.Color
 import java.awt.image.BufferedImage
 import java.io.ByteArrayOutputStream
@@ -332,6 +336,16 @@ class ShareRoutesTest {
         assertEquals(HttpStatusCode.Created, publish(clientIp = "2001:db8:1:3::1").status)
         clock.now = clock.now.plus(Duration.ofMinutes(61))
         assertEquals(HttpStatusCode.Created, publish(clientIp = ip).status)
+    }
+
+    @Test
+    fun `parallel uploads can't get past the hourly cap`() = runBlocking {
+        val connection = DriverManager.getConnection("jdbc:h2:mem:shares-${UUID.randomUUID()};MODE=PostgreSQL;DB_CLOSE_DELAY=-1", "sa", "")
+        val service = ShareService(connection, clock)
+        val snapshot = com.example.share.ShareSnapshotValidator.parse(snapshot()).getOrThrow()
+        val image = png()
+        val results = (1..60).map { async(Dispatchers.Default) { service.create(snapshot, image, "one-client") } }.awaitAll()
+        assertEquals(ShareService.MAX_SHARES_PER_HOUR, results.count { it is ShareService.CreateResult.Ok })
     }
 
     @Test

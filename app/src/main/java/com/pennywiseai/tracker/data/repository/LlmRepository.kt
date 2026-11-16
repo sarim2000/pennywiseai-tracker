@@ -527,7 +527,9 @@ class LlmRepository @Inject constructor(
                     }
                 unknown -> context.getString(R.string.chat_reply_unknown_category, asked)
                 else -> {
-                    turnLinks += comparisonLinks(result, category)
+                    // The figure matched the rows' category in any case; the list matches exactly,
+                    // so a name the category list doesn't spell would open on nothing.
+                    if (category == null || known != null) turnLinks += comparisonLinks(result, category)
                     comparisonText(result.alsoTrend(), category)
                 }
             }
@@ -588,7 +590,9 @@ class LlmRepository @Inject constructor(
                     spend.transactionCount
                 ).also {
                     turnSubject = turnSubject?.copy(share = spend.share)
-                    turnLinks += linksTo(spend.scope.window, spend.category, spend.byCurrency.keys)
+                    // Only for a name the category list spells: the figure matched the rows in any
+                    // case, the list matches exactly, and "uber" would open on nothing.
+                    if (category != null) turnLinks += linksTo(spend.scope.window, category, spend.byCurrency.keys)
                 }
             }
         }

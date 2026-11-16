@@ -666,6 +666,15 @@ class ChatTurnTest {
         assertEquals("SPEND", lookup("Hobbies"))
         coEvery { aiContext.categorySpending("Old Name", any()) } returns spent("15")
         assertEquals("SPEND", lookup("Old Name")) // No such category now, but rows still carry it.
+        // The figure matched the rows in any case; the list would match the model's spelling
+        // exactly and open on nothing, so there's no link.
+        assertEquals(null, repository.links.value[saved.last().id])
+        val w = SpendingComparison.Window(LocalDateTime.of(2026, 11, 1, 0, 0), LocalDateTime.of(2026, 11, 16, 23, 59))
+        coEvery { aiContext.compareSpending(any(), "Old Name", any(), any()) } returns
+            SpendingComparison.Result.Rows(w, w, listOf(SpendingComparison.Row("INR", BigDecimal("15"), BigDecimal("5"), BigDecimal("200"))))
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "Old Name")))
+        send("compare old name with last month")
+        assertEquals(null, repository.links.value[saved.last().id])
     }
 
     @Test

@@ -370,4 +370,5 @@ private fun ReviewRowEditSheet(
     }
 }
 
-private val DATE = DateTimeFormatter.ofPattern("d MMM yyyy")
+// Built on each use: one built once keeps the language the app started in.
+private val DATE get() = DateTimeFormatter.ofPattern("d MMM yyyy")

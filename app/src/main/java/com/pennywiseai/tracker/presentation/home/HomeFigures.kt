@@ -1,14 +1,37 @@
 package com.pennywiseai.tracker.presentation.home
 
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.database.entity.CardEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.ledger.convertedEstimate
 import com.pennywiseai.tracker.data.ledger.countingTransferPairsOnce
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
+import com.pennywiseai.tracker.domain.model.isTracked
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
+
+/**
+ * Which rows Home's figures count, re-worked whenever the profile shown, the accounts, the
+ * ignored accounts or the cards change: [isTracked], the rule the Transactions list and the
+ * chat use, with an ignored account's linked cards ignored too (#826).
+ */
+internal fun trackedRowsFilter(
+    profileId: Flow<Long?>,
+    balances: Flow<List<AccountBalanceEntity>>,
+    ignored: Flow<Set<String>>,
+    cards: Flow<List<CardEntity>>,
+): Flow<(TransactionEntity) -> Boolean> = combine(profileId, balances, ignored, cards) { profile, accounts, keys, allCards ->
+    val ignoredKeys = IgnoredAccountsStore.withLinkedCards(keys, allCards, accounts)
+    val accountKeys = buildProfileAccountKeys(accounts)
+    val keep: (TransactionEntity) -> Boolean = { it.isTracked(profile, ignoredKeys, accountKeys) }
+    keep
+}
 
 /**
  * Converts an amount between currencies, with the contract of

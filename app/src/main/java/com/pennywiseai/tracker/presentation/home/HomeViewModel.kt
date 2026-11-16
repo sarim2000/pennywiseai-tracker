@@ -41,7 +41,6 @@ import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
 import com.pennywiseai.tracker.domain.model.filterTransactionsByProfile
-import com.pennywiseai.tracker.domain.model.isTracked
 import com.pennywiseai.tracker.domain.review.PeriodReviewLoader
 import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.domain.review.ReviewPrompt
@@ -227,17 +226,12 @@ class HomeViewModel @Inject constructor(
     // Which rows Home's figures count: the profile shown, and nothing from an ignored
     // account or its linked cards (#826), by the rule the Transactions list and the chat
     // use. Null until the balances load.
-    private val tracked: StateFlow<((TransactionEntity) -> Boolean)?> = combine(
+    private val tracked: StateFlow<((TransactionEntity) -> Boolean)?> = trackedRowsFilter(
         userPreferencesRepository.selectedProfileId,
         _cachedAccountBalances.filterNotNull(),
         ignoredAccountsStore.keysFlow,
         cardRepository.getAllCards(),
-    ) { profileId, balances, ignored, cards ->
-        val ignoredKeys = IgnoredAccountsStore.withLinkedCards(ignored, cards, balances)
-        val keys = buildProfileAccountKeys(balances)
-        val keep: (TransactionEntity) -> Boolean = { it.isTracked(profileId, ignoredKeys, keys) }
-        keep
-    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    ).stateIn(viewModelScope, SharingStarted.Eagerly, null)
     private val trackedRows = tracked.filterNotNull()
 
     // Visible spendable accounts in their own currency (not pre-converted), for Safe to spend.

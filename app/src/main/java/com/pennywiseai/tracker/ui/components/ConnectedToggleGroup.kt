@@ -12,6 +12,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextOverflow
@@ -24,7 +25,8 @@ import androidx.compose.ui.text.style.TextOverflow
  *
  * Labels are single-line with ellipsis so long translations don't wrap.
  * With [fillMaxWidth] the row fills the available width and the buttons share
- * it equally; otherwise each button wraps its label.
+ * it equally; otherwise each button wraps its label. [spokenLabel] gives a
+ * screen reader a fuller name than a terse label ("1 month" for "1M").
  */
 @Composable
 fun <T> ConnectedChoiceRow(
@@ -35,6 +37,7 @@ fun <T> ConnectedChoiceRow(
     modifier: Modifier = Modifier,
     fillMaxWidth: Boolean = true,
     textStyle: TextStyle? = null,
+    spokenLabel: (@Composable (T) -> String)? = null,
 ) {
     Row(
         modifier = (if (fillMaxWidth) modifier.fillMaxWidth() else modifier).selectableGroup(),
@@ -46,11 +49,15 @@ fun <T> ConnectedChoiceRow(
                 options.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
                 else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
             }
+            val spoken = spokenLabel?.invoke(option)
             ToggleButton(
                 checked = option == selected,
                 onCheckedChange = { onSelect(option) },
                 modifier = (if (fillMaxWidth) Modifier.weight(1f) else Modifier)
-                    .semantics { role = Role.RadioButton },
+                    .semantics {
+                        role = Role.RadioButton
+                        if (spoken != null) contentDescription = spoken
+                    },
                 shapes = shapes,
             ) {
                 Text(

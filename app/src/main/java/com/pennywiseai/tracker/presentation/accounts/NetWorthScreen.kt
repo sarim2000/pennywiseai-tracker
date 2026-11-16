@@ -31,6 +31,8 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextOverflow
@@ -220,6 +222,7 @@ private fun TrendCard(state: NetWorthUiState, currency: String, onSelectRange: (
             selected = state.range,
             onSelect = onSelectRange,
             label = { stringResource(it.label) },
+            spokenLabel = { stringResource(it.spokenLabel) },
             modifier = Modifier.padding(top = Spacing.sm),
         )
         val trend = state.trend
@@ -230,7 +233,18 @@ private fun TrendCard(state: NetWorthUiState, currency: String, onSelectRange: (
             trend.isEmpty() -> Note(stringResource(R.string.net_worth_trend_empty))
             else -> {
                 val points = remember(trend) { trend.map { BalancePoint(it.date.atStartOfDay(), it.net, currency) } }
-                BalanceChart(primaryCurrency = currency, balanceHistory = points, height = 200)
+                val first = trend.first()
+                val last = trend.last()
+                val description = stringResource(
+                    R.string.net_worth_trend_description,
+                    CurrencyFormatter.formatCurrency(first.net, currency),
+                    date(first.date.atStartOfDay()),
+                    CurrencyFormatter.formatCurrency(last.net, currency),
+                    date(last.date.atStartOfDay()),
+                )
+                Box(Modifier.clearAndSetSemantics { contentDescription = description }) {
+                    BalanceChart(primaryCurrency = currency, balanceHistory = points, height = 200)
+                }
             }
         }
     }
@@ -242,6 +256,14 @@ private val NetWorthRange.label: Int
         NetWorthRange.QUARTER -> R.string.net_worth_range_quarter
         NetWorthRange.HALF_YEAR -> R.string.net_worth_range_half_year
         NetWorthRange.YEAR -> R.string.net_worth_range_year
+    }
+
+private val NetWorthRange.spokenLabel: Int
+    get() = when (this) {
+        NetWorthRange.MONTH -> R.string.net_worth_range_month_spoken
+        NetWorthRange.QUARTER -> R.string.net_worth_range_quarter_spoken
+        NetWorthRange.HALF_YEAR -> R.string.net_worth_range_half_year_spoken
+        NetWorthRange.YEAR -> R.string.net_worth_range_year_spoken
     }
 
 /** An account, what it adds or takes off, and what its balance rests on. */
@@ -300,7 +322,11 @@ private fun sourceText(line: NetWorthAccount): String? {
         null -> return null
     }
     if (line.transactionsSince == 0) return claim
-    return "$claim ${pluralStringResource(R.plurals.net_worth_source_since, line.transactionsSince, line.transactionsSince)}"
+    return stringResource(
+        R.string.net_worth_source_with_since,
+        claim,
+        pluralStringResource(R.plurals.net_worth_source_since, line.transactionsSince, line.transactionsSince),
+    )
 }
 
 private fun date(at: LocalDateTime): String =

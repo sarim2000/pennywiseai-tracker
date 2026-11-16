@@ -351,6 +351,13 @@
     <string name="net_worth_range_quarter">3M</string>
     <string name="net_worth_range_half_year">6M</string>
     <string name="net_worth_range_year">1Y</string>
+    <!-- Read aloud by a screen reader for the 1M / 3M / 6M / 1Y choices -->
+    <string name="net_worth_range_month_spoken">1 month</string>
+    <string name="net_worth_range_quarter_spoken">3 months</string>
+    <string name="net_worth_range_half_year_spoken">6 months</string>
+    <string name="net_worth_range_year_spoken">1 year</string>
+    <!-- Read aloud for the trend chart. %1$s = first amount, %2$s = its date, %3$s = last amount, %4$s = its date -->
+    <string name="net_worth_trend_description">Net worth went from %1$s on %2$s to %3$s on %4$s</string>
     <string name="net_worth_trend_empty">Not enough balance history for this period yet. A cash account joins the trend once you update its balance.</string>
     <!-- %1$s = amount, %2$s = date -->
     <string name="net_worth_source_entered">You entered %1$s on %2$s</string>
@@ -358,6 +365,8 @@
     <!-- %1$s = date -->
     <string name="net_worth_source_reported">Reported by your bank on %1$s</string>
     <string name="net_worth_source_estimated">Estimated from transactions</string>
+    <!-- %1$s = where the balance comes from (e.g. "You entered ₹500 on 3 Nov"), %2$s = "+ 2 transactions since" -->
+    <string name="net_worth_source_with_since">%1$s %2$s</string>
     <plurals name="net_worth_source_since">
         <item quantity="one">+ %1$d transaction since</item>
         <item quantity="other">+ %1$d transactions since</item>

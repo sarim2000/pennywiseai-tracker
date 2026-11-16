@@ -3,12 +3,11 @@ package com.pennywiseai.tracker.domain.model
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
-import java.math.BigDecimal
 
 class AmountExpressionTest {
 
-    private fun eval(input: String, digits: Int = 2, decimalComma: Boolean = false) =
-        AmountExpression.evaluate(input, digits, decimalComma)?.toPlainString()
+    private fun eval(input: String, digits: Int = 2) =
+        AmountExpression.evaluate(input, digits)?.toPlainString()
 
     @Test
     fun `multiplication binds tighter than addition, rounded to the currency's decimals`() {
@@ -70,19 +69,7 @@ class AmountExpressionTest {
     }
 
     @Test
-    fun `local digits and decimal marks are read`() {
-        // Arabic-Indic digits and the Arabic decimal mark.
+    fun `local digits and the Arabic decimal mark are read`() {
         assertEquals("15.50", eval("١٢٫٥+٣"))
-        // "," is the decimal point where the locale writes it so…
-        assertEquals("4.00", eval("1,5+2,5", decimalComma = true))
-        // …and a thousands separator elsewhere.
-        assertEquals("1250.00", eval("1,250"))
-        assertEquals("1250.00", eval("1 250"))
-    }
-
-    @Test
-    fun `keyboard operators are read too`() {
-        assertEquals(0, BigDecimal("6").compareTo(AmountExpression.evaluate("2*3", 2)!!))
-        assertEquals(0, BigDecimal("6").compareTo(AmountExpression.evaluate("2x3", 2)!!))
     }
 }

@@ -46,7 +46,7 @@ import com.pennywiseai.tracker.ui.voice.VoiceInput
  */
 class AddTransactionWidget : GlanceAppWidget() {
 
-    override val sizeMode: SizeMode = SizeMode.Responsive(setOf(ICON, LABELLED, WIDE, WIDE_WITH_MIC))
+    override val sizeMode: SizeMode = SizeMode.Responsive(setOf(ICON, LABELLED, WIDE))
 
     override suspend fun provideGlance(context: Context, id: GlanceId) {
         val privacy = WidgetPrivacy.load(context)
@@ -78,9 +78,9 @@ class AddTransactionWidget : GlanceAppWidget() {
                 ) {
                     item { AddButton(add, context.getString(R.string.widget_cash_spend), CIRCLE) }
                     item { Spacer(GlanceModifier.width(Spacing.sm)) }
-                    // Gives way so the mic always fits; two cells fit only "Cash", not "Cash s…".
-                    val title = if (size.width >= WIDE_WITH_MIC.width) R.string.widget_cash_spend else R.string.widget_cash_label
-                    item { WidgetTitle(context.getString(title), GlanceModifier.defaultWeight()) }
+                    // The short label: beside the mic, "Cash spend" in most languages ends in "…".
+                    // Glance can't measure text, and the + still says "Cash spend" to TalkBack.
+                    item { WidgetTitle(context.getString(R.string.widget_cash_label), GlanceModifier.defaultWeight()) }
                     item { MicButton(actionRunCallback<OpenVoiceQuickAddAction>(), context.getString(R.string.quick_add_voice_title)) }
                 }
                 size.width >= WIDE.width -> WidgetRow(verticalAlignment = Alignment.CenterVertically) {
@@ -132,8 +132,6 @@ class AddTransactionWidget : GlanceAppWidget() {
         // Circle (48dp) plus the "Cash" label under it.
         val LABELLED = DpSize(40.dp, 68.dp)
         val WIDE = DpSize(140.dp, 40.dp)
-        // Room for "Cash spend" between the + and the mic.
-        val WIDE_WITH_MIC = DpSize(210.dp, 40.dp)
     }
 }
 

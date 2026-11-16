@@ -47,6 +47,7 @@ import androidx.compose.ui.graphics.layer.drawLayer
 import androidx.compose.ui.graphics.rememberGraphicsLayer
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
@@ -225,11 +226,14 @@ private fun CardPreview(
     ) {
         when (card) {
             is ShareCardState.Ready -> {
-                ShareCard(card.content, theme, Modifier.scaleTo(scale).then(previewModifier))
+                val covered = AmountPrivacy.hidden && !revealed
+                // Covered, the figures are hidden from TalkBack too; semantics never reach the exported pixels.
+                val unread = if (covered) Modifier.clearAndSetSemantics {} else Modifier
+                ShareCard(card.content, theme, Modifier.scaleTo(scale).then(previewModifier).then(unread))
                 // With amounts hidden app-wide, the figures stay covered on screen until
                 // asked for. The cover is drawn over the card, outside the recorded
                 // layer, so the shared image is still exactly what was chosen.
-                if (AmountPrivacy.hidden && !revealed) {
+                if (covered) {
                     Placeholder {
                         Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(Spacing.lg)) {
                             Text(

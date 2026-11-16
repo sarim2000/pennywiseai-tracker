@@ -14,7 +14,13 @@ class WarrantyRemindersTest {
     private val today = LocalDate.of(2026, 3, 10)
     private val yesterday = today.minusDays(1)
 
-    private fun purchase(id: Long, until: LocalDate?, deleted: Boolean = false) = TransactionEntity(
+    private fun purchase(
+        id: Long,
+        until: LocalDate?,
+        deleted: Boolean = false,
+        // Long before any run, unless a test says otherwise.
+        updatedAt: LocalDateTime = LocalDateTime.of(2025, 3, 1, 10, 0)
+    ) = TransactionEntity(
         id = id,
         amount = BigDecimal("899"),
         merchantName = "Synthetic store $id",
@@ -23,7 +29,8 @@ class WarrantyRemindersTest {
         dateTime = LocalDateTime.of(2025, 3, 1, 10, 0),
         transactionHash = "synthetic-warranty-$id",
         isDeleted = deleted,
-        warrantyUntil = until
+        warrantyUntil = until,
+        updatedAt = updatedAt
     )
 
     private fun dueIds(vararg txns: TransactionEntity, lastRun: LocalDate? = yesterday) =
@@ -96,5 +103,34 @@ class WarrantyRemindersTest {
         val feb = LocalDate.of(2026, 2, 27)
         val due = WarrantyReminders.due(listOf(purchase(1, LocalDate.of(2026, 3, 29))), feb, feb.minusDays(1))
         assertEquals(listOf(1L), due.map { it.id })
+    }
+
+    /** Set yesterday afternoon to end today: yesterday's 1-day run had passed, so today's catches it. */
+    @Test
+    fun aWarrantySetAfterItsReminderDayRunIsCaughtUp() {
+        val setYesterdayAfternoon = yesterday.atTime(15, 0)
+        assertEquals(
+            listOf(1L, 2L),
+            dueIds(
+                purchase(1, today, updatedAt = setYesterdayAfternoon),
+                purchase(2, today.plusDays(1), updatedAt = today.atTime(8, 0))
+            )
+        )
+    }
+
+    @Test
+    fun aLateEditOnlyCatchesUpTheLastDayReminder() {
+        val setYesterdayAfternoon = yesterday.atTime(15, 0)
+        assertEquals(
+            emptyList<Long>(),
+            dueIds(
+                // Two days or more out: the 1-day reminder will still come on its day.
+                purchase(1, today.plusDays(2), updatedAt = setYesterdayAfternoon),
+                purchase(2, today.plusDays(10), updatedAt = setYesterdayAfternoon),
+                // Ended, or changed before the last run's day.
+                purchase(3, yesterday, updatedAt = setYesterdayAfternoon),
+                purchase(4, today, updatedAt = yesterday.minusDays(1).atTime(15, 0))
+            )
+        )
     }
 }

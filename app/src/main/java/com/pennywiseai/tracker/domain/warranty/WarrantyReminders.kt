@@ -9,6 +9,12 @@ import java.time.LocalDate
  * ([lastRun], exclusive) up to [today], so a day the worker missed (Doze, a phone
  * that was off) is caught up, and a warranty that has already ended is never
  * reminded. When both reminders fell in the gap, the purchase is listed once.
+ *
+ * A warranty entered after the morning's run, when its 1-day reminder day has
+ * already come, would otherwise get no reminder at all; so a purchase that ends
+ * today or tomorrow and was changed on or after [lastRun]'s day is reminded too.
+ * Only dates are kept, so an edit on that day before its run can bring a second
+ * "ends today" heads-up; that's the safer miss.
  */
 object WarrantyReminders {
 
@@ -21,10 +27,13 @@ object WarrantyReminders {
         if (since == today) return emptyList()
         return transactions.filter { txn ->
             val until = txn.warrantyUntil ?: return@filter false
-            !txn.isDeleted && !until.isBefore(today) && DAYS_BEFORE.any { days ->
+            if (txn.isDeleted || until.isBefore(today)) return@filter false
+            val onTheDay = DAYS_BEFORE.any { days ->
                 val remindOn = until.minusDays(days)
                 remindOn.isAfter(since) && !remindOn.isAfter(today)
             }
+            val setTooLate = !until.minusDays(1).isAfter(today) && !txn.updatedAt.toLocalDate().isBefore(since)
+            onTheDay || setTooLate
         }
     }
 }

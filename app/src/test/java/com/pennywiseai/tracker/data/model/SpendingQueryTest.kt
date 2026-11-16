@@ -294,6 +294,27 @@ class SpendingQueryTest {
     }
 
     @Test
+    fun `the account a question's lookup keeps is the one the user's words name`() {
+        val all = listOf(account("HDFC", "1234"), account("SBI", "1234"), account("HDFC", "5678", alias = "Salary"))
+        // The model's other bank sharing the digits never stands in for the user's.
+        assertEquals("HDFC 1234", SpendingQuery.accountSaid("how much at Starbucks on HDFC 1234?", "Starbucks", "SBI 1234", all))
+        assertEquals(AccountMatch.One(all[0]), SpendingQuery.account("HDFC 1234", all))
+        // Digits two cards end in, without a bank, stay a question for the user.
+        assertEquals("1234", SpendingQuery.accountSaid("how much at Starbucks on 1234?", "Starbucks", "HDFC 1234", all))
+        assertEquals(AccountMatch.Several(all.take(2)), SpendingQuery.account("1234", all))
+        // The user's bank or digits win over the model's, Arabic-Indic digits too.
+        assertEquals("HDFC", SpendingQuery.accountSaid("how much at Starbucks on my HDFC card?", "Starbucks", "HDFC 5678", all))
+        assertEquals("1234", SpendingQuery.accountSaid("كم صرفت في ستاربكس على بطاقة ١٢٣٤؟", "ستاربكس", "بطاقة 9999", all))
+        // One the user doesn't name restricts nothing; one they name that isn't there is kept to be said.
+        assertEquals(null, SpendingQuery.accountSaid("how much at Starbucks?", "Starbucks", "SBI 1234", all))
+        assertEquals(null, SpendingQuery.accountSaid("how much at Starbucks in 2026?", "Starbucks", "HDFC 1234", all))
+        assertEquals("ICICI 9999", SpendingQuery.accountSaid("how much at Starbucks on ICICI 9999?", "Starbucks", "ICICI 9999", all))
+        // The merchant's name is no account's, even when an alias carries it.
+        val amazonPay = listOf(account("Amazon", "4321", alias = "Amazon Pay"))
+        assertEquals(null, SpendingQuery.accountSaid("how much at Amazon?", "Amazon", "Amazon Pay", amazonPay))
+    }
+
+    @Test
     fun `digits never override a bank the user named`() {
         val sbi = account("SBI", "1234")
         // HDFC's card isn't there (or is ignored): SBI's card ending 1234 is no answer to it.

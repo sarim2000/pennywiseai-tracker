@@ -343,6 +343,21 @@ class ChatTurnTest {
         assertTrue(send("how much at Starbucks?").startsWith("SPENT"))
         assertEquals(null, filter.captured.account)
         assertEquals(null, repository.pendingAction.value)
+        // The user's words pick the account, never the model's: both cards end in 1234, and
+        // "SBI 1234" for "on HDFC 1234?" is still HDFC's figure.
+        coEvery { accountBalances.getAllLatestBalancesOnce() } returns listOf(account("HDFC", "1234"), account("SBI", "1234"))
+        events = listOf(spentIn(25.0, account = "SBI 1234"))
+        assertTrue(send("how much at Starbucks on HDFC 1234?").startsWith("SPENT"))
+        assertEquals("HDFC_1234", filter.captured.account)
+        // The bank the user named wins over the model's digits.
+        events = listOf(spentIn(25.0, account = "HDFC 5678"))
+        assertTrue(send("how much at Starbucks on my HDFC card?").startsWith("SPENT"))
+        assertEquals("HDFC_1234", filter.captured.account)
+        // Digits both cards end in are a question, whichever bank the model put beside them.
+        every { context.getString(R.string.chat_reply_account_ambiguous, "1234", "HDFC ••1234, SBI ••1234") } returns "WHICH"
+        events = listOf(spentIn(25.0, account = "SBI 1234"))
+        assertEquals("WHICH", send("how much at Starbucks on 1234?"))
+        assertEquals(null, repository.pendingAction.value)
 
         // Asked to add, or stating the amount, it's still a card.
         events = listOf(income("Starbucks"))

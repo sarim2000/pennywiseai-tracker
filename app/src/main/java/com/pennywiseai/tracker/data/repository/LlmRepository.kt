@@ -528,15 +528,17 @@ class LlmRepository @Inject constructor(
 
     /**
      * The spending lookup a question's add call names: its one item's merchant or category, on
-     * the account it names when the user's words name it too ("coffee on HDFC 1234?"), which
-     * the lookup then finds or asks about: never every account instead.
+     * the account the user's words name when the call names one ("coffee on HDFC 1234?"), which
+     * the lookup then finds or asks about: never every account, nor the model's other account.
      */
-    private fun lookupAsked(items: List<Map<String, Any?>>, userMessage: String): LlmEvent.ToolCall? {
+    private suspend fun lookupAsked(items: List<Map<String, Any?>>, userMessage: String): LlmEvent.ToolCall? {
         val item = items.singleOrNull() ?: return null
         fun text(key: String) = (item[key] as? String)?.trim()?.takeIf { it.isNotEmpty() }
         val args = listOf("merchant", "category").mapNotNull { key -> text(key)?.let { key to it } }.toMap()
         if (args.isEmpty()) return null
-        val account = text("account")?.takeIf { SpendingQuery.namesAccount(userMessage, it) }
+        val account = text("account")?.let {
+            SpendingQuery.accountSaid(userMessage, text("merchant"), it, accountBalanceRepository.getAllLatestBalancesOnce())
+        }
         return LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, args + listOfNotNull(account?.let { "account" to it }))
     }
 

@@ -390,15 +390,23 @@ object SpendingQuery {
     )
 
     /**
-     * Whether [message] names the [account] a call gave: its last digits, or a word of it that
-     * isn't a generic one ("HDFC", not "card"). An account the model filled in on its own
-     * restricts nothing the user asked about.
+     * The account the user's own words in [message] name, as [account] reads one: the words of
+     * it that name one of [accounts] (or are in [modelAccount], which [account] then can't find,
+     * "ICICI" when there's none) and its first run of 3+ digits that ends one of them (or the
+     * model's). Null when they name none: an account the model filled in on its own restricts
+     * nothing the user asked, and one that differs from the user's ("SBI 1234" for "on HDFC
+     * 1234?", both cards ending 1234) never stands in for it. [merchant] is no account's name.
      */
-    fun namesAccount(message: String, account: String): Boolean {
-        val digits = account.filter(Char::isDigit)
-        val said = norm(message).split(" ")
-        return (digits.length >= 3 && digits.takeLast(4) in message.filter(Char::isDigit)) ||
-            norm(account.filterNot(Char::isDigit)).split(" ").any { it.isNotEmpty() && it !in ACCOUNT_WORDS && it in said }
+    fun accountSaid(message: String, merchant: String?, modelAccount: String, accounts: List<AccountBalanceEntity>): String? {
+        val said = withoutNames(message, merchant, null).toLatinDigits()
+        val modelDigits = modelAccount.toLatinDigits().filter(Char::isDigit)
+        val names = (accounts.flatMap { listOfNotNull(it.alias, it.bankName) } + modelAccount).flatMap { norm(it).split(" ") }.toSet()
+        val words = said.split(Regex("[^\\p{L}\\p{M}]+"))
+            .filter { it.isNotEmpty() && it.lowercase() !in ACCOUNT_WORDS && it.lowercase() in names }
+            .distinctBy { it.lowercase() }
+        val digits = Regex("[0-9]{3,}").findAll(said).map { it.value.takeLast(4) }
+            .firstOrNull { d -> d in modelDigits || accounts.any { it.accountLast4.endsWith(d) } }
+        return (words + listOfNotNull(digits)).joinToString(" ").ifEmpty { null }
     }
 
     sealed interface AccountMatch {

@@ -1,5 +1,6 @@
 package com.example
 
+import com.example.share.ShareClientKey
 import com.example.share.ShareService
 import com.example.share.configureShares
 import com.example.ui.BankViews
@@ -94,8 +95,10 @@ class ShareRoutesTest {
         snapshotJson: String = snapshot(),
         og: ByteArray? = png(),
         userAgent: String = "PennyWise-Test",
+        clientIp: String? = null,
     ): HttpResponse = client.post("/api/shares") {
         header(HttpHeaders.UserAgent, userAgent)
+        if (clientIp != null) header("CF-Connecting-IP", clientIp)
         setBody(
             MultiPartFormDataContent(
                 formData {
@@ -210,13 +213,19 @@ class ShareRoutesTest {
     @Test
     fun `three distinct reporters hide a share, one reporter cannot`() = shareApp {
         val (id, _) = publishOk()
-        repeat(3) {
-            assertEquals(HttpStatusCode.NoContent, client.post("/s/$id/report") { header(HttpHeaders.UserAgent, "same") }.status)
+        // One visitor can't buy new identities by varying headers they control.
+        listOf("a", "b", "c").forEachIndexed { i, ua ->
+            val res = client.post("/s/$id/report") {
+                header("CF-Connecting-IP", "203.0.113.1")
+                header(HttpHeaders.UserAgent, ua)
+                header(HttpHeaders.XForwardedFor, "198.51.100.$i")
+            }
+            assertEquals(HttpStatusCode.NoContent, res.status)
         }
         assertEquals(HttpStatusCode.OK, client.get("/s/$id").status)
-        client.post("/s/$id/report") { header(HttpHeaders.UserAgent, "second") }
+        client.post("/s/$id/report") { header("CF-Connecting-IP", "203.0.113.2") }
         assertEquals(HttpStatusCode.OK, client.get("/s/$id").status)
-        client.post("/s/$id/report") { header(HttpHeaders.UserAgent, "third") }
+        client.post("/s/$id/report") { header("CF-Connecting-IP", "203.0.113.3") }
         assertEquals(HttpStatusCode.Gone, client.get("/s/$id").status)
         assertEquals(HttpStatusCode.Gone, client.get("/s/$id/og.png").status)
     }
@@ -299,12 +308,23 @@ class ShareRoutesTest {
     }
 
     @Test
-    fun `publishing is rate limited per fingerprint`() = shareApp {
-        repeat(ShareService.MAX_SHARES_PER_HOUR) { assertEquals(HttpStatusCode.Created, publish().status) }
-        assertEquals(HttpStatusCode.TooManyRequests, publish().status)
-        assertEquals(HttpStatusCode.Created, publish(userAgent = "another-device").status)
+    fun `publishing is rate limited per client ip`() = shareApp {
+        val ip = "2001:db8:1:2:aaaa::1"
+        repeat(ShareService.MAX_SHARES_PER_HOUR) { assertEquals(HttpStatusCode.Created, publish(clientIp = ip).status) }
+        assertEquals(HttpStatusCode.TooManyRequests, publish(clientIp = ip).status)
+        // A new User-Agent or another address in the same IPv6 /64 is the same client.
+        assertEquals(HttpStatusCode.TooManyRequests, publish(clientIp = ip, userAgent = "another-device").status)
+        assertEquals(HttpStatusCode.TooManyRequests, publish(clientIp = "2001:db8:1:2:bbbb::9").status)
+        assertEquals(HttpStatusCode.Created, publish(clientIp = "2001:db8:1:3::1").status)
         clock.now = clock.now.plus(Duration.ofMinutes(61))
-        assertEquals(HttpStatusCode.Created, publish().status)
+        assertEquals(HttpStatusCode.Created, publish(clientIp = ip).status)
+    }
+
+    @Test
+    fun `client key cuts ipv6 to its 64 and never parses hostnames`() {
+        assertEquals("203.0.113.7", ShareClientKey.normalize("203.0.113.7"))
+        assertEquals(ShareClientKey.normalize("2001:db8::1"), ShareClientKey.normalize("2001:db8::ffff:1"))
+        assertEquals("example.com", ShareClientKey.normalize("example.com"))
     }
 
     @Test

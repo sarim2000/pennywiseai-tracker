@@ -37,9 +37,8 @@ class ShareService(
         const val REPORTS_TO_HIDE = 3
 
         /**
-         * Best-effort only: the fingerprint is a hash of User-Agent + forwarded IP, both of
-         * which a determined client can vary. It stops a buggy or looping client, not an
-         * attacker with a pool of addresses.
+         * Per client IP ([ShareClientKey]). It stops a buggy or looping client and a single
+         * abuser, not an attacker with a pool of addresses.
          */
         const val MAX_SHARES_PER_HOUR = 20
 

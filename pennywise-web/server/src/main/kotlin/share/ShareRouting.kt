@@ -1,6 +1,5 @@
 package com.example.share
 
-import com.example.feedback.FingerprintService
 import com.example.ui.SharedComponents.SITE_ORIGIN
 import com.example.ui.ShareViews
 import com.example.ui.ShareViews.respondShareGone
@@ -24,7 +23,7 @@ private const val OG_CACHE = "public, max-age=86400, immutable"
 fun Application.configureShares(service: ShareService) {
     routing {
         post("/api/shares") {
-            val fingerprint = FingerprintService.generateFingerprint(call)
+            val fingerprint = ShareClientKey.of(call)
             val body = readShareUpload(call).getOrElse { return@post call.respondShareError(it.message) }
             val snapshot = ShareSnapshotValidator.parse(body.snapshot).getOrElse { return@post call.respondShareError(it.message) }
             val png = ShareService.reencodePng(body.og).getOrElse { return@post call.respondShareError(it.message) }
@@ -94,7 +93,7 @@ fun Application.configureShares(service: ShareService) {
         }
 
         post("/s/{id}/report") {
-            val fingerprint = FingerprintService.generateFingerprint(call)
+            val fingerprint = ShareClientKey.of(call)
             if (service.report(call.parameters["id"].orEmpty(), fingerprint)) call.respond(HttpStatusCode.NoContent)
             else call.respond(HttpStatusCode.NotFound)
         }

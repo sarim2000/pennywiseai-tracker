@@ -1566,4 +1566,24 @@ class ChatTurnTest {
         events = listOf(LlmEvent.ToolCall(PennyWiseTools.PLANNING_STATUS, mapOf("kind" to "goals")))
         assertEquals("UNKNOWN", send("how are my goals?"))
     }
+
+    @Test
+    fun `a money-in question sent to the plans is looked up instead`() = runTest {
+        every { context.getString(R.string.chat_reply_planning_unknown) } returns "UNKNOWN"
+        every { context.getString(R.string.chat_reply_category_income, any(), any(), any(), any()) } answers {
+            (args[1] as Array<*>).let { "RECEIVED ${it[0]} ${it[1]}" }
+        }
+        every { categories.getAllCategories() } returns flowOf(listOf(CategoryEntity(id = 3, name = "Salary", color = "#000", isIncome = true)))
+        coEvery { aiContext.categoryIncome("Salary", any(), any()) } returns spent("500").copy(category = "Salary")
+        // What Qwen2.5 sent for it on device.
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.PLANNING_STATUS, mapOf("kind" to "salary")))
+        assertEquals("RECEIVED ₹500 Salary", send("How much salary did I receive this month?"))
+        assertEquals(PennyWiseTools.QUERY_SPENDING, repository.lastReply.value?.tool)
+        // A kind that names no category: the month's figures, what came in among them.
+        every { context.getString(R.string.chat_reply_month_spend, any()) } returns "SPENT"
+        every { context.getString(R.string.chat_reply_received_nothing) } returns "NONE_RECEIVED"
+        answerSpending()
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.PLANNING_STATUS, mapOf("kind" to "status")))
+        assertTrue("NONE_RECEIVED" in send("how much income did I get?").lines())
+    }
 }

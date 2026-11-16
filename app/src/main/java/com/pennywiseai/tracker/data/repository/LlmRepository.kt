@@ -636,7 +636,16 @@ class LlmRepository @Inject constructor(
         PennyWiseTools.PLANNING_STATUS -> when (call.arguments["kind"]?.toString()?.trim()?.lowercase()?.removeSuffix("s")) {
             "budget", "limit" -> budgetsText(planningRepository.budgets())
             "bill", "subscription", "payment" -> billsText(planningRepository.billsDue())
-            else -> context.getString(R.string.chat_reply_planning_unknown)
+            // On device Qwen2.5 sent "How much salary did I receive?" here: money received is a
+            // spending lookup's, in the category the kind names if it names one.
+            else -> if (SpendingComparison.asksAboutIncome(userMessage)) {
+                turnSubject = ReplySubject(tool = PennyWiseTools.QUERY_SPENDING)
+                val kind = call.arguments["kind"]?.toString()?.trim().orEmpty()
+                val category = matchCategory(kind, categoryRepository.getAllCategories().first())
+                querySpending(listOfNotNull(category?.let { "category" to it }).toMap(), userMessage)
+            } else {
+                context.getString(R.string.chat_reply_planning_unknown)
+            }
         }
         else -> null
     }

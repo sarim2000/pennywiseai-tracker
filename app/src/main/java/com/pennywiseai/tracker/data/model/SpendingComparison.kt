@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.data.model
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
+import com.pennywiseai.tracker.data.ledger.breakdownByCurrency
 import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.utils.sumByCurrency
 import java.math.BigDecimal
@@ -109,6 +110,13 @@ object SpendingComparison {
      * at zero. [categories] (null = all) get their split shares and the refunds given back to them.
      */
     fun spend(rows: List<TransactionWithSplits>, categories: Set<String>? = null, creditAsExpense: Boolean = true): Map<String, BigDecimal> {
+        if (categories == null) {
+            // All spending is Home's own figure; a currency is listed only when something was spent in it.
+            val spentIn = spending(rows, creditAsExpense).mapTo(mutableSetOf()) { it.transaction.currency }
+            return breakdownByCurrency(rows.map { it.transaction }, creditAsExpense)
+                .filterKeys { it in spentIn }
+                .mapValues { it.value.expenses }
+        }
         val refunded = refunds(rows).filter { categories.includes(it.second) }
             .groupBy({ it.first }, { it.third }).mapValues { (_, a) -> a.fold(BigDecimal.ZERO, BigDecimal::add) }
         return grossSpend(rows, categories, creditAsExpense).mapValues { (currency, gross) -> (gross - (refunded[currency] ?: BigDecimal.ZERO)).max(BigDecimal.ZERO) }

@@ -125,7 +125,8 @@ class LlmRepository @Inject constructor(
         lastCard = AnsweredCard(line, saved = true, mentions = card?.let(::mentionsOf).orEmpty())
         _pendingAction.value = null
         cardOutcome = "The user confirmed the last card. It is saved."
-        val message = ChatMessage(message = line, isUser = false)
+        // The app's line, not the model's: it stays out of the model's window (see [QUICK_ID]).
+        val message = ChatMessage(id = QUICK_ID + UUID.randomUUID(), message = line, isUser = false)
         _lastReply.value = ReplySubject(
             messageId = message.id,
             tool = when (card) {
@@ -248,7 +249,10 @@ class LlmRepository @Inject constructor(
             // Text held back in case it became a tag, and it didn't.
             if (toolCalls.isEmpty()) emit(written) else responseBuilder.clear()
         }
+        // A reply holding any line the app wrote leaves the model's window with its question (see [QUICK_ID]).
+        var appWrote = false
         suspend fun addLine(line: String) {
+            appWrote = true
             if (responseBuilder.isNotEmpty() && !responseBuilder.endsWith("\n")) { responseBuilder.append("\n"); emit("\n") }
             responseBuilder.append(line); emit(line)
         }
@@ -257,8 +261,6 @@ class LlmRepository @Inject constructor(
         // A comparison or a total is the code's figures alone: prose beside it could carry the
         // model's own arithmetic, or a figure from an earlier turn.
         val figures: (LlmEvent.ToolCall) -> Boolean = { it.isComparison(userMessage) || it.name in MONTH_LOOKUPS }
-        // Answered by figures alone: they stay out of the model's window (see [QUICK_ID]).
-        val figuresOnly = toolCalls.isNotEmpty() && toolCalls.all(figures)
         if (toolCalls.any(figures)) {
             // The live conversation still holds that prose; the next turn rebuilds from what was saved.
             if (responseBuilder.isNotEmpty()) conversationBroken = true
@@ -312,7 +314,7 @@ class LlmRepository @Inject constructor(
         val finalResponse = responseBuilder.toString()
         Log.d(TAG, "Saving AI response (${finalResponse.length} chars)")
         val aiMessage = ChatMessage(
-            id = if (figuresOnly) QUICK_ID + UUID.randomUUID() else UUID.randomUUID().toString(),
+            id = if (appWrote) QUICK_ID + UUID.randomUUID() else UUID.randomUUID().toString(),
             message = finalResponse,
             isUser = false
         )
@@ -386,7 +388,7 @@ class LlmRepository @Inject constructor(
 
         // Always fresh: the row saved when the chat began carries that day's date and lists.
         val systemPrompt = buildSystemPrompt()
-        val saved = withoutFigureAnswers(chatDao.getAllMessagesForContext().filter { !it.isSystemPrompt })
+        val saved = withoutAppReplies(chatDao.getAllMessagesForContext().filter { !it.isSystemPrompt })
         // A trailing message that got no reply isn't replayed: it's usually the one being sent,
         // saved while the warm-up loaded the model, and replaying it would mean building twice.
         var history = saved.filter { it.id != pending?.id && it.id !in droppedIds }.dropLastWhile { it.isUser }
@@ -821,30 +823,23 @@ class LlmRepository @Inject constructor(
         """.trimIndent()
 
         /**
-         * Marks a quick-action question and reply, and a typed question's reply made of figures
-         * alone. Their figures stay out of the model's window: replayed, they made Qwen2.5 copy
-         * them as the answer to the next question ("what about last week?" got this month's) on
-         * S23, and repeat a total from before a change instead of asking the tool again. A
-         * follow-up is answered from its own words instead: "last month" already routes to the
-         * comparison.
+         * Marks a reply the app wrote, in whole or in part: a one-tap question and its answer, a
+         * typed question's figures, a card's line and the line saying what the card did, and any
+         * line the app put in place of the model's. Saved for the screen, never replayed to the
+         * model: as its own earlier replies they're text it can copy, and Qwen2.5 did, answering
+         * a new question with an old total ("what about last week?" got this month's, on S23),
+         * with a card's line and no card, or with whatever stood in for the figures, instead of
+         * calling the tool. Within a live conversation a follow-up still sees the tool call the
+         * model made; after a rebuild it is answered from its own words ("last month" already
+         * routes to the comparison). Replaying the call itself isn't possible: only the text is
+         * saved. The stored prefix stays "quick-": saved chats carry it.
          */
         internal const val QUICK_ID = "quick-"
 
-        /** Replayed in place of a typed question's figures: the topic stays for a follow-up, the figures don't. */
-        internal const val FIGURES_REPLAYED = "(answered with the app's figures)"
-
-        /**
-         * [saved] as the model may see it again: a one-tap exchange [QUICK_ID] marks leaves, and a
-         * typed question keeps its words while its figures give way to [FIGURES_REPLAYED], so
-         * "and transport?" after "compare food with last month" still knows what was asked.
-         */
-        internal fun withoutFigureAnswers(saved: List<ChatMessage>): List<ChatMessage> = saved.mapIndexedNotNull { i, m ->
-            val asked = saved.getOrNull(i - 1)
-            when {
-                !m.id.startsWith(QUICK_ID) -> m
-                !m.isUser && asked != null && asked.isUser && !asked.id.startsWith(QUICK_ID) -> m.copy(message = FIGURES_REPLAYED)
-                else -> null
-            }
+        /** [saved] as the model may see it again: without the replies [QUICK_ID] marks, nor the questions they answer. */
+        internal fun withoutAppReplies(saved: List<ChatMessage>): List<ChatMessage> = saved.filterIndexed { i, m ->
+            val next = saved.getOrNull(i + 1)
+            !m.id.startsWith(QUICK_ID) && !(m.isUser && next != null && !next.isUser && next.id.startsWith(QUICK_ID))
         }
 
         /** The newer half of [history], from a user turn so the model never starts mid-exchange. */

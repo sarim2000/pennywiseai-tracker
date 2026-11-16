@@ -513,52 +513,69 @@ class ChatTurnTest {
         saved += ChatMessage(message = "a$i", isUser = false, timestamp = i * 2L + 1)
     }
 
+    /** The screen closed and freed the model: the next message rebuilds the window from the save. */
+    private fun rebuilt(): MutableList<List<Pair<String, Boolean>>> {
+        every { llmService.hasActiveConversation() } returns false
+        val histories = mutableListOf<List<Pair<String, Boolean>>>()
+        coEvery { llmService.createConversation(any(), capture(histories), any()) } returns Result.success(Unit)
+        coEvery { llmService.tokenCount() } returns 1500
+        return histories
+    }
+
     @Test
-    fun `a typed total's figures stay out of the rebuilt window, as a one-tap one's do`() = runTest {
+    fun `a typed total leaves the rebuilt window with its question, as a one-tap one does`() = runTest {
         savedChat(1)
         coEvery { aiContext.categorySpending(any(), any()) } returns spent("120")
         events = listOf(LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "طعام")))
         send("how much on food?")
         assertEquals(listOf("u0", "a0", "how much on food?", "SPEND"), saved.filter { !it.isSystemPrompt }.map { it.message })
 
-        // The screen closed and freed the model; the next message rebuilds the window from the save.
-        every { llmService.hasActiveConversation() } returns false
-        val histories = mutableListOf<List<Pair<String, Boolean>>>()
-        coEvery { llmService.createConversation(any(), capture(histories), any()) } returns Result.success(Unit)
-        coEvery { llmService.tokenCount() } returns 1500
+        // A follow-up in the live conversation goes on from the call the model made: nothing rebuilt.
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "طعام")))
+        send("and last month?")
+        coVerify(exactly = 0) { llmService.createConversation(any(), any(), any()) }
+
+        val histories = rebuilt()
         events = listOf(LlmEvent.Text("hi"))
         send("and now?")
-        // Replayed, that total was what the model said again after a change, instead of asking the tool.
-        // The question stays, so the model still knows what the next message follows on from.
-        assertEquals(
-            listOf("u0" to true, "a0" to false, "how much on food?" to true, LlmRepository.FIGURES_REPLAYED to false),
-            histories.single()
-        )
+        // Replayed, any line standing for those figures was what the model wrote back to a new
+        // question (the emulator, after a language change), instead of asking the tool.
+        assertEquals(listOf("u0" to true, "a0" to false), histories.single())
     }
 
     @Test
-    fun `a follow-up after a rebuild still sees the comparison it follows`() = runTest {
+    fun `a rebuilt window holds no line the app wrote for the model to copy`() = runTest {
         val w = SpendingComparison.Window(LocalDateTime.of(2026, 10, 1, 0, 0), LocalDateTime.of(2026, 10, 9, 0, 0))
         coEvery { aiContext.compareSpending(any(), any(), any(), any()) } returns
             SpendingComparison.Result.Rows(w, w, listOf(SpendingComparison.Row("INR", BigDecimal("700"), BigDecimal("500"), BigDecimal("40"))))
-        // Prose before the call: the live conversation holds it, so it closes and the next turn rebuilds.
-        events = listOf(LlmEvent.Text("Let me check. "), LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "طعام")))
-        send("compare food with last month")
+        coEvery { aiContext.categorySpending(any(), any()) } returns spent("120")
         coEvery { aiContext.spending(any()) } returns com.pennywiseai.tracker.data.model.PeriodSpending(
             com.pennywiseai.tracker.data.model.ChatScope(w),
             spent = mapOf("INR" to BigDecimal("700")),
             income = emptyMap(),
         )
+        every { context.getString(R.string.chat_reply_add, any()) } returns "ADD_CARD"
+        every { context.getString(R.string.chat_reply_month_spend, any()) } returns "MONTH"
+        events = listOf(LlmEvent.Text("Hello!"))
+        send("hi")
+        // Prose before the call: the live conversation holds it, so it closes.
+        events = listOf(LlmEvent.Text("Let me check. "), LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "طعام")))
+        send("compare food with last month")
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.MONTH_SUMMARY, emptyMap()))
+        send("how much this month?")
         repository.answerQuickAction(QuickAction.MONTH_SPEND)
+        // A change the model claimed and didn't make: the app's line takes its place.
+        events = listOf(LlmEvent.Text("I have added it"))
+        assertEquals("NOTHING_CHANGED", send("coffee 50"))
+        events = listOf(LlmEvent.Text("Sure! "), add(45.0))
+        send("taxi 45")
+        repository.completePendingAction("Added ₹45 at taxi (Transport).")
 
-        every { llmService.hasActiveConversation() } returns false
-        val histories = mutableListOf<List<Pair<String, Boolean>>>()
-        coEvery { llmService.createConversation(any(), capture(histories), any()) } returns Result.success(Unit)
-        coEvery { llmService.tokenCount() } returns 1500
-        events = listOf(LlmEvent.Text("hi"))
-        send("and transport?")
-        // The typed comparison keeps its words, not its figures; the one-tap exchange leaves whole.
-        assertEquals(listOf("compare food with last month" to true, LlmRepository.FIGURES_REPLAYED to false), histories.single())
+        val histories = rebuilt()
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "طعام")))
+        assertEquals("SPEND", send("كم صرفت على الطعام؟"))
+        // Only the model's own words: an app line replayed as its reply is one it can write back.
+        assertEquals(listOf("hi" to true, "Hello!" to false), histories.single())
     }
 
     @Test

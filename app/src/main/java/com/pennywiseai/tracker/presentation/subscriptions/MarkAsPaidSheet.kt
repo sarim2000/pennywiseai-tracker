@@ -1,10 +1,5 @@
 package com.pennywiseai.tracker.presentation.subscriptions
 
-import com.pennywiseai.tracker.utils.AppDates
-
-import androidx.compose.ui.res.pluralStringResource
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -33,11 +28,11 @@ import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberBottomSheetState
+import androidx.compose.material3.rememberDatePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -46,24 +41,29 @@ import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.ui.components.BrandIcon
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.income
-import com.pennywiseai.tracker.ui.theme.PennyWiseText
+import com.pennywiseai.tracker.ui.theme.spending
+import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
-import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 /**
  * Bottom sheet for confirming a subscription payment / receipt (#412).
@@ -102,7 +102,7 @@ fun MarkAsPaidSheet(
     val amountColor = if (isIncome) {
         MaterialTheme.colorScheme.income
     } else {
-        MaterialTheme.colorScheme.onSurface
+        MaterialTheme.colorScheme.spending
     }
     val eyebrowText = stringResource(
         if (isIncome) R.string.mark_paid_eyebrow_received else R.string.mark_paid_eyebrow_paid
@@ -330,7 +330,7 @@ fun MarkAsPaidSheet(
 }
 
 /**
- * One suggested-payment card. Compact row: amount on the left (in ink, like
+ * One suggested-payment card. Compact row: amount on the left (in the spending colour, like
  * a spend in the transactions list), merchant + relative date on the
  * right. Tap = link this transaction as the cycle's payment.
  */
@@ -340,7 +340,7 @@ private fun CandidateCard(
     txn: TransactionEntity,
     onClick: () -> Unit,
 ) {
-    val amountColor = MaterialTheme.colorScheme.onSurface
+    val amountColor = MaterialTheme.colorScheme.spending
     androidx.compose.material3.Surface(
         onClick = onClick,
         shape = RoundedCornerShape(Dimensions.CornerRadius.large),

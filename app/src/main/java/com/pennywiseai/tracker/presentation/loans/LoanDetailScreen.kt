@@ -40,6 +40,7 @@ import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.spending
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
@@ -399,13 +400,13 @@ private fun LoanTransactionItem(
     modifier: Modifier = Modifier
 ) {
     // Sign and colour follow the actual money flow: "+" in the income colour for
-    // money in, "-" in ink for money out (red is kept for problems).
+    // money in, "-" in the spending colour for money out.
     // Every type but INCOME is money out, as in the loan's own math (#876).
     val moneyIn = transaction.transactionType == TransactionType.INCOME
     val color = if (moneyIn) {
         MaterialTheme.colorScheme.income
     } else {
-        MaterialTheme.colorScheme.onSurface
+        MaterialTheme.colorScheme.spending
     }
     val sign = if (moneyIn) "+" else "-"
 

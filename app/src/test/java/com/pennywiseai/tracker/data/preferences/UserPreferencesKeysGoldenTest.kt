@@ -95,6 +95,7 @@ class UserPreferencesKeysGoldenTest {
             "base_currency" to "String",
             "base_currency_user_set" to "Boolean",
             "blur_effects_enabled" to "Boolean",
+            "red_spending" to "Boolean",
             "budget_alerts_enabled" to "Boolean",
             "budget_cycle_start_day" to "Int",
             "conscience_enabled" to "Boolean",

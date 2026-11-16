@@ -1,10 +1,6 @@
 package com.pennywiseai.tracker.ui.components.cards
 
-import com.pennywiseai.tracker.utils.AppDates
-
-import androidx.compose.ui.res.pluralStringResource
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
+import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
@@ -19,13 +15,17 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
-import android.view.HapticFeedbackConstants
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.income
+import com.pennywiseai.tracker.ui.theme.spending
+import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
@@ -63,7 +63,7 @@ fun GroupCard(
     val amountColor = if (isPositive) {
         MaterialTheme.colorScheme.income
     } else {
-        MaterialTheme.colorScheme.onSurface
+        MaterialTheme.colorScheme.spending
     }
 
     val latestDate = remember(transactions) { transactions.map { it.dateTime }.maxOrNull() }

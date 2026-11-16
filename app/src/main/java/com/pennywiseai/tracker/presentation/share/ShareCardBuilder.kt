@@ -7,6 +7,7 @@ import androidx.compose.ui.res.stringResource
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.data.repository.GoalProgress
+import com.pennywiseai.tracker.domain.achievements.Achievement
 import com.pennywiseai.tracker.domain.goals.GoalPill
 import com.pennywiseai.tracker.domain.goals.fraction
 import com.pennywiseai.tracker.domain.goals.percent
@@ -25,6 +26,9 @@ import com.pennywiseai.tracker.domain.share.spendingDrivers
 import com.pennywiseai.tracker.domain.share.topCategoryShares
 import com.pennywiseai.tracker.ui.components.comparisonTarget
 import com.pennywiseai.tracker.ui.components.shareLabel
+import com.pennywiseai.tracker.presentation.achievements.achievementDescription
+import com.pennywiseai.tracker.presentation.achievements.achievementName
+import com.pennywiseai.tracker.presentation.achievements.tierLabel
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -79,8 +83,13 @@ fun shareCardState(selection: ShareStudioSelection, data: ShareStudioData): Shar
             ShareCardState.Ready(goalCard(goal, details))
         }
         is ShareStudioData.Budget -> budgetCard(data.summary, details)
+        is ShareStudioData.Achievements -> achievementsCard(data.earned, selection.achievements, details)
     }
 }
+
+/** The achievements an achievements card shows: those picked, or every one earned. */
+fun selectedAchievements(earned: List<Achievement>, picked: Set<String>?): List<Achievement> =
+    if (picked == null) earned else earned.filter { it.id.key in picked }
 
 // --- Formatting. Every amount leaves the phone, so none of them is masked.
 
@@ -113,7 +122,7 @@ private fun sign(signum: Int): String = when {
  * A count with the language's grouping but Latin digits, as every amount and percent on
  * the card has: an Arabic "٨" beside "52%" reads as two different number systems.
  */
-private fun count(value: Int): String = NumberFormat.getIntegerInstance(
+internal fun count(value: Int): String = NumberFormat.getIntegerInstance(
     Locale.Builder().setLocale(Locale.getDefault()).setUnicodeLocaleKeyword("nu", "latn").build()
 ).format(value)
 
@@ -440,4 +449,49 @@ private fun budgetCard(summary: BudgetOverallSummary, details: Set<ShareDetail>)
             } else null,
         )
     )
+}
+
+/**
+ * One achievement is a medal of its own; several are a set under how many there are.
+ * Names and descriptions say what was done, never with an amount, so there is nothing
+ * here for the amount switches to hide.
+ */
+@Composable
+private fun achievementsCard(earned: List<Achievement>, picked: Set<String>?, details: Set<ShareDetail>): ShareCardState {
+    if (earned.isEmpty()) return ShareCardState.Unavailable(stringResource(R.string.share_unavailable_achievements))
+    val shown = selectedAchievements(earned, picked)
+    if (shown.isEmpty()) return ShareCardState.Unavailable(stringResource(R.string.share_unavailable_achievements_none))
+    val single = shown.singleOrNull()
+    // Only the single card has room to print its date; one that isn't drawn isn't sent.
+    val dated = single != null && ShareDetail.PERIOD in details
+    val badges = shown.map {
+        ShareAchievement(
+            id = it.id.key,
+            title = achievementName(it.id),
+            description = achievementDescription(it),
+            tier = it.tier,
+            unlockedOn = if (dated) it.unlockedOn else null,
+        )
+    }
+    val content = if (single != null) {
+        ShareCardContent(
+            kind = ShareKind.ACHIEVEMENTS,
+            title = stringResource(R.string.share_card_achievement_title),
+            subtitle = tierLabel(single),
+            periodLabel = single.unlockedOn?.takeIf { dated }
+                ?.format(AppDates.pattern("d MMM yyyy"))?.uppercase(LocalConfiguration.current.locales[0]),
+            achievements = badges,
+        )
+    } else {
+        ShareCardContent(
+            kind = ShareKind.ACHIEVEMENTS,
+            title = stringResource(R.string.share_card_achievements_title),
+            hero = ShareCardHero(
+                label = pluralStringResource(R.plurals.share_card_achievements_hero, shown.size),
+                value = count(shown.size),
+            ),
+            achievements = badges,
+        )
+    }
+    return ShareCardState.Ready(content)
 }

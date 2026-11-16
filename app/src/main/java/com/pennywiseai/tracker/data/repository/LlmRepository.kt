@@ -123,6 +123,9 @@ class LlmRepository @Inject constructor(
     // The links the turn in progress has found so far.
     private val turnLinks = mutableListOf<ChatLink>()
 
+    // Today, for dating answers: tests pin it so a label's year doesn't depend on when they run.
+    internal var today: () -> LocalDate = { LocalDate.now() }
+
     private val _contextTokens = MutableStateFlow(0)
     /** Tokens the model's window holds, measured by LiteRT-LM (developer stats). */
     val contextTokens: StateFlow<Int> = _contextTokens.asStateFlow()
@@ -967,8 +970,14 @@ class LlmRepository @Inject constructor(
     private fun profileLabel(profile: ProfileEntity?) =
         profile?.let { " · " + (it.seededNameRes()?.let(context::getString) ?: it.name) }.orEmpty()
 
+    /**
+     * "1 Oct–31 Oct". Days outside this year carry the year, on both ends: "1 Oct" alone reads as
+     * this October, and the label is all that says which days were counted.
+     */
     private fun range(w: SpendingComparison.Window): String {
-        val (a, b) = w.start.format(DAY_MONTH) to w.end.format(DAY_MONTH)
+        val (start, end) = w.start.toLocalDate() to w.end.toLocalDate()
+        val format = if (start.year == end.year && start.year == today().year) DAY_MONTH else DAY_MONTH_YEAR
+        val (a, b) = start.format(format) to end.format(format)
         return if (a == b) a else "$a–$b"
     }
 
@@ -1225,6 +1234,7 @@ class LlmRepository @Inject constructor(
         // Built per use: a formatter keeps the locale it was made in, and the app's language can
         // change while the process lives (Arabic month names in an English reply, and back).
         private val DAY_MONTH get() = java.time.format.DateTimeFormatter.ofPattern("d MMM")
+        private val DAY_MONTH_YEAR get() = java.time.format.DateTimeFormatter.ofPattern("d MMM yyyy")
         // Answered with the app's figures alone.
         private val LOOKUPS = setOf(PennyWiseTools.QUERY_SPENDING, PennyWiseTools.PLANNING_STATUS)
         private val CARD_TOOLS = setOf(PennyWiseTools.ADD_TRANSACTIONS, PennyWiseTools.DELETE_TRANSACTION, PennyWiseTools.UPDATE_TRANSACTION)

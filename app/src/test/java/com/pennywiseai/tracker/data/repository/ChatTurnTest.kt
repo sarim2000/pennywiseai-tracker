@@ -107,7 +107,7 @@ class ChatTurnTest {
         transactionRepository = transactions,
         ignoredAccountsStore = ignoredAccounts,
         planningRepository = planning,
-    )
+    ).apply { today = { LocalDate.of(2026, 11, 16) } }
 
     private fun add(vararg amounts: Double) = LlmEvent.ToolCall(
         PennyWiseTools.ADD_TRANSACTIONS,
@@ -1227,7 +1227,8 @@ class ChatTurnTest {
         events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("period" to "2024-10", "account" to "hdfc 1234", "group_by" to "none")))
         val reply = send("how much from my HDFC card in October 2024?")
         assertEquals(SpendingFilter(SpendingComparison.Window(oct1.atStartOfDay(), oct31.atTime(LocalTime.MAX)), null, "HDFC_1234"), filter.captured)
-        assertTrue(reply, reply.startsWith("SPENT 1 Oct–31 Oct · HDFC ••1234\n"))
+        // Another year's days say so: "1 Oct" alone would read as this October.
+        assertTrue(reply, reply.startsWith("SPENT 1 Oct 2024–31 Oct 2024 · HDFC ••1234\n"))
         assertEquals(listOf(ChatLink("SEE HDFC ••1234", oct1, oct31, null, "INR", null, "HDFC_1234")), repository.links.value[saved.last().id])
 
         // A merchant's figure, but no link: the list's search also reads notes and SMS text.

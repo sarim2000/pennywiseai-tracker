@@ -23,7 +23,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
@@ -33,16 +32,17 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.AsyncImage
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.receipt.ReceiptManager
 import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.domain.model.getAccountType
 import com.pennywiseai.tracker.presentation.accounts.displayName
 import com.pennywiseai.tracker.presentation.accounts.icon
 import com.pennywiseai.tracker.presentation.categories.CategoryEditDialog
+import com.pennywiseai.tracker.presentation.common.ReceiptPreview
 import com.pennywiseai.tracker.presentation.transactions.transactionTypeLabel
 import com.pennywiseai.tracker.ui.components.AmountCalculatorSheet
 import com.pennywiseai.tracker.ui.components.CategoryChip
@@ -674,7 +674,8 @@ fun TransactionTabContent(
                 receiptUri = uiState.receiptUri,
                 onReceiptSelected = { uri -> viewModel.updateReceiptUri(uri) },
                 onReceiptRemoved = { viewModel.updateReceiptUri(null) },
-                onCreateCameraUri = { viewModel.createCameraUri() }
+                onCreateCameraUri = { viewModel.createCameraUri() },
+                receiptError = uiState.receiptError?.asString()
             )
 
             // Bottom padding for save button overlay
@@ -784,10 +785,15 @@ fun ReceiptPickerSection(
     receiptUri: android.net.Uri?,
     onReceiptSelected: (android.net.Uri) -> Unit,
     onReceiptRemoved: () -> Unit,
-    onCreateCameraUri: () -> android.net.Uri
+    onCreateCameraUri: () -> android.net.Uri,
+    receiptError: String? = null
 ) {
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri -> uri?.let { onReceiptSelected(it) } }
+
+    val pdfLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
     ) { uri -> uri?.let { onReceiptSelected(it) } }
 
     var cameraUri by remember { mutableStateOf<android.net.Uri?>(null) }
@@ -811,13 +817,12 @@ fun ReceiptPickerSection(
                     .fillMaxWidth()
                     .clip(MaterialTheme.shapes.medium)
             ) {
-                AsyncImage(
-                    model = receiptUri,
+                ReceiptPreview(
+                    uri = receiptUri,
                     contentDescription = stringResource(R.string.add_receipt_image),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 160.dp),
-                    contentScale = ContentScale.Crop
+                        .heightIn(max = 160.dp)
                 )
                 FilledIconButton(
                     onClick = onReceiptRemoved,
@@ -870,6 +875,23 @@ fun ReceiptPickerSection(
                     Text(stringResource(R.string.add_receipt_camera))
                 }
             }
+            OutlinedButton(
+                onClick = { pdfLauncher.launch(arrayOf(ReceiptManager.PDF_MIME)) },
+                modifier = Modifier.fillMaxWidth(),
+                shapes = ButtonDefaults.shapes()
+            ) {
+                Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
+                Spacer(modifier = Modifier.width(Spacing.xs))
+                Text(stringResource(R.string.add_receipt_pdf))
+            }
+        }
+
+        receiptError?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error
+            )
         }
     }
 }

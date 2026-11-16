@@ -1,0 +1,129 @@
+package com.pennywiseai.tracker.presentation.common
+
+import android.content.Context
+import android.graphics.pdf.PdfRenderer
+import android.net.Uri
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.size
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.PictureAsPdf
+import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
+import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.produceState
+import androidx.compose.runtime.remember
+import androidx.compose.ui.Alignment
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.ImageBitmap
+import androidx.compose.ui.graphics.asImageBitmap
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.dp
+import androidx.core.graphics.createBitmap
+import coil3.compose.AsyncImage
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.receipt.ReceiptManager
+import com.pennywiseai.tracker.ui.UiText
+import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.Spacing
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
+
+/**
+ * A receipt thumbnail: the photo, or a PDF's first page. A PDF that can't be drawn
+ * (still loading, or a provider that won't seek) shows a plain PDF tile instead.
+ */
+@Composable
+fun ReceiptPreview(
+    uri: Uri,
+    contentDescription: String?,
+    modifier: Modifier = Modifier
+) {
+    val context = LocalContext.current
+    val isPdf = remember(uri) { ReceiptManager.isPdf(context, uri) }
+    if (!isPdf) {
+        AsyncImage(
+            model = uri,
+            contentDescription = contentDescription,
+            modifier = modifier,
+            contentScale = ContentScale.Crop
+        )
+        return
+    }
+    val page by produceState<ImageBitmap?>(null, uri) {
+        value = withContext(Dispatchers.IO) { renderFirstPage(context, uri) }
+    }
+    val firstPage = page
+    if (firstPage != null) {
+        Image(
+            bitmap = firstPage,
+            contentDescription = contentDescription,
+            // A PDF page is white paper in either theme.
+            modifier = modifier.background(Color.White),
+            contentScale = ContentScale.Crop,
+            alignment = Alignment.TopCenter
+        )
+    } else {
+        Column(
+            modifier = modifier
+                .heightIn(min = 96.dp)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+                .semantics { contentDescription?.let { this.contentDescription = it } },
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs, Alignment.CenterVertically)
+        ) {
+            Icon(
+                Icons.Default.PictureAsPdf,
+                contentDescription = null,
+                modifier = Modifier.size(Dimensions.Icon.large),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Text(
+                text = stringResource(R.string.receipt_pdf_label),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+    }
+}
+
+/** What the receipt picker says when a picked PDF is turned away. */
+fun ReceiptManager.PdfProblem.message(): UiText = UiText.Res(
+    when (this) {
+        ReceiptManager.PdfProblem.TOO_LARGE -> R.string.add_receipt_pdf_too_large
+        ReceiptManager.PdfProblem.UNREADABLE -> R.string.add_receipt_pdf_unreadable
+    }
+)
+
+private const val THUMBNAIL_WIDTH_PX = 720
+
+/** The first page drawn at [THUMBNAIL_WIDTH_PX] wide, or null when the PDF won't open. */
+private fun renderFirstPage(context: Context, uri: Uri): ImageBitmap? = try {
+    // The renderer closes the descriptor too; closing it twice is harmless.
+    context.contentResolver.openFileDescriptor(uri, "r")?.use { fd ->
+        PdfRenderer(fd).use { renderer ->
+            renderer.openPage(0).use { page ->
+                val height = (THUMBNAIL_WIDTH_PX.toLong() * page.height / page.width.coerceAtLeast(1))
+                    .toInt().coerceIn(1, THUMBNAIL_WIDTH_PX * 2)
+                val bitmap = createBitmap(THUMBNAIL_WIDTH_PX, height)
+                bitmap.eraseColor(android.graphics.Color.WHITE)
+                page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                bitmap.asImageBitmap()
+            }
+        }
+    }
+} catch (_: Exception) {
+    null
+} catch (_: OutOfMemoryError) {
+    null
+}

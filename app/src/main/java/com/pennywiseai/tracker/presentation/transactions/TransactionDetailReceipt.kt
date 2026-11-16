@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import android.content.ActivityNotFoundException
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
@@ -21,7 +23,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
@@ -29,7 +31,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.AsyncImage
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
@@ -39,6 +40,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.formatAmount
 import com.pennywiseai.tracker.domain.loan.LoanMath
+import com.pennywiseai.tracker.presentation.common.ReceiptPreview
 import com.pennywiseai.tracker.ui.LocalNavAnimatedVisibilityScope
 import com.pennywiseai.tracker.ui.LocalSharedTransitionScope
 import com.pennywiseai.tracker.ui.animations.pwCollapse
@@ -510,11 +512,24 @@ internal fun TransactionReceipt(
         // ── Receipt Section ──
         val receiptUri by viewModel.receiptUri.collectAsStateWithLifecycle()
         receiptUri?.let { uri ->
+            val context = LocalContext.current
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .clickable { viewModel.showFullScreenReceipt() },
+                    .clickable {
+                        // A PDF opens in the phone's PDF viewer; a photo opens full screen here.
+                        val pdf = viewModel.pdfReceiptViewIntent()
+                        if (pdf == null) {
+                            viewModel.showFullScreenReceipt()
+                        } else {
+                            try {
+                                context.startActivity(pdf)
+                            } catch (_: ActivityNotFoundException) {
+                                Toast.makeText(context, R.string.txn_detail_receipt_no_pdf_app, Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    },
                 color = MaterialTheme.colorScheme.surfaceContainerLow,
                 shape = RoundedCornerShape(12.dp)
             ) {
@@ -542,14 +557,13 @@ internal fun TransactionReceipt(
                         )
                     }
                     Spacer(modifier = Modifier.height(Spacing.sm))
-                    AsyncImage(
-                        model = uri,
+                    ReceiptPreview(
+                        uri = uri,
                         contentDescription = stringResource(R.string.txn_detail_receipt),
                         modifier = Modifier
                             .fillMaxWidth()
                             .heightIn(max = 200.dp)
-                            .clip(RoundedCornerShape(8.dp)),
-                        contentScale = ContentScale.Crop
+                            .clip(RoundedCornerShape(8.dp))
                     )
                 }
             }

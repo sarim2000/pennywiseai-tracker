@@ -297,6 +297,12 @@
     <string name="add_receipt_remove">Remove receipt</string>
     <string name="add_receipt_gallery">Gallery</string>
     <string name="add_receipt_camera">Camera</string>
+    <string name="add_receipt_pdf">PDF file</string>
+    <string name="receipt_pdf_label">PDF</string>
+    <string name="add_receipt_pdf_too_large">This PDF is over 5 MB. Try a smaller file.</string>
+    <string name="add_receipt_pdf_unreadable">This PDF can\'t be opened. It may be damaged or password-protected.</string>
+    <string name="add_receipt_save_failed">Couldn\'t attach this receipt. Try another file.</string>
+    <string name="txn_detail_receipt_no_pdf_app">No app on this phone can open PDFs</string>
     <string name="add_sub_direction_expense">Expense</string>
     <string name="add_sub_direction_income">Income</string>
     <string name="add_sub_info_income">Track recurring income (wallet top-ups, allowance). A transaction is auto-created on each scheduled date.</string>

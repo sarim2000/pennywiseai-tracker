@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import android.content.Intent
 import android.net.Uri
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
@@ -20,6 +21,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.ledger.BalanceDiscrepancy
 import com.pennywiseai.tracker.data.mapper.withTransferAccount
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
+import com.pennywiseai.tracker.data.receipt.ReceiptFiles
 import com.pennywiseai.tracker.data.receipt.ReceiptManager
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
@@ -43,6 +45,7 @@ import com.pennywiseai.tracker.domain.model.rule.TransactionField
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
+import com.pennywiseai.tracker.presentation.common.message
 import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.ui.components.SplitItem
 import com.pennywiseai.tracker.ui.components.pickerDefault
@@ -480,6 +483,7 @@ class TransactionDetailViewModel @Inject constructor(
         _errorMessage.value = null
         _pendingReceiptUri.value = null
         _receiptRemoved.value = false
+        _receiptError.value = null
 
         // Seed the editable tag list from the persisted tags.
         _transaction.value?.let { txn ->
@@ -518,6 +522,7 @@ class TransactionDetailViewModel @Inject constructor(
         _originalMerchantAlias = ""
         _pendingReceiptUri.value = null
         _receiptRemoved.value = false
+        _receiptError.value = null
 
         // Reset split state to original values
         _splits.value = _originalSplits.value
@@ -976,18 +981,22 @@ class TransactionDetailViewModel @Inject constructor(
             }
             _isSaving.value = true
             try {
-                // Handle receipt changes
-                var newReceiptPath = toSave.receiptPath
+                // Handle receipt changes. The new file is saved first, so a failed one
+                // leaves the old receipt in place and the edit open.
                 val pendingUri = _pendingReceiptUri.value
-
-                if (_receiptRemoved.value || pendingUri != null) {
-                    // Delete old receipt file if it exists
-                    toSave.receiptPath?.let { receiptManager.deleteReceipt(it) }
-                    newReceiptPath = null
+                val savedReceiptPath = pendingUri?.let { uri ->
+                    receiptManager.saveReceipt(uri) ?: run {
+                        _receiptError.value = UiText.Res(R.string.add_receipt_save_failed)
+                        return@launch
+                    }
                 }
-
-                if (pendingUri != null) {
-                    newReceiptPath = receiptManager.saveReceipt(pendingUri)
+                if (_receiptRemoved.value || pendingUri != null) {
+                    toSave.receiptPath?.let { receiptManager.deleteReceipt(it) }
+                }
+                val newReceiptPath = when {
+                    pendingUri != null -> savedReceiptPath
+                    _receiptRemoved.value -> null
+                    else -> toSave.receiptPath
                 }
 
                 // Reconcile the bank with the selected account so the balance
@@ -1292,14 +1301,40 @@ class TransactionDetailViewModel @Inject constructor(
     fun showFullScreenReceipt() { _showFullScreenReceipt.value = true }
     fun hideFullScreenReceipt() { _showFullScreenReceipt.value = false }
 
+    // Shown under the receipt picker: a PDF that was turned away, or a save that failed.
+    private val _receiptError = MutableStateFlow<UiText?>(null)
+    val receiptError: StateFlow<UiText?> = _receiptError.asStateFlow()
+
     fun updatePendingReceiptUri(uri: Uri?) {
+        if (uri == null || !receiptManager.isPdf(uri)) {
+            setPendingReceipt(uri)
+            return
+        }
+        // A PDF is checked as it's picked, so a bad one never waits until Save.
+        viewModelScope.launch {
+            val problem = receiptManager.checkPdf(uri)
+            if (problem == null) setPendingReceipt(uri) else _receiptError.value = problem.message()
+        }
+    }
+
+    private fun setPendingReceipt(uri: Uri?) {
         _pendingReceiptUri.value = uri
         _receiptRemoved.value = false
+        _receiptError.value = null
     }
 
     fun removeReceipt() {
         _pendingReceiptUri.value = null
         _receiptRemoved.value = true
+        _receiptError.value = null
+    }
+
+    /** Opens a PDF receipt in another app, which may read it until it closes. Null when there's none. */
+    fun pdfReceiptViewIntent(): Intent? {
+        val path = _transaction.value?.receiptPath?.takeIf { ReceiptFiles.isPdfPath(it) } ?: return null
+        return Intent(Intent.ACTION_VIEW)
+            .setDataAndType(receiptManager.shareableUri(path), ReceiptManager.PDF_MIME)
+            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
 
     fun createCameraUri(): Uri = receiptManager.createCameraUri()

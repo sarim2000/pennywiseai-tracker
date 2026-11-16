@@ -25,6 +25,7 @@ import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
 import com.pennywiseai.tracker.domain.usecase.AddSubscriptionUseCase
 import com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.GetCategoriesUseCase
+import com.pennywiseai.tracker.presentation.common.message
 import com.pennywiseai.tracker.presentation.transactions.normalizeReference
 import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.ui.components.pickerDefault
@@ -467,7 +468,18 @@ class AddViewModel @Inject constructor(
     }
 
     fun updateReceiptUri(uri: Uri?) {
-        _transactionUiState.update { it.copy(receiptUri = uri) }
+        if (uri == null || !receiptManager.isPdf(uri)) {
+            _transactionUiState.update { it.copy(receiptUri = uri, receiptError = null) }
+            return
+        }
+        // A PDF is checked as it's picked, so a bad one never waits until Save.
+        viewModelScope.launch {
+            val problem = receiptManager.checkPdf(uri)
+            _transactionUiState.update {
+                if (problem == null) it.copy(receiptUri = uri, receiptError = null)
+                else it.copy(receiptError = problem.message())
+            }
+        }
     }
 
     fun createCameraUri(): Uri = receiptManager.createCameraUri()
@@ -529,7 +541,15 @@ class AddViewModel @Inject constructor(
                 val amount = BigDecimal(state.amount)
                 val selectedAccount = state.selectedAccount
 
-                val receiptPath = state.receiptUri?.let { receiptManager.saveReceipt(it) }
+                val receiptPath = state.receiptUri?.let { uri ->
+                    receiptManager.saveReceipt(uri) ?: run {
+                        // Don't save it quietly without the receipt the user attached.
+                        _transactionUiState.update {
+                            it.copy(isLoading = false, receiptError = UiText.Res(R.string.add_receipt_save_failed))
+                        }
+                        return@launch
+                    }
+                }
 
                 addTransactionUseCase.execute(
                     amount = amount,
@@ -832,6 +852,7 @@ data class TransactionUiState(
     val toAccount: AccountBalanceEntity? = null,
     val currency: String = "INR",
     val receiptUri: Uri? = null,
+    val receiptError: UiText? = null,
     val budgetImpactType: BudgetImpactType? = null,
     val budgetCategory: String? = null
 ) {

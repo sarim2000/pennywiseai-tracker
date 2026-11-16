@@ -3,7 +3,9 @@ package com.pennywiseai.tracker.data.receipt
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.BitmapFactory
+import android.graphics.pdf.PdfRenderer
 import android.net.Uri
+import android.os.ParcelFileDescriptor
 import androidx.core.content.FileProvider
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -19,10 +21,38 @@ class ReceiptManager @Inject constructor(
     private val receiptsDir: File
         get() = File(context.filesDir, "receipts").also { it.mkdirs() }
 
+    private val pdfStagingDir: File
+        get() = File(context.cacheDir, "receipt_staging").also { it.mkdirs() }
+
     private val cameraTempDir: File
         get() = File(context.cacheDir, "camera_temp").also { it.mkdirs() }
 
+    /** Why a picked PDF can't be attached. */
+    enum class PdfProblem { TOO_LARGE, UNREADABLE }
+
+    /** True for a picked PDF, or a stored `.pdf` receipt. */
+    fun isPdf(uri: Uri): Boolean = isPdf(context, uri)
+
+    /**
+     * Checks a picked PDF before it's shown as the pending receipt, so the user hears
+     * about a too-large, damaged or password-protected file straight away. Null = fine.
+     */
+    suspend fun checkPdf(sourceUri: Uri): PdfProblem? = withContext(Dispatchers.IO) {
+        val staged = File.createTempFile("check", ".pdf", pdfStagingDir)
+        try {
+            copyPdf(sourceUri, staged)
+        } finally {
+            staged.delete()
+        }
+    }
+
+    /**
+     * Saves the receipt and returns its path relative to `filesDir`, or null when the
+     * file can't be used. A photo is scaled and re-encoded as JPEG; a PDF is copied
+     * byte for byte, after the same checks as [checkPdf].
+     */
     suspend fun saveReceipt(sourceUri: Uri): String? = withContext(Dispatchers.IO) {
+        if (isPdf(sourceUri)) return@withContext savePdf(sourceUri)
         try {
             val inputStream = context.contentResolver.openInputStream(sourceUri)
                 ?: return@withContext null
@@ -54,6 +84,49 @@ class ReceiptManager @Inject constructor(
         }
     }
 
+    private fun savePdf(sourceUri: Uri): String? {
+        val staged = File.createTempFile("save", ".pdf", pdfStagingDir)
+        try {
+            if (copyPdf(sourceUri, staged) != null) return null
+            val outputFile = File(receiptsDir, "receipt_${System.currentTimeMillis()}.pdf")
+            // Same filesystem, so a rename; copy if it ever isn't.
+            if (!staged.renameTo(outputFile)) staged.copyTo(outputFile, overwrite = true)
+            return "receipts/${outputFile.name}"
+        } catch (_: Exception) {
+            return null
+        } finally {
+            staged.delete() // no-op after a successful rename
+        }
+    }
+
+    /**
+     * Copies [sourceUri] into [target], capped at [ReceiptFiles.MAX_RECEIPT_BYTES] while
+     * copying (a reported size can lie), then checks it really is a PDF that opens:
+     * the magic bytes first, then [PdfRenderer], which rejects damaged and
+     * password-protected files.
+     */
+    private fun copyPdf(sourceUri: Uri, target: File): PdfProblem? = try {
+        val fits = context.contentResolver.openInputStream(sourceUri)?.use { input ->
+            target.outputStream().use { ReceiptFiles.copyCapped(input, it) }
+        }
+        when {
+            fits == null -> PdfProblem.UNREADABLE
+            !fits -> PdfProblem.TOO_LARGE
+            !ReceiptFiles.hasPdfMagic(target) -> PdfProblem.UNREADABLE
+            !opensAsPdf(target) -> PdfProblem.UNREADABLE
+            else -> null
+        }
+    } catch (_: Exception) {
+        PdfProblem.UNREADABLE
+    }
+
+    private fun opensAsPdf(file: File): Boolean = try {
+        PdfRenderer(ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)).use { it.pageCount > 0 }
+    } catch (_: Exception) {
+        // IOException for a damaged file, SecurityException for a password-protected one.
+        false
+    }
+
     fun deleteReceipt(receiptPath: String) {
         val file = File(context.filesDir, receiptPath)
         if (file.exists()) file.delete()
@@ -76,6 +149,13 @@ class ReceiptManager @Inject constructor(
         if (receiptsDir.exists()) receiptsDir.deleteRecursively()
     }
 
+    /** A FileProvider link to a stored receipt, for handing it to another app with a read grant. */
+    fun shareableUri(receiptPath: String): Uri = FileProvider.getUriForFile(
+        context,
+        "${context.packageName}.fileprovider",
+        getReceiptFile(receiptPath)
+    )
+
     private fun calculateSampleSize(width: Int, height: Int, maxDimension: Int): Int {
         var sampleSize = 1
         if (width > maxDimension || height > maxDimension) {
@@ -86,5 +166,14 @@ class ReceiptManager @Inject constructor(
             }
         }
         return sampleSize
+    }
+
+    companion object {
+        const val PDF_MIME = "application/pdf"
+
+        /** A stored receipt is a `file:` Uri named `.pdf`; a picked one says so in its MIME type. */
+        fun isPdf(context: Context, uri: Uri): Boolean =
+            if (uri.scheme == "file") ReceiptFiles.isPdfPath(uri.path.orEmpty())
+            else context.contentResolver.getType(uri) == PDF_MIME
     }
 }

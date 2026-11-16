@@ -54,9 +54,7 @@ class ChatTurnTest {
             }
         }
     }
-    private val aiContext = mockk<AiContextRepository>(relaxed = true) {
-        coEvery { profileShown() } returns null
-    }
+    private val aiContext = mockk<AiContextRepository>(relaxed = true)
     private val preferences = mockk<UserPreferencesRepository>(relaxed = true) {
         every { baseCurrency } returns flowOf("INR")
         every { countCreditCardAsExpense } returns flowOf(false)
@@ -417,15 +415,14 @@ class ChatTurnTest {
         verify { context.getString(R.string.chat_reply_month_spend, "1 Nov–16 Nov · عمل") }
 
         // A comparison covers the same profile, so it says so too.
-        coEvery { aiContext.profileShown() } returns business
         val w = SpendingComparison.Window(LocalDateTime.of(2026, 11, 1, 0, 0), LocalDateTime.of(2026, 11, 16, 23, 59))
-        coEvery { aiContext.compareSpending(any(), any(), any(), any()) } returns
-            SpendingComparison.Result.Rows(w, w, listOf(SpendingComparison.Row("INR", BigDecimal("700"), BigDecimal("500"), BigDecimal("40"))))
+        val rows = SpendingComparison.Result.Rows(w, w, listOf(SpendingComparison.Row("INR", BigDecimal("700"), BigDecimal("500"), BigDecimal("40"))), business)
+        coEvery { aiContext.compareSpending(any(), any(), any(), any()) } returns rows
         repository.answerQuickAction(QuickAction.COMPARE_MONTH)
         verify { context.getString(R.string.chat_reply_compare_title, "1 Nov–16 Nov", "1 Nov–16 Nov · عمل") }
 
         // A renamed one shows as the user named it.
-        coEvery { aiContext.profileShown() } returns business.copy(name = "Shop")
+        coEvery { aiContext.compareSpending(any(), any(), any(), any()) } returns rows.copy(profile = business.copy(name = "Shop"))
         repository.answerQuickAction(QuickAction.COMPARE_MONTH)
         verify { context.getString(R.string.chat_reply_compare_title, "1 Nov–16 Nov", "1 Nov–16 Nov · Shop") }
     }

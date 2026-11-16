@@ -520,9 +520,9 @@ class LlmRepository @Inject constructor(
             val unknown = category != null && known == null && result is SpendingComparison.Result.Rows && result.rows.isEmpty()
             when {
                 unknown && SpendingComparison.meansAllSpending(asked) ->
-                    aiContextRepository.compareSpending(period, null, creditAsExpense()).let { comparisonText(it.alsoTrend(), null, aiContextRepository.profileShown()) }
+                    aiContextRepository.compareSpending(period, null, creditAsExpense()).let { comparisonText(it.alsoTrend(), null) }
                 unknown -> context.getString(R.string.chat_reply_unknown_category, asked)
-                else -> comparisonText(result.alsoTrend(), category, aiContextRepository.profileShown())
+                else -> comparisonText(result.alsoTrend(), category)
             }
         }
     } else when (call.name) {
@@ -611,7 +611,7 @@ class LlmRepository @Inject constructor(
         val answer = when (action) {
             QuickAction.COMPARE_MONTH -> aiContextRepository.compareSpending(SpendingComparison.Period.MONTH, null, creditAsExpense()).let {
                 subject = subject.copy(trend = SpendingComparison.direction(it))
-                comparisonText(it, null, aiContextRepository.profileShown())
+                comparisonText(it, null)
             }
             QuickAction.MONTH_SPEND -> spendingText(aiContextRepository.spending())
             QuickAction.TOP_CATEGORIES -> aiContextRepository.topCategories().let { top ->
@@ -697,11 +697,11 @@ class LlmRepository @Inject constructor(
     }
 
     /**
-     * A comparison as chat lines: a dated header naming [profile] when Home shows only one, then
-     * one line per currency. Also for M8's one-tap question.
+     * A comparison as chat lines: a dated header naming the profile it counted when Home shows
+     * only one, then one line per currency. Also for M8's one-tap question.
      */
-    fun comparisonText(result: SpendingComparison.Result, category: String?, profile: ProfileEntity?): String {
-        val label = profileLabel(profile)
+    fun comparisonText(result: SpendingComparison.Result, category: String?): String {
+        val label = profileLabel(result.profile)
         if (result is SpendingComparison.Result.NoData) return context.getString(R.string.chat_reply_compare_no_data, range(result.missing) + label)
         val rows = (result as SpendingComparison.Result.Rows).rows
         val now = range(result.current)

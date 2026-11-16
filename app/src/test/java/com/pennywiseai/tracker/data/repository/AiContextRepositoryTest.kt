@@ -61,6 +61,9 @@ class AiContextRepositoryTest {
     private var forgivenSource: TransactionEntity? = null
     private var ignored: Set<String> = emptySet()
     private val cards = mutableListOf<CardEntity>()
+
+    // Runs inside the next accounts read only: the user switching profiles mid-answer.
+    private var duringAccountsRead: (suspend () -> Unit)? = null
     private var nextId = 1L
     private lateinit var preferences: UserPreferencesRepository
     private lateinit var repository: AiContextRepository
@@ -121,8 +124,16 @@ class AiContextRepositoryTest {
                     CategoryEntity(id = 3, name = "Travel", color = "#000")
                 )
             },
-            accountBalanceDao = mockk { coEvery { getAllLatestBalancesOnce() } answers { accounts.toList() } },
-            profileDao = mockk { coEvery { getById(ProfileEntity.BUSINESS_ID) } returns ProfileEntity(ProfileEntity.BUSINESS_ID, "Business", "#000") },
+            accountBalanceDao = mockk {
+                coEvery { getAllLatestBalancesOnce() } coAnswers {
+                    duringAccountsRead?.also { duringAccountsRead = null }?.invoke()
+                    accounts.toList()
+                }
+            },
+            profileDao = mockk {
+                coEvery { getById(ProfileEntity.BUSINESS_ID) } returns ProfileEntity(ProfileEntity.BUSINESS_ID, "Business", "#000")
+                coEvery { getById(ProfileEntity.PERSONAL_ID) } returns ProfileEntity(ProfileEntity.PERSONAL_ID, "Personal", "#000")
+            },
             ignoredAccountsStore = mockk { every { keys() } answers { ignored } },
             cardDao = mockk { every { getAllCards() } answers { flowOf(cards.toList()) } },
         )
@@ -238,6 +249,28 @@ class AiContextRepositoryTest {
         val p = repository.spending(today)
         assertEquals(mapOf("INR" to "120"), amounts(p.spentWithForgiven))
         assertEquals(ProfileEntity.BUSINESS_ID, p.scope.profile?.id)
+    }
+
+    @Test
+    fun `switching profiles mid-answer leaves its figures, its name and both periods on one profile`() = runBlocking {
+        accounts += AccountBalanceEntity(bankName = "Bank", accountLast4 = "1111", balance = BigDecimal.ZERO, timestamp = today.atStartOfDay(), profileId = ProfileEntity.BUSINESS_ID)
+        tx("100", account = "1111") // Business
+        tx("7") // Personal
+        tx("40", account = "1111", at = today.minusMonths(1).atTime(9, 0)) // Business, last cycle
+        tx("3", at = today.minusMonths(1).atTime(9, 0)) // Personal, last cycle
+        val toPersonal: suspend () -> Unit = { preferences.updateSelectedProfileId(ProfileEntity.PERSONAL_ID) }
+
+        preferences.updateSelectedProfileId(ProfileEntity.BUSINESS_ID)
+        duringAccountsRead = toPersonal
+        val p = repository.spending(today)
+        assertEquals(mapOf("INR" to "100"), amounts(p.spent))
+        assertEquals(ProfileEntity.BUSINESS_ID, p.scope.profile?.id)
+
+        preferences.updateSelectedProfileId(ProfileEntity.BUSINESS_ID)
+        duringAccountsRead = toPersonal
+        val c = repository.compareSpending(SpendingComparison.Period.MONTH, null, creditAsExpense = false, today = today) as SpendingComparison.Result.Rows
+        assertEquals(listOf("100" to "40"), c.rows.map { it.current.stripTrailingZeros().toPlainString() to it.previous.stripTrailingZeros().toPlainString() })
+        assertEquals(ProfileEntity.BUSINESS_ID, c.profile?.id)
     }
 
     @Test

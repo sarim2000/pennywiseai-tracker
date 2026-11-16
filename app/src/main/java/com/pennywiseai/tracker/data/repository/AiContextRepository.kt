@@ -66,20 +66,28 @@ class AiContextRepository @Inject constructor(
         fun keeps(tx: TransactionEntity) = tx.isTracked(profileId, ignoredKeys, accountKeys)
     }
 
-    private suspend fun homeScope(today: LocalDate): Scope {
-        val (cycleStart, _) = BudgetCycle.currentCycle(today, userPreferencesRepository.budgetCycleStartDay.first())
-        return scope(SpendingComparison.Window(cycleStart.atStartOfDay(), today.atTime(LocalTime.MAX)))
+    /**
+     * The profile Home shows ([id] null for all), read once per answer: switching profiles while
+     * an answer reads the database leaves its rows, its label and its link on the same one.
+     */
+    private class Shown(val id: Long?, val profile: ProfileEntity?)
+
+    private suspend fun shown(): Shown {
+        val id = userPreferencesRepository.selectedProfileId.first()
+        return Shown(id, id?.let { profileDao.getById(it) })
     }
 
-    private suspend fun scope(window: SpendingComparison.Window): Scope {
-        val profileId = userPreferencesRepository.selectedProfileId.first()
+    private suspend fun homeScope(today: LocalDate): Scope {
+        val shown = shown()
+        val (cycleStart, _) = BudgetCycle.currentCycle(today, userPreferencesRepository.budgetCycleStartDay.first())
+        return scope(SpendingComparison.Window(cycleStart.atStartOfDay(), today.atTime(LocalTime.MAX)), shown)
+    }
+
+    private suspend fun scope(window: SpendingComparison.Window, shown: Shown): Scope {
         val balances = accountBalanceDao.getAllLatestBalancesOnce()
         val ignored = IgnoredAccountsStore.withLinkedCards(ignoredAccountsStore.keys(), cardDao.getAllCards().first(), balances)
-        return Scope(ChatScope(window, profileShown()), profileId, ignored, buildProfileAccountKeys(balances))
+        return Scope(ChatScope(window, shown.profile), shown.id, ignored, buildProfileAccountKeys(balances))
     }
-
-    /** The profile Home shows, null for all: comparisons name it as the other answers do. */
-    suspend fun profileShown(): ProfileEntity? = userPreferencesRepository.selectedProfileId.first()?.let { profileDao.getById(it) }
 
     private suspend fun rows(scope: Scope): List<TransactionWithSplits> =
         transactionSplitDao.getTransactionsWithSplitsAllCurrencies(scope.start, scope.end).first()
@@ -153,8 +161,8 @@ class AiContextRepository @Inject constructor(
 
     /**
      * [SpendingComparison] on the saved transactions, up to the end of [today] as Home counts:
-     * months are Home's budget cycles, in the profile Home shows. Also for one-tap questions
-     * that skip the model (M8).
+     * months are Home's budget cycles, in the profile Home shows, which the result names. Also
+     * for one-tap questions that skip the model (M8).
      */
     suspend fun compareSpending(
         period: SpendingComparison.Period,
@@ -162,14 +170,18 @@ class AiContextRepository @Inject constructor(
         creditAsExpense: Boolean,
         today: LocalDate = LocalDate.now(),
     ): SpendingComparison.Result {
+        val shown = shown()
         val windows = SpendingComparison.windows(
             period, today.atTime(LocalTime.MAX), WeekFields.of(Locale.getDefault()).firstDayOfWeek,
             userPreferencesRepository.budgetCycleStartDay.first()
         )
-        val (current, previous) = windows.toList().map { scope(it) }
+        val (current, previous) = windows.toList().map { scope(it, shown) }
         // Forgiven loan balances count as spent, as on Home (#938); a category comparison leaves them out.
         val (currentLoss, previousLoss) = if (category == null) forgiven(current) to forgiven(previous) else emptyMap<String, BigDecimal>() to emptyMap()
-        return SpendingComparison.compare(windows, rows(current), rows(previous), category?.let { categoriesNamed(it) }, currentLoss, previousLoss, creditAsExpense)
+        return when (val result = SpendingComparison.compare(windows, rows(current), rows(previous), category?.let { categoriesNamed(it) }, currentLoss, previousLoss, creditAsExpense)) {
+            is SpendingComparison.Result.Rows -> result.copy(profile = shown.profile)
+            is SpendingComparison.Result.NoData -> result.copy(profile = shown.profile)
+        }
     }
 
     /** A parent counts its children, as the category filters do. The model's casing isn't the saved name's. */

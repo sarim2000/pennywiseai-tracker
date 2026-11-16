@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.data.model
 
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.ledger.breakdownByCurrency
@@ -27,12 +28,24 @@ object SpendingComparison {
     /** One currency's spend in both windows. [changePercent] is null when there was nothing before. */
     data class Row(val currency: String, val current: BigDecimal, val previous: BigDecimal, val changePercent: BigDecimal?)
 
+    /** [profile] is the one both windows counted (null for all), for the answer to name. */
     sealed interface Result {
         val current: Window
         val previous: Window
-        data class Rows(override val current: Window, override val previous: Window, val rows: List<Row>) : Result
+        val profile: ProfileEntity?
+        data class Rows(
+            override val current: Window,
+            override val previous: Window,
+            val rows: List<Row>,
+            override val profile: ProfileEntity? = null,
+        ) : Result
         /** No transactions at all in [missing]: the app can't tell "spent nothing" from "wasn't tracking". */
-        data class NoData(override val current: Window, override val previous: Window, val missing: Window) : Result
+        data class NoData(
+            override val current: Window,
+            override val previous: Window,
+            val missing: Window,
+            override val profile: ProfileEntity? = null,
+        ) : Result
     }
 
     /**

@@ -430,8 +430,10 @@ fun PennyWiseNavHost(
                     entry<Review> { key ->
                         com.pennywiseai.tracker.presentation.review.PeriodReviewScreen(
                             onNavigateBack = { backStack.pop(key) },
-                            onShare = { kind, offset ->
-                                backStack.navigate(ShareStudio(kind = "RECAP", reviewKind = kind.name, offset = offset))
+                            onShare = { kind, offset, today ->
+                                backStack.navigate(
+                                    ShareStudio(kind = "RECAP", reviewKind = kind.name, offset = offset, today = today.toEpochDay())
+                                )
                             },
                             onOpenCategory = { category, currency, start, end ->
                                 backStack.navigate(

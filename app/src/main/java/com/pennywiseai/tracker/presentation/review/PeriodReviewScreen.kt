@@ -89,7 +89,7 @@ import java.util.Locale
 fun PeriodReviewScreen(
     onNavigateBack: () -> Unit,
     onOpenCategory: (category: String, currency: String, start: LocalDate, end: LocalDate) -> Unit,
-    onShare: (ReviewKind, offset: Int) -> Unit = { _, _ -> },
+    onShare: (ReviewKind, offset: Int, today: LocalDate) -> Unit = { _, _, _ -> },
     viewModel: PeriodReviewViewModel = hiltViewModel(),
 ) {
     val selection by viewModel.selection.collectAsStateWithLifecycle()
@@ -108,7 +108,7 @@ fun PeriodReviewScreen(
             if (loaded != null && loaded.firstRecorded != null) {
                 IconButton(
                     // The studio opens on the period shown here, built from the same review.
-                    onClick = { onShare(selection.kind, selection.offset) },
+                    onClick = { onShare(selection.kind, selection.offset, selection.today) },
                     shapes = IconButtonDefaults.shapes(),
                 ) {
                     Icon(Icons.Default.Share, contentDescription = stringResource(R.string.review_share))

@@ -186,8 +186,9 @@ data class Review(val kind: String = "MONTH", val weekStart: String? = null) : N
 
 /**
  * The share studio. [kind] is a ShareKind name, the card it opens on. A review passes
- * the period it shows as [reviewKind] (a ReviewKind name) and [offset]; a goal passes
- * [goalId]. Without them it opens on the last finished cycle.
+ * the period it shows as [reviewKind] (a ReviewKind name), [offset] and the epoch day
+ * [today] the offset counts from; a goal passes [goalId]. Without them it opens on the
+ * last finished cycle.
  */
 @Serializable
 data class ShareStudio(
@@ -195,6 +196,7 @@ data class ShareStudio(
     val reviewKind: String? = null,
     val offset: Int = 0,
     val goalId: Long = -1L,
+    val today: Long? = null,
 ) : NavKey
 
 // Screens inside MainScreen's tab stacks (Settings, SettingsPage, Categories, Faq

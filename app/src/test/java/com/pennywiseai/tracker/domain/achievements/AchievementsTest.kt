@@ -245,24 +245,28 @@ class AchievementsTest {
         actual: String,
         created: String = "2026-01-01",
         weeks: List<String> = emptyList(),
+        window: BudgetWindow = october,
     ) = BudgetGroupSpending(
         group = BudgetWithCategories(
             BudgetEntity(
                 name = "Budget", limitAmount = bd(budget), periodType = BudgetPeriodType.MONTHLY,
-                startDate = october.start, endDate = october.end, createdAt = day(created).atStartOfDay(),
+                startDate = window.start, endDate = window.end, createdAt = day(created).atStartOfDay(),
             ),
             emptyList(),
         ),
         categorySpending = emptyList(), totalBudget = bd(budget), totalActual = bd(actual), remaining = BigDecimal.ZERO,
         percentageUsed = 0f, dailyAllowance = BigDecimal.ZERO, daysRemaining = 0, daysElapsed = 0,
+        windowStart = window.start, windowEnd = window.end, windowDays = window.days,
         previousWindows = weeks.map { PastWindowSpending(october, bd(it)) },
     )
 
-    private fun october(vararg groups: BudgetGroupSpending) = BudgetOverallSummary(
+    private fun october(vararg groups: BudgetGroupSpending) = page(october, *groups)
+
+    private fun page(window: BudgetWindow, vararg groups: BudgetGroupSpending) = BudgetOverallSummary(
         groups = groups.toList(), totalIncome = BigDecimal.ZERO, totalLimitBudget = BigDecimal.ZERO,
         totalLimitSpent = BigDecimal.ZERO, totalTargetGoal = BigDecimal.ZERO, totalTargetActual = BigDecimal.ZERO,
         totalExpectedBudget = BigDecimal.ZERO, totalExpectedActual = BigDecimal.ZERO, netSavings = BigDecimal.ZERO,
-        savingsRate = 0f, dailyAllowance = BigDecimal.ZERO, daysRemaining = 0, currency = "JOD", pageWindow = october,
+        savingsRate = 0f, dailyAllowance = BigDecimal.ZERO, daysRemaining = 0, currency = "JOD", pageWindow = window,
     )
 
     private val trackedInOctober = listOf(day("2026-10-12"))
@@ -281,6 +285,23 @@ class AchievementsTest {
         // Beside an older limit, only the older one judges October.
         val mixed = october(limit("100", "90"), limit("50", "80", created = "2026-10-20"))
         assertEquals(true, budgetMonthOf(mixed, october.end, trackedInOctober).kept)
+    }
+
+    @Test
+    fun `each limit is judged from its own window's start, not the earliest one on the page`() {
+        // A cycle from 25 September opens the page; the calendar-month limit, made on
+        // 28 September, was in place for all of its own window, so its overspend counts.
+        val fromThe25th = BudgetWindow(day("2026-09-25"), day("2026-10-24"), 30)
+        val page = page(
+            BudgetWindow(fromThe25th.start, october.end, 37),
+            limit("100", "90", window = fromThe25th),
+            limit("50", "80", created = "2026-09-28"),
+        )
+        assertEquals(false, budgetMonthOf(page, october.end, trackedInOctober).kept)
+        // A weekly limit made mid-month, shown by its last week, still doesn't judge the weeks before it.
+        val lastWeek = BudgetWindow(day("2026-10-26"), october.end, 6)
+        val lateWeekly = october(limit("100", "90"), limit("50", "40", created = "2026-10-15", weeks = listOf("80", "30"), window = lastWeek))
+        assertEquals(true, budgetMonthOf(lateWeekly, october.end, trackedInOctober).kept)
     }
 
     @Test

@@ -19,7 +19,9 @@ import com.pennywiseai.tracker.domain.insights.InsightRules
 import com.pennywiseai.tracker.domain.insights.budgetStatuses
 import com.pennywiseai.tracker.domain.spending.BudgetAlertTier
 import com.pennywiseai.tracker.domain.spending.MoneyAlertRules
+import com.pennywiseai.tracker.presentation.budgetgroups.historyBudgetTotal
 import com.pennywiseai.tracker.presentation.home.homeBudgetSummary
+import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.widget.budgetWidgetData
 import com.pennywiseai.tracker.worker.DailySummaryWorker
 import io.mockk.coEvery
@@ -37,6 +39,7 @@ import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withTimeout
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
@@ -232,7 +235,7 @@ class BudgetRolloverRoutingTest {
     }
 
     @Test
-    fun `budget history shows the week's carry and adds it to the period's budget`() = runBlocking {
+    fun `budget history shows the week's carry and adds it to the window's budget`() = runBlocking {
         val group = budget()
         val repo = repository(group, listOf(spend("60", at = lastWeek), spend("30")))
         val history = repo.getBudgetHistoryForMonth(group.budget, today.year, today.monthValue, "JOD")
@@ -255,5 +258,31 @@ class BudgetRolloverRoutingTest {
         val breakdown = repo.getBudgetWindowBreakdown(group.budget, resolveBudgetWindow(group.budget, today, 1), "JOD", convert)
         assertEquals(0, BigDecimal("130").compareTo(breakdown.totalBudget))
         assertFigures(summary(repo, unified = true), carry = "30", limit = "130", remaining = "100")
+    }
+
+    @Test
+    fun `budget history carries nothing into weeks that haven't started`() = runBlocking {
+        val group = budget()
+        val repo = repository(group, listOf(spend("60", at = lastWeek), spend("30")))
+        val next = YearMonth.from(today).plusMonths(1)
+        val history = repo.getBudgetHistoryForMonth(group.budget, next.year, next.monthValue, "JOD")
+        assertTrue(history.isNotEmpty())
+        history.forEach { assertNull(it.carry) }
+        val breakdown = repo.getBudgetWindowBreakdown(group.budget, history.first().window, "JOD")
+        assertEquals(0, BigDecimal("100").compareTo(breakdown.totalBudget))
+    }
+
+    @Test
+    fun `budget history's month total adds only what carried in from before the month`() {
+        val group = budget().budget
+        fun week(start: LocalDate, carry: String) = PastWindowSpending(
+            window = BudgetWindow(start, start.plusDays(6), 7),
+            spent = BigDecimal.ZERO,
+            carry = BudgetCarry(Money(BigDecimal(carry), "JOD"))
+        )
+        val start = LocalDate.of(2026, 11, 2)
+        // Week 2's +100 and week 3's +70 are weeks 1 and 2's own leftovers: already in their limits.
+        val history = listOf(week(start, "40"), week(start.plusDays(7), "100"), week(start.plusDays(14), "70"))
+        assertEquals(0, BigDecimal("340").compareTo(historyBudgetTotal(group, history)))
     }
 }

@@ -124,12 +124,6 @@ class BudgetHistoryViewModel @Inject constructor(
             val displayedIsLive = isCurrentMonth &&
                 !today.isBefore(displayedWindow.start) && !today.isAfter(displayedWindow.end)
 
-            val baseAmount = if (budget.periodType == com.pennywiseai.tracker.data.database.entity.BudgetPeriodType.WEEKLY) {
-                budget.limitAmount.multiply(BigDecimal(history.size))
-            } else budget.limitAmount
-            // Rollover: each window's carry is in this same currency.
-            val carried = history.fold(BigDecimal.ZERO) { acc, w -> acc + (w.carry?.amount?.amount ?: BigDecimal.ZERO) }
-
             _uiState.value = BudgetHistoryUiState(
                 isLoading = false,
                 budget = budget,
@@ -142,7 +136,7 @@ class BudgetHistoryViewModel @Inject constructor(
                 totalSpent = totalSpent,
                 currency = displayCurrency,
                 baseCurrency = baseCurrency,
-                budgetAmount = baseAmount + carried
+                budgetAmount = historyBudgetTotal(budget, history)
             )
         }
     }
@@ -179,4 +173,18 @@ class BudgetHistoryViewModel @Inject constructor(
     fun dismissBreakdown() {
         _uiState.value = _uiState.value.copy(breakdown = null, isLoadingBreakdown = false)
     }
+}
+
+/**
+ * The month's budget on the Budget History header: the base limit for each window,
+ * plus what the month's first window carried in from before the month. A later
+ * window's carry is an earlier window's leftover (or overspend) of this same month,
+ * already counted in that window's limit, so adding it again would count it twice.
+ */
+internal fun historyBudgetTotal(budget: BudgetEntity, history: List<PastWindowSpending>): BigDecimal {
+    val base = if (budget.periodType == com.pennywiseai.tracker.data.database.entity.BudgetPeriodType.WEEKLY) {
+        budget.limitAmount.multiply(BigDecimal(history.size))
+    } else budget.limitAmount
+    // Rollover: the carry is in the history's own currency.
+    return base + (history.firstOrNull()?.carry?.amount?.amount ?: BigDecimal.ZERO)
 }

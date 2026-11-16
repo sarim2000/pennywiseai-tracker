@@ -842,10 +842,13 @@ class BudgetGroupRepository @Inject constructor(
 
     /**
      * Rollover, read once (Budget History): every transaction, in every currency, of
-     * the full period [budget] carries into [window] from. Null when it carries nothing.
+     * the full period [budget] carries into [window] from. Null when it carries nothing,
+     * including for a [window] that hasn't started.
      */
     private suspend fun carrySource(budget: BudgetEntity, window: BudgetWindow, startDay: Int): List<TransactionWithSplits>? =
-        carryWindow(budget, window, startDay)?.let { carryTransactions(listOf(it)).first() }
+        // A period that hasn't started carries nothing yet: its source may still be running.
+        if (window.start.isAfter(LocalDate.now())) null
+        else carryWindow(budget, window, startDay)?.let { carryTransactions(listOf(it)).first() }
 
     /**
      * [group]'s carry in [currency] from [previous]. Without [convert] it counts only

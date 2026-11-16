@@ -202,7 +202,9 @@ private fun LastScanCard(scan: SmsCheckupState, canScan: Boolean, onRescan: () -
             scan.status == LastScanStatus.NEVER -> add(stringResource(R.string.sms_checkup_scan_never_body))
             scan.status.needsAttention -> {
                 add(stringResource(R.string.sms_checkup_scan_ended_early_body))
-                scan.lastSuccessAt?.let { add(stringResource(R.string.sms_checkup_last_success, relativeTime(it))) }
+                // From the record, not the incremental cursor: a scan-window change resets
+                // that to 0, and a restore brings it back without this record.
+                record?.lastSucceededAt?.let { add(stringResource(R.string.sms_checkup_last_success, relativeTime(it))) }
             }
         }
         if (counts != null) {

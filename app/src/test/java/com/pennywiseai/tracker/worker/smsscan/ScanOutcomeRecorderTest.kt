@@ -5,11 +5,13 @@ import com.pennywiseai.tracker.domain.smsimport.SmsScanCounts
 import com.pennywiseai.tracker.domain.smsimport.SmsScanRecord
 import com.pennywiseai.tracker.domain.smsimport.SmsScanState
 import io.mockk.coEvery
+import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -21,8 +23,13 @@ import java.io.IOException
 class ScanOutcomeRecorderTest {
 
     private val written = mutableListOf<SmsScanRecord>()
+    private val stored = MutableStateFlow<SmsScanRecord?>(null)
     private val preferences = mockk<ScanPreferences>(relaxed = true).also {
-        coEvery { it.setLastScanRecord(any()) } answers { written += firstArg<SmsScanRecord>() }
+        every { it.lastScanRecord } returns stored
+        coEvery { it.setLastScanRecord(any()) } answers {
+            written += firstArg<SmsScanRecord>()
+            stored.value = firstArg()
+        }
     }
     private var now = 1_000L
     private val recorder = ScanOutcomeRecorder(preferences, clock = { now })
@@ -46,7 +53,13 @@ class ScanOutcomeRecorderTest {
         assertEquals("done", result)
         assertEquals(listOf(SmsScanState.RUNNING, SmsScanState.SUCCEEDED), states)
         assertEquals(
-            SmsScanRecord(SmsScanState.SUCCEEDED, startedAt = 1_000L, finishedAt = 5_000L, SmsScanCounts(saved = 2, duplicates = 1)),
+            SmsScanRecord(
+                SmsScanState.SUCCEEDED,
+                startedAt = 1_000L,
+                finishedAt = 5_000L,
+                counts = SmsScanCounts(saved = 2, duplicates = 1),
+                lastSucceededAt = 5_000L,
+            ),
             written.last(),
         )
     }
@@ -97,6 +110,24 @@ class ScanOutcomeRecorderTest {
 
         assertTrue(job.isCancelled)
         assertEquals(listOf(SmsScanState.RUNNING, SmsScanState.CANCELLED), states)
+    }
+
+    @Test
+    fun `a scan that ends early keeps the last success, so it never reads as one`() = runTest {
+        recorder.run(isStopped = { false }) { now = 2_000L }
+        now = 3_000L
+
+        runCatching { recorder.run(isStopped = { false }) { error("cursor closed") } }
+
+        assertEquals(listOf(2_000L, 2_000L, 2_000L), written.drop(1).map { it.lastSucceededAt })
+        assertEquals(3_000L, written.last().finishedAt)
+    }
+
+    @Test
+    fun `with no earlier scan there is no last success`() = runTest {
+        runCatching { recorder.run(isStopped = { false }) { error("no inbox") } }
+
+        assertEquals(listOf(null, null), written.map { it.lastSucceededAt })
     }
 
     @Test

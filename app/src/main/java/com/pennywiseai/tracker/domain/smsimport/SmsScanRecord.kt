@@ -43,6 +43,8 @@ data class SmsScanRecord(
     val startedAt: Long = 0L,
     val finishedAt: Long? = null,
     val counts: SmsScanCounts = SmsScanCounts(),
+    /** When a scan last finished successfully: this one, or an earlier one. */
+    val lastSucceededAt: Long? = null,
 ) {
     fun toJson(): String = json.encodeToString(serializer(), this)
 

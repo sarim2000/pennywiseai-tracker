@@ -19,8 +19,6 @@ import javax.inject.Inject
 data class SmsCheckupState(
     val status: LastScanStatus,
     val record: SmsScanRecord?,
-    /** The incremental-scan cursor: when a scan last finished successfully. */
-    val lastSuccessAt: Long?,
     val lastLiveSmsAt: Long?,
     val notImported: Int,
 )
@@ -35,12 +33,11 @@ class SmsCheckupViewModel @Inject constructor(
     /** Null until every source has answered. */
     val state: StateFlow<SmsCheckupState?> = combine(
         scanPreferences.lastScanRecord,
-        scanPreferences.getLastScanTimestamp(),
         scanPreferences.lastLiveSmsAt,
         unrecognizedSmsRepository.getVisibleCount(),
         smsScanManager.isScanRunning(),
-    ) { record, lastSuccessAt, lastLiveSmsAt, notImported, running ->
-        SmsCheckupState(lastScanStatus(record, running), record, lastSuccessAt, lastLiveSmsAt, notImported)
+    ) { record, lastLiveSmsAt, notImported, running ->
+        SmsCheckupState(lastScanStatus(record, running), record, lastLiveSmsAt, notImported)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** Re-reads the whole scan window: adds what was missed, keeps every edit. */

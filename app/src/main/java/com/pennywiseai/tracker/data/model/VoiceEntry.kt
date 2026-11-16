@@ -53,8 +53,8 @@ data class VoiceEntry(
         }
 
         /** A question or a plan: for Chat, which keeps it until the model is there. */
-        fun asksOrPlans(text: String) =
-            asks(text) || TransactionDraft.saysNotYetPaid(text) || ARABIC_PLAN.containsMatchIn(text)
+        fun asksOrPlans(text: String) = asks(text) || TransactionDraft.saysNotYetPaid(text) ||
+            ARABIC_PLAN.containsMatchIn(text) || LATER_DAY.containsMatchIn(text)
 
         /**
          * More than one amount, or a day this can't count: only the model can read it. A spend
@@ -77,8 +77,21 @@ data class VoiceEntry(
             RegexOption.IGNORE_CASE
         )
 
-        // TransactionDraft's plan words are English; "بكرة" is tomorrow. Not "غدا": it's also lunch, spoken.
-        private val ARABIC_PLAN = Regex("(?<![\\p{L}\\p{M}])(?:سوف|سأ\\p{L}+|رح|ناوي|بدي|بكرة|بكره|بكرا|الشهر الجاي|الاسبوع الجاي|الأسبوع الجاي)(?![\\p{L}\\p{M}])")
+        // TransactionDraft's plan words are English, "tomorrow" and "next week" among them.
+        private val ARABIC_PLAN = Regex("(?<![\\p{L}\\p{M}])(?:سوف|سأ\\p{L}+|رح|ناوي|بدي)(?![\\p{L}\\p{M}])")
+
+        private const val COUNT = "\\p{Nd}+|a|an|one|two|three|four|five|six|seven|eight|nine|ten|a few|a couple of|couple of"
+        private const val AR_UNIT = "يوم|ايام|أيام|اسبوع|أسبوع|اسابيع|أسابيع|شهر|اشهر|أشهر|شهور|ساعة|ساعه|ساعات"
+
+        // A day still to come: "rent 500 in two days", "later today", "قهوة ٢٠٠ بعد يومين". Not bare "غدا": it's also lunch, spoken;
+        // "بعد" alone isn't either: "بعد الغداء" is after lunch.
+        private val LATER_DAY = Regex(
+            "(?<![\\p{L}\\p{M}])(?:in\\s+(?:$COUNT)\\s+(?:days?|weeks?|months?|hours?)|next\\s+(?:mon|tues|wednes|thurs|fri|satur|sun)day|" +
+                "later|" +
+                "بكرة|بكره|بكرا|غداً|غدًا|بعد\\s*(?:يومين|اسبوعين|أسبوعين|شهرين|ساعتين|$AR_UNIT|\\p{Nd}+\\s*(?:$AR_UNIT))|" +
+                "(?:الاسبوع|الأسبوع|الشهر|السنة|السنه|العام)\\s+(?:الجاي|الجايه|الجاية|القادم|القادمة|القادمه))(?![\\p{L}\\p{M}])",
+            RegexOption.IGNORE_CASE
+        )
 
         /** Said before or after what it was for: "spent … on", "… in cash", "دفعت … على". */
         private val FILLER = setOf(

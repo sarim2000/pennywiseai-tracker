@@ -156,6 +156,32 @@ class VoiceEntryTest {
     }
 
     @Test
+    fun `a day still to come is a plan, for Chat`() {
+        listOf(
+            "rent 500 in two days", "rent 500 in 3 days", "gym 40 in a week", "netflix 15 in a couple of days",
+            "rent 500 next friday", "rent 500 next month", "dinner 30 later today", "rent 500 tomorrow",
+            "قهوة ٢٠٠ بعد يومين", "ايجار ٥٠٠ بعد ٣ أيام", "ايجار ٥٠٠ بعد أسبوع", "قهوة ٢٠ غداً", "قهوة ٢٠ بكره",
+            "ايجار ٥٠٠ الأسبوع الجاي", "ايجار ٥٠٠ الشهر القادم",
+        ).forEach {
+            assertTrue(it, VoiceEntry.asksOrPlans(it))
+            assertNull(it, parse(it))
+        }
+    }
+
+    @Test
+    fun `a day gone by is still an entry`() {
+        assertEquals(today.minusDays(1), entry("lunch 20 yesterday").date)
+        assertEquals(today.minusDays(3), entry("taxi 30 3 days ago").date)
+        assertEquals(today.minusDays(2), entry("قهوة ٢٠٠ قبل يومين").date)
+        assertEquals(today.minusDays(1), entry("قهوة ٢٠ أمس").date)
+        assertEquals(today.minusDays(3), entry("تاكسي ٣٠ قبل ٣ أيام").date)
+        // "بعد" with no span after it: after lunch, not a day to come.
+        assertFalse(VoiceEntry.asksOrPlans("قبضت الراتب ٣٠٠٠ بعد الغداء"))
+        // Bare "غدا" is lunch, spoken.
+        assertEquals("Food & Dining", entry("٢٠ غدا").category)
+    }
+
+    @Test
     fun `two amounts are not one entry`() {
         assertNull(parse("lunch 200 and taxi 50"))
         assertNull(parse("غداء ٢٠٠ وتاكسي ٥٠"))

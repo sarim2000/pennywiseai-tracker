@@ -23,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -53,6 +54,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.TextUnit
@@ -187,8 +189,23 @@ private fun Modifier.cardBackground(p: SharePalette): Modifier = this
         }
     }
 
+/**
+ * The artboard's text ignores the phone's font size: the card is a fixed 360×450 image,
+ * and a larger setting would only push figures past the room it has, and send a
+ * different picture from every phone.
+ */
 @Composable
-fun ShareCard(content: ShareCardContent, theme: ShareTheme, modifier: Modifier = Modifier) {
+private fun FixedFontScale(content: @Composable () -> Unit) {
+    val density = LocalDensity.current
+    CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = 1f), content = content)
+}
+
+@Composable
+fun ShareCard(content: ShareCardContent, theme: ShareTheme, modifier: Modifier = Modifier) =
+    FixedFontScale { ShareCardPortrait(content, theme, modifier) }
+
+@Composable
+private fun ShareCardPortrait(content: ShareCardContent, theme: ShareTheme, modifier: Modifier) {
     val p = theme.palette()
     if (content.kind == ShareKind.ACHIEVEMENTS) return AchievementsCard(content, p, modifier)
     if (content.kind == ShareKind.PROGRESS) return ProgressCard(content, p, modifier)
@@ -258,7 +275,11 @@ fun ShareCard(content: ShareCardContent, theme: ShareTheme, modifier: Modifier =
  * the end side. Rendered at 600×315dp, density 2, for the uploaded 1200×630 image.
  */
 @Composable
-fun ShareCardLandscape(content: ShareCardContent, theme: ShareTheme, modifier: Modifier = Modifier) {
+fun ShareCardLandscape(content: ShareCardContent, theme: ShareTheme, modifier: Modifier = Modifier) =
+    FixedFontScale { ShareCardLandscapeArtboard(content, theme, modifier) }
+
+@Composable
+private fun ShareCardLandscapeArtboard(content: ShareCardContent, theme: ShareTheme, modifier: Modifier) {
     val p = theme.palette()
     if (content.kind == ShareKind.ACHIEVEMENTS) return AchievementsLandscape(content, p, modifier)
     if (content.kind == ShareKind.PROGRESS) return ProgressLandscape(content, p, modifier)

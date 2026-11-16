@@ -1265,8 +1265,9 @@ class ChatTurnTest {
         assertEquals("NO_ACCOUNT", ask(mapOf("account" to "Barclays")))
         // Two cards end in 1234: the user says which, the app doesn't add them up.
         assertEquals("WHICH", ask(mapOf("account" to "1234")))
-        // Left at this month while the user named September: not this month's figure under September's question.
-        assertEquals("PERIOD", ask(emptyMap(), "how much did I spend in September?"))
+        // Left at this month while the user named two months, or a day in one: not this month's figure under them.
+        assertEquals("PERIOD", ask(emptyMap(), "how much did I spend in September and October?"))
+        assertEquals("PERIOD", ask(emptyMap(), "how much did I spend on 15 September?"))
         coVerify(exactly = 0) { aiContext.spending(any(), any()) }
         coVerify(exactly = 0) { aiContext.topCategories(any(), any(), any(), any()) }
 
@@ -1331,8 +1332,15 @@ class ChatTurnTest {
         assertEquals(asked("this_year"), filter.captured.window)
         ask(emptyMap(), "كم صرفت السنة الماضية؟")
         assertEquals(asked("last_year"), filter.captured.window)
-        // A month within it is days it can't look up, not the whole year.
-        assertEquals("PERIOD", ask(emptyMap(), "how much in March this year?"))
+        // A month within it is that month, not the whole year.
+        ask(emptyMap(), "how much in March this year?")
+        assertEquals(asked("${LocalDate.now().year}-03"), filter.captured.window)
+        // Named alone (seen on the emulator as "I can't look up those days"), the latest October begun.
+        ask(mapOf("period" to "this_month"), "How much did I spend in October?")
+        val october = if (LocalDate.now().monthValue >= 10) LocalDate.now().year else LocalDate.now().year - 1
+        assertEquals(asked("$october-10"), filter.captured.window)
+        ask(emptyMap(), "كم صرفت في أكتوبر؟")
+        assertEquals(asked("$october-10"), filter.captured.window)
     }
 
     @Test

@@ -8,6 +8,7 @@ import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
+import java.time.Month
 import java.time.Year
 import java.time.YearMonth
 import java.time.format.DateTimeParseException
@@ -99,6 +100,51 @@ object SpendingQuery {
 
     private fun text(value: Any?) = value?.toString()?.trim()?.takeIf { it.isNotEmpty() }
 
+    // Months by name. English "may" is mostly the verb, so it's left out; "كانون" and "تشرين" alone
+    // are two months each.
+    private val MONTHS: Map<String, Month> = mapOf(
+        "january" to Month.JANUARY, "february" to Month.FEBRUARY, "march" to Month.MARCH, "april" to Month.APRIL,
+        "june" to Month.JUNE, "july" to Month.JULY, "august" to Month.AUGUST, "september" to Month.SEPTEMBER,
+        "sept" to Month.SEPTEMBER, "october" to Month.OCTOBER, "november" to Month.NOVEMBER, "december" to Month.DECEMBER,
+        "يناير" to Month.JANUARY, "فبراير" to Month.FEBRUARY, "مارس" to Month.MARCH, "أبريل" to Month.APRIL,
+        "ابريل" to Month.APRIL, "إبريل" to Month.APRIL, "مايو" to Month.MAY, "يونيو" to Month.JUNE, "يوليو" to Month.JULY,
+        "أغسطس" to Month.AUGUST, "اغسطس" to Month.AUGUST, "سبتمبر" to Month.SEPTEMBER, "أكتوبر" to Month.OCTOBER,
+        "اكتوبر" to Month.OCTOBER, "نوفمبر" to Month.NOVEMBER, "ديسمبر" to Month.DECEMBER,
+        "كانون الثاني" to Month.JANUARY, "شباط" to Month.FEBRUARY, "آذار" to Month.MARCH, "نيسان" to Month.APRIL,
+        "أيار" to Month.MAY, "حزيران" to Month.JUNE, "تموز" to Month.JULY, "أيلول" to Month.SEPTEMBER,
+        "تشرين الأول" to Month.OCTOBER, "تشرين الثاني" to Month.NOVEMBER, "كانون الأول" to Month.DECEMBER,
+    )
+    private val MONTH_ALT = MONTHS.keys.sortedByDescending { it.length }.joinToString("|") { Regex.escape(it) }
+
+    // The month, an Arabic و/ف/ب/ل in front, and the year right after it: "October 2025", "oct" isn't one.
+    private val MONTH_NAME = Regex(
+        "(?<![\\p{L}\\p{M}])[وفبل]{0,2}($MONTH_ALT)(?![\\p{L}\\p{M}])(?:[\\s,_-]+((?:19|20)\\d\\d)(?![\\d.,]))?",
+        RegexOption.IGNORE_CASE
+    )
+
+    // A day in it, "15 October" or "October 15th": days the app doesn't look up one by one.
+    private val DAY_IN_MONTH = Regex(
+        "(?<![\\d٠-٩.,])[\\d٠-٩]{1,2}(?:st|nd|rd|th)?\\s+(?:of\\s+)?[وفبل]{0,2}(?:$MONTH_ALT)(?![\\p{L}\\p{M}])" +
+            "|(?<![\\p{L}\\p{M}])(?:$MONTH_ALT)\\s+[\\d٠-٩]{1,2}(?![\\d٠-٩])",
+        RegexOption.IGNORE_CASE
+    )
+
+    /**
+     * The one calendar month [message] names ("in October", "في أكتوبر", "october_2025"), in the
+     * year written after it, else [year], else the latest one begun by [today]. Null when it names
+     * none, two, or a day in it.
+     */
+    fun monthNamed(message: String, today: LocalDate, year: Int? = null): Dates? {
+        val found = MONTH_NAME.findAll(message).toList()
+        val month = found.mapNotNull { MONTHS[it.groupValues[1].lowercase()] }.toSet().singleOrNull() ?: return null
+        if (DAY_IN_MONTH.containsMatchIn(message)) return null
+        val written = found.mapNotNull { it.groupValues[2].toIntOrNull() }.toSet()
+        if (written.size > 1) return null
+        val y = written.singleOrNull() ?: year ?: if (month.value > today.monthValue) today.year - 1 else today.year
+        val asked = YearMonth.of(y, month)
+        return window(asked.atDay(1), asked.atEndOfMonth(), today, message.trim())
+    }
+
     /**
      * [message] without the [merchant] and [account] the call names, the account's digits too:
      * "24/7" or "the card ending in 2019" is a name there, not a date or a year.
@@ -162,7 +208,7 @@ object SpendingQuery {
             YEAR_MONTH.matches(raw) -> runCatching { YearMonth.parse(raw) }.getOrNull()
                 ?.let { window(it.atDay(1), it.atEndOfMonth(), today, raw) } ?: Dates.Invalid(Problem.PERIOD, raw)
             YEAR.matches(raw) -> Year.parse(raw).let { window(it.atDay(1), it.atMonth(12).atEndOfMonth(), today, raw) }
-            else -> Dates.Invalid(Problem.PERIOD, raw)
+            else -> monthNamed(raw, today) ?: Dates.Invalid(Problem.PERIOD, raw)
         }
     }
 

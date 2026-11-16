@@ -121,6 +121,29 @@ class SpendingQueryTest {
     }
 
     @Test
+    fun `a month named is the latest one begun, or the year written with it`() {
+        val today = now.toLocalDate()
+        fun month(message: String, year: Int? = null) = SpendingQuery.monthNamed(message, today, year)
+        assertEquals(window(day(10, 1), day(10, 31)), month("How much did I spend in October?"))
+        assertEquals(window(day(10, 1), day(10, 31)), month("كم صرفت في أكتوبر؟"))
+        assertEquals(window(day(10, 1), day(10, 31)), month("كم صرفت بتشرين الأول"))
+        // Not begun this year: last year's.
+        assertEquals(window(day(12, 1, 2025), day(12, 31, 2025)), month("spending in December"))
+        assertEquals(window(day(3, 1, 2025), day(3, 31, 2025)), month("March 2025 spending"))
+        assertEquals(window(day(3, 1, 2025), day(3, 31, 2025)), month("in March", year = 2025))
+        // This month so far.
+        assertEquals(window(day(11, 1), day(11, 16)), month("November"))
+        // None, two, or a day in it: not a month's figure.
+        assertNull(month("how much in may?"))
+        assertNull(month("September vs October"))
+        assertNull(month("on 15 October"))
+        assertNull(month("October 3rd"))
+        // The model's period, spelled out.
+        assertEquals(window(day(10, 1), day(10, 31)), dates("October"))
+        assertEquals(window(day(10, 1, 2025), day(10, 31, 2025)), dates("october_2025"))
+    }
+
+    @Test
     fun `what can't be read is said, never swapped for this month`() {
         assertEquals(Dates.Invalid(Problem.PERIOD, "fortnight"), dates("fortnight"))
         assertEquals(Dates.Invalid(Problem.PERIOD, "2026-13"), dates("2026-13"))

@@ -89,10 +89,14 @@ data class BudgetResult(
     val difference: BigDecimal get() = (limit - spent).abs()
 }
 
-/** Null when the month has no spending limit to report against. */
+/**
+ * Null when the month has no spending limit to report against. A limit with no window in
+ * the month (a one-time limit that ended before it) is left out, as the Budgets screen's
+ * totals leave it out.
+ */
 fun budgetResult(summary: BudgetOverallSummary): BudgetResult? {
     val limits = summary.groups.filter {
-        it.group.budget.groupType == BudgetGroupType.LIMIT && it.totalBudget.signum() > 0
+        it.group.budget.groupType == BudgetGroupType.LIMIT && it.totalBudget.signum() > 0 && it.windowDays > 0
     }
     if (limits.isEmpty()) return null
     val limit = limits.fold(BigDecimal.ZERO) { sum, it -> sum + it.totalBudget }

@@ -123,7 +123,12 @@ class ShareMathTest {
 
     // --- Budget
 
-    private fun limit(budget: String, actual: String, type: BudgetGroupType = BudgetGroupType.LIMIT) = BudgetGroupSpending(
+    private fun limit(
+        budget: String,
+        actual: String,
+        type: BudgetGroupType = BudgetGroupType.LIMIT,
+        windowDays: Int = 31,
+    ) = BudgetGroupSpending(
         group = BudgetWithCategories(
             BudgetEntity(
                 name = "Budget", limitAmount = bd(budget), periodType = BudgetPeriodType.MONTHLY,
@@ -139,6 +144,7 @@ class ShareMathTest {
         dailyAllowance = BigDecimal.ZERO,
         daysRemaining = 0,
         daysElapsed = 31,
+        windowDays = windowDays,
     )
 
     private fun summary(vararg groups: BudgetGroupSpending) = BudgetOverallSummary(
@@ -175,6 +181,16 @@ class ShareMathTest {
         assertTrue(result.isOver)
         assertEquals(130, result.usedPercent)
         assertEquals(bd("150"), result.difference)
+    }
+
+    @Test
+    fun `a limit with no window in the month counts toward nothing`() {
+        // A one-time limit that ended last month: the repository gives it an empty window.
+        val result = budgetResult(summary(limit("500", "400"), limit("300", "0", windowDays = 0)))!!
+        assertEquals(bd("500"), result.limit)
+        assertEquals(bd("400"), result.spent)
+        assertEquals(1, result.total)
+        assertNull(budgetResult(summary(limit("300", "0", windowDays = 0))))
     }
 
     @Test

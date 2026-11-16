@@ -834,6 +834,35 @@ fun ReceiptPickerSection(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
+        // Above the buttons, so it's in sight where the file was picked rather than
+        // under the Add screen's floating Save bar.
+        if (checking) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(Dimensions.Icon.small),
+                    strokeWidth = 2.dp
+                )
+                Text(
+                    text = stringResource(R.string.add_receipt_checking),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        receiptError?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                // TalkBack reads out a rejected file, which appears without a screen change.
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+            )
+        }
+
         if (receiptUri != null) {
             Box(
                 modifier = Modifier
@@ -911,33 +940,6 @@ fun ReceiptPickerSection(
                 Spacer(modifier = Modifier.width(Spacing.xs))
                 Text(stringResource(R.string.add_receipt_pdf))
             }
-        }
-
-        if (checking) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-            ) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(Dimensions.Icon.small),
-                    strokeWidth = 2.dp
-                )
-                Text(
-                    text = stringResource(R.string.add_receipt_checking),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        receiptError?.let {
-            Text(
-                text = it,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error,
-                // TalkBack reads out a rejected file, which appears without a screen change.
-                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
-            )
         }
     }
 }

@@ -250,9 +250,7 @@
     <string name="appearance_mode_dark">มืด</string>
     <!-- Theme style -->
     <string name="appearance_style_dynamic">ไดนามิก</string>
-    <string name="appearance_style_dynamic_subtitle">สีวอลเปเปอร์</string>
     <string name="appearance_style_default">ค่าเริ่มต้น</string>
-    <string name="appearance_style_default_subtitle">สีแบบ Rose Pine</string>
     <!-- Toggles -->
     <string name="appearance_amoled_title">ดำ AMOLED</string>
     <string name="appearance_amoled_subtitle">ใช้พื้นหลังสีดำบริสุทธิ์เพื่อความคอนทราสต์ที่ลึกยิ่งขึ้น</string>

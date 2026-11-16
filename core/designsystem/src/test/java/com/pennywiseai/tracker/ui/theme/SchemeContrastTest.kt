@@ -50,7 +50,7 @@ class SchemeContrastTest {
     }
 }
 
-private fun ColorScheme.contractFailures(): List<String> {
+internal fun ColorScheme.contractFailures(): List<String> {
     val neutrals = listOf(
         "background", "surface", "surfaceVariant", "surfaceContainerLowest",
         "surfaceContainerLow", "surfaceContainer", "surfaceContainerHigh", "surfaceContainerHighest",

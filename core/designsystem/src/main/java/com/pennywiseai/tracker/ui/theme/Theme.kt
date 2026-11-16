@@ -26,6 +26,20 @@ import com.pennywiseai.tracker.data.preferences.AccentColor
 import com.pennywiseai.tracker.data.preferences.AppFont
 import com.pennywiseai.tracker.data.preferences.ThemeStyle
 import com.pennywiseai.tracker.ui.effects.LocalBlurEffects
+import com.pennywiseai.tracker.ui.theme.colorscheme.BaseColorScheme
+import com.pennywiseai.tracker.ui.theme.colorscheme.CatppuccinColorScheme
+import com.pennywiseai.tracker.ui.theme.colorscheme.GreenAppleColorScheme
+import com.pennywiseai.tracker.ui.theme.colorscheme.LavenderColorScheme
+import com.pennywiseai.tracker.ui.theme.colorscheme.MidnightDuskColorScheme
+import com.pennywiseai.tracker.ui.theme.colorscheme.MonochromeColorScheme
+import com.pennywiseai.tracker.ui.theme.colorscheme.NordColorScheme
+import com.pennywiseai.tracker.ui.theme.colorscheme.StrawberryColorScheme
+import com.pennywiseai.tracker.ui.theme.colorscheme.TakoColorScheme
+import com.pennywiseai.tracker.ui.theme.colorscheme.TealTurquoiseColorScheme
+import com.pennywiseai.tracker.ui.theme.colorscheme.TidalWaveColorScheme
+import com.pennywiseai.tracker.ui.theme.colorscheme.TokyoNightColorScheme
+import com.pennywiseai.tracker.ui.theme.colorscheme.YinYangColorScheme
+import com.pennywiseai.tracker.ui.theme.colorscheme.YotsubaColorScheme
 
 /** Also read by the home-screen widgets' Glance theme (PennyWiseWidgetTheme in :app). */
 val LightColorScheme = lightColorScheme(
@@ -135,18 +149,21 @@ val ColorScheme.investment: Color
 val ColorScheme.loan: Color
     get() = (if (isDark) loan_dark else loan_light).readableOn(neutralSurfaces)
 
+/**
+ * The scheme [PennyWiseTheme] draws with for these settings. Appearance also uses it to
+ * paint each theme's preview card in that theme's own colours.
+ */
 @Composable
-fun PennyWiseTheme(
-    darkTheme: Boolean = isSystemInDarkTheme(),
-    dynamicColor: Boolean = true,
-    themeStyle: ThemeStyle = ThemeStyle.DYNAMIC,
+fun pennyWiseColorScheme(
+    themeStyle: ThemeStyle,
+    darkTheme: Boolean,
+    dynamicColor: Boolean = false,
     accentColor: AccentColor = AccentColor.SURFACE,
     isAmoledMode: Boolean = false,
-    appFont: AppFont = AppFont.DEFAULT,
-    blurEffects: Boolean = true,
-    content: @Composable () -> Unit
-) {
-    var colorScheme = when {
+): ColorScheme {
+    val palette = themeStyle.palette()
+    val colorScheme = when {
+        palette != null -> if (darkTheme) palette.darkScheme else palette.lightScheme
         themeStyle == ThemeStyle.DYNAMIC && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
@@ -162,11 +179,39 @@ fun PennyWiseTheme(
         darkTheme -> DarkColorScheme
         else -> LightColorScheme
     }
+    return if (darkTheme && isAmoledMode) colorScheme.withAmoledSurfaces() else colorScheme
+}
 
-    // Apply AMOLED black if enabled in dark mode
-    if (darkTheme && isAmoledMode) {
-        colorScheme = colorScheme.withAmoledSurfaces()
-    }
+/** The fixed palette behind a style, or null for the accent-driven (BRANDED) and wallpaper (DYNAMIC) styles. */
+internal fun ThemeStyle.palette(): BaseColorScheme? = when (this) {
+    ThemeStyle.BRANDED, ThemeStyle.DYNAMIC -> null
+    ThemeStyle.CATPPUCCIN -> CatppuccinColorScheme
+    ThemeStyle.GREEN_APPLE -> GreenAppleColorScheme
+    ThemeStyle.LAVENDER -> LavenderColorScheme
+    ThemeStyle.MIDNIGHT_DUSK -> MidnightDuskColorScheme
+    ThemeStyle.NORD -> NordColorScheme
+    ThemeStyle.STRAWBERRY_DAIQUIRI -> StrawberryColorScheme
+    ThemeStyle.TAKO -> TakoColorScheme
+    ThemeStyle.TEAL_TURQUOISE -> TealTurquoiseColorScheme
+    ThemeStyle.TIDAL_WAVE -> TidalWaveColorScheme
+    ThemeStyle.YIN_YANG -> YinYangColorScheme
+    ThemeStyle.YOTSUBA -> YotsubaColorScheme
+    ThemeStyle.TOKYO_NIGHT -> TokyoNightColorScheme
+    ThemeStyle.MONOCHROME -> MonochromeColorScheme
+}
+
+@Composable
+fun PennyWiseTheme(
+    darkTheme: Boolean = isSystemInDarkTheme(),
+    dynamicColor: Boolean = true,
+    themeStyle: ThemeStyle = ThemeStyle.DYNAMIC,
+    accentColor: AccentColor = AccentColor.SURFACE,
+    isAmoledMode: Boolean = false,
+    appFont: AppFont = AppFont.DEFAULT,
+    blurEffects: Boolean = true,
+    content: @Composable () -> Unit
+) {
+    val colorScheme = pennyWiseColorScheme(themeStyle, darkTheme, dynamicColor, accentColor, isAmoledMode)
 
     val view = LocalView.current
     if (!view.isInEditMode) {

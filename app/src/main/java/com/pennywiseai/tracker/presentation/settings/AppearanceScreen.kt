@@ -1,11 +1,8 @@
 package com.pennywiseai.tracker.presentation.settings
 
 import android.os.Build
+import androidx.annotation.StringRes
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
-import androidx.compose.animation.slideInVertically
-import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -18,6 +15,7 @@ import androidx.compose.foundation.layout.IntrinsicSize
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -27,6 +25,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
@@ -35,10 +34,10 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DarkMode
-import androidx.compose.material.icons.filled.LightMode
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -53,12 +52,15 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
@@ -75,6 +77,7 @@ import com.pennywiseai.tracker.data.preferences.ThemeStyle
 import com.pennywiseai.tracker.navigation.BottomNavItem
 import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.ui.animations.pwExpand
+import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PreferenceSwitch
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
@@ -84,82 +87,11 @@ import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.getCoverGradientColors
 import com.pennywiseai.tracker.ui.effects.BlurredAnimatedVisibility
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
-import com.pennywiseai.tracker.ui.theme.Dawn_Foam
-import com.pennywiseai.tracker.ui.theme.Dawn_Foam_secondary
-import com.pennywiseai.tracker.ui.theme.Dawn_Foam_tertiary
-import com.pennywiseai.tracker.ui.theme.Dawn_Gold
-import com.pennywiseai.tracker.ui.theme.Dawn_Gold_secondary
-import com.pennywiseai.tracker.ui.theme.Dawn_Gold_tertiary
-import com.pennywiseai.tracker.ui.theme.Dawn_Highlight
-import com.pennywiseai.tracker.ui.theme.Dawn_Highlight_secondary
-import com.pennywiseai.tracker.ui.theme.Dawn_Highlight_tertiary
-import com.pennywiseai.tracker.ui.theme.Dawn_Iris
-import com.pennywiseai.tracker.ui.theme.Dawn_Iris_secondary
-import com.pennywiseai.tracker.ui.theme.Dawn_Iris_tertiary
-import com.pennywiseai.tracker.ui.theme.Dawn_Love
-import com.pennywiseai.tracker.ui.theme.Dawn_Love_secondary
-import com.pennywiseai.tracker.ui.theme.Dawn_Love_tertiary
-import com.pennywiseai.tracker.ui.theme.Dawn_Muted
-import com.pennywiseai.tracker.ui.theme.Dawn_Muted_secondary
-import com.pennywiseai.tracker.ui.theme.Dawn_Muted_tertiary
-import com.pennywiseai.tracker.ui.theme.Dawn_Overlay
-import com.pennywiseai.tracker.ui.theme.Dawn_Overlay_secondary
-import com.pennywiseai.tracker.ui.theme.Dawn_Overlay_tertiary
-import com.pennywiseai.tracker.ui.theme.Dawn_Pine
-import com.pennywiseai.tracker.ui.theme.Dawn_Pine_secondary
-import com.pennywiseai.tracker.ui.theme.Dawn_Pine_tertiary
-import com.pennywiseai.tracker.ui.theme.Dawn_Rose
-import com.pennywiseai.tracker.ui.theme.Dawn_Rose_secondary
-import com.pennywiseai.tracker.ui.theme.Dawn_Rose_tertiary
-import com.pennywiseai.tracker.ui.theme.Dawn_Subtle
-import com.pennywiseai.tracker.ui.theme.Dawn_Subtle_secondary
-import com.pennywiseai.tracker.ui.theme.Dawn_Subtle_tertiary
-import com.pennywiseai.tracker.ui.theme.Dawn_Surface
-import com.pennywiseai.tracker.ui.theme.Dawn_Surface_secondary
-import com.pennywiseai.tracker.ui.theme.Dawn_Surface_tertiary
-import com.pennywiseai.tracker.ui.theme.Dawn_Text
-import com.pennywiseai.tracker.ui.theme.Dawn_Text_secondary
-import com.pennywiseai.tracker.ui.theme.Dawn_Text_tertiary
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.GoogleSansFlexHeadingFamily
-import com.pennywiseai.tracker.ui.theme.RosePine_Foam
-import com.pennywiseai.tracker.ui.theme.RosePine_Foam_secondary
-import com.pennywiseai.tracker.ui.theme.RosePine_Foam_tertiary
-import com.pennywiseai.tracker.ui.theme.RosePine_Gold
-import com.pennywiseai.tracker.ui.theme.RosePine_Gold_secondary
-import com.pennywiseai.tracker.ui.theme.RosePine_Gold_tertiary
-import com.pennywiseai.tracker.ui.theme.RosePine_Highlight
-import com.pennywiseai.tracker.ui.theme.RosePine_Highlight_secondary
-import com.pennywiseai.tracker.ui.theme.RosePine_Highlight_tertiary
-import com.pennywiseai.tracker.ui.theme.RosePine_Iris
-import com.pennywiseai.tracker.ui.theme.RosePine_Iris_secondary
-import com.pennywiseai.tracker.ui.theme.RosePine_Iris_tertiary
-import com.pennywiseai.tracker.ui.theme.RosePine_Love
-import com.pennywiseai.tracker.ui.theme.RosePine_Love_secondary
-import com.pennywiseai.tracker.ui.theme.RosePine_Love_tertiary
-import com.pennywiseai.tracker.ui.theme.RosePine_Muted
-import com.pennywiseai.tracker.ui.theme.RosePine_Muted_secondary
-import com.pennywiseai.tracker.ui.theme.RosePine_Muted_tertiary
-import com.pennywiseai.tracker.ui.theme.RosePine_Overlay
-import com.pennywiseai.tracker.ui.theme.RosePine_Overlay_secondary
-import com.pennywiseai.tracker.ui.theme.RosePine_Overlay_tertiary
-import com.pennywiseai.tracker.ui.theme.RosePine_Pine
-import com.pennywiseai.tracker.ui.theme.RosePine_Pine_secondary
-import com.pennywiseai.tracker.ui.theme.RosePine_Pine_tertiary
-import com.pennywiseai.tracker.ui.theme.RosePine_Rose
-import com.pennywiseai.tracker.ui.theme.RosePine_Rose_secondary
-import com.pennywiseai.tracker.ui.theme.RosePine_Rose_tertiary
-import com.pennywiseai.tracker.ui.theme.RosePine_Subtle
-import com.pennywiseai.tracker.ui.theme.RosePine_Subtle_secondary
-import com.pennywiseai.tracker.ui.theme.RosePine_Subtle_tertiary
-import com.pennywiseai.tracker.ui.theme.RosePine_Surface
-import com.pennywiseai.tracker.ui.theme.RosePine_Surface_secondary
-import com.pennywiseai.tracker.ui.theme.RosePine_Surface_tertiary
-import com.pennywiseai.tracker.ui.theme.RosePine_Text
-import com.pennywiseai.tracker.ui.theme.RosePine_Text_secondary
-import com.pennywiseai.tracker.ui.theme.RosePine_Text_tertiary
 import com.pennywiseai.tracker.ui.theme.SNProFontFamily
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.pennyWiseColorScheme
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
@@ -215,40 +147,29 @@ fun AppearanceScreen(
                         onModeSelected = { themeViewModel.updateDarkTheme(it) }
                     )
 
-                    // Theme Style Selector (Dynamic / Branded)
-                    ThemeStyleSelector(
+                    val isDark = themeUiState.isDarkTheme ?: isSystemInDarkTheme()
+
+                    // Theme picker (Dynamic / Default / Mihon palettes)
+                    ThemePicker(
                         currentStyle = themeUiState.themeStyle,
+                        isDark = isDark,
+                        isAmoled = themeUiState.isAmoledMode,
+                        accentColor = themeUiState.accentColor,
                         onStyleSelected = { themeViewModel.updateThemeStyle(it) }
                     )
 
-                    // Accent Color Picker with ColorSchemeBox (only when branded)
+                    // Accent swatches (only for the Default theme)
                     BlurredAnimatedVisibility(
                         visible = themeUiState.themeStyle == ThemeStyle.BRANDED,
                         enter = pwExpand(),
                         exit = pwCollapse(),
                         modifier = Modifier.zIndex(-1f)
                     ) {
-                        val isDark = themeUiState.isDarkTheme ?: isSystemInDarkTheme()
-
-                        LazyRow(
-                            contentPadding = PaddingValues(Spacing.md),
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.md)
-                        ) {
-                            items(AccentColor.entries) { accent ->
-                                val color = getAccentColorForDisplay(accent, isDark)
-                                val secondary = getSecondaryColorForDisplay(accent, isDark)
-                                val tertiary = getTertiaryColorForDisplay(accent, isDark)
-                                val isSelected = themeUiState.accentColor == accent
-
-                                ColorSchemeBox(
-                                    accent = color,
-                                    secondary = secondary,
-                                    tertiary = tertiary,
-                                    onClick = { themeViewModel.updateAccentColor(accent) },
-                                    isSelected = isSelected
-                                )
-                            }
-                        }
+                        AccentPicker(
+                            currentAccent = themeUiState.accentColor,
+                            isDark = isDark,
+                            onAccentSelected = { themeViewModel.updateAccentColor(it) }
+                        )
                     }
 
                     // AMOLED + Blur grouped toggles. Both rows are conditional,
@@ -390,164 +311,210 @@ private fun NavigationContent(onNavigateBack: () -> Unit) {
     }
 }
 
-// --- Theme Mode Selector (System / Light / Dark) ---
+// --- Theme mode (System / Light / Dark) ---
 
 @Composable
 private fun ThemeModeSelector(
     currentMode: Boolean?,
     onModeSelected: (Boolean?) -> Unit
 ) {
-    Row(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.md),
-        horizontalArrangement = Arrangement.SpaceBetween
-    ) {
-        data class ModeOption(
-            val label: String,
-            val icon: androidx.compose.ui.graphics.vector.ImageVector,
-            val value: Boolean?,
-            val topStart: Int, val topEnd: Int,
-            val bottomStart: Int, val bottomEnd: Int
-        )
-
-        val options = listOf(
-            ModeOption(stringResource(R.string.appearance_mode_system), Icons.Default.AutoAwesome, null, 16, 4, 16, 4),
-            ModeOption(stringResource(R.string.appearance_mode_light), Icons.Default.LightMode, false, 4, 4, 4, 4),
-            ModeOption(stringResource(R.string.appearance_mode_dark), Icons.Default.DarkMode, true, 4, 16, 4, 16)
-        )
-
-        options.forEachIndexed { index, option ->
-            val isSelected = currentMode == option.value
-            val shape = RoundedCornerShape(
-                topStart = option.topStart.dp,
-                topEnd = option.topEnd.dp,
-                bottomStart = option.bottomStart.dp,
-                bottomEnd = option.bottomEnd.dp
-            )
-
-            Box(
-                modifier = Modifier
-                    .weight(1f)
-                    .clip(shape)
-                    .background(
-                        color = if (isSelected) MaterialTheme.colorScheme.secondary
-                        else MaterialTheme.colorScheme.surfaceContainerLow,
-                        shape = shape
-                    )
-                    .padding(horizontal = Spacing.xs, vertical = Spacing.md)
-                    .clickable(
-                        onClick = { onModeSelected(option.value) },
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        option.icon,
-                        contentDescription = null,
-                        tint = if (isSelected) MaterialTheme.colorScheme.onSecondary
-                        else MaterialTheme.colorScheme.onSurface,
-                        modifier = Modifier.size(Dimensions.Icon.medium)
-                    )
-                    Text(
-                        text = option.label,
-                        style = MaterialTheme.typography.bodySmall,
-                        textAlign = TextAlign.Center,
-                        color = if (isSelected) MaterialTheme.colorScheme.onSecondary
-                        else MaterialTheme.colorScheme.onSurface,
-                    )
+    ConnectedChoiceRow(
+        options = listOf(null, false, true),
+        selected = currentMode,
+        onSelect = onModeSelected,
+        label = { mode ->
+            stringResource(
+                when (mode) {
+                    null -> R.string.appearance_mode_system
+                    false -> R.string.appearance_mode_light
+                    true -> R.string.appearance_mode_dark
                 }
-            }
+            )
+        },
+        modifier = Modifier.padding(horizontal = Spacing.md)
+    )
+}
 
-            if (index < options.lastIndex) {
-                Spacer(modifier = Modifier.width(2.dp))
+// --- Theme picker: a row of mini app mock-ups, each drawn in its own theme (as in Mihon) ---
+
+private val pickerThemes: List<ThemeStyle> =
+    listOf(ThemeStyle.DYNAMIC, ThemeStyle.BRANDED) +
+        ThemeStyle.entries.filter { it != ThemeStyle.DYNAMIC && it != ThemeStyle.BRANDED }
+
+@StringRes
+private fun ThemeStyle.titleRes(): Int = when (this) {
+    ThemeStyle.DYNAMIC -> R.string.appearance_style_dynamic
+    ThemeStyle.BRANDED -> R.string.appearance_style_default
+    ThemeStyle.CATPPUCCIN -> R.string.appearance_theme_catppuccin
+    ThemeStyle.GREEN_APPLE -> R.string.appearance_theme_green_apple
+    ThemeStyle.LAVENDER -> R.string.appearance_theme_lavender
+    ThemeStyle.MIDNIGHT_DUSK -> R.string.appearance_theme_midnight_dusk
+    ThemeStyle.NORD -> R.string.appearance_theme_nord
+    ThemeStyle.STRAWBERRY_DAIQUIRI -> R.string.appearance_theme_strawberry_daiquiri
+    ThemeStyle.TAKO -> R.string.appearance_theme_tako
+    ThemeStyle.TEAL_TURQUOISE -> R.string.appearance_theme_teal_turquoise
+    ThemeStyle.TIDAL_WAVE -> R.string.appearance_theme_tidal_wave
+    ThemeStyle.YIN_YANG -> R.string.appearance_theme_yin_yang
+    ThemeStyle.YOTSUBA -> R.string.appearance_theme_yotsuba
+    ThemeStyle.TOKYO_NIGHT -> R.string.appearance_theme_tokyo_night
+    ThemeStyle.MONOCHROME -> R.string.appearance_theme_monochrome
+}
+
+@Composable
+private fun ThemePicker(
+    currentStyle: ThemeStyle,
+    isDark: Boolean,
+    isAmoled: Boolean,
+    accentColor: AccentColor,
+    onStyleSelected: (ThemeStyle) -> Unit
+) {
+    val themes = remember {
+        pickerThemes.filter { it != ThemeStyle.DYNAMIC || Build.VERSION.SDK_INT >= Build.VERSION_CODES.S }
+    }
+    // Open on the chosen theme, which may sit past the first screenful.
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = themes.indexOf(currentStyle).coerceAtLeast(0))
+    LazyRow(
+        modifier = Modifier.selectableGroup(),
+        state = listState,
+        contentPadding = PaddingValues(horizontal = Spacing.md),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+    ) {
+        items(themes, key = { it.name }) { style ->
+            Column(modifier = Modifier.width(Dimensions.Component.themePreviewWidth).padding(top = Spacing.sm)) {
+                val title = stringResource(style.titleRes())
+                ThemePreviewCard(
+                    scheme = pennyWiseColorScheme(
+                        themeStyle = style,
+                        darkTheme = isDark,
+                        accentColor = accentColor,
+                        isAmoledMode = isAmoled
+                    ),
+                    selected = currentStyle == style,
+                    contentDescription = title,
+                    onClick = { onStyleSelected(style) }
+                )
+                Spacer(modifier = Modifier.height(Spacing.sm))
+                Text(
+                    text = title,
+                    modifier = Modifier.fillMaxWidth(),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    textAlign = TextAlign.Center,
+                    maxLines = 2,
+                    minLines = 2
+                )
             }
         }
     }
 }
 
-// --- Theme Style Selector (Dynamic / Branded) ---
-
+/** A phone-shaped sketch of the app (top bar, balance card, two rows, nav bar) painted in [scheme]. */
 @Composable
-private fun ThemeStyleSelector(
-    currentStyle: ThemeStyle,
-    onStyleSelected: (ThemeStyle) -> Unit
+private fun ThemePreviewCard(
+    scheme: ColorScheme,
+    selected: Boolean,
+    contentDescription: String,
+    onClick: () -> Unit
 ) {
-    Column(
-        modifier = Modifier.fillMaxWidth().padding(horizontal = Spacing.md),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+    MaterialTheme(colorScheme = scheme) {
+        val colors = MaterialTheme.colorScheme
+        val pill = MaterialTheme.shapes.small
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .aspectRatio(9f / 16f)
+                .border(
+                    width = Spacing.xs,
+                    color = if (selected) colors.primary else colors.outlineVariant,
+                    shape = RoundedCornerShape(Dimensions.CornerRadius.large)
+                )
+                .padding(Spacing.xs)
+                // Inner corner = outer corner − border, so the two stay concentric.
+                .clip(RoundedCornerShape(Dimensions.CornerRadius.card))
+                .background(colors.background)
+                .selectable(selected = selected, role = Role.RadioButton, onClick = onClick)
+                .semantics { this.contentDescription = contentDescription }
         ) {
-            // Dynamic Option (only on Android 12+)
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
+            // Top bar
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(Spacing.sm).height(Dimensions.Icon.medium),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
                 Box(
                     modifier = Modifier
-                        .weight(1f)
-                        .height(80.dp)
-                        .clip(RoundedCornerShape(Dimensions.CornerRadius.large))
-                        .background(
-                            color = if (currentStyle == ThemeStyle.DYNAMIC)
-                                MaterialTheme.colorScheme.primaryContainer
-                            else MaterialTheme.colorScheme.surfaceContainerLow
-                        )
-                        .clickable { onStyleSelected(ThemeStyle.DYNAMIC) },
-                    contentAlignment = Alignment.Center
-                ) {
-                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                        Text(
-                            text = stringResource(R.string.appearance_style_dynamic),
-                            style = MaterialTheme.typography.bodyMedium,
-                            fontWeight = FontWeight.Bold,
-                            color = if (currentStyle == ThemeStyle.DYNAMIC)
-                                MaterialTheme.colorScheme.onPrimaryContainer
-                            else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = stringResource(R.string.appearance_style_dynamic_subtitle),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = if (currentStyle == ThemeStyle.DYNAMIC)
-                                MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                            else MaterialTheme.colorScheme.onSurfaceVariant
+                        .fillMaxHeight(0.8f)
+                        .weight(0.7f)
+                        .padding(end = Spacing.xs)
+                        .background(colors.onSurface, pill)
+                )
+                Box(modifier = Modifier.weight(0.3f), contentAlignment = Alignment.CenterEnd) {
+                    if (selected) {
+                        Icon(
+                            imageVector = Icons.Default.CheckCircle,
+                            contentDescription = null,
+                            tint = colors.primary
                         )
                     }
                 }
             }
 
-            // Default/Branded Option
-            Box(
+            // Balance card with secondary/tertiary chips
+            Column(
                 modifier = Modifier
-                    .weight(1f)
-                    .height(80.dp)
-                    .clip(RoundedCornerShape(Dimensions.CornerRadius.large))
-                    .background(
-                        color = if (currentStyle == ThemeStyle.BRANDED)
-                            MaterialTheme.colorScheme.primaryContainer
-                        else MaterialTheme.colorScheme.surfaceContainerLow
-                    )
-                    .clickable { onStyleSelected(ThemeStyle.BRANDED) },
-                contentAlignment = Alignment.Center
+                    .padding(horizontal = Spacing.sm, vertical = Spacing.xxs)
+                    .fillMaxWidth()
+                    .background(colors.primaryContainer, pill)
+                    .padding(Spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
-                Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
-                        text = stringResource(R.string.appearance_style_default),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Bold,
-                        color = if (currentStyle == ThemeStyle.BRANDED)
-                            MaterialTheme.colorScheme.onPrimaryContainer
-                        else MaterialTheme.colorScheme.onSurfaceVariant
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth(0.6f)
+                        .height(Spacing.sm)
+                        .background(colors.onPrimaryContainer, pill)
+                )
+                Row(modifier = Modifier.size(width = Dimensions.Icon.medium, height = Dimensions.Icon.tiny).clip(RoundedCornerShape(Dimensions.CornerRadius.small))) {
+                    Box(modifier = Modifier.fillMaxHeight().weight(1f).background(colors.tertiary))
+                    Box(modifier = Modifier.fillMaxHeight().weight(1f).background(colors.secondary))
+                }
+            }
+
+            // Two transaction rows
+            listOf(colors.secondary, colors.tertiary).forEach { dot ->
+                Row(
+                    modifier = Modifier.padding(start = Spacing.sm, end = Spacing.sm, top = Spacing.sm),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(modifier = Modifier.size(Dimensions.Icon.tiny).background(dot, CircleShape))
+                    Box(
+                        modifier = Modifier
+                            .padding(start = Spacing.sm)
+                            .alpha(0.6f)
+                            .height(Spacing.sm)
+                            .weight(1f)
+                            .background(colors.onSurface, pill)
                     )
-                    Text(
-                        text = stringResource(R.string.appearance_style_default_subtitle),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = if (currentStyle == ThemeStyle.BRANDED)
-                            MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
-                        else MaterialTheme.colorScheme.onSurfaceVariant
+                }
+            }
+
+            // Bottom bar
+            Box(modifier = Modifier.fillMaxWidth().weight(1f), contentAlignment = Alignment.BottomCenter) {
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(Spacing.xl)
+                        .background(colors.surfaceContainer)
+                        .padding(horizontal = Spacing.sm),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(modifier = Modifier.size(Dimensions.Icon.small).background(colors.primary, CircleShape))
+                    Box(
+                        modifier = Modifier
+                            .padding(start = Spacing.sm)
+                            .alpha(0.6f)
+                            .height(Dimensions.Icon.small)
+                            .weight(1f)
+                            .background(colors.onSurface, pill)
                     )
                 }
             }
@@ -555,79 +522,59 @@ private fun ThemeStyleSelector(
     }
 }
 
-// --- ColorSchemeBox ---
+// --- Accent swatches for the Default (Rosé Pine) theme ---
 
 @Composable
-private fun ColorSchemeBox(
-    accent: Color,
-    secondary: Color,
-    tertiary: Color,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit,
-    isSelected: Boolean = false
+private fun AccentPicker(
+    currentAccent: AccentColor,
+    isDark: Boolean,
+    onAccentSelected: (AccentColor) -> Unit
 ) {
-    Box(
-        modifier = modifier
-            .size(110.dp)
-            .clip(RoundedCornerShape(Spacing.md))
-            .then(
-                if (isSelected) {
-                    Modifier.border(
-                        width = 2.dp,
-                        color = accent.copy(0.7f),
-                        shape = RoundedCornerShape(Spacing.md)
-                    )
-                } else Modifier
-            )
-            .background(MaterialTheme.colorScheme.surfaceContainerLow)
-            .clickable(
-                onClick = onClick,
-                indication = null,
-                interactionSource = remember { MutableInteractionSource() }
-            )
+    val listState = rememberLazyListState(initialFirstVisibleItemIndex = currentAccent.ordinal)
+    LazyRow(
+        modifier = Modifier.selectableGroup(),
+        state = listState,
+        contentPadding = PaddingValues(horizontal = Spacing.md, vertical = Spacing.xs),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
-        Column(
-            modifier = Modifier.fillMaxWidth().padding(10.dp),
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-        ) {
-            Text(
-                text = "Abc",
-                style = MaterialTheme.typography.labelMedium,
-                color = accent,
-                textAlign = TextAlign.Center,
-                modifier = Modifier.fillMaxWidth()
-            )
-            Column {
-                Box(
-                    modifier = Modifier
-                        .height(16.dp)
-                        .width(27.dp)
-                        .background(
-                            color = tertiary,
-                            shape = RoundedCornerShape(Spacing.sm)
-                        )
-                )
-                Spacer(modifier = Modifier.height(Spacing.xs))
-                Box(
-                    modifier = Modifier
-                        .height(16.dp)
-                        .width(47.dp)
-                        .background(
-                            color = secondary,
-                            shape = RoundedCornerShape(Spacing.sm)
-                        )
-                )
-            }
-
+        items(AccentColor.entries, key = { it.name }) { accent ->
+            val scheme = pennyWiseColorScheme(ThemeStyle.BRANDED, isDark, accentColor = accent)
+            val selected = currentAccent == accent
+            // Wallpaper-style swatch: primary on top, secondary | tertiary below.
             Box(
                 modifier = Modifier
-                    .align(Alignment.End)
-                    .size(20.dp)
-                    .background(
-                        accent,
-                        RoundedCornerShape(Spacing.xs)
+                    .size(Dimensions.Icon.avatarLarge)
+                    .border(
+                        width = Spacing.xxs,
+                        color = if (selected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                        shape = CircleShape
                     )
-            )
+                    .padding(Spacing.xs)
+                    .clip(CircleShape)
+                    .selectable(selected = selected, role = Role.RadioButton, onClick = { onAccentSelected(accent) })
+                    // ponytail: Rosé Pine palette names are proper nouns, so no string resources.
+                    .semantics { contentDescription = accent.name.lowercase().replaceFirstChar { it.uppercase() } },
+                contentAlignment = Alignment.Center
+            ) {
+                Column(modifier = Modifier.fillMaxSize()) {
+                    Box(modifier = Modifier.fillMaxWidth().weight(1f).background(scheme.primary))
+                    Row(modifier = Modifier.fillMaxWidth().weight(1f)) {
+                        Box(modifier = Modifier.fillMaxHeight().weight(1f).background(scheme.secondary))
+                        Box(modifier = Modifier.fillMaxHeight().weight(1f).background(scheme.tertiary))
+                    }
+                }
+                if (selected) {
+                    Icon(
+                        imageVector = Icons.Default.Check,
+                        contentDescription = null,
+                        tint = scheme.onPrimary,
+                        modifier = Modifier
+                            .size(Dimensions.Icon.inline)
+                            .background(scheme.primary, CircleShape)
+                            .padding(Spacing.xxs)
+                    )
+                }
+            }
         }
     }
 }
@@ -878,111 +825,6 @@ private fun FontSelector(
                     textAlign = TextAlign.Center
                 )
             }
-        }
-    }
-}
-
-@Composable
-private fun getAccentColorForDisplay(accent: AccentColor, isDark: Boolean): Color {
-    return if (isDark) {
-        when (accent) {
-            AccentColor.ROSE -> RosePine_Rose
-            AccentColor.IRIS -> RosePine_Iris
-            AccentColor.PINE -> RosePine_Pine
-            AccentColor.GOLD -> RosePine_Gold
-            AccentColor.LOVE -> RosePine_Love
-            AccentColor.FOAM -> RosePine_Foam
-            AccentColor.MUTED -> RosePine_Muted
-            AccentColor.SUBTLE -> RosePine_Subtle
-            AccentColor.TEXT -> RosePine_Text
-            AccentColor.HIGHLIGHT -> RosePine_Highlight
-            AccentColor.SURFACE -> RosePine_Surface
-            AccentColor.OVERLAY -> RosePine_Overlay
-        }
-    } else {
-        when (accent) {
-            AccentColor.ROSE -> Dawn_Rose
-            AccentColor.IRIS -> Dawn_Iris
-            AccentColor.PINE -> Dawn_Pine
-            AccentColor.GOLD -> Dawn_Gold
-            AccentColor.LOVE -> Dawn_Love
-            AccentColor.FOAM -> Dawn_Foam
-            AccentColor.MUTED -> Dawn_Muted
-            AccentColor.SUBTLE -> Dawn_Subtle
-            AccentColor.TEXT -> Dawn_Text
-            AccentColor.HIGHLIGHT -> Dawn_Highlight
-            AccentColor.SURFACE -> Dawn_Surface
-            AccentColor.OVERLAY -> Dawn_Overlay
-        }
-    }
-}
-
-@Composable
-private fun getSecondaryColorForDisplay(accent: AccentColor, isDark: Boolean): Color {
-    return if (isDark) {
-        when (accent) {
-            AccentColor.ROSE -> RosePine_Rose_secondary
-            AccentColor.IRIS -> RosePine_Iris_secondary
-            AccentColor.PINE -> RosePine_Pine_secondary
-            AccentColor.GOLD -> RosePine_Gold_secondary
-            AccentColor.LOVE -> RosePine_Love_secondary
-            AccentColor.FOAM -> RosePine_Foam_secondary
-            AccentColor.MUTED -> RosePine_Muted_secondary
-            AccentColor.SUBTLE -> RosePine_Subtle_secondary
-            AccentColor.TEXT -> RosePine_Text_secondary
-            AccentColor.HIGHLIGHT -> RosePine_Highlight_secondary
-            AccentColor.SURFACE -> RosePine_Surface_secondary
-            AccentColor.OVERLAY -> RosePine_Overlay_secondary
-        }
-    } else {
-        when (accent) {
-            AccentColor.ROSE -> Dawn_Rose_secondary
-            AccentColor.IRIS -> Dawn_Iris_secondary
-            AccentColor.PINE -> Dawn_Pine_secondary
-            AccentColor.GOLD -> Dawn_Gold_secondary
-            AccentColor.LOVE -> Dawn_Love_secondary
-            AccentColor.FOAM -> Dawn_Foam_secondary
-            AccentColor.MUTED -> Dawn_Muted_secondary
-            AccentColor.SUBTLE -> Dawn_Subtle_secondary
-            AccentColor.TEXT -> Dawn_Text_secondary
-            AccentColor.HIGHLIGHT -> Dawn_Highlight_secondary
-            AccentColor.SURFACE -> Dawn_Surface_secondary
-            AccentColor.OVERLAY -> Dawn_Overlay_secondary
-        }
-    }
-}
-
-@Composable
-private fun getTertiaryColorForDisplay(accent: AccentColor, isDark: Boolean): Color {
-    return if (isDark) {
-        when (accent) {
-            AccentColor.ROSE -> RosePine_Rose_tertiary
-            AccentColor.IRIS -> RosePine_Iris_tertiary
-            AccentColor.PINE -> RosePine_Pine_tertiary
-            AccentColor.GOLD -> RosePine_Gold_tertiary
-            AccentColor.LOVE -> RosePine_Love_tertiary
-            AccentColor.FOAM -> RosePine_Foam_tertiary
-            AccentColor.MUTED -> RosePine_Muted_tertiary
-            AccentColor.SUBTLE -> RosePine_Subtle_tertiary
-            AccentColor.TEXT -> RosePine_Text_tertiary
-            AccentColor.HIGHLIGHT -> RosePine_Highlight_tertiary
-            AccentColor.SURFACE -> RosePine_Surface_tertiary
-            AccentColor.OVERLAY -> RosePine_Overlay_tertiary
-        }
-    } else {
-        when (accent) {
-            AccentColor.ROSE -> Dawn_Rose_tertiary
-            AccentColor.IRIS -> Dawn_Iris_tertiary
-            AccentColor.PINE -> Dawn_Pine_tertiary
-            AccentColor.GOLD -> Dawn_Gold_tertiary
-            AccentColor.LOVE -> Dawn_Love_tertiary
-            AccentColor.FOAM -> Dawn_Foam_tertiary
-            AccentColor.MUTED -> Dawn_Muted_tertiary
-            AccentColor.SUBTLE -> Dawn_Subtle_tertiary
-            AccentColor.TEXT -> Dawn_Text_tertiary
-            AccentColor.HIGHLIGHT -> Dawn_Highlight_tertiary
-            AccentColor.SURFACE -> Dawn_Surface_tertiary
-            AccentColor.OVERLAY -> Dawn_Overlay_tertiary
         }
     }
 }

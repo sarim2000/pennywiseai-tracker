@@ -280,9 +280,7 @@
     <string name="appearance_mode_dark">Tmavé</string>
     <!-- Theme style -->
     <string name="appearance_style_dynamic">Dynamické</string>
-    <string name="appearance_style_dynamic_subtitle">Barvy tapety</string>
     <string name="appearance_style_default">Výchozí</string>
-    <string name="appearance_style_default_subtitle">Barevné Rose</string>
     <!-- Toggles -->
     <string name="appearance_amoled_title">AMOLED černá</string>
     <string name="appearance_amoled_subtitle">Použijte čistě černé pozadí pro hlubší kontrast</string>

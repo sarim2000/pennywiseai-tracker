@@ -100,6 +100,15 @@ class ShareLinkSnapshotTest {
     }
 
     @Test
+    fun `several badges go without descriptions, as their card shows titles only`() {
+        val one = previewAchievement.achievements.single()
+        val several = previewAchievement.copy(achievements = listOf(one, one.copy(id = "goal_reached")))
+        val sent = encoded(several)["achievements"]!!.jsonArray.map { it.jsonObject["description"]!!.jsonPrimitive.content }
+        assertEquals(listOf("", ""), sent)
+        assertEquals(one.description, encoded(previewAchievement)["achievements"]!!.jsonArray.single().jsonObject["description"]!!.jsonPrimitive.content)
+    }
+
+    @Test
     fun `long text is cut to the server's limit in code points`() {
         val name = "🏠".repeat(100) // 100 emoji: 200 chars, 100 code points
         val snapshot = previewGoal.copy(title = name).toSnapshot(ShareTheme.MIDNIGHT, en, ShareLinkExpiry.DEFAULT)

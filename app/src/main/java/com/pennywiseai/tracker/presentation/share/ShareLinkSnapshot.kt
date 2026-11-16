@@ -35,7 +35,8 @@ fun ShareCardContent.toSnapshot(theme: ShareTheme, locale: Locale, expiry: Share
             ShareSnapshot.Achievement(
                 id = it.id,
                 title = it.title.fit(60),
-                description = it.description.fit(120),
+                // The multi-badge card shows titles only; a link mustn't say more than the preview did.
+                description = if (achievements.size > 1) "" else it.description.fit(120),
                 tier = it.tier.coerceIn(0, 5),
                 unlockedOn = it.unlockedOn?.toString(),
             )

@@ -212,6 +212,31 @@ class BudgetSummaryProvider @Inject constructor(
         return catTotal + typeTotal
     }
 
+    /**
+     * Whether [transactions] hold spending [group] counts that [convert] has no
+     * rate for, so its total reads low and its remaining high (#670). Matches as
+     * [getBudgetWindowFilteredSpend] does: every expense and investment for a
+     * budget with no categories, else only its own categories and type buckets.
+     */
+    private suspend fun hasUncountedSpend(
+        group: BudgetWithCategories,
+        transactions: List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>,
+        convert: suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?
+    ): Boolean {
+        if (group.categories.isEmpty()) {
+            return transactions.any { txWithSplits ->
+                val tx = txWithSplits.transaction.forTotals() ?: return@any false
+                (tx.transactionType == TransactionType.EXPENSE || tx.transactionType == TransactionType.INVESTMENT) &&
+                    convert(tx.currency, tx.amount) == null
+            }
+        }
+        val aggregation = aggregateBudgetCategorySpending(transactions, convertSplit = convert, convertIncome = { null })
+        return group.categories.any { cat ->
+            if (cat.matchType != null) cat.matchType in aggregation.skippedTypes
+            else cat.categoryName in aggregation.skippedCategories
+        }
+    }
+
     private fun getTransactionsForOverlappingWindows(
         budgetId: Long,
         windowedSpend: List<WindowSpending>,
@@ -267,14 +292,10 @@ class BudgetSummaryProvider @Inject constructor(
             ?: getTransactionsForOverlappingWindows(group.budget.id, windowedSpend, displayedWindow)
             ?: emptyList()
         val convertedTotalActual = getBudgetWindowFilteredSpend(group, txsInDisplay, displayCurrency, baseCurrency)
-        // Spending with no rate is skipped above, not counted at face value. Flag
-        // any (even outside this budget's categories) so nothing claims a full total.
-        val hasUnconvertedSpend = txsInDisplay
-            .map { it.transaction }
-            .filter { it.transactionType != TransactionType.INCOME && it.transactionType != TransactionType.TRANSFER }
-            .map { it.currency }
-            .distinct()
-            .any { currencyConversionService.convertAmountOrNull(BigDecimal.ONE, it, displayCurrency) == null }
+        // Spending with no rate is skipped above, not counted at face value.
+        val hasUnconvertedSpend = hasUncountedSpend(group, txsInDisplay) { fromCurrency, amount ->
+            currencyConversionService.convertAmountOrNull(amount, fromCurrency, displayCurrency)
+        }
 
         // previousWindows: Weekly historical only. The displayed window
         // is the budget's own current window; older per-week windows

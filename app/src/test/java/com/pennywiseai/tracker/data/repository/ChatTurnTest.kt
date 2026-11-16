@@ -1400,6 +1400,16 @@ class ChatTurnTest {
         // A spending category is still what was spent in it.
         events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("category" to "طعام")))
         assertEquals("SPEND", send("how much on food?"))
+
+        // Ranked, money in would be counted as spending: said, never answered with that.
+        every { context.getString(R.string.chat_reply_income_ranking_unsupported) } returns "NO_INCOME_RANKING"
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("category" to "Salary", "group_by" to "account")))
+        assertEquals("NO_INCOME_RANKING", send("how much salary went into each account?"))
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("group_by" to "category")))
+        assertEquals("NO_INCOME_RANKING", send("which category did I receive the most income in?"))
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("group_by" to "account")))
+        assertEquals("NO_INCOME_RANKING", send("أي حساب استلمت فيه أكثر دخل؟"))
+        coVerify(exactly = 0) { aiContext.topCategories(any(), any(), any(), any()) }
     }
 
     @Test

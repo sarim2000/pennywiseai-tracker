@@ -749,7 +749,11 @@ class LlmRepository @Inject constructor(
         // The list can't be narrowed to a merchant as the figure was (its search reads notes and
         // SMS too), and matches a category's name exactly: "uber" would open on nothing.
         val linked = merchant == null && (category == null || known != null)
+        // "How much salary did I receive?": what came in, never what was spent.
+        val incomeAsked = categories.any { it.isIncome && it.name == known } || SpendingComparison.asksAboutIncome(userMessage)
         return when {
+            // A ranking counts only what went out: "salary by account" would rank spending, or nothing.
+            groupBy != SpendingQuery.GroupBy.NONE && incomeAsked -> context.getString(R.string.chat_reply_income_ranking_unsupported)
             groupBy != SpendingQuery.GroupBy.NONE -> {
                 val top = aiContextRepository.topCategories(filter = filter, by = groupBy, category = category)
                 if (category != null && known == null && top.ranking.isEmpty()) {
@@ -760,8 +764,8 @@ class LlmRepository @Inject constructor(
                     topCategoriesText(top, groupBy, narrowed, category)
                 }
             }
-            // "How much salary did I receive?": what came in under it, never "nothing spent".
-            category != null && (categories.any { it.isIncome && it.name == known } || SpendingComparison.asksAboutIncome(userMessage)) -> {
+            // What came in under it, never "nothing spent".
+            category != null && incomeAsked -> {
                 val got = aiContextRepository.categoryIncome(category, filter = filter)
                 val label = scopeLabel(got.scope) + narrowed
                 when {

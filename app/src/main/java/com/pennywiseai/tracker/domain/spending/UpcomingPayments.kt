@@ -79,18 +79,16 @@ object UpcomingPayments {
             .toList()
 
     /**
-     * Each occurrence of the active expense templates due by [end]. One already due
-     * still counts: the daily worker posts it once and then moves the schedule past
-     * today ([RecurringTransactionEntity.nextDueDateAfter]), which is where the
-     * rest start.
+     * Each occurrence of the active expense templates due today..[end]. One already
+     * due is the daily worker's to post (it then moves the schedule past today,
+     * [RecurringTransactionEntity.nextDueDateAfter]), so the count starts there.
      */
     private fun recurring(templates: List<RecurringTransactionEntity>, today: LocalDate, end: LocalDate): List<Bill> =
         templates
             .filter { it.isActive && it.transactionType == TransactionType.EXPENSE }
             .flatMap { t ->
-                val first = t.nextDueDate
-                val rest = if (first.isBefore(today)) t.nextDueDateAfter(today) else t.nextDueAfter(first)
-                (sequenceOf(first) + generateSequence(rest) { t.nextDueAfter(it) })
+                val first = if (t.nextDueDate.isBefore(today)) t.nextDueDateAfter(today) else t.nextDueDate
+                generateSequence(first) { t.nextDueAfter(it) }
                     .take(MAX_OCCURRENCES)
                     .takeWhile { !it.isAfter(end) }
                     .map { Bill(t.merchantName, Money(t.amount, t.currency), it) }

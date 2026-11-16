@@ -98,10 +98,10 @@ class UpcomingPaymentsTest {
     }
 
     @Test
-    fun `a missed template is posted once, then resumes after today`() {
+    fun `a missed template is the worker's to post, the count resumes after today`() {
         val bills = upcoming(recurring = listOf(template("Rent", "2026-10-01", frequency = RecurringFrequency.WEEKLY)))
 
-        assertEquals(listOf("2026-10-01", "2026-10-29", "2026-11-05", "2026-11-12", "2026-11-19").map(::date), bills.map { it.dueDate })
+        assertEquals(listOf("2026-10-29", "2026-11-05", "2026-11-12", "2026-11-19").map(::date), bills.map { it.dueDate })
     }
 
     @Test

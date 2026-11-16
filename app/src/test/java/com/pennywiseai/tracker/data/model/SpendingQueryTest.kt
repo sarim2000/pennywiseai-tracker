@@ -305,4 +305,24 @@ class SpendingQueryTest {
         assertEquals(AccountMatch.One(sbi), SpendingQuery.account("XX1234", listOf(sbi)))
         assertEquals(AccountMatch.One(sbi), SpendingQuery.account("بطاقة 1234", listOf(sbi)))
     }
+
+    @Test
+    fun `a word every bank's name has never picks one bank for another`() {
+        val sbi = account("SBI Bank", "1234")
+        // "bank" is in both names: HDFC's card is still not SBI's.
+        assertEquals(AccountMatch.None, SpendingQuery.account("HDFC Bank 1234", listOf(sbi)))
+        assertEquals(AccountMatch.None, SpendingQuery.account("HDFC bank a/c XX1234", listOf(sbi)))
+        assertEquals(AccountMatch.None, SpendingQuery.account("بنك HDFC 1234", listOf(sbi)))
+        assertEquals(AccountMatch.None, SpendingQuery.account("HDFC Bank", listOf(sbi)))
+        // A second bank's name beside its own is no answer either.
+        assertEquals(AccountMatch.None, SpendingQuery.account("SBI HDFC 1234", listOf(sbi)))
+        // Its own name, with or without the generic words, still finds it.
+        assertEquals(AccountMatch.One(sbi), SpendingQuery.account("SBI Bank 1234", listOf(sbi)))
+        assertEquals(AccountMatch.One(sbi), SpendingQuery.account("sbi 1234", listOf(sbi)))
+        assertEquals(AccountMatch.One(sbi), SpendingQuery.account("بنك SBI 1234", listOf(sbi)))
+        assertEquals(AccountMatch.One(sbi), SpendingQuery.account("SBI account", listOf(sbi)))
+        assertEquals(AccountMatch.One(sbi), SpendingQuery.account("bank a/c 1234", listOf(sbi)))
+        // A generic word alone names no account.
+        assertEquals(AccountMatch.None, SpendingQuery.account("bank", listOf(sbi)))
+    }
 }

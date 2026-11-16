@@ -378,11 +378,15 @@ object SpendingQuery {
             }
     }
 
-    /** Words around an account's digits that name no bank or alias: "my credit card ending 1234". */
+    /**
+     * Words that name no bank or alias: "my credit card ending 1234", "SBI Bank". Many banks'
+     * names carry them, so they never pick one account over another.
+     */
     private val ACCOUNT_WORDS = setOf(
         "my", "the", "a", "c", "ac", "acc", "acct", "account", "card", "credit", "debit", "savings", "saving", "current",
-        "bank", "ending", "ends", "end", "in", "with", "no", "number", "x", "xx", "xxx", "xxxx",
+        "bank", "ending", "ends", "end", "in", "with", "of", "on", "at", "no", "number", "x", "xx", "xxx", "xxxx",
         "بطاقة", "بطاقتي", "البطاقة", "حساب", "حسابي", "الحساب", "رقم", "ائتمان", "ائتمانية", "الائتمانية", "مدى", "المنتهية", "تنتهي", "في",
+        "بنك", "البنك", "بنكي", "مصرف", "المصرف",
     )
 
     sealed interface AccountMatch {
@@ -396,30 +400,32 @@ object SpendingQuery {
 
     /**
      * The account the user named: its alias or "Bank 1234" exactly first (or "Paytm WALLET", as
-     * the chat's prompt lists a wallet), then its last digits (with a word of its name first,
-     * when one was given; without one only when no other name came with them), then the bank or
-     * alias alone. The
-     * first of those that matches anything decides; two accounts there is a question for the
-     * user, not a guess.
+     * the chat's prompt lists a wallet), then its last digits (with the words of its name, when
+     * a name was given; alone only when none was), then the bank or alias alone. Generic words
+     * ("bank", "card", "حساب") name no account. The first of those that matches anything
+     * decides; two accounts there is a question for the user, not a guess.
      */
     fun account(asked: String, accounts: List<AccountBalanceEntity>): AccountMatch {
         val wanted = norm(asked)
         if (wanted.isEmpty()) return AccountMatch.None
         val digits = asked.filter(Char::isDigit)
-        val words = norm(asked.filterNot(Char::isDigit)).split(" ").filter { it.isNotEmpty() }
+        // "HDFC Bank 1234" names HDFC: "bank" is in SBI Bank's name too, and decides nothing.
+        val words = norm(asked.filterNot(Char::isDigit)).split(" ").filter { it.isNotEmpty() && it !in ACCOUNT_WORDS }
         fun names(a: AccountBalanceEntity) = listOfNotNull(a.alias?.takeIf { it.isNotBlank() }, a.bankName).map(::norm)
+        fun nameWords(a: AccountBalanceEntity) = names(a).flatMap { it.split(" ") }.filter { it.isNotEmpty() && it !in ACCOUNT_WORDS }.toSet()
         fun endsIn(a: AccountBalanceEntity) = digits.length >= 3 && a.accountLast4.endsWith(digits.takeLast(4))
         val tiers = listOf<(AccountBalanceEntity) -> Boolean>(
             { a ->
                 wanted == norm(a.displayLabel) || wanted == norm(AccountBalanceEntity.accountLabel(a.bankName, a.accountLast4)) ||
                     wanted == norm("${a.bankName} ${a.accountLast4}")
             },
-            // "sbi card 1234": the digits, and a word of its name.
-            { a -> endsIn(a) && words.any { w -> names(a).any { w in it.split(" ") } } },
-            // "card 1234", "1234": the digits alone, unless they came with a name no account has.
+            // "sbi card 1234": the digits, and every word of a name given is one of its own.
             // "HDFC 1234" isn't SBI's card ending 1234, nor another one when HDFC's is ignored.
-            { a -> endsIn(a) && words.all { it in ACCOUNT_WORDS } },
-            { a -> digits.isEmpty() && names(a).any { it == wanted || it.startsWith(wanted) } },
+            { a -> endsIn(a) && words.isNotEmpty() && nameWords(a).containsAll(words) },
+            // "card 1234", "1234": the digits alone, when no name came with them.
+            { a -> endsIn(a) && words.isEmpty() },
+            // "hdfc", "HDFC bank": the bank or alias alone, read past its generic words.
+            { a -> digits.isEmpty() && words.isNotEmpty() && names(a).any { it == wanted || it.startsWith(wanted) || nameWords(a).containsAll(words) } },
         )
         for (tier in tiers) {
             val hits = accounts.filter(tier).distinctBy { SpendingFilter.accountKey(it) }

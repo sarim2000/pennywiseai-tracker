@@ -20,6 +20,7 @@ import com.pennywiseai.tracker.domain.insights.budgetStatuses
 import com.pennywiseai.tracker.domain.spending.BudgetAlertTier
 import com.pennywiseai.tracker.domain.spending.MoneyAlertRules
 import com.pennywiseai.tracker.presentation.home.homeBudgetSummary
+import com.pennywiseai.tracker.widget.budgetWidgetData
 import com.pennywiseai.tracker.worker.DailySummaryWorker
 import io.mockk.coEvery
 import io.mockk.every
@@ -45,7 +46,8 @@ import java.time.YearMonth
 
 /**
  * Every figure a rolled-over budget feeds (the Budgets screen in both currency
- * modes, Home, Budget History) gets the same carry from last week.
+ * modes, Home, the widget, alerts, the digest, Insights, Budget History) gets
+ * the same carry from last week.
  */
 class BudgetRolloverRoutingTest {
 
@@ -142,6 +144,11 @@ class BudgetRolloverRoutingTest {
         assertFigures(summary(repo, unified = false), carry = "40", limit = "140", remaining = "110")
         assertFigures(summary(repo, unified = true), carry = "40", limit = "140", remaining = "110")
         assertFigures(home(repo), carry = "40", limit = "140", remaining = "110")
+        for (unified in listOf(false, true)) {
+            val widget = budgetWidgetData(overall(repo, unified), overall(repo, unified))
+            assertEquals(0, BigDecimal("140").compareTo(widget.totalLimit))
+            assertEquals(0, BigDecimal("110").compareTo(widget.remaining))
+        }
     }
 
     @Test

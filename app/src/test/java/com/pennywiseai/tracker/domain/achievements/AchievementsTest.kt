@@ -246,6 +246,7 @@ class AchievementsTest {
         created: String = "2026-01-01",
         weeks: List<String> = emptyList(),
         window: BudgetWindow = october,
+        windowDays: Int = window.days,
     ) = BudgetGroupSpending(
         group = BudgetWithCategories(
             BudgetEntity(
@@ -256,7 +257,7 @@ class AchievementsTest {
         ),
         categorySpending = emptyList(), totalBudget = bd(budget), totalActual = bd(actual), remaining = BigDecimal.ZERO,
         percentageUsed = 0f, dailyAllowance = BigDecimal.ZERO, daysRemaining = 0, daysElapsed = 0,
-        windowStart = window.start, windowEnd = window.end, windowDays = window.days,
+        windowStart = window.start, windowEnd = window.end, windowDays = windowDays,
         previousWindows = weeks.map { PastWindowSpending(october, bd(it)) },
     )
 
@@ -311,6 +312,13 @@ class AchievementsTest {
         assertEquals(false, budgetMonthOf(weekly, october.end, trackedInOctober).kept)
         val kept = october(limit("100", "60", weeks = listOf("90", "100", "70")))
         assertEquals(true, budgetMonthOf(kept, october.end, trackedInOctober).kept)
+    }
+
+    @Test
+    fun `a one-time limit that already ended doesn't judge a later month`() {
+        // The repository keeps its amount but gives it no window in October.
+        assertNull(budgetMonthOf(october(limit("100", "0", windowDays = 0)), october.end, trackedInOctober).kept)
+        assertEquals(false, budgetMonthOf(october(limit("100", "0", windowDays = 0), limit("50", "60")), october.end, trackedInOctober).kept)
     }
 
     @Test

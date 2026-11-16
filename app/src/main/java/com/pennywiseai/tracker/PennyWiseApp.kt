@@ -34,7 +34,6 @@ import com.pennywiseai.tracker.navigation.Home
 import com.pennywiseai.tracker.navigation.OnBoarding
 import com.pennywiseai.tracker.navigation.PennyWiseNavHost
 import com.pennywiseai.tracker.navigation.navigate
-import com.pennywiseai.tracker.navigation.replaceLast
 import com.pennywiseai.tracker.presentation.applock.AppLockViewModel
 import com.pennywiseai.tracker.ui.ShakeToHideAmounts
 import com.pennywiseai.tracker.ui.theme.PennyWiseTheme
@@ -180,6 +179,7 @@ fun PennyWiseApp(
         }
         onWidgetDestinationHandled?.invoke()
     }
+    var toldChatWaits by remember(openChat) { mutableStateOf(false) }
     NavigateWhenUnlocked(
         request = openChat,
         onboarded = themeUiState.hasCompletedOnboarding,
@@ -188,9 +188,14 @@ fun PennyWiseApp(
         refreshLock = actualAppLockViewModel::refreshLockState,
         showLockScreen = showLockScreen,
     ) {
-        // Chat is a tab: back to Home, which switches to it (MainScreen).
-        backStack.replaceLast(Home) { it == Home }
-        onOpenChatHandled?.invoke()
+        // Chat is a tab on Home, which switches to it (MainScreen). Only from Home itself:
+        // a screen above it (an unsaved edit) stays, and this waits until the user is back.
+        if (backStack.lastOrNull() == Home) {
+            onOpenChatHandled?.invoke()
+        } else if (!toldChatWaits) {
+            toldChatWaits = true
+            android.widget.Toast.makeText(context, R.string.chat_draft_after_screen, android.widget.Toast.LENGTH_LONG).show()
+        }
     }
 
     // Shake to hide / show amounts (opt-in in Settings), only while unlocked: a shake

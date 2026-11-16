@@ -13,12 +13,16 @@ import com.pennywiseai.tracker.domain.review.CycleTotal
 import com.pennywiseai.tracker.domain.review.ReviewRange
 import com.pennywiseai.tracker.utils.Money
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 import javax.inject.Inject
 
 /** One currency's page: amounts in different currencies never share a screen. */
@@ -66,7 +70,14 @@ class InsightsViewModel @Inject constructor(
     private val savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
-    private val snapshot = loader.observe()
+    /**
+     * Home keeps this ViewModel for days: moved on by [refreshDate] on resume, so the
+     * cycle, the bills window and budget pace follow the calendar, as Home's figures do.
+     */
+    private val today = MutableStateFlow(LocalDate.now())
+
+    @OptIn(ExperimentalCoroutinesApi::class)
+    private val snapshot = today.flatMapLatest { loader.observe(it) }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** Null while loading. */
@@ -79,6 +90,11 @@ class InsightsViewModel @Inject constructor(
     val top: StateFlow<List<Insight>> = snapshot
         .map { it?.active?.take(HOME_COUNT).orEmpty() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
+    /** Called on resume; a new day reloads, the same day does nothing. */
+    fun refreshDate() {
+        today.value = LocalDate.now()
+    }
 
     fun selectCurrency(currency: String) {
         savedStateHandle[KEY_CURRENCY] = currency

@@ -219,6 +219,7 @@ fun HomeScreen(
     // A new day moves the forecast and Safe to spend on, even with no data change.
     androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
         viewModel.refreshDate()
+        insightsViewModel.refreshDate()
         onPauseOrDispose { }
     }
 

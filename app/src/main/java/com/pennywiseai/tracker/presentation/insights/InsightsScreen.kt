@@ -64,6 +64,7 @@ import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.domain.insights.Insight
@@ -105,6 +106,10 @@ fun InsightsScreen(
     val scope = rememberCoroutineScope()
     val dismissedMessage = stringResource(R.string.insights_dismissed)
     val undoLabel = stringResource(R.string.insights_undo)
+    LifecycleResumeEffect(Unit) {
+        viewModel.refreshDate()
+        onPauseOrDispose { }
+    }
 
     PennyWiseScaffold(
         title = stringResource(R.string.insights_title),

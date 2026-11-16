@@ -15,8 +15,6 @@
     <string name="achievements_tier">Tier %1$d of %2$d</string>
     <!-- %1$s = a date -->
     <string name="achievements_earned_on">Earned %1$s</string>
-    <!-- %1$s = what the next tier asks for, e.g. "1,000 transactions tracked" -->
-    <string name="achievements_next">Next: %1$s</string>
     <!-- Progress toward a tier. %1$s = where you are, %2$s = what it takes, e.g. "120 / 500" -->
     <string name="achievements_progress">%1$s / %2$s</string>
 

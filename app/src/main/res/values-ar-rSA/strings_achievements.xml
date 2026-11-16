@@ -10,7 +10,6 @@
     <string name="achievements_section_locked">لم تتحقق بعد</string>
     <string name="achievements_tier">المستوى %1$d من %2$d</string>
     <string name="achievements_earned_on">تحقق في %1$s</string>
-    <string name="achievements_next">التالي: %1$s</string>
     <string name="achievements_progress">%1$s من %2$s</string>
 
     <string name="achievement_tracked_name">المحاسب الدقيق</string>

@@ -293,6 +293,9 @@ fun MainScreen(
                 onNavigateToShareStudio = {
                     openRoot(ShareStudio())
                 },
+                onNavigateToAchievements = {
+                    openRoot(Achievements)
+                },
                 onNavigateToSubscriptions = {
                     open(tab, Subscriptions)
                 },

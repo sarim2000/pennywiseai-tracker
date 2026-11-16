@@ -546,7 +546,10 @@ class LlmRepository @Inject constructor(
                     // The figure matched the rows' category in any case; the list matches exactly,
                     // so a name the category list doesn't spell would open on nothing.
                     if (category == null || known != null) turnLinks += comparisonLinks(result, category)
-                    comparisonText(result.alsoTrend(), category)
+                    comparisonText(result.alsoTrend(), category) +
+                        (result as? SpendingComparison.Result.Rows)?.takeIf { known != null }?.let {
+                            refundNote(it.currentRefunded, it.current) + refundNote(it.previousRefunded, it.previous)
+                        }.orEmpty()
                 }
             }
         }
@@ -609,7 +612,7 @@ class LlmRepository @Inject constructor(
                     // Only for a name the category list spells: the figure matched the rows in any
                     // case, the list matches exactly, and "uber" would open on nothing.
                     if (category != null) turnLinks += linksTo(spend.scope.window, category, spend.byCurrency.keys)
-                }
+                }.let { if (category == null) it else it + refundNote(spend.refunded, spend.scope.window) }
             }
         }
         else -> null
@@ -699,6 +702,13 @@ class LlmRepository @Inject constructor(
     private fun addLinks(messageId: String, links: List<ChatLink>) {
         if (links.isNotEmpty()) _links.update { it + (messageId to links.toList()) }
     }
+
+    /**
+     * A line under a category's figure for the refunds it took off in [window]: they're rows of
+     * their own category, so the list its link opens adds up to more. Empty when there were none.
+     */
+    private suspend fun refundNote(refunded: Map<String, BigDecimal>, window: SpendingComparison.Window): String =
+        if (refunded.isEmpty()) "" else "\n" + context.getString(R.string.chat_reply_refunds_taken_off, range(window), amounts(refunded))
 
     /** The transactions behind a month's spending and income; forgiven loans have none. */
     private suspend fun spendingLinks(p: PeriodSpending) = linksTo(p.scope.window, null, p.spent.keys + p.income.keys)

@@ -364,6 +364,7 @@
     <string name="chat_reply_forgiven_loans">قروض متنازَل عنها: %1$s</string>
     <string name="chat_reply_received">المبالغ المستلَمة: %1$s</string>
     <string name="chat_reply_received_nothing">لم تستلم أي مبالغ</string>
+    <string name="chat_reply_refunds_taken_off">المبالغ المستردة المخصومة (%1$s): %2$s. تظهر في القائمة تحت فئتها الخاصة.</string>
     <plurals name="chat_reply_transaction_count">
         <item quantity="zero">لا معاملات</item>
         <item quantity="one">%1$d معاملة</item>

@@ -43,6 +43,9 @@ object SpendingComparison {
             val rows: List<Row>,
             val currentSpentIn: Set<String> = rows.filter { it.current.signum() > 0 }.mapTo(mutableSetOf()) { it.currency },
             val previousSpentIn: Set<String> = rows.filter { it.previous.signum() > 0 }.mapTo(mutableSetOf()) { it.currency },
+            /** A category's refunds each window took off its figure: its list doesn't hold them. */
+            val currentRefunded: Map<String, BigDecimal> = emptyMap(),
+            val previousRefunded: Map<String, BigDecimal> = emptyMap(),
             override val profile: ProfileEntity? = null,
         ) : Result
         /** No transactions at all in [missing]: the app can't tell "spent nothing" from "wasn't tracking". */
@@ -101,7 +104,9 @@ object SpendingComparison {
             val p = before[currency] ?: BigDecimal.ZERO
             Row(currency, c, p, change(c, p))
         }
-        return Result.Rows(cw, pw, rows, spentNow.keys, spentBefore.keys)
+        val refundedNow = categories?.let { refundedTo(current, it).filterKeys { c -> c in spentNow } }.orEmpty()
+        val refundedBefore = categories?.let { refundedTo(previous, it).filterKeys { c -> c in spentBefore } }.orEmpty()
+        return Result.Rows(cw, pw, rows, spentNow.keys, spentBefore.keys, refundedNow, refundedBefore)
     }
 
     /**
@@ -144,10 +149,17 @@ object SpendingComparison {
                 .filterKeys { it in spentIn }
                 .mapValues { it.value.expenses }
         }
-        val refunded = refunds(rows).filter { categories.includes(it.second) }
-            .groupBy({ it.first }, { it.third }).mapValues { (_, a) -> a.fold(BigDecimal.ZERO, BigDecimal::add) }
+        val refunded = refundedTo(rows, categories)
         return grossSpend(rows, categories, creditAsExpense).mapValues { (currency, gross) -> (gross - (refunded[currency] ?: BigDecimal.ZERO)).max(BigDecimal.ZERO) }
     }
+
+    /**
+     * Refunds given back to [categories], per currency: [spend] takes them off. They're rows of
+     * their own category, so the category's transaction list doesn't hold them.
+     */
+    fun refundedTo(rows: List<TransactionWithSplits>, categories: Set<String>): Map<String, BigDecimal> =
+        refunds(rows).filter { categories.includes(it.second) }
+            .groupBy({ it.first }, { it.third }).mapValues { (_, a) -> a.fold(BigDecimal.ZERO, BigDecimal::add) }
 
     /** How many spending transactions [spend] counted for [categories]: a split row once. */
     fun transactionsIn(rows: List<TransactionWithSplits>, categories: Set<String>, creditAsExpense: Boolean = true): Int =

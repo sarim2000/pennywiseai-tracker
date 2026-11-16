@@ -44,6 +44,8 @@ data class CategorySpend(
     val byCurrency: Map<String, BigDecimal>,
     val transactionCount: Int,
     val share: Float? = null,
+    /** Refunds taken off [byCurrency], in its currencies: its transaction list doesn't hold them. */
+    val refunded: Map<String, BigDecimal> = emptyMap(),
 )
 
 /** Each currency's biggest categories in [scope]; [forgiven] loans are listed apart, never as a category. */

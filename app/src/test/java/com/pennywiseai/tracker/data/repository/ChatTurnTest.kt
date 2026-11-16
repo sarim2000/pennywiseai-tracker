@@ -675,6 +675,27 @@ class ChatTurnTest {
         assertEquals(listOf("SEE طعام", "SEE Hobbies", "SEE"), repository.links.value[saved.last().id]?.map { it.label })
     }
 
+    @Test
+    fun `a category figure that took refunds off says so, since its list doesn't hold them`() = runTest {
+        every { context.getString(R.string.chat_reply_refunds_taken_off, any(), any()) } answers { "REFUNDED ${(args[1] as Array<*>)[1]}" }
+        coEvery { aiContext.categorySpending(any(), any()) } returns spent("120").copy(category = "طعام", refunded = mapOf("INR" to BigDecimal("30")))
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "طعام")))
+        assertEquals("SPEND\nREFUNDED ₹30", send("how much on food?"))
+
+        // No refunds, no line.
+        coEvery { aiContext.categorySpending(any(), any()) } returns spent("120").copy(category = "طعام")
+        assertEquals("SPEND", send("how much on food?"))
+
+        // A category comparison notes each period's refunds.
+        val w = SpendingComparison.Window(LocalDateTime.of(2026, 11, 1, 0, 0), LocalDateTime.of(2026, 11, 16, 23, 59))
+        coEvery { aiContext.compareSpending(any(), "طعام", any(), any()) } returns SpendingComparison.Result.Rows(
+            w, w, listOf(SpendingComparison.Row("INR", BigDecimal("90"), BigDecimal("100"), BigDecimal("-10"))),
+            previousRefunded = mapOf("INR" to BigDecimal("5"))
+        )
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "طعام")))
+        assertTrue(send("food this month vs last month?").endsWith("\nREFUNDED ₹5"))
+    }
+
     /** A category lookup's result: nothing spent, or [inr] rupees. */
     private fun spent(inr: String? = null) = com.pennywiseai.tracker.data.model.CategorySpend(
         com.pennywiseai.tracker.data.model.ChatScope(SpendingComparison.Window(LocalDateTime.of(2026, 11, 1, 0, 0), LocalDateTime.of(2026, 11, 16, 23, 59))),

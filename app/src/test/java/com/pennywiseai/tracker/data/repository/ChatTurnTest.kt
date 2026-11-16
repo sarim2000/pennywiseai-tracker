@@ -7,8 +7,11 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.ChatMessage
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
+import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.model.BillsDue
+import com.pennywiseai.tracker.data.model.BudgetStatus
 import com.pennywiseai.tracker.data.model.ChatLink
 import com.pennywiseai.tracker.data.model.ChatScope
 import com.pennywiseai.tracker.data.model.PendingChatAction
@@ -86,6 +89,7 @@ class ChatTurnTest {
     }
     private val transactions = mockk<TransactionRepository>(relaxed = true)
     private val accountBalances = mockk<AccountBalanceRepository>(relaxed = true)
+    private val planning = mockk<PlanningRepository>(relaxed = true)
     private val repository = LlmRepository(
         context = context,
         llmService = llmService,
@@ -96,7 +100,8 @@ class ChatTurnTest {
         categoryRepository = categories,
         accountBalanceRepository = accountBalances,
         transactionRepository = transactions,
-        ignoredAccountsStore = mockk(relaxed = true)
+        ignoredAccountsStore = mockk(relaxed = true),
+        planningRepository = planning,
     )
 
     private fun add(vararg amounts: Double) = LlmEvent.ToolCall(
@@ -1301,5 +1306,63 @@ class ChatTurnTest {
         // The biggest one's share: the mascot is a pie.
         assertEquals(0.6f, repository.lastReply.value?.share)
         assertEquals(PennyWiseTools.QUERY_SPENDING, repository.lastReply.value?.tool)
+    }
+
+    @Test
+    fun `budgets are each their own, in their own window and currency, never one sum`() = runTest {
+        every { context.getString(R.string.chat_reply_budgets_title) } returns "BUDGETS"
+        every { context.getString(R.string.chat_reply_budget_left, any(), any(), any(), any(), any()) } answers {
+            "LEFT " + (args[1] as Array<*>).joinToString("|")
+        }
+        every { context.getString(R.string.chat_reply_budget_over, any(), any(), any(), any(), any()) } answers {
+            "OVER " + (args[1] as Array<*>).joinToString("|")
+        }
+        coEvery { planning.budgets(any()) } returns listOf(
+            BudgetStatus("Food", "SAR", BigDecimal("2000"), BigDecimal("1500"), LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 30)),
+            BudgetStatus("Coffee", "SAR", BigDecimal("100"), BigDecimal("130"), LocalDate.of(2026, 11, 16), LocalDate.of(2026, 11, 22)),
+        )
+        events = listOf(LlmEvent.Text("You have SAR 470 left. "), LlmEvent.ToolCall(PennyWiseTools.PLANNING_STATUS, mapOf("kind" to "budgets")))
+        val reply = send("how much budget do I have left?")
+        val lines = reply.lines()
+        assertEquals("BUDGETS", lines[0])
+        assertTrue(lines[1], lines[1].startsWith("LEFT Food|1 Nov–30 Nov|") && lines[1].endsWith("500"))
+        assertTrue(lines[2], lines[2].startsWith("OVER Coffee|16 Nov–22 Nov|") && lines[2].endsWith("30"))
+        // The model's own sum never shows, and nothing adds the two windows together.
+        assertEquals(3, lines.size)
+        assertFalse(reply.contains("470"))
+        assertEquals(PennyWiseTools.PLANNING_STATUS, repository.lastReply.value?.tool)
+        assertTrue(saved.last().id.startsWith(LlmRepository.QUICK_ID))
+
+        every { context.getString(R.string.chat_reply_budgets_none) } returns "NO_BUDGETS"
+        coEvery { planning.budgets(any()) } returns emptyList()
+        assertEquals("NO_BUDGETS", send("budget?"))
+    }
+
+    @Test
+    fun `bills due say which are overdue, each in its own currency`() = runTest {
+        every { context.getString(R.string.chat_reply_bills_overdue) } returns "OVERDUE"
+        every { context.getString(R.string.chat_reply_bills_due, any()) } answers { "DUE ${(args[1] as Array<*>)[0]}" }
+        every { context.getString(R.string.chat_reply_bills_none, any()) } answers { "NONE ${(args[1] as Array<*>)[0]}" }
+        every { context.getString(R.string.chat_reply_planning_unknown) } returns "UNKNOWN"
+        fun bill(name: String, amount: String, currency: String, due: LocalDate) =
+            SubscriptionEntity(merchantName = name, amount = BigDecimal(amount), nextPaymentDate = due, currency = currency)
+        val through = LocalDate.of(2026, 11, 23)
+        coEvery { planning.billsDue(any(), any()) } returns BillsDue(
+            through,
+            overdue = listOf(bill("Rent", "3000", "SAR", LocalDate.of(2026, 11, 13))),
+            upcoming = listOf(bill("Netflix", "12", "USD", LocalDate.of(2026, 11, 18))),
+        )
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.PLANNING_STATUS, mapOf("kind" to "bills")))
+        val lines = send("what bills are due?").lines()
+        assertEquals("OVERDUE", lines[0])
+        assertTrue(lines[1], lines[1].startsWith("Rent · ") && lines[1].endsWith(" · 13 Nov") && "3,000" in lines[1])
+        assertEquals("DUE 23 Nov", lines[2])
+        assertTrue(lines[3], lines[3].startsWith("Netflix · ") && "$" in lines[3] && lines[3].endsWith(" · 18 Nov"))
+
+        coEvery { planning.billsDue(any(), any()) } returns BillsDue(through, emptyList(), emptyList())
+        assertEquals("NONE 23 Nov", send("any bills?"))
+        // A kind it doesn't know is said, not guessed.
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.PLANNING_STATUS, mapOf("kind" to "goals")))
+        assertEquals("UNKNOWN", send("how are my goals?"))
     }
 }

@@ -8,9 +8,12 @@ import com.pennywiseai.tracker.data.database.dao.ChatDao
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.ChatMessage
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
+import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.ledger.ConvertedEstimate
+import com.pennywiseai.tracker.data.model.BillsDue
+import com.pennywiseai.tracker.data.model.BudgetStatus
 import com.pennywiseai.tracker.data.model.ChatLink
 import com.pennywiseai.tracker.data.model.ChatMessageFacts
 import com.pennywiseai.tracker.data.model.ChatScope
@@ -67,7 +70,8 @@ class LlmRepository @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
     private val transactionRepository: TransactionRepository,
-    private val ignoredAccountsStore: IgnoredAccountsStore
+    private val ignoredAccountsStore: IgnoredAccountsStore,
+    private val planningRepository: PlanningRepository,
 ) {
 
     // A transaction the model proposed via the add_transaction tool (#170),
@@ -605,7 +609,49 @@ class LlmRepository @Inject constructor(
             }
         }
         PennyWiseTools.QUERY_SPENDING -> querySpending(call.arguments, userMessage)
+        PennyWiseTools.PLANNING_STATUS -> when (call.arguments["kind"]?.toString()?.trim()?.lowercase()?.removeSuffix("s")) {
+            "budget", "limit" -> budgetsText(planningRepository.budgets())
+            "bill", "subscription", "payment" -> billsText(planningRepository.billsDue())
+            else -> context.getString(R.string.chat_reply_planning_unknown)
+        }
         else -> null
+    }
+
+    /**
+     * Each spending limit live today on its own line, in its own window and currency: limits over
+     * different days have no shared "left", so none is made up.
+     */
+    private fun budgetsText(budgets: List<BudgetStatus>): String {
+        if (budgets.isEmpty()) return context.getString(R.string.chat_reply_budgets_none)
+        return buildList {
+            add(context.getString(R.string.chat_reply_budgets_title))
+            budgets.forEach { b ->
+                add(
+                    context.getString(
+                        if (b.remaining.signum() >= 0) R.string.chat_reply_budget_left else R.string.chat_reply_budget_over,
+                        b.name,
+                        range(SpendingComparison.Window(b.start.atStartOfDay(), b.end.atStartOfDay())),
+                        money(b.spent, b.currency),
+                        money(b.limit, b.currency),
+                        money(b.remaining.abs(), b.currency),
+                    )
+                )
+            }
+        }.joinToString("\n")
+    }
+
+    /** Overdue bills first, then those due by [BillsDue.through], each in its own currency. */
+    private fun billsText(bills: BillsDue): String {
+        val through = bills.through.format(DAY_MONTH)
+        if (bills.overdue.isEmpty() && bills.upcoming.isEmpty()) return context.getString(R.string.chat_reply_bills_none, through)
+        fun line(s: SubscriptionEntity) =
+            "${s.merchantName} · ${money(s.amount, s.currency)} · ${s.nextPaymentDate?.format(DAY_MONTH).orEmpty()}"
+        return buildList {
+            if (bills.overdue.isNotEmpty()) add(context.getString(R.string.chat_reply_bills_overdue))
+            bills.overdue.forEach { add(line(it)) }
+            if (bills.upcoming.isNotEmpty()) add(context.getString(R.string.chat_reply_bills_due, through))
+            bills.upcoming.forEach { add(line(it)) }
+        }.joinToString("\n")
     }
 
     /**
@@ -1038,6 +1084,7 @@ class LlmRepository @Inject constructor(
 
             When the user tells you about money they spent, paid, bought or received, call addTransactions. Use EXPENSE unless they clearly received money.
             When the user asks to compare spending with last month or last week, call compareSpending.
+            When the user asks about their budgets or bills due, call planningStatus.
             When the user asks how much they spent or received, in all, on a category, at a merchant or from an account, call querySpending with the period or dates they named. Never state a spending or income total yourself: only the tools have the figures.
             If the user refers to something already recorded — "the tea from today", "that uber", "change", "should be", "was actually", "delete", "remove" — call updateTransaction or deleteTransaction with the words they used to identify it. Never call addTransactions for those.
             Otherwise answer briefly and helpfully. Never invent transactions or figures, and never say you added, changed or deleted anything yourself — only the tools do that, and the user confirms each one.
@@ -1168,7 +1215,7 @@ class LlmRepository @Inject constructor(
         // change while the process lives (Arabic month names in an English reply, and back).
         private val DAY_MONTH get() = java.time.format.DateTimeFormatter.ofPattern("d MMM")
         // Answered with the app's figures alone.
-        private val LOOKUPS = setOf(PennyWiseTools.QUERY_SPENDING)
+        private val LOOKUPS = setOf(PennyWiseTools.QUERY_SPENDING, PennyWiseTools.PLANNING_STATUS)
         private val CARD_TOOLS = setOf(PennyWiseTools.ADD_TRANSACTIONS, PennyWiseTools.DELETE_TRANSACTION, PennyWiseTools.UPDATE_TRANSACTION)
         private const val TOOL_CALL_TAG = "<tool_call>"
         // Matched by ChatViewModel.sendErrorText: these exception messages are never shown.

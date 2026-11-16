@@ -358,6 +358,14 @@
     <string name="chat_reply_top_merchants">Top merchants, %1$s:</string>
     <string name="chat_reply_top_accounts">Top accounts, %1$s:</string>
     <string name="chat_group_no_account">No account</string>
+    <string name="chat_reply_planning_unknown">I can show how much is left of your budgets, or the bills due this week.</string>
+    <string name="chat_reply_budgets_title">Your budgets:</string>
+    <string name="chat_reply_budget_left">%1$s (%2$s): %3$s of %4$s spent, %5$s left</string>
+    <string name="chat_reply_budget_over">%1$s (%2$s): %3$s of %4$s spent, %5$s over</string>
+    <string name="chat_reply_budgets_none">No budget limits are running today. You can set one up in Budgets.</string>
+    <string name="chat_reply_bills_none">No bills due by %1$s.</string>
+    <string name="chat_reply_bills_overdue">Overdue:</string>
+    <string name="chat_reply_bills_due">Due by %1$s:</string>
     <string name="chat_reply_quick_nothing">Nothing spent in %1$s.</string>
     <string name="chat_reply_compare_title">Spending, %1$s vs %2$s:</string>
     <string name="chat_reply_compare_title_category">%1$s, %2$s vs %3$s:</string>

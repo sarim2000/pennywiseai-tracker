@@ -40,6 +40,11 @@ class PennyWiseTools : ToolSet {
         @ToolParam(description = "none for a total, or category, merchant or account for the biggest ones") groupBy: String
     ): String = ""
 
+    @Tool(description = "Look up the user's plans: how much is left of their budgets, or the bills due this week and any overdue.")
+    fun planningStatus(
+        @ToolParam(description = "budget or bills") kind: String
+    ): String = ""
+
     @Tool(description = "Compare the user's spending so far this month with last month, or this week with last week. The app works out the figures.")
     fun compareSpending(
         @ToolParam(description = "month or week") period: String,
@@ -50,6 +55,7 @@ class PennyWiseTools : ToolSet {
         const val COMPARE_SPENDING = "compare_spending"
         const val ADD_TRANSACTIONS = "add_transactions"
         const val QUERY_SPENDING = "query_spending"
+        const val PLANNING_STATUS = "planning_status"
         const val DELETE_TRANSACTION = "delete_transaction"
         const val UPDATE_TRANSACTION = "update_transaction"
     }

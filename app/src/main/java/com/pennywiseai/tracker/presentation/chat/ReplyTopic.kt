@@ -33,6 +33,7 @@ internal fun replyShape(tool: String?, share: Float? = null): MascotShape = when
     PennyWiseTools.ADD_TRANSACTIONS, PennyWiseTools.DELETE_TRANSACTION, PennyWiseTools.UPDATE_TRANSACTION -> MascotShape.Receipt
     PennyWiseTools.QUERY_SPENDING -> if (share != null) MascotShape.Pie else MascotShape.Coin
     PennyWiseTools.COMPARE_SPENDING -> MascotShape.Bars
+    PennyWiseTools.PLANNING_STATUS -> MascotShape.Gauge
     else -> MascotShape.Owl
 }
 

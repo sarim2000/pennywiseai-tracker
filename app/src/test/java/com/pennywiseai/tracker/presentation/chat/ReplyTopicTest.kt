@@ -20,7 +20,7 @@ class ReplyTopicTest {
 
     @Test
     fun `every tool maps to a shape of its own`() {
-        assertTrue(tools.size >= 5)
+        assertTrue(tools.size >= 6)
         tools.forEach { assertNotEquals(it, MascotShape.Owl, replyShape(it)) }
         assertEquals(MascotShape.Receipt, replyShape(PennyWiseTools.ADD_TRANSACTIONS))
         assertEquals(MascotShape.Receipt, replyShape(PennyWiseTools.DELETE_TRANSACTION))
@@ -28,6 +28,7 @@ class ReplyTopicTest {
         assertEquals(MascotShape.Coin, replyShape(PennyWiseTools.QUERY_SPENDING))
         assertEquals(MascotShape.Pie, replyShape(PennyWiseTools.QUERY_SPENDING, share = 0.3f))
         assertEquals(MascotShape.Bars, replyShape(PennyWiseTools.COMPARE_SPENDING))
+        assertEquals(MascotShape.Gauge, replyShape(PennyWiseTools.PLANNING_STATUS))
     }
 
     @Test

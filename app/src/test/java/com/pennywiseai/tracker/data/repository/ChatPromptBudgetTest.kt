@@ -41,6 +41,7 @@ class ChatPromptBudgetTest {
         // The date is the only number: every total comes from a tool, dated and per currency.
         assertFalse(Regex("\\d").containsMatchIn(p.replace("2026-10-21", "")))
         assertTrue(p.contains("call querySpending"))
+        assertTrue(p.contains("call planningStatus"))
     }
 
     @Test

@@ -79,6 +79,8 @@
 
     <!-- Budget over. %1$s = amount over, %2$s = budget name -->
     <string name="insights_budget_over_title">%1$s over your %2$s budget</string>
+    <!-- Budget limit reached with days still to go. %1$s = budget name -->
+    <string name="insights_budget_used_up_title">Your %1$s budget is used up</string>
     <!-- %1$s = spent, %2$s = budget limit -->
     <string name="insights_budget_over_body">You\'ve spent %1$s of %2$s.</string>
     <!-- Budget pace. %1$s = amount per day, %2$s = budget name -->

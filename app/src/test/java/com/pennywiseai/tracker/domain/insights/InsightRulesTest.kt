@@ -145,6 +145,25 @@ class InsightRulesTest {
     }
 
     @Test
+    fun `a fast start too early to warn still keeps its currency off on track, as in the score`() {
+        val budgets = listOf(budget(1, "1000", elapsed = 5), budget(2, "100", elapsed = 5))
+        assertTrue(evaluate(budgets = budgets).isEmpty())
+        val spends = (1..10).map { tx("2026-11-05", "1").transaction }
+        val score = PeriodScore.of("INR", BigDecimal("1000"), BigDecimal("500"), budgets, spends) { false }
+        assertEquals(1, score?.budgets?.onTrack)
+    }
+
+    @Test
+    fun `the limit reached with days to go is an alert, not nothing a day`() {
+        val reached = evaluate(budgets = listOf(budget(1, "3000"))).single()
+        assertEquals(InsightSeverity.ALERT, reached.severity)
+        assertTrue(reached.fact is BudgetOver)
+        // On the window's last day, spending exactly the limit is on budget.
+        val lastDay = evaluate(budgets = listOf(budget(1, "3000", elapsed = 30))).single()
+        assertEquals(BudgetsOnTrack(1), lastDay.fact)
+    }
+
+    @Test
     fun `budgets on track are said once per currency, never with an incomplete figure`() {
         val insights = evaluate(
             budgets = listOf(

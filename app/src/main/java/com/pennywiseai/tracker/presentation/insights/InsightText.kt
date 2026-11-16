@@ -25,11 +25,15 @@ internal data class InsightText(
 @Composable
 internal fun insightText(insight: Insight): InsightText = when (val f = insight.fact) {
     is InsightFact.BudgetOver -> InsightText(
-        title = stringResource(
-            R.string.insights_budget_over_title,
-            Money(f.spent.amount - f.limit.amount, f.spent.currency).format(),
-            f.name,
-        ),
+        title = if (f.spent.amount > f.limit.amount) {
+            stringResource(
+                R.string.insights_budget_over_title,
+                Money(f.spent.amount - f.limit.amount, f.spent.currency).format(),
+                f.name,
+            )
+        } else {
+            stringResource(R.string.insights_budget_used_up_title, f.name)
+        },
         body = stringResource(R.string.insights_budget_over_body, f.spent.format(), f.limit.format()),
         metrics = listOf(
             stringResource(R.string.insights_metric_spent) to f.spent.format(),

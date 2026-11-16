@@ -1,7 +1,6 @@
 package com.pennywiseai.tracker.domain.insights
 
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
-import com.pennywiseai.tracker.domain.spending.budgetPace
 import java.math.BigDecimal
 import java.math.RoundingMode
 
@@ -47,14 +46,9 @@ data class PeriodScore(
                 // Keeping a fifth of income is full marks; spending all of it or more is none.
                 Part.Savings(percent, (percent * 100 / FULL_SAVINGS_PERCENT).coerceIn(0, 100))
             }
-            val running = budgets.filter {
-                it.currency == currency && it.limit.signum() > 0 && it.daysElapsed in 1..it.windowDays
-            }
+            val running = budgets.filter { it.currency == currency && it.isRunning }
             val budgetPart = running.takeIf { it.isNotEmpty() }?.let { list ->
-                val onTrack = list.count { b ->
-                    budgetPace(b.spent, b.limit, b.daysElapsed, b.windowDays)
-                        ?.let { !it.isOverBudget && it.daysOver < 1 } == true
-                }
+                val onTrack = list.count { it.isOnTrack }
                 Part.Budgets(onTrack, list.size, onTrack * 100 / list.size)
             }
             if (savings == null && budgetPart == null) return null

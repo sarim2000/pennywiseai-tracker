@@ -40,7 +40,13 @@ data class BudgetStatus(
     val windowEnd: LocalDate,
     /** Some spending had no exchange rate, so [spent] reads low. */
     val incomplete: Boolean = false,
-)
+) {
+    val isRunning: Boolean get() = limit.signum() > 0 && daysElapsed in 1..windowDays
+
+    /** At or under an even pace, as the Budgets meter reads it: the rules and the score share this. */
+    val isOnTrack: Boolean
+        get() = budgetPace(spent, limit, daysElapsed, windowDays)?.let { !it.isOverBudget && it.daysOver < 1 } == true
+}
 
 /**
  * Everything the rules read. [review] is the current cycle with its detail, already
@@ -79,53 +85,51 @@ object InsightRules {
     }
 
     /**
-     * Over the limit, or on pace to pass it once a quarter of the window has gone
-     * (day-one rent isn't a trend). A currency whose budgets are all fine gets one
-     * "on track" line, unless a figure is incomplete.
+     * Over the limit (or at it with days to go), or on pace to pass it once a quarter
+     * of the window has gone (day-one rent isn't a trend). A currency whose budgets are
+     * all on track gets one "on track" line, unless a figure is incomplete.
      */
     internal fun budgets(budgets: List<BudgetStatus>, period: String): List<Insight> {
-        val running = budgets.filter { it.limit.signum() > 0 && it.daysElapsed in 1..it.windowDays }
+        val running = budgets.filter { it.isRunning }
         val flagged = running.mapNotNull { b ->
             val pace = budgetPace(b.spent, b.limit, b.daysElapsed, b.windowDays) ?: return@mapNotNull null
+            if (pace.daysOver < 1 && !pace.isOverBudget) return@mapNotNull null
             val spent = Money(b.spent, b.currency)
             val limit = Money(b.limit, b.currency)
             val action = InsightAction.OpenBudget(b.id)
+            val daysLeft = b.windowDays - b.daysElapsed + 1
+            // Rounded down, so following it never ends over.
+            val perDayLeft = (b.limit - b.spent).divide(BigDecimal(daysLeft), 2, RoundingMode.DOWN)
             when {
-                pace.isOverBudget -> Insight(
+                // Nothing left a day with days to go reads as over, not as "0 a day".
+                pace.isOverBudget || perDayLeft.signum() <= 0 -> Insight(
                     id("budget_over", period, b.currency, b.id), InsightSeverity.ALERT, b.currency,
                     BudgetOver(b.name, spent, limit, b.incomplete), action,
                 )
-                pace.daysOver >= 1 && b.daysElapsed * 4 >= b.windowDays -> {
-                    val daysLeft = b.windowDays - b.daysElapsed + 1
-                    Insight(
-                        id("budget_pace", period, b.currency, b.id), InsightSeverity.WARNING, b.currency,
-                        BudgetPace(
-                            name = b.name,
-                            spent = spent,
-                            limit = limit,
-                            projected = Money(
-                                b.spent.multiply(BigDecimal(b.windowDays))
-                                    .divide(BigDecimal(b.daysElapsed), 2, RoundingMode.HALF_UP),
-                                b.currency,
-                            ),
-                            // Rounded down, so following it never ends over.
-                            perDayLeft = Money(
-                                (b.limit - b.spent).divide(BigDecimal(daysLeft), 2, RoundingMode.DOWN),
-                                b.currency,
-                            ),
-                            windowEnd = b.windowEnd,
-                            incomplete = b.incomplete,
+                b.daysElapsed * 4 >= b.windowDays -> Insight(
+                    id("budget_pace", period, b.currency, b.id), InsightSeverity.WARNING, b.currency,
+                    BudgetPace(
+                        name = b.name,
+                        spent = spent,
+                        limit = limit,
+                        projected = Money(
+                            b.spent.multiply(BigDecimal(b.windowDays))
+                                .divide(BigDecimal(b.daysElapsed), 2, RoundingMode.HALF_UP),
+                            b.currency,
                         ),
-                        action,
-                    )
-                }
+                        perDayLeft = Money(perDayLeft, b.currency),
+                        windowEnd = b.windowEnd,
+                        incomplete = b.incomplete,
+                    ),
+                    action,
+                )
                 else -> null
             }
         }.sortedByDescending { it.usedShare() }
 
-        val flaggedCurrencies = flagged.map { it.currency }.toSet()
+        // Only when every budget passes the score's test, early fast starts included.
         val onTrack = running.groupBy { it.currency }
-            .filter { (currency, list) -> currency !in flaggedCurrencies && list.none { it.incomplete } }
+            .filter { (_, list) -> list.all { it.isOnTrack && !it.incomplete } }
             .map { (currency, list) ->
                 Insight(
                     id("budgets_on_track", period, currency, "all"), InsightSeverity.GOOD, currency,

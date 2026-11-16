@@ -97,9 +97,10 @@ fun ChatScreen(
     var inputText by rememberSaveable { mutableStateOf("") }
     val voice = rememberVoiceInput(onText = { inputText = it })
     // A question from the quick add mic lands in the box, not sent, once the box is there:
-    // with no model it waits, shown below.
+    // with no model it waits, shown below. READY only: LOADING is also the state Chat
+    // starts in before the model is checked, and with no model the box never comes.
     val chatDraft by viewModel.chatDraft.collectAsStateWithLifecycle()
-    val composerShown = modelState == ModelState.READY || modelState == ModelState.LOADING
+    val composerShown = modelState == ModelState.READY
     LaunchedEffect(chatDraft, composerShown) {
         val draft = chatDraft ?: return@LaunchedEffect
         if (!composerShown) return@LaunchedEffect

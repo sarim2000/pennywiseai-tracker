@@ -72,6 +72,20 @@ class BalanceAnchorTest {
     }
 
     @Test
+    fun `a statement on a manual account isn't claimed as the statement's figure`() = runBlocking {
+        coEvery { balanceDao.getOpeningRow(BANK, ACCT) } returns row("OPENING")
+        coEvery { balanceDao.getManualCurrentRow(BANK, ACCT) } returns row("MANUAL")
+
+        // The import passes today's balance shifted by the statement's difference.
+        repo.setCurrentBalance(BANK, ACCT, BigDecimal("950"), statementEnd, AccountBalanceRepository.ANCHOR_STATEMENT)
+
+        val at = slot<LocalDateTime>()
+        coVerify { balanceDao.setAnchor(BANK, ACCT, BigDecimal("950"), capture(at), "MANUAL") }
+        coVerify(exactly = 0) { balanceDao.setAnchor(any(), any(), any(), any(), "STATEMENT") }
+        assertTrue(at.captured.isAfter(statementEnd))
+    }
+
+    @Test
     fun `a new manual account starts anchored to its opening balance`() = runBlocking {
         val inserted = mutableListOf<AccountBalanceEntity>()
         coEvery { balanceDao.insertBalance(capture(inserted)) } returns 1L

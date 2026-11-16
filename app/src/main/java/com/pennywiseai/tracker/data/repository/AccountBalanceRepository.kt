@@ -894,7 +894,9 @@ open class AccountBalanceRepository @Inject constructor(
     ) {
         if (isManualAccount(bankName, accountLast4)) {
             setManualCurrentBalance(bankName, accountLast4, newBalance)
-            setAnchor(bankName, accountLast4, newBalance, LocalDateTime.now(), anchorSource)
+            // Today's figure, shifted to agree with any statement: neither its amount nor
+            // its date is the statement's, so it's never claimed as one.
+            setAnchor(bankName, accountLast4, newBalance, LocalDateTime.now(), ANCHOR_ENTERED)
             return
         }
         val latestBalance = getLatestBalance(bankName, accountLast4)

@@ -12,6 +12,7 @@ import com.pennywiseai.tracker.data.share.SharedLink
 import com.pennywiseai.tracker.data.share.live
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -80,16 +81,19 @@ class ShareLinksViewModel @Inject constructor(
             _publish.value = try {
                 val png = withContext(Dispatchers.Default) { og.toOgPng() }
                 val snapshot = ShareSnapshot.encode(content.toSnapshot(theme, locale, expiry))
-                val created = client.publish(snapshot, png)
-                val link = SharedLink(
-                    id = created.id,
-                    url = created.url,
-                    deleteToken = created.deleteToken,
-                    expiresAt = created.expiresAt,
-                    title = content.title,
-                    kind = content.kind.name,
-                )
-                store.add(link)
+                // Once sent, finished even if the screen is left: a page the server made
+                // but whose delete key was never saved could not be taken down from here.
+                val link = withContext(NonCancellable) {
+                    val created = client.publish(snapshot, png)
+                    SharedLink(
+                        id = created.id,
+                        url = created.url,
+                        deleteToken = created.deleteToken,
+                        expiresAt = created.expiresAt,
+                        title = content.title,
+                        kind = content.kind.name,
+                    ).also { store.add(it) }
+                }
                 PublishState.Published(link)
             } catch (e: ShareLinkError) {
                 PublishState.Failed(e)

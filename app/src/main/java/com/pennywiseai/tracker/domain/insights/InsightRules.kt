@@ -246,8 +246,8 @@ object InsightRules {
 
     /**
      * A spend this cycle over [LARGE_TIMES] times its category's median across the loaded
-     * cycles, once the category has [MIN_SAMPLES] rows. Known subscriptions are expected,
-     * and split rows span categories, so neither counts.
+     * cycles, once the category has [MIN_SAMPLES] rows. Known subscriptions and rows
+     * marked recurring are expected, and split rows span categories, so none counts.
      */
     internal fun largeTransactions(
         review: PeriodReview,
@@ -264,6 +264,7 @@ object InsightRules {
                 group.filter { tx ->
                     tx.dateTime.toLocalDate() in review.range.start..review.range.end &&
                         tx.amount > median.multiply(BigDecimal(LARGE_TIMES)) &&
+                        !tx.isRecurring &&
                         subscriptions.none { it.currency == currency && RecurringCharge.sameMerchant(it.merchantName, tx.merchantName) }
                 }.map { tx ->
                     Insight(

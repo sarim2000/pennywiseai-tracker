@@ -42,11 +42,12 @@ class InsightRulesTest {
         currency: String = "INR",
         category: String = "Food",
         merchant: String = "Shop",
+        recurring: Boolean = false,
     ) = TransactionWithSplits(
         TransactionEntity(
             id = nextId, amount = BigDecimal(amount), merchantName = merchant, category = category,
             transactionType = type, dateTime = LocalDate.parse(date).atTime(12, 0), currency = currency,
-            transactionHash = "h${nextId++}",
+            transactionHash = "h${nextId++}", isRecurring = recurring,
         ),
         emptyList()
     )
@@ -275,6 +276,12 @@ class InsightRulesTest {
             rows = usualFood + tx("2026-11-12", "450", merchant = "Streamer"),
             subscriptions = listOf(subscription(1, "450", "2026-12-12")),
         )
+        assertTrue(insights.facts<LargeTransaction>().isEmpty())
+    }
+
+    @Test
+    fun `a charge marked recurring is not unusual`() {
+        val insights = evaluate(rows = usualFood + tx("2026-11-12", "450", merchant = "Insurer", recurring = true))
         assertTrue(insights.facts<LargeTransaction>().isEmpty())
     }
 

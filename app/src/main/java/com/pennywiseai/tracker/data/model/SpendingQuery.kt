@@ -154,11 +154,13 @@ object SpendingQuery {
 
     // And just after it: "October onwards", "October till now", "أكتوبر وحتى اليوم".
     private val NOT_THE_MONTH_AFTER = setOf(
-        "onward", "onwards", "since", "until", "till", "til", "untill", "upto", "through", "thru", "حتى", "لغاية", "لحد",
+        "onward", "onwards", "since", "until", "till", "til", "untill", "upto", "حتى", "لغاية", "لحد",
     )
 
-    // "to" and "إلى" only reach a day ("October to date"): "paid in October to the landlord" is October.
+    // "to" and "through" only when they reach a day ("October to date", "October through 15th"):
+    // "paid in October to the landlord" and "October through my card" are October.
     private val TO = setOf("to", "إلى", "الى")
+    private val THROUGH = setOf("through", "thru")
     private val NOW = setOf("now", "today", "date", "الآن", "الان", "يوم", "هالحين")
 
     // "last November", "نوفمبر الماضي": in November, last year's.
@@ -200,7 +202,8 @@ object SpendingQuery {
         val otherDays = before.any { w -> w.any { it.any(NOT_THE_MONTH_BEFORE::contains) } } ||
             after.any { w ->
                 w.firstOrNull()?.any(NOT_THE_MONTH_AFTER::contains) == true ||
-                    (w.firstOrNull()?.any(TO::contains) == true && w.getOrNull(1)?.any(NOW::contains) == true)
+                    (w.firstOrNull()?.any(TO::contains) == true && w.getOrNull(1)?.any(NOW::contains) == true) ||
+                    (w.firstOrNull()?.any(THROUGH::contains) == true && w.getOrNull(1)?.any { it in NOW || it.first().isDigit() } == true)
             }
         if (otherDays) return Dates.Invalid(Problem.PERIOD, message.trim())
         val last = before.any { w -> w.lastOrNull()?.any(LAST_BEFORE::contains) == true } ||

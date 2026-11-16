@@ -179,6 +179,8 @@ class SpendingQueryTest {
             "spending up to October",
             "October till today",
             "October to date",
+            "October through today",
+            "October through 15th",
             "October onwards",
             "how much at the end of October?",
             "mid-October spending",
@@ -190,6 +192,7 @@ class SpendingQueryTest {
         // A word that only sits beside it is no other days.
         assertEquals(window(day(10, 1), day(10, 31)), month("how much did I pay in October to the landlord?"))
         assertEquals(window(day(10, 1), day(10, 31)), month("how much did I top up in October?"))
+        assertEquals(window(day(10, 1), day(10, 31)), month("How much did I spend in October through my   card?"))
         assertEquals(window(day(10, 1), day(10, 31)), month("كم صرفت من راتبي في أكتوبر؟"))
     }
 

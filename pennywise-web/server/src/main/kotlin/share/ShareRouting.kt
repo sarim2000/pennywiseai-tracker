@@ -13,19 +13,24 @@ import io.ktor.server.response.*
 import io.ktor.server.routing.*
 import io.ktor.utils.io.*
 import kotlinx.io.readByteArray
+import java.time.Instant
 
 /** Whole multipart body, snapshot and image together: 1.5 MiB. */
 const val MAX_SHARE_BODY_BYTES = 1_572_864L
 
-private const val PAGE_CACHE = "public, max-age=300"
-
 /**
- * Same short lifetime as the page. The image carries the publisher's numbers, and a delete
- * can only purge the edge cache in one data centre, so a long max-age would keep a deleted
- * image public elsewhere for that long. Crawlers fetch it seconds after the page, so a
- * longer cache buys nothing.
+ * Five minutes for the page and the image alike. The image carries the publisher's numbers,
+ * and a delete can only purge the edge cache in one data centre, so a long max-age would
+ * keep a deleted image public elsewhere for that long. Crawlers fetch it seconds after the
+ * page, so a longer cache buys nothing. Cut to the share's remaining lifetime, so no cache
+ * (the Worker's edge copy included) serves it past its expiry.
  */
-private const val OG_CACHE = PAGE_CACHE
+private const val SHARE_CACHE_SECONDS = 300L
+
+private fun ApplicationCall.cacheUntilExpiry(service: ShareService, expiresAt: Instant?) {
+    val seconds = service.cacheSeconds(expiresAt, SHARE_CACHE_SECONDS)
+    response.header(HttpHeaders.CacheControl, if (seconds == null) "no-store" else "public, max-age=$seconds")
+}
 
 fun Application.configureShares(service: ShareService) {
     routing {
@@ -71,7 +76,7 @@ fun Application.configureShares(service: ShareService) {
             call.response.header("X-Robots-Tag", "noindex")
             when (val found = service.snapshot(id)) {
                 is ShareService.Lookup.Found -> {
-                    call.response.header(HttpHeaders.CacheControl, PAGE_CACHE)
+                    call.cacheUntilExpiry(service, found.expiresAt)
                     call.response.header("Content-Security-Policy", ShareViews.CONTENT_SECURITY_POLICY)
                     call.response.header("Referrer-Policy", "same-origin")
                     call.respondSharePage(id, found.value)
@@ -85,7 +90,7 @@ fun Application.configureShares(service: ShareService) {
             call.response.header("X-Robots-Tag", "noindex")
             when (val found = service.ogPng(call.parameters["id"].orEmpty())) {
                 is ShareService.Lookup.Found -> {
-                    call.response.header(HttpHeaders.CacheControl, OG_CACHE)
+                    call.cacheUntilExpiry(service, found.expiresAt)
                     call.respondBytes(found.value, ContentType.Image.PNG)
                 }
                 ShareService.Lookup.NotFound -> {

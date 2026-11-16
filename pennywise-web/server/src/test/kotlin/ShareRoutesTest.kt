@@ -244,6 +244,18 @@ class ShareRoutesTest {
     }
 
     @Test
+    fun `cache lifetime never runs past the share's expiry`() = shareApp {
+        val (id, _) = publishOk(snapshot(expires = "7"))
+        clock.now = clock.now.plus(Duration.ofDays(7)).minusSeconds(120)
+        assertEquals("public, max-age=120", client.get("/s/$id").headers[HttpHeaders.CacheControl])
+        assertEquals("public, max-age=120", client.get("/s/$id/og.png").headers[HttpHeaders.CacheControl])
+        // A never-expiring share keeps the full five minutes.
+        val (forever, _) = publishOk(snapshot(expires = "null"))
+        assertEquals("public, max-age=300", client.get("/s/$forever").headers[HttpHeaders.CacheControl])
+        assertEquals("public, max-age=300", client.get("/s/$forever/og.png").headers[HttpHeaders.CacheControl])
+    }
+
+    @Test
     fun `invalid uploads are rejected with a reason`() = shareApp {
         fun reason(res: String) = Json.parseToJsonElement(res).jsonObject["error"]!!.jsonPrimitive.content
         val cases = listOf(

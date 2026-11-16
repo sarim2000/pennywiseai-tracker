@@ -151,6 +151,16 @@ class ShareService(
 
     enum class DeleteResult { DELETED, FORBIDDEN, NOT_FOUND }
 
+    /**
+     * Cache lifetime for a share's page or image: [maxSeconds], cut to the whole seconds the
+     * share has left. Null when under a second is left, so nothing should cache it.
+     */
+    fun cacheSeconds(expiresAt: Instant?, maxSeconds: Long): Long? {
+        if (expiresAt == null) return maxSeconds
+        val left = Duration.between(clock.instant(), expiresAt).seconds
+        return if (left < 1) null else minOf(left, maxSeconds)
+    }
+
     private fun now(): Instant = clock.instant().truncatedTo(ChronoUnit.SECONDS)
     private fun Instant.toOffset(): OffsetDateTime = OffsetDateTime.ofInstant(this, ZoneOffset.UTC)
 

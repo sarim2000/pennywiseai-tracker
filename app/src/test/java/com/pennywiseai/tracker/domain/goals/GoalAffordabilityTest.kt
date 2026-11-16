@@ -1,11 +1,17 @@
 package com.pennywiseai.tracker.domain.goals
 
+import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
 import com.pennywiseai.tracker.data.database.entity.GoalEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.repository.GoalRules
 import com.pennywiseai.tracker.domain.insights.InsightAction
 import com.pennywiseai.tracker.domain.insights.InsightFact.GoalsFit
 import com.pennywiseai.tracker.domain.insights.InsightRules
 import com.pennywiseai.tracker.domain.insights.InsightSeverity
+import com.pennywiseai.tracker.domain.review.CycleTotal
+import com.pennywiseai.tracker.domain.review.PeriodDetail
 import com.pennywiseai.tracker.domain.spending.CycleAverages
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -73,6 +79,40 @@ class GoalAffordabilityTest {
         val result = GoalAffordability.of(listOf(goal("120000")), mapOf(usual("INR", "50000", "46000"))).single()
         assertEquals(false, result.fits)
         assertEquals(d("6000"), result.shortBy)
+    }
+
+    @Test
+    fun `a goal funded by a linked expense each cycle isn't asked for that money twice`() {
+        // A 1,000 deposit debit every cycle, put toward the goal, counts as spending too.
+        val cycles = (3 downTo 0).map { ago ->
+            val start = today.withDayOfMonth(1).minusMonths(ago.toLong())
+            CycleTotal(start, start.plusMonths(1).minusDays(1), d("50000"), d("49500"), emptyMap())
+        }
+        val deposits = cycles.mapIndexed { i, cycle ->
+            TransactionWithSplits(
+                TransactionEntity(
+                    id = 10L + i, amount = d("1000"), merchantName = "Deposit", category = "Savings",
+                    currency = "INR", transactionType = TransactionType.EXPENSE,
+                    dateTime = cycle.start.plusDays(4).atTime(9, 0), transactionHash = "deposit-$i",
+                ),
+                emptyList(),
+            )
+        }
+        val linked = deposits.map {
+            GoalContributionEntity(
+                goalId = 1, amount = d("1000"), originalAmount = d("1000"), originalCurrency = "INR",
+                transactionId = it.transaction.id,
+            )
+        }
+        val detail = PeriodDetail(mapOf("INR" to cycles), deposits)
+
+        // The current cycle's deposit isn't part of a usual month.
+        assertEquals(mapOf("INR" to d("1000.00")), GoalAffordability.savedThroughSpending(detail, linked))
+        val result = GoalAffordabilityLoader.affordability(GoalsToWeigh(listOf(goal("12000")), linked), detail).single()
+        assertEquals(d("1500.00"), result.surplus)
+        assertEquals(true, result.fits)
+        val unlinked = GoalAffordabilityLoader.affordability(GoalsToWeigh(listOf(goal("12000")), emptyList()), detail).single()
+        assertEquals(false, unlinked.fits)
     }
 
     @Test

@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.domain.goals
 
+import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.GoalProgress
 import com.pennywiseai.tracker.data.repository.GoalRepository
@@ -19,6 +20,9 @@ import kotlinx.coroutines.flow.map
 import java.time.LocalDate
 import javax.inject.Inject
 
+/** The goals in progress, and every contribution taken from a transaction. */
+data class GoalsToWeigh(val goals: List<GoalProgress>, val linked: List<GoalContributionEntity>)
+
 /**
  * Loads [GoalAffordability] for the Goals list and Insights. Goals have no profile,
  * so they're weighed against every profile's surplus (roadmap Decision 3): nothing is
@@ -34,11 +38,13 @@ class GoalAffordabilityLoader @Inject constructor(
      * The goals in progress, or null when there's nothing to weigh: none in progress,
      * or one profile selected.
      */
-    fun goalsToWeigh(today: LocalDate): Flow<List<GoalProgress>?> = combine(
+    fun goalsToWeigh(today: LocalDate): Flow<GoalsToWeigh?> = combine(
         goalRepository.observeActiveGoals(today),
+        goalRepository.observeLinkedContributions(),
         userPreferencesRepository.selectedProfileId,
-    ) { goals, profileId ->
-        goals.filter { it.status == GoalStatus.IN_PROGRESS }.takeIf { profileId == null && it.isNotEmpty() }
+    ) { goals, linked, profileId ->
+        val inProgress = goals.filter { it.status == GoalStatus.IN_PROGRESS }
+        if (profileId != null || inProgress.isEmpty()) null else GoalsToWeigh(inProgress, linked)
     }.distinctUntilChanged()
 
     /** Loads the cycles behind it too, and only while there's something to weigh. */
@@ -56,7 +62,15 @@ class GoalAffordabilityLoader @Inject constructor(
 
     companion object {
         /** [goals] from [goalsToWeigh]; [detail] from a review of every profile. */
-        fun affordability(goals: List<GoalProgress>?, detail: PeriodDetail?): List<GoalAffordability> =
-            if (goals == null) emptyList() else GoalAffordability.of(goals, CycleAverages.of(detail?.cycles.orEmpty()))
+        fun affordability(goals: GoalsToWeigh?, detail: PeriodDetail?): List<GoalAffordability> =
+            if (goals == null || detail == null) {
+                emptyList()
+            } else {
+                GoalAffordability.of(
+                    goals.goals,
+                    CycleAverages.of(detail.cycles),
+                    GoalAffordability.savedThroughSpending(detail, goals.linked),
+                )
+            }
     }
 }

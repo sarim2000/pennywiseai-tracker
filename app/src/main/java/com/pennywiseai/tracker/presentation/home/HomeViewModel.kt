@@ -374,9 +374,8 @@ class HomeViewModel @Inject constructor(
     ) { accounts, (upcoming, goals), excluded, (periodEnd, today, budgetLeft), (primaryCurrency, unified) ->
         if (accounts.isEmpty()) return@combine null
         suspend fun Money.forTotal(): Money =
-            if (!unified || currency == primaryCurrency) this
-            else currencyConversionService.convertAmountOrNull(amount, currency, primaryCurrency)
-                ?.let { Money(it, primaryCurrency) } ?: this // no rate: keep it apart (#670)
+            if (!unified) this
+            else SafeToSpend.inDisplay(this, primaryCurrency) { a, from, to -> currencyConversionService.convertAmountOrNull(a, from, to) }
         val bills = SafeToSpend.billsInWindow(upcoming.bills, today, periodEnd)
         val results = SafeToSpend.calculate(
             balances = countedInSafeToSpend(accounts, excluded).map { Money(it.balance, it.currency).forTotal() },

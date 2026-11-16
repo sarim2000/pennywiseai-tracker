@@ -130,6 +130,19 @@ data class SafeToSpend(
             }
         }
 
+        /**
+         * Unified mode: [money] in [display], or as it is when there's no rate
+         * ([convert] returns null), so it stays a line of its own rather than being
+         * added in (#670).
+         */
+        suspend fun inDisplay(
+            money: Money,
+            display: String,
+            convert: suspend (amount: BigDecimal, from: String, to: String) -> BigDecimal?,
+        ): Money =
+            if (money.currency == display) money
+            else convert(money.amount, money.currency, display)?.let { Money(it, display) } ?: money
+
         /** Bills due today..[periodEnd], and overdue card bills: those are still owed. */
         fun billsInWindow(bills: List<Bill>, today: LocalDate, periodEnd: LocalDate): List<Bill> =
             bills.filter { (it.isCardBill || !it.dueDate.isBefore(today)) && !it.dueDate.isAfter(periodEnd) }

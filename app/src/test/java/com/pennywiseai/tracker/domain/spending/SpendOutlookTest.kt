@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.domain.spending
 
 import com.pennywiseai.tracker.utils.Money
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -229,11 +230,13 @@ class SpendOutlookTest {
     }
 
     @Test
-    fun `a card bill with no exchange rate stays its own line`() {
+    fun `a card bill with no exchange rate stays its own line`() = runTest {
         // Unified mode converts what it can; a USD card bill with no rate stays in USD.
+        val rates = mapOf("EUR" to d("90"))
+        suspend fun inr(m: Money) = SafeToSpend.inDisplay(m, "INR") { a, from, _ -> rates[from]?.let { a * it } }
         val r = SafeToSpend.calculate(
-            listOf(Money(d("10000"), "INR")),
-            listOf(Bill("US card", Money(d("120"), "USD"), end, isCardBill = true)),
+            listOf(Money(d("9100"), "INR"), Money(d("10"), "EUR")).map { inr(it) },
+            listOf(Bill("US card", Money(d("120"), "USD"), end, isCardBill = true)).map { it.copy(amount = inr(it.amount)) },
             today, end,
         ).associateBy { it.currency }
         assertEquals(d("10000"), r.getValue("INR").amount)

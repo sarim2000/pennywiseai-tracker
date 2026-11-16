@@ -102,7 +102,11 @@ data class VoiceEntry(
             "Transportation" to setOf("تاكسي", "بنزين", "مواصلات", "اوبر", "أوبر", "كريم"),
         )
 
-        private fun norm(x: String) = x.lowercase().replace("&", " and ").replace(Regex("[^\\p{L}\\p{M}\\p{N}]+"), " ").trim()
+        // Arabic writes "the" and a preposition onto the word: "القهوة", "بالتاكسي", "للبقالة" say قهوة, تاكسي, بقالة.
+        private val ARABIC_ARTICLE = Regex("(?<![\\p{L}\\p{M}])[وف]?(?:بال|كال|لل|ال)(?=\\p{L}{2})")
+
+        private fun norm(x: String) = x.lowercase().replace("&", " and ").replace(Regex("[^\\p{L}\\p{M}\\p{N}]+"), " ")
+            .replace(ARABIC_ARTICLE, "").trim()
 
         private fun categoryOf(merchant: String, type: TransactionType, categories: List<CategoryEntity>, label: (String) -> String): String? {
             if (merchant.isEmpty()) return null
@@ -115,7 +119,7 @@ data class VoiceEntry(
                 SharedCategoryMapping.determineCategory(merchant, "INCOME").takeIf { it != "Income" }
             } else {
                 SharedCategoryMapping.getCategory(merchant).takeIf { it != "Others" }
-                    ?: SPOKEN.entries.firstOrNull { (_, said) -> said.any { " $it " in words } }?.key
+                    ?: SPOKEN.entries.firstOrNull { (_, said) -> said.any { " ${norm(it)} " in words } }?.key
             }
             // The mapping's names are the built-ins'; the user may have renamed them.
             return guess?.let(BuiltinCategoryNames::current)?.takeIf { g -> ofType.any { it.name == g } }

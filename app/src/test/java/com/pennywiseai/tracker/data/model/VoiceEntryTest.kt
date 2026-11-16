@@ -68,6 +68,15 @@ class VoiceEntryTest {
     }
 
     @Test
+    fun `arabic words with the article or a preposition on them still find the category`() {
+        assertEquals("Food & Dining", entry("دفعت ٥٠ ريال على القهوة").category)
+        assertEquals("Transportation", entry("٣٠ بالتاكسي").category)
+        assertEquals("Groceries", entry("٢٠٠ للبقالة").category)
+        // Said bare, the label with "the" on it.
+        assertEquals("Transportation", entry("٢٠ نقل", label = { if (it == "Transportation") "النقل" else it }).category)
+    }
+
+    @Test
     fun `money in is income`() {
         val salary = entry("received 5000 salary")
         assertEquals(TransactionType.INCOME, salary.type)

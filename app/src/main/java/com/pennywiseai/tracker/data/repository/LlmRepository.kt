@@ -682,11 +682,15 @@ class LlmRepository @Inject constructor(
         }
         fun named(key: String) = (args[key] as? String)?.trim()?.takeUnless { it.isEmpty() || SpendingComparison.meansAllSpending(it) }
         val categories = categoryRepository.getAllCategories().first()
+        // Built-in categories are kept in English and shown in the app's language: either names one.
+        fun namesCategory(name: String) = SpendingQuery.namesCategory(
+            name, userMessage, com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames.shown(matchCategory(name, categories) ?: name, categories)
+        )
         // A category's name as the merchant ("Others" beside an account) is no shop the user named.
         val merchant = named("merchant")?.takeUnless { m ->
-            categories.any { it.name.equals(m, ignoreCase = true) } && !SpendingQuery.namesCategory(m, userMessage)
+            categories.any { it.name.equals(m, ignoreCase = true) } && !namesCategory(m)
         }
-        val asked = named("category")?.takeUnless { merchant != null && !SpendingQuery.namesCategory(it, userMessage) }
+        val asked = named("category")?.takeUnless { merchant != null && !namesCategory(it) }
         // Hidden categories still hold transactions, and a row can name a category that no
         // longer exists: a read-only lookup asks the transactions before saying it's unknown.
         val known = asked?.let { matchCategory(it, categories) }

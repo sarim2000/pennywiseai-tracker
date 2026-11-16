@@ -151,10 +151,12 @@ object SpendingQuery {
     private val LAST_BEFORE = setOf("last", "previous", "past")
     private val LAST_AFTER = setOf("ماضي", "ماضية", "فائت", "فائتة", "سابق", "منصرم")
 
-    // A word as written and without a leading Arabic و/ف/ب and ال: "والأسبوع" is أسبوع.
+    // A word as written and without a leading Arabic و/ف, then ب/ال/لل: "والأسبوع" is أسبوع,
+    // "للمطاعم" مطاعم.
     private fun forms(word: String): Set<String> {
         val bare = word.removePrefix("و").removePrefix("ف")
-        return setOf(word, bare, bare.removePrefix("ب").removePrefix("ال")).filter { it.isNotEmpty() }.toSet()
+        val stem = if (bare.startsWith("لل")) bare.drop(2) else bare.removePrefix("ب").removePrefix("ال")
+        return setOf(word, bare, stem).filter { it.isNotEmpty() }.toSet()
     }
 
     private fun wordsOf(text: String): List<String> =
@@ -330,13 +332,15 @@ object SpendingQuery {
     }
 
     /**
-     * Whether [message] names [category], by a word of it ("food" for "Food & Dining"). Beside a
-     * merchant Qwen2.5 adds a category of its own ("Shopping" for "how much at Swiggy?"), which
-     * narrows the merchant's figure to nothing; the merchant alone says what was spent there.
+     * Whether [message] names [category], or its [label] as the app shows it ("طعام ومطاعم" for
+     * "Food & Dining"), by a word of it: "food", "الطعام". Beside a merchant Qwen2.5 adds a
+     * category of its own ("Shopping" for "how much at Swiggy?"), which narrows the merchant's
+     * figure to nothing; the merchant alone says what was spent there.
      */
-    fun namesCategory(category: String, message: String): Boolean {
-        val words = norm(message).split(" ")
-        return norm(category).split(" ").filter { it.length >= 3 }.any { w -> words.any { it.startsWith(w.take(4)) } }
+    fun namesCategory(category: String, message: String, label: String? = null): Boolean {
+        val words = norm(message).split(" ").flatMap(::forms)
+        return listOfNotNull(category, label).flatMap { norm(it).split(" ") }.flatMap(::forms).filter { it.length >= 3 }
+            .any { w -> words.any { it.startsWith(w.take(4)) } }
     }
 
     sealed interface AccountMatch {

@@ -10,6 +10,7 @@ import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
 import com.pennywiseai.tracker.data.model.BillsDue
 import com.pennywiseai.tracker.data.model.BudgetStatus
 import com.pennywiseai.tracker.data.model.ChatLink
@@ -1385,6 +1386,17 @@ class ChatTurnTest {
         events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("account" to "Emirates NBD", "group_by" to "account")))
         assertTrue(send("How much did I spend from my Emirates NBD account this month?").startsWith("SPENT 1 Nov–16 Nov · Emirates NBD ••1234\n"))
         coVerify(exactly = 0) { aiContext.topCategories(any(), any(), any(), any()) }
+        // A built-in category is kept in English and asked about in the app's language.
+        val shown = BuiltinCategoryNames.shown
+        BuiltinCategoryNames.shown = { name, _ -> "طعام ومطاعم".takeIf { name == "Food & Dining" } }
+        try {
+            coEvery { aiContext.categorySpending(any(), any(), any()) } returns spent("120")
+            events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("category" to "Food & Dining", "merchant" to "Starbucks")))
+            assertEquals("SPEND", send("كم صرفت على الطعام في ستاربكس؟"))
+            coVerify { aiContext.categorySpending("Food & Dining", any(), SpendingFilter(merchant = "Starbucks")) }
+        } finally {
+            BuiltinCategoryNames.shown = shown
+        }
     }
 
     @Test

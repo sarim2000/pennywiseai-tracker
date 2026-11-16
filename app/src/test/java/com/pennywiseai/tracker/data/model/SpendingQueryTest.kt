@@ -231,6 +231,11 @@ class SpendingQueryTest {
         assertTrue(SpendingQuery.namesCategory("Groceries", "grocery spend at Carrefour"))
         assertTrue(!SpendingQuery.namesCategory("Shopping", "Swiggy spending this month?"))
         assertTrue(!SpendingQuery.namesCategory("Food & Dining", "كم صرفت في ستاربكس هالشهر؟"))
+        // Built-ins are kept in English and named in the app's language, ال/بال/لل and all.
+        assertTrue(SpendingQuery.namesCategory("Food & Dining", "كم صرفت على الطعام في ستاربكس؟", "طعام ومطاعم"))
+        assertTrue(SpendingQuery.namesCategory("Food & Dining", "كم صرفت بالمطاعم في المول؟", "طعام ومطاعم"))
+        assertTrue(SpendingQuery.namesCategory("Bills & Utilities", "كم دفعت للفواتير عن طريق STC Pay؟", "فواتير وخدمات"))
+        assertTrue(!SpendingQuery.namesCategory("Food & Dining", "كم صرفت في ستاربكس هالشهر؟", "طعام ومطاعم"))
     }
 
     private fun account(bank: String, last4: String, alias: String? = null) = AccountBalanceEntity(

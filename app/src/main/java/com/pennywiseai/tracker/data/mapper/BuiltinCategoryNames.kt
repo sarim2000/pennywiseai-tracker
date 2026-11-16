@@ -22,4 +22,11 @@ object BuiltinCategoryNames {
 
     /** The current name for the auto-categorizer's [category]. */
     fun current(category: String): String = currentByKey[category] ?: category
+
+    /**
+     * [name] as the app shows it, a built-in in the app's language; null for one shown as
+     * stored. Set by PennyWiseApplication from CategoryMapping, which data can't import.
+     */
+    @Volatile
+    var shown: (name: String, categories: List<CategoryEntity>) -> String? = { _, _ -> null }
 }

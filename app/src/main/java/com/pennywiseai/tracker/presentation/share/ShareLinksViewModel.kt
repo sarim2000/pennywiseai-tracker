@@ -26,6 +26,7 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.ByteArrayOutputStream
+import java.io.IOException
 import java.time.Instant
 import java.util.Locale
 import javax.inject.Inject
@@ -85,14 +86,28 @@ class ShareLinksViewModel @Inject constructor(
                 // but whose delete key was never saved could not be taken down from here.
                 val link = withContext(NonCancellable) {
                     val created = client.publish(snapshot, png)
-                    SharedLink(
+                    val link = SharedLink(
                         id = created.id,
                         url = created.url,
                         deleteToken = created.deleteToken,
                         expiresAt = created.expiresAt,
                         title = content.title,
                         kind = content.kind.name,
-                    ).also { store.add(it) }
+                    )
+                    try {
+                        store.add(link)
+                    } catch (e: IOException) {
+                        // Unsaved, its delete key would be gone with this screen: take the page
+                        // down while the key is still in hand. Should that fail too, the page
+                        // stays unseen: nobody has its address.
+                        try {
+                            client.delete(created.id, created.deleteToken)
+                        } catch (rollback: ShareLinkError) {
+                            // Reported as the storage failure below.
+                        }
+                        throw ShareLinkError.Storage
+                    }
+                    link
                 }
                 PublishState.Published(link)
             } catch (e: ShareLinkError) {
@@ -116,6 +131,9 @@ class ShareLinksViewModel @Inject constructor(
                 DeleteOutcome.Deleted
             } catch (e: ShareLinkError) {
                 DeleteOutcome.Failed(e)
+            } catch (e: IOException) {
+                // The page is down; the row stays, and a second delete clears it (a missing page counts as deleted).
+                DeleteOutcome.Failed(ShareLinkError.Storage)
             } finally {
                 _deleting.update { it - link.id }
             }

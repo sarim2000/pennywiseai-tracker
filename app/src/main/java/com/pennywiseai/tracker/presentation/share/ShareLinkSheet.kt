@@ -183,4 +183,5 @@ internal fun shareLinkErrorMessage(resources: Resources, error: ShareLinkError):
     is ShareLinkError.Rejected -> resources.getString(R.string.share_link_error_rejected, error.reason)
     ShareLinkError.Forbidden -> resources.getString(R.string.shared_links_delete_forbidden)
     is ShareLinkError.Server -> resources.getString(R.string.share_link_error_server, error.status)
+    ShareLinkError.Storage -> resources.getString(R.string.share_link_error_storage)
 }

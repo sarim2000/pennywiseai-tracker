@@ -160,6 +160,7 @@
     <string name="share_link_error_rejected">The server didn\'t accept this card: %1$s</string>
     <!-- %1$d = HTTP status code -->
     <string name="share_link_error_server">The server had a problem (%1$d). Try again later.</string>
+    <string name="share_link_error_storage">This phone couldn\'t save your list of links. Free up some space and try again.</string>
 
     <!-- Shared links screen -->
     <string name="shared_links_title">Shared links</string>

@@ -148,6 +148,7 @@
     <string name="share_link_error_too_large">صورة هذه البطاقة أكبر من أن تُرفع.</string>
     <string name="share_link_error_rejected">لم يقبل الخادم هذه البطاقة: %1$s</string>
     <string name="share_link_error_server">حدثت مشكلة في الخادم (%1$d). حاول مرة أخرى لاحقًا.</string>
+    <string name="share_link_error_storage">تعذّر على هذا الهاتف حفظ قائمة روابطك. أفرغ بعض المساحة وحاول مرة أخرى.</string>
 
     <!-- Shared links screen -->
     <string name="shared_links_title">الروابط المشتركة</string>

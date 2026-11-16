@@ -43,6 +43,9 @@ sealed class ShareLinkError : Exception() {
     data object Forbidden : ShareLinkError()
 
     data class Server(val status: Int) : ShareLinkError()
+
+    /** This phone couldn't write its list of links (disk full, unreadable file). */
+    data object Storage : ShareLinkError()
 }
 
 /**

@@ -516,6 +516,17 @@ class LlmRepository @Inject constructor(
     }
 
     /**
+     * The one category [message] names, by a word of its name or of its name in the app's
+     * language ("الراتب" for Salary), an income one first. Null for none, or several.
+     */
+    private fun categoryNamedIn(message: String, categories: List<com.pennywiseai.tracker.data.database.entity.CategoryEntity>): String? {
+        val named = categories.filter {
+            SpendingQuery.namesCategory(it.name, message, com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames.shown(it.name, categories))
+        }
+        return (named.filter { it.isIncome }.ifEmpty { named }).singleOrNull()?.name
+    }
+
+    /**
      * The spending lookup a question's add call names: its one item's merchant or category, on
      * the account it names when the user's words name it too ("coffee on HDFC 1234?"), which
      * the lookup then finds or asks about: never every account instead.
@@ -644,12 +655,15 @@ class LlmRepository @Inject constructor(
             "budget", "limit" -> budgetsText(planningRepository.budgets())
             "bill", "subscription", "payment" -> billsText(planningRepository.billsDue())
             // On device Qwen2.5 sent "How much salary did I receive?" here: money received is a
-            // spending lookup's, in the category the kind names if it names one.
+            // spending lookup's, in the category the kind names, or else the user's words name.
+            // Neither naming one, it's said: all money in isn't the salary asked about.
             else -> if (SpendingComparison.asksAboutIncome(userMessage)) {
                 turnSubject = ReplySubject(tool = PennyWiseTools.QUERY_SPENDING)
+                val categories = categoryRepository.getAllCategories().first()
                 val kind = call.arguments["kind"]?.toString()?.trim().orEmpty()
-                val category = matchCategory(kind, categoryRepository.getAllCategories().first())
-                querySpending(listOfNotNull(category?.let { "category" to it }).toMap(), userMessage)
+                val category = matchCategory(kind, categories) ?: categoryNamedIn(userMessage, categories)
+                if (category == null) context.getString(R.string.chat_reply_income_category_unclear)
+                else querySpending(mapOf("category" to category), userMessage)
             } else {
                 context.getString(R.string.chat_reply_planning_unknown)
             }

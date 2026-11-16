@@ -1621,11 +1621,19 @@ class ChatTurnTest {
         events = listOf(LlmEvent.ToolCall(PennyWiseTools.PLANNING_STATUS, mapOf("kind" to "salary")))
         assertEquals("RECEIVED ₹500 Salary", send("How much salary did I receive this month?"))
         assertEquals(PennyWiseTools.QUERY_SPENDING, repository.lastReply.value?.tool)
-        // A kind that names no category: the month's figures, what came in among them.
-        every { context.getString(R.string.chat_reply_month_spend, any()) } returns "SPENT"
-        every { context.getString(R.string.chat_reply_received_nothing) } returns "NONE_RECEIVED"
-        answerSpending()
+        // A kind that names no category: the user's words name it, in either language.
         events = listOf(LlmEvent.ToolCall(PennyWiseTools.PLANNING_STATUS, mapOf("kind" to "status")))
-        assertTrue("NONE_RECEIVED" in send("how much income did I get?").lines())
+        assertEquals("RECEIVED ₹500 Salary", send("How much salary did I receive?"))
+        every { categories.getAllCategories() } returns flowOf(
+            listOf(CategoryEntity(id = 1, name = "طعام", color = "#000"), CategoryEntity(id = 3, name = "راتب", color = "#000", isIncome = true))
+        )
+        coEvery { aiContext.categoryIncome("راتب", any(), any()) } returns spent("500").copy(category = "راتب")
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.PLANNING_STATUS, mapOf("kind" to "status")))
+        assertEquals("RECEIVED ₹500 راتب", send("كم استلمت من الراتب هذا الشهر؟"))
+        // Nothing names one: said, not all money in (salary and the rest) in its place.
+        every { context.getString(R.string.chat_reply_income_category_unclear) } returns "WHICH_INCOME"
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.PLANNING_STATUS, mapOf("kind" to "status")))
+        assertEquals("WHICH_INCOME", send("How much bonus did I receive?"))
+        coVerify(exactly = 0) { aiContext.spending(any(), any()) }
     }
 }

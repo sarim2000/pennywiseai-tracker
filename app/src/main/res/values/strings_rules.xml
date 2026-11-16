@@ -332,6 +332,7 @@
         <item quantity="other">Received %1$s as %2$s in %3$s, across %4$d transactions.</item>
     </plurals>
     <string name="chat_reply_nothing_received_in">Nothing received as %1$s in %2$s.</string>
+    <string name="chat_reply_income_category_unclear">I couldn\'t tell which income you mean. Try naming its category, like \"salary this month\".</string>
     <string name="chat_reply_income_ranking_unsupported">I can total what came in, but not rank it yet. Try \"how much salary did I receive this month?\"</string>
     <string name="chat_reply_spent_with_forgiven">%1$s, including %2$s in forgiven loans</string>
     <string name="chat_reply_forgiven_loans">Forgiven loans: %1$s</string>

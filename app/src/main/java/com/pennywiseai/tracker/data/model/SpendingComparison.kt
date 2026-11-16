@@ -43,7 +43,7 @@ object SpendingComparison {
             val rows: List<Row>,
             val currentSpentIn: Set<String> = rows.filter { it.current.signum() > 0 }.mapTo(mutableSetOf()) { it.currency },
             val previousSpentIn: Set<String> = rows.filter { it.previous.signum() > 0 }.mapTo(mutableSetOf()) { it.currency },
-            /** A category's refunds each window took off its figure: its list doesn't hold them. */
+            /** What each window's category list adds up to beyond its figure, as [refundedOutside] gives it. */
             val currentRefunded: Map<String, BigDecimal> = emptyMap(),
             val previousRefunded: Map<String, BigDecimal> = emptyMap(),
             override val profile: ProfileEntity? = null,
@@ -104,8 +104,8 @@ object SpendingComparison {
             val p = before[currency] ?: BigDecimal.ZERO
             Row(currency, c, p, change(c, p))
         }
-        val refundedNow = categories?.let { refundedTo(current, it).filterKeys { c -> c in spentNow } }.orEmpty()
-        val refundedBefore = categories?.let { refundedTo(previous, it).filterKeys { c -> c in spentBefore } }.orEmpty()
+        val refundedNow = categories?.let { refundedOutside(current, it, creditAsExpense) }.orEmpty()
+        val refundedBefore = categories?.let { refundedOutside(previous, it, creditAsExpense) }.orEmpty()
         return Result.Rows(cw, pw, rows, spentNow.keys, spentBefore.keys, refundedNow, refundedBefore)
     }
 
@@ -153,13 +153,25 @@ object SpendingComparison {
         return grossSpend(rows, categories, creditAsExpense).mapValues { (currency, gross) -> (gross - (refunded[currency] ?: BigDecimal.ZERO)).max(BigDecimal.ZERO) }
     }
 
-    /**
-     * Refunds given back to [categories], per currency: [spend] takes them off. They're rows of
-     * their own category, so the category's transaction list doesn't hold them.
-     */
-    fun refundedTo(rows: List<TransactionWithSplits>, categories: Set<String>): Map<String, BigDecimal> =
+    /** Refunds given back to [categories], per currency: [spend] takes them off. */
+    private fun refundedTo(rows: List<TransactionWithSplits>, categories: Set<String>): Map<String, BigDecimal> =
         refunds(rows).filter { categories.includes(it.second) }
             .groupBy({ it.first }, { it.third }).mapValues { (_, a) -> a.fold(BigDecimal.ZERO, BigDecimal::add) }
+
+    /**
+     * How much more the list of [categories]' transactions adds up to than [spend]'s figure, per
+     * currency: refunds given back to them from a row of another category, which that list doesn't
+     * hold. The list nets the refunds it holds itself, and both floor at zero, so this is the gap
+     * between the two and no more. Currencies with no gap are left out.
+     */
+    fun refundedOutside(rows: List<TransactionWithSplits>, categories: Set<String>, creditAsExpense: Boolean = true): Map<String, BigDecimal> {
+        val (listed, elsewhere) = rows.partition { row -> row.getAmountByCategory().keys.any { categories.includes(it) } }
+        val inside = refundedTo(listed, categories)
+        val gross = grossSpend(rows, categories, creditAsExpense)
+        return refundedTo(elsewhere, categories)
+            .mapValues { (c, r) -> r.min(((gross[c] ?: BigDecimal.ZERO) - (inside[c] ?: BigDecimal.ZERO)).max(BigDecimal.ZERO)) }
+            .filterValues { it.signum() > 0 }
+    }
 
     /** How many spending transactions [spend] counted for [categories]: a split row once. */
     fun transactionsIn(rows: List<TransactionWithSplits>, categories: Set<String>, creditAsExpense: Boolean = true): Int =

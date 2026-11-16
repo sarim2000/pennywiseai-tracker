@@ -321,6 +321,26 @@ class SpendingComparisonTest {
     }
 
     @Test
+    fun `a comparison notes only the refunds its category list doesn't hold, and no more than it took off`() {
+        val prev = listOf(tx("300", category = "Shopping"))
+        // ₹100 spent and a ₹150 refund for an earlier purchase: the figure is ₹0, so only ₹100 came off.
+        val over = SpendingComparison.compare(windows, listOf(tx("100", category = "Shopping"), tx("150", type = TransactionType.INCOME, category = "Refund", refundTo = "Shopping")), prev, setOf("Shopping")) as Result.Rows
+        assertEquals(BigDecimal.ZERO, over.rows.single().current)
+        assertEquals(mapOf("INR" to BigDecimal("100")), over.currentRefunded)
+        // A refund filed under Shopping itself is in Shopping's list, which nets it already.
+        val own = SpendingComparison.compare(windows, listOf(tx("100", category = "Shopping"), tx("40", type = TransactionType.INCOME, category = "Shopping", refundTo = "Shopping")), prev, setOf("Shopping")) as Result.Rows
+        assertEquals(BigDecimal("60"), own.rows.single().current)
+        assertEquals(emptyMap<String, BigDecimal>(), own.currentRefunded)
+        // Both kinds: the list shows ₹100 − ₹70 = ₹30, the figure ₹0, so ₹30 of the outside ₹50 came off.
+        val both = listOf(
+            tx("100", category = "Shopping"),
+            tx("70", type = TransactionType.INCOME, category = "Shopping", refundTo = "Shopping"),
+            tx("50", type = TransactionType.INCOME, category = "Refund", refundTo = "Shopping")
+        )
+        assertEquals(mapOf("INR" to BigDecimal("30")), SpendingComparison.refundedOutside(both, setOf("Shopping")))
+    }
+
+    @Test
     fun `card purchases count only when the user folds them into spending`() {
         val mixed = listOf(tx("100"), tx("40", type = TransactionType.CREDIT, category = "Shopping"))
         assertEquals(mapOf("INR" to BigDecimal("100")), SpendingComparison.spend(mixed, creditAsExpense = false))

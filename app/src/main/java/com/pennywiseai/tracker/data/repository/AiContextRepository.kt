@@ -146,7 +146,7 @@ class AiContextRepository @Inject constructor(
             byCurrency = byCurrency,
             transactionCount = SpendingComparison.transactionsIn(rows, names, credit),
             share = shareOfSpending(rows, credit, byCurrency),
-            refunded = SpendingComparison.refundedTo(rows, names).filterKeys { it in byCurrency },
+            refunded = SpendingComparison.refundedOutside(rows, names, credit).filterKeys { it in byCurrency },
         )
     }
 

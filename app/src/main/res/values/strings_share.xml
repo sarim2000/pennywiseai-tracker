@@ -138,4 +138,28 @@
     </plurals>
     <!-- %1$s = the app's website -->
     <string name="share_text_achievements">My achievements, from PennyWise. It tracks spending from bank SMS on the phone itself. https://%1$s</string>
+
+    <!-- Progress card: whatever the user ticks, on one image -->
+    <string name="share_kind_progress">My progress</string>
+    <string name="share_studio_section_contents">What goes on it</string>
+    <string name="share_progress_section_achievements">Achievements</string>
+    <string name="share_progress_section_goals">Goals</string>
+    <string name="share_progress_section_savings">Savings</string>
+    <string name="share_progress_section_budget">Budget</string>
+    <string name="share_progress_unavailable_hint">Greyed out: nothing to show there for this period yet.</string>
+    <!-- %1$d = how many goals fit on the card -->
+    <string name="share_studio_section_goals">Goals (up to %1$d)</string>
+    <string name="share_unavailable_progress">Pick at least one section that has something to show.</string>
+    <string name="share_card_progress_title">My progress</string>
+    <!-- A goal whose name is hidden. %1$s = its number on the card -->
+    <string name="share_card_progress_goal">Goal %1$s</string>
+    <!-- %1$s = amount so far, %2$s = the target or limit -->
+    <string name="share_card_progress_of">%1$s of %2$s</string>
+    <!-- Joins an amount and a percentage in one figure -->
+    <string name="share_value_separator">" · "</string>
+    <string name="share_card_progress_saved">Saved of income</string>
+    <string name="share_card_progress_overspent">Spent beyond income</string>
+    <string name="share_card_progress_budget">Budget used</string>
+    <!-- %1$s = the app's website -->
+    <string name="share_text_progress">My progress, from PennyWise. It tracks spending from bank SMS on the phone itself. https://%1$s</string>
 </resources>

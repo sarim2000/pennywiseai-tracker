@@ -291,7 +291,7 @@ fun MainScreen(
                     openRoot(com.pennywiseai.tracker.navigation.Review(kind.name))
                 },
                 onNavigateToShareStudio = {
-                    openRoot(ShareStudio())
+                    openRoot(ShareStudio(kind = "PROGRESS"))
                 },
                 onNavigateToAchievements = {
                     openRoot(Achievements)

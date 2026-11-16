@@ -204,6 +204,7 @@ internal fun shareText(context: Context, kind: ShareKind): String = context.getS
         ShareKind.GOAL -> R.string.share_text_goal
         ShareKind.BUDGET -> R.string.share_text_budget
         ShareKind.ACHIEVEMENTS -> R.string.share_text_achievements
+        ShareKind.PROGRESS -> R.string.share_text_progress
     },
     SHARE_CARD_URL,
 )
@@ -294,6 +295,8 @@ private fun Controls(selection: ShareStudioSelection, data: ShareStudioData, vie
             SectionHeaderV2(title = stringResource(R.string.share_studio_section_details))
             DetailSwitches(selection, viewModel)
         }
+    } else if (selection.kind == ShareKind.PROGRESS) {
+        ProgressControls(selection, data as? ShareStudioData.Progress, viewModel)
     } else if (selection.kind == ShareKind.GOAL) {
         val goals = (data as? ShareStudioData.Goals)?.goals.orEmpty()
         if (goals.size > 1) {
@@ -395,6 +398,92 @@ private fun DetailSwitches(selection: ShareStudioSelection, viewModel: ShareStud
     }
 }
 
+/**
+ * Tick what goes on the card; a section with nothing to show is greyed out rather than
+ * hidden, so nobody wonders where it went. Each picked section can then be narrowed.
+ */
+@Composable
+private fun ProgressControls(selection: ShareStudioSelection, data: ShareStudioData.Progress?, viewModel: ShareStudioViewModel) {
+    val available = data?.let { availableSections(it, selection.currency) } ?: ProgressSection.entries.toSet()
+    SectionHeaderV2(title = stringResource(R.string.share_studio_section_contents))
+    FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        ProgressSection.entries.forEach { section ->
+            val on = section in selection.sections && section in available
+            FilterChip(
+                selected = on,
+                enabled = section in available,
+                onClick = { viewModel.setSection(section, !on) },
+                label = { Text(sectionLabel(section), maxLines = 1) },
+                shapes = FilterChipDefaults.shapes(),
+                colors = FilterChipDefaults.filterChipColors(),
+            )
+        }
+    }
+    if (available.size < ProgressSection.entries.size) {
+        Text(
+            text = stringResource(R.string.share_progress_unavailable_hint),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+    }
+    if (data == null) return
+
+    if (ProgressSection.ACHIEVEMENTS in selection.sections && data.earned.size > 1) {
+        SectionHeaderV2(title = stringResource(R.string.share_studio_section_achievements))
+        AchievementPicker(data.earned, selection.achievements, viewModel)
+    }
+    if (ProgressSection.GOALS in selection.sections && data.goals.size > 1) {
+        SectionHeaderV2(title = stringResource(R.string.share_studio_section_goals, PROGRESS_MAX_GOALS))
+        val ids = data.goals.map { it.goal.id }
+        val picked = progressGoalIds(selection.goalIds, ids)
+        FlowRow(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            data.goals.forEach { goal ->
+                val on = goal.goal.id in picked
+                FilterChip(
+                    selected = on,
+                    // Full: another goal needs one unticked first, rather than a card that quietly drops one.
+                    enabled = on || picked.size < PROGRESS_MAX_GOALS,
+                    onClick = { viewModel.setGoal(goal.goal.id, !on, ids) },
+                    label = { Text(goal.goal.name, maxLines = 1) },
+                    shapes = FilterChipDefaults.shapes(),
+                    colors = FilterChipDefaults.filterChipColors(),
+                )
+            }
+        }
+    }
+    // Only the savings and budget rows belong to a period; goals and badges are as of today.
+    if (ProgressSection.SAVINGS in selection.sections || ProgressSection.BUDGET in selection.sections) {
+        SectionHeaderV2(title = stringResource(R.string.share_studio_section_period))
+        PeriodSwitcher(
+            label = periodLabel(data.review.range),
+            canGoOlder = data.review.hasOlder && selection.period.offset > -BUDGET_MONTHS_BACK,
+            canGoNewer = selection.period.offset < latestReviewOffset(selection.period.kind),
+            onOlder = viewModel::older,
+            onNewer = viewModel::newer,
+        )
+    }
+    val currencies = currenciesOf(data)
+    if (ProgressSection.SAVINGS in selection.sections && currencies.size > 1) {
+        SectionHeaderV2(title = stringResource(R.string.share_studio_section_currency))
+        ChipRow(
+            options = currencies,
+            selected = selection.currency?.takeIf { it in currencies } ?: currencies.first(),
+            label = { it },
+            onSelect = viewModel::selectCurrency,
+        )
+    }
+}
+
+@Composable
+private fun sectionLabel(section: ProgressSection): String = stringResource(
+    when (section) {
+        ProgressSection.ACHIEVEMENTS -> R.string.share_progress_section_achievements
+        ProgressSection.GOALS -> R.string.share_progress_section_goals
+        ProgressSection.SAVINGS -> R.string.share_progress_section_savings
+        ProgressSection.BUDGET -> R.string.share_progress_section_budget
+    }
+)
+
 /** Every earned achievement as a chip; the card shows the ones left on. */
 @Composable
 private fun AchievementPicker(earned: List<Achievement>, picked: Set<String>?, viewModel: ShareStudioViewModel) {
@@ -465,6 +554,7 @@ private fun kindLabel(kind: ShareKind): String = stringResource(
         ShareKind.GOAL -> R.string.share_kind_goal
         ShareKind.BUDGET -> R.string.share_kind_budget
         ShareKind.ACHIEVEMENTS -> R.string.share_kind_achievements
+        ShareKind.PROGRESS -> R.string.share_kind_progress
     }
 )
 

@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
+import kotlinx.coroutines.flow.shareIn
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import java.time.LocalDate
@@ -49,6 +50,10 @@ data class ShareStudioSelection(
     val details: Set<ShareDetail> = DEFAULT_SHARE_DETAILS,
     /** The achievements on an achievements card, by key; null means every one earned. */
     val achievements: Set<String>? = null,
+    /** What a progress card holds; every section to start with. */
+    val sections: Set<ProgressSection> = ProgressSection.entries.toSet(),
+    /** The goals on a progress card; null means the first [PROGRESS_MAX_GOALS] shown. */
+    val goalIds: Set<Long>? = null,
 )
 
 /** What the selected card is built from; [Loading] while a selection's data is on its way. */
@@ -64,6 +69,14 @@ sealed interface ShareStudioData {
 
     /** The achievements earned, newest first. */
     data class Achievements(val earned: List<Achievement>) : ShareStudioData
+
+    /** Everything a progress card can hold: the period's review, goals as of today, the month's budget, and achievements earned. */
+    data class Progress(
+        val review: PeriodReview,
+        val goals: List<GoalProgress>,
+        val budget: BudgetOverallSummary,
+        val earned: List<Achievement>,
+    ) : ShareStudioData
 }
 
 /** How far back the budget card can go; the summary can't say whether anything is older. */
@@ -86,7 +99,7 @@ class ShareStudioViewModel @Inject constructor(
     val selection: StateFlow<ShareStudioSelection> = _selection.asStateFlow()
 
     /** Which data a card needs: recap and spending share one review, so switching between them doesn't reload. */
-    private enum class Source { REVIEW, HISTORY, GOALS, BUDGET, ACHIEVEMENTS }
+    private enum class Source { REVIEW, HISTORY, GOALS, BUDGET, ACHIEVEMENTS, PROGRESS }
 
     // Achievements don't depend on a period, so changing one elsewhere doesn't reload them.
     private data class Query(val source: Source, val period: ReviewSelection?)
@@ -98,7 +111,12 @@ class ShareStudioViewModel @Inject constructor(
             ShareKind.GOAL -> Source.GOALS
             ShareKind.BUDGET -> Source.BUDGET
             ShareKind.ACHIEVEMENTS -> Source.ACHIEVEMENTS
+            ShareKind.PROGRESS -> Source.PROGRESS
         }
+
+    // Loaded once: they don't depend on a period, and reading their history isn't instant.
+    private val earned: Flow<List<Achievement>> = flow { emit(achievementLoader.load().forDisplay().filter { it.earned }) }
+        .shareIn(viewModelScope, SharingStarted.Lazily, replay = 1)
 
     /**
      * The selected card's data, reloading only when what it depends on changes. Loading is
@@ -113,7 +131,7 @@ class ShareStudioViewModel @Inject constructor(
 
     private fun load(query: Query): Flow<ShareStudioData> {
         val period = query.period
-            ?: return flow { emit(ShareStudioData.Achievements(achievementLoader.load().forDisplay().filter { it.earned })) }
+            ?: return earned.map { ShareStudioData.Achievements(it) }
         val (kind, offset, today) = period
         return when (query.source) {
             Source.REVIEW -> loader.observe(kind, offset, today).map { ShareStudioData.Reviews(listOf(it)) }
@@ -127,6 +145,12 @@ class ShareStudioViewModel @Inject constructor(
                 ShareStudioData.Goals(GoalRules.orderForDisplay(goals) + opened)
             }
             Source.BUDGET -> budgetSummaryProvider.summary(budgetMonth(period)).map { ShareStudioData.Budget(it) }
+            Source.PROGRESS -> combine(
+                loader.observe(kind, offset, today),
+                goalRepository.observeGoals(LocalDate.now()).map { GoalRules.orderForDisplay(it) },
+                budgetSummaryProvider.summary(budgetMonth(period)),
+                earned,
+            ) { review, goals, budget, earned -> ShareStudioData.Progress(review, goals, budget, earned) }
             // Loaded above: achievements have no period.
             Source.ACHIEVEMENTS -> error("unreachable")
         }
@@ -154,6 +178,15 @@ class ShareStudioViewModel @Inject constructor(
         it.copy(achievements = toggleAchievement(it.achievements, key, shown, earned))
     }
 
+    fun setSection(section: ProgressSection, shown: Boolean) = _selection.update {
+        it.copy(sections = if (shown) it.sections + section else it.sections - section)
+    }
+
+    /** Adds or removes one goal; [shown] is every goal the card could show, in display order. */
+    fun setGoal(goalId: Long, on: Boolean, shown: List<Long>) = _selection.update {
+        it.copy(goalIds = toggleGoal(it.goalIds, goalId, on, shown))
+    }
+
     fun setDetail(detail: ShareDetail, shown: Boolean) = _selection.update {
         it.copy(details = if (shown) it.details + detail else it.details - detail)
     }
@@ -164,7 +197,7 @@ class ShareStudioViewModel @Inject constructor(
  * default month as of [today], not as of the day the review was opened.
  */
 internal fun ShareStudioSelection.withKind(kind: ShareKind, today: LocalDate): ShareStudioSelection {
-    val period = if (kind == ShareKind.BUDGET && period.kind != ReviewKind.MONTH) defaultSelection(ReviewKind.MONTH, today) else period
+    val period = if (kind.monthly && period.kind != ReviewKind.MONTH) defaultSelection(ReviewKind.MONTH, today) else period
     return copy(kind = kind, period = period)
 }
 
@@ -172,12 +205,29 @@ internal fun ShareStudioSelection.withKind(kind: ShareKind, today: LocalDate): S
 internal fun ShareStudioSelection.withPeriodKind(kind: ReviewKind, today: LocalDate): ShareStudioSelection =
     copy(period = defaultSelection(kind, today), currency = null)
 
+/** The goals a progress card shows: those picked, or the first few, never more than it has room for. */
+internal fun progressGoalIds(picked: Set<Long>?, shown: List<Long>): List<Long> =
+    (if (picked == null) shown else shown.filter { it in picked }).take(PROGRESS_MAX_GOALS)
+
+/** [picked] with [goalId] added or removed; adding past the cap does nothing. */
+internal fun toggleGoal(picked: Set<Long>?, goalId: Long, on: Boolean, shown: List<Long>): Set<Long> {
+    val current = progressGoalIds(picked, shown).toSet()
+    return when {
+        !on -> current - goalId
+        current.size >= PROGRESS_MAX_GOALS -> current
+        else -> current + goalId
+    }
+}
+
 /** [picked] with [key] added or removed; back to null ("every one") once all of [earned] are in. */
 internal fun toggleAchievement(picked: Set<String>?, key: String, shown: Boolean, earned: List<String>): Set<String>? {
     val current = picked ?: earned.toSet()
     val next = if (shown) current + key else current - key
     return if (next.containsAll(earned)) null else next
 }
+
+/** Budgets are monthly, so a card holding one is too. */
+internal val ShareKind.monthly: Boolean get() = this == ShareKind.BUDGET || this == ShareKind.PROGRESS
 
 /** The calendar month the Budgets screen would show for [period]: the current one, counted back. */
 internal fun budgetMonth(period: ReviewSelection): YearMonth = YearMonth.from(period.today).plusMonths(period.offset.toLong())
@@ -203,7 +253,7 @@ internal fun routeSelection(savedStateHandle: SavedStateHandle, today: LocalDate
     }
     return ShareStudioSelection(
         kind = kind,
-        period = if (kind == ShareKind.BUDGET && period.kind != ReviewKind.MONTH) defaultSelection(ReviewKind.MONTH, today) else period,
+        period = if (kind.monthly && period.kind != ReviewKind.MONTH) defaultSelection(ReviewKind.MONTH, today) else period,
         goalId = savedStateHandle.get<Long>("goalId")?.takeIf { it > 0 },
         achievements = savedStateHandle.get<String>("achievement")?.let(::setOf),
     )

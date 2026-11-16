@@ -18,6 +18,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Text
@@ -190,6 +191,7 @@ private fun Modifier.cardBackground(p: SharePalette): Modifier = this
 fun ShareCard(content: ShareCardContent, theme: ShareTheme, modifier: Modifier = Modifier) {
     val p = theme.palette()
     if (content.kind == ShareKind.ACHIEVEMENTS) return AchievementsCard(content, p, modifier)
+    if (content.kind == ShareKind.PROGRESS) return ProgressCard(content, p, modifier)
     val ringHero = content.chart?.type == ShareChartType.RING && content.hero != null
     Column(
         modifier = modifier
@@ -259,6 +261,7 @@ fun ShareCard(content: ShareCardContent, theme: ShareTheme, modifier: Modifier =
 fun ShareCardLandscape(content: ShareCardContent, theme: ShareTheme, modifier: Modifier = Modifier) {
     val p = theme.palette()
     if (content.kind == ShareKind.ACHIEVEMENTS) return AchievementsLandscape(content, p, modifier)
+    if (content.kind == ShareKind.PROGRESS) return ProgressLandscape(content, p, modifier)
     val chart = content.chart
     Row(
         modifier = modifier
@@ -922,6 +925,131 @@ private fun CountHero(hero: ShareCardHero, p: SharePalette, size: TextUnit) {
     }
 }
 
+// --- Progress. Badges in one strip, then a row per goal, savings and budget: one
+// --- figure each over a thin bar, so five sections still read at thumbnail size.
+
+@Composable
+private fun ProgressCard(content: ShareCardContent, p: SharePalette, modifier: Modifier) {
+    Column(
+        modifier = modifier
+            .size(ShareCardWidth, ShareCardHeight)
+            .cardBackground(p)
+            .padding(horizontal = 24.dp, vertical = 22.dp),
+    ) {
+        BrandRow(p, content.periodLabel)
+        Spacer(Modifier.height(20.dp))
+        Text(
+            text = content.title,
+            style = Heading.copy(fontSize = 22.sp, lineHeight = 26.sp, fontWeight = FontWeight.SemiBold, color = p.text),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        ProgressBody(content, p, Modifier.weight(1f).fillMaxWidth().padding(vertical = 14.dp))
+        Footer(p)
+    }
+}
+
+@Composable
+private fun ProgressLandscape(content: ShareCardContent, p: SharePalette, modifier: Modifier) {
+    Row(
+        modifier = modifier
+            .size(ShareCardLandscapeWidth, ShareCardLandscapeHeight)
+            .cardBackground(p)
+            .padding(horizontal = 28.dp, vertical = 24.dp),
+        horizontalArrangement = Arrangement.spacedBy(24.dp),
+    ) {
+        Column(Modifier.weight(0.4f).fillMaxHeight()) {
+            BrandRow(p, periodLabel = null)
+            Spacer(Modifier.weight(1f))
+            content.periodLabel?.let { PeriodText(it, p) }
+            Text(
+                text = content.title,
+                style = Heading.copy(fontSize = 26.sp, lineHeight = 30.sp, fontWeight = FontWeight.SemiBold, color = p.text),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(Modifier.weight(1f))
+            Text(text = SHARE_CARD_URL, style = Heading.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = p.text))
+        }
+        ProgressBody(content, p, Modifier.weight(0.6f).fillMaxHeight())
+    }
+}
+
+/**
+ * The badges and rows, centred in what's left. Badges alone get the full grid; next to
+ * rows they share one strip, with "+N" for any that don't fit, never silently fewer.
+ */
+@Composable
+private fun ProgressBody(content: ShareCardContent, p: SharePalette, modifier: Modifier) {
+    val badges = content.achievements
+    Column(modifier, verticalArrangement = Arrangement.spacedBy(12.dp, Alignment.CenterVertically)) {
+        if (content.rows.isEmpty()) {
+            if (badges.isNotEmpty()) BadgeGrid(badges, p, portraitGrid(badges.size))
+        } else {
+            // Bigger badges while there's room; both sizes fill the same width (5×56, 6×44).
+            val roomy = content.rows.size <= 2
+            if (badges.isNotEmpty()) BadgeStrip(badges, p, max = if (roomy) 5 else 6, size = if (roomy) 56.dp else 44.dp)
+            content.rows.forEach { ProgressRow(it, p) }
+        }
+    }
+}
+
+@Composable
+private fun BadgeStrip(badges: List<ShareAchievement>, p: SharePalette, max: Int, size: Dp) {
+    val shown = if (badges.size <= max) badges else badges.take(max - 1)
+    Row(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalAlignment = Alignment.CenterVertically) {
+        shown.forEach { AchievementBadge(AchievementId.fromKey(it.id), it.tier, size) }
+        if (shown.size < badges.size) {
+            Text(
+                text = "+${badges.size - shown.size}",
+                style = Figures.copy(fontSize = 17.sp, fontWeight = FontWeight.Bold, color = p.muted),
+                modifier = Modifier.padding(start = 4.dp),
+            )
+        }
+    }
+}
+
+@Composable
+private fun ProgressRow(row: ShareCardRow, p: SharePalette) {
+    Column {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = row.label,
+                style = Body.copy(fontSize = 15.sp, lineHeight = 18.sp, fontWeight = FontWeight.SemiBold, color = p.text),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f),
+            )
+            Spacer(Modifier.width(12.dp))
+            // Shrinks rather than cuts, like every other figure on the card.
+            Text(
+                text = row.value,
+                style = Figures.copy(
+                    fontWeight = FontWeight.Bold,
+                    color = if (row.sentiment == Sentiment.NEUTRAL) p.text else p.colorFor(row.sentiment),
+                    textAlign = TextAlign.End,
+                ),
+                maxLines = 1,
+                autoSize = TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = 17.sp),
+                // Measured first, so the label takes what's left and the figure ends the row.
+                modifier = Modifier.widthIn(max = 168.dp),
+            )
+        }
+        row.fraction?.let { fraction ->
+            Spacer(Modifier.height(5.dp))
+            Box(
+                Modifier
+                    .fillMaxWidth()
+                    .height(6.dp)
+                    .clip(RoundedCornerShape(50))
+                    .background(p.track),
+            ) {
+                if (fraction > 0) Bar(fraction.toFloat().coerceIn(0.03f, 1f), p.colorFor(row.sentiment))
+            }
+        }
+    }
+}
+
 // --- Previews. The thumbnail one is the size that matters: if it fails there it fails in
 // --- a chat, however good it looks in the app.
 
@@ -1067,4 +1195,30 @@ private fun ShareCardLandscapeAchievementsPreview() {
 @Composable
 private fun ShareCardLandscapeGoalPreview() {
     ShareCardLandscape(previewGoal, ShareTheme.MIDNIGHT)
+}
+
+internal val previewProgress = ShareCardContent(
+    kind = ShareKind.PROGRESS,
+    title = "My progress",
+    periodLabel = "OCTOBER 2026",
+    achievements = previewAchievements.achievements + ShareAchievement("goal_halfway", "Halfway there", "", 1),
+    rows = listOf(
+        ShareCardRow("New laptop", "64%", 0.64),
+        ShareCardRow("Emergency fund", "100%", 1.0, Sentiment.GOOD),
+        ShareCardRow("Trip", "12%", 0.12),
+        ShareCardRow("Saved of income", "23%", 0.23, Sentiment.GOOD),
+        ShareCardRow("Budget used", "81%", 0.81, Sentiment.GOOD),
+    ),
+)
+
+@Preview(name = "Progress", widthDp = 400, heightDp = 490)
+@Composable
+private fun ShareCardProgressPreview() {
+    Box(Modifier.background(Color(0xFF303030)).padding(20.dp)) { ShareCard(previewProgress, ShareTheme.MIDNIGHT) }
+}
+
+@Preview(name = "Link preview (progress)", widthDp = 600, heightDp = 315)
+@Composable
+private fun ShareCardLandscapeProgressPreview() {
+    ShareCardLandscape(previewProgress, ShareTheme.PAPER)
 }

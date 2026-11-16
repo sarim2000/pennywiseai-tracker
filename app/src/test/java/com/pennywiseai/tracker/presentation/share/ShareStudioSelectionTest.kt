@@ -118,4 +118,25 @@ class ShareStudioSelectionTest {
         assertFalse(ShareKind.ACHIEVEMENTS.needsFigure)
         assertEquals(setOf(ShareDetail.PERIOD), effectiveDetails(ShareKind.ACHIEVEMENTS, ShareDetail.entries.toSet()))
     }
+
+    @Test
+    fun `a progress card starts with every section, is monthly, and keeps a figure on its rows`() {
+        val opened = ShareStudioSelection(kind = ShareKind.RECAP, period = ReviewSelection(ReviewKind.WEEK, -1, today))
+        val progress = opened.withKind(ShareKind.PROGRESS, today)
+        assertEquals(ProgressSection.entries.toSet(), progress.sections)
+        assertEquals(ReviewKind.MONTH, progress.period.kind)
+        assertTrue(ShareDetail.PERCENTAGES in effectiveDetails(ShareKind.PROGRESS, emptySet()))
+    }
+
+    @Test
+    fun `a progress card shows the first three goals, and a fourth waits for one to go`() {
+        val shown = listOf(1L, 2L, 3L, 4L)
+        assertEquals(listOf(1L, 2L, 3L), progressGoalIds(null, shown))
+        val full = toggleGoal(null, 4L, on = true, shown)
+        assertEquals(setOf(1L, 2L, 3L), full)
+        val swapped = toggleGoal(toggleGoal(full, 2L, on = false, shown), 4L, on = true, shown)
+        assertEquals(listOf(1L, 3L, 4L), progressGoalIds(swapped, shown))
+        // A goal that's gone since it was picked doesn't hold a place.
+        assertEquals(listOf(1L), progressGoalIds(setOf(1L, 9L), shown))
+    }
 }

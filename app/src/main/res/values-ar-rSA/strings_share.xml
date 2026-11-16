@@ -126,4 +126,23 @@
         <item quantity="other">إنجاز مُحقَّق</item>
     </plurals>
     <string name="share_text_achievements">إنجازاتي، من PennyWise. يتتبّع الإنفاق من رسائل البنك على الهاتف نفسه. https://%1$s</string>
+
+    <!-- بطاقة التقدّم -->
+    <string name="share_kind_progress">تقدّمي</string>
+    <string name="share_studio_section_contents">ما يظهر عليها</string>
+    <string name="share_progress_section_achievements">الإنجازات</string>
+    <string name="share_progress_section_goals">الأهداف</string>
+    <string name="share_progress_section_savings">الادخار</string>
+    <string name="share_progress_section_budget">الميزانية</string>
+    <string name="share_progress_unavailable_hint">الأقسام الباهتة ليس فيها ما يُعرض لهذه الفترة بعد.</string>
+    <string name="share_studio_section_goals">الأهداف (حتى %1$d)</string>
+    <string name="share_unavailable_progress">اختر قسمًا واحدًا على الأقل فيه ما يُعرض.</string>
+    <string name="share_card_progress_title">تقدّمي</string>
+    <string name="share_card_progress_goal">الهدف %1$s</string>
+    <string name="share_card_progress_of">%1$s من %2$s</string>
+    <string name="share_value_separator">" · "</string>
+    <string name="share_card_progress_saved">المدّخر من الدخل</string>
+    <string name="share_card_progress_overspent">الإنفاق فوق الدخل</string>
+    <string name="share_card_progress_budget">المستخدم من الميزانية</string>
+    <string name="share_text_progress">تقدّمي، من PennyWise. يتتبّع الإنفاق من رسائل البنك على الهاتف نفسه. https://%1$s</string>
 </resources>

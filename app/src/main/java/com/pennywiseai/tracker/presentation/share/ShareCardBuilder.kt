@@ -48,9 +48,11 @@ sealed interface ShareCardState {
 }
 
 /** The currencies a review card can be about, most active first. */
-fun currenciesOf(data: ShareStudioData): List<String> =
-    (data as? ShareStudioData.Reviews)?.reviews?.firstOrNull()?.currencies
-        ?.filter { it.hasActivity }?.map { it.currency }.orEmpty()
+fun currenciesOf(data: ShareStudioData): List<String> = when (data) {
+    is ShareStudioData.Reviews -> data.reviews.firstOrNull()
+    is ShareStudioData.Progress -> data.review
+    else -> null
+}?.currencies?.filter { it.hasActivity }?.map { it.currency }.orEmpty()
 
 /**
  * Builds the selected card from its data. Everything that ends up on the image is
@@ -83,7 +85,22 @@ fun shareCardState(selection: ShareStudioSelection, data: ShareStudioData): Shar
         }
         is ShareStudioData.Budget -> budgetCard(data.summary, details)
         is ShareStudioData.Achievements -> achievementsCard(data.earned, selection.achievements, details)
+        is ShareStudioData.Progress -> progressCard(data, selection, details)
     }
+}
+
+/** The currency a progress card's savings row is about: the one picked, or the most active. */
+internal fun progressCurrency(review: PeriodReview, picked: String?): CurrencyReview? {
+    val currencies = review.currencies.filter { it.hasActivity }
+    return currencies.firstOrNull { it.currency == picked } ?: currencies.firstOrNull()
+}
+
+/** The progress sections that have something to show; the rest are greyed out. */
+fun availableSections(data: ShareStudioData.Progress, currency: String?): Set<ProgressSection> = buildSet {
+    if (data.earned.isNotEmpty()) add(ProgressSection.ACHIEVEMENTS)
+    if (data.goals.isNotEmpty()) add(ProgressSection.GOALS)
+    if (progressCurrency(data.review, currency)?.savingsRatePercent() != null) add(ProgressSection.SAVINGS)
+    if (budgetResult(data.budget) != null) add(ProgressSection.BUDGET)
 }
 
 /** The achievements an achievements card shows: those picked, or every one earned. */
@@ -487,4 +504,98 @@ private fun achievementsCard(earned: List<Achievement>, picked: Set<String>?, de
         )
     }
     return ShareCardState.Ready(content)
+}
+
+/**
+ * Whatever the user ticked, stacked: badges, then a row per goal, the savings rate and the
+ * budget. Each row is one figure about one currency, and a section with nothing honest to
+ * say (no income, no limits) is left off rather than shown as zero.
+ */
+@Composable
+private fun progressCard(data: ShareStudioData.Progress, selection: ShareStudioSelection, details: Set<ShareDetail>): ShareCardState {
+    val sections = selection.sections
+    val amounts = ShareDetail.AMOUNTS in details
+    val percents = ShareDetail.PERCENTAGES in details
+    val bars = ShareDetail.CHART in details
+    val separator = stringResource(R.string.share_value_separator)
+    // effectiveDetails keeps at least one of the two on, so a row always has a figure.
+    // The percentage is isolated left to right, like amounts are, so it stays "64%" beside Arabic.
+    fun figure(amount: String, percent: String) =
+        listOfNotNull(amount.takeIf { amounts }, "\u2066$percent\u2069".takeIf { percents }).joinToString(separator)
+
+    val badges = if (ProgressSection.ACHIEVEMENTS in sections) {
+        // Titles only: a set of badges has no room for what each one took.
+        selectedAchievements(data.earned, selection.achievements)
+            .map { ShareAchievement(id = it.id.key, title = achievementName(it.id), description = "", tier = it.tier) }
+    } else emptyList()
+
+    // Goals and badges are as of today; only the savings and budget rows belong to the period.
+    var periodRows = 0
+    val rows = buildList {
+        if (ProgressSection.GOALS in sections) {
+            val goals = data.goals.associateBy { it.goal.id }
+            progressGoalIds(selection.goalIds, data.goals.map { it.goal.id }).forEachIndexed { i, id ->
+                val goal = goals.getValue(id)
+                val currency = goal.goal.currency
+                add(
+                    ShareCardRow(
+                        label = if (ShareDetail.GOAL_NAME in details) goal.goal.name
+                        else stringResource(R.string.share_card_progress_goal, count(i + 1)),
+                        value = figure(
+                            stringResource(R.string.share_card_progress_of, money(goal.saved, currency), money(goal.goal.targetAmount, currency)),
+                            percent(goal.percent()),
+                        ),
+                        fraction = if (bars) goal.fraction().toDouble().coerceIn(0.0, 1.0) else null,
+                        sentiment = if (goal.pill() == GoalPill.Reached) Sentiment.GOOD else Sentiment.NEUTRAL,
+                    )
+                )
+            }
+        }
+        if (ProgressSection.SAVINGS in sections) {
+            val c = progressCurrency(data.review, selection.currency)
+            val rate = c?.savingsRatePercent()
+            if (c != null && rate != null) {
+                val saved = c.income - c.spent
+                periodRows++
+                add(
+                    ShareCardRow(
+                        label = stringResource(
+                            if (rate < 0) R.string.share_card_progress_overspent else R.string.share_card_progress_saved
+                        ),
+                        value = figure(money(saved.abs(), c.currency), stringResource(R.string.share_percent, abs(rate))),
+                        fraction = if (bars) (rate / 100.0).coerceIn(0.0, 1.0) else null,
+                        sentiment = if (rate < 0) Sentiment.BAD else Sentiment.GOOD,
+                    )
+                )
+            }
+        }
+        if (ProgressSection.BUDGET in sections) {
+            budgetResult(data.budget)?.let { result ->
+                periodRows++
+                add(
+                    ShareCardRow(
+                        label = stringResource(R.string.share_card_progress_budget),
+                        value = figure(
+                            stringResource(R.string.share_card_progress_of, money(result.spent, result.currency), money(result.limit, result.currency)),
+                            percent(result.usedPercent),
+                        ),
+                        fraction = if (bars) (result.usedPercent / 100.0).coerceIn(0.0, 1.0) else null,
+                        sentiment = if (result.isOver) Sentiment.BAD else Sentiment.GOOD,
+                    )
+                )
+            }
+        }
+    }
+    if (badges.isEmpty() && rows.isEmpty()) {
+        return ShareCardState.Unavailable(stringResource(R.string.share_unavailable_progress))
+    }
+    return ShareCardState.Ready(
+        ShareCardContent(
+            kind = ShareKind.PROGRESS,
+            title = stringResource(R.string.share_card_progress_title),
+            periodLabel = if (ShareDetail.PERIOD in details && periodRows > 0) shareLabel(data.review) else null,
+            achievements = badges,
+            rows = rows,
+        )
+    )
 }

@@ -22,7 +22,25 @@ data class ShareCardContent(
     val chart: ShareChart? = null,
     /** An achievements card's badges, in the order drawn. */
     val achievements: List<ShareAchievement> = emptyList(),
+    /** A progress card's rows under its badges: goals, then savings, then budget. */
+    val rows: List<ShareCardRow> = emptyList(),
 )
+
+/** One line of a progress card: what it is, its figure, and a bar when the chart is on. */
+@Immutable
+data class ShareCardRow(
+    val label: String,
+    val value: String,
+    /** The bar's fill, 0..1; null draws no bar. */
+    val fraction: Double? = null,
+    val sentiment: Sentiment = Sentiment.NEUTRAL,
+)
+
+/** What a progress card can hold, in the order it draws them. */
+enum class ProgressSection { ACHIEVEMENTS, GOALS, SAVINGS, BUDGET }
+
+/** A progress card has room for this many goal rows next to everything else. */
+const val PROGRESS_MAX_GOALS = 3
 
 /**
  * One earned achievement on the card. [id] is the contract's stable key, which also
@@ -40,6 +58,8 @@ data class ShareAchievement(
 
 /** Card types. Names are the share contract's `kind`, lowercased. */
 enum class ShareKind {
+    // First, so it leads the card chips: the one card that can hold everything.
+    PROGRESS,
     RECAP,
     SPENDING,
     SAVINGS,
@@ -121,6 +141,8 @@ val ShareKind.details: List<ShareDetail>
         )
         // The date it was earned; drawn only on a card with one achievement.
         ShareKind.ACHIEVEMENTS -> listOf(ShareDetail.PERIOD)
+        ShareKind.PROGRESS ->
+            listOf(ShareDetail.AMOUNTS, ShareDetail.PERCENTAGES, ShareDetail.CHART, ShareDetail.GOAL_NAME, ShareDetail.PERIOD)
     }
 
 /**

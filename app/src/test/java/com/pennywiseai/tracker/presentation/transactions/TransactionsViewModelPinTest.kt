@@ -143,6 +143,14 @@ class TransactionsViewModelPinTest {
     }
 
     @Test
+    fun `a category name opens as written, a percent or plus sign in it too`() = runTest(dispatcher) {
+        listOf("Savings 10%", "Food + Drinks").forEach { name ->
+            viewModel.applyNavigationFilters(name, null, "CUSTOM", "USD", october.first.toEpochDay(), october.second.toEpochDay())
+            assertEquals(name, viewModel.categoryFilter.value)
+        }
+    }
+
+    @Test
     fun `any other list still drops a category the period no longer has`() = runTest(dispatcher) {
         openTravelInOctober()
         filtersSet.value = true

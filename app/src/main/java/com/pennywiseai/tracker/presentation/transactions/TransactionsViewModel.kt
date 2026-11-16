@@ -1067,12 +1067,6 @@ class TransactionsViewModel @Inject constructor(
         TransactionTypeFilter.entries.firstOrNull { it.name == type && it.inTransactionsList }
             ?: TransactionTypeFilter.ALL
 
-    private fun decodeUrlParam(value: String): String {
-        return if (value.contains("+") || value.contains("%")) {
-            java.net.URLDecoder.decode(value, "UTF-8")
-        } else value
-    }
-
     fun applyInitialFilters(
         category: String?,
         merchant: String?,
@@ -1094,15 +1088,9 @@ class TransactionsViewModel @Inject constructor(
             setAccountFilter(account)
             setTagFilter(tag)
 
-            category?.let {
-                val decoded = decodeUrlParam(it)
-                setCategoryFilter(decoded)
-            }
-
-            merchant?.let {
-                val decoded = decodeUrlParam(it)
-                updateSearchQuery(decoded)
-            }
+            // Typed nav keys carry names as they are: "Savings 10%" isn't URL-encoded.
+            category?.let { setCategoryFilter(it) }
+            merchant?.let { updateSearchQuery(it) }
 
             period?.let { periodName ->
                 applyNavigatedPeriod(periodName, startDateEpochDay, endDateEpochDay)
@@ -1175,15 +1163,8 @@ class TransactionsViewModel @Inject constructor(
         setAccountFilter(account)
         setTagFilter(tag)
 
-        category?.let {
-            val decoded = decodeUrlParam(it)
-            setCategoryFilter(decoded)
-        }
-
-        merchant?.let {
-            val decoded = decodeUrlParam(it)
-            updateSearchQuery(decoded)
-        }
+        category?.let { setCategoryFilter(it) }
+        merchant?.let { updateSearchQuery(it) }
 
         period?.let { periodName ->
             applyNavigatedPeriod(periodName, startDateEpochDay, endDateEpochDay)
@@ -1244,9 +1225,7 @@ class TransactionsViewModel @Inject constructor(
 
         // Set multiple categories filter
         categories?.let { cats ->
-            val categoryList = cats.split(",").map { cat ->
-                decodeUrlParam(cat)
-            }.filter { it.isNotBlank() }
+            val categoryList = cats.split(",").filter { it.isNotBlank() }
 
             if (categoryList.isNotEmpty()) {
                 _categoriesFilter.value = categoryList

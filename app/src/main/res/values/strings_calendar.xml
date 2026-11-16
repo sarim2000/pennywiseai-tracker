@@ -25,7 +25,8 @@
     <!-- The sheet for one day -->
     <string name="calendar_day_section_spent">Spent</string>
     <string name="calendar_day_section_due">Due</string>
-    <string name="calendar_day_transactions">Transactions</string>
+    <!-- Opens every transaction that day, so it's labelled apart from the net spend beside it -->
+    <string name="calendar_day_transactions">See this day\'s transactions</string>
     <string name="calendar_day_empty">Nothing spent or due on this day.</string>
     <string name="calendar_kind_subscription">Subscription</string>
     <string name="calendar_kind_recurring">Recurring payment</string>

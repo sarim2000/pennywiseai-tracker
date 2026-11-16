@@ -50,13 +50,16 @@ object UpcomingPayments {
             !it.isDeleted && it.transactionType in RecurringCharge.SPEND_TYPES && !it.dateTime.toLocalDate().isAfter(today)
         }.sortedBy { it.dateTime }.toMutableList()
         val subs = activeExpense(subscriptions).filter { counts(it.bankName, it.accountLast4) }.flatMap { s ->
-            occurrences(s, today, end).filter { !settled(s, it, charges) }.map { Bill(s.merchantName, Money(s.amount, s.currency), it) }
+            occurrences(s, today, end).map { s to Bill(s.merchantName, Money(s.amount, s.currency), it) }
         }
+        // Matched against every subscription occurrence, settled or not: a template for a
+        // payment that's already posted is paid too.
         val templates = recurring(recurring.filter { counts(it.bankName, it.accountLast4) }, today, end)
-            .filter { t -> subs.none { it.sameOccurrence(t) } }
+            .filter { t -> subs.none { (_, bill) -> bill.sameOccurrence(t) } }
+        val unpaid = subs.filter { (s, bill) -> !settled(s, bill.dueDate, charges) }.map { it.second }
         val bills = cardBills.mapNotNull { it.bill }.filter { !it.isRetired && !it.dueDate.isAfter(end) }
             .map { Bill(it.label, Money(it.remaining, it.currency), it.dueDate, isCardBill = true) }
-        return (subs + templates + bills).sortedBy { it.dueDate }
+        return (unpaid + templates + bills).sortedBy { it.dueDate }
     }
 
     /** Each occurrence of the active expense [subscriptions] due today..[end]. */

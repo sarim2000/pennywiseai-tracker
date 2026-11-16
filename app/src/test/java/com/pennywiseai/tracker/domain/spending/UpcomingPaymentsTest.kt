@@ -135,6 +135,18 @@ class UpcomingPaymentsTest {
     }
 
     @Test
+    fun `a template for a subscription payment that's already posted is paid too`() {
+        val bills = upcoming(
+            subscriptions = listOf(sub("Rent", "2026-10-25", amount = "15000")),
+            recurring = listOf(template("Rent", "2026-10-25", amount = "15000")),
+            posted = listOf(charge("Rent", "2026-10-23", amount = "15000")),
+        )
+
+        // Next month's payment falls after payday: nothing left to set aside.
+        assertTrue(bills.isEmpty())
+    }
+
+    @Test
     fun `a posted charge settles one occurrence, within a few days of it`() {
         val bills = upcoming(
             subscriptions = listOf(sub("Cleaner", "2026-10-24", cycle = "Weekly")),

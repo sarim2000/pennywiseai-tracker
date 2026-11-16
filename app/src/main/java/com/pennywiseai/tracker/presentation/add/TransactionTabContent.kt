@@ -17,6 +17,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -43,6 +44,7 @@ import com.pennywiseai.tracker.presentation.accounts.displayName
 import com.pennywiseai.tracker.presentation.accounts.icon
 import com.pennywiseai.tracker.presentation.categories.CategoryEditDialog
 import com.pennywiseai.tracker.presentation.transactions.transactionTypeLabel
+import com.pennywiseai.tracker.ui.components.AmountCalculatorSheet
 import com.pennywiseai.tracker.ui.components.CategoryChip
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
@@ -181,6 +183,7 @@ fun TransactionTabContent(
     // chosen account to either the FROM or TO card; for other types only FROM is used.
     var accountPickerTarget by remember { mutableStateOf<AccountPickerTarget?>(null) }
     var showCurrencyMenu by remember { mutableStateOf(false) }
+    var showCalculator by rememberSaveable { mutableStateOf(false) }
 
     val isTransfer = uiState.transactionType == TransactionType.TRANSFER
 
@@ -238,10 +241,33 @@ fun TransactionTabContent(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     isError = uiState.amountError != null,
                     supportingText = uiState.amountError?.let { { Text(it.asString()) } },
+                    trailingIcon = {
+                        IconButton(
+                            onClick = {
+                                // The sheet has its own keypad; the keyboard would cover it.
+                                focusManager.clearFocus()
+                                showCalculator = true
+                            },
+                            shapes = IconButtonDefaults.shapes()
+                        ) {
+                            Icon(Icons.Default.Calculate, contentDescription = stringResource(R.string.calculator_open))
+                        }
+                    },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     shape = fullShape,
                     colors = filledFieldColors()
+                )
+            }
+            if (showCalculator) {
+                AmountCalculatorSheet(
+                    initialAmount = uiState.amount,
+                    currency = uiState.currency,
+                    onApply = {
+                        viewModel.updateTransactionAmount(it.toPlainString())
+                        showCalculator = false
+                    },
+                    onDismiss = { showCalculator = false }
                 )
             }
 

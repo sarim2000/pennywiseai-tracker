@@ -446,6 +446,19 @@
     <string name="quick_add_from">From: %1$s</string>
     <!-- %1$s amount with currency, %2$s category -->
     <string name="quick_add_saved">Saved %1$s · %2$s</string>
+    <!-- Amount calculator: a keypad sheet opened from the amount field -->
+    <string name="calculator_open">Calculator</string>
+    <string name="calculator_title">Work out the amount</string>
+    <string name="calculator_apply">Use amount</string>
+    <string name="calculator_must_be_positive">The amount must be more than zero</string>
+    <string name="calculator_clear">Clear</string>
+    <string name="calculator_divide">Divide</string>
+    <string name="calculator_multiply">Multiply</string>
+    <string name="calculator_minus">Minus</string>
+    <string name="calculator_plus">Plus</string>
+    <string name="calculator_equals">Equals</string>
+    <string name="calculator_decimal_point">Decimal point</string>
+    <string name="calculator_backspace">Delete</string>
     <string name="date_range_title">Select Date Range</string>
     <string name="date_range_ok">OK</string>
     <string name="date_range_cancel">Cancel</string>

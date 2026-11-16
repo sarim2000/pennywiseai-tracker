@@ -19,6 +19,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -28,6 +29,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -66,6 +69,7 @@ import com.pennywiseai.tracker.data.repository.AppLockRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase
+import com.pennywiseai.tracker.ui.components.AmountCalculatorSheet
 import com.pennywiseai.tracker.ui.components.CategoryChip
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.icons.categoryLabel
@@ -202,6 +206,7 @@ class QuickAddActivity : FragmentActivity() {
         var where by rememberSaveable { mutableStateOf("") }
         var category by rememberSaveable { mutableStateOf<String?>(null) }
         var accountKey by rememberSaveable { mutableStateOf(setup.cashAccounts.firstOrNull()?.let(::keyOf)) }
+        var showCalculator by rememberSaveable { mutableStateOf(false) }
         val account = setup.cashAccounts.firstOrNull { keyOf(it) == accountKey }
         val amount = amountText.toBigDecimalOrNull()?.takeIf { it.signum() > 0 }
         val focus = remember { FocusRequester() }
@@ -242,8 +247,31 @@ class QuickAddActivity : FragmentActivity() {
                 textStyle = MaterialTheme.typography.headlineSmall.money(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+                trailingIcon = {
+                    IconButton(
+                        onClick = {
+                            // The sheet has its own keypad; the keyboard would cover it.
+                            focusManager.clearFocus()
+                            showCalculator = true
+                        },
+                        shapes = IconButtonDefaults.shapes()
+                    ) {
+                        Icon(Icons.Default.Calculate, contentDescription = stringResource(R.string.calculator_open))
+                    }
+                },
                 modifier = Modifier.fillMaxWidth().focusRequester(focus)
             )
+            if (showCalculator) {
+                AmountCalculatorSheet(
+                    initialAmount = amountText,
+                    currency = setup.currency,
+                    onApply = { result ->
+                        normalizeAmount(result.toPlainString(), decimalComma)?.let { amountText = it }
+                        showCalculator = false
+                    },
+                    onDismiss = { showCalculator = false }
+                )
+            }
             OutlinedTextField(
                 value = where,
                 onValueChange = { where = it },

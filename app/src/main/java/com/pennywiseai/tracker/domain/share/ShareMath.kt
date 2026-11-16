@@ -66,14 +66,21 @@ fun spendingDrivers(review: CurrencyReview, limit: Int = 4): List<CategoryLine> 
         .take(limit)
 }
 
-/** Whole-percent change of one category; null when it had nothing before (it's new). */
+/**
+ * Whole-percent change of one category; null when it had nothing before (it's new), or so
+ * little that it rose past 100× (+10,000%): the card shows it as new rather than a figure
+ * that says nothing, and an Int can't wrap into a false decrease.
+ */
 fun categoryChangePercent(line: CategoryLine): Int? {
     val previous = line.previous ?: return null
     if (previous.signum() <= 0) return null
     return (line.amount - previous).multiply(BigDecimal(100))
         .divide(previous, 0, RoundingMode.HALF_UP)
-        .toInt()
+        .takeIf { it <= MAX_CATEGORY_CHANGE }
+        ?.toInt()
 }
+
+private val MAX_CATEGORY_CHANGE = BigDecimal(10_000)
 
 /** A category and its share of the period's spending. */
 data class CategoryShare(val name: String, val amount: BigDecimal, val sharePercent: Int)

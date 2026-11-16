@@ -241,6 +241,16 @@ class AiContextRepositoryTest {
     }
 
     @Test
+    fun `a category refunded in full is nothing spent`() = runBlocking {
+        tx("200", category = "Travel")
+        tx("200", type = TransactionType.INCOME, refundTo = "Travel")
+        tx("9", category = "Travel", currency = "USD")
+        assertEquals(mapOf("USD" to "9"), amounts(repository.categorySpending("Travel", today).byCurrency))
+        rows.removeAt(rows.lastIndex)
+        assertTrue(repository.categorySpending("Travel", today).byCurrency.isEmpty())
+    }
+
+    @Test
     fun `top categories rank per currency and keep forgiven loans out of the ranking`() = runBlocking {
         tx("300", category = "Travel")
         tx("100")

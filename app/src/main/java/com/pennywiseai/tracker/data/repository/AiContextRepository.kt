@@ -104,7 +104,8 @@ class AiContextRepository @Inject constructor(
         val rows = rows(scope)
         val credit = creditAsExpense()
         val names = categoriesNamed(category)
-        val byCurrency = SpendingComparison.spend(rows, names, credit)
+        // A currency refunded in full is nothing spent, as spending() leaves it out.
+        val byCurrency = SpendingComparison.spend(rows, names, credit).filterValues { it.signum() > 0 }
         return CategorySpend(
             scope = scope.chat,
             category = category,

@@ -240,15 +240,17 @@ class LlmRepository @Inject constructor(
                 ensureConversation(incoming = prompt, shrink = true)
             }
         }
-        // A broken wrapper can also come through as plain text: never shown, its JSON or the
-        // start of its tag. It's no reply, so it isn't saved as one.
+        // A broken wrapper can also come through as plain text, after prose too: never shown, its
+        // JSON or the start of its tag. It's no reply, so it isn't saved as one; the prose before
+        // it is left for the check below, as beside any other call.
         val written = responseBuilder.toString()
-        if (written.startsWith(TOOL_CALL_TAG)) {
-            TransactionDraft.itemsInBrokenCall(written)?.let { toolCalls.add(addCall(it)) } ?: run {
+        val tag = written.indexOf(TOOL_CALL_TAG)
+        if (tag >= 0) {
+            TransactionDraft.itemsInBrokenCall(written.substring(tag))?.let { toolCalls.add(addCall(it)) } ?: run {
                 unreadableToolCall = true
                 conversationBroken = true
             }
-            responseBuilder.clear()
+            responseBuilder.setLength(tag)
         }
         // A turn that called a tool, readably or not, is answered by the app alone: the
         // repository's figures, or the card it proposes. Prose beside them could carry the

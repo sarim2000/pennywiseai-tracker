@@ -964,6 +964,16 @@ class ChatTurnTest {
     }
 
     @Test
+    fun `an add call let through as text after prose drops the prose too`() = runTest {
+        every { context.getString(R.string.chat_reply_add, any()) } returns "CARD"
+        events = listOf(LlmEvent.Text("Sure, adding ₹999 for shoes.\n<tool_call>\n{\"name\": \"add_transactions\", \"arguments\": {\"items\": [{\"amount\": 300, \"merchant\": \"shoes\"}]}}"))
+        assertEquals("CARD", send("shoes 300"))
+        assertEquals(listOf("CARD"), shown)
+        assertTrue(repository.pendingAction.value is PendingChatAction.Add)
+        assertEquals("CARD", saved.last().message)
+    }
+
+    @Test
     fun `a reply that claims a save without a tool call is corrected`() = runTest {
         events = listOf(LlmEvent.Text("₹52,000 income is added successfully."))
         assertTrue(send("got my salary 52000").contains("NOTHING_CHANGED"))

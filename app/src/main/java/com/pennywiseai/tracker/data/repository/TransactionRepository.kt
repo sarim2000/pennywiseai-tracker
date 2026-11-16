@@ -7,6 +7,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.database.entity.currentNameFor
+import com.pennywiseai.tracker.data.database.entity.nameForBuiltin
 import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.manager.TransactionDeduplication
 import com.pennywiseai.tracker.data.notification.BankNotificationConfig
@@ -15,6 +16,7 @@ import com.pennywiseai.tracker.data.statement.StatementTransactionEnricher
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
@@ -47,9 +49,16 @@ open class TransactionRepository @Inject constructor(
     fun getAllTransactions(): Flow<List<TransactionEntity>> =
         transactionDao.getAllTransactions()
 
-    /** Every row still to file ([needsCategory]), newest first, as it changes. */
+    /**
+     * Every row still to file ([needsCategory]), newest first, as it changes. "Others" is read
+     * from the categories table as it changes too, so a rename (or a cold start before
+     * BuiltinCategoryNames is filled) can't leave the query bound to a stale name.
+     */
     fun observeUncategorized(): Flow<List<TransactionEntity>> =
-        transactionDao.getUncategorized(com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames.current("Others"))
+        categoryDao.getAllCategories()
+            .map { it.nameForBuiltin("Others") }
+            .distinctUntilChanged()
+            .flatMapLatest { transactionDao.getUncategorized(it) }
 
     open suspend fun getTransactionById(id: Long): TransactionEntity? =
         transactionDao.getTransactionById(id)

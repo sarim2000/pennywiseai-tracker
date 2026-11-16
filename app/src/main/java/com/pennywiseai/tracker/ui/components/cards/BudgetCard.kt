@@ -345,16 +345,22 @@ fun BudgetCard(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
         )
-        RolloverLine(groupSpending, currency)
+        RolloverLine(groupSpending, currency, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
     }
 }
 
 /**
  * How a rolled-over budget's limit is made up: "Base X + Y carried over = Z", or
  * why nothing carried. Nothing at all when rollover is off or carried exactly 0.
+ * [color]: the "Spent X of Y" line's above it.
  */
 @Composable
-fun RolloverLine(groupSpending: BudgetGroupSpending, currency: String, modifier: Modifier = Modifier) {
+fun RolloverLine(
+    groupSpending: BudgetGroupSpending,
+    currency: String,
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.onSurfaceVariant
+) {
     if (!groupSpending.group.budget.rolloverEnabled) return
     val carry = groupSpending.carry
     val text = when {
@@ -370,7 +376,7 @@ fun RolloverLine(groupSpending: BudgetGroupSpending, currency: String, modifier:
     Text(
         text = text,
         style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant,
+        color = color,
         modifier = modifier
     )
 }

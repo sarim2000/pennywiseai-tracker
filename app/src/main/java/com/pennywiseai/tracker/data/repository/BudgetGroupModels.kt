@@ -175,7 +175,7 @@ data class BudgetOverallSummary(
 data class WindowSpending(
     val budgetId: Long,
     val window: BudgetWindow,
-    val transactions: List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>
+    val transactions: List<TransactionWithSplits>
 )
 
 data class BudgetGroupSpendingRaw(
@@ -193,7 +193,7 @@ data class BudgetGroupSpendingRaw(
      * its native currency — the viewmodel converts per-transaction
      * before aggregating.
      */
-    val prevCycleTransactions: List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits> = emptyList(),
+    val prevCycleTransactions: List<TransactionWithSplits> = emptyList(),
     /**
      * Legacy: flat list of all transactions in the displayed windows for
      * the current month. Kept for the home / widget which still build
@@ -201,7 +201,7 @@ data class BudgetGroupSpendingRaw(
      * repo populates it for the unified path so the home carousel can
      * show per-category spend without re-querying.
      */
-    val allTransactions: List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits> = emptyList(),
+    val allTransactions: List<TransactionWithSplits> = emptyList(),
     /**
      * The per-budget *current* window (the budget's own cycle for the
      * current month, the most-recent window in the list for a historical
@@ -217,7 +217,7 @@ data class BudgetGroupSpendingRaw(
      * transactions (every currency) of the period it carries from. Pass to
      * [budgetCarry] with [parentOf].
      */
-    val carrySources: Map<Long, List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>> = emptyMap(),
+    val carrySources: Map<Long, List<TransactionWithSplits>> = emptyMap(),
     /** Sub-category → parent name, for [budgetCarry]. */
     val parentOf: Map<String, String> = emptyMap()
 ) {

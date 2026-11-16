@@ -247,7 +247,8 @@ private fun HistoryRow(
                 text = CurrencyFormatter.formatCurrency(window.spent, currency),
                 style = PennyWiseText.amountMedium
             )
-            window.carry?.let { carry ->
+            // As on the cards: a carry of exactly 0 isn't worth a line.
+            window.carry?.takeIf { it.incomplete || it.amount.amount.signum() != 0 }?.let { carry ->
                 Text(
                     text = if (carry.gap != null) {
                         stringResource(carry.gap.message)

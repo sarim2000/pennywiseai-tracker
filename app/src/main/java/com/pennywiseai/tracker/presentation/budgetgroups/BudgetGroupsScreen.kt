@@ -51,6 +51,7 @@ import com.pennywiseai.tracker.ui.components.CategoryIcon
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.cards.PaceInfo
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.RolloverLine
 import com.pennywiseai.tracker.ui.components.cards.budgetStatusColors
 import com.pennywiseai.tracker.ui.components.cards.paceInfoToggle
 import com.pennywiseai.tracker.ui.components.cards.tintedSurface
@@ -709,7 +710,7 @@ private fun BudgetCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                com.pennywiseai.tracker.ui.components.cards.RolloverLine(groupSpending, currency)
+                RolloverLine(groupSpending, currency)
             } else if (groupSpending.isTrackingAllExpenses) {
                 Spacer(modifier = Modifier.height(Spacing.sm))
                 Text(

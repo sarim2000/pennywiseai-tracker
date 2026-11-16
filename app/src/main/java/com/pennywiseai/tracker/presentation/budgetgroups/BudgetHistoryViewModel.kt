@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.presentation.budgetgroups
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.BudgetEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
@@ -60,7 +61,8 @@ data class BudgetHistoryUiState(
 class BudgetHistoryViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val budgetGroupRepository: BudgetGroupRepository,
-    private val userPreferencesRepository: UserPreferencesRepository
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val currencyConversionService: CurrencyConversionService
 ) : ViewModel() {
 
     private val groupId: Long = savedStateHandle.get<Long>("groupId") ?: -1L
@@ -74,6 +76,10 @@ class BudgetHistoryViewModel @Inject constructor(
     )
     val uiState: StateFlow<BudgetHistoryUiState> = _uiState.asStateFlow()
 
+    // Unified mode converts last period's other currencies for the carry, as the
+    // Budgets card does; otherwise it counts the history's own currency only.
+    private var convertCarry: (suspend (String, BigDecimal) -> BigDecimal?)? = null
+
     init {
         loadHistory()
     }
@@ -84,6 +90,9 @@ class BudgetHistoryViewModel @Inject constructor(
             val startDay = userPreferencesRepository.getBudgetCycleStartDay()
             val baseCurrency = userPreferencesRepository.baseCurrency.first()
             val displayCurrency = baseCurrency
+            convertCarry = if (userPreferencesRepository.unifiedCurrencyMode.first()) {
+                { fromCurrency, amount -> currencyConversionService.convertAmountOrNull(amount, fromCurrency, displayCurrency) }
+            } else null
             val budget = budgetGroupRepository.getGroupById(groupId) ?: run {
                 _uiState.value = _uiState.value.copy(isLoading = false)
                 return@launch
@@ -92,7 +101,8 @@ class BudgetHistoryViewModel @Inject constructor(
                 budget = budget,
                 year = yearMonth.year,
                 month = yearMonth.monthValue,
-                currency = displayCurrency
+                currency = displayCurrency,
+                convertCarry = convertCarry
             )
             val totalSpent = history.fold(BigDecimal.ZERO) { acc, w -> acc + w.spent }
             val isCurrentMonth = yearMonth == YearMonth.now()
@@ -155,7 +165,8 @@ class BudgetHistoryViewModel @Inject constructor(
             val breakdown = budgetGroupRepository.getBudgetWindowBreakdown(
                 budget = budget,
                 window = window,
-                currency = currency
+                currency = currency,
+                convertCarry = convertCarry
             )
             _uiState.value = _uiState.value.copy(
                 breakdown = breakdown,

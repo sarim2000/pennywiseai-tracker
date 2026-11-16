@@ -235,4 +235,18 @@ class BudgetRolloverRoutingTest {
         val breakdown = repo.getBudgetWindowBreakdown(group.budget, resolveBudgetWindow(group.budget, today, 1), "JOD")
         assertEquals(0, BigDecimal("140").compareTo(breakdown.totalBudget))
     }
+
+    @Test
+    fun `in unified mode budget history converts last week's other currencies like the card`() = runBlocking {
+        val group = budget()
+        val repo = repository(group, listOf(spend("60", at = lastWeek), spend("20", "USD", lastWeek), spend("30")))
+        val convert: suspend (String, BigDecimal) -> BigDecimal? = { from, amount -> conversion.convertAmountOrNull(amount, from, "JOD") }
+        val history = repo.getBudgetHistoryForMonth(group.budget, today.year, today.monthValue, "JOD", convert)
+        val thisWeek = history.single { it.window.start == today }
+        assertEquals(0, BigDecimal("30").compareTo(thisWeek.carry!!.amount.amount))
+        assertFalse(thisWeek.carry!!.incomplete)
+        val breakdown = repo.getBudgetWindowBreakdown(group.budget, resolveBudgetWindow(group.budget, today, 1), "JOD", convert)
+        assertEquals(0, BigDecimal("130").compareTo(breakdown.totalBudget))
+        assertFigures(summary(repo, unified = true), carry = "30", limit = "130", remaining = "100")
+    }
 }

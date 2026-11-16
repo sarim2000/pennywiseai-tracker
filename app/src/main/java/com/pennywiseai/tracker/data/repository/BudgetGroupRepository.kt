@@ -866,12 +866,16 @@ class BudgetGroupRepository @Inject constructor(
      * For the current month, the week containing today is live (cap =
      * today); every other week is frozen at the month end. For a
      * historical month, every week is frozen at the month end.
+     *
+     * [convertCarry]: how the carry converts last period's other currencies into
+     * [currency] (unified mode); null counts [currency] only, as the spend does.
      */
     suspend fun getBudgetHistoryForMonth(
         budget: BudgetEntity,
         year: Int,
         month: Int,
-        currency: String
+        currency: String,
+        convertCarry: (suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?)? = null
     ): List<PastWindowSpending> {
         val today = LocalDate.now()
         val startDay = userPreferencesRepository.getBudgetCycleStartDay()
@@ -905,7 +909,7 @@ class BudgetGroupRepository @Inject constructor(
                 capDate = cap,
                 isLive = isLive,
                 carry = carrySource(budget, w, startDay)?.let {
-                    budgetCarry(group, it, currency, currency, parentOf, sameCurrencyOnly(currency))
+                    budgetCarry(group, it, currency, currency, parentOf, convertCarry ?: sameCurrencyOnly(currency))
                 }
             )
         }
@@ -916,12 +920,13 @@ class BudgetGroupRepository @Inject constructor(
      * Budget History "View breakdown" bottom sheet — same shape as the
      * Budget Groups page's per-card category list, but scoped to one
      * window (one week for Weekly, one cycle for Monthly, the literal
-     * range for One-time).
+     * range for One-time). [convertCarry]: as in [getBudgetHistoryForMonth].
      */
     suspend fun getBudgetWindowBreakdown(
         budget: BudgetEntity,
         window: BudgetWindow,
-        currency: String
+        currency: String,
+        convertCarry: (suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?)? = null
     ): WindowBreakdown {
         val txs = transactionSplitDao.getTransactionsWithSplitsFiltered(
             window.start.atStartOfDay(),
@@ -971,7 +976,10 @@ class BudgetGroupRepository @Inject constructor(
             emptyList()
         }
         val carry = carrySource(budget, window, userPreferencesRepository.getBudgetCycleStartDay())?.let {
-            budgetCarry(group ?: BudgetWithCategories(budget, emptyList()), it, currency, currency, parentOf(), sameCurrencyOnly(currency))
+            budgetCarry(
+                group ?: BudgetWithCategories(budget, emptyList()), it, currency, currency, parentOf(),
+                convertCarry ?: sameCurrencyOnly(currency)
+            )
         } ?: BudgetCarry.none(currency)
         val totalBudget = (group?.budget?.limitAmount ?: BigDecimal.ZERO).let { gLimit ->
             carry.appliedTo(

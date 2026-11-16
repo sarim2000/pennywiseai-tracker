@@ -72,22 +72,34 @@ object CardBills {
     }
 
     /**
-     * A payment toward the card: money in, in the card's currency. An income row on
-     * the card (a refund of a purchase isn't a payment, and nor is spending) or a
-     * transfer into it. Each transfer pair counts once, through [paymentsTo].
+     * A payment toward the card: money in, in the card's currency. A transfer into
+     * it, or an income row on the card that isn't a credit back for a purchase
+     * ([isPurchaseCredit]); spending never is. Each transfer pair counts once,
+     * through [paymentsTo].
      */
     fun isPayment(card: AccountBalanceEntity, t: TransactionEntity): Boolean {
         if (t.currency != card.currency) return false
         return when (t.transactionType) {
             TransactionType.INCOME ->
-                t.budgetImpactType != BudgetImpactType.DEDUCT_SPENT &&
-                    t.bankName.equals(card.bankName, ignoreCase = true) && t.accountNumber == card.accountLast4
+                t.bankName.equals(card.bankName, ignoreCase = true) && t.accountNumber == card.accountLast4 &&
+                    (t.transferPairId != null || !isPurchaseCredit(t))
             TransactionType.TRANSFER ->
                 t.toAccount == card.accountLast4 &&
                     (t.toBankName == null || t.toBankName.equals(card.bankName, ignoreCase = true))
             else -> false
         }
     }
+
+    /**
+     * A refund, reversal or cashback on the card: it lowers what's owed but isn't a
+     * payment of the bill. Marked as a refund by the user, or worded as one by the
+     * bank; SMS ingestion doesn't mark them.
+     */
+    private fun isPurchaseCredit(t: TransactionEntity): Boolean =
+        t.budgetImpactType == BudgetImpactType.DEDUCT_SPENT ||
+            listOfNotNull(t.merchantName, t.category, t.description, t.smsBody).any { PURCHASE_CREDIT.containsMatchIn(it) }
+
+    private val PURCHASE_CREDIT = Regex("""refund|revers|cash\s?back|charge\s?back""", RegexOption.IGNORE_CASE)
 
     /** What was paid toward [card] after [statementDate], up to and including [today]. */
     fun paymentsTo(card: AccountBalanceEntity, transactions: List<TransactionEntity>, statementDate: LocalDate, today: LocalDate): BigDecimal =

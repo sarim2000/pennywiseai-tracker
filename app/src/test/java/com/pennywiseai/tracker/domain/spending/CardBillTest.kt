@@ -41,11 +41,13 @@ class CardBillTest {
         currency: String = "INR",
         pair: String? = null,
         impact: BudgetImpactType? = null,
+        merchant: String = "Payment",
+        sms: String? = null,
     ) = TransactionEntity(
-        id = nextId, amount = d(amount), merchantName = "Payment", category = "Bills", transactionType = type,
+        id = nextId, amount = d(amount), merchantName = merchant, category = "Bills", transactionType = type,
         dateTime = date(on).atTime(12, 0), currency = currency, transactionHash = "h${nextId++}",
         bankName = "Test Bank", accountNumber = account, toAccount = to, transferPairId = pair,
-        budgetImpactType = impact,
+        budgetImpactType = impact, smsBody = sms,
     )
 
     @Test
@@ -122,6 +124,18 @@ class CardBillTest {
         )
 
         assertEquals(d("4000"), CardBills.status(card(), noise, date("2026-03-20")).bill!!.remaining)
+    }
+
+    @Test
+    fun `an unmarked refund or cashback from an SMS doesn't pay the bill`() {
+        val credits = listOf(
+            tx("2026-03-15", "800", TransactionType.INCOME, merchant = "Example Store", sms = "Refund of INR 800 credited to your card"),
+            tx("2026-03-16", "40", TransactionType.INCOME, merchant = "Cashback"),
+            tx("2026-03-17", "120", TransactionType.INCOME, sms = "Transaction reversed on your card"),
+            tx("2026-03-18", "1000", TransactionType.INCOME, sms = "Payment received on your card"),
+        )
+
+        assertEquals(d("3000"), CardBills.status(card(), credits, date("2026-03-20")).bill!!.remaining)
     }
 
     @Test

@@ -149,6 +149,22 @@ internal fun insightText(insight: Insight): InsightText = when (val f = insight.
             stringResource(R.string.insights_metric_left_over) to f.surplus.format(),
         ),
     )
+    is InsightFact.CardBillDue -> InsightText(
+        title = when {
+            f.daysLeft < 0 -> stringResource(R.string.insights_card_bill_overdue_title, f.label)
+            f.daysLeft == 0 -> stringResource(R.string.insights_card_bill_today_title, f.label)
+            else -> pluralStringResource(R.plurals.insights_card_bill_title, f.daysLeft, f.label, f.daysLeft)
+        },
+        body = stringResource(
+            if (f.daysLeft < 0) R.string.insights_card_bill_overdue_body else R.string.insights_card_bill_body,
+            f.left.format(),
+            date(f.dueDate),
+        ),
+        metrics = listOf(
+            stringResource(R.string.insights_metric_left_to_pay) to f.left.format(),
+            stringResource(R.string.insights_metric_statement) to f.statement.format(),
+        ),
+    )
     is InsightFact.BillsDue -> InsightText(
         title = pluralStringResource(R.plurals.insights_bills_title, f.withinDays, f.total.format(), f.withinDays),
         body = ListFormatter.getInstance(LocalConfiguration.current.locales[0]).format(f.names.map { merchant(it) })

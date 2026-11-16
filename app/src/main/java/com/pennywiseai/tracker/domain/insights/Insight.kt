@@ -82,6 +82,18 @@ sealed interface InsightFact {
      */
     data class GoalsFit(val needed: Money, val surplus: Money, val shortBy: Money?) : InsightFact
 
+    /**
+     * A credit card's bill with [left] still to pay of the [statement], due on
+     * [dueDate]: [daysLeft] from today, below zero once it's overdue.
+     */
+    data class CardBillDue(
+        val label: String,
+        val left: Money,
+        val statement: Money,
+        val dueDate: LocalDate,
+        val daysLeft: Int,
+    ) : InsightFact
+
     /** [names] are the subscriptions due, soonest first. */
     data class BillsDue(
         val count: Int,

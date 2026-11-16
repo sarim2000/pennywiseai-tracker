@@ -196,4 +196,17 @@
         <item quantity="one">%1$s, due today.</item>
         <item quantity="other">%1$s. The first is due today.</item>
     </plurals>
+
+    <!-- Card bill. %1$s = card name, %2$d = days until it's due -->
+    <plurals name="insights_card_bill_title">
+        <item quantity="one">%1$s bill due in %2$d day</item>
+        <item quantity="other">%1$s bill due in %2$d days</item>
+    </plurals>
+    <string name="insights_card_bill_today_title">%1$s bill due today</string>
+    <string name="insights_card_bill_overdue_title">%1$s bill is overdue</string>
+    <!-- %1$s = left to pay, %2$s = due date -->
+    <string name="insights_card_bill_body">%1$s left to pay by %2$s.</string>
+    <string name="insights_card_bill_overdue_body">%1$s still to pay. It was due on %2$s.</string>
+    <string name="insights_metric_left_to_pay">Left to pay</string>
+    <string name="insights_metric_statement">Statement</string>
 </resources>

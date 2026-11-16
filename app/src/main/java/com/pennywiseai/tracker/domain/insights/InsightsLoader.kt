@@ -17,6 +17,7 @@ import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
 import com.pennywiseai.tracker.domain.review.PeriodReview
 import com.pennywiseai.tracker.domain.review.PeriodReviewLoader
 import com.pennywiseai.tracker.domain.review.ReviewKind
+import com.pennywiseai.tracker.domain.spending.CardBillsLoader
 import com.pennywiseai.tracker.domain.spending.CycleAverages
 import com.pennywiseai.tracker.domain.spending.Runway
 import com.pennywiseai.tracker.utils.Money
@@ -62,6 +63,7 @@ class InsightsLoader @Inject constructor(
     private val subscriptionRepository: SubscriptionRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
     private val goalAffordabilityLoader: GoalAffordabilityLoader,
+    private val cardBillsLoader: CardBillsLoader,
     private val ignoredAccountsStore: IgnoredAccountsStore,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val insightPreferences: InsightPreferences,
@@ -70,15 +72,19 @@ class InsightsLoader @Inject constructor(
         periodReviewLoader.observe(ReviewKind.MONTH, 0, today, detail = true),
         budgets(today),
         combine(subscriptions(), goalAffordabilityLoader.goalsToWeigh(today), ::Pair),
-        accounts(),
+        accounts().flatMapLatest { (accounts, unanchored) ->
+            cardBillsLoader.observe(accounts.filter { it.isCreditCard }, today)
+                .map { cards -> Triple(accounts, unanchored, cards.mapNotNull { it.bill }) }
+        },
         combine(insightPreferences.dismissedInsights, userPreferencesRepository.selectedProfileId, ::Pair),
-    ) { review, budgets, (subscriptions, goals), (accounts, unanchored), (dismissed, profileId) ->
+    ) { review, budgets, (subscriptions, goals), (accounts, unanchored, cardBills), (dismissed, profileId) ->
         val averages = CycleAverages.of(review.detail?.cycles.orEmpty())
         val runways = Runway.calculate(accounts, averages, unanchored)
         val inputs = InsightInputs(
             today, review, budgets, subscriptions, accounts.filter { it.isCreditCard }, profileId,
             runways = runways,
             goals = GoalAffordabilityLoader.affordability(goals, review.detail),
+            cardBills = cardBills,
         )
         InsightsSnapshot(
             review, InsightRules.evaluate(inputs), dismissed, scores(review, budgets),

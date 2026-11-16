@@ -11,6 +11,7 @@ import com.pennywiseai.tracker.domain.insights.InsightFact.BillsDue
 import com.pennywiseai.tracker.domain.insights.InsightFact.BudgetOver
 import com.pennywiseai.tracker.domain.insights.InsightFact.BudgetPace
 import com.pennywiseai.tracker.domain.insights.InsightFact.BudgetsOnTrack
+import com.pennywiseai.tracker.domain.insights.InsightFact.CardBillDue
 import com.pennywiseai.tracker.domain.insights.InsightFact.CardUtilisation
 import com.pennywiseai.tracker.domain.insights.InsightFact.CategorySpike
 import com.pennywiseai.tracker.domain.insights.InsightFact.GoalsFit
@@ -20,6 +21,7 @@ import com.pennywiseai.tracker.domain.insights.InsightFact.PriceChange
 import com.pennywiseai.tracker.domain.insights.InsightFact.SavingsRate
 import com.pennywiseai.tracker.domain.review.PeriodReview
 import com.pennywiseai.tracker.domain.spending.Bill
+import com.pennywiseai.tracker.domain.spending.CardBill
 import com.pennywiseai.tracker.domain.spending.RecurringCharge
 import com.pennywiseai.tracker.domain.spending.Runway
 import com.pennywiseai.tracker.domain.spending.SafeToSpend
@@ -74,6 +76,8 @@ data class InsightInputs(
     val runways: List<Runway> = emptyList(),
     /** Per goal currency; empty while one profile is selected, as goals span them all. */
     val goals: List<GoalAffordability> = emptyList(),
+    /** The bills entered on [creditCards] that are still to pay. */
+    val cardBills: List<CardBill> = emptyList(),
 )
 
 /**
@@ -91,6 +95,7 @@ object InsightRules {
         return (
             budgets(inputs.budgets, period) +
                 cardUtilisation(inputs.creditCards, period) +
+                cardBills(inputs.cardBills, inputs.today, period) +
                 billsDue(subscriptions, inputs.review, inputs.today, period) +
                 priceChanges(inputs.review, subscriptions, period) +
                 categorySpikes(inputs.review, period) +
@@ -173,6 +178,29 @@ object InsightRules {
                 InsightAction.OpenAccount(card.bankName, card.accountLast4),
             )
         }.sortedByDescending { (it.fact as CardUtilisation).percent }
+
+    /**
+     * A card bill due in the next [BILLS_DAYS] days, or overdue with something still to
+     * pay. Keyed on the statement, so paying it, or a new one, is news again.
+     */
+    internal fun cardBills(bills: List<CardBill>, today: LocalDate, period: String): List<Insight> =
+        bills.filter { !it.isRetired && !it.dueDate.isAfter(today.plusDays(BILLS_DAYS)) }
+            .sortedBy { it.dueDate }
+            .map { bill ->
+                Insight(
+                    id("card_bill", period, bill.currency, "${bill.bankName}_${bill.accountLast4}@${bill.statementDate}"),
+                    if (bill.isOverdue(today)) InsightSeverity.ALERT else InsightSeverity.WARNING,
+                    bill.currency,
+                    CardBillDue(
+                        label = bill.label,
+                        left = Money(bill.remaining, bill.currency),
+                        statement = Money(bill.amount, bill.currency),
+                        dueDate = bill.dueDate,
+                        daysLeft = ChronoUnit.DAYS.between(today, bill.dueDate).toInt(),
+                    ),
+                    InsightAction.OpenAccount(bill.bankName, bill.accountLast4),
+                )
+            }
 
     /**
      * Subscription payments due in the next [BILLS_DAYS] days, one line per currency,

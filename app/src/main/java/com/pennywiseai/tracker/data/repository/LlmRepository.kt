@@ -80,6 +80,11 @@ class LlmRepository @Inject constructor(
     /** [mentions]: the merchants and amounts the card showed, to tell a reply about it from one about something else. */
     private class AnsweredCard(val shown: String, val saved: Boolean, val mentions: List<String> = emptyList())
 
+    // The last turn's question, when the app closed the conversation on that turn and its reply
+    // won't be replayed: the rebuild keeps the words, so "and transport?" still knows what it
+    // follows. Never kept past the next turn, nor across a restart.
+    private var questionKept: String? = null
+
     // One build of the live conversation at a time: the warm-up on open and a send can race.
     private val conversationLock = Mutex()
 
@@ -304,6 +309,7 @@ class LlmRepository @Inject constructor(
         }
         // Its state after a failed turn is unknown; the next message rebuilds it from the saved chat.
         if (conversationBroken) llmService.closeConversation()
+        questionKept = userChatMessage.id.takeIf { conversationBroken }
         // Last, so the check above doesn't take this line's "Nothing was changed" for a claim.
         // Also when the model said nothing at all, rather than leaving an empty bubble.
         if (unreadableToolCall || responseBuilder.isBlank()) addLine(context.getString(R.string.chat_reply_unreadable))
@@ -388,7 +394,7 @@ class LlmRepository @Inject constructor(
 
         // Always fresh: the row saved when the chat began carries that day's date and lists.
         val systemPrompt = buildSystemPrompt()
-        val saved = replayable(chatDao.getAllMessagesForContext().filter { !it.isSystemPrompt })
+        val saved = replayable(chatDao.getAllMessagesForContext().filter { !it.isSystemPrompt }, questionKept)
         var history = saved.filter { it.id != pending?.id && it.id !in droppedIds }
         // Dropped only once a conversation takes the message: a message too long for any window
         // must not cost the model the rest of the chat.
@@ -430,6 +436,7 @@ class LlmRepository @Inject constructor(
             chatDao.deleteMessagesBefore(asked)
             cardOutcome = null
             lastCard = null
+            questionKept = null
             _lastReply.value = null
             droppedIds.clear()
             replayedIds = emptySet()
@@ -842,12 +849,13 @@ class LlmRepository @Inject constructor(
 
         /**
          * [saved] as the model may see it again: the replies [MODEL_ID] marks, each with the
-         * question it answers. A question with no reply replayed goes, such as the one being sent,
-         * saved while the warm-up loaded the model: replaying it would mean building twice.
+         * question it answers, and [kept], a question whose turn the app closed, without its
+         * reply. Any other question with no reply replayed goes, such as the one being sent, saved
+         * while the warm-up loaded the model: replaying it would mean building twice.
          */
-        internal fun replayable(saved: List<ChatMessage>): List<ChatMessage> = saved.filterIndexed { i, m ->
+        internal fun replayable(saved: List<ChatMessage>, kept: String? = null): List<ChatMessage> = saved.filterIndexed { i, m ->
             fun byModel(it: ChatMessage?) = it != null && !it.isUser && it.id.startsWith(MODEL_ID)
-            if (m.isUser) byModel(saved.getOrNull(i + 1)) else byModel(m)
+            if (m.isUser) m.id == kept || byModel(saved.getOrNull(i + 1)) else byModel(m)
         }
 
         /** The newer half of [history], from a user turn so the model never starts mid-exchange. */

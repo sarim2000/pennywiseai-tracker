@@ -595,6 +595,38 @@ class ChatTurnTest {
     }
 
     @Test
+    fun `a follow-up after the app closed the conversation still sees the comparison it follows`() = runTest {
+        val w = SpendingComparison.Window(LocalDateTime.of(2026, 10, 1, 0, 0), LocalDateTime.of(2026, 10, 9, 0, 0))
+        coEvery { aiContext.compareSpending(any(), any(), any(), any()) } returns
+            SpendingComparison.Result.Rows(w, w, listOf(SpendingComparison.Row("INR", BigDecimal("700"), BigDecimal("500"), BigDecimal("40"))))
+        // Prose before the call: the live conversation holds it, so the app closes it.
+        events = listOf(LlmEvent.Text("Let me check. "), LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "طعام")))
+        send("compare food with last month")
+        coVerify { llmService.closeConversation() }
+
+        val histories = rebuilt()
+        events = listOf(LlmEvent.Text("ok"))
+        send("and transport?")
+        // The question's words, not the figures the app wrote under it.
+        assertEquals(listOf("compare food with last month" to true), histories.single())
+
+        // For the next message only: a later rebuild leaves that exchange out whole.
+        histories.clear()
+        send("thanks")
+        assertEquals(listOf("and transport?" to true, "ok" to false), histories.single())
+    }
+
+    @Test
+    fun `a request the app answered with a correction stays in view for the next message`() = runTest {
+        events = listOf(LlmEvent.Text("I have added it"))
+        assertEquals("NOTHING_CHANGED", send("coffee 50"))
+        val histories = rebuilt()
+        events = listOf(LlmEvent.Text("ok"))
+        send("then add it")
+        assertEquals(listOf("coffee 50" to true), histories.single())
+    }
+
+    @Test
     fun `a chat that outgrew the window drops its oldest turns from it, not the chat`() = runTest {
         savedChat(4)
         every { llmService.hasActiveConversation() } returns false

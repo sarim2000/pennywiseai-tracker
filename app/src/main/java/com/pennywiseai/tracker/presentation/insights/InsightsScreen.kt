@@ -301,6 +301,9 @@ private fun ScoreCard(score: PeriodScore, onOpen: () -> Unit) {
                 .fillMaxWidth()
                 .padding(vertical = Spacing.sm)
                 .height(Dimensions.Component.progressBarHeight),
+            // A quiet track and no end dot, so a low score doesn't read as a nearly full bar.
+            trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            drawStopIndicator = {},
         )
         Text(
             text = stringResource(R.string.insights_score_hint),

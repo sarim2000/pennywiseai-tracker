@@ -101,6 +101,8 @@ class VoiceEntryTest {
         assertEquals("Salary", entry("قبضت ٥٠٠ ريال راتب").category)
         assertEquals("Salary", entry("استلمت الراتب ٣٠٠٠").category)
         assertEquals(TransactionType.INCOME, entry("تقاضيت ٢٠٠٠ راتب").type)
+        // A meal said alongside is an expense word, not the income's category.
+        assertEquals("Salary", entry("قبضت الراتب ٣٠٠٠ بعد الغداء").category)
     }
 
     @Test

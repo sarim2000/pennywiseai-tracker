@@ -120,13 +120,16 @@ data class VoiceEntry(
             // A category named in the words: "200 groceries", "٥٠ مواصلات".
             ofType.firstOrNull { c -> listOf(c.name, label(c.name)).map(::norm).any { it.isNotEmpty() && " $it " in words } }
                 ?.let { return it.name }
+            // The mapping's names are the built-ins'; the user may have renamed them.
+            val ofThisType = { g: String -> BuiltinCategoryNames.current(g).takeIf { n -> ofType.any { it.name == n } } }
             val guess = if (type == TransactionType.INCOME) {
                 SharedCategoryMapping.determineCategory(merchant, "INCOME").takeIf { it != "Income" }
             } else {
                 SharedCategoryMapping.getCategory(merchant).takeIf { it != "Others" }
-            } ?: SPOKEN.entries.firstOrNull { (_, said) -> said.any { " ${norm(it)} " in words } }?.key
-            // The mapping's names are the built-ins'; the user may have renamed them.
-            return guess?.let(BuiltinCategoryNames::current)?.takeIf { g -> ofType.any { it.name == g } }
+            }
+            // Only this type's spoken words: "lunch" in a salary sentence isn't the income's category.
+            return guess?.let(ofThisType)
+                ?: SPOKEN.entries.firstNotNullOfOrNull { (k, said) -> ofThisType(k)?.takeIf { said.any { " ${norm(it)} " in words } } }
         }
     }
 }

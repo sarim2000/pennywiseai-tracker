@@ -7,6 +7,7 @@ import com.pennywiseai.tracker.data.database.dao.ProfileDao
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.database.entity.expandWithChildren
 import com.pennywiseai.tracker.data.ledger.breakdownByCurrency
@@ -86,13 +87,18 @@ class AiContextRepository @Inject constructor(
     suspend fun spending(today: LocalDate = LocalDate.now()): PeriodSpending {
         val scope = homeScope(today)
         val transactions = rows(scope).map { it.transaction }
-        val breakdown = breakdownByCurrency(transactions, creditAsExpense())
+        val credit = creditAsExpense()
+        val breakdown = breakdownByCurrency(transactions, credit)
         val result = PeriodSpending(
             scope = scope.chat,
             spent = breakdown.mapValues { it.value.expenses }.filterValues { it.signum() > 0 },
             income = breakdown.mapValues { it.value.income }.filterValues { it.signum() > 0 },
             forgiven = forgiven(scope),
-            transactionCount = transactions.forTotals().size,
+            // The rows the breakdown adds up: not transfers or investments, card purchases only when counted.
+            transactionCount = transactions.forTotals().count {
+                it.transactionType == TransactionType.INCOME || it.transactionType == TransactionType.EXPENSE ||
+                    (credit && it.transactionType == TransactionType.CREDIT)
+            },
         )
         val spent = result.spentWithForgiven
         val display = userPreferencesRepository.displayCurrency.first()

@@ -155,15 +155,17 @@ class AiContextRepositoryTest {
         val off = repository.spending(today)
         assertEquals(mapOf("INR" to "700", "USD" to "5"), amounts(off.spent))
         assertEquals(mapOf("INR" to "5000"), amounts(off.income))
-        // Every row Home counts: not the loan lent in full, nor the excluded one.
-        assertEquals(7, off.transactionCount)
+        // The rows the figures add up: not the loan lent in full, the excluded one, the transfer or the uncounted card purchase.
+        assertEquals(5, off.transactionCount)
         // Exactly what Home's card works out from the same rows.
         val home = breakdownByCurrency(rows.map { it.transaction }.forTotals())
         assertEquals(home.mapValues { it.value.expenses.stripTrailingZeros().toPlainString() }, amounts(off.spent))
         assertNull(off.estimate)
 
         preferences.setCountCreditCardAsExpense(true)
-        assertEquals(mapOf("INR" to "900", "USD" to "5"), amounts(repository.spending(today).spent))
+        val on = repository.spending(today)
+        assertEquals(mapOf("INR" to "900", "USD" to "5"), amounts(on.spent))
+        assertEquals(6, on.transactionCount)
     }
 
     @Test

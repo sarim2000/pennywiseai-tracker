@@ -41,8 +41,10 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
+import kotlinx.serialization.json.JsonPrimitive
 import java.math.BigDecimal
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -80,10 +82,9 @@ class LlmRepository @Inject constructor(
     /** [mentions]: the merchants and amounts the card showed, to tell a reply about it from one about something else. */
     private class AnsweredCard(val shown: String, val saved: Boolean, val mentions: List<String> = emptyList())
 
-    // The last turn's question, when the app closed the conversation on that turn and its reply
-    // won't be replayed: the rebuild keeps the words, so "and transport?" still knows what it
-    // follows. Never kept past the next turn, nor across a restart.
-    private var questionKept: String? = null
+    // A lookup's reply, by its id, as the calls the model made for it (see [replayable]). Memory
+    // only: after a restart, those exchanges leave the rebuilt window whole.
+    private val callsMade = ConcurrentHashMap<String, String>()
 
     // One build of the live conversation at a time: the warm-up on open and a send can race.
     private val conversationLock = Mutex()
@@ -254,7 +255,7 @@ class LlmRepository @Inject constructor(
             // Text held back in case it became a tag, and it didn't.
             if (toolCalls.isEmpty()) emit(written) else responseBuilder.clear()
         }
-        // A reply holding any line the app wrote is never replayed to the model (see [MODEL_ID]).
+        // A reply holding any line the app wrote is never replayed to the model as it reads (see [MODEL_ID]).
         var appWrote = false
         suspend fun addLine(line: String) {
             appWrote = true
@@ -309,7 +310,6 @@ class LlmRepository @Inject constructor(
         }
         // Its state after a failed turn is unknown; the next message rebuilds it from the saved chat.
         if (conversationBroken) llmService.closeConversation()
-        questionKept = userChatMessage.id.takeIf { conversationBroken }
         // Last, so the check above doesn't take this line's "Nothing was changed" for a claim.
         // Also when the model said nothing at all, rather than leaving an empty bubble.
         if (unreadableToolCall || responseBuilder.isBlank()) addLine(context.getString(R.string.chat_reply_unreadable))
@@ -324,6 +324,10 @@ class LlmRepository @Inject constructor(
             message = finalResponse,
             isUser = false
         )
+        // Lookups only: a card's request replayed is one the model can propose again.
+        if (toolCalls.isNotEmpty() && !unreadableToolCall && toolCalls.none { it.name in CARD_TOOLS }) {
+            callsMade[aiMessage.id] = callsText(toolCalls)
+        }
         _lastReply.value = (turnSubject ?: ReplySubject()).copy(messageId = aiMessage.id)
         chatDao.insertMessage(aiMessage)
         Log.d(TAG, "AI response saved")
@@ -394,7 +398,7 @@ class LlmRepository @Inject constructor(
 
         // Always fresh: the row saved when the chat began carries that day's date and lists.
         val systemPrompt = buildSystemPrompt()
-        val saved = replayable(chatDao.getAllMessagesForContext().filter { !it.isSystemPrompt }, questionKept)
+        val saved = replayable(chatDao.getAllMessagesForContext().filter { !it.isSystemPrompt }, callsMade.toMap())
         var history = saved.filter { it.id != pending?.id && it.id !in droppedIds }
         // Dropped only once a conversation takes the message: a message too long for any window
         // must not cost the model the rest of the chat.
@@ -436,7 +440,7 @@ class LlmRepository @Inject constructor(
             chatDao.deleteMessagesBefore(asked)
             cardOutcome = null
             lastCard = null
-            questionKept = null
+            callsMade.clear()
             _lastReply.value = null
             droppedIds.clear()
             replayedIds = emptySet()
@@ -837,10 +841,8 @@ class LlmRepository @Inject constructor(
          * a new question with an old total ("what about last week?" got this month's, on S23) or
          * a card's line with no card, instead of calling the tool. Marking the model's replies
          * rather than the app's also leaves out replies saved before this mark, when the app's
-         * looked the same. Within a live conversation a follow-up still sees the tool call the
-         * model made; after a rebuild it is answered from its own words ("last month" already
-         * routes to the comparison). Replaying the call itself isn't possible: only the text is
-         * saved.
+         * looked the same. A lookup's answer goes back as the call the model made for it, as
+         * long as the app remembers that call (see [replayable]).
          */
         internal const val MODEL_ID = "model-"
 
@@ -848,14 +850,37 @@ class LlmRepository @Inject constructor(
         internal const val QUICK_ID = "quick-"
 
         /**
-         * [saved] as the model may see it again: the replies [MODEL_ID] marks, each with the
-         * question it answers, and [kept], a question whose turn the app closed, without its
-         * reply. Any other question with no reply replayed goes, such as the one being sent, saved
-         * while the warm-up loaded the model: replaying it would mean building twice.
+         * [saved] as the model may see it again, each reply with the question it answers: the
+         * replies [MODEL_ID] marks, and a lookup's answer as the [calls] the model made for it, by
+         * the reply's id. That is how the live conversation held it, so "and last month?" still
+         * follows on after a rebuild, with no figure the app wrote to copy. Every other exchange
+         * goes whole, and so does a question with no reply: left open, the model answers it again
+         * with the next one.
          */
-        internal fun replayable(saved: List<ChatMessage>, kept: String? = null): List<ChatMessage> = saved.filterIndexed { i, m ->
-            fun byModel(it: ChatMessage?) = it != null && !it.isUser && it.id.startsWith(MODEL_ID)
-            if (m.isUser) m.id == kept || byModel(saved.getOrNull(i + 1)) else byModel(m)
+        internal fun replayable(saved: List<ChatMessage>, calls: Map<String, String> = emptyMap()): List<ChatMessage> {
+            fun replayed(m: ChatMessage?): ChatMessage? = when {
+                m == null || m.isUser -> null
+                m.id in calls -> m.copy(message = calls.getValue(m.id))
+                m.id.startsWith(MODEL_ID) -> m
+                else -> null
+            }
+            return saved.mapIndexedNotNull { i, m -> if (m.isUser) m.takeIf { replayed(saved.getOrNull(i + 1)) != null } else replayed(m) }
+        }
+
+        /**
+         * [calls] as Qwen2.5 writes them, and as [com.pennywiseai.tracker.data.service.QwenChatTemplate]
+         * renders a reply's tool calls: replayed as a reply's text, they reach the model the same.
+         */
+        internal fun callsText(calls: List<LlmEvent.ToolCall>): String = calls.joinToString("\n") {
+            "$TOOL_CALL_TAG\n{\"name\": ${json(it.name)}, \"arguments\": ${json(it.arguments)}}\n</tool_call>"
+        }
+
+        private fun json(value: Any?): String = when (value) {
+            null -> "null"
+            is Boolean, is Number -> value.toString()
+            is Map<*, *> -> value.entries.joinToString(", ", "{", "}") { "${json(it.key.toString())}: ${json(it.value)}" }
+            is Iterable<*> -> value.joinToString(", ", "[", "]") { json(it) }
+            else -> JsonPrimitive(value.toString()).toString()
         }
 
         /** The newer half of [history], from a user turn so the model never starts mid-exchange. */

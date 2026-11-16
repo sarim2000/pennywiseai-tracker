@@ -526,8 +526,24 @@ class ChatTurnTest {
         return histories
     }
 
+    private fun call(name: String, args: Map<String, Any?>) = LlmRepository.callsText(listOf(LlmEvent.ToolCall(name, args)))
+
     @Test
-    fun `a typed total leaves the rebuilt window with its question, as a one-tap one does`() = runTest {
+    fun `a call is replayed as Qwen writes it and the template renders it`() {
+        assertEquals(
+            "<tool_call>\n{\"name\": \"compare_spending\", \"arguments\": {\"period\": \"month\", \"category\": \"طعام \\\"x\\\"\", \"n\": 2}}\n</tool_call>\n" +
+                "<tool_call>\n{\"name\": \"month_summary\", \"arguments\": {}}\n</tool_call>",
+            LlmRepository.callsText(
+                listOf(
+                    LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "طعام \"x\"", "n" to 2)),
+                    LlmEvent.ToolCall(PennyWiseTools.MONTH_SUMMARY, emptyMap()),
+                )
+            )
+        )
+    }
+
+    @Test
+    fun `a typed total is replayed as the call the model made, not the figures`() = runTest {
         savedChat(1)
         coEvery { aiContext.categorySpending(any(), any()) } returns spent("120")
         events = listOf(LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "طعام")))
@@ -544,7 +560,14 @@ class ChatTurnTest {
         send("and now?")
         // Replayed, any line standing for those figures was what the model wrote back to a new
         // question (the emulator, after a language change), instead of asking the tool.
-        assertEquals(listOf("u0" to true, "a0" to false), histories.single())
+        assertEquals(
+            listOf(
+                "u0" to true, "a0" to false,
+                "how much on food?" to true, call(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "طعام")) to false,
+                "and last month?" to true, call(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "طعام")) to false,
+            ),
+            histories.single()
+        )
     }
 
     @Test
@@ -578,8 +601,17 @@ class ChatTurnTest {
         val histories = rebuilt()
         events = listOf(LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "طعام")))
         assertEquals("SPEND", send("كم صرفت على الطعام؟"))
-        // Only the model's own words: an app line replayed as its reply is one it can write back.
-        assertEquals(listOf("hi" to true, "Hello!" to false), histories.single())
+        // Only the model's own words and calls: an app line replayed as its reply is one it can
+        // write back. The correction's and the card's requests go with them: left open, the
+        // model answers them again, and a confirmed card comes back to be saved twice.
+        assertEquals(
+            listOf(
+                "hi" to true, "Hello!" to false,
+                "compare food with last month" to true, call(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "طعام")) to false,
+                "how much this month?" to true, call(PennyWiseTools.MONTH_SUMMARY, emptyMap()) to false,
+            ),
+            histories.single()
+        )
     }
 
     @Test
@@ -595,7 +627,7 @@ class ChatTurnTest {
     }
 
     @Test
-    fun `a follow-up after the app closed the conversation still sees the comparison it follows`() = runTest {
+    fun `a follow-up after the app closed the conversation still sees the call it follows`() = runTest {
         val w = SpendingComparison.Window(LocalDateTime.of(2026, 10, 1, 0, 0), LocalDateTime.of(2026, 10, 9, 0, 0))
         coEvery { aiContext.compareSpending(any(), any(), any(), any()) } returns
             SpendingComparison.Result.Rows(w, w, listOf(SpendingComparison.Row("INR", BigDecimal("700"), BigDecimal("500"), BigDecimal("40"))))
@@ -607,23 +639,42 @@ class ChatTurnTest {
         val histories = rebuilt()
         events = listOf(LlmEvent.Text("ok"))
         send("and transport?")
-        // The question's words, not the figures the app wrote under it.
-        assertEquals(listOf("compare food with last month" to true), histories.single())
+        // The call the model made, without its prose or the figures the app wrote under it.
+        val compared = listOf("compare food with last month" to true, call(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "طعام")) to false)
+        assertEquals(compared, histories.single())
 
-        // For the next message only: a later rebuild leaves that exchange out whole.
+        // A later rebuild still has the whole exchange: never a question left open.
         histories.clear()
         send("thanks")
-        assertEquals(listOf("and transport?" to true, "ok" to false), histories.single())
+        assertEquals(compared + listOf("and transport?" to true, "ok" to false), histories.single())
     }
 
     @Test
-    fun `a request the app answered with a correction stays in view for the next message`() = runTest {
+    fun `a request the app answered with a correction leaves the rebuilt window whole`() = runTest {
         events = listOf(LlmEvent.Text("I have added it"))
         assertEquals("NOTHING_CHANGED", send("coffee 50"))
         val histories = rebuilt()
         events = listOf(LlmEvent.Text("ok"))
         send("then add it")
-        assertEquals(listOf("coffee 50" to true), histories.single())
+        assertEquals(emptyList<Pair<String, Boolean>>(), histories.single())
+    }
+
+    @Test
+    fun `a confirmed card rescued from a broken call leaves the rebuilt window whole`() = runTest {
+        every { context.getString(R.string.chat_reply_add, any()) } returns "CARD"
+        events = emptyList()
+        failure = RuntimeException("Failed to parse tool calls from code block: {\"name\": \"add_transactions\", \"arguments\": {\"items\": [{\"amount\": 50, \"merchant\": \"coffee\"}]}};")
+        assertEquals("CARD", send("coffee 50"))
+        coVerify { llmService.closeConversation() }
+        repository.completePendingAction("Added ₹50 at coffee.")
+
+        val histories = rebuilt()
+        failure = null
+        events = listOf(add(30.0))
+        send("taxi 30")
+        // Left open, "coffee 50" was proposed again beside taxi, and confirming it saved it twice.
+        assertEquals(emptyList<Pair<String, Boolean>>(), histories.single())
+        assertEquals(listOf("(The user confirmed the last card. It is saved.)\ntaxi 30"), sent.takeLast(1))
     }
 
     @Test

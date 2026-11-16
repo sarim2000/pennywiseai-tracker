@@ -223,10 +223,7 @@ private fun MonthGrid(state: SpendingCalendarUiState, onDay: (LocalDate) -> Unit
     val locale = AppDates.locale()
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
         // Each day reads its own weekday out, so the header is for the eye only.
-        Row(
-            modifier = Modifier.clearAndSetSemantics { },
-            horizontalArrangement = Arrangement.spacedBy(Spacing.xxs),
-        ) {
+        Row(modifier = Modifier.clearAndSetSemantics { }) {
             (0L until 7L).map { state.firstDayOfWeek.plus(it) }.forEach { weekday ->
                 Text(
                     text = weekday.getDisplayName(TextStyle.SHORT, locale),
@@ -240,7 +237,7 @@ private fun MonthGrid(state: SpendingCalendarUiState, onDay: (LocalDate) -> Unit
             }
         }
         state.weeks.forEach { week ->
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
+            Row {
                 week.forEach { date ->
                     if (date == null) {
                         Spacer(Modifier.weight(1f))
@@ -275,11 +272,21 @@ private fun DayCell(
     val hasDue = day?.planned?.isNotEmpty() == true
     val description = dayDescription(date, day)
     val todayLabel = stringResource(R.string.calendar_day_today)
+    // A day is a seventh of the width: about 47dp on a 360dp phone, a hair under the 48dp
+    // minimum, which a month grid accepts as Material's date picker does. The gap between
+    // days is drawn inside the cell, so the whole width is the touch target.
     Column(
         modifier = modifier
             .defaultMinSize(minHeight = Dimensions.Component.minTouchTarget)
             .clip(MaterialTheme.shapes.small)
-            .background(fill)
+            .clickable(onClick = onClick)
+            .clearAndSetSemantics {
+                contentDescription = description
+                role = Role.Button
+                if (isToday) stateDescription = todayLabel
+            }
+            .padding(horizontal = Spacing.xxs / 2)
+            .background(fill, MaterialTheme.shapes.small)
             .then(
                 if (isToday) {
                     Modifier.border(
@@ -291,12 +298,6 @@ private fun DayCell(
                     Modifier
                 }
             )
-            .clickable(onClick = onClick)
-            .clearAndSetSemantics {
-                contentDescription = description
-                role = Role.Button
-                if (isToday) stateDescription = todayLabel
-            }
             .padding(vertical = Spacing.xs),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.xxs, Alignment.CenterVertically),

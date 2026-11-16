@@ -444,6 +444,17 @@ internal fun EditableExtractedInfoCard(
             receiptError = viewModel.receiptError.collectAsStateWithLifecycle().value?.asString()
         )
 
+        // Warranty: for things bought; still shown if one was set before a type change, so it can be cleared.
+        if (transaction.transactionType == TransactionType.EXPENSE ||
+            transaction.transactionType == TransactionType.CREDIT ||
+            transaction.warrantyUntil != null
+        ) {
+            WarrantyField(
+                warrantyUntil = transaction.warrantyUntil,
+                onWarrantyChange = { viewModel.updateWarrantyUntil(it) }
+            )
+        }
+
         // Bank (read-only)
         transaction.bankName?.let {
             Row(

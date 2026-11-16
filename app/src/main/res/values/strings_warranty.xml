@@ -10,4 +10,10 @@
         <item quantity="other">%1$s: warranty ends in %2$d days</item>
     </plurals>
     <string name="warranty_reminder_text">Covered until %1$s. Bought for %2$s on %3$s.</string>
+    <!-- Transaction edit view -->
+    <string name="warranty_field_label">Warranty ends</string>
+    <string name="warranty_field_empty">Add a date to get a reminder</string>
+    <string name="warranty_field_clear">Remove warranty date</string>
+    <!-- Transaction detail -->
+    <string name="warranty_detail_label">Warranty until</string>
 </resources>

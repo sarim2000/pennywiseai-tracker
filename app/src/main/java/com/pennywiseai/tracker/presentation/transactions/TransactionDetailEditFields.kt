@@ -28,7 +28,10 @@ import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.CurrencyUtils
+import java.time.Instant
+import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -484,4 +487,84 @@ internal fun List<TransactionDetailViewModel.AccountInfo>.matchFor(
             (it.accountLast4.length >= 4 && accountNumber.endsWith(it.accountLast4))
     }
     return bankName?.let { bank -> sameNumber.find { it.bankName == bank } } ?: sameNumber.singleOrNull()
+}
+
+/**
+ * The last day a purchase is under warranty. Tapping opens a date picker; the
+ * clear button removes it. Setting one turns on the reminders 30 days and 1 day ahead.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+internal fun WarrantyField(
+    warrantyUntil: LocalDate?,
+    onWarrantyChange: (LocalDate?) -> Unit
+) {
+    var showDatePicker by remember { mutableStateOf(false) }
+
+    Surface(
+        onClick = { showDatePicker = true },
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 56.dp),
+        shape = editFullShape,
+        color = MaterialTheme.colorScheme.surfaceContainerLow
+    ) {
+        Row(
+            modifier = Modifier.padding(start = Spacing.md, end = Spacing.xs, top = Spacing.sm, bottom = Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+        ) {
+            Icon(
+                Icons.Default.VerifiedUser,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = stringResource(R.string.warranty_field_label),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = warrantyUntil?.format(AppDates.dateFormatter())
+                        ?: stringResource(R.string.warranty_field_empty),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = if (warrantyUntil != null) MaterialTheme.colorScheme.onSurface
+                    else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            if (warrantyUntil != null) {
+                IconButton(onClick = { onWarrantyChange(null) }, shapes = IconButtonDefaults.shapes()) {
+                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.warranty_field_clear))
+                }
+            }
+        }
+    }
+
+    if (showDatePicker) {
+        // DatePicker works in UTC midnights.
+        val pickerState = rememberDatePickerState(
+            initialSelectedDateMillis = warrantyUntil?.atStartOfDay(ZoneOffset.UTC)?.toInstant()?.toEpochMilli()
+        )
+        DatePickerDialog(
+            onDismissRequest = { showDatePicker = false },
+            confirmButton = {
+                TextButton(onClick = {
+                    pickerState.selectedDateMillis?.let { millis ->
+                        onWarrantyChange(Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate())
+                    }
+                    showDatePicker = false
+                }, shapes = ButtonDefaults.shapes()) {
+                    Text(stringResource(R.string.txn_detail_action_ok))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDatePicker = false }, shapes = ButtonDefaults.shapes()) {
+                    Text(stringResource(R.string.txn_detail_action_cancel))
+                }
+            }
+        ) {
+            DatePicker(state = pickerState)
+        }
+    }
 }

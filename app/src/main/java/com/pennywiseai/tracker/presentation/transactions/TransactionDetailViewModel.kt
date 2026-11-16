@@ -57,6 +57,7 @@ import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
+import java.time.LocalDate
 import java.time.LocalDateTime
 import javax.inject.Inject
 
@@ -728,6 +729,10 @@ class TransactionDetailViewModel @Inject constructor(
         _editableTags.update { current ->
             current.filterNot { it.equals(name, ignoreCase = true) }
         }
+    }
+
+    fun updateWarrantyUntil(date: LocalDate?) {
+        _editableTransaction.update { it?.copy(warrantyUntil = date) }
     }
 
     fun updateRecurringStatus(isRecurring: Boolean) {

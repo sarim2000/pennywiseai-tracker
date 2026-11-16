@@ -14,11 +14,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -28,6 +30,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.InputChip
+import androidx.compose.material3.InputChipDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
@@ -51,21 +55,25 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import androidx.compose.ui.text.style.TextDirection
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import com.pennywiseai.tracker.MainActivity
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.ApplicationScope
+import com.pennywiseai.tracker.core.QuickAddIntent
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
+import com.pennywiseai.tracker.data.model.VoiceEntry
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.AppLockRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase
+import com.pennywiseai.tracker.navigation.BottomNavItem
 import com.pennywiseai.tracker.ui.components.CategoryChip
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.icons.categoryLabel
@@ -74,6 +82,9 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.money
 import com.pennywiseai.tracker.ui.viewmodel.PennyWiseUserTheme
+import com.pennywiseai.tracker.ui.voice.VoiceMicButton
+import com.pennywiseai.tracker.ui.voice.VoiceStatusBar
+import com.pennywiseai.tracker.ui.voice.rememberVoiceInput
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.withLatinDigits
 import com.pennywiseai.tracker.widget.WidgetRefresher
@@ -85,7 +96,11 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.math.BigDecimal
 import java.text.DecimalFormatSymbols
+import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
 import javax.inject.Inject
 
 /**
@@ -96,6 +111,11 @@ import javax.inject.Inject
  * category. Saved against a cash account of the selected profile when there
  * is one, so its balance moves: the last used, or the one picked under the
  * title when there are several.
+ *
+ * Opened by a mic (Home, the cash widget: [QuickAddIntent.voice]) it listens
+ * first. One spend or income said ([VoiceEntry]) fills the sheet, type and
+ * currency included, for the user to check and save; anything else (a
+ * question) opens Chat with it in the box, not sent.
  *
  * Behind the app lock, like opening the app.
  */
@@ -114,6 +134,8 @@ class QuickAddActivity : FragmentActivity() {
     @Inject @ApplicationScope lateinit var appScope: CoroutineScope
 
     private val unlocked = mutableStateOf(false)
+
+    private val voiceMode by lazy { intent.getBooleanExtra(QuickAddIntent.EXTRA_VOICE, false) }
 
     override fun attachBaseContext(newBase: android.content.Context) {
         super.attachBaseContext(newBase.withLatinDigits())
@@ -164,52 +186,166 @@ class QuickAddActivity : FragmentActivity() {
         }
     }
 
-    private class Setup(val currency: String, val categories: List<CategoryEntity>, val cashAccounts: List<AccountBalanceEntity>)
+    /** Income categories only for a voice sheet: the plain one adds spends. */
+    private class Setup(
+        val baseCurrency: String,
+        val expenseCategories: List<CategoryEntity>,
+        val incomeCategories: List<CategoryEntity>,
+        val balances: List<AccountBalanceEntity>,
+        val profileId: Long?,
+        /** False when the user hid the Chat tab: a question then has nowhere to go. */
+        val chatOpen: Boolean,
+    )
 
     @OptIn(ExperimentalMaterial3Api::class)
     @Composable
     private fun Host() {
         var setup by remember { mutableStateOf<Setup?>(null) }
         LaunchedEffect(Unit) {
-            val currency = userPreferencesRepository.baseCurrency.first()
+            val usage = runCatching { transactionRepository.getCategoriesByUsage() }.getOrDefault(emptyList())
+            val others = BuiltinCategoryNames.current("Others")
             setup = Setup(
-                currency = currency,
-                categories = rankCategories(
-                    categoryRepository.getVisibleExpenseCategories().first(),
-                    runCatching { transactionRepository.getCategoriesByUsage() }.getOrDefault(emptyList()),
-                    others = BuiltinCategoryNames.current("Others")
-                ),
-                cashAccounts = cashAccounts(
-                    accountBalanceRepository.getAllLatestBalances().first(),
-                    currency,
-                    userPreferencesRepository.selectedProfileId.first()
-                )
+                baseCurrency = userPreferencesRepository.baseCurrency.first(),
+                expenseCategories = rankCategories(categoryRepository.getVisibleExpenseCategories().first(), usage, others),
+                incomeCategories = if (voiceMode) {
+                    rankCategories(categoryRepository.getVisibleIncomeCategories().first(), usage, others)
+                } else {
+                    emptyList()
+                },
+                balances = accountBalanceRepository.getAllLatestBalances().first(),
+                profileId = userPreferencesRepository.selectedProfileId.first(),
+                chatOpen = BottomNavItem.Chat.route !in userPreferencesRepository.userPreferences.first().hiddenNavTabs
             )
         }
         val s = setup ?: return
+        // Saveable: a rotation after the words were read shows the sheet, not the mic again.
+        var listening by rememberSaveable { mutableStateOf(voiceMode) }
+        // Only read as the sheet first fills; its own saveable fields carry it from there.
+        var heard by remember { mutableStateOf<VoiceEntry?>(null) }
         ModalBottomSheet(
             onDismissRequest = { finish() },
             sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))
         ) {
-            Sheet(s)
+            if (listening) {
+                VoicePane(
+                    setup = s,
+                    onEntry = {
+                        heard = it
+                        listening = false
+                    },
+                    onType = { listening = false }
+                )
+            } else {
+                Sheet(s, heard)
+            }
+        }
+    }
+
+    /** Listening: the words as they're heard, then routed once when the user stops talking. */
+    @Composable
+    private fun VoicePane(setup: Setup, onEntry: (VoiceEntry) -> Unit, onType: () -> Unit) {
+        var transcript by rememberSaveable { mutableStateOf("") }
+        var unclear by rememberSaveable { mutableStateOf(false) }
+        // Starts by itself once; after a rotation the mic waits for a tap.
+        var started by rememberSaveable { mutableStateOf(false) }
+        val categories = setup.expenseCategories + setup.incomeCategories
+        val voice = rememberVoiceInput(
+            onText = {
+                transcript = it
+                unclear = false
+            },
+            onDone = { text ->
+                when (val route = voiceRoute(text, categories, setup.baseCurrency, setup.chatOpen) { CategoryMapping.label(this, it) }) {
+                    is VoiceRoute.Fill -> onEntry(route.entry)
+                    VoiceRoute.Chat -> openChat(text)
+                    VoiceRoute.Unclear -> unclear = true
+                }
+            }
+        )
+        LaunchedEffect(Unit) {
+            // A widget drawn before the phone lost its recognizer: type instead.
+            if (!voice.available) return@LaunchedEffect onType()
+            if (!started) {
+                started = true
+                voice.toggle("")
+            }
+        }
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Dimensions.Padding.dialog)
+                .padding(bottom = Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md)
+        ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(R.string.quick_add_voice_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.weight(1f)
+                )
+                TextButton(
+                    onClick = {
+                        voice.cancel()
+                        onType()
+                    },
+                    shapes = ButtonDefaults.shapes()
+                ) {
+                    Text(stringResource(R.string.quick_add_voice_type))
+                }
+            }
+            Text(
+                text = transcript.ifEmpty { stringResource(R.string.quick_add_voice_hint) },
+                // Arabic said reads right to left.
+                style = (if (transcript.isEmpty()) MaterialTheme.typography.bodyLarge else MaterialTheme.typography.headlineSmall)
+                    .copy(textDirection = TextDirection.Content),
+                color = if (transcript.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.fillMaxWidth()
+            )
+            if (unclear) {
+                Text(
+                    text = stringResource(R.string.quick_add_voice_unclear),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error
+                )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                VoiceStatusBar(voice, Modifier.weight(1f))
+                VoiceMicButton(
+                    voice = voice,
+                    enabled = true,
+                    onTap = {
+                        unclear = false
+                        voice.toggle("")
+                    }
+                )
+            }
         }
     }
 
     @Composable
-    private fun Sheet(setup: Setup) {
+    private fun Sheet(setup: Setup, heard: VoiceEntry?) {
         // Saveable: a rotation, the dark theme or a font size change recreates the sheet.
-        var amountText by rememberSaveable { mutableStateOf("") }
-        var where by rememberSaveable { mutableStateOf("") }
-        var category by rememberSaveable { mutableStateOf<String?>(null) }
-        var accountKey by rememberSaveable { mutableStateOf(setup.cashAccounts.firstOrNull()?.let(::keyOf)) }
-        val account = setup.cashAccounts.firstOrNull { keyOf(it) == accountKey }
+        var amountText by rememberSaveable { mutableStateOf(heard?.amount?.stripTrailingZeros()?.toPlainString().orEmpty()) }
+        var where by rememberSaveable { mutableStateOf(heard?.merchant.orEmpty()) }
+        var category by rememberSaveable { mutableStateOf(heard?.category) }
+        var income by rememberSaveable { mutableStateOf(heard?.type == TransactionType.INCOME) }
+        val currency by rememberSaveable { mutableStateOf(heard?.currency ?: setup.baseCurrency) }
+        // A day said out loud ("yesterday"); null is now.
+        var day by rememberSaveable { mutableStateOf(heard?.date?.takeIf { it != LocalDate.now() }) }
+        // Only accounts in the entry's currency: a balance moves by the raw amount.
+        val cashAccounts = remember(currency) { cashAccounts(setup.balances, currency, setup.profileId) }
+        var accountKey by rememberSaveable { mutableStateOf(cashAccounts.firstOrNull()?.let(::keyOf)) }
+        val account = cashAccounts.firstOrNull { keyOf(it) == accountKey }
+        val categories = if (income) setup.incomeCategories else setup.expenseCategories
+        val type = if (income) TransactionType.INCOME else TransactionType.EXPENSE
         val amount = amountText.toBigDecimalOrNull()?.takeIf { it.signum() > 0 }
         val focus = remember { FocusRequester() }
         val focusManager = LocalFocusManager.current
         val decimalComma = remember {
             DecimalFormatSymbols.getInstance(resources.configuration.locales[0]).decimalSeparator == ','
         }
-        LaunchedEffect(Unit) { focus.requestFocus() }
+        // Filled by voice: what's left is a tap on a category, not typing.
+        LaunchedEffect(Unit) { if (amountText.isEmpty()) focus.requestFocus() }
 
         Column(
             modifier = Modifier
@@ -223,22 +359,58 @@ class QuickAddActivity : FragmentActivity() {
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
-                    text = stringResource(R.string.quick_add_title),
+                    text = stringResource(if (income) R.string.quick_add_title_income else R.string.quick_add_title),
                     style = MaterialTheme.typography.titleLarge,
                     modifier = Modifier.weight(1f)
                 )
-                TextButton(onClick = { openFullForm(amountText, where, category, account) }, shapes = ButtonDefaults.shapes()) {
+                TextButton(
+                    onClick = { openFullForm(amountText, where, category, account, type, currency, day) },
+                    shapes = ButtonDefaults.shapes()
+                ) {
                     Text(stringResource(R.string.quick_add_more_details))
                 }
             }
+            // What the words were read as, to correct: the plain sheet adds spends only.
+            if (voiceMode) {
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+                    listOf(false to R.string.quick_add_spent, true to R.string.quick_add_received).forEach { (isIncome, label) ->
+                        FilterChip(
+                            selected = income == isIncome,
+                            shapes = FilterChipDefaults.shapes(),
+                            onClick = {
+                                if (income != isIncome) {
+                                    income = isIncome
+                                    // Categories are per type.
+                                    category = null
+                                }
+                            },
+                            label = { Text(stringResource(label)) }
+                        )
+                    }
+                    day?.let { d ->
+                        InputChip(
+                            selected = false,
+                            onClick = { day = null },
+                            label = { Text(d.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))) },
+                            trailingIcon = {
+                                Icon(
+                                    Icons.Default.Close,
+                                    contentDescription = stringResource(R.string.quick_add_date_today),
+                                    modifier = Modifier.size(InputChipDefaults.IconSize)
+                                )
+                            }
+                        )
+                    }
+                }
+            }
             // Only with a choice to make; one account or none needs no line.
-            if (account != null && setup.cashAccounts.size > 1) {
-                AccountPicker(account, setup.cashAccounts) { accountKey = keyOf(it) }
+            if (account != null && cashAccounts.size > 1) {
+                AccountPicker(account, cashAccounts) { accountKey = keyOf(it) }
             }
             OutlinedTextField(
                 value = amountText,
                 onValueChange = { typed -> normalizeAmount(typed, decimalComma)?.let { amountText = it } },
-                prefix = { Text(CurrencyFormatter.getCurrencySymbol(setup.currency) + " ") },
+                prefix = { Text(CurrencyFormatter.getCurrencySymbol(currency) + " ") },
                 textStyle = MaterialTheme.typography.headlineSmall.money(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
@@ -258,7 +430,7 @@ class QuickAddActivity : FragmentActivity() {
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                 modifier = Modifier.horizontalScroll(rememberScrollState())
             ) {
-                setup.categories.forEach { c ->
+                categories.forEach { c ->
                     FilterChip(
                         selected = category == c.name,
                         shapes = FilterChipDefaults.shapes(),
@@ -274,7 +446,7 @@ class QuickAddActivity : FragmentActivity() {
                 }
             }
             Button(
-                onClick = { save(amount!!, category!!, where, account, setup.currency) },
+                onClick = { save(amount!!, category!!, where, account, currency, type, day) },
                 enabled = amount != null && category != null,
                 modifier = Modifier.fillMaxWidth().heightIn(min = Dimensions.Component.minTouchTarget),
                 shapes = ButtonDefaults.shapes()
@@ -315,7 +487,15 @@ class QuickAddActivity : FragmentActivity() {
     // A second tap lands before finish() takes effect; one sheet saves one row.
     private var saving = false
 
-    private fun save(amount: BigDecimal, category: String, where: String, account: AccountBalanceEntity?, currency: String) {
+    private fun save(
+        amount: BigDecimal,
+        category: String,
+        where: String,
+        account: AccountBalanceEntity?,
+        currency: String,
+        type: TransactionType,
+        day: LocalDate?
+    ) {
         if (saving) return
         saving = true
         val app = applicationContext
@@ -325,8 +505,8 @@ class QuickAddActivity : FragmentActivity() {
                     amount = amount,
                     merchant = where.trim().ifEmpty { category },
                     category = category,
-                    type = TransactionType.EXPENSE,
-                    date = LocalDateTime.now(),
+                    type = type,
+                    date = day?.atTime(LocalTime.now()) ?: LocalDateTime.now(),
                     bankName = account?.bankName,
                     accountLast4 = account?.accountLast4,
                     currency = currency
@@ -348,8 +528,16 @@ class QuickAddActivity : FragmentActivity() {
         finish()
     }
 
-    /** The full form, with what was typed here so nothing is entered twice. */
-    private fun openFullForm(amount: String, where: String, category: String?, account: AccountBalanceEntity?) {
+    /** The full form, with what was typed (or said) here so nothing is entered twice. */
+    private fun openFullForm(
+        amount: String,
+        where: String,
+        category: String?,
+        account: AccountBalanceEntity?,
+        type: TransactionType,
+        currency: String,
+        day: LocalDate?
+    ) {
         startActivity(
             Intent(this, MainActivity::class.java)
                 .putExtra(MainActivity.EXTRA_OPEN_ADD_TRANSACTION, true)
@@ -358,9 +546,29 @@ class QuickAddActivity : FragmentActivity() {
                 .putExtra(MainActivity.EXTRA_ADD_CATEGORY, category)
                 .putExtra(MainActivity.EXTRA_ADD_BANK, account?.bankName)
                 .putExtra(MainActivity.EXTRA_ADD_LAST4, account?.accountLast4)
+                .putExtra(MainActivity.EXTRA_ADD_TYPE, type.name)
+                .putExtra(MainActivity.EXTRA_ADD_CURRENCY, currency)
+                .putExtra(MainActivity.EXTRA_ADD_DATE_TIME, day?.atTime(LocalTime.now())?.toString())
                 .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
         )
         finish()
+    }
+
+    /** A question: Chat with it in the box, not sent. Single top keeps the app as it was under the sheet. */
+    private fun openChat(text: String) {
+        startActivity(
+            Intent(this, MainActivity::class.java)
+                .putExtra(MainActivity.EXTRA_CHAT_TEXT, text)
+                .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP or Intent.FLAG_ACTIVITY_SINGLE_TOP)
+        )
+        finish()
+    }
+
+    /** Where what was said goes: the sheet, Chat, or back to the mic. */
+    internal sealed interface VoiceRoute {
+        data class Fill(val entry: VoiceEntry) : VoiceRoute
+        data object Chat : VoiceRoute
+        data object Unclear : VoiceRoute
     }
 
     companion object {
@@ -389,6 +597,20 @@ class QuickAddActivity : FragmentActivity() {
         }
 
         private val AMOUNT_INPUT = Regex("""\d*\.?\d*""")
+
+        /**
+         * One entry fills the sheet. Anything else (a question, two amounts) goes to Chat,
+         * which has the model for it, unless the user hid Chat.
+         */
+        internal fun voiceRoute(
+            text: String,
+            categories: List<CategoryEntity>,
+            baseCurrency: String,
+            chatOpen: Boolean,
+            today: LocalDate = LocalDate.now(),
+            label: (String) -> String = { it }
+        ): VoiceRoute = VoiceEntry.parse(text, categories, baseCurrency, today, label)?.let { VoiceRoute.Fill(it) }
+            ?: if (chatOpen && text.isNotBlank()) VoiceRoute.Chat else VoiceRoute.Unclear
 
         /**
          * The cash accounts the sheet can charge, last used first: the

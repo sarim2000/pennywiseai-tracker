@@ -462,6 +462,16 @@
     <string name="quick_add_from">من: %1$s</string>
     <!-- %1$s amount with currency, %2$s category -->
     <string name="quick_add_saved">حُفظ %1$s · %2$s</string>
+    <!-- The sheet filled from the voice mic (Home, the cash widget) -->
+    <string name="quick_add_title_income">دخل نقدي</string>
+    <string name="quick_add_spent">مصروف</string>
+    <string name="quick_add_received">دخل</string>
+    <!-- Clears a day said out loud ("yesterday") back to today -->
+    <string name="quick_add_date_today">استخدم تاريخ اليوم</string>
+    <string name="quick_add_voice_title">إضافة بالصوت</string>
+    <string name="quick_add_voice_hint">قل مصروفًا نقديًا مثل «200 غداء»، أو اطرح سؤالًا.</string>
+    <string name="quick_add_voice_unclear">لم أجد مبلغًا واحدًا. حاول مرة أخرى أو اكتبه.</string>
+    <string name="quick_add_voice_type">اكتب بدلًا من ذلك</string>
     <string name="date_range_title">اختر الفترة</string>
     <string name="date_range_ok">موافق</string>
     <string name="date_range_cancel">إلغاء</string>

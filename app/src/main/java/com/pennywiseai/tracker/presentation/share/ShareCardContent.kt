@@ -34,6 +34,8 @@ data class ShareCardRow(
     /** The bar's fill, 0..1; null draws no bar. */
     val fraction: Double? = null,
     val sentiment: Sentiment = Sentiment.NEUTRAL,
+    /** The row's own dates, when they aren't the card's period. */
+    val note: String? = null,
 )
 
 /** What a progress card can hold, in the order it draws them. */

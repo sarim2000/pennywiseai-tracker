@@ -89,10 +89,13 @@ fun shareCardState(selection: ShareStudioSelection, data: ShareStudioData): Shar
     }
 }
 
-/** The currency a progress card's savings row is about: the one picked, or the most active. */
+/** The currency a progress card's savings row is about: the one picked, or else the most active one with a rate. */
 internal fun progressCurrency(review: PeriodReview, picked: String?): CurrencyReview? {
     val currencies = review.currencies.filter { it.hasActivity }
-    return currencies.firstOrNull { it.currency == picked } ?: currencies.firstOrNull()
+    // Unpicked, it's the most active currency that has a savings rate, so Savings isn't greyed out over the wrong one.
+    return currencies.firstOrNull { it.currency == picked }
+        ?: currencies.firstOrNull { it.savingsRatePercent() != null }
+        ?: currencies.firstOrNull()
 }
 
 /** The progress sections that have something to show; the rest are greyed out. */
@@ -572,6 +575,10 @@ private fun progressCard(data: ShareStudioData.Progress, selection: ShareStudioS
         if (ProgressSection.BUDGET in sections) {
             budgetResult(data.budget)?.let { result ->
                 periodRows++
+                // Budgets run by calendar month, the review by the user's cycle: when the two
+                // windows differ, the row says which one it covers instead of borrowing the card's label.
+                val window = data.budget.pageWindow
+                val sameWindow = window.start == data.review.range.start && window.end == data.review.range.end
                 add(
                     ShareCardRow(
                         label = stringResource(R.string.share_card_progress_budget),
@@ -581,6 +588,7 @@ private fun progressCard(data: ShareStudioData.Progress, selection: ShareStudioS
                         ),
                         fraction = if (bars) (result.usedPercent / 100.0).coerceIn(0.0, 1.0) else null,
                         sentiment = if (result.isOver) Sentiment.BAD else Sentiment.GOOD,
+                        note = if (sameWindow) null else DateRangeUtils.formatDateRange(window.start, window.end),
                     )
                 )
             }

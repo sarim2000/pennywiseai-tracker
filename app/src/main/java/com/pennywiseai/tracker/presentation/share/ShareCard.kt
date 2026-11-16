@@ -1035,6 +1035,13 @@ private fun ProgressRow(row: ShareCardRow, p: SharePalette) {
                 modifier = Modifier.widthIn(max = 168.dp),
             )
         }
+        row.note?.let {
+            Text(
+                text = it,
+                style = Body.copy(fontSize = 12.sp, lineHeight = 15.sp, fontWeight = FontWeight.Medium, color = p.muted),
+                maxLines = 1,
+            )
+        }
         row.fraction?.let { fraction ->
             Spacer(Modifier.height(5.dp))
             Box(

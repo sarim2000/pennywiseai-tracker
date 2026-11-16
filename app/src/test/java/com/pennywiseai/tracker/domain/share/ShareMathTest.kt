@@ -11,6 +11,7 @@ import com.pennywiseai.tracker.domain.review.CurrencyReview
 import com.pennywiseai.tracker.domain.review.PeriodReview
 import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.domain.review.ReviewRange
+import com.pennywiseai.tracker.presentation.share.progressCurrency
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -214,5 +215,15 @@ class ShareMathTest {
         assertNull(savingsRatePercent(BigDecimal("0.01"), BigDecimal("300000")))
         assertNull(savingsRatePercent(BigDecimal("0.01"), BigDecimal("214748.37")))
         assertEquals(-10_000, savingsRatePercent(BigDecimal("1"), BigDecimal("101")))
+    }
+
+    @Test
+    fun `a progress card's savings row takes the picked currency, else the most active one with income`() {
+        val review = month("2026-10-01", currency("INR", spent = "900"), currency("AED", spent = "100", income = "400"))
+        // INR is busier but has no income, so no rate: AED is the one that can say something.
+        assertEquals("AED", progressCurrency(review, picked = null)?.currency)
+        // A currency the user picked stays picked, rate or not; nothing is summed across the two.
+        assertEquals("INR", progressCurrency(review, picked = "INR")?.currency)
+        assertEquals("AED", progressCurrency(review, picked = "USD")?.currency)
     }
 }

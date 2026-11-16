@@ -462,12 +462,13 @@ private fun ProgressControls(selection: ShareStudioSelection, data: ShareStudioD
             onNewer = viewModel::newer,
         )
     }
+    // Shown even with Savings off: the currency is what decides whether Savings can come back on.
     val currencies = currenciesOf(data)
-    if (ProgressSection.SAVINGS in selection.sections && currencies.size > 1) {
+    if (currencies.size > 1) {
         SectionHeaderV2(title = stringResource(R.string.share_studio_section_currency))
         ChipRow(
             options = currencies,
-            selected = selection.currency?.takeIf { it in currencies } ?: currencies.first(),
+            selected = progressCurrency(data.review, selection.currency)?.currency ?: currencies.first(),
             label = { it },
             onSelect = viewModel::selectCurrency,
         )

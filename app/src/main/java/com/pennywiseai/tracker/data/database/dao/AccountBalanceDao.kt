@@ -268,6 +268,51 @@ interface AccountBalanceDao {
     @Query("UPDATE account_balances SET statement_day = :statementDay WHERE bank_name = :bankName AND account_last4 = :accountLast4")
     suspend fun updateStatementDay(bankName: String, accountLast4: String, statementDay: Int?): Int
 
+    /**
+     * Sets a credit card's bill on every row of the account (account-level, like
+     * the alias). Null clears that part.
+     */
+    @Query("""
+        UPDATE account_balances
+        SET card_due_day = :dueDay, card_bill_amount = :amount, card_bill_as_of = :asOf
+        WHERE bank_name = :bankName AND account_last4 = :accountLast4
+    """)
+    suspend fun setCardBill(
+        bankName: String,
+        accountLast4: String,
+        dueDay: Int?,
+        amount: BigDecimal?,
+        asOf: LocalDateTime?,
+    ): Int
+
+    /**
+     * Puts the given account-level fields back on the rows of an account that lost
+     * them, leaving any a row already has. Used after a rebuild or merge rewrote
+     * the account's rows.
+     */
+    @Query("""
+        UPDATE account_balances SET
+            statement_day = COALESCE(statement_day, :statementDay),
+            card_due_day = COALESCE(card_due_day, :dueDay),
+            card_bill_amount = COALESCE(card_bill_amount, :billAmount),
+            card_bill_as_of = COALESCE(card_bill_as_of, :billAsOf),
+            anchor_amount = COALESCE(anchor_amount, :anchorAmount),
+            anchor_at = COALESCE(anchor_at, :anchorAt),
+            anchor_source = COALESCE(anchor_source, :anchorSource)
+        WHERE bank_name = :bankName AND account_last4 = :accountLast4
+    """)
+    suspend fun fillMissingAccountFields(
+        bankName: String,
+        accountLast4: String,
+        statementDay: Int?,
+        dueDay: Int?,
+        billAmount: BigDecimal?,
+        billAsOf: LocalDateTime?,
+        anchorAmount: BigDecimal?,
+        anchorAt: LocalDateTime?,
+        anchorSource: String?,
+    ): Int
+
     @Query("UPDATE account_balances SET profile_id = :profileId WHERE bank_name = :bankName AND account_last4 = :accountLast4")
     suspend fun setAccountProfile(bankName: String, accountLast4: String, profileId: Long): Int
 

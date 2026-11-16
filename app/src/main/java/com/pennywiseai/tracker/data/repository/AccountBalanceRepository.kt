@@ -181,7 +181,7 @@ open class AccountBalanceRepository @Inject constructor(
                 profileId = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
                 alias = existing?.alias,
                 lowBalanceThreshold = existing?.lowBalanceThreshold
-            )
+            ).withAccountFieldsOf(existing)
             insertBalance(balanceEntity)
         }
     }
@@ -218,7 +218,7 @@ open class AccountBalanceRepository @Inject constructor(
             profileId = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
             alias = existing?.alias,
             lowBalanceThreshold = existing?.lowBalanceThreshold
-        )
+        ).withAccountFieldsOf(existing)
         return insertBalance(balanceEntity)
     }
 
@@ -333,6 +333,38 @@ open class AccountBalanceRepository @Inject constructor(
         val type = snapshot.accountType ?: return 0
         return accountBalanceDao.fillMissingAccountType(snapshot.bankName, snapshot.accountLast4, type, snapshot.isCreditCard)
     }
+
+    /** Sets (or, with nulls, clears) a credit card's bill on all of its rows. */
+    suspend fun setCardBill(
+        bankName: String,
+        accountLast4: String,
+        dueDay: Int?,
+        amount: BigDecimal?,
+        asOf: LocalDateTime? = amount?.let { LocalDateTime.now() },
+    ): Int = accountBalanceDao.setCardBill(bankName, accountLast4, dueDay, amount, asOf)
+
+    /**
+     * Puts [snapshot]'s account-level fields (statement and due day, card bill and,
+     * unless [withAnchor] is false, the balance anchor) back on the rows of
+     * [bankName]/[accountLast4] that don't have them. A force resync rebuilds an
+     * account's rows and a merge moves it, and neither may lose what the user set.
+     */
+    suspend fun keepAccountFields(
+        snapshot: AccountBalanceEntity,
+        bankName: String = snapshot.bankName,
+        accountLast4: String = snapshot.accountLast4,
+        withAnchor: Boolean = true,
+    ): Int = accountBalanceDao.fillMissingAccountFields(
+        bankName = bankName,
+        accountLast4 = accountLast4,
+        statementDay = snapshot.statementDay,
+        dueDay = snapshot.cardDueDay,
+        billAmount = snapshot.cardBillAmount,
+        billAsOf = snapshot.cardBillAsOf,
+        anchorAmount = snapshot.anchorAmount.takeIf { withAnchor },
+        anchorAt = snapshot.anchorAt.takeIf { withAnchor },
+        anchorSource = snapshot.anchorSource.takeIf { withAnchor },
+    )
 
     /**
      * Sets (or clears, with null) the per-account low-balance alert threshold
@@ -838,7 +870,7 @@ open class AccountBalanceRepository @Inject constructor(
                 lowBalanceThreshold = latestBalance?.lowBalanceThreshold,
                 sourceType = SOURCE_MANUAL,
                 timestamp = at
-            )
+            ).withAccountFieldsOf(latestBalance)
         )
     }
 

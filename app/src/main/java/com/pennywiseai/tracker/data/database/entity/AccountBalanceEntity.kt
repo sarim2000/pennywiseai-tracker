@@ -131,6 +131,27 @@ data class AccountBalanceEntity(
     val isLiability: Boolean
         get() = isCreditCard || isLoan
 
+    /**
+     * This row carrying the account-level fields the user set (statement and due day,
+     * card bill, balance anchor) from [from], an earlier row of the same account.
+     * Every path that builds a fresh row for an existing account goes through this,
+     * so a new SMS or a manual edit can't drop them.
+     */
+    fun withAccountFieldsOf(from: AccountBalanceEntity?): AccountBalanceEntity =
+        if (from == null) {
+            this
+        } else {
+            copy(
+                statementDay = from.statementDay,
+                cardDueDay = from.cardDueDay,
+                cardBillAmount = from.cardBillAmount,
+                cardBillAsOf = from.cardBillAsOf,
+                anchorAmount = from.anchorAmount,
+                anchorAt = from.anchorAt,
+                anchorSource = from.anchorSource,
+            )
+        }
+
     companion object {
         // Sentinel account_last4 for mobile-money wallets (eMola, M-Pesa
         // Mozambique) whose SMS has a running balance but no per-account number —

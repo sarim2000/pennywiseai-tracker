@@ -262,10 +262,10 @@ private fun HistoryRow(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
-            if (window.isLive && isCurrentPeriod) {
-                LiveBadge()
-            } else {
-                FrozenBadge(window.capDate)
+            when {
+                window.isLive && isCurrentPeriod -> LiveBadge()
+                window.window.start.isAfter(LocalDate.now()) -> StatusBadge(stringResource(R.string.budget_history_not_started))
+                else -> FrozenBadge(window.capDate)
             }
         }
     }
@@ -293,7 +293,11 @@ private fun LiveBadge() {
 
 @Composable
 private fun FrozenBadge(capDate: LocalDate) {
-    val formatter = AppDates.dateFormatter()
+    StatusBadge(stringResource(R.string.budget_history_frozen, capDate.format(AppDates.dateFormatter())))
+}
+
+@Composable
+private fun StatusBadge(text: String) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
@@ -305,7 +309,7 @@ private fun FrozenBadge(capDate: LocalDate) {
                 .background(MaterialTheme.colorScheme.onSurfaceVariant)
         )
         Text(
-            text = stringResource(R.string.budget_history_frozen, capDate.format(formatter)),
+            text = text,
             style = MaterialTheme.typography.labelSmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )

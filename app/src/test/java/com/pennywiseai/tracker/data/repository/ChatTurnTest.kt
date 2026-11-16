@@ -1346,6 +1346,8 @@ class ChatTurnTest {
         assertEquals(3, lines.size)
         assertFalse(reply.contains("470"))
         assertEquals(PennyWiseTools.PLANNING_STATUS, repository.lastReply.value?.tool)
+        // The gauge reads the most used limit: Coffee, past its own.
+        assertEquals(1f, repository.lastReply.value?.share)
         assertTrue(saved.last().id.startsWith(LlmRepository.QUICK_ID))
 
         // A limit with no exchange rate into the shown currency: named, never dropped or made zero.

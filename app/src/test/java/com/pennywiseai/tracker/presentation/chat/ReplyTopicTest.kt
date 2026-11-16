@@ -28,7 +28,8 @@ class ReplyTopicTest {
         assertEquals(MascotShape.Coin, replyShape(PennyWiseTools.QUERY_SPENDING))
         assertEquals(MascotShape.Pie, replyShape(PennyWiseTools.QUERY_SPENDING, share = 0.3f))
         assertEquals(MascotShape.Bars, replyShape(PennyWiseTools.COMPARE_SPENDING))
-        assertEquals(MascotShape.Gauge, replyShape(PennyWiseTools.PLANNING_STATUS))
+        assertEquals(MascotShape.Bell, replyShape(PennyWiseTools.PLANNING_STATUS))
+        assertEquals(MascotShape.Gauge, replyShape(PennyWiseTools.PLANNING_STATUS, share = 0f))
     }
 
     @Test
@@ -72,5 +73,6 @@ class ReplyTopicTest {
         assertEquals(-1f, replyTopic(ReplySubject(tool = PennyWiseTools.COMPARE_SPENDING, trend = -1)).value)
         assertEquals(1f, replyTopic(ReplySubject(tool = PennyWiseTools.COMPARE_SPENDING, trend = 1)).value)
         assertEquals(0f, replyTopic(ReplySubject(tool = PennyWiseTools.QUERY_SPENDING)).value)
+        assertEquals(0.75f, replyTopic(ReplySubject(tool = PennyWiseTools.PLANNING_STATUS, share = 0.75f)).value)
     }
 }

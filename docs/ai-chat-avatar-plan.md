@@ -29,8 +29,8 @@ Agreed with Codex (`gpt-6.1-sol`, high) over two rounds. Its objections that we 
 | **SMS bubble** | SMS scan | Tab, while a user-started scan runs in the foreground | Eyes sweep left and right |
 | **Pie** | Categories | Chat `query_spending` with a share (a category, or a ranking) / `TOP_CATEGORIES` | The cut-out slice = that share |
 | **Bars** | Month comparison | Chat `compare_spending` / `COMPARE_MONTH` | Eyes look up when spending rose and down when it fell, with no judgement |
-| **Bell** | Bills, subscriptions | Subscriptions / Recurring empty state | Swings if something is due within 3 days |
-| **Gauge** | Budget | Budgets empty state, chat `planning_status` | Needle = share of the budget used |
+| **Bell** | Bills, subscriptions | Subscriptions / Recurring empty state, chat `planning_status` bills | Swings if something is due within 3 days |
+| **Gauge** | Budget | Budgets empty state, chat `planning_status` budgets | Needle = share of the budget used (in chat, the most used limit) |
 
 **Dropped:** heart / love, card, transfer arrows, sprout, loans, split. Add one only if users ask. Each shape costs about 10 lines.
 

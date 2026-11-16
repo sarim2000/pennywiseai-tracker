@@ -98,7 +98,10 @@ data class ReplySubject(
     val tool: String? = null,
     /** A confirmed Add card's rows were saved. */
     val saved: Boolean = false,
-    /** The figure's share of all spending in its days (a category's, or the biggest one's), 0..1. */
+    /**
+     * The figure's share of all spending in its days (a category's, or the biggest one's), 0..1;
+     * for budgets, the most used limit's share used.
+     */
     val share: Float? = null,
     /** Spending rose (1) or fell (-1) in every currency; 0 when it held, went both ways or can't tell. */
     val trend: Int = 0,

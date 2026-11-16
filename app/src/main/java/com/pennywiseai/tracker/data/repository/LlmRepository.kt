@@ -626,6 +626,8 @@ class LlmRepository @Inject constructor(
      * different days have no shared "left", so none is made up.
      */
     private fun budgetsText(budgets: List<BudgetStatus>): String {
+        // The mascot's gauge: the most used limit, each against its own (never a sum across them).
+        turnSubject = turnSubject?.copy(share = budgets.mapNotNull { b -> b.limit?.let { b.spent.toFloat() / it.toFloat() } }.maxOrNull()?.coerceIn(0f, 1f) ?: 0f)
         if (budgets.isEmpty()) return context.getString(R.string.chat_reply_budgets_none)
         return buildList {
             add(context.getString(R.string.chat_reply_budgets_title))

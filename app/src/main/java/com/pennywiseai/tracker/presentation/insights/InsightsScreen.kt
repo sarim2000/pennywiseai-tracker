@@ -532,7 +532,13 @@ internal fun InsightCard(
         onClick = onToggle,
     ) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.smd)) {
-            Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(Dimensions.Icon.medium))
+            // Read first, so TalkBack moving card by card hears how much each one matters.
+            Icon(
+                icon,
+                contentDescription = severityLabel(insight.severity),
+                tint = color,
+                modifier = Modifier.size(Dimensions.Icon.medium),
+            )
             Text(
                 text = text.title,
                 style = MaterialTheme.typography.titleSmall,

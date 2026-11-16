@@ -23,12 +23,4 @@ class ChatLinkRouteTest {
             transactionsFor(ChatLink("See", nov1, nov16, "Food", "USD"))
         )
     }
-
-    @Test
-    fun `a figure in several currencies leaves the list's own currency choice`() {
-        val route = transactionsFor(ChatLink("See", nov1, nov16))
-        assertEquals(null, route.currency)
-        assertEquals(false, route.currencyOnly)
-        assertEquals(null, route.category)
-    }
 }

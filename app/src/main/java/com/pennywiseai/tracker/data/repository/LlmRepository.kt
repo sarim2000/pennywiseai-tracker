@@ -683,23 +683,27 @@ class LlmRepository @Inject constructor(
     private suspend fun spendingLinks(p: PeriodSpending) = linksTo(p.scope.window, null, p.spent.keys + p.income.keys)
 
     /**
-     * [window]'s transactions in [category]: one link pinned to the answer's only currency, or
-     * one per currency when it gave several, the user's own first. None when it had no figure.
+     * [window]'s transactions in [category]: one link per currency of the answer, the user's own
+     * first, each pinned to it. A link that leaves the currency to the list would open on the
+     * base currency alone, and could lose its category to the list's auto-clear. None when it
+     * had no figure. [dated] names the dates, for a comparison's two periods.
      */
-    private suspend fun linksTo(window: SpendingComparison.Window, category: String?, currencies: Set<String>): List<ChatLink> {
+    private suspend fun linksTo(window: SpendingComparison.Window, category: String?, currencies: Set<String>, dated: Boolean = false): List<ChatLink> {
         val (start, end) = window.start.toLocalDate() to window.end.toLocalDate()
         val codes = ordered(currencies.associateWith { it }).map { it.first }
-        return codes.singleOrNull()?.let { listOf(ChatLink(context.getString(R.string.chat_link_transactions), start, end, category, it)) }
-            ?: codes.map { ChatLink(context.getString(R.string.chat_link_transactions_in, it), start, end, category, it) }
+        return codes.map { code ->
+            val names = listOfNotNull(range(window).takeIf { dated }, code.takeIf { codes.size > 1 })
+            val label = if (names.isEmpty()) context.getString(R.string.chat_link_transactions)
+            else context.getString(R.string.chat_link_transactions_in, names.joinToString(" · "))
+            ChatLink(label, start, end, category, code)
+        }
     }
 
-    /** Both periods of a comparison, each by its dates; pinned to the currency when there's only one. */
-    private fun comparisonLinks(result: SpendingComparison.Result, category: String?): List<ChatLink> {
+    /** Both periods of a comparison, each by its dates, per currency as [linksTo] gives them. */
+    private suspend fun comparisonLinks(result: SpendingComparison.Result, category: String?): List<ChatLink> {
         val rows = (result as? SpendingComparison.Result.Rows)?.takeIf { it.rows.isNotEmpty() } ?: return emptyList()
-        val currency = rows.rows.map { it.currency }.distinct().singleOrNull()
-        return listOf(rows.current, rows.previous).map { w ->
-            ChatLink(context.getString(R.string.chat_link_transactions_dates, range(w)), w.start.toLocalDate(), w.end.toLocalDate(), category, currency)
-        }
+        val currencies = rows.rows.mapTo(mutableSetOf()) { it.currency }
+        return listOf(rows.current, rows.previous).flatMap { linksTo(it, category, currencies, dated = true) }
     }
 
     /** Home's one converted figure, when it shows one, and what it had to leave out. */

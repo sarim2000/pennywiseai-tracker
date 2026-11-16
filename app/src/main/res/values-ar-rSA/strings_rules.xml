@@ -402,7 +402,6 @@
     <string name="chat_done_updated">تم تعديل %1$s.</string>
     <string name="chat_link_transactions">عرض المعاملات</string>
     <string name="chat_link_transactions_in">عرض معاملات %1$s</string>
-    <string name="chat_link_transactions_dates">عرض معاملات %1$s</string>
     <string name="chat_welcome">مرحبًا! أنا PennyWise AI.\n\nأخبرني بما صرفته وسأضيفه بعد تأكيدك، مثل \"قهوة 120 في Starbucks\" أو \"استلمت راتب 50000\". واسأل \"كم صرفت على البقالة هذا الشهر؟\" لتعرف الإجمالي.\n\nالإنفاق حتى الآن (%1$s): %2$s.\nلا يُحفظ شيء دون ضغطة منك.</string>
     <!-- Chat errors -->
     <string name="chat_error_apply_failed">تعذّر تطبيق ذلك: %1$s</string>

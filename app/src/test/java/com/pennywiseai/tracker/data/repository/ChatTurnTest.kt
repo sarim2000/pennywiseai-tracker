@@ -582,26 +582,38 @@ class ChatTurnTest {
     }
 
     @Test
-    fun `a comparison links to both of its periods, pinned only when it has one currency`() = runTest {
-        every { context.getString(R.string.chat_link_transactions_dates, any()) } answers { "SEE ${(args[1] as Array<*>)[0]}" }
+    fun `a comparison links to both of its periods, each pinned to a currency`() = runTest {
+        every { context.getString(R.string.chat_link_transactions_in, any()) } answers { "SEE ${(args[1] as Array<*>)[0]}" }
         val now = SpendingComparison.Window(LocalDateTime.of(2026, 11, 1, 0, 0), LocalDateTime.of(2026, 11, 16, 23, 59))
         val before = SpendingComparison.Window(LocalDateTime.of(2026, 10, 1, 0, 0), LocalDateTime.of(2026, 10, 16, 23, 59))
+        val (nov1, nov16) = LocalDate.of(2026, 11, 1) to LocalDate.of(2026, 11, 16)
+        val (oct1, oct16) = LocalDate.of(2026, 10, 1) to LocalDate.of(2026, 10, 16)
         val inr = SpendingComparison.Row("INR", BigDecimal("700"), BigDecimal("500"), BigDecimal("40"))
         coEvery { aiContext.compareSpending(any(), any(), any(), any()) } returns SpendingComparison.Result.Rows(now, before, listOf(inr))
         events = listOf(LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "طعام")))
         send("compare food with last month")
         assertEquals(
             listOf(
-                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Nov–16 Nov", LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 16), "طعام", "INR"),
-                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Oct–16 Oct", LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 16), "طعام", "INR"),
+                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Nov–16 Nov", nov1, nov16, "طعام", "INR"),
+                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Oct–16 Oct", oct1, oct16, "طعام", "INR"),
             ),
             repository.links.value[saved.last().id]
         )
 
+        // Several currencies: one pinned link per currency and period, so a period with none of
+        // the category's rows opens empty instead of on every row, and USD isn't behind the base.
         coEvery { aiContext.compareSpending(any(), any(), any(), any()) } returns
-            SpendingComparison.Result.Rows(now, before, listOf(inr, inr.copy(currency = "USD")))
+            SpendingComparison.Result.Rows(now, before, listOf(inr.copy(currency = "USD"), inr))
         repository.answerQuickAction(QuickAction.COMPARE_MONTH)
-        assertEquals(listOf(null, null), repository.links.value[saved.last().id]?.map { it.currency })
+        assertEquals(
+            listOf(
+                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Nov–16 Nov · INR", nov1, nov16, null, "INR"),
+                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Nov–16 Nov · USD", nov1, nov16, null, "USD"),
+                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Oct–16 Oct · INR", oct1, oct16, null, "INR"),
+                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Oct–16 Oct · USD", oct1, oct16, null, "USD"),
+            ),
+            repository.links.value[saved.last().id]
+        )
     }
 
     /** A category lookup's result: nothing spent, or [inr] rupees. */

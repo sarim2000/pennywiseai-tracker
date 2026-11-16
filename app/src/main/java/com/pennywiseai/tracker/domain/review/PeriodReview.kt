@@ -100,6 +100,11 @@ data class CurrencyReview(
     /** Every row that counts toward any total: spend, income, refunds and transfers alike. */
     val transactionCount: Int,
     val categories: List<CategoryLine>,
+    /**
+     * The biggest categories by amount, whatever [categories] is sorted by: a week or
+     * cycle lists what changed most, which can leave out the largest steady category.
+     */
+    val topCategories: List<CategoryLine> = emptyList(),
     /** Year only. Months are net of refunds; a forgiven loan counts in [spent] alone. */
     val months: List<MonthPoint>,
 ) {
@@ -215,6 +220,7 @@ internal suspend fun buildPeriodReview(
             income = income,
             transactionCount = current[currency].orEmpty().forTotals().size,
             categories = categoryLines(range, spend, before),
+            topCategories = topCategoryLines(spend),
             months = if (range.kind == ReviewKind.YEAR) monthPoints(range, spend) else emptyList(),
         )
     }
@@ -250,6 +256,12 @@ private fun categoryLines(range: ReviewRange, spend: Spend, before: Spend?): Lis
     }
     return sorted.take(CATEGORY_LINES)
 }
+
+private fun topCategoryLines(spend: Spend): List<CategoryLine> =
+    spend.byCategory.filterValues { it.signum() > 0 }
+        .map { (name, amount) -> CategoryLine(name, amount, previous = null) }
+        .sortedWith(compareByDescending<CategoryLine> { it.amount }.thenBy { it.name })
+        .take(CATEGORY_LINES)
 
 private fun monthPoints(range: ReviewRange, spend: Spend): List<MonthPoint> =
     generateSequence(YearMonth.from(range.start)) { it.plusMonths(1) }

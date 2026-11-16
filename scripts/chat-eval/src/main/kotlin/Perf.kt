@@ -59,7 +59,7 @@ private suspend fun perf(argv: Array<String>) {
     val engine = Engine(EngineConfig(modelPath = model, backend = backend, cacheDir = cacheDir)).also { it.initialize() }
     println("engine_init_ms=${ms(t0)} rss_mb=${rssMb()}")
 
-    val system = appSystemPrompt("INR")
+    val system = appSystemPrompt()
     fun config(prefill: Boolean) = ConversationConfig(
         systemInstruction = Contents.of(system),
         tools = listOf(tool(AddTransactionsTool()), tool(PennyWiseTools())),

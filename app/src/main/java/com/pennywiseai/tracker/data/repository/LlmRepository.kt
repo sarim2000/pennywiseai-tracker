@@ -93,10 +93,6 @@ class LlmRepository @Inject constructor(
     // showing them. Guarded by conversationLock.
     private val droppedIds = mutableSetOf<String>()
 
-    // Saved messages replayed into the live conversation. A message saved before the warm-up
-    // read the chat would otherwise reach the model twice.
-    private var replayedIds = emptySet<String>()
-
     // The latest assistant line and what it answered, for the chat screen's mascot. Set just before
     // the line is saved, so the screen knows its subject by the time it shows; cleared as the next
     // request starts. Never saved, never told to the model.
@@ -191,7 +187,7 @@ class LlmRepository @Inject constructor(
         val cardJustAnswered = cardOutcome != null
 
         // Ensure engine is initialized and conversation is active, with room for this turn
-        ensureConversation(pending = userChatMessage, incoming = prompt)
+        ensureConversation(incoming = prompt)
         cardOutcome = null
 
         // Stream response — LiteRT-LM conversation manages history internally.
@@ -240,7 +236,7 @@ class LlmRepository @Inject constructor(
                 ) throw e
                 retried = true
                 Log.w(TAG, "Context window full; retrying with the older turns dropped")
-                ensureConversation(pending = userChatMessage, incoming = prompt, shrink = true)
+                ensureConversation(incoming = prompt, shrink = true)
             }
         }
         // A broken wrapper can also come through as plain text. It's no reply, so it isn't saved as one.
@@ -352,16 +348,16 @@ class LlmRepository @Inject constructor(
         // and re-checking a long chat's window here (with a reply's worth reserved) closed the
         // conversation under that reply. A send checks its own room.
         conversationLock.withLock { if (llmService.isInitialized() && llmService.hasActiveConversation()) return }
-        ensureConversation(pending = null, incoming = "")
+        ensureConversation(incoming = "")
     }
 
     /**
      * A live conversation with room for [incoming] and its reply, built from the saved chat if
-     * needed. [pending] is the message about to be sent: saved already, so kept out of the
-     * replayed history. When the chat outgrows the model's window, its oldest turns leave the
-     * window (not the screen) instead of the chat refusing to go on.
+     * needed. The message about to be sent is saved already, with no reply, so never replayed.
+     * When the chat outgrows the model's window, its oldest turns leave the window (not the
+     * screen) instead of the chat refusing to go on.
      */
-    private suspend fun ensureConversation(pending: ChatMessage?, incoming: String, shrink: Boolean = false) = conversationLock.withLock {
+    private suspend fun ensureConversation(incoming: String, shrink: Boolean = false) = conversationLock.withLock {
         if (!llmService.isInitialized()) {
             val modelFile = modelRepository.getModelFile()
             if (!modelFile.exists()) {
@@ -386,20 +382,19 @@ class LlmRepository @Inject constructor(
 
         var outgrown = shrink
         if (llmService.hasActiveConversation()) {
-            val replayed = pending != null && pending.id in replayedIds
             val used = llmService.tokenCount()
-            if (!replayed && used != null && TokenUtils.fitsWindow(used, incoming)) {
+            if (used != null && TokenUtils.fitsWindow(used, incoming)) {
                 _contextTokens.value = used
                 return@withLock
             }
-            outgrown = !replayed && used != null
+            outgrown = used != null
             llmService.closeConversation()
         }
 
         // Always fresh: the row saved when the chat began carries that day's date and lists.
         val systemPrompt = buildSystemPrompt()
         val saved = replayable(chatDao.getAllMessagesForContext().filter { !it.isSystemPrompt }, callsMade.toMap())
-        var history = saved.filter { it.id != pending?.id && it.id !in droppedIds }
+        var history = saved.filter { it.id !in droppedIds }
         // Dropped only once a conversation takes the message: a message too long for any window
         // must not cost the model the rest of the chat.
         val dropping = mutableSetOf<String>()
@@ -416,7 +411,6 @@ class LlmRepository @Inject constructor(
             Log.i(TIMING, "conversation=${ms(t0)}ms history=${history.size} tokens=$used")
             if (failure == null && TokenUtils.fitsWindow(used, incoming)) {
                 droppedIds += dropping
-                replayedIds = history.mapTo(mutableSetOf()) { it.id }
                 _contextTokens.value = used
                 return@withLock
             }
@@ -424,7 +418,6 @@ class LlmRepository @Inject constructor(
             // rebuilds the window as it was, without this one, which the model never saw.
             if (history.isEmpty()) {
                 llmService.closeConversation()
-                pending?.let { droppedIds += it.id }
                 throw Exception(MESSAGE_TOO_LONG)
             }
             history = halve()
@@ -443,7 +436,6 @@ class LlmRepository @Inject constructor(
             callsMade.clear()
             _lastReply.value = null
             droppedIds.clear()
-            replayedIds = emptySet()
             _contextTokens.value = 0
         }
     }
@@ -854,8 +846,8 @@ class LlmRepository @Inject constructor(
          * replies [MODEL_ID] marks, and a lookup's answer as the [calls] the model made for it, by
          * the reply's id. That is how the live conversation held it, so "and last month?" still
          * follows on after a rebuild, with no figure the app wrote to copy. Every other exchange
-         * goes whole, and so does a question with no reply: left open, the model answers it again
-         * with the next one.
+         * goes whole, and so does a question with no reply, such as the one being sent: left
+         * open, the model answers it again with the next one.
          */
         internal fun replayable(saved: List<ChatMessage>, calls: Map<String, String> = emptyMap()): List<ChatMessage> {
             fun replayed(m: ChatMessage?): ChatMessage? = when {

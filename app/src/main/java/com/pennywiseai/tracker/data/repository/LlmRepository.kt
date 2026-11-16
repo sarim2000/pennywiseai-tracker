@@ -251,8 +251,9 @@ class LlmRepository @Inject constructor(
         }
         // Everything to add in a turn shares one review card. Any other card stays one at a
         // time, since a second proposal would replace the first unseen.
-        // A comparison is the code's figures alone: prose beside it could carry the model's own arithmetic.
-        if (toolCalls.any { it.isComparison(userMessage) }) {
+        // A comparison or a total is the code's figures alone: prose beside it could carry the
+        // model's own arithmetic, or a figure from an earlier turn.
+        if (toolCalls.any { it.isComparison(userMessage) || it.name in MONTH_LOOKUPS }) {
             // The live conversation still holds that prose; the next turn rebuilds from what was saved.
             if (responseBuilder.isNotEmpty()) conversationBroken = true
             responseBuilder.clear()

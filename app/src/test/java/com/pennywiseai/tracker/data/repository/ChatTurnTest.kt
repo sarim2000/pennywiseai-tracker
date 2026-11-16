@@ -108,6 +108,15 @@ class ChatTurnTest {
     }
 
     @Test
+    fun `prose streamed before a total leaves the screen, and the save`() = runTest {
+        coEvery { aiContext.categorySpending(any(), any()) } returns spent("120")
+        events = listOf(LlmEvent.Text("You've spent about ₹5,000 on food. "), LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "طعام")))
+        assertEquals("SPEND", send("how much on food?"))
+        assertEquals("SPEND", saved.last().message)
+        coVerify(exactly = 1) { llmService.closeConversation() }
+    }
+
+    @Test
     fun `a comparison with no prose keeps the live conversation`() = runTest {
         val w = SpendingComparison.Window(LocalDateTime.of(2026, 10, 1, 0, 0), LocalDateTime.of(2026, 10, 9, 0, 0))
         coEvery { aiContext.compareSpending(any(), any(), any()) } returns SpendingComparison.Result.NoData(w, w, w)

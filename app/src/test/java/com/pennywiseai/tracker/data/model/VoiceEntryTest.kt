@@ -135,6 +135,8 @@ class VoiceEntryTest {
         assertNull(parse("lunch"))
         assertNull(parse(""))
         assertNull(parse("taxi 30 last monday"))
+        assertNull(parse("taxi 30 400 days ago"))
+        assertNull(parse("taxi 30 60 weeks ago"))
         assertNull(parse("lunch 20 yesterday and today"))
     }
 }

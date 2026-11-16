@@ -273,8 +273,19 @@ internal object ChatMessageFacts {
      * names two, or one this code can't count ("last Monday").
      */
     fun spokenDaysAgo(message: String): Int? {
-        if (namesOtherDay(message)) return null
+        if (namesOtherDay(message) || refusesACount(message)) return null
         return statedDays(message).let { if (it.size > 1) null else it.singleOrNull() ?: 0 }
+    }
+
+    /** A count [statedDays] drops ("400 days ago"): a day, just not one it can count. */
+    private fun refusesACount(message: String): Boolean {
+        val text = latin(message)
+        return listOf(N_WEEKS_AGO to 7L, N_DAYS_AGO to 1L).any { (pattern, daysEach) ->
+            pattern.findAll(text).any { m ->
+                val count = m.groupValues[1].ifEmpty { m.groupValues[2] }.toLongOrNull()
+                count == null || count > MAX_DAYS_AGO / daysEach
+            }
+        }
     }
 
     private val DAY_WORDS = listOf(DAY_BEFORE_YESTERDAY, TWO_DAYS_AGO, TWO_WEEKS_AGO, WEEK_AGO, N_WEEKS_AGO, N_DAYS_AGO, YESTERDAY, TODAY)

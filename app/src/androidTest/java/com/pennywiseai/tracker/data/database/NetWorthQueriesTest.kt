@@ -69,6 +69,24 @@ class NetWorthQueriesTest {
         assertEquals(2, db.transactionDao().countTransactionsOnAccountSince("Test Bank", "1111", at(2)))
     }
 
+    @Test fun aMarkedTransferCountsOnceOnEachAccount() = runBlocking {
+        val dao = db.transactionDao()
+        fun transfer(hash: String, bank: String, account: String, pairId: String?) = TransactionEntity(
+            amount = BigDecimal("50"), merchantName = "Move", category = "Others",
+            transactionType = TransactionType.TRANSFER, dateTime = at(3), transactionHash = hash,
+            bankName = bank, accountNumber = account, transferPairId = pairId,
+            fromAccount = "1111", fromBankName = "Test Bank", toAccount = "2222", toBankName = "Other Bank",
+        )
+        // A marked pair: the debit on 1111 and the credit on 2222, each with the whole route.
+        dao.insertTransaction(transfer("p1", "Test Bank", "1111", "pair"))
+        dao.insertTransaction(transfer("p2", "Other Bank", "2222", "pair"))
+        // A standalone transfer, stored once, moves both accounts.
+        dao.insertTransaction(transfer("s1", "Cash", "0000", null))
+
+        assertEquals(2, dao.countTransactionsOnAccountSince("Test Bank", "1111", at(1)))
+        assertEquals(2, dao.countTransactionsOnAccountSince("Other Bank", "2222", at(1)))
+    }
+
     @Test fun trendRowsSeedEachAccountWithItsLastRowBeforeTheStart() = runBlocking {
         val dao = db.accountBalanceDao()
         listOf(

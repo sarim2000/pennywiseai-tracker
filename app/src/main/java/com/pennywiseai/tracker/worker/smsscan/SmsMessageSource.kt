@@ -60,6 +60,8 @@ internal class DeviceSmsMessageSource(private val context: Context) : SmsMessage
                 if (c.moveToFirst()) count = c.getInt(0)
             }
         } catch (e: Exception) {
+            // Lost access isn't an empty inbox: let the scan fail instead of "finding" nothing.
+            if (e is CancellationException || e is SecurityException) throw e
             Log.e(TAG, "Error counting SMS", e)
         }
         return count
@@ -141,7 +143,7 @@ internal class DeviceSmsMessageSource(private val context: Context) : SmsMessage
                 }
             }
         } catch (e: Exception) {
-            if (e is CancellationException) throw e
+            if (e is CancellationException || e is SecurityException) throw e
             Log.e(TAG, "Error streaming SMS", e)
         }
         Log.i(TAG, "Streamed $count SMS messages to pipeline")

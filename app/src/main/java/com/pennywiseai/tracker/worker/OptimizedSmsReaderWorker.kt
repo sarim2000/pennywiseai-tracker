@@ -19,6 +19,7 @@ import com.pennywiseai.tracker.data.preferences.ScanPreferences
 import com.pennywiseai.tracker.data.repository.*
 import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.domain.service.RuleEngine
+import com.pennywiseai.tracker.utils.canReadSms
 import com.pennywiseai.tracker.worker.smsscan.DeviceSmsMessageSource
 import com.pennywiseai.tracker.worker.smsscan.ProcessingStats
 import com.pennywiseai.tracker.worker.smsscan.ScanOutcomeRecorder
@@ -162,6 +163,10 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         Trace.beginSection("SmsWorker.doWork")
         try {
             recorder.run(isStopped = { isStopped }) {
+                // Without READ_SMS every inbox query fails. Read as "no messages", that would
+                // record a success, move the incremental cursor past messages never read, and
+                // let a rebuild delete rows it can't bring back. Fail before any of it.
+                if (!applicationContext.canReadSms()) throw SecurityException("READ_SMS not granted")
                 val forceResync = inputData.getBoolean(INPUT_FORCE_RESYNC, false)
                 val rescanAll = inputData.getBoolean(INPUT_RESCAN_ALL, false)
                 Log.i(TAG, "Starting SMS worker (forceResync=$forceResync, rescanAll=$rescanAll)")

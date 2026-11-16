@@ -14,6 +14,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -176,6 +177,19 @@ class SmsScanPipelineTest {
         assertEquals(5, h.store.all.size)
         assertEquals(SmsScanCounts(saved = 5, failed = 1), stats.counts())
         assertEquals(6, stats.counts().examined)
+    }
+
+    @Test
+    fun `losing SMS access fails the scan instead of finishing it empty`() = scanTest {
+        val noAccess = object : SmsMessageSource {
+            override suspend fun streamTo(feed: SendChannel<ScannedSms>, scanStartMillis: Long) {
+                throw SecurityException("READ_SMS not granted")
+            }
+        }
+
+        val failure = runCatching { h.pipeline(noAccess).run(0L, ProcessingStats(total = 0)) }.exceptionOrNull()
+
+        assertTrue(failure is SecurityException)
     }
 
     @Test

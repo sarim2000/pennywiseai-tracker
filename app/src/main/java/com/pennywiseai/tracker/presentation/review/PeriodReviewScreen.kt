@@ -29,6 +29,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.PictureAsPdf
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -36,7 +37,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipAnchorPosition
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -135,20 +141,26 @@ fun PeriodReviewScreen(
             // A report is for a month or a year; a week has the share card.
             if (loaded != null && loaded.currencies.isNotEmpty() && loaded.range.kind != ReviewKind.WEEK) {
                 val title = periodLabel(loaded.range)
-                IconButton(
-                    onClick = { viewModel.exportPdf(title) },
-                    enabled = !exportingPdf,
-                    shapes = IconButtonDefaults.shapes(),
-                ) {
-                    Icon(Icons.Outlined.PictureAsPdf, contentDescription = stringResource(R.string.review_export_pdf))
+                val label = stringResource(R.string.review_export_pdf)
+                NamedAction(label) {
+                    IconButton(
+                        onClick = { viewModel.exportPdf(title) },
+                        enabled = !exportingPdf,
+                        shapes = IconButtonDefaults.shapes(),
+                    ) {
+                        Icon(Icons.Outlined.PictureAsPdf, contentDescription = label)
+                    }
                 }
             }
             if (loaded != null && shareLabel != null && loaded.firstRecorded != null) {
-                IconButton(
-                    onClick = { shareWindow = ShareWindow(loaded.range.start, loaded.range.end, shareLabel) },
-                    shapes = IconButtonDefaults.shapes(),
-                ) {
-                    Icon(Icons.Default.Share, contentDescription = stringResource(R.string.review_share))
+                val label = stringResource(R.string.review_share)
+                NamedAction(label) {
+                    IconButton(
+                        onClick = { shareWindow = ShareWindow(loaded.range.start, loaded.range.end, shareLabel) },
+                        shapes = IconButtonDefaults.shapes(),
+                    ) {
+                        Icon(Icons.Default.Share, contentDescription = label)
+                    }
                 }
             }
         },
@@ -271,6 +283,19 @@ private fun PeriodSwitcher(
                 contentDescription = stringResource(R.string.review_newer),
             )
         }
+    }
+}
+
+/** Two icon-only actions sit side by side here, so a long-press says which is which. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun NamedAction(label: String, content: @Composable () -> Unit) {
+    TooltipBox(
+        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
+        tooltip = { PlainTooltip { Text(label) } },
+        state = rememberTooltipState(),
+    ) {
+        content()
     }
 }
 

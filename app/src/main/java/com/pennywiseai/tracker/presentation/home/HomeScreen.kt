@@ -810,6 +810,7 @@ fun HomeScreen(
         SafeToSpendSheet(
             state = state,
             onSetIncluded = viewModel::setSafeToSpendAccountIncluded,
+            onSetReserveGoals = viewModel::setReserveGoalSavings,
             onDismiss = { showSafeToSpendSheet = false }
         )
     }

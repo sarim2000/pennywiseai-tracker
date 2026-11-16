@@ -20,6 +20,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetValue
+import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberBottomSheetState
@@ -30,6 +31,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import com.pennywiseai.tracker.R
@@ -48,6 +50,7 @@ import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.spending
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.Money
+import java.time.LocalDate
 
 private const val MASK = "••••••"
 
@@ -122,6 +125,7 @@ fun SafeToSpendCard(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        GoalsLine(primary)
         CappedLine(primary)
         if (state.others.isNotEmpty()) {
             Text(
@@ -131,6 +135,17 @@ fun SafeToSpendCard(
             )
         }
     }
+}
+
+/** "₹1,500 set aside for goals", only when the user asked for it and there's some. */
+@Composable
+private fun GoalsLine(s: SafeToSpend) {
+    if (s.goalReserve.signum() <= 0) return
+    Text(
+        text = stringResource(R.string.safe_to_spend_goals_set_aside, CurrencyFormatter.formatCurrency(s.goalReserve, s.currency)),
+        style = MaterialTheme.typography.bodySmall,
+        color = MaterialTheme.colorScheme.onSurfaceVariant
+    )
 }
 
 /** "Capped by your budget: ₹5,000 left", only when the budget sets the figure. */
@@ -171,12 +186,14 @@ private fun PerDayLine(s: SafeToSpend, until: String, dueBefore: String) {
 fun SafeToSpendSheet(
     state: SafeToSpendUi,
     onSetIncluded: (AccountBalanceEntity, Boolean) -> Unit,
+    onSetReserveGoals: (Boolean) -> Unit,
     onDismiss: () -> Unit
 ) {
     var choosing by rememberSaveable { mutableStateOf(false) }
     val primary = state.primary
     val until = state.periodEnd.format(SHORT_DATE)
     val dueBefore = state.periodEnd.plusDays(1).format(SHORT_DATE)
+    val today = LocalDate.now()
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded)),
@@ -262,9 +279,12 @@ fun SafeToSpendSheet(
                 GroupedList {
                     state.bills.sortedBy { it.dueDate }.forEachIndexed { i, bill ->
                         GroupedRow(position = ListItemPosition.from(i, state.bills.size)) {
+                            val overdue = bill.isCardBill && bill.dueDate.isBefore(today)
                             SheetRowLabels(
                                 title = bill.name,
-                                subtitle = bill.dueDate.format(SHORT_DATE),
+                                subtitle = if (overdue) stringResource(R.string.safe_to_spend_overdue, bill.dueDate.format(SHORT_DATE))
+                                else bill.dueDate.format(SHORT_DATE),
+                                subtitleColor = if (overdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.weight(1f)
                             )
                             Text(
@@ -273,6 +293,44 @@ fun SafeToSpendSheet(
                                 color = MaterialTheme.colorScheme.spending
                             )
                         }
+                    }
+                }
+            }
+
+            if (state.cardsNeedingBill.isNotEmpty()) {
+                Spacer(Modifier.height(Spacing.sm))
+                Text(
+                    text = stringResource(
+                        R.string.safe_to_spend_cards_incomplete,
+                        state.cardsNeedingBill.joinToString { it.displayLabel }
+                    ),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            if (state.goals.available) {
+                SectionHeaderV2(title = stringResource(R.string.safe_to_spend_goals_header))
+                GroupedList {
+                    GroupedRow(
+                        position = ListItemPosition.from(0, 1),
+                        onClick = { onSetReserveGoals(!state.goals.on) }
+                    ) {
+                        SheetRowLabels(
+                            title = stringResource(R.string.safe_to_spend_goals_toggle),
+                            subtitle = if (state.goals.on && state.goals.amounts.isNotEmpty()) {
+                                stringResource(
+                                    R.string.safe_to_spend_goals_on,
+                                    CurrencyFormatter.formatByCurrency(state.goals.amounts.associateBy { it.currency }),
+                                    until
+                                )
+                            } else {
+                                stringResource(R.string.safe_to_spend_goals_off, until)
+                            },
+                            modifier = Modifier.weight(1f)
+                        )
+                        // The whole row toggles; the switch only shows the state.
+                        Switch(checked = state.goals.on, onCheckedChange = null)
                     }
                 }
             }
@@ -308,11 +366,16 @@ fun SafeToSpendSheet(
 }
 
 @Composable
-private fun SheetRowLabels(title: String, subtitle: String?, modifier: Modifier = Modifier) {
+private fun SheetRowLabels(
+    title: String,
+    subtitle: String?,
+    modifier: Modifier = Modifier,
+    subtitleColor: Color = MaterialTheme.colorScheme.onSurfaceVariant
+) {
     Column(modifier) {
         Text(text = title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
         subtitle?.let {
-            Text(text = it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Text(text = it, style = MaterialTheme.typography.bodyMedium, color = subtitleColor)
         }
     }
 }

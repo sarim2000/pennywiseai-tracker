@@ -1,0 +1,336 @@
+package com.pennywiseai.tracker.domain.insights
+
+import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
+import com.pennywiseai.tracker.domain.insights.InsightFact.BillsDue
+import com.pennywiseai.tracker.domain.insights.InsightFact.BudgetOver
+import com.pennywiseai.tracker.domain.insights.InsightFact.BudgetPace
+import com.pennywiseai.tracker.domain.insights.InsightFact.BudgetsOnTrack
+import com.pennywiseai.tracker.domain.insights.InsightFact.CardUtilisation
+import com.pennywiseai.tracker.domain.insights.InsightFact.CategorySpike
+import com.pennywiseai.tracker.domain.insights.InsightFact.LargeTransaction
+import com.pennywiseai.tracker.domain.insights.InsightFact.PriceChange
+import com.pennywiseai.tracker.domain.insights.InsightFact.SavingsRate
+import com.pennywiseai.tracker.domain.insights.InsightFact.SubscriptionsCost
+import com.pennywiseai.tracker.domain.review.PeriodReview
+import com.pennywiseai.tracker.domain.review.ReviewKind
+import com.pennywiseai.tracker.domain.review.buildPeriodDetail
+import com.pennywiseai.tracker.domain.review.buildPeriodReview
+import com.pennywiseai.tracker.domain.review.cyclesEndingWith
+import com.pennywiseai.tracker.domain.review.reviewRange
+import com.pennywiseai.tracker.utils.Money
+import kotlinx.coroutines.runBlocking
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.math.BigDecimal
+import java.time.DayOfWeek
+import java.time.LocalDate
+
+class InsightRulesTest {
+    private var nextId = 1L
+    private val today = LocalDate.parse("2026-11-20")
+    private val range = reviewRange(ReviewKind.MONTH, 0, today, 1, DayOfWeek.MONDAY)
+
+    private fun tx(
+        date: String,
+        amount: String,
+        type: TransactionType = TransactionType.EXPENSE,
+        currency: String = "INR",
+        category: String = "Food",
+        merchant: String = "Shop",
+    ) = TransactionWithSplits(
+        TransactionEntity(
+            id = nextId, amount = BigDecimal(amount), merchantName = merchant, category = category,
+            transactionType = type, dateTime = LocalDate.parse(date).atTime(12, 0), currency = currency,
+            transactionHash = "h${nextId++}",
+        ),
+        emptyList()
+    )
+
+    private fun review(rows: List<TransactionWithSplits>, on: LocalDate = today): PeriodReview = runBlocking {
+        val current = reviewRange(ReviewKind.MONTH, 0, on, 1, DayOfWeek.MONDAY)
+        fun within(r: TransactionWithSplits, from: LocalDate, to: LocalDate) =
+            r.transaction.dateTime.toLocalDate() in from..to
+        buildPeriodReview(
+            current,
+            rows.filter { within(it, current.start, current.end) },
+            rows.filter { within(it, current.previousStart, current.previousEnd) },
+            creditAsExpense = false,
+            parentOf = emptyMap(),
+        ).copy(detail = buildPeriodDetail(cyclesEndingWith(current, 1, 6), rows, false, emptyMap()))
+    }
+
+    private fun evaluate(
+        rows: List<TransactionWithSplits> = emptyList(),
+        budgets: List<BudgetStatus> = emptyList(),
+        subscriptions: List<SubscriptionEntity> = emptyList(),
+        cards: List<AccountBalanceEntity> = emptyList(),
+        on: LocalDate = today,
+    ) = InsightRules.evaluate(InsightInputs(on, review(rows, on), budgets, subscriptions, cards))
+
+    private fun budget(
+        id: Long,
+        spent: String,
+        limit: String = "3000",
+        elapsed: Int = 10,
+        days: Int = 30,
+        currency: String = "INR",
+        incomplete: Boolean = false,
+    ) = BudgetStatus(
+        id, "Budget $id", currency, BigDecimal(spent), BigDecimal(limit), elapsed, days,
+        LocalDate.parse("2026-11-30"), incomplete,
+    )
+
+    private fun subscription(
+        id: Long,
+        amount: String,
+        due: String?,
+        currency: String = "INR",
+        merchant: String = "Streamer",
+        cycle: String = "Monthly",
+    ) = SubscriptionEntity(
+        id = id, merchantName = merchant, amount = BigDecimal(amount),
+        nextPaymentDate = due?.let(LocalDate::parse), currency = currency, billingCycle = cycle,
+    )
+
+    private fun card(balance: String, limit: String?, currency: String = "INR", last4: String = "1111") =
+        AccountBalanceEntity(
+            bankName = "Test Bank", accountLast4 = last4, balance = BigDecimal(balance),
+            timestamp = today.atStartOfDay(), creditLimit = limit?.let(::BigDecimal), isCreditCard = true,
+            currency = currency,
+        )
+
+    private inline fun <reified T : InsightFact> List<Insight>.facts(): List<T> = map { it.fact }.filterIsInstance<T>()
+
+    // --- Thin data
+
+    @Test
+    fun `a brand-new user gets nothing, not guesses`() {
+        assertEquals(emptyList<Insight>(), evaluate())
+    }
+
+    @Test
+    fun `zero amounts and zero limits say nothing`() {
+        val insights = evaluate(
+            rows = listOf(tx("2026-11-10", "0")),
+            budgets = listOf(budget(1, "0", limit = "0")),
+            cards = listOf(card("0", "1000"), card("500", "0", last4 = "2222")),
+        )
+        assertEquals(emptyList<Insight>(), insights)
+    }
+
+    // --- Budgets
+
+    @Test
+    fun `over budget is an alert, on pace to overshoot a warning with what is left per day`() {
+        val insights = evaluate(budgets = listOf(budget(1, "3500"), budget(2, "1500")))
+        val over = insights.single { it.fact is BudgetOver }
+        assertEquals(InsightSeverity.ALERT, over.severity)
+        assertEquals(InsightAction.OpenBudget(1), over.action)
+
+        val pace = insights.facts<BudgetPace>().single()
+        // 1,500 in 10 of 30 days heads for 4,500; 1,500 left over the 21 days still to come.
+        assertEquals(Money(BigDecimal("4500.00"), "INR"), pace.projected)
+        assertEquals(Money(BigDecimal("71.42"), "INR"), pace.perDayLeft)
+    }
+
+    @Test
+    fun `early in the window a fast start is not yet a pace warning`() {
+        val insights = evaluate(budgets = listOf(budget(1, "1000", elapsed = 5)))
+        assertTrue(insights.facts<BudgetPace>().isEmpty())
+    }
+
+    @Test
+    fun `budgets on track are said once per currency, never with an incomplete figure`() {
+        val insights = evaluate(
+            budgets = listOf(
+                budget(1, "500"), budget(2, "200"),
+                budget(3, "3500", currency = "USD"),
+                budget(4, "10", currency = "AED", incomplete = true),
+            ),
+        )
+        val onTrack = insights.filter { it.fact is BudgetsOnTrack }
+        assertEquals(listOf("INR"), onTrack.map { it.currency })
+        assertEquals(BudgetsOnTrack(2), onTrack.single().fact)
+    }
+
+    // --- Category spike
+
+    private fun history(food: String, others: String = "900") = listOf("2026-08-10", "2026-09-10", "2026-10-10").flatMap {
+        listOf(tx(it, food), tx(it, others, category = "Rent"))
+    }
+
+    @Test
+    fun `a category well above its three-cycle average is flagged`() {
+        val insights = evaluate(rows = history("100") + tx("2026-11-05", "300"))
+        val spike = insights.facts<CategorySpike>().single()
+        assertEquals("Food", spike.category)
+        assertEquals(200, spike.percentAbove)
+        assertEquals(Money(BigDecimal("100.00"), "INR"), spike.usual)
+    }
+
+    @Test
+    fun `a spike needs two earlier cycles with activity`() {
+        val insights = evaluate(rows = listOf(tx("2026-10-10", "100"), tx("2026-11-05", "300")))
+        assertTrue(insights.facts<CategorySpike>().isEmpty())
+    }
+
+    @Test
+    fun `a small category tripling is not news`() {
+        val insights = evaluate(rows = history("3") + tx("2026-11-05", "9"))
+        assertTrue(insights.facts<CategorySpike>().isEmpty())
+    }
+
+    @Test
+    fun `history in another currency is not a baseline`() {
+        val usd = listOf("2026-08-10", "2026-09-10", "2026-10-10").map { tx(it, "100", currency = "USD") }
+        val insights = evaluate(rows = usd + tx("2026-11-05", "300"))
+        assertTrue(insights.facts<CategorySpike>().isEmpty())
+    }
+
+    // --- Savings rate
+
+    private fun salaryAndSpend(spent: String, currency: String = "INR") = listOf(
+        tx("2026-11-01", "1000", type = TransactionType.INCOME, category = "Salary", currency = currency),
+        tx("2026-11-03", spent, currency = currency),
+    )
+
+    @Test
+    fun `saving a fifth or more is doing well, spending past income a warning`() {
+        val good = evaluate(rows = salaryAndSpend("700")).single { it.fact is SavingsRate }
+        assertEquals(InsightSeverity.GOOD, good.severity)
+        assertEquals(30, (good.fact as SavingsRate).percent)
+
+        val over = evaluate(rows = salaryAndSpend("1200")).single { it.fact is SavingsRate }
+        assertEquals(InsightSeverity.WARNING, over.severity)
+        assertEquals(Money(BigDecimal("-200"), "INR"), (over.fact as SavingsRate).saved)
+    }
+
+    @Test
+    fun `no savings rate without income, or in the cycle's first days`() {
+        assertTrue(evaluate(rows = listOf(tx("2026-11-03", "700"))).facts<SavingsRate>().isEmpty())
+        assertTrue(evaluate(rows = salaryAndSpend("700"), on = LocalDate.parse("2026-11-04")).facts<SavingsRate>().isEmpty())
+    }
+
+    @Test
+    fun `each currency keeps its own savings rate`() {
+        val insights = evaluate(rows = salaryAndSpend("700") + salaryAndSpend("1200", currency = "USD"))
+        assertEquals(
+            mapOf("INR" to 30, "USD" to -20),
+            insights.filter { it.fact is SavingsRate }.associate { it.currency to (it.fact as SavingsRate).percent },
+        )
+    }
+
+    // --- Large transaction
+
+    private val usualFood = listOf("2026-08-03", "2026-09-03", "2026-10-03", "2026-10-13").map { tx(it, "100") }
+
+    @Test
+    fun `a spend several times the category median is flagged`() {
+        val big = tx("2026-11-12", "450", merchant = "Restaurant")
+        val insights = evaluate(rows = usualFood + big)
+        val large = insights.single { it.fact is LargeTransaction }
+        assertEquals(InsightAction.OpenTransaction(big.transaction.id), large.action)
+        assertEquals(4, (large.fact as LargeTransaction).times)
+    }
+
+    @Test
+    fun `too few rows for a median, or a known subscription, is not unusual`() {
+        assertTrue(evaluate(rows = usualFood.drop(1) + tx("2026-11-12", "450")).facts<LargeTransaction>().isEmpty())
+        val insights = evaluate(
+            rows = usualFood + tx("2026-11-12", "450", merchant = "Streamer"),
+            subscriptions = listOf(subscription(1, "450", "2026-12-12")),
+        )
+        assertTrue(insights.facts<LargeTransaction>().isEmpty())
+    }
+
+    // --- Subscriptions
+
+    @Test
+    fun `a charge at a new price near the due date is a price change`() {
+        val insights = evaluate(
+            rows = listOf(tx("2026-11-15", "649", merchant = "STREAMER")),
+            subscriptions = listOf(subscription(7, "499", "2026-11-15")),
+        )
+        val change = insights.facts<PriceChange>().single()
+        assertEquals(Money(BigDecimal("499"), "INR"), change.tracked)
+        assertEquals(Money(BigDecimal("649"), "INR"), change.charged)
+    }
+
+    @Test
+    fun `the same price is not a change`() {
+        val insights = evaluate(
+            rows = listOf(tx("2026-11-15", "499", merchant = "Streamer")),
+            subscriptions = listOf(subscription(7, "499", "2026-11-15")),
+        )
+        assertTrue(insights.facts<PriceChange>().isEmpty())
+    }
+
+    @Test
+    fun `monthly subscription cost is totalled within a currency only`() {
+        val insights = evaluate(
+            subscriptions = listOf(
+                subscription(1, "100", null),
+                subscription(2, "1200", null, cycle = "Annual"),
+                subscription(3, "10", null, currency = "USD"),
+            ),
+        )
+        val cost = insights.single { it.fact is SubscriptionsCost }
+        assertEquals("INR", cost.currency)
+        assertEquals(0, BigDecimal("200").compareTo((cost.fact as SubscriptionsCost).monthly.amount))
+    }
+
+    @Test
+    fun `bills due within a week, one line per currency`() {
+        val insights = evaluate(
+            subscriptions = listOf(
+                subscription(1, "100", "2026-11-22"),
+                subscription(2, "50", "2026-11-26"),
+                subscription(3, "10", "2026-11-25", currency = "USD"),
+                subscription(4, "999", "2026-12-10"),
+            ),
+        )
+        val bills = insights.filter { it.fact is BillsDue }.associate { it.currency to it.fact as BillsDue }
+        assertEquals(BillsDue(2, Money(BigDecimal("150"), "INR"), LocalDate.parse("2026-11-22"), 7), bills["INR"])
+        assertEquals(1, bills.getValue("USD").count)
+    }
+
+    // --- Cards
+
+    @Test
+    fun `card use from half its limit is a warning, near the limit an alert`() {
+        val insights = evaluate(
+            cards = listOf(
+                card("950", "1000", last4 = "1111"),
+                card("600", "1000", last4 = "2222"),
+                card("200", "1000", last4 = "3333"),
+                card("900", null, last4 = "4444"),
+            ),
+        )
+        val cards = insights.filter { it.fact is CardUtilisation }
+        assertEquals(listOf(InsightSeverity.ALERT, InsightSeverity.WARNING), cards.map { it.severity })
+        assertEquals(listOf(95, 60), cards.map { (it.fact as CardUtilisation).percent })
+        assertEquals(InsightAction.OpenAccount("Test Bank", "1111"), cards.first().action)
+    }
+
+    // --- Ordering and ids
+
+    @Test
+    fun `most severe first, with ids stable for the cycle`() {
+        fun run() = evaluate(
+            rows = salaryAndSpend("700"),
+            budgets = listOf(budget(1, "1500"), budget(2, "3500")),
+            cards = listOf(card("950", "1000")),
+        )
+        val insights = run()
+        assertEquals(insights.map { it.severity }.sorted(), insights.map { it.severity })
+        assertEquals(InsightSeverity.ALERT, insights.first().severity)
+        assertEquals(InsightSeverity.GOOD, insights.last().severity)
+        assertEquals("budget_over:v1:2026-11-01:INR:2", insights.first().id)
+        assertEquals(insights.map { it.id }, run().map { it.id })
+    }
+}

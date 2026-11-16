@@ -67,10 +67,11 @@ fun CardBillCard(status: CardBillStatus, onSave: (dueDay: Int?, amount: BigDecim
                     color = MaterialTheme.colorScheme.onSurface
                 )
                 val overdue = bill?.isOverdue(today) == true
+                val entered = card.cardBillAmount != null && card.cardDueDay != null
                 Text(
                     text = when {
-                        bill == null && card.cardBillAmount != null && card.cardDueDay != null && !status.needsBill ->
-                            stringResource(R.string.card_bill_paid)
+                        bill == null && entered && status.needsBill -> stringResource(R.string.card_bill_new_statement)
+                        bill == null && entered -> stringResource(R.string.card_bill_paid)
                         bill == null -> stringResource(R.string.card_bill_add)
                         overdue -> stringResource(
                             R.string.card_bill_overdue,
@@ -97,7 +98,7 @@ fun CardBillCard(status: CardBillStatus, onSave: (dueDay: Int?, amount: BigDecim
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
-                if (status.needsBill && card.cardBillAmount != null && card.cardDueDay != null) {
+                if (bill != null && status.needsBill) {
                     Text(
                         text = stringResource(R.string.card_bill_new_statement),
                         style = MaterialTheme.typography.bodySmall,

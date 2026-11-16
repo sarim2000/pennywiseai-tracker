@@ -93,8 +93,8 @@ class QuickCategoryPickerActivity : FragmentActivity() {
     // and how many were already answered, for the "2 of 3".
     private var walkQueue: List<Long>? = null
     private val walked = mutableStateOf(0)
-    // Walk opened inside the app (the chat): no "Saved as" notes, the screen is right there.
-    // A row's own alert still goes, or its buttons could re-file the row later.
+    // Walk opened inside the app (the chat): no new "Saved as" notes. A row's alert still in the
+    // shade becomes its note (bill answer and Undo kept), or its buttons could re-file the row later.
     private var quiet = false
     private var saving = false
     // Bumped by each (re)start: a walk's pending step must not steer a picker re-targeted meanwhile.
@@ -316,11 +316,11 @@ class QuickCategoryPickerActivity : FragmentActivity() {
                         if (walkQueue == null) finish() else answer(txn.id) {}
                         return@QuickCategoryPickerSheet
                     }
-                    val note = !quiet
+                    val replaceOnly = quiet
                     answer(txn.id) {
                         learnCategory(txn.id, newCategory) { learned ->
-                            // Quiet: the row's alert just clears, as for a pick on a vanished row.
-                            SmsBroadcastReceiver.showLearnedNotification(applicationContext, activeNotificationId, learned.takeIf { note })
+                            // Quiet: no new note, but an alert still in the shade becomes one, keeping its bill answer and the Undo.
+                            SmsBroadcastReceiver.showLearnedNotification(applicationContext, activeNotificationId, learned, replaceOnly)
                         }
                         transactionWidgets.refresh()
                     }
@@ -370,7 +370,7 @@ class QuickCategoryPickerActivity : FragmentActivity() {
         const val EXTRA_NOTIFICATION_ID = "notification_id"
         /** Walk mode: the recap's unsorted transaction ids, newest first. */
         const val EXTRA_WALK_IDS = "walk_ids"
-        /** Walk mode: posts no "Saved as" notes, only clears each row's alert ([review]). */
+        /** Walk mode: posts no new "Saved as" notes, only turns a row's alert still in the shade into one ([review]). */
         const val EXTRA_QUIET = "quiet"
         private const val KEY_UNLOCKED = "unlocked"
         private const val KEY_WALK_QUEUE = "walk_queue"
@@ -399,9 +399,9 @@ class QuickCategoryPickerActivity : FragmentActivity() {
             )
 
         /**
-         * The walk over [ids] (non-empty), opened from inside the app: no "Saved as" notes, the
-         * screen it was opened from shows what changed. A row's own alert, if still in the shade,
-         * is cleared as it's answered, so its buttons can't re-file it afterwards.
+         * The walk over [ids] (non-empty), opened from inside the app: no new "Saved as" notes. A
+         * row's own alert, if still in the shade, becomes its note as it's answered, so its buttons
+         * can't re-file the row afterwards and a pending bill answer and the pick's Undo stay.
          */
         fun review(context: Context, ids: List<Long>): Intent =
             Intent(context, QuickCategoryPickerActivity::class.java).apply {

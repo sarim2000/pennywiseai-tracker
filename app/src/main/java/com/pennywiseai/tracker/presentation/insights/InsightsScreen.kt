@@ -378,20 +378,26 @@ private fun PeriodSummaryCard(state: InsightsUiState) {
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )
-        val income = review?.income ?: BigDecimal.ZERO
-        if (income.signum() > 0 && review != null) {
-            val saved = income - review.spent
+        val income = review?.income?.takeIf { it.signum() > 0 }
+        val subscriptions = state.subscriptionsMonthly
+        if (income != null || subscriptions != null) {
             FlowRow(
                 modifier = Modifier.fillMaxWidth().padding(top = Spacing.md),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
-                Figure(stringResource(R.string.insights_income), CurrencyFormatter.formatCurrency(income, currency))
-                Figure(stringResource(R.string.insights_saved), CurrencyFormatter.formatCurrency(saved, currency))
-                Figure(
-                    stringResource(R.string.insights_savings_rate),
-                    percent(saved.multiply(BigDecimal(100)).divide(income, 0, RoundingMode.HALF_UP).toInt()),
-                )
+                if (income != null && review != null) {
+                    val saved = income - review.spent
+                    Figure(stringResource(R.string.insights_income), CurrencyFormatter.formatCurrency(income, currency))
+                    Figure(stringResource(R.string.insights_saved), CurrencyFormatter.formatCurrency(saved, currency))
+                    Figure(
+                        stringResource(R.string.insights_savings_rate),
+                        percent(saved.multiply(BigDecimal(100)).divide(income, 0, RoundingMode.HALF_UP).toInt()),
+                    )
+                }
+                subscriptions?.let {
+                    Figure(stringResource(R.string.insights_subscriptions_monthly), it.format())
+                }
             }
         }
         if (state.cycles.count { it.hasActivity } > 1) {

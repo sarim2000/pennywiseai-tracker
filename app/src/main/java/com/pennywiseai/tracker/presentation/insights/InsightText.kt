@@ -101,11 +101,6 @@ internal fun insightText(insight: Insight): InsightText = when (val f = insight.
             stringResource(R.string.insights_metric_charged) to f.charged.format(),
         ),
     )
-    is InsightFact.SubscriptionsCost -> InsightText(
-        title = stringResource(R.string.insights_subscriptions_title, f.monthly.format()),
-        body = pluralStringResource(R.plurals.insights_subscriptions_body, f.count, f.count),
-        metrics = emptyList(),
-    )
     is InsightFact.CardUtilisation -> InsightText(
         title = stringResource(R.string.insights_card_title, percent(f.percent), f.label),
         body = stringResource(R.string.insights_card_body, f.used.format(), f.limit.format()),

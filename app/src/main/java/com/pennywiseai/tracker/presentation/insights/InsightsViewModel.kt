@@ -11,6 +11,7 @@ import com.pennywiseai.tracker.domain.insights.PeriodScore
 import com.pennywiseai.tracker.domain.review.CurrencyReview
 import com.pennywiseai.tracker.domain.review.CycleTotal
 import com.pennywiseai.tracker.domain.review.ReviewRange
+import com.pennywiseai.tracker.utils.Money
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -32,6 +33,8 @@ data class InsightsUiState(
     val insights: List<Insight>,
     val dismissed: List<Insight>,
     val score: PeriodScore? = null,
+    /** What active subscriptions in this currency cost a month; null without any. */
+    val subscriptionsMonthly: Money? = null,
 ) {
     /** Nothing recorded and nothing to say: a new user. */
     val isEmpty: Boolean get() = currencies.isEmpty()
@@ -52,6 +55,7 @@ internal fun insightsUiState(snapshot: InsightsSnapshot, chosen: String?): Insig
         insights = inCurrency.filter { it.id !in snapshot.dismissed },
         dismissed = inCurrency.filter { it.id in snapshot.dismissed },
         score = currency?.let { snapshot.scores[it] },
+        subscriptionsMonthly = currency?.let { snapshot.subscriptionsMonthly[it] },
     )
 }
 

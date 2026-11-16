@@ -11,6 +11,8 @@
     <string name="insights_income">Income</string>
     <string name="insights_saved">Saved</string>
     <string name="insights_savings_rate">Savings rate</string>
+    <!-- What active subscriptions cost a month, beside this cycle's figures -->
+    <string name="insights_subscriptions_monthly">Subscriptions a month</string>
     <string name="insights_last_cycles">Spending by cycle</string>
     <string name="insights_section_alert">Needs attention</string>
     <string name="insights_section_warning">Heads up</string>
@@ -117,13 +119,6 @@
     <string name="insights_price_title">%1$s charged %2$s</string>
     <!-- %1$s = tracked amount -->
     <string name="insights_price_body">You track it at %1$s. Update it so upcoming bills stay right.</string>
-
-    <!-- Subscription cost. %1$s = monthly amount -->
-    <string name="insights_subscriptions_title">Subscriptions cost %1$s a month</string>
-    <plurals name="insights_subscriptions_body">
-        <item quantity="one">Across %1$d subscription.</item>
-        <item quantity="other">Across %1$d subscriptions.</item>
-    </plurals>
 
     <!-- Card utilisation. %1$s = percentage, %2$s = card name -->
     <string name="insights_card_title">%1$s of your %2$s limit used</string>

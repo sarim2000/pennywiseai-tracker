@@ -14,7 +14,6 @@ import com.pennywiseai.tracker.domain.insights.InsightFact.CategorySpike
 import com.pennywiseai.tracker.domain.insights.InsightFact.LargeTransaction
 import com.pennywiseai.tracker.domain.insights.InsightFact.PriceChange
 import com.pennywiseai.tracker.domain.insights.InsightFact.SavingsRate
-import com.pennywiseai.tracker.domain.insights.InsightFact.SubscriptionsCost
 import com.pennywiseai.tracker.domain.review.PeriodReview
 import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.domain.review.buildPeriodDetail
@@ -309,16 +308,17 @@ class InsightRulesTest {
 
     @Test
     fun `monthly subscription cost is totalled within a currency only`() {
-        val insights = evaluate(
-            subscriptions = listOf(
-                subscription(1, "100", null),
-                subscription(2, "1200", null, cycle = "Annual"),
-                subscription(3, "10", null, currency = "USD"),
-            ),
+        val subscriptions = listOf(
+            subscription(1, "100", null),
+            subscription(2, "1200", null, cycle = "Annual"),
+            subscription(3, "10", null, currency = "USD"),
         )
-        val cost = insights.single { it.fact is SubscriptionsCost }
-        assertEquals("INR", cost.currency)
-        assertEquals(0, BigDecimal("200").compareTo((cost.fact as SubscriptionsCost).monthly.amount))
+        // A running figure for the summary, not a heads-up every cycle.
+        assertEquals(emptyList<Insight>(), evaluate(subscriptions = subscriptions))
+        val monthly = InsightRules.subscriptionsMonthly(subscriptions)
+        assertEquals(setOf("INR", "USD"), monthly.keys)
+        assertEquals(0, BigDecimal("200").compareTo(monthly.getValue("INR").amount))
+        assertEquals(0, BigDecimal("10").compareTo(monthly.getValue("USD").amount))
     }
 
     @Test

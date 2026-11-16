@@ -13,7 +13,6 @@ import com.pennywiseai.tracker.domain.insights.InsightFact.CategorySpike
 import com.pennywiseai.tracker.domain.insights.InsightFact.LargeTransaction
 import com.pennywiseai.tracker.domain.insights.InsightFact.PriceChange
 import com.pennywiseai.tracker.domain.insights.InsightFact.SavingsRate
-import com.pennywiseai.tracker.domain.insights.InsightFact.SubscriptionsCost
 import com.pennywiseai.tracker.domain.review.PeriodReview
 import com.pennywiseai.tracker.domain.spending.RecurringCharge
 import com.pennywiseai.tracker.domain.spending.SafeToSpend
@@ -73,9 +72,7 @@ object InsightRules {
     /** Most severe first; within a severity, in the order of the rules below. */
     fun evaluate(inputs: InsightInputs): List<Insight> {
         val period = inputs.review.range.start.toString()
-        val subscriptions = inputs.subscriptions.filter {
-            it.state == SubscriptionState.ACTIVE && it.direction == SubscriptionDirection.EXPENSE
-        }
+        val subscriptions = inputs.subscriptions.filter(::isActiveExpense)
         return (
             budgets(inputs.budgets, period) +
                 cardUtilisation(inputs.creditCards, period) +
@@ -83,8 +80,7 @@ object InsightRules {
                 priceChanges(inputs.review, subscriptions, period) +
                 categorySpikes(inputs.review, period) +
                 largeTransactions(inputs.review, subscriptions, period) +
-                savingsRate(inputs.review, inputs.today, period) +
-                subscriptionCost(subscriptions, period)
+                savingsRate(inputs.review, inputs.today, period)
             ).sortedBy { it.severity }
     }
 
@@ -305,19 +301,16 @@ object InsightRules {
         }
     }
 
-    /** What two or more subscriptions add up to a month, per currency. */
-    internal fun subscriptionCost(subscriptions: List<SubscriptionEntity>, period: String): List<Insight> =
-        subscriptions.groupBy { it.currency }
-            .filter { (_, list) -> list.size >= 2 }
-            .map { (currency, list) ->
-                val monthly = list.sumByCurrency({ it.currency }) {
-                    SubscriptionCost.monthlyEquivalent(it.amount, it.billingCycle)
-                }.getValue(currency)
-                Insight(
-                    id("subscriptions", period, currency, "monthly"), InsightSeverity.WARNING, currency,
-                    SubscriptionsCost(list.size, monthly), InsightAction.OpenSubscriptions,
-                )
-            }
+    /**
+     * What active subscriptions add up to a month, per currency: a running figure for
+     * the summary card, not something that needs attention every cycle.
+     */
+    fun subscriptionsMonthly(subscriptions: List<SubscriptionEntity>): Map<String, Money> =
+        subscriptions.filter(::isActiveExpense)
+            .sumByCurrency({ it.currency }) { SubscriptionCost.monthlyEquivalent(it.amount, it.billingCycle) }
+
+    private fun isActiveExpense(sub: SubscriptionEntity) =
+        sub.state == SubscriptionState.ACTIVE && sub.direction == SubscriptionDirection.EXPENSE
 
     private fun Insight.usedShare(): BigDecimal {
         val (spent, limit) = when (val f = fact) {

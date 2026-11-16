@@ -59,8 +59,6 @@ sealed interface InsightFact {
     /** A subscription tracked at [tracked] was charged [charged]. */
     data class PriceChange(val name: String, val tracked: Money, val charged: Money, val date: LocalDate) : InsightFact
 
-    data class SubscriptionsCost(val count: Int, val monthly: Money) : InsightFact
-
     data class CardUtilisation(val label: String, val used: Money, val limit: Money, val percent: Int) : InsightFact
 
     data class BillsDue(val count: Int, val total: Money, val firstDue: LocalDate, val withinDays: Int) : InsightFact

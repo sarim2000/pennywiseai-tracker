@@ -13,6 +13,7 @@ import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.domain.review.PeriodReview
 import com.pennywiseai.tracker.domain.review.PeriodReviewLoader
 import com.pennywiseai.tracker.domain.review.ReviewKind
+import com.pennywiseai.tracker.utils.Money
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
@@ -34,6 +35,8 @@ data class InsightsSnapshot(
     val dismissed: Set<String>,
     /** Per currency; a currency with too little data has none. Dismissals don't touch it. */
     val scores: Map<String, PeriodScore> = emptyMap(),
+    /** What active subscriptions cost a month, per currency. */
+    val subscriptionsMonthly: Map<String, Money> = emptyMap(),
 ) {
     val active: List<Insight> get() = insights.filter { it.id !in dismissed }
 }
@@ -61,7 +64,10 @@ class InsightsLoader @Inject constructor(
         insightPreferences.dismissedInsights,
     ) { review, budgets, subscriptions, cards, dismissed ->
         val inputs = InsightInputs(today, review, budgets, subscriptions, cards)
-        InsightsSnapshot(review, InsightRules.evaluate(inputs), dismissed, scores(review, budgets))
+        InsightsSnapshot(
+            review, InsightRules.evaluate(inputs), dismissed, scores(review, budgets),
+            InsightRules.subscriptionsMonthly(subscriptions),
+        )
     }
 
     private fun scores(review: PeriodReview, budgets: List<BudgetStatus>): Map<String, PeriodScore> {

@@ -1,5 +1,8 @@
 package com.pennywiseai.tracker.presentation.review
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -29,9 +32,6 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.MutableTransitionState
-import androidx.compose.animation.fadeIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,7 +52,6 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.data.share.ShareWindow
 import com.pennywiseai.tracker.domain.review.CategoryLine
 import com.pennywiseai.tracker.domain.review.CurrencyReview
 import com.pennywiseai.tracker.domain.review.PeriodReview
@@ -62,7 +61,6 @@ import com.pennywiseai.tracker.domain.review.isCalendarMonth
 import com.pennywiseai.tracker.domain.review.latestReviewOffset
 import com.pennywiseai.tracker.domain.review.partialYearSpan
 import com.pennywiseai.tracker.domain.review.percentChange
-import com.pennywiseai.tracker.presentation.share.ShareCardSheet
 import com.pennywiseai.tracker.ui.components.CategoryIcon
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
@@ -91,14 +89,13 @@ import java.util.Locale
 fun PeriodReviewScreen(
     onNavigateBack: () -> Unit,
     onOpenCategory: (category: String, currency: String, start: LocalDate, end: LocalDate) -> Unit,
+    onShare: (ReviewKind, offset: Int) -> Unit = { _, _ -> },
     viewModel: PeriodReviewViewModel = hiltViewModel(),
 ) {
     val selection by viewModel.selection.collectAsStateWithLifecycle()
     val review by viewModel.review.collectAsStateWithLifecycle()
-    var shareWindow by remember { mutableStateOf<ShareWindow?>(null) }
     var hasAnimated by rememberSaveable { mutableStateOf(false) }
     val loaded = review
-    val shareLabel = loaded?.let { shareLabel(it) }
 
     PennyWiseScaffold(
         title = stringResource(R.string.review_title),
@@ -108,9 +105,10 @@ fun PeriodReviewScreen(
             }
         },
         actions = {
-            if (loaded != null && shareLabel != null && loaded.firstRecorded != null) {
+            if (loaded != null && loaded.firstRecorded != null) {
                 IconButton(
-                    onClick = { shareWindow = ShareWindow(loaded.range.start, loaded.range.end, shareLabel) },
+                    // The studio opens on the period shown here, built from the same review.
+                    onClick = { onShare(selection.kind, selection.offset) },
                     shapes = IconButtonDefaults.shapes(),
                 ) {
                     Icon(Icons.Default.Share, contentDescription = stringResource(R.string.review_share))
@@ -161,10 +159,6 @@ fun PeriodReviewScreen(
             }
         }
     }
-
-    shareWindow?.let { window ->
-        ShareCardSheet(window = window, onDismiss = { shareWindow = null })
-    }
 }
 
 @Composable
@@ -203,7 +197,7 @@ private fun ReviewContent(
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-private fun PeriodSwitcher(
+internal fun PeriodSwitcher(
     label: String,
     canGoOlder: Boolean,
     canGoNewer: Boolean,
@@ -437,21 +431,24 @@ private fun comparisonText(review: CurrencyReview, range: ReviewRange): String? 
     // A percent says how the amounts relate, so it hides with them, as on Home.
     if (AmountPrivacy.hidden) return null
     val change = percentChange(review.spent, review.previousSpent) ?: return null
-    val target = when (range.kind) {
-        ReviewKind.WEEK -> stringResource(R.string.review_target_week)
-        ReviewKind.MONTH ->
-            if (range.isCalendarMonth()) range.previousStart.format(AppDates.pattern("MMMM"))
-            else stringResource(R.string.review_target_cycle)
-        ReviewKind.YEAR ->
-            if (range.isComplete) range.previousStart.year.toString()
-            else stringResource(R.string.review_target_same_span, range.previousStart.year)
-    }
-    return changeText(LocalContext.current, change, target)
+    return changeText(LocalContext.current, change, comparisonTarget(range))
+}
+
+/** What a period is compared with, as it reads after "more than": "September", "the week before". */
+@Composable
+internal fun comparisonTarget(range: ReviewRange): String = when (range.kind) {
+    ReviewKind.WEEK -> stringResource(R.string.review_target_week)
+    ReviewKind.MONTH ->
+        if (range.isCalendarMonth()) range.previousStart.format(AppDates.pattern("MMMM"))
+        else stringResource(R.string.review_target_cycle)
+    ReviewKind.YEAR ->
+        if (range.isComplete) range.previousStart.year.toString()
+        else stringResource(R.string.review_target_same_span, range.previousStart.year)
 }
 
 /** Explicit dates on a non-calendar cycle: "October" would be wrong for 25 Sep – 24 Oct. */
 @Composable
-private fun periodLabel(range: ReviewRange): String = when (range.kind) {
+internal fun periodLabel(range: ReviewRange): String = when (range.kind) {
     ReviewKind.WEEK -> DateRangeUtils.formatDateRange(range.start, range.end)
     ReviewKind.MONTH ->
         if (range.isCalendarMonth()) range.start.format(AppDates.pattern("MMMM yyyy"))
@@ -462,7 +459,7 @@ private fun periodLabel(range: ReviewRange): String = when (range.kind) {
 }
 
 @Composable
-private fun shareLabel(review: PeriodReview): String {
+internal fun shareLabel(review: PeriodReview): String {
     if (review.range.kind != ReviewKind.YEAR) return periodLabel(review.range).uppercase(Locale.getDefault())
     val span = partialYearSpan(review.firstRecorded, review.lastRecorded)
         ?: return review.range.start.year.toString()

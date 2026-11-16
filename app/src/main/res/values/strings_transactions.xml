@@ -401,26 +401,6 @@
     <string name="recurring_field_note">Note (optional)</string>
     <string name="recurring_field_active">Active</string>
 
-    <!-- Share card, sheet and banner -->
-    <string name="share_card_caption_transactions">bank texts tracked. 0 typed.</string>
-    <plurals name="share_card_caption_subscriptions">
-        <item quantity="one">subscription I forgot</item>
-        <item quantity="other">subscriptions I forgot</item>
-    </plurals>
-    <string name="share_card_period_all_time">ALL TIME</string>
-    <string name="share_card_tagline">Read from my bank SMS. Nothing left my phone.</string>
-    <string name="share_sheet_no_amounts">No amounts are included.</string>
-    <string name="share_sheet_share">Share</string>
-    <string name="share_sheet_done">Done</string>
-    <string name="share_sheet_customise">Customise</string>
-    <string name="share_sheet_show">Show</string>
-    <string name="share_sheet_transactions">Transactions</string>
-    <string name="share_sheet_subscriptions">Subscriptions</string>
-    <string name="share_sheet_no_subscriptions">No subscriptions detected yet — PennyWise finds these from recurring payments in your SMS.</string>
-    <string name="share_sheet_period">Period</string>
-    <string name="share_sheet_this_month">This month</string>
-    <string name="share_sheet_last_month">Last month</string>
-    <string name="share_sheet_all_time">All time</string>
     <!-- %1$s = month name -->
     <string name="share_banner_title">%1$s, summed up</string>
     <string name="share_banner_subtitle">See what changed and where it went</string>

@@ -36,4 +36,11 @@ object WarrantyReminders {
             onTheDay || setTooLate
         }
     }
+
+    /**
+     * What the reminder calls the purchase: the first line of the user's note, which
+     * usually names the item, else the merchant (for SMS rows often just the account).
+     */
+    fun itemName(txn: TransactionEntity): String =
+        txn.description?.lineSequence()?.firstOrNull()?.trim()?.takeIf { it.isNotEmpty() } ?: txn.merchantName
 }

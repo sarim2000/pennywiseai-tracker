@@ -133,4 +133,12 @@ class WarrantyRemindersTest {
             )
         )
     }
+
+    @Test
+    fun namesThePurchaseByItsNoteThenItsMerchant() {
+        val txn = purchase(1, today.plusDays(30))
+        assertEquals("Synthetic store 1", WarrantyReminders.itemName(txn))
+        assertEquals("Synthetic store 1", WarrantyReminders.itemName(txn.copy(description = "  ")))
+        assertEquals("Laptop", WarrantyReminders.itemName(txn.copy(description = " Laptop \nextended cover")))
+    }
 }

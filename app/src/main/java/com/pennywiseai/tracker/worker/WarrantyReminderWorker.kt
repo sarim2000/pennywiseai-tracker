@@ -109,7 +109,7 @@ class WarrantyReminderWorker @AssistedInject constructor(
             .build()
 
     private fun title(context: Context, txn: TransactionEntity, today: LocalDate): String {
-        val merchant = context.bidiIsolate(txn.merchantName)
+        val merchant = context.bidiIsolate(WarrantyReminders.itemName(txn))
         val daysLeft = txn.warrantyUntil?.let { ChronoUnit.DAYS.between(today, it) } ?: 0
         return when {
             daysLeft <= 0 -> context.getString(R.string.warranty_reminder_title_today, merchant)

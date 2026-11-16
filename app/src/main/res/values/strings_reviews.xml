@@ -46,6 +46,7 @@
     <string name="review_pdf_change">Change from before</string>
     <string name="review_pdf_merchants">Top merchants</string>
     <string name="review_pdf_merchant">Merchant</string>
+    <string name="review_pdf_month">Month</string>
     <!-- %1$d = this page, %2$d = number of pages -->
     <string name="review_pdf_page">Page %1$d of %2$d</string>
 

@@ -204,6 +204,19 @@ class PdfReportExporter @Inject constructor(
             if (review.months.isNotEmpty()) {
                 blocks += text(context.getString(R.string.review_by_month), bodyBold, before = 12f, after = 4f, keepWithNext = true)
                 blocks += monthBars(review)
+                // Paper has no tooltip: the amounts behind the bars, month by month.
+                val monthNames = AppDates.pattern("MMMM")
+                val header = row(
+                    NAME_AMOUNT_COLUMNS,
+                    listOf(context.getString(R.string.review_pdf_month), context.getString(R.string.review_pdf_amount)),
+                    label,
+                    keepWithNext = true,
+                )
+                blocks += ReportBlock(8f)
+                blocks += header
+                review.months.forEach { point ->
+                    blocks += row(NAME_AMOUNT_COLUMNS, listOf(point.month.format(monthNames), money(point.spent, currency)), body, header = header)
+                }
             }
             if (review.categories.isNotEmpty()) {
                 // A year's previous is the year before; either way only when it compares fairly.

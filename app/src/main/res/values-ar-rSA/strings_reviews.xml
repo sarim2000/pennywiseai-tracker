@@ -46,6 +46,7 @@
     <string name="review_pdf_change">التغيّر عن السابق</string>
     <string name="review_pdf_merchants">أعلى التجار</string>
     <string name="review_pdf_merchant">التاجر</string>
+    <string name="review_pdf_month">الشهر</string>
     <!-- %1$d = this page, %2$d = number of pages -->
     <string name="review_pdf_page">صفحة %1$d من %2$d</string>
     <!-- Home -->

@@ -7,12 +7,23 @@ import com.pennywiseai.tracker.domain.spending.BudgetRollover
 import com.pennywiseai.tracker.utils.Money
 import java.math.BigDecimal
 
+/** Why a budget carried nothing: some of last period's spending couldn't be counted. */
+enum class CarryGap {
+    /** Unified mode: it had no exchange rate. */
+    NO_RATE,
+
+    /** Outside unified mode, where nothing is converted: it was in another currency. */
+    OTHER_CURRENCY
+}
+
 /**
  * What a budget carries into the period on screen, in that screen's currency.
- * [incomplete]: last period had spending with no exchange rate (or, outside unified
- * mode, in another currency), so nothing was carried rather than guess.
+ * [gap]: some of last period's spending couldn't be counted, so nothing was
+ * carried rather than guess.
  */
-data class BudgetCarry(val amount: Money, val incomplete: Boolean = false) {
+data class BudgetCarry(val amount: Money, val gap: CarryGap? = null) {
+    val incomplete: Boolean get() = gap != null
+
     /** [limit] (this budget's limit in [amount]'s currency) with the carry added. */
     fun appliedTo(limit: BigDecimal): BigDecimal =
         BudgetRollover.effectiveLimit(Money(limit, amount.currency), amount).amount
@@ -44,7 +55,8 @@ fun BudgetWithCategories.baseLimit(): BigDecimal =
  * The one place every budget figure gets its carry from. [previous] holds the
  * transactions of the period the budget carries from (null: it carries nothing; see
  * [BudgetRollover.sourceWindow]), in every currency. [convert] puts an amount into
- * [currency] and returns null without a rate; limits are stored in [baseCurrency].
+ * [currency] and returns null without a rate ([gap] says what that means here);
+ * limits are stored in [baseCurrency].
  */
 suspend fun budgetCarry(
     group: BudgetWithCategories,
@@ -52,14 +64,15 @@ suspend fun budgetCarry(
     currency: String,
     baseCurrency: String,
     parentOf: Map<String, String>,
-    convert: suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?
+    convert: suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?,
+    gap: CarryGap = CarryGap.NO_RATE
 ): BudgetCarry {
     if (previous == null) return BudgetCarry.none(currency)
-    val base = convert(baseCurrency, group.baseLimit()) ?: return BudgetCarry(Money.zero(currency), incomplete = true)
+    val base = convert(baseCurrency, group.baseLimit()) ?: return BudgetCarry(Money.zero(currency), gap)
     val spent = budgetSpendOrNull(group, previous, parentOf, convert)
     return BudgetCarry(
         BudgetRollover.carry(Money(base, currency), spent?.let { Money(it, currency) }),
-        incomplete = spent == null
+        gap.takeIf { spent == null }
     )
 }
 

@@ -155,7 +155,7 @@ internal suspend fun homeBudgetSummary(
             windowDays = window?.days ?: 0,
             periodType = group.budget.periodType,
             carry = carry.amount.amount,
-            carryIncomplete = carry.incomplete
+            carryGap = carry.gap
         )
     }
 

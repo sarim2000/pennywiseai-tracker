@@ -536,7 +536,7 @@ class BudgetSummaryProvider @Inject constructor(
             previousWindows = previous,
             hasUnconvertedSpend = hasUnconvertedSpend,
             carry = carry.amount.amount,
-            carryIncomplete = carry.incomplete
+            carryGap = carry.gap
         )
     }
 }

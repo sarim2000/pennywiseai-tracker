@@ -45,6 +45,7 @@ import com.pennywiseai.tracker.data.repository.PastWindowSpending
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.components.cards.CadencePill
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.message
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
@@ -248,8 +249,8 @@ private fun HistoryRow(
             )
             window.carry?.let { carry ->
                 Text(
-                    text = if (carry.incomplete) {
-                        stringResource(R.string.budget_rollover_incomplete)
+                    text = if (carry.gap != null) {
+                        stringResource(carry.gap.message)
                     } else {
                         stringResource(
                             R.string.budget_history_carried,

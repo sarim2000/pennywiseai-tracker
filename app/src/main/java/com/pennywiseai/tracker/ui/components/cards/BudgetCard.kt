@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.components.cards
 
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -51,6 +52,7 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
+import com.pennywiseai.tracker.data.repository.CarryGap
 import com.pennywiseai.tracker.domain.spending.budgetPace
 import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.ui.animations.pwExpand
@@ -356,7 +358,7 @@ fun RolloverLine(groupSpending: BudgetGroupSpending, currency: String, modifier:
     if (!groupSpending.group.budget.rolloverEnabled) return
     val carry = groupSpending.carry
     val text = when {
-        groupSpending.carryIncomplete -> stringResource(R.string.budget_rollover_incomplete)
+        groupSpending.carryGap != null -> stringResource(groupSpending.carryGap.message)
         carry.signum() == 0 -> return
         else -> stringResource(
             if (carry.signum() > 0) R.string.budget_rollover_carried_in else R.string.budget_rollover_carried_out,
@@ -372,6 +374,14 @@ fun RolloverLine(groupSpending: BudgetGroupSpending, currency: String, modifier:
         modifier = modifier
     )
 }
+
+/** Why nothing carried over, in the words of the currency mode the figures are in. */
+@get:StringRes
+internal val CarryGap.message: Int
+    get() = when (this) {
+        CarryGap.NO_RATE -> R.string.budget_rollover_incomplete
+        CarryGap.OTHER_CURRENCY -> R.string.budget_rollover_other_currency
+    }
 
 /**
  * Small pill that names the budget's cadence at a glance: 🔁 Weekly /

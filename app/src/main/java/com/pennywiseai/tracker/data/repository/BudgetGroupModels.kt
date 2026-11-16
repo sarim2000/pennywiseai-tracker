@@ -124,11 +124,13 @@ data class BudgetGroupSpending(
     /**
      * Rollover: what last period left (or overspent) that [totalBudget] already
      * includes, so the budget's own limit is `totalBudget − carry`. Zero when
-     * rollover is off. [carryIncomplete]: it couldn't all be counted, so nothing carried.
+     * rollover is off. [carryGap]: last period couldn't all be counted, so nothing carried.
      */
     val carry: BigDecimal = BigDecimal.ZERO,
-    val carryIncomplete: Boolean = false
+    val carryGap: CarryGap? = null
 ) {
+    val carryIncomplete: Boolean get() = carryGap != null
+
     /** The budget's own limit, before rollover's [carry]. */
     val baseBudget: BigDecimal get() = totalBudget - carry
 

@@ -219,8 +219,8 @@ class BudgetRolloverRoutingTest {
         val repo = repository(budget(), listOf(spend("60", at = lastWeek), spend("20", "XYZ", lastWeek), spend("30")))
         val unified = summary(repo, unified = true)
         assertFigures(unified, carry = "0", limit = "100", remaining = "70")
-        assertTrue(unified.carryIncomplete)
-        assertTrue(home(repo).carryIncomplete)
+        assertEquals(CarryGap.NO_RATE, unified.carryGap)
+        assertEquals(CarryGap.NO_RATE, home(repo).carryGap)
     }
 
     @Test
@@ -228,7 +228,7 @@ class BudgetRolloverRoutingTest {
         val repo = repository(budget(), listOf(spend("60", at = lastWeek), spend("20", "USD", lastWeek), spend("30")))
         val native = summary(repo, unified = false)
         assertFigures(native, carry = "0", limit = "100", remaining = "70")
-        assertTrue(native.carryIncomplete)
+        assertEquals(CarryGap.OTHER_CURRENCY, native.carryGap)
     }
 
     @Test

@@ -539,10 +539,7 @@ class BudgetGroupRepository @Inject constructor(
                             currency = currency,
                             displayedCapDate = if (isCurrentWeekInCurrentMonth(displayWindow, today, isCurrentMonth)) today else monthEnd,
                             displayedIsLive = isCurrentWeekInCurrentMonth(displayWindow, today, isCurrentMonth),
-                            carry = budgetCarry(
-                                group, carryWindows[budget.id]?.let { carryTxs.within(it) }, currency, currency, parentOf,
-                                sameCurrencyOnly(currency)
-                            )
+                            carry = carryIn(currency, group, carryWindows[budget.id]?.let { carryTxs.within(it) }, parentOf)
                         )
                     }
                 }
@@ -851,11 +848,25 @@ class BudgetGroupRepository @Inject constructor(
         carryWindow(budget, window, startDay)?.let { carryTransactions(listOf(it)).first() }
 
     /**
-     * Counts only [currency], as the single-currency figures do; anything else has no
-     * rate here, so a carry over it is left out as incomplete.
+     * [group]'s carry in [currency] from [previous]. Without [convert] it counts only
+     * [currency], as the single-currency figures do: anything else isn't converted
+     * here, so a carry over it is left out ([CarryGap.OTHER_CURRENCY]).
      */
-    private fun sameCurrencyOnly(currency: String): suspend (String, BigDecimal) -> BigDecimal? =
-        { fromCurrency, amount -> amount.takeIf { fromCurrency.equals(currency, ignoreCase = true) } }
+    private suspend fun carryIn(
+        currency: String,
+        group: BudgetWithCategories,
+        previous: List<TransactionWithSplits>?,
+        parentOf: Map<String, String>,
+        convert: (suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?)? = null
+    ): BudgetCarry = if (convert != null) {
+        budgetCarry(group, previous, currency, currency, parentOf, convert)
+    } else {
+        budgetCarry(
+            group, previous, currency, currency, parentOf,
+            convert = { fromCurrency, amount -> amount.takeIf { fromCurrency.equals(currency, ignoreCase = true) } },
+            gap = CarryGap.OTHER_CURRENCY
+        )
+    }
 
     /**
      * Per-window history for a single budget at the selected (year, month).
@@ -908,9 +919,7 @@ class BudgetGroupRepository @Inject constructor(
                 spent = spent,
                 capDate = cap,
                 isLive = isLive,
-                carry = carrySource(budget, w, startDay)?.let {
-                    budgetCarry(group, it, currency, currency, parentOf, convertCarry ?: sameCurrencyOnly(currency))
-                }
+                carry = carrySource(budget, w, startDay)?.let { carryIn(currency, group, it, parentOf, convertCarry) }
             )
         }
     }
@@ -976,10 +985,7 @@ class BudgetGroupRepository @Inject constructor(
             emptyList()
         }
         val carry = carrySource(budget, window, userPreferencesRepository.getBudgetCycleStartDay())?.let {
-            budgetCarry(
-                group ?: BudgetWithCategories(budget, emptyList()), it, currency, currency, parentOf(),
-                convertCarry ?: sameCurrencyOnly(currency)
-            )
+            carryIn(currency, group ?: BudgetWithCategories(budget, emptyList()), it, parentOf(), convertCarry)
         } ?: BudgetCarry.none(currency)
         val totalBudget = (group?.budget?.limitAmount ?: BigDecimal.ZERO).let { gLimit ->
             carry.appliedTo(
@@ -1137,7 +1143,7 @@ class BudgetGroupRepository @Inject constructor(
                 displayedCapDate = displayedCapDate,
                 displayedIsLive = displayedIsLive,
                 carry = carry.amount.amount,
-                carryIncomplete = carry.incomplete
+                carryGap = carry.gap
             )
         } else {
             val catSpending = group.categories.map { cat ->
@@ -1201,7 +1207,7 @@ class BudgetGroupRepository @Inject constructor(
                 displayedCapDate = displayedCapDate,
                 displayedIsLive = displayedIsLive,
                 carry = carry.amount.amount,
-                carryIncomplete = carry.incomplete
+                carryGap = carry.gap
             )
         }
         return groupSpending

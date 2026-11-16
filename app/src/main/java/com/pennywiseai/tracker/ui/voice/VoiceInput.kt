@@ -182,6 +182,10 @@ class VoiceInput internal constructor(
     private var heard = ""
     private var pendingStart = false
     private var probe: SpeechRecognizer? = null
+
+    // The last answered probe, kept to listen with: destroying it unbinds the speech service,
+    // and a mic started right after (the quick add sheet starts on the answer) was cancelled.
+    private var spare: SpeechRecognizer? = null
     private var userStopped = false
     private val main = Handler(Looper.getMainLooper())
 
@@ -283,6 +287,8 @@ class VoiceInput internal constructor(
         cancel()
         probe?.destroy()
         probe = null
+        spare?.destroy()
+        spare = null
         downloads.forEach { it.destroy() }
         downloads.clear()
     }
@@ -305,7 +311,7 @@ class VoiceInput internal constructor(
         val r = if (service != null) {
             SpeechRecognizer.createSpeechRecognizer(context, service)
         } else {
-            SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
+            spare?.also { spare = null } ?: SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
         }
         recognizer = r
         r.setRecognitionListener(Listener(r))
@@ -407,7 +413,7 @@ class VoiceInput internal constructor(
                 override fun onSupportResult(support: RecognitionSupport) {
                     if (probe !== r) return
                     probe = null
-                    r.destroy()
+                    keepSpare(r)
                     installed = support.installedOnDeviceLanguages.distinct()
                     pending = support.pendingOnDeviceLanguages.filter { it !in installed }.distinct()
                     downloadable = support.supportedOnDeviceLanguages
@@ -428,6 +434,11 @@ class VoiceInput internal constructor(
                 }
             }
         )
+    }
+
+    private fun keepSpare(r: SpeechRecognizer) {
+        spare?.destroy()
+        spare = r
     }
 
     fun download(tag: String) {

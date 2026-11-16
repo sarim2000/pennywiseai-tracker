@@ -43,16 +43,13 @@ private val EXPENSE = listOf(
 )
 private val INCOME = listOf("Salary", "Income")
 
-/** Same text as LlmRepository.composeSystemPrompt, with synthetic figures. */
-internal fun systemPrompt(base: String, hint: String): String {
-    // CurrencyFormatter's symbols: the prompt shows "SR 18,450", never naming the ISO code.
-    val symbol = mapOf("INR" to "₹", "SAR" to "SR ", "EGP" to "E£", "JOD" to "JD ")[base] ?: "$base "
+/** Same text as LlmRepository.composeSystemPrompt. [base] is kept for callers; the prompt has no figures now. */
+internal fun systemPrompt(@Suppress("UNUSED_PARAMETER") base: String, hint: String): String {
     return """
     You are PennyWise AI, a friendly assistant inside an expense tracker. Today is $TODAY.
-    This month so far: ${symbol}18,450 spent, ${symbol}52,000 income, 37 transactions.
 
     When the user tells you about money they spent, paid, bought or received, call addTransaction. Use EXPENSE unless they clearly received money.
-    When the user asks how much they spent on something, call spendingByCategory; for this month's overall totals call monthSummary (the figures below are only a snapshot from when this chat started).
+    When the user asks how much they spent on something, call spendingByCategory; for this month's overall totals call monthSummary. Never state a spending or income total yourself: only the tools have the figures.
     If the user refers to something already recorded — "the tea from today", "that uber", "change", "should be", "was actually", "delete", "remove" — call updateTransaction or deleteTransaction with the words they used to identify it. Never call addTransaction for those.
     Otherwise answer briefly and helpfully. Never invent transactions or figures, and never say you added, changed or deleted anything yourself — only the tools do that, and the user confirms each one.
 

@@ -9,7 +9,6 @@ import com.pennywiseai.tracker.data.database.entity.ChatMessage
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.model.ChatMessageFacts
-import com.pennywiseai.tracker.data.model.MonthSummary
 import com.pennywiseai.tracker.data.model.PendingChatAction
 import com.pennywiseai.tracker.data.model.ReplySubject
 import com.pennywiseai.tracker.data.model.ReviewRow
@@ -146,10 +145,10 @@ class LlmRepository @Inject constructor(
         val isNewChat = existingMessages.isEmpty()
 
         // If new chat, add system prompt first. Always rebuilt: a cached one
-        // carries a stale date, figures and lists — and, when oversized, used to
+        // carries a stale date and lists — and, when oversized, used to
         // block every new chat until something refreshed the cache (#959).
         if (isNewChat) {
-            val systemPrompt = buildSystemPrompt(aiContextRepository.getMonthSummary())
+            val systemPrompt = buildSystemPrompt()
             userPreferencesRepository.updateSystemPrompt(systemPrompt)
 
             val systemMessage = ChatMessage(
@@ -374,8 +373,8 @@ class LlmRepository @Inject constructor(
             llmService.closeConversation()
         }
 
-        // Always fresh: the row saved when the chat began carries that day's date and figures.
-        val systemPrompt = buildSystemPrompt(aiContextRepository.getMonthSummary())
+        // Always fresh: the row saved when the chat began carries that day's date and lists.
+        val systemPrompt = buildSystemPrompt()
         val saved = chatDao.getAllMessagesForContext().filter { !it.isSystemPrompt && !it.id.startsWith(QUICK_ID) }
         // A trailing message that got no reply isn't replayed: it's usually the one being sent,
         // saved while the warm-up loaded the model, and replaying it would mean building twice.
@@ -702,13 +701,13 @@ class LlmRepository @Inject constructor(
     )
 
     /**
-     * Thin system prompt (#170): who the assistant is, the month at a glance,
-     * the user's categories and accounts, and how to use the tools. The old
-     * prompt embedded recent transactions, which a 1.5B model tends to parrot
+     * Thin system prompt (#170): who the assistant is, the user's categories and accounts,
+     * and how to use the tools. No figures: a month snapshot here went stale within the
+     * chat and, in one base currency, disagreed with Home; the tools give fresh ones. The
+     * old prompt also embedded recent transactions, which a 1.5B model tends to parrot
      * back into tool arguments.
      */
-    private suspend fun buildSystemPrompt(monthSummary: MonthSummary): String {
-        val currency = userPreferencesRepository.baseCurrency.first()
+    private suspend fun buildSystemPrompt(): String {
         val categories = categoryRepository.getVisibleCategories().first()
         val ignored = ignoredAccountsStore.keys()
         val accounts = accountBalanceRepository.getAllLatestBalancesOnce()
@@ -716,8 +715,6 @@ class LlmRepository @Inject constructor(
             .map { it.alias ?: "${it.bankName} ${it.accountLast4}" }
         return composeSystemPrompt(
             currentDate = java.time.LocalDate.now().toString(),
-            monthLine = "${CurrencyFormatter.formatCurrency(monthSummary.totalExpense, currency, maskIfHidden = false)} spent, " +
-                "${CurrencyFormatter.formatCurrency(monthSummary.totalIncome, currency, maskIfHidden = false)} income, ${monthSummary.transactionCount} transactions",
             expenseCategories = categories.filter { !it.isIncome }.map { it.name },
             incomeCategories = categories.filter { it.isIncome }.map { it.name },
             accounts = accounts
@@ -725,11 +722,11 @@ class LlmRepository @Inject constructor(
     }
 
     suspend fun updateSystemPrompt() {
-        val newPrompt = buildSystemPrompt(aiContextRepository.getMonthSummary())
+        val newPrompt = buildSystemPrompt()
         userPreferencesRepository.updateSystemPrompt(newPrompt)
         // Close conversation so it gets recreated with updated prompt
         llmService.closeConversation()
-        Log.d(TAG, "System prompt updated with latest financial data")
+        Log.d(TAG, "System prompt updated with the latest categories and accounts")
     }
 
     suspend fun getFormattedContextForDisplay(): String {
@@ -752,17 +749,15 @@ class LlmRepository @Inject constructor(
          */
         internal fun composeSystemPrompt(
             currentDate: String,
-            monthLine: String,
             expenseCategories: List<String>,
             incomeCategories: List<String>,
             accounts: List<String>
         ): String = """
             You are PennyWise AI, a friendly assistant inside an expense tracker. Today is $currentDate.
-            This month so far: $monthLine.
 
             When the user tells you about money they spent, paid, bought or received, call addTransactions. Use EXPENSE unless they clearly received money.
             When the user asks to compare spending with last month or last week, call compareSpending.
-            When the user asks how much they spent on something, call spendingByCategory; for this month's overall totals call monthSummary (the figures below are only a snapshot from when this chat started).
+            When the user asks how much they spent on something, call spendingByCategory; for this month's overall totals call monthSummary. Never state a spending or income total yourself: only the tools have the figures.
             If the user refers to something already recorded — "the tea from today", "that uber", "change", "should be", "was actually", "delete", "remove" — call updateTransaction or deleteTransaction with the words they used to identify it. Never call addTransactions for those.
             Otherwise answer briefly and helpfully. Never invent transactions or figures, and never say you added, changed or deleted anything yourself — only the tools do that, and the user confirms each one.
 

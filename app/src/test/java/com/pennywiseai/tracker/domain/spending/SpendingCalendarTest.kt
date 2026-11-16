@@ -47,7 +47,8 @@ class SpendingCalendarTest {
         planned: List<Bill> = emptyList(),
         creditAsExpense: Boolean = false,
         month: YearMonth = november,
-    ) = runBlocking { SpendingCalendar.days(month, rows.map(::row), planned, creditAsExpense) }
+        today: LocalDate = date("2026-11-16"),
+    ) = runBlocking { SpendingCalendar.days(month, rows.map(::row), planned, creditAsExpense, today) }
 
     // --- Grid
 
@@ -147,6 +148,19 @@ class SpendingCalendarTest {
         assertNull(result[date("2026-12-01")])
     }
 
+    private fun cardBill(due: String) = Bill("Card", Money(d("2500"), "INR"), date(due), source = BillSource.Card("Test Bank", "4444"))
+
+    @Test
+    fun `a card bill still owed from last month shows today, and on its own day in its month`() {
+        val overdue = listOf(cardBill("2026-10-25"))
+
+        val thisMonth = days(planned = overdue)
+        assertEquals(listOf(date("2026-11-16")), thisMonth.keys.toList())
+        assertEquals(date("2026-10-25"), thisMonth.getValue(date("2026-11-16")).planned.single().dueDate)
+        assertEquals(listOf(date("2026-10-25")), days(planned = overdue, month = YearMonth.of(2026, 10)).keys.toList())
+        assertTrue(days(planned = overdue, month = YearMonth.of(2026, 12)).isEmpty())
+    }
+
     private fun weekly(next: String) = SubscriptionEntity(
         id = 1, merchantName = "Cleaner", amount = d("100"), nextPaymentDate = date(next), billingCycle = "Weekly",
     )
@@ -175,7 +189,7 @@ class SpendingCalendarTest {
     fun `once the payment posts, its day shows the spend and no longer the plan`() {
         val today = date("2026-11-13")
         val paid = tx("2026-11-13", merchant = "Cleaner")
-        val result = days(listOf(paid), planned = upcoming(today, posted = listOf(paid)))
+        val result = days(listOf(paid), planned = upcoming(today, posted = listOf(paid)), today = today)
 
         val day = result.getValue(today)
         assertTrue(day.planned.isEmpty())

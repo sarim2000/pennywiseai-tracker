@@ -95,6 +95,8 @@ fun ShareStudioScreen(
     val data by viewModel.data.collectAsStateWithLifecycle()
     val card = shareCardState(selection, data)
     val graphicsLayer = rememberGraphicsLayer()
+    // With amounts hidden app-wide, previews stay covered until the user asks to see them.
+    var revealed by rememberSaveable { mutableStateOf(false) }
 
     PennyWiseScaffold(
         title = stringResource(R.string.share_studio_title),
@@ -106,7 +108,9 @@ fun ShareStudioScreen(
         bottomBar = {
             Surface(color = MaterialTheme.colorScheme.surface) {
                 Button(
-                    enabled = card is ShareCardState.Ready,
+                    // Only an image the user has seen goes out: with amounts hidden
+                    // app-wide, that means after Show preview.
+                    enabled = card is ShareCardState.Ready && (revealed || !AmountPrivacy.hidden),
                     onClick = {
                         scope.launch {
                             val bitmap = graphicsLayer.toImageBitmap().asAndroidBitmap()
@@ -146,7 +150,7 @@ fun ShareStudioScreen(
                         .padding(vertical = Spacing.sm),
                     contentAlignment = Alignment.Center,
                 ) {
-                    CardPreview(card, selection.theme, scale, previewModifier = Modifier.drawWithContent {
+                    CardPreview(card, selection.theme, scale, revealed, { revealed = true }, previewModifier = Modifier.drawWithContent {
                         // The image shared is recorded here, at the card's full size, from
                         // the very pixels being previewed.
                         graphicsLayer.record { this@drawWithContent.drawContent() }
@@ -200,9 +204,15 @@ internal fun shareText(context: Context, kind: ShareKind): String = context.getS
 )
 
 @Composable
-private fun CardPreview(card: ShareCardState, theme: ShareTheme, scale: Float, previewModifier: Modifier) {
+private fun CardPreview(
+    card: ShareCardState,
+    theme: ShareTheme,
+    scale: Float,
+    revealed: Boolean,
+    onReveal: () -> Unit,
+    previewModifier: Modifier,
+) {
     val description = stringResource(R.string.share_studio_preview_description)
-    var revealed by rememberSaveable { mutableStateOf(false) }
     Box(
         Modifier
             .size(ShareCardWidth * scale, ShareCardHeight * scale)
@@ -227,7 +237,7 @@ private fun CardPreview(card: ShareCardState, theme: ShareTheme, scale: Float, p
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 textAlign = TextAlign.Center,
                             )
-                            TextButton(onClick = { revealed = true }, shapes = ButtonDefaults.shapes()) {
+                            TextButton(onClick = onReveal, shapes = ButtonDefaults.shapes()) {
                                 Text(stringResource(R.string.share_studio_hidden_reveal))
                             }
                         }

@@ -14,7 +14,8 @@ import java.time.LocalDate
 
 /**
  * (income − spent) / income for one currency's period, in whole percent. Negative when
- * more went out than came in. Null with no income, where a rate means nothing.
+ * more went out than came in. Null with no income, where a rate means nothing, or a rate
+ * too large to be an Int.
  *
  * Deliberately separate from the Budgets screen's savings rate, which counts only
  * spending against limits: a share card says what share of the period's income was kept.
@@ -23,7 +24,8 @@ fun savingsRatePercent(income: BigDecimal, spent: BigDecimal): Int? {
     if (income.signum() <= 0) return null
     return (income - spent).multiply(BigDecimal(100))
         .divide(income, 0, RoundingMode.HALF_UP)
-        .toInt()
+        // toInt() would wrap a huge loss on a tiny income into a positive rate.
+        .let { runCatching { it.intValueExact() }.getOrNull() }
 }
 
 fun CurrencyReview.savingsRatePercent(): Int? = savingsRatePercent(income, spent)

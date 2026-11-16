@@ -208,4 +208,9 @@ class ShareMathTest {
         assertNull(budgetResult(summary()))
         assertNull(budgetResult(summary(limit("0", "40"), limit("100", "10", BudgetGroupType.TARGET))))
     }
+
+    @Test
+    fun `a rate too large for an Int is unavailable, not wrapped into a positive one`() {
+        assertNull(savingsRatePercent(BigDecimal("0.01"), BigDecimal("300000")))
+    }
 }

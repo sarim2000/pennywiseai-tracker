@@ -1,9 +1,16 @@
 package com.pennywiseai.tracker.domain.achievements
 
+import com.pennywiseai.tracker.data.database.entity.BudgetEntity
+import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
+import com.pennywiseai.tracker.data.database.entity.BudgetWithCategories
 import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
 import com.pennywiseai.tracker.data.database.entity.GoalEntity
+import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
+import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
+import com.pennywiseai.tracker.data.repository.BudgetWindow
 import com.pennywiseai.tracker.data.repository.GoalDetail
 import com.pennywiseai.tracker.data.repository.GoalRules
+import com.pennywiseai.tracker.data.repository.PastWindowSpending
 import com.pennywiseai.tracker.domain.review.CurrencyReview
 import com.pennywiseai.tracker.domain.review.PeriodReview
 import com.pennywiseai.tracker.domain.review.ReviewKind
@@ -231,6 +238,66 @@ class AchievementsTest {
         assertEquals(0, budgetKeptAchievement(listOf(BudgetMonth(day("2026-10-31"), kept = false))).tier)
     }
 
+    private val october = BudgetWindow(day("2026-10-01"), day("2026-10-31"), 31)
+
+    private fun limit(
+        budget: String,
+        actual: String,
+        created: String = "2026-01-01",
+        weeks: List<String> = emptyList(),
+    ) = BudgetGroupSpending(
+        group = BudgetWithCategories(
+            BudgetEntity(
+                name = "Budget", limitAmount = bd(budget), periodType = BudgetPeriodType.MONTHLY,
+                startDate = october.start, endDate = october.end, createdAt = day(created).atStartOfDay(),
+            ),
+            emptyList(),
+        ),
+        categorySpending = emptyList(), totalBudget = bd(budget), totalActual = bd(actual), remaining = BigDecimal.ZERO,
+        percentageUsed = 0f, dailyAllowance = BigDecimal.ZERO, daysRemaining = 0, daysElapsed = 0,
+        previousWindows = weeks.map { PastWindowSpending(october, bd(it)) },
+    )
+
+    private fun october(vararg groups: BudgetGroupSpending) = BudgetOverallSummary(
+        groups = groups.toList(), totalIncome = BigDecimal.ZERO, totalLimitBudget = BigDecimal.ZERO,
+        totalLimitSpent = BigDecimal.ZERO, totalTargetGoal = BigDecimal.ZERO, totalTargetActual = BigDecimal.ZERO,
+        totalExpectedBudget = BigDecimal.ZERO, totalExpectedActual = BigDecimal.ZERO, netSavings = BigDecimal.ZERO,
+        savingsRate = 0f, dailyAllowance = BigDecimal.ZERO, daysRemaining = 0, currency = "JOD", pageWindow = october,
+    )
+
+    private val trackedInOctober = listOf(day("2026-10-12"))
+
+    @Test
+    fun `a month is kept when every limit in place ended under its amount`() {
+        val month = budgetMonthOf(october(limit("100", "90"), limit("50", "50")), october.end, trackedInOctober)
+        assertEquals(BudgetMonth(october.end, kept = true), month)
+        assertEquals(false, budgetMonthOf(october(limit("100", "90"), limit("50", "51")), october.end, trackedInOctober).kept)
+    }
+
+    @Test
+    fun `a limit set up after the month began doesn't judge it`() {
+        // Made in November: October wasn't kept under it, so the month doesn't count.
+        assertNull(budgetMonthOf(october(limit("100", "10", created = "2026-11-02")), october.end, trackedInOctober).kept)
+        // Beside an older limit, only the older one judges October.
+        val mixed = october(limit("100", "90"), limit("50", "80", created = "2026-10-20"))
+        assertEquals(true, budgetMonthOf(mixed, october.end, trackedInOctober).kept)
+    }
+
+    @Test
+    fun `a weekly limit is kept only when every week of the month was`() {
+        // The last week, the one the summary shows, was under; an earlier one wasn't.
+        val weekly = october(limit("100", "60", weeks = listOf("90", "130", "70")))
+        assertEquals(false, budgetMonthOf(weekly, october.end, trackedInOctober).kept)
+        val kept = october(limit("100", "60", weeks = listOf("90", "100", "70")))
+        assertEquals(true, budgetMonthOf(kept, october.end, trackedInOctober).kept)
+    }
+
+    @Test
+    fun `a month with nothing tracked, or no limits, isn't a month kept`() {
+        assertNull(budgetMonthOf(october(limit("100", "0")), october.end, listOf(day("2026-09-30"))).kept)
+        assertNull(budgetMonthOf(october(), october.end, trackedInOctober).kept)
+    }
+
     // --- Savings rate
 
     @Test
@@ -302,6 +369,32 @@ class AchievementsTest {
         val a = savingsUpAchievement(cycles)
         assertFalse(a.earned)
         assertEquals(0, a.progress)
+    }
+
+    @Test
+    fun `a currency nothing was spent in isn't one saved in`() {
+        // A stray USD refund-as-income with no USD spending isn't 100% kept.
+        val cycles = listOf(cycle("2026-09-01", currency("JOD", spent = "900", income = "1000"), currency("USD", spent = "0", income = "40")))
+        val a = savingsRateAchievement(cycles)
+        assertFalse(a.earned)
+        assertEquals(10, a.progress)
+    }
+
+    @Test
+    fun `the cycle tracking began late in doesn't count for savings`() {
+        // Tracking began on 20 August: August holds its salary and ten days of spending.
+        val cycles = listOf(
+            cycle("2026-08-01", currency("JOD", spent = "200", income = "1000")),
+            cycle("2026-09-01", currency("JOD", spent = "900", income = "1000")),
+        )
+        val inputs = AchievementInputs(daily("2026-08-20", 60), cycles, emptyList(), emptyList(), emptyList())
+        val all = achievementsOf(inputs, today).associateBy { it.id }
+        assertFalse(all.getValue(AchievementId.SAVINGS_RATE).earned)
+        assertEquals(10, all.getValue(AchievementId.SAVINGS_RATE).progress)
+
+        // Begun within August's first quarter, August counts.
+        assertEquals(listOf(cycles[0].range.start, cycles[1].range.start), trackedCycles(cycles, day("2026-08-07")).map { it.range.start })
+        assertTrue(trackedCycles(cycles, null).isEmpty())
     }
 
     // --- Spending down

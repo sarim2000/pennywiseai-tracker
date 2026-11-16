@@ -1,15 +1,19 @@
 package com.pennywiseai.tracker.domain.achievements
 
+import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
 import com.pennywiseai.tracker.data.database.entity.GoalEntity
+import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.data.repository.GoalDetail
 import com.pennywiseai.tracker.domain.goals.percent
+import com.pennywiseai.tracker.domain.review.CurrencyReview
 import com.pennywiseai.tracker.domain.review.PeriodReview
 import com.pennywiseai.tracker.domain.review.percentChange
 import com.pennywiseai.tracker.domain.share.savingsRatePercent
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.YearMonth
+import java.time.temporal.ChronoUnit
 
 // Achievements are worked out from what the app already stores, each time they're shown:
 // nothing new is saved, so there is nothing to back up or migrate, and editing the
@@ -153,6 +157,25 @@ fun goalsReachedAchievement(goals: List<GoalDetail>): Achievement =
 /** One finished month of spending limits: [kept] when every limit ended at or under its amount, null with none set. */
 data class BudgetMonth(val end: LocalDate, val kept: Boolean?)
 
+/**
+ * [summary]'s finished month as the rule reads it, dated by its window ([monthEnd] when it
+ * has none). Only limits in place from the month's start count: one set up today wasn't
+ * kept through the year before it. A weekly limit counts as kept only when every week of
+ * the month was, not just the last one the summary shows. With nothing [recorded] in the
+ * month, nothing was tracked, so it isn't a month kept.
+ */
+internal fun budgetMonthOf(summary: BudgetOverallSummary, monthEnd: LocalDate, recorded: List<LocalDate>): BudgetMonth {
+    val window = summary.pageWindow
+    val limits = summary.groups.filter {
+        it.group.budget.groupType == BudgetGroupType.LIMIT && it.totalBudget.signum() > 0 &&
+            !it.group.budget.createdAt.toLocalDate().isAfter(window.start)
+    }
+    if (limits.isEmpty()) return BudgetMonth(monthEnd, kept = null)
+    if (recorded.none { !it.isBefore(window.start) && !it.isAfter(window.end) }) return BudgetMonth(window.end, kept = null)
+    val kept = limits.all { g -> g.totalActual <= g.totalBudget && g.previousWindows.all { it.spent <= g.totalBudget } }
+    return BudgetMonth(window.end, kept)
+}
+
 /** [months] must be consecutive; a month without limits breaks the run. */
 fun budgetKeptAchievement(months: List<BudgetMonth>): Achievement {
     val timeline = mutableListOf<Pair<LocalDate, Int>>()
@@ -164,10 +187,16 @@ fun budgetKeptAchievement(months: List<BudgetMonth>): Achievement {
     return fromTimeline(AchievementId.BUDGET_KEPT, timeline, run)
 }
 
+/**
+ * A currency's savings rate for the rules. A currency nothing was spent in went unused
+ * rather than saved in: a stray refund or transfer in it would otherwise read as 100% kept.
+ */
+private fun CurrencyReview.keptPercent(): Int? = if (spent.signum() <= 0) null else savingsRatePercent()
+
 /** [cycles]: finished budget cycles, any order. Each currency's rate is its own; the best one counts. */
 fun savingsRateAchievement(cycles: List<PeriodReview>): Achievement {
     val timeline = cycles.sortedBy { it.range.start }.flatMap { cycle ->
-        cycle.currencies.mapNotNull { c -> c.savingsRatePercent()?.let { cycle.range.end to it } }
+        cycle.currencies.mapNotNull { c -> c.keptPercent()?.let { cycle.range.end to it } }
     }
     return fromTimeline(AchievementId.SAVINGS_RATE, timeline, (timeline.maxOfOrNull { it.second } ?: 0).coerceAtLeast(0))
 }
@@ -176,8 +205,8 @@ fun savingsRateAchievement(cycles: List<PeriodReview>): Achievement {
 fun savingsUpAchievement(cycles: List<PeriodReview>): Achievement {
     val timeline = consecutive(cycles).flatMap { (previous, cycle) ->
         cycle.currencies.mapNotNull { c ->
-            val rate = c.savingsRatePercent() ?: return@mapNotNull null
-            val before = previous.currencies.firstOrNull { it.currency == c.currency }?.savingsRatePercent()
+            val rate = c.keptPercent() ?: return@mapNotNull null
+            val before = previous.currencies.firstOrNull { it.currency == c.currency }?.keptPercent()
                 ?: return@mapNotNull null
             cycle.range.end to rate - before
         }
@@ -200,6 +229,20 @@ fun spendingDownAchievement(cycles: List<PeriodReview>): Achievement {
     return fromTimeline(AchievementId.SPENDING_DOWN, timeline, (timeline.maxOfOrNull { it.second } ?: 0).coerceAtLeast(0))
 }
 
+/**
+ * The cycles tracked from (near) their start, by the reviews' own test for a fair
+ * comparison: tracking began within the cycle's first quarter. The cycle tracking began
+ * in mostly holds what came after: a salary with a few days of spending reads as most
+ * of it kept.
+ */
+internal fun trackedCycles(cycles: List<PeriodReview>, firstRecorded: LocalDate?): List<PeriodReview> {
+    if (firstRecorded == null) return emptyList()
+    return cycles.filter { cycle ->
+        val days = ChronoUnit.DAYS.between(cycle.range.start, cycle.range.end) + 1
+        !firstRecorded.isAfter(cycle.range.start.plusDays(days / 4))
+    }
+}
+
 private fun consecutive(cycles: List<PeriodReview>): List<Pair<PeriodReview, PeriodReview>> =
     cycles.sortedBy { it.range.start }.zipWithNext().filter { (a, b) -> a.range.end.plusDays(1) == b.range.start }
 
@@ -213,14 +256,17 @@ data class AchievementInputs(
 )
 
 /** Every achievement, in [AchievementId] order. */
-fun achievementsOf(inputs: AchievementInputs, today: LocalDate): List<Achievement> = listOf(
-    trackedAchievement(inputs.recorded),
-    streakAchievement(inputs.recorded, today),
-    subscriptionsAchievement(inputs.subscriptions),
-    goalHalfwayAchievement(inputs.goals),
-    goalsReachedAchievement(inputs.goals),
-    budgetKeptAchievement(inputs.budgetMonths),
-    savingsRateAchievement(inputs.cycles),
-    savingsUpAchievement(inputs.cycles),
-    spendingDownAchievement(inputs.cycles),
-)
+fun achievementsOf(inputs: AchievementInputs, today: LocalDate): List<Achievement> {
+    val cycles = trackedCycles(inputs.cycles, inputs.recorded.minOrNull())
+    return listOf(
+        trackedAchievement(inputs.recorded),
+        streakAchievement(inputs.recorded, today),
+        subscriptionsAchievement(inputs.subscriptions),
+        goalHalfwayAchievement(inputs.goals),
+        goalsReachedAchievement(inputs.goals),
+        budgetKeptAchievement(inputs.budgetMonths),
+        savingsRateAchievement(cycles),
+        savingsUpAchievement(cycles),
+        spendingDownAchievement(cycles),
+    )
+}

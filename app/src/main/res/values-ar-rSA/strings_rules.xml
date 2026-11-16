@@ -360,6 +360,8 @@
         <item quantity="other">صرفت %1$s على %2$s خلال %3$s، في %4$d معاملة.</item>
     </plurals>
     <string name="chat_reply_nothing_spent">لم تصرف شيئًا على %1$s خلال %2$s.</string>
+    <string name="chat_reply_category_income">استلمت %1$s من %2$s خلال %3$s (عدد المعاملات: %4$d).</string>
+    <string name="chat_reply_nothing_received_in">لم تستلم شيئًا من %1$s خلال %2$s.</string>
     <string name="chat_reply_spent_with_forgiven">%1$s، منها %2$s قروض متنازَل عنها</string>
     <string name="chat_reply_forgiven_loans">قروض متنازَل عنها: %1$s</string>
     <string name="chat_reply_received">المبالغ المستلَمة: %1$s</string>

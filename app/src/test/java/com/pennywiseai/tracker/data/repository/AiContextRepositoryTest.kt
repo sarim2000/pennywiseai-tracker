@@ -311,6 +311,22 @@ class AiContextRepositoryTest {
     }
 
     @Test
+    fun `a category's income is what came in under it, per currency, without refunds or ignored accounts`() = runBlocking {
+        ignored = setOf("Bank_9999")
+        tx("5000", type = TransactionType.INCOME, category = "Salary")
+        tx("40", currency = "USD", type = TransactionType.INCOME, category = "Salary")
+        tx("700", type = TransactionType.INCOME, category = "Salary", account = "9999") // an ignored account's
+        tx("100", type = TransactionType.INCOME, category = "Salary", refundTo = "Food") // a refund gives spending back
+        tx("300", category = "Salary") // money out isn't income
+        tx("60", type = TransactionType.INCOME, category = "Others", splits = listOf("Others" to "20", "Salary" to "40"))
+
+        val salary = repository.categoryIncome("Salary", today)
+        assertEquals(mapOf("INR" to "5040", "USD" to "40"), amounts(salary.byCurrency))
+        assertEquals(3, salary.transactionCount)
+        assertTrue(repository.categoryIncome("Travel", today).byCurrency.isEmpty())
+    }
+
+    @Test
     fun `a category's figure is the rows its links list, in the profile and without ignored accounts`() = runBlocking {
         preferences.updateSelectedProfileId(ProfileEntity.BUSINESS_ID)
         accounts += AccountBalanceEntity(bankName = "Bank", accountLast4 = "1111", balance = BigDecimal.ZERO, timestamp = today.atStartOfDay(), profileId = ProfileEntity.BUSINESS_ID)

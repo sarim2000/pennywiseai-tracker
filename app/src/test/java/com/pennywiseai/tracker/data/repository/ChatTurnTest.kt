@@ -1309,6 +1309,36 @@ class ChatTurnTest {
     }
 
     @Test
+    fun `an income question totals what came in under its category, never compared as spending`() = runTest {
+        every { context.getString(R.string.chat_reply_category_income, any(), any(), any(), any()) } answers {
+            (args[1] as Array<*>).let { "RECEIVED ${it[0]} ${it[1]}" }
+        }
+        every { context.getString(R.string.chat_reply_nothing_received_in, any(), any()) } returns "NOTHING_RECEIVED"
+        every { categories.getAllCategories() } returns flowOf(
+            listOf(CategoryEntity(id = 1, name = "طعام", color = "#000"), CategoryEntity(id = 3, name = "Salary", color = "#000", isIncome = true))
+        )
+        val filter = slot<SpendingFilter>()
+        coEvery { aiContext.categoryIncome("Salary", any(), capture(filter)) } returns spent("500").copy(category = "Salary")
+        coEvery { aiContext.categorySpending(any(), any(), any()) } returns spent("120")
+
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("category" to "Salary")))
+        assertEquals("RECEIVED ₹500 Salary", send("How much salary did I receive this month?"))
+        // An income category is income without the word for it too.
+        assertEquals("RECEIVED ₹500 Salary", send("salary?"))
+        // Named with last month, it's last month's salary, not a comparison of spending in it.
+        send("how much salary did I get last month?")
+        coVerify(exactly = 0) { aiContext.compareSpending(any(), any(), any(), any()) }
+        assertEquals(LocalDate.of(2026, 10, 1), filter.captured.window?.start?.toLocalDate())
+        coVerify(exactly = 0) { aiContext.categorySpending(any(), any(), any()) }
+
+        coEvery { aiContext.categoryIncome("Salary", any(), any()) } returns spent().copy(category = "Salary")
+        assertEquals("NOTHING_RECEIVED", send("how much salary this month?"))
+        // A spending category is still what was spent in it.
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("category" to "طعام")))
+        assertEquals("SPEND", send("how much on food?"))
+    }
+
+    @Test
     fun `a merchant or account the call names is no date, and a year named is that year`() = runTest {
         every { context.getString(R.string.chat_reply_query_period_unknown) } returns "PERIOD"
         every { context.getString(R.string.chat_reply_month_spend, any()) } returns "SPENT"

@@ -181,6 +181,16 @@ class AiContextRepository @Inject constructor(
     }
 
     /**
+     * What came in under one category (Salary) in Home's period or [filter]'s, per currency, as
+     * Home's income counts it: [categorySpending] counts only what went out.
+     */
+    suspend fun categoryIncome(category: String, today: LocalDate = LocalDate.now(), filter: SpendingFilter = SpendingFilter()): CategorySpend {
+        val scope = scopeOf(filter, today)
+        val (byCurrency, count) = SpendingComparison.received(rows(scope, filter), categoriesNamed(category))
+        return CategorySpend(scope = scope.chat, category = category, byCurrency = byCurrency, transactionCount = count)
+    }
+
+    /**
      * Each currency's biggest categories in Home's period, with forgiven loans beside them. Or,
      * per [by], its biggest merchants (named as the user aliased them) or accounts, in
      * [filter]'s days and rows; with [category], only that category's part of each. Forgiven

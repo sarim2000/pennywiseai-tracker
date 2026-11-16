@@ -196,6 +196,21 @@ object SpendingComparison {
                 (categories == null || row.getAmountByCategory().keys.any { categories.includes(it) })
         }
 
+    /**
+     * Money received in [categories] (its split shares), per currency, and the rows it came in, as
+     * Home's income counts it: a refund gives spending back, so it's no income.
+     */
+    fun received(rows: List<TransactionWithSplits>, categories: Set<String>): Pair<Map<String, BigDecimal>, Int> {
+        val parts = rows.forTotals()
+            .filter { it.transaction.transactionType == TransactionType.INCOME && it.transaction.budgetImpactType != BudgetImpactType.DEDUCT_SPENT }
+            .mapNotNull { row ->
+                row.getAmountByCategory().filterKeys { categories.includes(it) }.values.takeIf { it.isNotEmpty() }
+                    ?.let { row.transaction.currency to it.fold(BigDecimal.ZERO, BigDecimal::add) }
+            }
+        val byCurrency = parts.sumByCurrency({ it.first }, { it.second }).mapValues { it.value.amount }.filterValues { it.signum() > 0 }
+        return byCurrency to parts.size
+    }
+
     /** How many spending transactions [spend] counted for [categories]: a split row once. */
     fun transactionsIn(rows: List<TransactionWithSplits>, categories: Set<String>, creditAsExpense: Boolean = true): Int =
         spending(rows, creditAsExpense).count { row -> row.getAmountByCategory().keys.any { categories.includes(it) } }

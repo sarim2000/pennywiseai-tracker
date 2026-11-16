@@ -549,8 +549,8 @@ class LlmRepository @Inject constructor(
         val plain = SpendingQuery.defaultPeriod(a["period"], a["from"], a["to"]) &&
             listOf(a["merchant"], a["account"]).all { it?.toString().isNullOrBlank() } &&
             SpendingQuery.groupBy(a.arg("groupBy")) == SpendingQuery.GroupBy.NONE
-        val category = (a["category"] as? String)?.trim().orEmpty().takeUnless { SpendingComparison.meansAllSpending(it) }.orEmpty()
-        return plain && (category.isNotEmpty() || !SpendingComparison.asksAboutIncome(userMessage))
+        // Income isn't compared, a category's ("salary last month?") or all of it.
+        return plain && !SpendingComparison.asksAboutIncome(userMessage)
     }
 
     private suspend fun handleToolCallInner(call: LlmEvent.ToolCall, userMessage: String): String? = if (call.isComparison(userMessage)) {
@@ -723,6 +723,18 @@ class LlmRepository @Inject constructor(
                     turnSubject = turnSubject?.copy(share = top.share)
                     if (linked) turnLinks += linksTo(top.scope, category, top.ranking.keys, account)
                     topCategoriesText(top, groupBy, narrowed, category)
+                }
+            }
+            // "How much salary did I receive?": what came in under it, never "nothing spent".
+            category != null && (categories.any { it.isIncome && it.name == known } || SpendingComparison.asksAboutIncome(userMessage)) -> {
+                val got = aiContextRepository.categoryIncome(category, filter = filter)
+                val label = scopeLabel(got.scope) + narrowed
+                when {
+                    got.byCurrency.isEmpty() && known == null -> context.getString(R.string.chat_reply_unknown_category, asked)
+                    got.byCurrency.isEmpty() -> context.getString(R.string.chat_reply_nothing_received_in, category, label)
+                    else -> context.getString(R.string.chat_reply_category_income, amounts(got.byCurrency), category, label, got.transactionCount).also {
+                        if (linked) turnLinks += linksTo(got.scope, category, got.byCurrency.keys, account)
+                    }
                 }
             }
             category != null -> {

@@ -6,6 +6,8 @@ import com.pennywiseai.tracker.data.database.dao.ExchangeRateDao
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
+import com.pennywiseai.tracker.data.database.entity.CardEntity
+import com.pennywiseai.tracker.data.database.entity.CardType
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.ExchangeRateEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
@@ -18,7 +20,9 @@ import com.pennywiseai.tracker.data.ledger.convertedSpent
 import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.model.SpendingComparison
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.domain.model.filterTrackedByProfile
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -55,6 +59,8 @@ class AiContextRepositoryTest {
     private val accounts = mutableListOf<AccountBalanceEntity>()
     private var forgiven: Map<String, BigDecimal> = emptyMap()
     private var forgivenSource: TransactionEntity? = null
+    private var ignored: Set<String> = emptySet()
+    private val cards = mutableListOf<CardEntity>()
     private var nextId = 1L
     private lateinit var preferences: UserPreferencesRepository
     private lateinit var repository: AiContextRepository
@@ -116,7 +122,9 @@ class AiContextRepositoryTest {
                 )
             },
             accountBalanceDao = mockk { coEvery { getAllLatestBalancesOnce() } answers { accounts.toList() } },
-            profileDao = mockk { coEvery { getById(ProfileEntity.BUSINESS_ID) } returns ProfileEntity(ProfileEntity.BUSINESS_ID, "Business", "#000") }
+            profileDao = mockk { coEvery { getById(ProfileEntity.BUSINESS_ID) } returns ProfileEntity(ProfileEntity.BUSINESS_ID, "Business", "#000") },
+            ignoredAccountsStore = mockk { every { keys() } answers { ignored } },
+            cardDao = mockk { every { getAllCards() } answers { flowOf(cards.toList()) } },
         )
     }
 
@@ -230,6 +238,27 @@ class AiContextRepositoryTest {
         val p = repository.spending(today)
         assertEquals(mapOf("INR" to "120"), amounts(p.spentWithForgiven))
         assertEquals(ProfileEntity.BUSINESS_ID, p.scope.profile?.id)
+    }
+
+    @Test
+    fun `an ignored account counts nowhere, nor a card drawn on it, as on the Transactions list`() = runBlocking {
+        ignored = setOf("Bank_9999") // someone else's account on the same phone number (#826)
+        cards += CardEntity(cardLast4 = "4444", cardType = CardType.DEBIT, bankName = "Bank", accountLast4 = "9999")
+        tx("100", account = "1111")
+        tx("50", account = "9999")
+        tx("30", account = "4444") // the card's purchase, stored under the card's digits
+        tx("8", category = "Travel", account = "9999")
+        forgivenSource = tx("20", category = "Travel", account = "9999").transaction
+        forgiven = mapOf("INR" to BigDecimal("400"))
+
+        val p = repository.spending(today)
+        assertEquals(mapOf("INR" to "100"), amounts(p.spentWithForgiven))
+        assertEquals(1, p.transactionCount)
+        assertTrue(repository.categorySpending("Travel", today).byCurrency.isEmpty())
+        assertEquals(mapOf("INR" to listOf("Food" to "100")), repository.topCategories(today).ranking.mapValues { (_, c) -> c.map { it.first to it.second.toPlainString() } })
+        // The rows the Transactions list shows add up to the same.
+        val listed = filterTrackedByProfile(rows.map { it.transaction }, null, IgnoredAccountsStore.withLinkedCards(ignored, cards, accounts), emptyMap())
+        assertEquals(amounts(p.spent), amounts(breakdownByCurrency(listed).mapValues { it.value.expenses }))
     }
 
     @Test

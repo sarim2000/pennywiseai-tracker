@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.data.repository
 
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.dao.AccountBalanceDao
+import com.pennywiseai.tracker.data.database.dao.CardDao
 import com.pennywiseai.tracker.data.database.dao.CategoryDao
 import com.pennywiseai.tracker.data.database.dao.ProfileDao
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
@@ -18,10 +19,11 @@ import com.pennywiseai.tracker.data.model.ChatScope
 import com.pennywiseai.tracker.data.model.PeriodSpending
 import com.pennywiseai.tracker.data.model.SpendingComparison
 import com.pennywiseai.tracker.data.model.TopCategories
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
-import com.pennywiseai.tracker.domain.model.effectiveProfileId
+import com.pennywiseai.tracker.domain.model.isTracked
 import kotlinx.coroutines.flow.first
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -34,8 +36,8 @@ import javax.inject.Singleton
 
 /**
  * The figures the AI chat reads, typed or one-tap. Each is worked out the way Home works out
- * "Spent this month": the budget cycle so far, the profile Home shows, the credit-card setting,
- * refunds netted and forgiven loans added (#938), per currency.
+ * "Spent this month": the budget cycle so far, the profile Home shows without ignored accounts
+ * (#826), the credit-card setting, refunds netted and forgiven loans added (#938), per currency.
  */
 @Singleton
 class AiContextRepository @Inject constructor(
@@ -46,15 +48,22 @@ class AiContextRepository @Inject constructor(
     private val categoryDao: CategoryDao,
     private val accountBalanceDao: AccountBalanceDao,
     private val profileDao: ProfileDao,
+    private val ignoredAccountsStore: IgnoredAccountsStore,
+    private val cardDao: CardDao,
 ) {
 
     /** Home's period: this budget cycle up to the end of [today], in the profile Home shows. */
-    private class Scope(val chat: ChatScope, private val profileId: Long?, private val accountKeys: Map<Long, Set<String>>) {
+    private class Scope(
+        val chat: ChatScope,
+        private val profileId: Long?,
+        private val ignoredKeys: Set<String>,
+        private val accountKeys: Map<Long, Set<String>>,
+    ) {
         val start: LocalDateTime get() = chat.window.start
         val end: LocalDateTime get() = chat.window.end
 
-        /** As Home's profile filter: a transaction's own profile, else its account's, else Personal. */
-        fun keeps(tx: TransactionEntity) = profileId == null || tx.effectiveProfileId(accountKeys) == profileId
+        /** As Home and the Transactions list: the profile shown, no ignored account's rows (#826). */
+        fun keeps(tx: TransactionEntity) = tx.isTracked(profileId, ignoredKeys, accountKeys)
     }
 
     private suspend fun homeScope(today: LocalDate): Scope {
@@ -64,8 +73,9 @@ class AiContextRepository @Inject constructor(
 
     private suspend fun scope(window: SpendingComparison.Window): Scope {
         val profileId = userPreferencesRepository.selectedProfileId.first()
-        val keys = if (profileId == null) emptyMap() else buildProfileAccountKeys(accountBalanceDao.getAllLatestBalancesOnce())
-        return Scope(ChatScope(window, profileShown()), profileId, keys)
+        val balances = accountBalanceDao.getAllLatestBalancesOnce()
+        val ignored = IgnoredAccountsStore.withLinkedCards(ignoredAccountsStore.keys(), cardDao.getAllCards().first(), balances)
+        return Scope(ChatScope(window, profileShown()), profileId, ignored, buildProfileAccountKeys(balances))
     }
 
     /** The profile Home shows, null for all: comparisons name it as the other answers do. */

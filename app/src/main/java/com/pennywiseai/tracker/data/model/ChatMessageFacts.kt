@@ -181,6 +181,26 @@ internal object ChatMessageFacts {
     private fun isCurrencyCode(code: String) =
         code.length == 3 && code.all { it in 'A'..'Z' } && runCatching { java.util.Currency.getInstance(code) }.isSuccess
 
+    // Questions
+
+    private val QUESTION_START = regex(
+        "^\\s*(?:${word("how much|how many|what|which|did i|kitna|kitne|kya|ب?كم|ايش|إيش|شو|وش|هل|कितना|कितने|क्या")})"
+    )
+    private val ADD_WORD = regex(
+        word("add|log|record|save|note down|track|سجل|سجّل|اضف|أضف|ضيف|اضيف|أضيف|احفظ|دون|دوّن|اكتب|जोड़|लिख")
+    )
+
+    /**
+     * Whether [message] only asks something ("كم صرفت في ستاربكس هالشهر؟", "how much at
+     * Starbucks"): a question by its mark or first word, with no word asking to add and none of
+     * [amounts] in it. Qwen2.5 answers some with an add call; a question records nothing.
+     */
+    fun asksOnly(message: String, amounts: List<BigDecimal>): Boolean {
+        val text = message.trim()
+        val question = text.endsWith("?") || text.endsWith("؟") || QUESTION_START.containsMatchIn(text)
+        return question && !ADD_WORD.containsMatchIn(text) && amounts.none { statesAmount(text, it) }
+    }
+
     // Received money
 
     private val MONEY_MARK = "(?:[₹$€£]|rs\\.?|sr|jd|dhs?|rupees?|rupaye|रुपये|रुपए|रुपया|dollars?|डॉलर|euros?|pounds?|riyals?|dirhams?|dinars?|" +

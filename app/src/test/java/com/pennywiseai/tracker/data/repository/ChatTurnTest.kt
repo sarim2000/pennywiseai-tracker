@@ -291,6 +291,36 @@ class ChatTurnTest {
     }
 
     @Test
+    fun `a question's add call proposes nothing, and looks up what it named`() = runTest {
+        every { context.getString(R.string.chat_reply_add, any()) } returns "CARD"
+        every { context.getString(R.string.chat_reply_month_spend, any()) } returns "SPENT"
+        val filter = answerSpending()
+        fun income(merchant: String?) = LlmEvent.ToolCall(
+            PennyWiseTools.ADD_TRANSACTIONS,
+            mapOf("items" to listOf(mapOf("amount" to 25.0, "merchant" to merchant, "type" to "INCOME")))
+        )
+        // What Qwen2.5 sent for it in 2 runs of 3.
+        events = listOf(income("ستاربكس"))
+        assertTrue(send("كم صرفت في ستاربكس هالشهر؟").startsWith("SPENT"))
+        assertEquals(null, repository.pendingAction.value)
+        assertEquals("ستاربكس", filter.captured.merchant)
+        events = listOf(income("Starbucks"))
+        assertTrue(send("how much did I spend at Starbucks").startsWith("SPENT"))
+        assertEquals(null, repository.pendingAction.value)
+        // Nothing to look up: the usual "couldn't read" reply, still no card.
+        events = listOf(income(null))
+        assertEquals("UNREADABLE", send("what did I spend this month?"))
+        assertEquals(null, repository.pendingAction.value)
+
+        // Asked to add, or stating the amount, it's still a card.
+        events = listOf(income("Starbucks"))
+        assertEquals("CARD", send("can you add 25 from Starbucks?"))
+        repository.clearPendingAction()
+        events = listOf(income("Starbucks"))
+        assertEquals("CARD", send("got 25 back from Starbucks?"))
+    }
+
+    @Test
     fun `a delete after an add waits, and the user hears it`() = runTest {
         events = listOf(add(120.0), LlmEvent.ToolCall(PennyWiseTools.DELETE_TRANSACTION, mapOf("merchant" to "shop")))
         val reply = send("coffee 120 and delete the shop")

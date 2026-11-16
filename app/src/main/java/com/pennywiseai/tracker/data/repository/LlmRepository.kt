@@ -267,6 +267,18 @@ class LlmRepository @Inject constructor(
             }
             responseBuilder.setLength(tag)
         }
+        // A question records nothing: "كم صرفت في ستاربكس هالشهر؟" had Qwen2.5 propose an income
+        // in 2 runs of 3. What its add call named is looked up instead, or it's unreadable.
+        if (toolCalls.any { it.name == PennyWiseTools.ADD_TRANSACTIONS }) {
+            val items = toolCalls.filter { it.name == PennyWiseTools.ADD_TRANSACTIONS }.flatMap { TransactionDraft.itemsOfCall(it.arguments) }
+            if (ChatMessageFacts.asksOnly(userMessage, items.mapNotNull { ChatMessageFacts.parseAmount(it["amount"]) })) {
+                val lookup = lookupAsked(items)
+                toolCalls.removeAll { it.name == PennyWiseTools.ADD_TRANSACTIONS }
+                if (lookup != null) toolCalls.add(lookup) else unreadableToolCall = true
+                // The live conversation holds the add call; the next turn rebuilds from the save.
+                conversationBroken = true
+            }
+        }
         // A turn that called a tool, readably or not, is answered by the app alone: the
         // repository's figures, or the card it proposes. Prose beside them could carry the
         // model's own arithmetic, a figure from an earlier turn, or a claim that it saved
@@ -501,6 +513,13 @@ class LlmRepository @Inject constructor(
         return categories.firstOrNull { norm(it.name) == w }?.name
             ?: categories.firstOrNull { norm(it.name).startsWith(w) || w.startsWith(norm(it.name)) }?.name
             ?: categories.firstOrNull { norm(it.name).split(" ").first() == w.split(" ").first() }?.name
+    }
+
+    /** The spending lookup a question's add call names: its one item's merchant or category. */
+    private fun lookupAsked(items: List<Map<String, Any?>>): LlmEvent.ToolCall? {
+        val item = items.singleOrNull() ?: return null
+        val args = listOf("merchant", "category").mapNotNull { key -> (item[key] as? String)?.trim()?.takeIf { it.isNotEmpty() }?.let { key to it } }.toMap()
+        return if (args.isEmpty()) null else LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, args)
     }
 
     private fun addCall(items: List<Map<String, Any?>>) = LlmEvent.ToolCall(PennyWiseTools.ADD_TRANSACTIONS, mapOf("items" to items))

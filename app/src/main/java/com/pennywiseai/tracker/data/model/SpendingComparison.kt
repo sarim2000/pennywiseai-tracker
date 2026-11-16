@@ -101,7 +101,7 @@ object SpendingComparison {
     private fun spending(rows: List<TransactionWithSplits>, creditAsExpense: Boolean) = rows.forTotals()
         .filter { it.transaction.transactionType == TransactionType.EXPENSE || (creditAsExpense && it.transaction.transactionType == TransactionType.CREDIT) }
 
-    private fun Set<String>?.includes(name: String) = this == null || any { it.equals(name, ignoreCase = true) }
+    private fun Set<String>.includes(name: String) = any { it.equals(name, ignoreCase = true) }
 
     /**
      * Refunds (INCOME + DEDUCT_SPENT) as (currency, category, amount): they come off spending, as on
@@ -132,11 +132,10 @@ object SpendingComparison {
     fun transactionsIn(rows: List<TransactionWithSplits>, categories: Set<String>, creditAsExpense: Boolean = true): Int =
         spending(rows, creditAsExpense).count { row -> row.getAmountByCategory().keys.any { categories.includes(it) } }
 
-    private fun grossSpend(rows: List<TransactionWithSplits>, categories: Set<String>?, creditAsExpense: Boolean): Map<String, BigDecimal> =
+    private fun grossSpend(rows: List<TransactionWithSplits>, categories: Set<String>, creditAsExpense: Boolean): Map<String, BigDecimal> =
         spending(rows, creditAsExpense)
             .mapNotNull { row ->
-                val amount = if (categories == null) row.transaction.amount
-                else row.getAmountByCategory().entries.filter { categories.includes(it.key) }
+                val amount = row.getAmountByCategory().entries.filter { categories.includes(it.key) }
                     .takeIf { it.isNotEmpty() }?.fold(BigDecimal.ZERO) { acc, e -> acc + e.value } ?: return@mapNotNull null
                 row.transaction.currency to amount
             }

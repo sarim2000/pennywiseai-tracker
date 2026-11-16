@@ -44,6 +44,7 @@ import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Density
@@ -160,11 +161,14 @@ private fun LinkImagePreview(
                 .semantics { contentDescription = description },
             contentAlignment = Alignment.Center,
         ) {
+            val covered = AmountPrivacy.hidden && !revealed
+            // Covered, the figures are hidden from TalkBack too; semantics never reach the uploaded image.
+            val unread = if (covered) Modifier.clearAndSetSemantics {} else Modifier
             // Fixed density and font scale: the image is the same on every phone.
             CompositionLocalProvider(LocalDensity provides Density(OG_WIDTH / ShareCardLandscapeWidth.value, 1f)) {
-                ShareCardLandscape(content, theme, Modifier.scaleTo(scale).then(recordModifier))
+                ShareCardLandscape(content, theme, Modifier.scaleTo(scale).then(recordModifier).then(unread))
             }
-            if (AmountPrivacy.hidden && !revealed) HiddenAmountsCover(onReveal)
+            if (covered) HiddenAmountsCover(onReveal)
         }
     }
 }

@@ -380,7 +380,12 @@ class QuickAddActivity : FragmentActivity() {
         val cashAccounts = remember(currency) { cashAccounts(setup.balances, currency, setup.profileId) }
         var accountKey by rememberSaveable { mutableStateOf(cashAccounts.firstOrNull()?.let(::keyOf)) }
         val account = cashAccounts.firstOrNull { keyOf(it) == accountKey }
-        val categories = if (income) setup.incomeCategories else setup.expenseCategories
+        // The category the words picked leads the row, so the pick is in view, not off to the side.
+        val heardCategory by rememberSaveable { mutableStateOf(heard?.category) }
+        val categories = remember(income, heardCategory) {
+            val ofType = if (income) setup.incomeCategories else setup.expenseCategories
+            ofType.sortedBy { it.name != heardCategory }
+        }
         val type = if (income) TransactionType.INCOME else TransactionType.EXPENSE
         val amount = amountText.toBigDecimalOrNull()?.takeIf { it.signum() > 0 }
         val focus = remember { FocusRequester() }

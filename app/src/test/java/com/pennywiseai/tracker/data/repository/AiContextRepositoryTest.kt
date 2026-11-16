@@ -210,7 +210,7 @@ class AiContextRepositoryTest {
         forgiven = mapOf("INR" to BigDecimal("400"))
         val p = repository.spending(today)
         assertEquals(mapOf("INR" to "120"), amounts(p.spentWithForgiven))
-        assertEquals("Business", p.scope.profile)
+        assertEquals(ProfileEntity.BUSINESS_ID, p.scope.profile?.id)
     }
 
     @Test

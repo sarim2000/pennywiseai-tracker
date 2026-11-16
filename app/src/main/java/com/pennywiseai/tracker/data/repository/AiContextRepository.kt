@@ -5,6 +5,7 @@ import com.pennywiseai.tracker.data.database.dao.AccountBalanceDao
 import com.pennywiseai.tracker.data.database.dao.CategoryDao
 import com.pennywiseai.tracker.data.database.dao.ProfileDao
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.database.entity.expandWithChildren
@@ -63,9 +64,11 @@ class AiContextRepository @Inject constructor(
     private suspend fun scope(window: SpendingComparison.Window): Scope {
         val profileId = userPreferencesRepository.selectedProfileId.first()
         val keys = if (profileId == null) emptyMap() else buildProfileAccountKeys(accountBalanceDao.getAllLatestBalancesOnce())
-        val name = profileId?.let { profileDao.getById(it)?.name }
-        return Scope(ChatScope(window, name), profileId, keys)
+        return Scope(ChatScope(window, profileShown()), profileId, keys)
     }
+
+    /** The profile Home shows, null for all: comparisons name it as the other answers do. */
+    suspend fun profileShown(): ProfileEntity? = userPreferencesRepository.selectedProfileId.first()?.let { profileDao.getById(it) }
 
     private suspend fun rows(scope: Scope): List<TransactionWithSplits> =
         transactionSplitDao.getTransactionsWithSplitsAllCurrencies(scope.start, scope.end).first()

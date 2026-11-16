@@ -6,6 +6,7 @@ import com.pennywiseai.shared.domain.mapping.SharedCategoryMapping
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.dao.ChatDao
 import com.pennywiseai.tracker.data.database.entity.ChatMessage
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.model.ChatMessageFacts
@@ -21,6 +22,7 @@ import com.pennywiseai.tracker.data.model.TransactionFinder
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.service.PennyWiseTools
+import com.pennywiseai.tracker.domain.model.seededNameRes
 import com.pennywiseai.tracker.domain.service.LlmEvent
 import com.pennywiseai.tracker.domain.service.LlmService
 import com.pennywiseai.tracker.domain.service.TOOL_CALL_PARSE_FAILURE
@@ -510,9 +512,9 @@ class LlmRepository @Inject constructor(
             val unknown = category != null && known == null && result is SpendingComparison.Result.Rows && result.rows.isEmpty()
             when {
                 unknown && SpendingComparison.meansAllSpending(asked) ->
-                    aiContextRepository.compareSpending(period, null, creditAsExpense()).let { comparisonText(it.alsoTrend(), null) }
+                    aiContextRepository.compareSpending(period, null, creditAsExpense()).let { comparisonText(it.alsoTrend(), null, aiContextRepository.profileShown()) }
                 unknown -> context.getString(R.string.chat_reply_unknown_category, asked)
-                else -> comparisonText(result.alsoTrend(), category)
+                else -> comparisonText(result.alsoTrend(), category, aiContextRepository.profileShown())
             }
         }
     } else when (call.name) {
@@ -600,7 +602,7 @@ class LlmRepository @Inject constructor(
         val answer = when (action) {
             QuickAction.COMPARE_MONTH -> aiContextRepository.compareSpending(SpendingComparison.Period.MONTH, null, creditAsExpense()).let {
                 subject = subject.copy(trend = SpendingComparison.direction(it))
-                comparisonText(it, null)
+                comparisonText(it, null, aiContextRepository.profileShown())
             }
             QuickAction.MONTH_SPEND -> spendingText(aiContextRepository.spending())
             QuickAction.TOP_CATEGORIES -> aiContextRepository.topCategories().let { top ->
@@ -669,19 +671,27 @@ class LlmRepository @Inject constructor(
     private fun money(amount: BigDecimal, currency: String) = CurrencyFormatter.formatCurrency(amount, currency, maskIfHidden = false)
 
     /** The dates an answer covers, and the profile when Home shows only one. */
-    private fun scopeLabel(scope: ChatScope) = range(scope.window) + (scope.profile?.let { " · $it" } ?: "")
+    private fun scopeLabel(scope: ChatScope) = range(scope.window) + profileLabel(scope.profile)
+
+    /** " · Business", in the app's language for a seeded profile, as Home's dropdown names it. */
+    private fun profileLabel(profile: ProfileEntity?) =
+        profile?.let { " · " + (it.seededNameRes()?.let(context::getString) ?: it.name) }.orEmpty()
 
     private fun range(w: SpendingComparison.Window): String {
         val (a, b) = w.start.format(DAY_MONTH) to w.end.format(DAY_MONTH)
         return if (a == b) a else "$a–$b"
     }
 
-    /** A comparison as chat lines: a dated header, then one line per currency. Also for M8's one-tap question. */
-    fun comparisonText(result: SpendingComparison.Result, category: String?): String {
-        if (result is SpendingComparison.Result.NoData) return context.getString(R.string.chat_reply_compare_no_data, range(result.missing))
+    /**
+     * A comparison as chat lines: a dated header naming [profile] when Home shows only one, then
+     * one line per currency. Also for M8's one-tap question.
+     */
+    fun comparisonText(result: SpendingComparison.Result, category: String?, profile: ProfileEntity?): String {
+        val label = profileLabel(profile)
+        if (result is SpendingComparison.Result.NoData) return context.getString(R.string.chat_reply_compare_no_data, range(result.missing) + label)
         val rows = (result as SpendingComparison.Result.Rows).rows
         val now = range(result.current)
-        val before = range(result.previous)
+        val before = range(result.previous) + label
         if (rows.isEmpty()) return if (category == null) context.getString(R.string.chat_reply_compare_nothing, now, before)
         else context.getString(R.string.chat_reply_compare_nothing_category, category, now, before)
         return buildList {

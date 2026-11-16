@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.data.model
 
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.ledger.ConvertedEstimate
 import java.math.BigDecimal
 
@@ -8,7 +9,7 @@ import java.math.BigDecimal
  * Every answer prints it, so two answers over different days or profiles don't read as a
  * disagreement.
  */
-data class ChatScope(val window: SpendingComparison.Window, val profile: String? = null)
+data class ChatScope(val window: SpendingComparison.Window, val profile: ProfileEntity? = null)
 
 /**
  * Spending in [scope] as Home works it out: per currency, never added across currencies.

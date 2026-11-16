@@ -5,6 +5,7 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.dao.ChatDao
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.ChatMessage
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.model.PendingChatAction
@@ -53,7 +54,9 @@ class ChatTurnTest {
             }
         }
     }
-    private val aiContext = mockk<AiContextRepository>(relaxed = true)
+    private val aiContext = mockk<AiContextRepository>(relaxed = true) {
+        coEvery { profileShown() } returns null
+    }
     private val preferences = mockk<UserPreferencesRepository>(relaxed = true) {
         every { baseCurrency } returns flowOf("INR")
         every { countCreditCardAsExpense } returns flowOf(false)
@@ -378,6 +381,32 @@ class ChatTurnTest {
         assertEquals(listOf("ESTIMATE", "LEFT_OUT", "RECEIVED", "COUNT"), lines.drop(3))
         repository.answerQuickAction(QuickAction.MONTH_SPEND)
         assertEquals(lines.dropLast(1).joinToString("\n"), saved.last().message)
+    }
+
+    @Test
+    fun `a seeded profile is named in the app's language, on totals and comparisons alike`() = runTest {
+        val business = ProfileEntity(ProfileEntity.BUSINESS_ID, "Business", "#000")
+        every { context.getString(R.string.profile_default_business) } returns "عمل"
+        coEvery { aiContext.spending(any()) } returns com.pennywiseai.tracker.data.model.PeriodSpending(
+            com.pennywiseai.tracker.data.model.ChatScope(SpendingComparison.Window(LocalDateTime.of(2026, 11, 1, 0, 0), LocalDateTime.of(2026, 11, 16, 23, 59)), business),
+            spent = mapOf("INR" to BigDecimal("700")),
+            income = emptyMap(),
+        )
+        repository.answerQuickAction(QuickAction.MONTH_SPEND)
+        verify { context.getString(R.string.chat_reply_month_spend, "1 Nov–16 Nov · عمل") }
+
+        // A comparison covers the same profile, so it says so too.
+        coEvery { aiContext.profileShown() } returns business
+        val w = SpendingComparison.Window(LocalDateTime.of(2026, 11, 1, 0, 0), LocalDateTime.of(2026, 11, 16, 23, 59))
+        coEvery { aiContext.compareSpending(any(), any(), any(), any()) } returns
+            SpendingComparison.Result.Rows(w, w, listOf(SpendingComparison.Row("INR", BigDecimal("700"), BigDecimal("500"), BigDecimal("40"))))
+        repository.answerQuickAction(QuickAction.COMPARE_MONTH)
+        verify { context.getString(R.string.chat_reply_compare_title, "1 Nov–16 Nov", "1 Nov–16 Nov · عمل") }
+
+        // A renamed one shows as the user named it.
+        coEvery { aiContext.profileShown() } returns business.copy(name = "Shop")
+        repository.answerQuickAction(QuickAction.COMPARE_MONTH)
+        verify { context.getString(R.string.chat_reply_compare_title, "1 Nov–16 Nov", "1 Nov–16 Nov · Shop") }
     }
 
     @Test

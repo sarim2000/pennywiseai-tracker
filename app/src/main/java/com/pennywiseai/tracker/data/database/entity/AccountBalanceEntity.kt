@@ -4,10 +4,10 @@ import androidx.room3.ColumnInfo
 import androidx.room3.Entity
 import androidx.room3.Index
 import androidx.room3.PrimaryKey
-import java.math.BigDecimal
-import java.time.LocalDateTime
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
+import java.math.BigDecimal
+import java.time.LocalDateTime
 
 @Entity(
     tableName = "account_balances",
@@ -22,13 +22,13 @@ data class AccountBalanceEntity(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
     val id: Long = 0,
-    
+
     @ColumnInfo(name = "bank_name")
     val bankName: String,
-    
+
     @ColumnInfo(name = "account_last4")
     val accountLast4: String,
-    
+
     @ColumnInfo(name = "balance")
     @Contextual
     val balance: BigDecimal,
@@ -36,25 +36,25 @@ data class AccountBalanceEntity(
     @ColumnInfo(name = "timestamp")
     @Contextual
     val timestamp: LocalDateTime,
-    
+
     @ColumnInfo(name = "transaction_id")
     val transactionId: Long? = null,
-    
+
     @ColumnInfo(name = "credit_limit")
     @Contextual
     val creditLimit: BigDecimal? = null,
 
     @ColumnInfo(name = "is_credit_card", defaultValue = "0")
     val isCreditCard: Boolean = false,
-    
+
     @ColumnInfo(name = "sms_source")
     val smsSource: String? = null,
-    
+
     @ColumnInfo(name = "source_type")
-    val sourceType: String? = null,  // TRANSACTION, SMS_BALANCE, MANUAL, CARD_LINK
+    val sourceType: String? = null, // TRANSACTION, SMS_BALANCE, MANUAL, CARD_LINK
 
     @ColumnInfo(name = "account_type")
-    val accountType: String? = null,  // SAVINGS, CURRENT, CREDIT, CASH, LOAN
+    val accountType: String? = null, // SAVINGS, CURRENT, CREDIT, CASH, LOAN
 
     @ColumnInfo(name = "created_at")
     @Contextual
@@ -78,7 +78,36 @@ data class AccountBalanceEntity(
     // BigDecimal as a plain string and old backups without the key default to null.
     @ColumnInfo(name = "lowBalanceThreshold")
     @Contextual
-    val lowBalanceThreshold: BigDecimal? = null
+    val lowBalanceThreshold: BigDecimal? = null,
+
+    // A credit card's bill, as the user entered it. Account-level like alias:
+    // the same on every row of the account, null on legacy rows ("unknown").
+    /** Day of the month the card's bill is due, 1–31. Never the statement day. */
+    @ColumnInfo(name = "card_due_day", defaultValue = "NULL")
+    val cardDueDay: Int? = null,
+
+    /** The last statement's amount, in [currency]. */
+    @ColumnInfo(name = "card_bill_amount", defaultValue = "NULL")
+    @Contextual
+    val cardBillAmount: BigDecimal? = null,
+
+    /** When [cardBillAmount] was entered: it belongs to the statement closed by then. */
+    @ColumnInfo(name = "card_bill_as_of", defaultValue = "NULL")
+    @Contextual
+    val cardBillAsOf: LocalDateTime? = null,
+
+    // Where the account's balance was last pinned to a real figure. A MANUAL row's
+    // timestamp can't say: those rows are refreshed, so it isn't when the user typed it.
+    @ColumnInfo(name = "anchor_amount", defaultValue = "NULL")
+    @Contextual
+    val anchorAmount: BigDecimal? = null,
+
+    @ColumnInfo(name = "anchor_at", defaultValue = "NULL")
+    @Contextual
+    val anchorAt: LocalDateTime? = null,
+
+    @ColumnInfo(name = "anchor_source", defaultValue = "NULL")
+    val anchorSource: String? = null
 ) {
     /**
      * Label to show wherever the user picks or reads this account: the user-set

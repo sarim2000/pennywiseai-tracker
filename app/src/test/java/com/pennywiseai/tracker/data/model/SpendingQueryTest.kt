@@ -237,6 +237,15 @@ class SpendingQueryTest {
         assertEquals(GroupBy.ACCOUNT, grouping(GroupBy.ACCOUNT, null, "Amazon", null, "How much did I spend at Amazon on each card?"))
         assertEquals(GroupBy.CATEGORY, grouping(GroupBy.CATEGORY, null, "Carrefour", null, "my Carrefour spending by category"))
         assertEquals(GroupBy.ACCOUNT, grouping(GroupBy.ACCOUNT, null, "أمازون", null, "كم صرفت في أمازون حسب البطاقة؟"))
+        assertEquals(GroupBy.CATEGORY, grouping(GroupBy.CATEGORY, null, "Carrefour", null, "top categories at Carrefour"))
+        assertEquals(GroupBy.ACCOUNT, grouping(GroupBy.ACCOUNT, null, "Amazon", null, "Amazon spending across my cards"))
+        assertEquals(GroupBy.CATEGORY, grouping(GroupBy.CATEGORY, null, "Carrefour", null, "where at Carrefour did most go, category-wise?"))
+        assertEquals(GroupBy.CATEGORY, grouping(GroupBy.CATEGORY, null, "كارفور", null, "أكثر فئة صرفت عليها في كارفور"))
+        assertEquals(GroupBy.ACCOUNT, grouping(GroupBy.ACCOUNT, null, "أمازون", null, "بأي بطاقة دفعت في أمازون؟"))
+        // "any" and "more than" ask for one figure.
+        assertEquals(GroupBy.NONE, grouping(GroupBy.CATEGORY, null, "Swiggy", null, "هل صرفت أي شي في سويغي هالشهر؟"))
+        assertEquals(GroupBy.NONE, grouping(GroupBy.CATEGORY, null, "كارفور", null, "هل صرفت أكثر من ٥٠٠ في كارفور؟"))
+        assertEquals(GroupBy.NONE, grouping(GroupBy.CATEGORY, null, "Careem", null, "how much did I top up at Careem?"))
     }
 
     @Test

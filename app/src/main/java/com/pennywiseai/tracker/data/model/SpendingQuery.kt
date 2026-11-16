@@ -335,9 +335,13 @@ object SpendingQuery {
         else -> null
     }
 
-    // "by card", "per category", "each account", "which card", "حسب البطاقة", "لكل فئة".
+    // "by card", "per category", "across my cards", "category-wise", "top category", "حسب البطاقة",
+    // "لكل فئة", "أي بطاقة", "أكثر فئة". A bare "أي" is mostly "any" ("أي شي"), "أكثر" "more than".
     private val BREAKDOWN = Regex(
-        "\\b(?:by|per|each|which|breakdown|split)\\b|(?<![\\p{L}\\p{M}])(?:حسب|بحسب|لكل|أي|اي|توزيع|تقسيم)(?![\\p{L}\\p{M}])",
+        "\\b(?:by|per|each|which|breakdown|split|across|wise|categories|cards|accounts)\\b" +
+            "|\\b(?:top|most|biggest|highest)\\s+(?:category|card|account)\\b" +
+            "|(?<![\\p{L}\\p{M}])(?:حسب|بحسب|لكل|توزيع|تقسيم|[وبل]?(?:ال)?(?:فئات|بطاقات|حسابات|تصنيفات))(?![\\p{L}\\p{M}])" +
+            "|(?<![\\p{L}\\p{M}])[وب]?(?:أي|اي|أكثر|اكثر|أعلى|اعلى)\\s+(?:ال)?(?:فئة|بطاقة|حساب|تصنيف)",
         RegexOption.IGNORE_CASE
     )
 

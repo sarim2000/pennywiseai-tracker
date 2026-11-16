@@ -8,6 +8,7 @@ import com.pennywiseai.tracker.domain.review.CurrencyReview
 import com.pennywiseai.tracker.domain.review.PeriodReview
 import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.domain.review.reviewRange
+import com.pennywiseai.tracker.utils.Money
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -75,5 +76,20 @@ class InsightsUiStateTest {
         assertEquals("INR", state.currency)
         assertEquals(listOf("b"), state.insights.map { it.id })
         assertEquals(listOf("a"), state.dismissed.map { it.id })
+    }
+
+    @Test
+    fun `Home shows two insights, leaving budget ones to its Budgets card when that is shown`() {
+        val budget = insight("budget", "INR")
+        val savings = Insight(
+            "savings", InsightSeverity.WARNING, "INR",
+            InsightFact.SavingsRate(Money(BigDecimal.TEN, "INR"), Money(BigDecimal.ONE, "INR"), 10), null,
+        )
+        val other = savings.copy(id = "other")
+        val third = savings.copy(id = "third")
+        val active = listOf(budget, savings, other, third)
+
+        assertEquals(listOf("budget", "savings"), homeInsights(active, budgetsOnHome = false).map { it.id })
+        assertEquals(listOf("savings", "other"), homeInsights(active, budgetsOnHome = true).map { it.id })
     }
 }

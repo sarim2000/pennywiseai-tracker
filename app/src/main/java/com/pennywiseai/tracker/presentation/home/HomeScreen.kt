@@ -131,7 +131,10 @@ fun HomeScreen(
     val insightsViewModel: com.pennywiseai.tracker.presentation.insights.InsightsViewModel = hiltViewModel()
     // Only loaded while the section is shown: hidden, it costs nothing.
     val topInsights = if (homeSectionLayout.contains(HomeSection.INSIGHTS to true)) {
-        insightsViewModel.top.collectAsStateWithLifecycle().value
+        com.pennywiseai.tracker.presentation.insights.homeInsights(
+            active = insightsViewModel.active.collectAsStateWithLifecycle().value,
+            budgetsOnHome = homeSectionLayout.contains(HomeSection.BUDGETS to true) && uiState.budgetSummary != null,
+        )
     } else {
         emptyList()
     }

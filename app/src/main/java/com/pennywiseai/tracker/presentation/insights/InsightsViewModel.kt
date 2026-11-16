@@ -5,6 +5,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.preferences.InsightPreferences
 import com.pennywiseai.tracker.domain.insights.Insight
+import com.pennywiseai.tracker.domain.insights.InsightFact
 import com.pennywiseai.tracker.domain.insights.InsightsLoader
 import com.pennywiseai.tracker.domain.insights.InsightsSnapshot
 import com.pennywiseai.tracker.domain.insights.PeriodScore
@@ -66,6 +67,19 @@ internal fun insightsUiState(snapshot: InsightsSnapshot, chosen: String?): Insig
     )
 }
 
+/**
+ * Home's card: the two that matter most, in any currency (each carries its own). With
+ * the Budgets card on Home too, budget insights stay on the Insights page, so Home
+ * doesn't say the same pace twice.
+ */
+internal fun homeInsights(active: List<Insight>, budgetsOnHome: Boolean): List<Insight> =
+    active.filterNot { budgetsOnHome && it.isAboutBudgets }.take(HOME_COUNT)
+
+private val Insight.isAboutBudgets: Boolean
+    get() = fact is InsightFact.BudgetOver || fact is InsightFact.BudgetPace || fact is InsightFact.BudgetsOnTrack
+
+private const val HOME_COUNT = 2
+
 @HiltViewModel
 class InsightsViewModel @Inject constructor(
     loader: InsightsLoader,
@@ -89,9 +103,9 @@ class InsightsViewModel @Inject constructor(
             loaded?.let { insightsUiState(it, chosen) }
         }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
-    /** Home's card: the two that matter most, in any currency (each carries its own). */
-    val top: StateFlow<List<Insight>> = snapshot
-        .map { it?.active?.take(HOME_COUNT).orEmpty() }
+    /** Not dismissed, what matters most first; Home picks its card from these with [homeInsights]. */
+    val active: StateFlow<List<Insight>> = snapshot
+        .map { it?.active.orEmpty() }
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
 
     /** Called on resume; a new day reloads, the same day does nothing. */
@@ -113,6 +127,5 @@ class InsightsViewModel @Inject constructor(
 
     private companion object {
         const val KEY_CURRENCY = "insightsCurrency"
-        const val HOME_COUNT = 2
     }
 }

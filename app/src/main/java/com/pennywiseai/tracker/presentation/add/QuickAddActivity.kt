@@ -264,25 +264,28 @@ class QuickAddActivity : FragmentActivity() {
     private fun VoicePane(setup: Setup, onEntry: (VoiceEntry) -> Unit, onType: () -> Unit) {
         var transcript by rememberSaveable { mutableStateOf("") }
         var unclear by rememberSaveable { mutableStateOf(false) }
-        // Starts by itself once; after a rotation the mic waits for a tap.
+        // Starts by itself once; a rotation doesn't start it again.
         var started by rememberSaveable { mutableStateOf(false) }
         val categories = setup.expenseCategories + setup.incomeCategories
+        fun route(text: String) {
+            when (val route = voiceRoute(text, categories, setup.baseCurrency, setup.chatOpen) { CategoryMapping.label(this, it) }) {
+                is VoiceRoute.Fill -> onEntry(route.entry)
+                VoiceRoute.Chat -> openChat(text)
+                VoiceRoute.Unclear -> unclear = true
+            }
+        }
         val voice = rememberVoiceInput(
             onText = {
                 transcript = it
                 unclear = false
             },
-            onDone = { text ->
-                when (val route = voiceRoute(text, categories, setup.baseCurrency, setup.chatOpen) { CategoryMapping.label(this, it) }) {
-                    is VoiceRoute.Fill -> onEntry(route.entry)
-                    VoiceRoute.Chat -> openChat(text)
-                    VoiceRoute.Unclear -> unclear = true
-                }
-            }
+            onDone = ::route
         )
         LaunchedEffect(Unit) {
             // A widget drawn before the phone lost its recognizer: type instead.
             if (!voice.available) return@LaunchedEffect onType()
+            // A rotation stopped the mic mid-sentence: use the words it kept, as if the user stopped.
+            if (started && transcript.isNotEmpty() && !unclear) return@LaunchedEffect route(transcript)
             if (!started) {
                 // Until the recognizer says which languages it has, Arabic on Google's (online
                 // only) would start on-device and fail, or skip the consent question.

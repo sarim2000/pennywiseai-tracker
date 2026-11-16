@@ -1,10 +1,10 @@
 package com.pennywiseai.tracker.presentation.accounts
 
-import com.pennywiseai.tracker.R
 import androidx.annotation.StringRes
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService.TransactionData
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
@@ -12,6 +12,8 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.domain.spending.CardBillStatus
+import com.pennywiseai.tracker.domain.spending.CardBillsLoader
 import com.pennywiseai.tracker.ui.components.BalancePoint
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -30,25 +32,55 @@ class AccountDetailViewModel @Inject constructor(
     private val transactionRepository: TransactionRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
     private val currencyConversionService: CurrencyConversionService,
-    private val userPreferencesRepository: CurrencyPreferences
+    private val userPreferencesRepository: CurrencyPreferences,
+    private val cardBillsLoader: CardBillsLoader,
 ) : ViewModel() {
-    
+
     private val bankName: String = savedStateHandle.get<String>("bankName") ?: ""
     private val accountLast4: String = savedStateHandle.get<String>("accountLast4") ?: ""
-    
+
     private val _uiState = MutableStateFlow(AccountDetailUiState())
     val uiState: StateFlow<AccountDetailUiState> = _uiState.asStateFlow()
-    
+
     private val _selectedDateRange = MutableStateFlow(DateRange.LAST_30_DAYS)
     val selectedDateRange: StateFlow<DateRange> = _selectedDateRange.asStateFlow()
-    
+
     init {
         loadAccountData()
         observeTransactions()
         observeBalanceHistory()
         observeBalanceChartData()
+        observeCardBill()
     }
-    
+
+    /** A credit card's bill, as Safe to spend sees it; null for any other account. */
+    private fun observeCardBill() {
+        viewModelScope.launch {
+            accountBalanceRepository.getLatestBalanceFlow(bankName, accountLast4)
+                .flatMapLatest { card ->
+                    if (card?.isCreditCard != true) flowOf(null)
+                    else cardBillsLoader.observe(listOf(card), LocalDate.now()).map { it.single() }
+                }
+                .collect { status -> _uiState.update { it.copy(cardBill = status) } }
+        }
+    }
+
+    /**
+     * Saves the card's due day and last statement amount; nulls clear them. The
+     * amount is dated now, so it counts as the latest statement's, unless only the
+     * due day changed: then it stays the statement it was.
+     */
+    fun setCardBill(dueDay: Int?, amount: BigDecimal?) {
+        val current = _uiState.value.currentBalance
+        val sameAmount = amount != null && current?.cardBillAmount?.compareTo(amount) == 0
+        viewModelScope.launch {
+            accountBalanceRepository.setCardBill(
+                bankName, accountLast4, dueDay, amount,
+                asOf = if (sameAmount) current?.cardBillAsOf else amount?.let { LocalDateTime.now() },
+            )
+        }
+    }
+
     private fun loadAccountData() {
         _uiState.update { it.copy(
             bankName = bankName,
@@ -56,7 +88,7 @@ class AccountDetailViewModel @Inject constructor(
             isLoading = true
         ) }
     }
-    
+
     private fun observeTransactions() {
         viewModelScope.launch {
             combine(
@@ -76,7 +108,7 @@ class AccountDetailViewModel @Inject constructor(
                 } else {
                     allTransactions.filter { transaction ->
                         transaction.dateTime.isAfter(startDate) &&
-                        transaction.dateTime.isBefore(endDate)
+                            transaction.dateTime.isBefore(endDate)
                     }
                 }
 
@@ -138,7 +170,7 @@ class AccountDetailViewModel @Inject constructor(
             }.collect()
         }
     }
-    
+
     private fun observeBalanceHistory() {
         viewModelScope.launch {
             accountBalanceRepository.getLatestBalanceFlow(bankName, accountLast4)
@@ -148,12 +180,12 @@ class AccountDetailViewModel @Inject constructor(
                     }
                 }
         }
-        
+
         viewModelScope.launch {
             selectedDateRange.flatMapLatest { dateRange ->
                 val (startDate, endDate) = getDateRangeValues(dateRange)
                 accountBalanceRepository.getBalanceHistory(
-                    bankName, 
+                    bankName,
                     accountLast4,
                     startDate,
                     endDate
@@ -165,7 +197,7 @@ class AccountDetailViewModel @Inject constructor(
             }
         }
     }
-    
+
     private fun observeBalanceChartData() {
         // Fetch balance chart data based on selected date range
         viewModelScope.launch {
@@ -204,11 +236,11 @@ class AccountDetailViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun selectDateRange(dateRange: DateRange) {
         _selectedDateRange.value = dateRange
     }
-    
+
     private fun getDateRangeValues(dateRange: DateRange): Pair<LocalDateTime, LocalDateTime> {
         val endDate = LocalDateTime.now()
         val startDate = when (dateRange) {
@@ -283,7 +315,8 @@ data class AccountDetailUiState(
     val hasMultipleCurrencies: Boolean = false,
     val isLoading: Boolean = true,
     val billedOutstanding: BigDecimal? = null,
-    val unbilledOutstanding: BigDecimal? = null
+    val unbilledOutstanding: BigDecimal? = null,
+    val cardBill: CardBillStatus? = null,
 )
 
 enum class DateRange(@StringRes val labelRes: Int) {

@@ -115,6 +115,12 @@ fun AccountDetailScreen(
                 )
             }
 
+            uiState.cardBill?.let { status ->
+                item(key = "card_bill") {
+                    CardBillCard(status = status, onSave = viewModel::setCardBill)
+                }
+            }
+
             // Date Range Filter
             item {
                 DateRangeFilter(

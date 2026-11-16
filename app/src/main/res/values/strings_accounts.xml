@@ -311,4 +311,17 @@
         <item quantity="one">View All %1$d Account</item>
         <item quantity="other">View All %1$d Accounts</item>
     </plurals>
+
+    <!-- Card bill on a credit card's page (Safe to spend sets it aside) -->
+    <string name="card_bill_title">Card bill</string>
+    <string name="card_bill_edit">Edit card bill</string>
+    <string name="card_bill_due">%1$s due %2$s</string>
+    <string name="card_bill_overdue">%1$s overdue, was due %2$s</string>
+    <string name="card_bill_paid_part">%1$s paid of %2$s</string>
+    <string name="card_bill_paid">Paid. Add the next statement\'s amount when it arrives.</string>
+    <string name="card_bill_new_statement">A newer statement has closed. Add its amount.</string>
+    <string name="card_bill_add">Add the due day and statement amount, and Safe to spend will set this bill aside.</string>
+    <string name="card_bill_due_day_description">Day of the month the bill is due</string>
+    <string name="card_bill_amount_label">Statement amount (%1$s)</string>
+    <string name="card_bill_amount_hint">The total on your latest statement</string>
 </resources>

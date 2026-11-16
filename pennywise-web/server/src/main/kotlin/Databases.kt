@@ -2,6 +2,8 @@ package com.example
 
 import com.example.feedback.FeedbackService
 import com.example.feedback.configureFeedback
+import com.example.share.ShareService
+import com.example.share.configureShares
 import io.ktor.http.*
 import io.ktor.server.application.*
 import io.ktor.server.request.*
@@ -17,6 +19,9 @@ fun Application.configureDatabases() {
 
     // Configure feedback routes
     configureFeedback(feedbackService)
+
+    // Unlisted share links published from the app (/api/shares, /s/{id})
+    configureShares(ShareService(dbConnection))
 
     routing {
         // SMS Report endpoint

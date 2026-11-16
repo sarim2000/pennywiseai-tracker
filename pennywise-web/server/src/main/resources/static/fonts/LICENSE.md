@@ -7,7 +7,7 @@ finished rendering — on the marketing site for a privacy-first app. Self-hosti
 removes a render-blocking cross-origin round trip, which matters for the mobile
 connections most of these pages are read on.
 
-Both families are licensed under the SIL Open Font License 1.1, which permits
+All three families are licensed under the SIL Open Font License 1.1, which permits
 redistribution and bundling.
 
 | File | Family | Upstream |
@@ -15,13 +15,18 @@ redistribution and bundling.
 | `archivo-variable-latin.woff2` | Archivo (variable, wght 600–800, latin subset) | https://github.com/Omnibus-Type/Archivo |
 | `ibm-plex-mono-400-latin.woff2` | IBM Plex Mono Regular (latin subset) | https://github.com/IBM/plex |
 | `ibm-plex-mono-500-latin.woff2` | IBM Plex Mono Medium (latin subset) | https://github.com/IBM/plex |
+| `ibm-plex-sans-arabic-400-arabic.woff2` | IBM Plex Sans Arabic Regular (arabic subset) | https://github.com/IBM/plex |
+| `ibm-plex-sans-arabic-700-arabic.woff2` | IBM Plex Sans Arabic Bold (arabic subset) | https://github.com/IBM/plex |
 
-Latin-subset builds, as served by the Google Fonts CDN.
+Latin-subset builds, as served by the Google Fonts CDN. The Arabic faces (used by
+shared pages in Arabic, `/s/{id}`) are the Arabic-subset builds from Fontsource
+(`@fontsource/ibm-plex-sans-arabic` 5.2.8).
 
 ## SIL Open Font License 1.1
 
 Copyright (c) Omnibus-Type (Archivo)
 Copyright (c) IBM Corp. (IBM Plex Mono)
+Copyright 2019 IBM Corp. (IBM Plex Sans Arabic)
 
 This Font Software is licensed under the SIL Open Font License, Version 1.1.
 The full licence text is available at: https://scripts.sil.org/OFL

@@ -10,6 +10,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.database.entity.expandWithChildren
 import com.pennywiseai.tracker.data.ledger.breakdownByCurrency
 import com.pennywiseai.tracker.data.ledger.convertedEstimate
+import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.model.CategorySpend
 import com.pennywiseai.tracker.data.model.ChatScope
 import com.pennywiseai.tracker.data.model.PeriodSpending
@@ -81,12 +82,14 @@ class AiContextRepository @Inject constructor(
     /** Home's "Spent this month" and income, with one converted figure only when Home shows one. */
     suspend fun spending(today: LocalDate = LocalDate.now()): PeriodSpending {
         val scope = homeScope(today)
-        val breakdown = breakdownByCurrency(rows(scope).map { it.transaction }, creditAsExpense())
+        val transactions = rows(scope).map { it.transaction }
+        val breakdown = breakdownByCurrency(transactions, creditAsExpense())
         val result = PeriodSpending(
             scope = scope.chat,
             spent = breakdown.mapValues { it.value.expenses }.filterValues { it.signum() > 0 },
             income = breakdown.mapValues { it.value.income }.filterValues { it.signum() > 0 },
             forgiven = forgiven(scope),
+            transactionCount = transactions.forTotals().size,
         )
         val spent = result.spentWithForgiven
         val display = userPreferencesRepository.displayCurrency.first()

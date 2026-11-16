@@ -15,6 +15,7 @@ data class ChatScope(val window: SpendingComparison.Window, val profile: String?
  * [spent] is spending net of refunds (card purchases only when the user counts them);
  * [forgiven] is lent balances forgiven in the scope, which Home adds to "Spent" (#938).
  * [estimate] is one converted figure, only when Home shows one (unified currency mode).
+ * [transactionCount] is every transaction in the scope that counts toward Home's totals.
  */
 data class PeriodSpending(
     val scope: ChatScope,
@@ -22,6 +23,7 @@ data class PeriodSpending(
     val income: Map<String, BigDecimal>,
     val forgiven: Map<String, BigDecimal> = emptyMap(),
     val estimate: ConvertedEstimate? = null,
+    val transactionCount: Int = 0,
 ) {
     /** Home's "Spent": [spent] plus [forgiven], per currency; currencies at zero left out. */
     val spentWithForgiven: Map<String, BigDecimal>

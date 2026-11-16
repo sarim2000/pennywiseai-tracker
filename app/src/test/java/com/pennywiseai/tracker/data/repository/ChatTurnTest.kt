@@ -359,12 +359,14 @@ class ChatTurnTest {
         every { context.getString(R.string.chat_reply_converted_estimate, any(), any()) } returns "ESTIMATE"
         every { context.getString(R.string.chat_reply_converted_left_out, any()) } returns "LEFT_OUT"
         every { context.getString(R.string.chat_reply_received, any()) } returns "RECEIVED"
+        every { context.getString(R.string.chat_reply_transaction_count, 12) } returns "COUNT"
         coEvery { aiContext.spending(any()) } returns com.pennywiseai.tracker.data.model.PeriodSpending(
             com.pennywiseai.tracker.data.model.ChatScope(SpendingComparison.Window(LocalDateTime.of(2026, 11, 1, 0, 0), LocalDateTime.of(2026, 11, 16, 23, 59))),
             spent = mapOf("USD" to BigDecimal("5"), "INR" to BigDecimal("600")),
             income = mapOf("INR" to BigDecimal("5000")),
             forgiven = mapOf("INR" to BigDecimal("400")),
-            estimate = com.pennywiseai.tracker.data.ledger.ConvertedEstimate("INR", BigDecimal("1000"), mapOf("XYZ" to BigDecimal("3")))
+            estimate = com.pennywiseai.tracker.data.ledger.ConvertedEstimate("INR", BigDecimal("1000"), mapOf("XYZ" to BigDecimal("3"))),
+            transactionCount = 12,
         )
         events = listOf(LlmEvent.ToolCall(PennyWiseTools.MONTH_SUMMARY, emptyMap()))
         val typed = send("how much did I spend this month?")
@@ -372,9 +374,24 @@ class ChatTurnTest {
         val lines = typed.lines()
         assertEquals(listOf("SPENT", "WITH_FORGIVEN"), lines.take(2))
         assertTrue(lines[2], lines[2].contains("5") && "$" in lines[2])
-        assertEquals(listOf("ESTIMATE", "LEFT_OUT", "RECEIVED"), lines.drop(3))
+        // Typed, it also gives the count monthSummary promises the model.
+        assertEquals(listOf("ESTIMATE", "LEFT_OUT", "RECEIVED", "COUNT"), lines.drop(3))
         repository.answerQuickAction(QuickAction.MONTH_SPEND)
-        assertEquals(typed, saved.last().message)
+        assertEquals(lines.dropLast(1).joinToString("\n"), saved.last().message)
+    }
+
+    @Test
+    fun `a typed month summary says what was received, even nothing`() = runTest {
+        every { context.getString(R.string.chat_reply_month_spend, any()) } returns "SPENT"
+        coEvery { aiContext.spending(any()) } returns com.pennywiseai.tracker.data.model.PeriodSpending(
+            com.pennywiseai.tracker.data.model.ChatScope(SpendingComparison.Window(LocalDateTime.of(2026, 11, 1, 0, 0), LocalDateTime.of(2026, 11, 16, 23, 59))),
+            spent = mapOf("INR" to BigDecimal("700")),
+            income = emptyMap(),
+        )
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.MONTH_SUMMARY, emptyMap()))
+        send("how much did I earn this month?")
+        // The user's own currency, at zero: the question is answered, not skipped.
+        verify { context.getString(R.string.chat_reply_received, match<String> { "₹" in it && "0" in it && "7" !in it }) }
     }
 
     @Test

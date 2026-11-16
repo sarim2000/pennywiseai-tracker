@@ -548,7 +548,7 @@ class LlmRepository @Inject constructor(
             }
         }
         // The same figures as the one-tap question, and as Home's "Spent this month".
-        PennyWiseTools.MONTH_SUMMARY -> spendingText(aiContextRepository.spending())
+        PennyWiseTools.MONTH_SUMMARY -> spendingText(aiContextRepository.spending(), typed = true)
         PennyWiseTools.SPENDING_BY_CATEGORY -> {
             val wanted = (call.arguments["category"] as? String)?.trim().orEmpty()
             // Hidden categories still hold transactions, and a row can name a category that no
@@ -621,9 +621,10 @@ class LlmRepository @Inject constructor(
     /**
      * Home's "Spent this month" as chat lines: the dated scope, then each currency on its own,
      * forgiven loans named inside the figure they're part of. A converted estimate only when
-     * Home shows one, with what it had to leave out.
+     * Home shows one, with what it had to leave out. [typed] answers monthSummary, which income
+     * and count questions reach too: it always says what was received, and how many transactions.
      */
-    private suspend fun spendingText(p: PeriodSpending): String {
+    private suspend fun spendingText(p: PeriodSpending, typed: Boolean = false): String {
         val spent = ordered(p.spentWithForgiven)
         return buildList {
             if (spent.isEmpty()) {
@@ -639,7 +640,9 @@ class LlmRepository @Inject constructor(
                 add(context.getString(R.string.chat_reply_converted_estimate, money(e.total, e.currency), e.currency))
                 if (e.leftOut.isNotEmpty()) add(context.getString(R.string.chat_reply_converted_left_out, amounts(e.leftOut)))
             }
-            if (p.income.isNotEmpty()) add(context.getString(R.string.chat_reply_received, amounts(p.income)))
+            val income = if (typed) p.income.ifEmpty { mapOf(userPreferencesRepository.baseCurrency.first() to BigDecimal.ZERO) } else p.income
+            if (income.isNotEmpty()) add(context.getString(R.string.chat_reply_received, amounts(income)))
+            if (typed) add(context.getString(R.string.chat_reply_transaction_count, p.transactionCount))
         }.joinToString("\n")
     }
 

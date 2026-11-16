@@ -139,4 +139,12 @@ class ShareStudioSelectionTest {
         // A goal that's gone since it was picked doesn't hold a place.
         assertEquals(listOf(1L), progressGoalIds(setOf(1L, 9L), shown))
     }
+
+    @Test
+    fun `unticking every badge doesn't follow the user to another card`() {
+        val none = ShareStudioSelection(kind = ShareKind.ACHIEVEMENTS, period = ReviewSelection(ReviewKind.MONTH, -1, today), achievements = emptySet())
+        assertNull(none.withKind(ShareKind.PROGRESS, today).achievements)
+        val some = none.copy(achievements = setOf("saver"))
+        assertEquals(setOf("saver"), some.withKind(ShareKind.PROGRESS, today).achievements)
+    }
 }

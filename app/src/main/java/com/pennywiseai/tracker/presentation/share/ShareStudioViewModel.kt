@@ -198,7 +198,9 @@ class ShareStudioViewModel @Inject constructor(
  */
 internal fun ShareStudioSelection.withKind(kind: ShareKind, today: LocalDate): ShareStudioSelection {
     val period = if (kind.monthly && period.kind != ReviewKind.MONTH) defaultSelection(ReviewKind.MONTH, today) else period
-    return copy(kind = kind, period = period)
+    // Unticking every badge only means something on the card it was done on; carried
+    // over, it would leave the next card's Achievements section empty with no chip to undo it.
+    return copy(kind = kind, period = period, achievements = achievements?.takeIf { it.isNotEmpty() })
 }
 
 /** A new kind of period starts at its default as of [today]; the review's own day only fixes the period it opened on. */

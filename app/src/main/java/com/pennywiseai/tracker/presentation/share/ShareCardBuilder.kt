@@ -588,7 +588,7 @@ private fun progressCard(data: ShareStudioData.Progress, selection: ShareStudioS
                         ),
                         fraction = if (bars) (result.usedPercent / 100.0).coerceIn(0.0, 1.0) else null,
                         sentiment = if (result.isOver) Sentiment.BAD else Sentiment.GOOD,
-                        note = if (sameWindow) null else DateRangeUtils.formatDateRange(window.start, window.end),
+                        note = if (sameWindow || ShareDetail.PERIOD !in details) null else DateRangeUtils.formatDateRange(window.start, window.end),
                     )
                 )
             }

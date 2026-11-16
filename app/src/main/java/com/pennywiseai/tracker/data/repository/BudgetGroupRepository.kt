@@ -697,6 +697,9 @@ class BudgetGroupRepository @Inject constructor(
                     }
                 } else emptyList()
 
+                val carrySources = groups.mapNotNull { g ->
+                    currentWindows[g.budget.id]?.let { carrySource(g.budget, it, startDay) }?.let { g.budget.id to it }
+                }.toMap()
                 BudgetGroupSpendingRaw(
                     budgetsWithCategories = groups,
                     windowedSpend = windowed,
@@ -708,10 +711,8 @@ class BudgetGroupRepository @Inject constructor(
                     prevCycleTransactions = prevCycleTransactions,
                     allTransactions = allTransactions.distinctBy { it.transaction.id },
                     currentWindows = currentWindows,
-                    carrySources = groups.mapNotNull { g ->
-                        currentWindows[g.budget.id]?.let { carrySource(g.budget, it, startDay) }?.let { g.budget.id to it }
-                    }.toMap(),
-                    parentOf = parentOf()
+                    carrySources = carrySources,
+                    parentOf = if (carrySources.isEmpty()) emptyMap() else parentOf()
                 )
             }
         }

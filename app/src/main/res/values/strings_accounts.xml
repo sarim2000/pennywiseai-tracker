@@ -358,7 +358,9 @@
     <string name="net_worth_range_year_spoken">1 year</string>
     <!-- Read aloud for the trend chart. %1$s = first amount, %2$s = its date, %3$s = last amount, %4$s = its date -->
     <string name="net_worth_trend_description">Net worth went from %1$s on %2$s to %3$s on %4$s</string>
-    <string name="net_worth_trend_empty">Not enough balance history for this period yet. A cash account joins the trend once you update its balance.</string>
+    <string name="net_worth_trend_empty">Not enough balance history for this period yet.</string>
+    <!-- Shown instead of net_worth_trend_empty when a cash account in this currency was never given a balance -->
+    <string name="net_worth_trend_empty_cash">Not enough balance history for this period yet. A cash account joins the trend once you update its balance.</string>
     <!-- %1$s = amount, %2$s = date -->
     <string name="net_worth_source_entered">You entered %1$s on %2$s</string>
     <string name="net_worth_source_statement">From your statement: %1$s on %2$s</string>

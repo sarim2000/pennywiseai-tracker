@@ -230,7 +230,9 @@ private fun TrendCard(state: NetWorthUiState, currency: String, onSelectRange: (
             trend == null -> Box(Modifier.fillMaxWidth().padding(Spacing.lg), contentAlignment = Alignment.Center) {
                 LoadingIndicator()
             }
-            trend.isEmpty() -> Note(stringResource(R.string.net_worth_trend_empty))
+            trend.isEmpty() -> Note(
+                stringResource(if (state.trendWaitsOnCash) R.string.net_worth_trend_empty_cash else R.string.net_worth_trend_empty)
+            )
             else -> {
                 val points = remember(trend) { trend.map { BalancePoint(it.date.atStartOfDay(), it.net, currency) } }
                 val first = trend.first()

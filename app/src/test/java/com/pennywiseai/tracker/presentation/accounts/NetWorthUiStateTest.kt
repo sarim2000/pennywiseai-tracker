@@ -68,4 +68,20 @@ class NetWorthUiStateTest {
         // Each point is a real day's figure, never an average of several.
         assertTrue(drawn.all { it in year })
     }
+
+    @Test
+    fun `the cash hint shows only for a cash account never given a balance`() {
+        assertTrue(!netWorthUiState(snapshot, emptyMap(), null, NetWorthRange.MONTH).trendWaitsOnCash)
+        val cash = NetWorthAccount(
+            AccountBalanceEntity(
+                bankName = "Wallet", accountLast4 = "0000", balance = BigDecimal("100"),
+                timestamp = LocalDateTime.of(2026, 11, 1, 9, 0), currency = "INR", sourceType = "MANUAL",
+            ),
+            source = null, transactionsSince = 0, daysSinceUpdate = 0,
+        )
+        val withCash = snapshot.copy(accounts = accounts + cash)
+        assertTrue(netWorthUiState(withCash, emptyMap(), null, NetWorthRange.MONTH).trendWaitsOnCash)
+        val given = withCash.copy(accounts = accounts + cash.copy(account = cash.account.copy(anchorAt = LocalDateTime.of(2026, 11, 1, 9, 0))))
+        assertTrue(!netWorthUiState(given, emptyMap(), null, NetWorthRange.MONTH).trendWaitsOnCash)
+    }
 }

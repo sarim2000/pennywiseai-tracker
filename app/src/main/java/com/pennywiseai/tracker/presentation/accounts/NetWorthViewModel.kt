@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.presentation.accounts
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.domain.spending.NetWorthAccount
 import com.pennywiseai.tracker.domain.spending.NetWorthLoader
 import com.pennywiseai.tracker.domain.spending.NetWorthPoint
@@ -38,6 +39,16 @@ data class NetWorthUiState(
     val trend: List<NetWorthPoint>?,
 ) {
     val isEmpty: Boolean get() = currencies.isEmpty()
+
+    /**
+     * A cash account here was never given a balance, so its past is unknown and the
+     * currency has no trend until the user updates it.
+     */
+    val trendWaitsOnCash: Boolean
+        get() = accounts.any {
+            !it.account.isLiability && it.account.anchorAt == null &&
+                it.account.sourceType == AccountBalanceRepository.SOURCE_MANUAL
+        }
 }
 
 /** Most points the trend draws; the chart averages anything longer. */

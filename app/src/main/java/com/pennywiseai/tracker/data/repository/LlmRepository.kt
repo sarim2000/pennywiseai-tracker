@@ -675,7 +675,10 @@ class LlmRepository @Inject constructor(
         val category = known ?: asked
         val merchant = named("merchant")
         val account = named("account")?.let { wanted ->
-            when (val match = SpendingQuery.account(wanted, accountBalanceRepository.getAllLatestBalancesOnce())) {
+            // An ignored account is hidden everywhere else, so it's never offered here either.
+            val ignored = ignoredAccountsStore.keys()
+            val accounts = accountBalanceRepository.getAllLatestBalancesOnce().filter { SpendingFilter.accountKey(it) !in ignored }
+            when (val match = SpendingQuery.account(wanted, accounts)) {
                 is SpendingQuery.AccountMatch.One -> match.account
                 is SpendingQuery.AccountMatch.Several ->
                     return context.getString(R.string.chat_reply_account_ambiguous, wanted, match.accounts.joinToString(", ") { it.displayLabel })

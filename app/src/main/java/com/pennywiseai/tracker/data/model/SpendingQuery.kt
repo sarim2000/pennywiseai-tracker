@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.data.model
 
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -30,8 +31,9 @@ data class SpendingFilter(
             (merchant == null || tx.merchantName.contains(merchant, ignoreCase = true) || aliases[tx.merchantName]?.contains(merchant, ignoreCase = true) == true)
 
     companion object {
+        /** The transaction list's account filter keys a row the same way (presentation/common/Filters.kt). */
         fun accountKey(tx: TransactionEntity) = "${tx.bankName}_${tx.accountNumber}"
-        fun accountKey(account: AccountBalanceEntity) = "${account.bankName}_${account.accountLast4}"
+        fun accountKey(account: AccountBalanceEntity) = IgnoredAccountsStore.keyFor(account.bankName, account.accountLast4)
     }
 }
 

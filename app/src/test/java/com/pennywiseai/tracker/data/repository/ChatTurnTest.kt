@@ -20,6 +20,7 @@ import com.pennywiseai.tracker.data.model.SpendingComparison
 import com.pennywiseai.tracker.data.model.SpendingFilter
 import com.pennywiseai.tracker.data.model.SpendingQuery
 import com.pennywiseai.tracker.data.model.TopCategories
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.service.PennyWiseTools
 import com.pennywiseai.tracker.domain.service.LlmEvent
@@ -90,6 +91,10 @@ class ChatTurnTest {
     private val transactions = mockk<TransactionRepository>(relaxed = true)
     private val accountBalances = mockk<AccountBalanceRepository>(relaxed = true)
     private val planning = mockk<PlanningRepository>(relaxed = true)
+    private var ignored = emptySet<String>()
+    private val ignoredAccounts = mockk<IgnoredAccountsStore>(relaxed = true) {
+        every { keys() } answers { ignored }
+    }
     private val repository = LlmRepository(
         context = context,
         llmService = llmService,
@@ -100,7 +105,7 @@ class ChatTurnTest {
         categoryRepository = categories,
         accountBalanceRepository = accountBalances,
         transactionRepository = transactions,
-        ignoredAccountsStore = mockk(relaxed = true),
+        ignoredAccountsStore = ignoredAccounts,
         planningRepository = planning,
     )
 
@@ -1263,6 +1268,11 @@ class ChatTurnTest {
         assertEquals("PERIOD", ask(emptyMap(), "how much did I spend in September?"))
         coVerify(exactly = 0) { aiContext.spending(any(), any()) }
         coVerify(exactly = 0) { aiContext.topCategories(any(), any(), any(), any()) }
+
+        // An ignored account is hidden everywhere, so it's no candidate: the other card answers.
+        ignored = setOf("SBI_1234")
+        every { context.getString(R.string.chat_reply_month_spend, any()) } returns "SPENT"
+        assertTrue(ask(mapOf("account" to "1234")).startsWith("SPENT"))
     }
 
     @Test

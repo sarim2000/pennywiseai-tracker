@@ -924,7 +924,8 @@ private fun ChatLinkChip(link: ChatLink, onClick: () -> Unit) {
     val color = MaterialTheme.colorScheme.onSecondaryContainer
     AssistChip(
         onClick = onClick,
-        label = { Text(link.label) },
+        // A long category wraps to two lines: room above and below so they don't touch the border.
+        label = { Text(link.label, modifier = Modifier.padding(vertical = Spacing.xs)) },
         leadingIcon = {
             Icon(Icons.AutoMirrored.Filled.ReceiptLong, contentDescription = null, modifier = Modifier.size(AssistChipDefaults.IconSize))
         },

@@ -39,8 +39,10 @@ data class InsightsUiState(
     val score: PeriodScore? = null,
     /** What active subscriptions in this currency cost a month; null without any. */
     val subscriptionsMonthly: Money? = null,
+    /** Something was recorded before this cycle: an empty page is a quiet start, not a new user. */
+    val hasHistory: Boolean = false,
 ) {
-    /** Nothing recorded and nothing to say: a new user. */
+    /** Nothing recorded this cycle and nothing to say. */
     val isEmpty: Boolean get() = currencies.isEmpty()
 }
 
@@ -60,6 +62,7 @@ internal fun insightsUiState(snapshot: InsightsSnapshot, chosen: String?): Insig
         dismissed = inCurrency.filter { it.id in snapshot.dismissed },
         score = currency?.let { snapshot.scores[it] },
         subscriptionsMonthly = currency?.let { snapshot.subscriptionsMonthly[it] },
+        hasHistory = snapshot.review.hasOlder,
     )
 }
 

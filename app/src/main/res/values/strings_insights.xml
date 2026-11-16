@@ -20,6 +20,9 @@
     <string name="insights_all_clear">Nothing needs your attention right now.</string>
     <string name="insights_empty_headline">Insights are on their way</string>
     <string name="insights_empty_body">Once a few weeks of transactions are in, this page shows what needs attention and what\'s going well.</string>
+    <!-- Empty page for someone with earlier transactions, early in a new cycle -->
+    <string name="insights_quiet_headline">Nothing recorded this cycle yet</string>
+    <string name="insights_quiet_body">Insights for this cycle show up here as transactions come in.</string>
     <string name="insights_coverage">Worked out on this phone from your recorded transactions. Nothing is sent anywhere.</string>
     <string name="insights_dismiss">Dismiss</string>
     <string name="insights_dismissed">Insight dismissed</string>

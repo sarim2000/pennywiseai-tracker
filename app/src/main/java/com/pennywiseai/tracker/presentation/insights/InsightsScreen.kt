@@ -130,8 +130,12 @@ fun InsightsScreen(
                 loaded == null -> LoadingIndicator(Modifier.align(Alignment.Center))
                 loaded.isEmpty -> PennyWiseEmptyState(
                     icon = Icons.Default.Insights,
-                    headline = stringResource(R.string.insights_empty_headline),
-                    description = stringResource(R.string.insights_empty_body),
+                    headline = stringResource(
+                        if (loaded.hasHistory) R.string.insights_quiet_headline else R.string.insights_empty_headline
+                    ),
+                    description = stringResource(
+                        if (loaded.hasHistory) R.string.insights_quiet_body else R.string.insights_empty_body
+                    ),
                 )
                 else -> InsightsContent(
                     state = loaded,

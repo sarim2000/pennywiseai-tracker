@@ -9,6 +9,7 @@ import com.pennywiseai.tracker.domain.review.PeriodReview
 import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.domain.review.reviewRange
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -25,14 +26,26 @@ class InsightsUiStateTest {
     private fun insight(id: String, currency: String) =
         Insight(id, InsightSeverity.GOOD, currency, InsightFact.BudgetsOnTrack(1), null)
 
-    private fun snapshot(currencies: List<CurrencyReview>, insights: List<Insight>, dismissed: Set<String> = emptySet()) =
-        InsightsSnapshot(PeriodReview(range, currencies, null, null, false), insights, dismissed)
+    private fun snapshot(
+        currencies: List<CurrencyReview>,
+        insights: List<Insight>,
+        dismissed: Set<String> = emptySet(),
+        hasOlder: Boolean = false,
+    ) = InsightsSnapshot(PeriodReview(range, currencies, null, null, hasOlder), insights, dismissed)
 
     @Test
     fun `a new user's page is empty`() {
         val state = insightsUiState(snapshot(emptyList(), emptyList()), null)
         assertTrue(state.isEmpty)
+        assertFalse(state.hasHistory)
         assertNull(state.currency)
+    }
+
+    @Test
+    fun `an empty new cycle after earlier ones is not a new user`() {
+        val state = insightsUiState(snapshot(emptyList(), emptyList(), hasOlder = true), null)
+        assertTrue(state.isEmpty)
+        assertTrue(state.hasHistory)
     }
 
     @Test

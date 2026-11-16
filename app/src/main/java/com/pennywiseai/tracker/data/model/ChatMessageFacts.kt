@@ -192,13 +192,16 @@ internal object ChatMessageFacts {
 
     /**
      * Whether [message] only asks something ("كم صرفت في ستاربكس هالشهر؟", "how much at
-     * Starbucks"): a question by its mark or first word, with no word asking to add and none of
-     * [amounts] in it. Qwen2.5 answers some with an add call; a question records nothing.
+     * Starbucks"), with no word asking to add. Qwen2.5 answers some with an add call; a question
+     * records nothing. Opening with a question word ("how much", "كم") it asks whatever numbers
+     * it holds: "in 2026", "on HDFC 1234". A question by its mark alone stops asking when it
+     * states one of [amounts] ("got 25 back from Starbucks?").
      */
     fun asksOnly(message: String, amounts: List<BigDecimal>): Boolean {
         val text = message.trim()
-        val question = text.endsWith("?") || text.endsWith("؟") || QUESTION_START.containsMatchIn(text)
-        return question && !ADD_WORD.containsMatchIn(text) && amounts.none { statesAmount(text, it) }
+        if (ADD_WORD.containsMatchIn(text)) return false
+        if (QUESTION_START.containsMatchIn(text)) return true
+        return (text.endsWith("?") || text.endsWith("؟")) && amounts.none { statesAmount(text, it) }
     }
 
     // Received money

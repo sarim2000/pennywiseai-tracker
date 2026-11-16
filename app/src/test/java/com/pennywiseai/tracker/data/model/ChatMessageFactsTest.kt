@@ -270,4 +270,21 @@ class ChatMessageFactsTest {
         assertEquals(null, clauses("received 450 refund, then paid 450 for haircut", 450, 450))
         assertEquals(null, clauses("paid 450 for haircut and 200 at Shop 450", 450, 200))
     }
+
+    @Test
+    fun `a question by its first word asks whatever numbers it holds`() {
+        fun asks(message: String, vararg amounts: Int) = ChatMessageFacts.asksOnly(message, amounts.map { BigDecimal(it) })
+        // A year, an account's digits or a figure the model read as the amount: still a question.
+        assertTrue(asks("how much did I spend at Starbucks in 2026", 2026))
+        assertTrue(asks("how much coffee spending on HDFC 1234?", 1234))
+        assertTrue(asks("did I pay 500 at Starbucks?", 500))
+        assertTrue(asks("كم صرفت في ستاربكس في 2026؟", 2026))
+        assertTrue(asks("كم صرفت على بطاقة 1234", 1234))
+        // Asked to add, it isn't one, whatever its form.
+        assertFalse(asks("how much is it? add coffee 120", 120))
+        assertFalse(asks("كم؟ سجل قهوة 120", 120))
+        // A question by its mark alone that states the amount reports it.
+        assertFalse(asks("got 25 back from Starbucks?", 25))
+        assertTrue(asks("coffee at Starbucks this month?"))
+    }
 }

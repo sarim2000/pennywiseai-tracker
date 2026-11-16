@@ -312,6 +312,20 @@ class ChatTurnTest {
         assertEquals("UNREADABLE", send("what did I spend this month?"))
         assertEquals(null, repository.pendingAction.value)
 
+        // A year (or any number) in a question opening with "how much" or "كم" is no amount to add:
+        // it's looked up, and a numeric year is days the lookup says it can't read.
+        every { context.getString(R.string.chat_reply_query_period_unknown) } returns "PERIOD"
+        fun spentIn(amount: Double, account: String? = null) = LlmEvent.ToolCall(
+            PennyWiseTools.ADD_TRANSACTIONS,
+            mapOf("items" to listOf(mapOf("amount" to amount, "merchant" to "Starbucks", "account" to account)))
+        )
+        events = listOf(spentIn(2026.0))
+        assertEquals("PERIOD", send("how much did I spend at Starbucks in 2026"))
+        assertEquals(null, repository.pendingAction.value)
+        events = listOf(spentIn(2026.0))
+        assertEquals("PERIOD", send("كم صرفت في ستاربكس في 2026"))
+        assertEquals(null, repository.pendingAction.value)
+
         // Asked to add, or stating the amount, it's still a card.
         events = listOf(income("Starbucks"))
         assertEquals("CARD", send("can you add 25 from Starbucks?"))

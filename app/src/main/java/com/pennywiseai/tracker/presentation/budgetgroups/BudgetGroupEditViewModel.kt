@@ -75,6 +75,8 @@ data class BudgetGroupEditUiState(
     val startDate: LocalDate = LocalDate.now(),
     /** For CUSTOM: the literal end date. For other period types: read-only cache of the current window's end. */
     val endDate: LocalDate = LocalDate.now(),
+    /** Roll last period's leftover or overspend into the next; weekly and monthly only. */
+    val rolloverEnabled: Boolean = false,
     val isLoading: Boolean = true,
     val isSaving: Boolean = false,
     val saveComplete: Boolean = false
@@ -176,6 +178,7 @@ class BudgetGroupEditViewModel @Inject constructor(
                         monthStartDay = b.monthStartDay ?: userPreferencesRepository.getBudgetCycleStartDay(),
                         startDate = currentWindowStart(b, today, userPreferencesRepository.getBudgetCycleStartDay()),
                         endDate = currentWindowEnd(b, today, userPreferencesRepository.getBudgetCycleStartDay()),
+                        rolloverEnabled = b.rolloverEnabled,
                         isLoading = false
                     )
                 }
@@ -323,6 +326,10 @@ class BudgetGroupEditViewModel @Inject constructor(
         )
     }
 
+    fun updateRollover(enabled: Boolean) {
+        _uiState.value = _uiState.value.copy(rolloverEnabled = enabled)
+    }
+
     /** WEEKLY: which day-of-week the week starts on (1=Mon..7=Sun). */
     fun updateWeekStartDay(day: Int) {
         val safe = day.coerceIn(1, 7)
@@ -396,7 +403,8 @@ class BudgetGroupEditViewModel @Inject constructor(
                     weekStartDay = state.weekStartDay.takeIf { state.periodType == BudgetPeriodType.WEEKLY },
                     monthStartDay = state.monthStartDay.takeIf { state.periodType == BudgetPeriodType.MONTHLY },
                     startDate = state.startDate.takeIf { state.periodType == BudgetPeriodType.CUSTOM },
-                    endDate = state.endDate.takeIf { state.periodType == BudgetPeriodType.CUSTOM }
+                    endDate = state.endDate.takeIf { state.periodType == BudgetPeriodType.CUSTOM },
+                    rollover = state.rolloverEnabled
                 )
             } else {
                 budgetGroupRepository.createGroup(
@@ -410,7 +418,8 @@ class BudgetGroupEditViewModel @Inject constructor(
                     weekStartDay = state.weekStartDay.takeIf { state.periodType == BudgetPeriodType.WEEKLY },
                     monthStartDay = state.monthStartDay.takeIf { state.periodType == BudgetPeriodType.MONTHLY },
                     startDate = state.startDate.takeIf { state.periodType == BudgetPeriodType.CUSTOM },
-                    endDate = state.endDate.takeIf { state.periodType == BudgetPeriodType.CUSTOM }
+                    endDate = state.endDate.takeIf { state.periodType == BudgetPeriodType.CUSTOM },
+                    rollover = state.rolloverEnabled
                 )
             }
 

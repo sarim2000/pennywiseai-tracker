@@ -246,6 +246,20 @@ private fun HistoryRow(
                 text = CurrencyFormatter.formatCurrency(window.spent, currency),
                 style = PennyWiseText.amountMedium
             )
+            window.carry?.let { carry ->
+                Text(
+                    text = if (carry.incomplete) {
+                        stringResource(R.string.budget_rollover_incomplete)
+                    } else {
+                        stringResource(
+                            R.string.budget_history_carried,
+                            carry.amount.format(signPrefix = if (carry.amount.isPositive) "+" else "")
+                        )
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
             if (window.isLive && isCurrentPeriod) {
                 LiveBadge()
             } else {

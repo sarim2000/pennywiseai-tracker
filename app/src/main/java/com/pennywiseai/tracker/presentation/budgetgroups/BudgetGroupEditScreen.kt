@@ -1,13 +1,5 @@
 package com.pennywiseai.tracker.presentation.budgetgroups
 
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.pennywiseai.tracker.utils.AppDates
-
-import java.time.format.TextStyle
-import java.time.DayOfWeek
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.platform.LocalConfiguration
-import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.slideInVertically
@@ -17,8 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
-import com.pennywiseai.tracker.ui.effects.overScrollVertical
-import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -37,29 +28,39 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.ui.components.CategoryIcon
+import com.pennywiseai.tracker.ui.components.ColorSwatchRow
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
-import com.pennywiseai.tracker.ui.components.ColorSwatchRow
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.*
+import com.pennywiseai.tracker.utils.AppDates
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
-import com.pennywiseai.tracker.utils.CurrencyFormatter
-import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import java.math.BigDecimal
+import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
-import com.pennywiseai.tracker.ui.icons.categoryLabel
+import java.time.format.TextStyle
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -319,10 +320,10 @@ fun BudgetGroupEditScreen(
                                 stringResource(R.string.budget_edit_resets_every, dayOfWeekName(uiState.weekStartDay))
                             BudgetPeriodType.MONTHLY ->
                                 if (com.pennywiseai.tracker.domain.model.BudgetCycle.isLastWorkingDay(uiState.monthStartDay)) {
-                                stringResource(R.string.budget_edit_resets_last_working_day)
-                            } else {
-                                stringResource(R.string.budget_edit_resets_on_day, uiState.monthStartDay)
-                            }
+                                    stringResource(R.string.budget_edit_resets_last_working_day)
+                                } else {
+                                    stringResource(R.string.budget_edit_resets_on_day, uiState.monthStartDay)
+                                }
                             BudgetPeriodType.CUSTOM ->
                                 stringResource(R.string.budget_edit_runs_once)
                         }
@@ -352,6 +353,18 @@ fun BudgetGroupEditScreen(
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                             }
+                        }
+
+                        if (uiState.periodType != BudgetPeriodType.CUSTOM) {
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(
+                                    alpha = Dimensions.Alpha.divider
+                                )
+                            )
+                            RolloverRow(
+                                checked = uiState.rolloverEnabled,
+                                onCheckedChange = viewModel::updateRollover
+                            )
                         }
                     }
                 }
@@ -971,6 +984,32 @@ private fun MonthAnchorRow(
                 Icon(Icons.Default.KeyboardArrowUp, contentDescription = stringResource(R.string.budget_edit_increase_day))
             }
         }
+    }
+}
+
+/** Rollover on or off; the whole row is the switch's touch target. */
+@Composable
+private fun RolloverRow(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(R.string.budget_edit_rollover),
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Text(
+                text = stringResource(R.string.budget_edit_rollover_subtitle),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+        Spacer(modifier = Modifier.width(Spacing.sm))
+        Switch(checked = checked, onCheckedChange = null)
     }
 }
 

@@ -709,6 +709,7 @@ private fun BudgetCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                com.pennywiseai.tracker.ui.components.cards.RolloverLine(groupSpending, currency)
             } else if (groupSpending.isTrackingAllExpenses) {
                 Spacer(modifier = Modifier.height(Spacing.sm))
                 Text(

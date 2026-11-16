@@ -186,6 +186,9 @@ class VoiceInput internal constructor(
     // The last answered probe, kept to listen with: destroying it unbinds the speech service,
     // and a mic started right after (the quick add sheet starts on the answer) was cancelled.
     private var spare: SpeechRecognizer? = null
+
+    // A probe that failed, for the same reason destroyed only once a recording ends or the screen goes.
+    private var retired: SpeechRecognizer? = null
     private var userStopped = false
     private val main = Handler(Looper.getMainLooper())
 
@@ -289,6 +292,8 @@ class VoiceInput internal constructor(
         probe = null
         spare?.destroy()
         spare = null
+        retired?.destroy()
+        retired = null
         downloads.forEach { it.destroy() }
         downloads.clear()
     }
@@ -323,6 +328,8 @@ class VoiceInput internal constructor(
         if (recognizer !== r) return
         recognizer = null
         r.destroy()
+        retired?.destroy()
+        retired = null
         state = State.Idle
         level = 0f
         note = result
@@ -429,7 +436,13 @@ class VoiceInput internal constructor(
                 override fun onError(error: Int) {
                     if (probe !== r) return
                     probe = null
-                    r.destroy()
+                    // Its connection is fine when the service just can't say what it supports.
+                    if (error == SpeechRecognizer.ERROR_CANNOT_CHECK_SUPPORT) {
+                        keepSpare(r)
+                    } else {
+                        retired?.destroy()
+                        retired = r
+                    }
                     ready = true
                 }
             }

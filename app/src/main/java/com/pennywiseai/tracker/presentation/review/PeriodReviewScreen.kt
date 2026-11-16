@@ -1,5 +1,8 @@
 package com.pennywiseai.tracker.presentation.review
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -29,9 +32,6 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.MutableTransitionState
-import androidx.compose.animation.fadeIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -56,6 +56,7 @@ import com.pennywiseai.tracker.data.share.ShareWindow
 import com.pennywiseai.tracker.domain.review.CategoryLine
 import com.pennywiseai.tracker.domain.review.CurrencyReview
 import com.pennywiseai.tracker.domain.review.PeriodReview
+import com.pennywiseai.tracker.domain.review.REVIEW_CATEGORY_LINES
 import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.domain.review.ReviewRange
 import com.pennywiseai.tracker.domain.review.isCalendarMonth
@@ -304,7 +305,7 @@ private fun CurrencyReviewCard(
                 style = MaterialTheme.typography.titleSmall,
                 modifier = Modifier.semantics { heading() },
             )
-            review.categories.forEach { line ->
+            review.categories.take(REVIEW_CATEGORY_LINES).forEach { line ->
                 CategoryRow(line, review.currency, showsChange) { onOpenCategory(line.name) }
             }
         }

@@ -92,6 +92,9 @@ data class CategoryLine(val name: String, val amount: BigDecimal, val previous: 
 
 data class MonthPoint(val month: YearMonth, val spent: BigDecimal)
 
+/** Spent at one merchant, net of refunds that carry its name, as Analytics' merchant view. */
+data class MerchantLine(val name: String, val amount: BigDecimal)
+
 /** One currency's review. Amounts in different currencies never meet. */
 data class CurrencyReview(
     val currency: String,
@@ -101,9 +104,12 @@ data class CurrencyReview(
     val income: BigDecimal,
     /** Every row that counts toward any total: spend, income, refunds and transfers alike. */
     val transactionCount: Int,
+    /** Every category with spend in either period; the screen shows the first [REVIEW_CATEGORY_LINES]. */
     val categories: List<CategoryLine>,
     /** Year only. Months are net of refunds; a forgiven loan counts in [spent] alone. */
     val months: List<MonthPoint>,
+    /** The biggest [MERCHANT_LINES], largest first. */
+    val merchants: List<MerchantLine> = emptyList(),
 ) {
     /** False for a currency shown only because it fell to nothing since the previous period. */
     val hasActivity: Boolean get() = transactionCount > 0 || spent.signum() > 0
@@ -227,6 +233,7 @@ private class Spend(
     val total: BigDecimal,
     val byCategory: Map<String, BigDecimal>,
     val byMonth: Map<YearMonth, BigDecimal>,
+    val byMerchant: Map<String, BigDecimal> = emptyMap(),
 )
 
 /** Analytics' spend definition for one currency: refunds netted, loans and exclusions out. */
@@ -240,10 +247,12 @@ private suspend fun spendOf(
 
     val categories = mutableMapOf<String, BigDecimal>()
     val months = mutableMapOf<YearMonth, BigDecimal>()
+    val merchants = mutableMapOf<String, BigDecimal>()
     var gross = BigDecimal.ZERO
     for (row in counted) {
         gross += row.transaction.amount
         months.merge(YearMonth.from(row.transaction.dateTime), row.transaction.amount, BigDecimal::add)
+        merchants.merge(row.transaction.merchantName, row.transaction.amount, BigDecimal::add)
         row.getAmountByCategory().forEach { (category, amount) ->
             categories.merge(category.ifEmpty { "Others" }.let { parentOf[it] ?: it }, amount, BigDecimal::add)
         }
@@ -254,6 +263,7 @@ private suspend fun spendOf(
         total = netOf(gross, refunds.total),
         byCategory = categories.mapValues { (name, amount) -> netOf(amount, refunds.byCategory[name]) },
         byMonth = months.mapValues { (month, amount) -> netOf(amount, monthRefunds[month]) },
+        byMerchant = merchants.mapValues { (name, amount) -> netOf(amount, refunds.byMerchant[name]) },
     )
 }
 
@@ -292,6 +302,11 @@ internal suspend fun buildPeriodReview(
             transactionCount = current[currency].orEmpty().forTotals().size,
             categories = categoryLines(range, spend, before),
             months = if (range.kind == ReviewKind.YEAR) monthPoints(range, spend) else emptyList(),
+            merchants = spend.byMerchant
+                .filterValues { it.signum() > 0 }
+                .map { (name, amount) -> MerchantLine(name, amount) }
+                .sortedWith(compareByDescending<MerchantLine> { it.amount }.thenBy { it.name })
+                .take(MERCHANT_LINES),
         )
     }
         .filter { it.hasActivity || (it.previousSpent?.signum() ?: 0) > 0 }
@@ -324,7 +339,7 @@ private fun categoryLines(range: ReviewRange, spend: Spend, before: Spend?): Lis
     } else {
         lines.sortedByDescending { (it.amount - (it.previous ?: BigDecimal.ZERO)).abs() }
     }
-    return sorted.take(CATEGORY_LINES)
+    return sorted
 }
 
 private fun monthPoints(range: ReviewRange, spend: Spend): List<MonthPoint> =
@@ -333,7 +348,10 @@ private fun monthPoints(range: ReviewRange, spend: Spend): List<MonthPoint> =
         .map { MonthPoint(it, spend.byMonth[it] ?: BigDecimal.ZERO) }
         .toList()
 
-private const val CATEGORY_LINES = 5
+/** The categories the Review screen lists; the PDF report lists them all. */
+internal const val REVIEW_CATEGORY_LINES = 5
+
+private const val MERCHANT_LINES = 10
 
 /** Fewer rows than this and a period isn't worth a Home banner. */
 internal const val MIN_ROWS_FOR_REVIEW_PROMPT = 20

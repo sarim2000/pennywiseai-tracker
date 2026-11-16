@@ -44,7 +44,7 @@ fun savingsTrend(reviews: List<PeriodReview>, currency: String): List<SavingsPoi
  */
 fun spendingDrivers(review: CurrencyReview, limit: Int = 4): List<CategoryLine> {
     if (review.previousSpent == null) return emptyList()
-    return review.categories
+    return review.changes
         .filter { line -> line.previous != null && (line.amount - line.previous).signum() != 0 }
         .sortedByDescending { (it.amount - (it.previous ?: BigDecimal.ZERO)).abs() }
         .take(limit)

@@ -17,12 +17,17 @@ data class SmsScanCounts(
     val excluded: Int = 0,
     /** Looked like a bank message no parser reads; filed under Unrecognized SMS. */
     val unrecognised: Int = 0,
-    /** Not about money (promos, OTPs, people), or a message that failed to parse or save. */
+    /**
+     * Not a transaction (promos, OTPs, people), or a message that couldn't be read: a
+     * parser that threw, or a known bank's message no parser matched.
+     */
     val discarded: Int = 0,
     /** A balance update or a subscription mandate rather than a transaction. */
     val special: Int = 0,
+    /** Read as a transaction, but saving it threw. */
+    val failed: Int = 0,
 ) {
-    val examined: Int get() = saved + duplicates + excluded + unrecognised + discarded + special
+    val examined: Int get() = saved + duplicates + excluded + unrecognised + discarded + special + failed
 }
 
 @Serializable

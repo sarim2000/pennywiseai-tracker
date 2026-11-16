@@ -245,13 +245,15 @@ private fun LastScanCard(scan: SmsCheckupState, canScan: Boolean, onRescan: () -
 
 @Composable
 private fun CountDetails(counts: SmsScanCounts) {
-    val rows = listOf(
+    val rows = listOfNotNull(
         R.string.sms_checkup_count_saved to counts.saved,
         R.string.sms_checkup_count_duplicates to counts.duplicates,
         R.string.sms_checkup_count_excluded to counts.excluded,
         R.string.sms_checkup_count_unrecognised to counts.unrecognised,
         R.string.sms_checkup_count_special to counts.special,
         R.string.sms_checkup_count_discarded to counts.discarded,
+        // Rare, so only shown when it happened.
+        (R.string.sms_checkup_count_failed to counts.failed).takeIf { counts.failed > 0 },
     )
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         rows.forEach { (label, value) ->

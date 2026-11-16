@@ -38,6 +38,7 @@ internal class ProcessingStats(val total: Int) {
     val unrecognised = AtomicInteger(0)
     val discarded    = AtomicInteger(0)
     val special      = AtomicInteger(0)
+    val failed       = AtomicInteger(0)
 
     val startTime = System.currentTimeMillis()
 
@@ -48,6 +49,7 @@ internal class ProcessingStats(val total: Int) {
         unrecognised = unrecognised.get(),
         discarded = discarded.get(),
         special = special.get(),
+        failed = failed.get(),
     )
 
     private val RING_SIZE          = 8192

@@ -6,11 +6,11 @@ import org.junit.Test
 
 class SmsScanRecordTest {
 
-    private val counts = SmsScanCounts(saved = 4, duplicates = 3, excluded = 2, unrecognised = 5, discarded = 90, special = 1)
+    private val counts = SmsScanCounts(saved = 4, duplicates = 3, excluded = 2, unrecognised = 5, discarded = 90, special = 1, failed = 7)
 
     @Test
     fun `examined is the sum of every outcome`() {
-        assertEquals(105, counts.examined)
+        assertEquals(112, counts.examined)
         assertEquals(0, SmsScanCounts().examined)
     }
 

@@ -126,7 +126,7 @@ internal class SmsScanPipeline(
                                         stats.duplicates.incrementAndGet()
                                     }
                                     SaveOutcome.EXCLUDED -> stats.excluded.incrementAndGet()
-                                    SaveOutcome.FAILED -> stats.discarded.incrementAndGet()
+                                    SaveOutcome.FAILED -> stats.failed.incrementAndGet()
                                 }
                             } finally {
                                 Trace.endSection()

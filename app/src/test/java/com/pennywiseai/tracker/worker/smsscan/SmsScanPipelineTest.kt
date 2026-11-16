@@ -174,7 +174,7 @@ class SmsScanPipelineTest {
         assertEquals(6, stats.processed.get())
         assertEquals(5, stats.saved.get())
         assertEquals(5, h.store.all.size)
-        assertEquals(1, stats.counts().discarded)
+        assertEquals(SmsScanCounts(saved = 5, failed = 1), stats.counts())
         assertEquals(6, stats.counts().examined)
     }
 

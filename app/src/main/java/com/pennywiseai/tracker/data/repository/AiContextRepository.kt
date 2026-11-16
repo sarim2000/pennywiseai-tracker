@@ -104,7 +104,8 @@ class AiContextRepository @Inject constructor(
     /** Home's "Spent this month" and income, with one converted figure only when Home shows one. */
     suspend fun spending(today: LocalDate = LocalDate.now()): PeriodSpending {
         val scope = homeScope(today)
-        val transactions = rows(scope).map { it.transaction }
+        val rows = rows(scope)
+        val transactions = rows.map { it.transaction }
         val credit = creditAsExpense()
         val breakdown = breakdownByCurrency(transactions, credit)
         val result = PeriodSpending(
@@ -117,6 +118,7 @@ class AiContextRepository @Inject constructor(
                 it.transactionType == TransactionType.INCOME || it.transactionType == TransactionType.EXPENSE ||
                     (credit && it.transactionType == TransactionType.CREDIT)
             },
+            cardPurchases = SpendingComparison.countsCardPurchases(rows, creditAsExpense = credit),
         )
         val spent = result.spentWithForgiven
         val display = userPreferencesRepository.displayCurrency.first()
@@ -147,6 +149,7 @@ class AiContextRepository @Inject constructor(
             transactionCount = SpendingComparison.transactionsIn(rows, names, credit),
             share = shareOfSpending(rows, credit, byCurrency),
             refunded = SpendingComparison.refundedOutside(rows, names, credit).filterKeys { it in byCurrency },
+            cardPurchases = SpendingComparison.countsCardPurchases(rows, names, credit),
         )
     }
 
@@ -157,7 +160,7 @@ class AiContextRepository @Inject constructor(
         val credit = creditAsExpense()
         val ranking = SpendingComparison.topCategories(rows, creditAsExpense = credit)
         val top = ranking.mapValues { (_, cats) -> cats.first().second }
-        return TopCategories(scope.chat, ranking, forgiven(scope), shareOfSpending(rows, credit, top))
+        return TopCategories(scope.chat, ranking, forgiven(scope), shareOfSpending(rows, credit, top), SpendingComparison.countsCardPurchases(rows, creditAsExpense = credit))
     }
 
     /**

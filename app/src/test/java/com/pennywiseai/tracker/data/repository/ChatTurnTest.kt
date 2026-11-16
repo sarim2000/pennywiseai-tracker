@@ -699,6 +699,25 @@ class ChatTurnTest {
         assertTrue(send("food this month vs last month?").endsWith("\nREFUNDED ₹5"))
     }
 
+    @Test
+    fun `a figure that counted card purchases says the list totals them under Credit`() = runTest {
+        every { context.getString(R.string.chat_reply_card_purchases) } returns "CARD"
+        coEvery { aiContext.categorySpending(any(), any()) } returns spent("120").copy(category = "طعام", cardPurchases = true)
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "طعام")))
+        assertEquals("SPEND\nCARD", send("how much on food?"))
+
+        every { context.getString(R.string.chat_reply_month_spend, any()) } returns "SPENT"
+        coEvery { aiContext.spending(any()) } returns com.pennywiseai.tracker.data.model.PeriodSpending(
+            spent("1").scope, spent = mapOf("INR" to BigDecimal("60")), income = emptyMap(), cardPurchases = true,
+        )
+        repository.answerQuickAction(QuickAction.MONTH_SPEND)
+        assertTrue("CARD" in saved.last().message.lines())
+
+        // None counted, no line.
+        coEvery { aiContext.categorySpending(any(), any()) } returns spent("120").copy(category = "طعام")
+        assertEquals("SPEND", send("how much on food?"))
+    }
+
     /** A category lookup's result: nothing spent, or [inr] rupees. */
     private fun spent(inr: String? = null) = com.pennywiseai.tracker.data.model.CategorySpend(
         com.pennywiseai.tracker.data.model.ChatScope(SpendingComparison.Window(LocalDateTime.of(2026, 11, 1, 0, 0), LocalDateTime.of(2026, 11, 16, 23, 59))),

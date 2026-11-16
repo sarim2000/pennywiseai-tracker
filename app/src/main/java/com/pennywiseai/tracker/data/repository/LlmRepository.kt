@@ -612,7 +612,7 @@ class LlmRepository @Inject constructor(
                     spend.category,
                     scopeLabel(spend.scope),
                     spend.transactionCount
-                ).also {
+                ).plus(cardNote(spend.cardPurchases)).also {
                     turnSubject = turnSubject?.copy(share = spend.share)
                     // Only for a name the category list spells: the figure matched the rows in any
                     // case, the list matches exactly, and "uber" would open on nothing.
@@ -695,6 +695,7 @@ class LlmRepository @Inject constructor(
                     val forgiven = p.forgiven[c]?.takeIf { it.signum() > 0 }
                     add(if (forgiven == null) money(a, c) else context.getString(R.string.chat_reply_spent_with_forgiven, money(a, c), money(forgiven, c)))
                 }
+                if (p.cardPurchases) add(context.getString(R.string.chat_reply_card_purchases))
             }
             addAll(estimateLines(p.estimate))
             // Only currencies that received money: a zero in one with no activity isn't an answer.
@@ -703,6 +704,13 @@ class LlmRepository @Inject constructor(
             if (typed) add(context.resources.getQuantityString(R.plurals.chat_reply_transaction_count, p.transactionCount, p.transactionCount))
         }.joinToString("\n")
     }
+
+    /**
+     * A line under a figure that counted card purchases (the user folds them into spending):
+     * the list its link opens totals them under Credit, not Expenses. Empty when it didn't.
+     */
+    private fun cardNote(counted: Boolean): String =
+        if (counted) "\n" + context.getString(R.string.chat_reply_card_purchases) else ""
 
     private fun addLinks(messageId: String, links: List<ChatLink>) {
         if (links.isNotEmpty()) _links.update { it + (messageId to links.toList()) }
@@ -761,6 +769,7 @@ class LlmRepository @Inject constructor(
         return buildList {
             add(context.getString(R.string.chat_reply_top_categories, scopeLabel(top.scope)))
             if (top.ranking.isNotEmpty()) add(ordered(top.ranking).joinToString("\n\n") { (c, cats) -> cats.joinToString("\n") { (name, a) -> "$name: ${money(a, c)}" } })
+            if (top.ranking.isNotEmpty() && top.cardPurchases) add(context.getString(R.string.chat_reply_card_purchases))
             if (forgiven.isNotEmpty()) add((if (top.ranking.isEmpty()) "" else "\n") + context.getString(R.string.chat_reply_forgiven_loans, amounts(forgiven)))
         }.joinToString("\n")
     }
@@ -816,6 +825,7 @@ class LlmRepository @Inject constructor(
                 }
                 add(if (change == null) pair else "$pair ($change)")
             }
+            if (result.cardPurchases) add(context.getString(R.string.chat_reply_card_purchases))
         }.joinToString("\n")
     }
 

@@ -201,11 +201,17 @@ class AiContextRepositoryTest {
         val home = breakdownByCurrency(rows.map { it.transaction }.forTotals())
         assertEquals(home.mapValues { it.value.expenses.stripTrailingZeros().toPlainString() }, amounts(off.spent))
         assertNull(off.estimate)
+        assertTrue(!off.cardPurchases)
 
         preferences.setCountCreditCardAsExpense(true)
         val on = repository.spending(today)
         assertEquals(mapOf("INR" to "900", "USD" to "5"), amounts(on.spent))
         assertEquals(6, on.transactionCount)
+        // The list behind it totals the card purchase under Credit: the answer says so.
+        assertTrue(on.cardPurchases)
+        assertTrue(repository.topCategories(today).cardPurchases)
+        assertTrue(repository.categorySpending("Food", today).cardPurchases)
+        assertTrue(!repository.categorySpending("Travel", today).cardPurchases)
     }
 
     @Test

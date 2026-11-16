@@ -46,6 +46,8 @@ object SpendingComparison {
             /** What each window's category list adds up to beyond its figure, as [refundedOutside] gives it. */
             val currentRefunded: Map<String, BigDecimal> = emptyMap(),
             val previousRefunded: Map<String, BigDecimal> = emptyMap(),
+            /** Either window counted a card purchase: see [countsCardPurchases]. */
+            val cardPurchases: Boolean = false,
             override val profile: ProfileEntity? = null,
         ) : Result
         /** No transactions at all in [missing]: the app can't tell "spent nothing" from "wasn't tracking". */
@@ -106,7 +108,8 @@ object SpendingComparison {
         }
         val refundedNow = categories?.let { refundedOutside(current, it, creditAsExpense) }.orEmpty()
         val refundedBefore = categories?.let { refundedOutside(previous, it, creditAsExpense) }.orEmpty()
-        return Result.Rows(cw, pw, rows, spentNow.keys, spentBefore.keys, refundedNow, refundedBefore)
+        val card = countsCardPurchases(current, categories, creditAsExpense) || countsCardPurchases(previous, categories, creditAsExpense)
+        return Result.Rows(cw, pw, rows, spentNow.keys, spentBefore.keys, refundedNow, refundedBefore, card)
     }
 
     /**
@@ -179,6 +182,16 @@ object SpendingComparison {
             }
             .filterValues { it.signum() > 0 }
     }
+
+    /**
+     * Whether [spend] counted a card purchase for [categories] (null = all): only when the user
+     * folds them into spending. The Transactions list totals them under Credit, not Expenses.
+     */
+    fun countsCardPurchases(rows: List<TransactionWithSplits>, categories: Set<String>? = null, creditAsExpense: Boolean = true): Boolean =
+        creditAsExpense && spending(rows, true).any { row ->
+            row.transaction.transactionType == TransactionType.CREDIT &&
+                (categories == null || row.getAmountByCategory().keys.any { categories.includes(it) })
+        }
 
     /** How many spending transactions [spend] counted for [categories]: a split row once. */
     fun transactionsIn(rows: List<TransactionWithSplits>, categories: Set<String>, creditAsExpense: Boolean = true): Int =

@@ -27,6 +27,8 @@ data class PeriodSpending(
     val forgiven: Map<String, BigDecimal> = emptyMap(),
     val estimate: ConvertedEstimate? = null,
     val transactionCount: Int = 0,
+    /** [spent] counted card purchases, which the Transactions list totals under Credit. */
+    val cardPurchases: Boolean = false,
 ) {
     /** Home's "Spent": [spent] plus [forgiven], per currency; currencies at zero left out. */
     val spentWithForgiven: Map<String, BigDecimal>
@@ -46,6 +48,8 @@ data class CategorySpend(
     val share: Float? = null,
     /** Refunds taken off [byCurrency], in its currencies: its transaction list doesn't hold them. */
     val refunded: Map<String, BigDecimal> = emptyMap(),
+    /** [byCurrency] counted card purchases, which the Transactions list totals under Credit. */
+    val cardPurchases: Boolean = false,
 )
 
 /** Each currency's biggest categories in [scope]; [forgiven] loans are listed apart, never as a category. */
@@ -54,6 +58,8 @@ data class TopCategories(
     val ranking: Map<String, List<Pair<String, BigDecimal>>>,
     val forgiven: Map<String, BigDecimal> = emptyMap(),
     val share: Float? = null,
+    /** [ranking] counted card purchases, which the Transactions list totals under Credit. */
+    val cardPurchases: Boolean = false,
 )
 
 /**

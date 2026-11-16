@@ -1,0 +1,167 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Home: the section, its title in Edit home, and the menu entry -->
+    <string name="home_section_insights">الرؤى</string>
+
+    <!-- Insights screen -->
+    <string name="insights_title">الرؤى</string>
+    <string name="insights_back">رجوع</string>
+    <string name="insights_this_cycle">هذه الدورة</string>
+    <string name="insights_spent">المصروف</string>
+    <string name="insights_income">الدخل</string>
+    <string name="insights_saved">المدّخر</string>
+    <string name="insights_savings_rate">نسبة الادخار</string>
+    <!-- What active subscriptions cost a month, beside this cycle's figures -->
+    <string name="insights_subscriptions_monthly">الاشتراكات شهريًا</string>
+    <string name="insights_last_cycles">الإنفاق حسب الدورة</string>
+    <string name="insights_section_alert">يحتاج إلى انتباهك</string>
+    <string name="insights_section_warning">تنبيه</string>
+    <string name="insights_section_good">أداء جيد</string>
+    <string name="insights_all_clear">لا شيء يحتاج إلى انتباهك الآن.</string>
+    <string name="insights_empty_headline">الرؤى في الطريق</string>
+    <string name="insights_empty_body">بعد تسجيل معاملات بضعة أسابيع، تعرض هذه الصفحة ما يحتاج إلى انتباهك وما يسير على ما يرام.</string>
+    <!-- Empty page for someone with earlier transactions, early in a new cycle -->
+    <string name="insights_quiet_headline">لم يُسجَّل شيء في هذه الدورة بعد</string>
+    <string name="insights_quiet_body">تظهر رؤى هذه الدورة هنا مع وصول المعاملات.</string>
+    <string name="insights_coverage">محسوبة على هذا الهاتف من معاملاتك المسجّلة. لا يُرسَل أي شيء إلى أي مكان.</string>
+    <string name="insights_dismiss">تجاهل</string>
+    <string name="insights_dismissed">تم تجاهل الرؤية</string>
+    <string name="insights_undo">تراجع</string>
+    <string name="insights_restore">إظهار مجددًا</string>
+    <!-- Under the title of an insight the user dismissed, in the "Show dismissed" list -->
+    <string name="insights_dismissed_label">متجاهَلة</string>
+    <!-- %1$d = how many insights were dismissed this cycle -->
+    <string name="insights_show_dismissed">عرض المتجاهَلة (%1$d)</string>
+    <string name="insights_hide_dismissed">إخفاء المتجاهَلة</string>
+    <string name="insights_expand">عرض التفاصيل</string>
+    <string name="insights_collapse">إخفاء التفاصيل</string>
+    <!-- %1$d = a whole percentage -->
+    <string name="insights_percent">%1$d%%</string>
+
+    <!-- Tracking health: a 0-100 indicator of how the cycle is going and being tracked -->
+    <string name="insights_score_title">جودة التتبّع</string>
+    <string name="insights_score_out_of">من 100</string>
+    <string name="insights_score_hint">مبنية على ادخارك وميزانياتك ونسبة المصروفات المصنّفة. اضغط لترى الطريقة.</string>
+    <string name="insights_score_breakdown_title">كيف تُحسب جودة التتبّع</string>
+    <string name="insights_score_savings">الادخار</string>
+    <!-- %1$s = percentage of income kept -->
+    <string name="insights_score_savings_detail">احتفظت بـ %1$s من دخلك. الخُمس أو أكثر يحصل على الدرجة الكاملة.</string>
+    <!-- More went out than came in. %1$s = how much more, as a percentage of income -->
+    <string name="insights_score_savings_detail_negative">أنفقت أكثر مما كسبت بنسبة %1$s. الاحتفاظ بخُمس الدخل يحصل على الدرجة الكاملة.</string>
+    <string name="insights_score_budgets">الميزانيات</string>
+    <!-- %1$d = budgets on track, %2$d = all budgets -->
+    <plurals name="insights_score_budgets_detail">
+        <item quantity="zero">الميزانيات ضمن المسار: %1$d من %2$d</item>
+        <item quantity="one">الميزانيات ضمن المسار: %1$d من %2$d</item>
+        <item quantity="two">الميزانيات ضمن المسار: %1$d من %2$d</item>
+        <item quantity="few">الميزانيات ضمن المسار: %1$d من %2$d</item>
+        <item quantity="many">الميزانيات ضمن المسار: %1$d من %2$d</item>
+        <item quantity="other">الميزانيات ضمن المسار: %1$d من %2$d</item>
+    </plurals>
+    <string name="insights_score_categorised">التصنيف</string>
+    <!-- %1$d = spends with a category, %2$d = all spends -->
+    <plurals name="insights_score_categorised_detail">
+        <item quantity="zero">المصروفات المصنّفة: %1$d من %2$d</item>
+        <item quantity="one">المصروفات المصنّفة: %1$d من %2$d</item>
+        <item quantity="two">المصروفات المصنّفة: %1$d من %2$d</item>
+        <item quantity="few">المصروفات المصنّفة: %1$d من %2$d</item>
+        <item quantity="many">المصروفات المصنّفة: %1$d من %2$d</item>
+        <item quantity="other">المصروفات المصنّفة: %1$d من %2$d</item>
+    </plurals>
+    <!-- %1$d = points for one part -->
+    <string name="insights_score_points">%1$d/100</string>
+    <string name="insights_score_footnote">تجمع الدرجة هذه الأجزاء، وللادخار الوزن الأكبر. تُستبعد الأجزاء التي لا بيانات لها. تجاهل رؤية لا يغيّرها.</string>
+
+    <!-- Metric labels on an expanded insight -->
+    <string name="insights_metric_spent">المصروف</string>
+    <string name="insights_metric_budget">الميزانية</string>
+    <string name="insights_metric_projected">المتوقع</string>
+    <string name="insights_metric_per_day">المتاح يوميًا</string>
+    <string name="insights_metric_usual">المعتاد</string>
+    <string name="insights_metric_this_cycle">هذه الدورة</string>
+    <string name="insights_metric_amount">المبلغ</string>
+    <string name="insights_metric_income">الدخل</string>
+    <string name="insights_metric_saved">المدّخر</string>
+    <string name="insights_metric_used">المستخدم</string>
+    <string name="insights_metric_limit">الحد</string>
+    <string name="insights_metric_tracked">المسجّل</string>
+    <string name="insights_metric_charged">المخصوم</string>
+
+    <!-- Action buttons -->
+    <string name="insights_action_budgets">فتح الميزانيات</string>
+    <string name="insights_action_transactions">عرض المعاملات</string>
+    <string name="insights_action_transaction">فتح المعاملة</string>
+    <string name="insights_action_subscriptions">فتح الاشتراكات</string>
+    <string name="insights_action_account">فتح الحساب</string>
+
+    <!-- Budget over. %1$s = amount over, %2$s = budget name (often already ends in "Budget", so don't add the word) -->
+    <string name="insights_budget_over_title">تجاوزت %2$s بمقدار %1$s</string>
+    <!-- Budget limit reached with days still to go. %1$s = budget name -->
+    <string name="insights_budget_used_up_title">لم يتبقَّ شيء في %1$s</string>
+    <!-- %1$s = spent, %2$s = budget limit -->
+    <string name="insights_budget_over_body">أنفقت %1$s من %2$s.</string>
+    <!-- Budget pace. %1$s = amount per day, %2$s = budget name -->
+    <string name="insights_budget_pace_title">يبقيك %1$s يوميًا ضمن %2$s</string>
+    <!-- %1$s = projected spend, %2$s = end date, %3$s = budget limit -->
+    <string name="insights_budget_pace_body">بهذه الوتيرة ستنفق %1$s بحلول %2$s، مقابل ميزانية قدرها %3$s.</string>
+    <string name="insights_budget_incomplete">بعض الإنفاق بعملات أخرى لا سعر صرف له بعد، لذا قد يكون الرقم الفعلي أعلى.</string>
+    <plurals name="insights_budgets_on_track_title">
+        <item quantity="zero">كل الميزانيات ضمن المسار</item>
+        <item quantity="one">%1$d ميزانية ضمن المسار</item>
+        <item quantity="two">الميزانيتان كلتاهما ضمن المسار</item>
+        <item quantity="few">كل الميزانيات الـ%1$d ضمن المسار</item>
+        <item quantity="many">كل الميزانيات الـ%1$d ضمن المسار</item>
+        <item quantity="other">كل الميزانيات الـ%1$d ضمن المسار</item>
+    </plurals>
+    <string name="insights_budgets_on_track_body">الإنفاق عند وتيرة متساوية أو أقل منها لبقية الفترة.</string>
+
+    <!-- Category spike. %1$s = amount, %2$s = category, %3$s = percentage -->
+    <string name="insights_spike_title">أنفقت %1$s على %2$s، أكثر من المعتاد بنسبة %3$s</string>
+    <!-- %1$s = usual amount for a whole cycle -->
+    <string name="insights_spike_body">تنفق عادةً نحو %1$s عليها في دورة كاملة، وهذه الدورة لم تنتهِ بعد.</string>
+
+    <!-- Savings rate. %1$s = percentage -->
+    <string name="insights_savings_good_title">احتفظت بـ %1$s من دخلك</string>
+    <!-- %1$s = amount saved, %2$s = income -->
+    <string name="insights_savings_good_body">%1$s من %2$s حتى الآن في هذه الدورة.</string>
+    <!-- %1$s = amount -->
+    <string name="insights_savings_negative_title">أنفقت %1$s أكثر مما كسبت</string>
+    <!-- %1$s = income -->
+    <string name="insights_savings_negative_body">الدخل المسجّل حتى الآن في هذه الدورة %1$s.</string>
+
+    <!-- Large transaction. %1$s = amount, %2$s = merchant, %3$s = how many times, e.g. "4×" -->
+    <string name="insights_large_title">دفعت %1$s لدى %2$s، %3$s معتادك</string>
+    <!-- %1$d = how many times the usual amount (3 or more) -->
+    <string name="insights_times">%1$d أضعاف</string>
+    <!-- %1$s = category, %2$s = typical amount, %3$s = date -->
+    <string name="insights_large_body">المصروف المعتاد في %1$s نحو %2$s. كان هذا في %3$s.</string>
+
+    <!-- Price change. %1$s = subscription name, %2$s = new amount -->
+    <string name="insights_price_title">خصم %1$s مبلغ %2$s</string>
+    <!-- %1$s = tracked amount -->
+    <string name="insights_price_body">سجّلته بمبلغ %1$s. حدّثه لتبقى الفواتير القادمة صحيحة.</string>
+
+    <!-- Card utilisation. %1$s = percentage, %2$s = card name -->
+    <string name="insights_card_title">استُخدم %1$s من حد %2$s</string>
+    <!-- %1$s = used, %2$s = limit -->
+    <string name="insights_card_body">%1$s من %2$s.</string>
+
+    <!-- Bills due. %1$s = total, %2$d = days -->
+    <plurals name="insights_bills_title">
+        <item quantity="zero">مستحق %1$s اليوم</item>
+        <item quantity="one">مستحق %1$s خلال %2$d يوم</item>
+        <item quantity="two">مستحق %1$s خلال اليومين القادمين</item>
+        <item quantity="few">مستحق %1$s خلال الأيام الـ%2$d القادمة</item>
+        <item quantity="many">مستحق %1$s خلال الـ%2$d يومًا القادمة</item>
+        <item quantity="other">مستحق %1$s خلال الـ%2$d يوم القادمة</item>
+    </plurals>
+    <!-- %1$s = the subscriptions due, soonest first, as a list ("Spotify and Netflix"), %2$s = date of the first -->
+    <plurals name="insights_bills_body">
+        <item quantity="zero">دفعات %1$s. أولها في %2$s.</item>
+        <item quantity="one">دفعة %1$s، في %2$s.</item>
+        <item quantity="two">دفعتا %1$s. أولاهما في %2$s.</item>
+        <item quantity="few">دفعات %1$s. أولها في %2$s.</item>
+        <item quantity="many">دفعات %1$s. أولها في %2$s.</item>
+        <item quantity="other">دفعات %1$s. أولها في %2$s.</item>
+    </plurals>
+</resources>

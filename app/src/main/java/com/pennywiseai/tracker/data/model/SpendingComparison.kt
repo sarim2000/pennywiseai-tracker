@@ -5,13 +5,14 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.ledger.breakdownByCurrency
 import com.pennywiseai.tracker.data.ledger.forTotals
+import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.utils.sumByCurrency
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.DayOfWeek
+import java.time.Duration
 import java.time.LocalDateTime
 import java.time.LocalTime
-import java.time.YearMonth
 import java.time.temporal.TemporalAdjusters
 
 /**
@@ -35,14 +36,19 @@ object SpendingComparison {
     }
 
     /**
-     * The period so far, and the previous one up to the same day and time. Once today's day is past
-     * the end of last month (31 Mar vs Feb), the previous window is that whole month.
+     * The period so far, and the previous one up to the same point. A month is the budget cycle
+     * starting on [cycleStartDay], as on Home (the calendar month by default), and the previous
+     * cycle runs as long as this one has so far. Once that is past its end (31 Mar vs Feb), the
+     * previous window is the whole of it.
      */
-    fun windows(period: Period, now: LocalDateTime, firstDayOfWeek: DayOfWeek): Pair<Window, Window> = when (period) {
+    fun windows(period: Period, now: LocalDateTime, firstDayOfWeek: DayOfWeek, cycleStartDay: Int = BudgetCycle.DEFAULT_START_DAY): Pair<Window, Window> = when (period) {
         Period.MONTH -> {
-            val prev = YearMonth.from(now).minusMonths(1)
-            val prevEnd = if (now.dayOfMonth > prev.lengthOfMonth()) prev.atEndOfMonth().atTime(LocalTime.MAX) else now.minusMonths(1)
-            Window(now.toLocalDate().withDayOfMonth(1).atStartOfDay(), now) to Window(prev.atDay(1).atStartOfDay(), prevEnd)
+            val cycle = BudgetCycle.currentCycle(now.toLocalDate(), cycleStartDay)
+            val (prevStart, prevLast) = BudgetCycle.previousCycle(cycle, cycleStartDay)
+            val start = cycle.first.atStartOfDay()
+            val samePoint = prevStart.atStartOfDay().plus(Duration.between(start, now))
+            val prevEnd = minOf(samePoint, prevLast.atTime(LocalTime.MAX))
+            Window(start, now) to Window(prevStart.atStartOfDay(), prevEnd)
         }
         Period.WEEK -> {
             val start = now.toLocalDate().with(TemporalAdjusters.previousOrSame(firstDayOfWeek)).atStartOfDay()
@@ -121,6 +127,10 @@ object SpendingComparison {
             .groupBy({ it.first }, { it.third }).mapValues { (_, a) -> a.fold(BigDecimal.ZERO, BigDecimal::add) }
         return grossSpend(rows, categories, creditAsExpense).mapValues { (currency, gross) -> (gross - (refunded[currency] ?: BigDecimal.ZERO)).max(BigDecimal.ZERO) }
     }
+
+    /** How many spending transactions [spend] counted for [categories]: a split row once. */
+    fun transactionsIn(rows: List<TransactionWithSplits>, categories: Set<String>, creditAsExpense: Boolean = true): Int =
+        spending(rows, creditAsExpense).count { row -> row.getAmountByCategory().keys.any { categories.includes(it) } }
 
     private fun grossSpend(rows: List<TransactionWithSplits>, categories: Set<String>?, creditAsExpense: Boolean): Map<String, BigDecimal> =
         spending(rows, creditAsExpense)

@@ -1,21 +1,52 @@
 package com.pennywiseai.tracker.data.model
 
+import com.pennywiseai.tracker.data.ledger.ConvertedEstimate
 import java.math.BigDecimal
 
-/** Figures the AI chat reads (AiContextRepository). */
-data class MonthSummary(
-    val totalIncome: BigDecimal,
-    val totalExpense: BigDecimal,
+/**
+ * What a chat figure covers: [window], in the profile Home shows ([profile], null for all).
+ * Every answer prints it, so two answers over different days or profiles don't read as a
+ * disagreement.
+ */
+data class ChatScope(val window: SpendingComparison.Window, val profile: String? = null)
+
+/**
+ * Spending in [scope] as Home works it out: per currency, never added across currencies.
+ * [spent] is spending net of refunds (card purchases only when the user counts them);
+ * [forgiven] is lent balances forgiven in the scope, which Home adds to "Spent" (#938).
+ * [estimate] is one converted figure, only when Home shows one (unified currency mode).
+ */
+data class PeriodSpending(
+    val scope: ChatScope,
+    val spent: Map<String, BigDecimal>,
+    val income: Map<String, BigDecimal>,
+    val forgiven: Map<String, BigDecimal> = emptyMap(),
+    val estimate: ConvertedEstimate? = null,
+) {
+    /** Home's "Spent": [spent] plus [forgiven], per currency; currencies at zero left out. */
+    val spentWithForgiven: Map<String, BigDecimal>
+        get() = with(SpendingComparison) { spent.plusAmounts(forgiven) }.filterValues { it.signum() > 0 }
+}
+
+/**
+ * One category's spending in [scope], per currency: its split shares, its subcategories,
+ * and refunds given back to it. [share] is its part of all spending in the user's own
+ * currency (or the first one), for the reply's mascot.
+ */
+data class CategorySpend(
+    val scope: ChatScope,
+    val category: String,
+    val byCurrency: Map<String, BigDecimal>,
     val transactionCount: Int,
-    val daysInMonth: Int,
-    val currentDay: Int
+    val share: Float? = null,
 )
 
-data class CategorySpending(
-    val category: String,
-    val amount: BigDecimal,
-    val percentage: Float,
-    val transactionCount: Int
+/** Each currency's biggest categories in [scope]; [forgiven] loans are listed apart, never as a category. */
+data class TopCategories(
+    val scope: ChatScope,
+    val ranking: Map<String, List<Pair<String, BigDecimal>>>,
+    val forgiven: Map<String, BigDecimal> = emptyMap(),
+    val share: Float? = null,
 )
 
 /**

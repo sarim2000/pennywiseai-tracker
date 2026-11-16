@@ -54,3 +54,29 @@ fun breakdownByCurrency(
             )
         }
 }
+
+/** Several currencies' amounts as one figure in [currency]; [leftOut] had no rate and aren't in [total]. */
+data class ConvertedEstimate(
+    val currency: String,
+    val total: BigDecimal,
+    val leftOut: Map<String, BigDecimal>,
+)
+
+/**
+ * [byCurrency] converted into [target] and added: an estimate, for a reader who wants one
+ * figure. [convert] returns null for a pair that has never had a rate; that amount is
+ * listed in [ConvertedEstimate.leftOut] instead of being counted at face value (#670).
+ */
+suspend fun convertedEstimate(
+    byCurrency: Map<String, BigDecimal>,
+    target: String,
+    convert: suspend (amount: BigDecimal, from: String, to: String) -> BigDecimal?
+): ConvertedEstimate {
+    var total = BigDecimal.ZERO
+    val leftOut = linkedMapOf<String, BigDecimal>()
+    for ((currency, amount) in byCurrency) {
+        val converted = if (currency.equals(target, ignoreCase = true)) amount else convert(amount, currency, target)
+        if (converted == null) leftOut[currency] = amount else total += converted
+    }
+    return ConvertedEstimate(target, total, leftOut)
+}

@@ -37,6 +37,7 @@ class ChatTurnTest {
     private val chatDao = mockk<ChatDao>(relaxed = true) {
         coEvery { getAllMessagesForContext() } answers { saved.toList() }
         coEvery { insertMessage(any()) } answers { saved += firstArg<ChatMessage>() }
+        coEvery { insertMessages(any()) } answers { saved += firstArg<List<ChatMessage>>() }
         coEvery { deleteMessagesBefore(any()) } answers { saved.removeAll { it.timestamp < firstArg<Long>() } }
     }
     private val sent = mutableListOf<String>()
@@ -52,9 +53,7 @@ class ChatTurnTest {
             }
         }
     }
-    private val aiContext = mockk<AiContextRepository>(relaxed = true) {
-        coEvery { getMonthSummary() } returns mockk(relaxed = true)
-    }
+    private val aiContext = mockk<AiContextRepository>(relaxed = true)
     private val preferences = mockk<UserPreferencesRepository>(relaxed = true) {
         every { baseCurrency } returns flowOf("INR")
         every { countCreditCardAsExpense } returns flowOf(false)
@@ -70,8 +69,8 @@ class ChatTurnTest {
         every { getString(R.string.chat_reply_unreadable) } returns "UNREADABLE"
         every { getString(R.string.chat_reply_nothing_changed) } returns "NOTHING_CHANGED"
         every { getString(R.string.chat_reply_unknown_category, any()) } returns "UNKNOWN_CATEGORY"
-        every { getString(R.string.chat_reply_category_spend, any(), any(), any()) } returns "SPEND"
-        every { getString(R.string.chat_reply_nothing_spent, any()) } returns "NOTHING_SPENT"
+        every { getString(R.string.chat_reply_category_spend, any(), any(), any(), any()) } returns "SPEND"
+        every { getString(R.string.chat_reply_nothing_spent, any(), any()) } returns "NOTHING_SPENT"
     }
     private val transactions = mockk<TransactionRepository>(relaxed = true)
     private val repository = LlmRepository(
@@ -345,9 +344,59 @@ class ChatTurnTest {
     }
 
     @Test
+    fun `the typed month summary and the one-tap answer give Home's figures, the same way`() = runTest {
+        every { context.getString(R.string.chat_reply_month_spend, any()) } returns "SPENT"
+        every { context.getString(R.string.chat_reply_spent_with_forgiven, any(), any()) } returns "WITH_FORGIVEN"
+        every { context.getString(R.string.chat_reply_converted_estimate, any(), any()) } returns "ESTIMATE"
+        every { context.getString(R.string.chat_reply_converted_left_out, any()) } returns "LEFT_OUT"
+        every { context.getString(R.string.chat_reply_received, any()) } returns "RECEIVED"
+        coEvery { aiContext.spending(any()) } returns com.pennywiseai.tracker.data.model.PeriodSpending(
+            com.pennywiseai.tracker.data.model.ChatScope(SpendingComparison.Window(LocalDateTime.of(2026, 11, 1, 0, 0), LocalDateTime.of(2026, 11, 16, 23, 59))),
+            spent = mapOf("USD" to BigDecimal("5"), "INR" to BigDecimal("600")),
+            income = mapOf("INR" to BigDecimal("5000")),
+            forgiven = mapOf("INR" to BigDecimal("400")),
+            estimate = com.pennywiseai.tracker.data.ledger.ConvertedEstimate("INR", BigDecimal("1000"), mapOf("XYZ" to BigDecimal("3")))
+        )
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.MONTH_SUMMARY, emptyMap()))
+        val typed = send("how much did I spend this month?")
+        // The user's own currency first, its forgiven loan named inside the figure; a gap in the estimate said.
+        val lines = typed.lines()
+        assertEquals(listOf("SPENT", "WITH_FORGIVEN"), lines.take(2))
+        assertTrue(lines[2], lines[2].contains("5") && "$" in lines[2])
+        assertEquals(listOf("ESTIMATE", "LEFT_OUT", "RECEIVED"), lines.drop(3))
+        repository.answerQuickAction(QuickAction.MONTH_SPEND)
+        assertEquals(typed, saved.last().message)
+    }
+
+    @Test
+    fun `a category's spend is per currency and dated`() = runTest {
+        coEvery { aiContext.categorySpending(any(), any()) } returns spent("120").copy(category = "طعام", byCurrency = mapOf("USD" to BigDecimal("3"), "INR" to BigDecimal("120")))
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "طعام")))
+        assertEquals("SPEND", send("how much on food?"))
+        // Both currencies, the user's own first, never added; the dates it covers.
+        verify {
+            context.getString(
+                R.string.chat_reply_category_spend,
+                match<String> { it.indexOf("120") in 0 until it.indexOf("3") && " · " in it },
+                "طعام",
+                "1 Nov–16 Nov",
+                1
+            )
+        }
+    }
+
+    /** A category lookup's result: nothing spent, or [inr] rupees. */
+    private fun spent(inr: String? = null) = com.pennywiseai.tracker.data.model.CategorySpend(
+        com.pennywiseai.tracker.data.model.ChatScope(SpendingComparison.Window(LocalDateTime.of(2026, 11, 1, 0, 0), LocalDateTime.of(2026, 11, 16, 23, 59))),
+        category = "x",
+        byCurrency = inr?.let { mapOf("INR" to BigDecimal(it)) }.orEmpty(),
+        transactionCount = if (inr == null) 0 else 1,
+    )
+
+    @Test
     fun `a category lookup matches non-Latin names and refuses unknown ones`() = runTest {
-        coEvery { aiContext.getCategorySpending(any()) } returns null
-        coEvery { aiContext.getCategorySpending("طعام") } returns mockk(relaxed = true)
+        coEvery { aiContext.categorySpending(any(), any()) } returns spent()
+        coEvery { aiContext.categorySpending("طعام", any()) } returns spent("120")
         suspend fun lookup(category: String): String {
             events = listOf(LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to category)))
             return send("how much on $category?")
@@ -358,15 +407,15 @@ class ChatTurnTest {
 
     @Test
     fun `a category lookup reads hidden categories and names only found on transactions`() = runTest {
-        coEvery { aiContext.getCategorySpending(any()) } returns null
+        coEvery { aiContext.categorySpending(any(), any()) } returns spent()
         suspend fun lookup(category: String): String {
             events = listOf(LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to category)))
             return send("how much on $category?")
         }
         assertEquals("NOTHING_SPENT", lookup("Hobbies")) // Hidden, but it exists.
-        coEvery { aiContext.getCategorySpending("Hobbies") } returns mockk(relaxed = true)
+        coEvery { aiContext.categorySpending("Hobbies", any()) } returns spent("40")
         assertEquals("SPEND", lookup("Hobbies"))
-        coEvery { aiContext.getCategorySpending("Old Name") } returns mockk(relaxed = true)
+        coEvery { aiContext.categorySpending("Old Name", any()) } returns spent("15")
         assertEquals("SPEND", lookup("Old Name")) // No such category now, but rows still carry it.
     }
 

@@ -9,10 +9,13 @@ import com.pennywiseai.tracker.data.database.entity.ChatMessage
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.model.ChatMessageFacts
+import com.pennywiseai.tracker.data.model.ChatScope
 import com.pennywiseai.tracker.data.model.PendingChatAction
+import com.pennywiseai.tracker.data.model.PeriodSpending
 import com.pennywiseai.tracker.data.model.ReplySubject
 import com.pennywiseai.tracker.data.model.ReviewRow
 import com.pennywiseai.tracker.data.model.SpendingComparison
+import com.pennywiseai.tracker.data.model.TopCategories
 import com.pennywiseai.tracker.data.model.TransactionDraft
 import com.pennywiseai.tracker.data.model.TransactionFinder
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
@@ -543,33 +546,25 @@ class LlmRepository @Inject constructor(
                 }
             }
         }
-        PennyWiseTools.MONTH_SUMMARY -> {
-            val m = aiContextRepository.getMonthSummary()
-            val currency = userPreferencesRepository.baseCurrency.first()
-            context.getString(
-                R.string.chat_reply_month_summary,
-                CurrencyFormatter.formatCurrency(m.totalExpense, currency, maskIfHidden = false),
-                CurrencyFormatter.formatCurrency(m.totalIncome, currency, maskIfHidden = false),
-                m.transactionCount
-            )
-        }
+        // The same figures as the one-tap question, and as Home's "Spent this month".
+        PennyWiseTools.MONTH_SUMMARY -> spendingText(aiContextRepository.spending())
         PennyWiseTools.SPENDING_BY_CATEGORY -> {
             val wanted = (call.arguments["category"] as? String)?.trim().orEmpty()
             // Hidden categories still hold transactions, and a row can name a category that no
             // longer exists: a read-only lookup asks the transactions before saying it's unknown.
             val category = matchCategory(wanted, categoryRepository.getAllCategories().first())
-            val currency = userPreferencesRepository.baseCurrency.first()
-            val spend = aiContextRepository.getCategorySpending(category ?: wanted)
+            val spend = aiContextRepository.categorySpending(category ?: wanted)
             when {
                 // "Nothing spent" would be a false figure for a category that doesn't exist.
-                spend == null && category == null -> context.getString(R.string.chat_reply_unknown_category, wanted)
-                spend == null -> context.getString(R.string.chat_reply_nothing_spent, category)
+                spend.byCurrency.isEmpty() && category == null -> context.getString(R.string.chat_reply_unknown_category, wanted)
+                spend.byCurrency.isEmpty() -> context.getString(R.string.chat_reply_nothing_spent, category, scopeLabel(spend.scope))
                 else -> context.getString(
                     R.string.chat_reply_category_spend,
-                    CurrencyFormatter.formatCurrency(spend.amount, currency, maskIfHidden = false),
+                    amounts(spend.byCurrency),
                     spend.category,
+                    scopeLabel(spend.scope),
                     spend.transactionCount
-                ).also { turnSubject = turnSubject?.copy(share = spend.percentage / 100f) }
+                ).also { turnSubject = turnSubject?.copy(share = spend.share) }
             }
         }
         else -> null
@@ -592,8 +587,8 @@ class LlmRepository @Inject constructor(
 
     /**
      * M8: a one-tap question answered by code alone, before the model has loaded or without it.
-     * Saved for the screen but never shown to the model (see [QUICK_ID]). Per currency, never
-     * converted, like the comparison.
+     * Saved for the screen but never shown to the model (see [QUICK_ID]). The same figures as
+     * the typed answers and Home, per currency.
      */
     private suspend fun creditAsExpense() = userPreferencesRepository.countCreditCardAsExpense.first()
 
@@ -601,34 +596,15 @@ class LlmRepository @Inject constructor(
         _lastReply.value = null
         // For the reply's mascot: the shape of the tool asked the same question, and its figure.
         var subject = ReplySubject(tool = action.tool)
-        val money = { amount: BigDecimal, currency: String -> CurrencyFormatter.formatCurrency(amount, currency, maskIfHidden = false) }
-        // The user's own currency on top, the rest by code: the same order in every answer.
-        val base = userPreferencesRepository.baseCurrency.first()
-        fun <V> Map<String, V>.ordered() = entries.sortedWith(compareBy({ it.key != base }, { it.key })).map { it.key to it.value }
         val answer = when (action) {
             QuickAction.COMPARE_MONTH -> aiContextRepository.compareSpending(SpendingComparison.Period.MONTH, null, creditAsExpense()).let {
                 subject = subject.copy(trend = SpendingComparison.direction(it))
                 comparisonText(it, null)
             }
-            QuickAction.MONTH_SPEND -> {
-                val (window, rows) = aiContextRepository.monthSoFar()
-                // Forgiven loan balances count as spent, as on Home (#938).
-                val spent = with(SpendingComparison) { spend(rows, creditAsExpense = creditAsExpense()).plusAmounts(aiContextRepository.settlementLoss(window)) }
-                if (spent.isEmpty()) context.getString(R.string.chat_reply_quick_nothing, range(window))
-                else (listOf(context.getString(R.string.chat_reply_month_spend, range(window))) + spent.ordered().map { (c, a) -> money(a, c) }).joinToString("\n")
-            }
-            QuickAction.TOP_CATEGORIES -> {
-                val (window, rows) = aiContextRepository.monthSoFar()
-                val top = SpendingComparison.topCategories(rows, creditAsExpense = creditAsExpense())
-                // The top category's share of its own currency's spending.
-                top.ordered().firstOrNull()?.let { (c, cats) ->
-                    val total = SpendingComparison.spend(rows, creditAsExpense = creditAsExpense())[c]
-                    if (total != null && total.signum() > 0) subject = subject.copy(share = (cats.first().second.toDouble() / total.toDouble()).toFloat().coerceIn(0f, 1f))
-                }
-                if (top.isEmpty()) context.getString(R.string.chat_reply_quick_nothing, range(window))
-                // A blank line between currencies: each is its own ranking.
-                else context.getString(R.string.chat_reply_top_categories, range(window)) + "\n" +
-                    top.ordered().joinToString("\n\n") { (c, cats) -> cats.joinToString("\n") { (name, a) -> "$name: ${money(a, c)}" } }
+            QuickAction.MONTH_SPEND -> spendingText(aiContextRepository.spending())
+            QuickAction.TOP_CATEGORIES -> aiContextRepository.topCategories().let { top ->
+                subject = subject.copy(share = top.share)
+                topCategoriesText(top)
             }
         }
         val at = System.currentTimeMillis()
@@ -640,6 +616,56 @@ class LlmRepository @Inject constructor(
             reply
         ))
     }
+
+    /**
+     * Home's "Spent this month" as chat lines: the dated scope, then each currency on its own,
+     * forgiven loans named inside the figure they're part of. A converted estimate only when
+     * Home shows one, with what it had to leave out.
+     */
+    private suspend fun spendingText(p: PeriodSpending): String {
+        val spent = ordered(p.spentWithForgiven)
+        return buildList {
+            if (spent.isEmpty()) {
+                add(context.getString(R.string.chat_reply_quick_nothing, scopeLabel(p.scope)))
+            } else {
+                add(context.getString(R.string.chat_reply_month_spend, scopeLabel(p.scope)))
+                spent.forEach { (c, a) ->
+                    val forgiven = p.forgiven[c]?.takeIf { it.signum() > 0 }
+                    add(if (forgiven == null) money(a, c) else context.getString(R.string.chat_reply_spent_with_forgiven, money(a, c), money(forgiven, c)))
+                }
+            }
+            p.estimate?.let { e ->
+                add(context.getString(R.string.chat_reply_converted_estimate, money(e.total, e.currency), e.currency))
+                if (e.leftOut.isNotEmpty()) add(context.getString(R.string.chat_reply_converted_left_out, amounts(e.leftOut)))
+            }
+            if (p.income.isNotEmpty()) add(context.getString(R.string.chat_reply_received, amounts(p.income)))
+        }.joinToString("\n")
+    }
+
+    /** A ranking per currency, a blank line between them; forgiven loans below, never ranked as a category. */
+    private suspend fun topCategoriesText(top: TopCategories): String {
+        val forgiven = top.forgiven.filterValues { it.signum() > 0 }
+        if (top.ranking.isEmpty() && forgiven.isEmpty()) return context.getString(R.string.chat_reply_quick_nothing, scopeLabel(top.scope))
+        return buildList {
+            add(context.getString(R.string.chat_reply_top_categories, scopeLabel(top.scope)))
+            if (top.ranking.isNotEmpty()) add(ordered(top.ranking).joinToString("\n\n") { (c, cats) -> cats.joinToString("\n") { (name, a) -> "$name: ${money(a, c)}" } })
+            if (forgiven.isNotEmpty()) add((if (top.ranking.isEmpty()) "" else "\n") + context.getString(R.string.chat_reply_forgiven_loans, amounts(forgiven)))
+        }.joinToString("\n")
+    }
+
+    /** The user's own currency on top, the rest by code: the same order in every answer. */
+    private suspend fun <V> ordered(byCurrency: Map<String, V>): List<Pair<String, V>> {
+        val base = userPreferencesRepository.baseCurrency.first()
+        return byCurrency.entries.sortedWith(compareBy({ it.key != base }, { it.key })).map { it.key to it.value }
+    }
+
+    /** Amounts in several currencies on one line, each in its own: "₹1,200 · $30". */
+    private suspend fun amounts(byCurrency: Map<String, BigDecimal>) = ordered(byCurrency).joinToString(" · ") { (c, a) -> money(a, c) }
+
+    private fun money(amount: BigDecimal, currency: String) = CurrencyFormatter.formatCurrency(amount, currency, maskIfHidden = false)
+
+    /** The dates an answer covers, and the profile when Home shows only one. */
+    private fun scopeLabel(scope: ChatScope) = range(scope.window) + (scope.profile?.let { " · $it" } ?: "")
 
     private fun range(w: SpendingComparison.Window): String {
         val (a, b) = w.start.format(DAY_MONTH) to w.end.format(DAY_MONTH)
@@ -654,7 +680,6 @@ class LlmRepository @Inject constructor(
         val before = range(result.previous)
         if (rows.isEmpty()) return if (category == null) context.getString(R.string.chat_reply_compare_nothing, now, before)
         else context.getString(R.string.chat_reply_compare_nothing_category, category, now, before)
-        val money = { amount: BigDecimal, currency: String -> CurrencyFormatter.formatCurrency(amount, currency, maskIfHidden = false) }
         return buildList {
             add(
                 if (category == null) context.getString(R.string.chat_reply_compare_title, now, before)
@@ -729,15 +754,11 @@ class LlmRepository @Inject constructor(
         Log.d(TAG, "System prompt updated with the latest categories and accounts")
     }
 
+    /** The chat's opening line: Home's "Spent this month", dated, each currency in its own. */
     suspend fun getFormattedContextForDisplay(): String {
-        val monthSummary = aiContextRepository.getMonthSummary()
-        val currency = userPreferencesRepository.baseCurrency.first()
-
-        return context.getString(
-            R.string.chat_welcome,
-            monthSummary.transactionCount,
-            CurrencyFormatter.formatCurrency(monthSummary.totalExpense, currency, maskIfHidden = false)
-        )
+        val p = aiContextRepository.spending()
+        val spent = p.spentWithForgiven.ifEmpty { mapOf(userPreferencesRepository.baseCurrency.first() to BigDecimal.ZERO) }
+        return context.getString(R.string.chat_welcome, scopeLabel(p.scope), amounts(spent))
     }
 
     companion object {

@@ -150,6 +150,13 @@ class ChatSuggestionsTest {
     }
 
     @Test
+    fun `a tap on the chip walks the newest rows, and a failed read walks none instead of crashing`() = runTest {
+        val many = (1L..60L).map { row(it, "Others") }
+        assertEquals((1L..ChatSuggestions.REVIEW_MAX.toLong()).toList(), suggestions(flowOf(many)).reviewIds())
+        assertEquals(emptyList<Long>(), suggestions(flow { throw IllegalStateException("boom") }).reviewIds())
+    }
+
+    @Test
     fun `the standing questions are what pick shows with nothing to act on`() {
         assertEquals(ChatSuggestions.STANDING, ChatSuggestions.pick(0, noBills, emptyList()))
     }

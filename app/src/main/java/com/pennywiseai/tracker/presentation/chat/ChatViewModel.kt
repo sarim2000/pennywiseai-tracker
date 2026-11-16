@@ -403,8 +403,7 @@ class ChatViewModel @Inject constructor(
      * The newest rows still to file as of this tap, for the category picker to walk. A sitting's
      * worth ([ChatSuggestions.REVIEW_MAX]): the chip still counts them all and offers the rest next time.
      */
-    suspend fun uncategorizedIds(): List<Long> =
-        chatSuggestions.uncategorized().first().take(com.pennywiseai.tracker.data.repository.ChatSuggestions.REVIEW_MAX).map { it.id }
+    suspend fun uncategorizedIds(): List<Long> = chatSuggestions.reviewIds()
 
     fun clearChat() {
         if (_isConfirming.value) return

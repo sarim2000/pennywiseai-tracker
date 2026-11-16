@@ -7,10 +7,12 @@ import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
 import com.pennywiseai.tracker.domain.model.filterTrackedByProfile
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import java.time.LocalDate
@@ -68,6 +70,19 @@ class ChatSuggestions @Inject constructor(
         ignoredKeys(),
     ) { rows, profileId, accounts, ignored ->
         filterTrackedByProfile(rows, profileId, ignored, buildProfileAccountKeys(accounts))
+    }
+
+    /**
+     * The rows one "N uncategorized" tap walks, as of the tap: newest first, [REVIEW_MAX] at most.
+     * A read that fails gives none, so the tap does nothing rather than crash the screen.
+     */
+    suspend fun reviewIds(): List<Long> = try {
+        uncategorized().first().take(REVIEW_MAX).map { it.id }
+    } catch (e: CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        android.util.Log.w("ChatSuggestions", "Uncategorized rows unavailable (${e.javaClass.simpleName})")
+        emptyList()
     }
 
     private fun ignoredKeys(): Flow<Set<String>> = combine(

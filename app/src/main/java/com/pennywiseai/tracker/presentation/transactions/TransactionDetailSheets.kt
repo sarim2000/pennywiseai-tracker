@@ -34,6 +34,7 @@ import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.money
+import com.pennywiseai.tracker.ui.theme.spending
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
 
@@ -264,7 +265,7 @@ internal fun BalanceAdjustmentSheet(
     var expanded by remember { mutableStateOf(false) }
     val amountColor = when {
         isIncome -> MaterialTheme.colorScheme.income
-        else -> MaterialTheme.colorScheme.onSurface
+        else -> MaterialTheme.colorScheme.spending
     }
 
     ModalBottomSheet(

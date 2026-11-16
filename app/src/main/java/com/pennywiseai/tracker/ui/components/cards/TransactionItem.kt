@@ -27,6 +27,7 @@ import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.sharedElementIcon
 import com.pennywiseai.tracker.ui.theme.*
+import com.pennywiseai.tracker.ui.theme.spending
 import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -58,7 +59,7 @@ fun TransactionItem(
         TransactionType.EXPENSE -> containerColor
             ?.let { colorScheme.contentColorFor(it) }
             ?.takeIf { it.isSpecified }
-            ?: colorScheme.onSurface
+            ?: colorScheme.spending
         TransactionType.CREDIT -> colorScheme.credit
         TransactionType.TRANSFER -> colorScheme.transfer
         TransactionType.INVESTMENT -> colorScheme.investment

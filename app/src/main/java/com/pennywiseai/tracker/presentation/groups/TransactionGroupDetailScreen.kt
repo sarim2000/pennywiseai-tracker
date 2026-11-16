@@ -37,6 +37,7 @@ import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.ui.theme.investment
+import com.pennywiseai.tracker.ui.theme.spending
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.Money
@@ -133,7 +134,7 @@ fun TransactionGroupDetailScreen(
         }
 
         val accentColor = MaterialTheme.colorScheme.income
-        val expenseColor = MaterialTheme.colorScheme.onSurface
+        val expenseColor = MaterialTheme.colorScheme.spending
         val lazyListState = rememberLazyListState()
 
         LazyColumn(
@@ -423,7 +424,7 @@ private fun GroupTransactionItem(
     val color = when (transaction.transactionType) {
         TransactionType.CREDIT -> MaterialTheme.colorScheme.credit
         TransactionType.INCOME -> MaterialTheme.colorScheme.income
-        else -> MaterialTheme.colorScheme.onSurface
+        else -> MaterialTheme.colorScheme.spending
     }
     val sign = when (transaction.transactionType) {
         TransactionType.EXPENSE, TransactionType.CREDIT -> "-"
@@ -549,7 +550,7 @@ private fun AddTransactionToGroupSheet(
                         val color = when (txn.transactionType) {
                             TransactionType.CREDIT -> MaterialTheme.colorScheme.credit
                             TransactionType.INCOME -> MaterialTheme.colorScheme.income
-                            else -> MaterialTheme.colorScheme.onSurface
+                            else -> MaterialTheme.colorScheme.spending
                         }
                         val sign = when (txn.transactionType) {
                             TransactionType.EXPENSE, TransactionType.CREDIT -> "-"

@@ -172,13 +172,13 @@ fun AppearanceScreen(
                         )
                     }
 
-                    // AMOLED + Blur grouped toggles. Both rows are conditional,
+                    // AMOLED + Blur + red spending toggles. The first two are conditional,
                     // so positions are derived from which ones are actually
                     // showing — a hand-maintained isFirst/isLast pair got this
                     // wrong whenever only one row was visible.
                     val showAmoled = themeUiState.isDarkTheme != false
                     val showBlur = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
-                    val toggleCount = (if (showAmoled) 1 else 0) + (if (showBlur) 1 else 0)
+                    val toggleCount = (if (showAmoled) 1 else 0) + (if (showBlur) 1 else 0) + 1
                     GroupedList {
                         if (showAmoled) {
                             PreferenceSwitch(
@@ -207,9 +207,16 @@ fun AppearanceScreen(
                                 subtitle = stringResource(R.string.appearance_blur_subtitle),
                                 checked = themeUiState.blurEffectsEnabled,
                                 onCheckedChange = { themeViewModel.updateBlurEffects(it) },
-                                position = ListItemPosition.from(toggleCount - 1, toggleCount)
+                                position = ListItemPosition.from(toggleCount - 2, toggleCount)
                             )
                         }
+                        PreferenceSwitch(
+                            title = stringResource(R.string.appearance_red_spending_title),
+                            subtitle = stringResource(R.string.appearance_red_spending_subtitle),
+                            checked = themeUiState.redSpending,
+                            onCheckedChange = { themeViewModel.updateRedSpending(it) },
+                            position = ListItemPosition.from(toggleCount - 1, toggleCount)
+                        )
                     }
                 }
 

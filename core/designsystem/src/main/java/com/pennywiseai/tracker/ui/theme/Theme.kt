@@ -16,6 +16,7 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.platform.LocalContext
@@ -137,6 +138,14 @@ val ColorScheme.income: Color
 val ColorScheme.expense: Color
     get() = (if (isDark) expense_dark else expense_light).readableOn(neutralSurfaces)
 
+/** Whether spending amounts draw in [expense] red (the default) or plain ink. */
+val LocalRedSpending = staticCompositionLocalOf { true }
+
+/** A spending amount: [expense] red, or [ColorScheme.onSurface] when the user turned red off. */
+val ColorScheme.spending: Color
+    @Composable @ReadOnlyComposable
+    get() = if (LocalRedSpending.current) expense else onSurface
+
 val ColorScheme.credit: Color
     get() = (if (isDark) credit_dark else credit_light).readableOn(neutralSurfaces)
 
@@ -209,6 +218,7 @@ fun PennyWiseTheme(
     isAmoledMode: Boolean = false,
     appFont: AppFont = AppFont.DEFAULT,
     blurEffects: Boolean = true,
+    redSpending: Boolean = true,
     content: @Composable () -> Unit
 ) {
     val colorScheme = pennyWiseColorScheme(themeStyle, darkTheme, dynamicColor, accentColor, isAmoledMode)
@@ -236,7 +246,7 @@ fun PennyWiseTheme(
         }
     }
 
-    CompositionLocalProvider(LocalBlurEffects provides blurEffects) {
+    CompositionLocalProvider(LocalBlurEffects provides blurEffects, LocalRedSpending provides redSpending) {
         MaterialExpressiveTheme(
             colorScheme = colorScheme,
             // Springy, overshooting spatial motion for every M3 component.

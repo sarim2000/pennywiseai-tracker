@@ -44,6 +44,7 @@ import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.*
+import com.pennywiseai.tracker.ui.theme.spending
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
@@ -428,7 +429,7 @@ private fun SummaryStatistics(
                     label = stringResource(R.string.account_detail_expenses),
                     value = formatWithEstimatedDisplay(totalExpenses, primaryCurrency, hasMultipleCurrencies),
                     icon = Icons.AutoMirrored.Filled.TrendingDown,
-                    color = MaterialTheme.colorScheme.onSurface
+                    color = MaterialTheme.colorScheme.spending
                 )
                 StatisticItem(
                     label = stringResource(R.string.account_detail_net),
@@ -528,7 +529,7 @@ private fun AccountTransactionItem(
 ) {
     val amountColor = when (transaction.transactionType) {
         TransactionType.INCOME -> MaterialTheme.colorScheme.income
-        TransactionType.EXPENSE -> MaterialTheme.colorScheme.onSurface
+        TransactionType.EXPENSE -> MaterialTheme.colorScheme.spending
         TransactionType.CREDIT -> MaterialTheme.colorScheme.credit
         TransactionType.TRANSFER -> MaterialTheme.colorScheme.transfer
         TransactionType.INVESTMENT -> MaterialTheme.colorScheme.investment

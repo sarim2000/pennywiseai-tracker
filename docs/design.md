@@ -525,11 +525,13 @@ neutral surface. A new palette or accent that fails can't merge. Dynamic
 Most transactions are spending, so the common case stays quiet and red keeps
 its meaning:
 
-- **Spending is ink** (`onSurface`, or the `on*` role of the container it sits
-  on). The sign ("-"), a label or an icon tells it apart, never colour alone.
+- **Spending uses `spending`**: `expense` red by default, `onSurface` when the
+  user turns off Appearance → "Red for spending". On a coloured container, use
+  that container's `on*` role. The sign ("-"), a label or an icon tells it
+  apart, never colour alone.
 - **Income** uses `income`, with a "+".
 - **Credit, transfer, investment, loan** keep their own tokens.
-- **Red (`expense` / `error`) or `warning` only for a problem**: over budget,
+- **Otherwise red (`expense` / `error`) or `warning` only for a problem**: over budget,
   overdue, a negative net or balance, low balance, limit exceeded, errors.
   Name the problem or add an icon too: red alone fails colour-blind users.
 - **Never use `secondary` or `tertiary` as a status.** They are palette

@@ -358,6 +358,8 @@
     <string name="appearance_amoled_title">AMOLED Black</string>
     <string name="appearance_amoled_subtitle">Use pure black background for deeper contrast</string>
     <string name="appearance_blur_title">Blur Effects</string>
+    <string name="appearance_red_spending_title">Red for spending</string>
+    <string name="appearance_red_spending_subtitle">Show money you spend in red. Turn off for plain text, with red only for problems.</string>
     <string name="appearance_blur_subtitle">Enable glassmorphism blur effects in UI components</string>
 
     <!-- Navigation -->

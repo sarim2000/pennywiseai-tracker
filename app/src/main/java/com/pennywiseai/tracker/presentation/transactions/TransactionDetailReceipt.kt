@@ -52,6 +52,7 @@ import com.pennywiseai.tracker.ui.sharedElementIcon
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.spending
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
@@ -77,7 +78,7 @@ internal fun TransactionReceipt(
 ) {
     val typeColor = when (transaction.transactionType) {
         TransactionType.INCOME -> MaterialTheme.colorScheme.income
-        TransactionType.EXPENSE -> MaterialTheme.colorScheme.onSurface
+        TransactionType.EXPENSE -> MaterialTheme.colorScheme.spending
         TransactionType.CREDIT -> MaterialTheme.colorScheme.credit
         TransactionType.TRANSFER -> MaterialTheme.colorScheme.transfer
         TransactionType.INVESTMENT -> MaterialTheme.colorScheme.investment

@@ -205,6 +205,7 @@ open class UserPreferencesRepository internal constructor(
 
         // Blur Effects
         val BLUR_EFFECTS_ENABLED = booleanPreferencesKey("blur_effects_enabled")
+        val RED_SPENDING = booleanPreferencesKey("red_spending")
 
         // Navigation Bar Style
         val NAV_BAR_STYLE = stringPreferencesKey("nav_bar_style")
@@ -268,7 +269,7 @@ open class UserPreferencesRepository internal constructor(
             K.DARK_THEME_ENABLED, K.DYNAMIC_COLOR_ENABLED, K.IS_AMOLED_MODE, K.DEVELOPER_MODE_ENABLED,
             K.COUNT_CREDIT_AS_EXPENSE, K.ATM_CASH_TO_WALLET, K.DAILY_SUMMARY_ENABLED, K.BUDGET_ALERTS_ENABLED,
             K.WEEKLY_SUMMARY_ENABLED, K.CONSCIENCE_ENABLED, K.SMS_SCAN_ALL_TIME, K.SMS_SCAN_USE_CUSTOM_DATE,
-            K.UNIFIED_CURRENCY_MODE, K.BALANCE_HIDDEN, K.SHAKE_TO_HIDE_AMOUNTS, K.BLUR_EFFECTS_ENABLED,
+            K.UNIFIED_CURRENCY_MODE, K.BALANCE_HIDDEN, K.SHAKE_TO_HIDE_AMOUNTS, K.BLUR_EFFECTS_ENABLED, K.RED_SPENDING,
             K.BASE_CURRENCY_USER_SET, K.USE_CONTACTS_FOR_VPA, K.EXPORT_INCLUDE_RECEIPTS,
             K.FOLDER_BACKUP_INCLUDE_RECEIPTS
         )
@@ -401,6 +402,7 @@ open class UserPreferencesRepository internal constructor(
                 displayCurrency = preferences[PreferencesKeys.DISPLAY_CURRENCY]
                     ?: preferences[PreferencesKeys.BASE_CURRENCY] ?: "INR",
                 blurEffectsEnabled = preferences[PreferencesKeys.BLUR_EFFECTS_ENABLED] ?: true,
+                redSpending = preferences[PreferencesKeys.RED_SPENDING] ?: true,
                 navBarStyle = preferences[PreferencesKeys.NAV_BAR_STYLE]?.let {
                     try { NavBarStyle.valueOf(it) } catch (_: Exception) { NavBarStyle.FLOATING }
                 } ?: NavBarStyle.FLOATING,
@@ -1426,6 +1428,12 @@ open class UserPreferencesRepository internal constructor(
         }
     }
 
+    suspend fun updateRedSpending(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.RED_SPENDING] = enabled
+        }
+    }
+
     // Navigation Bar Style
     suspend fun updateNavBarStyle(style: NavBarStyle) {
         dataStore.edit { preferences ->
@@ -1611,6 +1619,7 @@ data class UserPreferences(
     val unifiedCurrencyMode: Boolean = false,
     val displayCurrency: String = "INR",
     val blurEffectsEnabled: Boolean = true,
+    val redSpending: Boolean = true,
     val navBarStyle: NavBarStyle = NavBarStyle.FLOATING,
     val hiddenNavTabs: Set<String> = emptySet(),
     val coverStyle: CoverStyle = CoverStyle.AURORA,

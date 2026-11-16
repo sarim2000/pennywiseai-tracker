@@ -23,7 +23,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -138,7 +137,8 @@ private fun CardBillDialog(
     onDismiss: () -> Unit,
     onSave: (Int?, BigDecimal?) -> Unit
 ) {
-    var day by remember { mutableIntStateOf(dueDay ?: 1) }
+    // No day until the user picks one: a made-up due day could mark the bill overdue.
+    var day by remember { mutableStateOf(dueDay) }
     var text by remember { mutableStateOf(amount?.toPlainString().orEmpty()) }
     val parsed = text.trim().toBigDecimalOrNull()
     val valid = text.isBlank() || (parsed != null && parsed.signum() >= 0)
@@ -158,15 +158,15 @@ private fun CardBillDialog(
                     horizontalArrangement = Arrangement.Center,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    IconButton(onClick = { if (day > 1) day-- }, shapes = IconButtonDefaults.shapes()) {
+                    IconButton(onClick = { day = ((day ?: 2) - 1).coerceAtLeast(1) }, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.Default.Remove, contentDescription = stringResource(R.string.manage_accounts_decrease))
                     }
                     Text(
-                        text = "$day",
+                        text = day?.toString() ?: "–",
                         style = MaterialTheme.typography.headlineMedium,
                         modifier = Modifier.padding(horizontal = Spacing.lg)
                     )
-                    IconButton(onClick = { if (day < 31) day++ }, shapes = IconButtonDefaults.shapes()) {
+                    IconButton(onClick = { day = ((day ?: 0) + 1).coerceAtMost(31) }, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.Default.Add, contentDescription = stringResource(R.string.manage_accounts_increase))
                     }
                 }

@@ -332,7 +332,11 @@ private fun ScoreBreakdownSheet(score: PeriodScore, onDismiss: () -> Unit) {
             score.savings?.let {
                 ScorePartRow(
                     stringResource(R.string.insights_score_savings),
-                    stringResource(R.string.insights_score_savings_detail, percent(it.percent)),
+                    if (it.percent < 0) {
+                        stringResource(R.string.insights_score_savings_detail_negative, percent(-it.percent))
+                    } else {
+                        stringResource(R.string.insights_score_savings_detail, percent(it.percent))
+                    },
                     // Its points are the savings rate scaled, so they hide with it.
                     if (AmountPrivacy.hidden) AmountPrivacy.MASK else stringResource(R.string.insights_score_points, it.points),
                 )

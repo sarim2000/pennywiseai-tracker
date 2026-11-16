@@ -46,6 +46,8 @@
     <string name="insights_score_savings">Savings</string>
     <!-- %1$s = percentage of income kept -->
     <string name="insights_score_savings_detail">%1$s of income kept. A fifth or more gets full marks.</string>
+    <!-- More went out than came in. %1$s = how much more, as a percentage of income -->
+    <string name="insights_score_savings_detail_negative">You spent %1$s more than you earned. Keeping a fifth of income gets full marks.</string>
     <string name="insights_score_budgets">Budgets</string>
     <!-- %1$d = budgets on track, %2$d = all budgets -->
     <plurals name="insights_score_budgets_detail">
@@ -60,7 +62,7 @@
     </plurals>
     <!-- %1$d = points for one part -->
     <string name="insights_score_points">%1$d/100</string>
-    <string name="insights_score_footnote">Parts without data are left out. Dismissing an insight doesn\'t change it.</string>
+    <string name="insights_score_footnote">The score blends these parts, with savings counting most. Parts without data are left out. Dismissing an insight doesn\'t change it.</string>
 
     <!-- Metric labels on an expanded insight -->
     <string name="insights_metric_spent">Spent</string>

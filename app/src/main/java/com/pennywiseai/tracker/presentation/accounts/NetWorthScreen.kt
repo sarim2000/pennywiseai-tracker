@@ -287,7 +287,8 @@ private fun AccountLine(line: NetWorthAccount, onClick: () -> Unit) {
             Text(
                 text = account.displayLabel,
                 style = PennyWiseText.rowTitle,
-                maxLines = 1,
+                // Two lines, so a large font still shows the digits that tell two accounts apart.
+                maxLines = 2,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f),
             )

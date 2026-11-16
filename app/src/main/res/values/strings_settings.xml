@@ -203,6 +203,10 @@
         <item quantity="one">Import successful! Imported %1$d transactions, %2$d categories. Skipped %3$d duplicates. %4$d receipt was too large to restore.</item>
         <item quantity="other">Import successful! Imported %1$d transactions, %2$d categories. Skipped %3$d duplicates. %4$d receipts were too large to restore.</item>
     </plurals>
+    <plurals name="settings_import_backup_success_skipped_rows_and_receipts">
+        <item quantity="one">Import successful! Imported %1$d transactions, %2$d categories. Skipped %3$d duplicates. %4$d rows could not be imported. %5$d receipt was too large to restore.</item>
+        <item quantity="other">Import successful! Imported %1$d transactions, %2$d categories. Skipped %3$d duplicates. %4$d rows could not be imported. %5$d receipts were too large to restore.</item>
+    </plurals>
     <string name="settings_import_failed">Import failed: %1$s</string>
     <string name="settings_import_error">Import error: %1$s</string>
     <string name="settings_importing_transactions">Importing transactions...</string>

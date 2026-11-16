@@ -660,7 +660,13 @@ class SettingsViewModel @Inject constructor(
                         com.pennywiseai.tracker.worker.WeeklySummaryWorker.sync(context, userPreferencesRepository.weeklySummaryEnabled.first())
                         com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
                         val counts = listOf(result.importedTransactions, result.importedCategories, result.skippedDuplicates)
-                        _importExportMessage.value = if (result.skippedRows > 0) {
+                        _importExportMessage.value = if (result.skippedRows > 0 && result.skippedReceipts > 0) {
+                            UiText.Plural(
+                                R.plurals.settings_import_backup_success_skipped_rows_and_receipts,
+                                result.skippedReceipts,
+                                counts + result.skippedRows + result.skippedReceipts
+                            )
+                        } else if (result.skippedRows > 0) {
                             UiText.Res(R.string.settings_import_backup_success_with_skipped_rows, counts + result.skippedRows)
                         } else if (result.skippedReceipts > 0) {
                             UiText.Plural(R.plurals.settings_import_backup_success_skipped_receipts, result.skippedReceipts, counts + result.skippedReceipts)

@@ -1,0 +1,117 @@
+package com.pennywiseai.tracker.worker.smsscan
+
+import com.pennywiseai.tracker.data.preferences.ScanPreferences
+import com.pennywiseai.tracker.domain.smsimport.SmsScanCounts
+import com.pennywiseai.tracker.domain.smsimport.SmsScanRecord
+import com.pennywiseai.tracker.domain.smsimport.SmsScanState
+import io.mockk.coEvery
+import io.mockk.mockk
+import kotlinx.coroutines.CancellationException
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.CoroutineStart
+import kotlinx.coroutines.awaitCancellation
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.runTest
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.io.IOException
+
+class ScanOutcomeRecorderTest {
+
+    private val written = mutableListOf<SmsScanRecord>()
+    private val preferences = mockk<ScanPreferences>(relaxed = true).also {
+        coEvery { it.setLastScanRecord(any()) } answers { written += firstArg<SmsScanRecord>() }
+    }
+    private var now = 1_000L
+    private val recorder = ScanOutcomeRecorder(preferences, clock = { now })
+
+    private val states get() = written.map { it.state }
+
+    private fun countedStats() = ProcessingStats(total = 3).apply {
+        saved.set(2)
+        duplicates.set(1)
+    }
+
+    @Test
+    fun `a scan that returns is recorded running, then succeeded with its counts`() = runTest {
+        val result = recorder.run(isStopped = { false }) {
+            assertEquals("running is written before any work", listOf(SmsScanState.RUNNING), states)
+            recorder.stats = countedStats()
+            now = 5_000L
+            "done"
+        }
+
+        assertEquals("done", result)
+        assertEquals(listOf(SmsScanState.RUNNING, SmsScanState.SUCCEEDED), states)
+        assertEquals(
+            SmsScanRecord(SmsScanState.SUCCEEDED, startedAt = 1_000L, finishedAt = 5_000L, SmsScanCounts(saved = 2, duplicates = 1)),
+            written.last(),
+        )
+    }
+
+    @Test
+    fun `a scan that throws is recorded failed with what it counted, and the error goes on`() = runTest {
+        val error = IOException("disk full")
+
+        val thrown = runCatching {
+            recorder.run(isStopped = { false }) {
+                recorder.stats = countedStats()
+                throw error
+            }
+        }.exceptionOrNull()
+
+        assertSame(error, thrown)
+        assertEquals(listOf(SmsScanState.RUNNING, SmsScanState.FAILED), states)
+        assertEquals(SmsScanCounts(saved = 2, duplicates = 1), written.last().counts)
+    }
+
+    @Test
+    fun `a failure before counting starts records no counts`() = runTest {
+        runCatching { recorder.run(isStopped = { false }) { error("no inbox") } }
+
+        assertEquals(SmsScanRecord(SmsScanState.FAILED, startedAt = 1_000L, finishedAt = 1_000L), written.last())
+    }
+
+    @Test
+    fun `an error after the work was stopped is recorded cancelled`() = runTest {
+        runCatching { recorder.run(isStopped = { true }) { error("cursor closed") } }
+
+        assertEquals(listOf(SmsScanState.RUNNING, SmsScanState.CANCELLED), states)
+    }
+
+    @Test
+    fun `a cancelled scan is recorded cancelled, even from a cancelled coroutine`() = runTest {
+        val started = CompletableDeferred<Unit>()
+        val job = launch(start = CoroutineStart.UNDISPATCHED) {
+            recorder.run(isStopped = { false }) {
+                started.complete(Unit)
+                awaitCancellation()
+            }
+        }
+        started.await()
+
+        job.cancel()
+        job.join()
+
+        assertTrue(job.isCancelled)
+        assertEquals(listOf(SmsScanState.RUNNING, SmsScanState.CANCELLED), states)
+    }
+
+    @Test
+    fun `a record that can't be written never fails the scan`() = runTest {
+        coEvery { preferences.setLastScanRecord(any()) } throws IOException("datastore broken")
+
+        assertEquals(42, recorder.run(isStopped = { false }) { 42 })
+    }
+
+    @Test
+    fun `the record write is not swallowed when the scan is cancelled`() = runTest {
+        coEvery { preferences.setLastScanRecord(any()) } throws CancellationException("stopped")
+
+        val thrown = runCatching { recorder.run(isStopped = { false }) { 42 } }.exceptionOrNull()
+
+        assertTrue(thrown is CancellationException)
+    }
+}

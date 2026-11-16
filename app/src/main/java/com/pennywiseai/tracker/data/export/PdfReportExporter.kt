@@ -75,6 +75,13 @@ internal fun reportSlug(range: ReviewRange): String = when {
     else -> range.start.toString()
 }
 
+/**
+ * The file's name: the period it covers, then " (2)", " (3)"… for another copy made while
+ * the first is still kept, as a download folder names them.
+ */
+internal fun reportFileName(range: ReviewRange, copy: Int): String =
+    "pennywise-report-${reportSlug(range)}${if (copy > 1) " ($copy)" else ""}.pdf"
+
 /** The share sheet for a report [PdfReportExporter.export] wrote. */
 fun pdfShareIntent(uri: Uri): Intent {
     val send = Intent(Intent.ACTION_SEND).apply {
@@ -100,7 +107,7 @@ class PdfReportExporter @Inject constructor(
     @param:ApplicationContext private val appContext: Context,
 ) {
     /**
-     * Writes the report under a fresh name in the `exports/` cache and returns a shareable
+     * Writes the report to a new file in the `exports/` cache and returns a shareable
      * URI. [title] and [profileName] are as the screen shows them, and [comparedWith] names
      * the period the categories' changes are measured from ("September"); [categoryLabel]
      * turns a stored category name into the one the user reads.
@@ -117,7 +124,10 @@ class PdfReportExporter @Inject constructor(
         // Bounded by age, not by overwriting: a file just shared may still be read (see ShareCardExporter).
         dir.listFiles()?.filter { it.name.endsWith(".pdf") && now - it.lastModified() > MAX_AGE_MS }?.forEach { it.delete() }
 
-        val file = File.createTempFile("pennywise-report-${reportSlug(review.range)}-", ".pdf", dir)
+        // A fresh file, never one just shared, under a name a recipient can read.
+        val file = generateSequence(1) { it + 1 }
+            .map { File(dir, reportFileName(review.range, it)) }
+            .first { it.createNewFile() }
         val document = PdfDocument()
         try {
             Renderer(appContext.inAppLanguage(), categoryLabel).render(document, review, title, profileName, comparedWith)

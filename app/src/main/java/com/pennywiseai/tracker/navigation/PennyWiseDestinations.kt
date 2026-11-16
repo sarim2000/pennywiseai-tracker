@@ -184,6 +184,10 @@ data class TransactionsWithFilter(
 @Serializable
 data class Review(val kind: String = "MONTH", val weekStart: String? = null) : NavKey
 
+/** Achievements earned and still to earn, worked out from the app's history. */
+@Serializable
+data object Achievements : NavKey
+
 /**
  * The share studio. [kind] is a ShareKind name, the card it opens on. A review passes
  * the period it shows as [reviewKind] (a ReviewKind name), [offset] and the epoch day

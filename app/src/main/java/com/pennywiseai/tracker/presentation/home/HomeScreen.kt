@@ -76,6 +76,7 @@ fun HomeScreen(
     onNavigateToSubscriptions: () -> Unit = {},
     onNavigateToReview: (ReviewKind) -> Unit = {},
     onNavigateToShareStudio: () -> Unit = {},
+    onNavigateToAchievements: () -> Unit = {},
     onNavigateToBudgets: () -> Unit = {},
     onNavigateToLoans: () -> Unit = {},
     onNavigateToTransactionGroups: () -> Unit = {},
@@ -766,6 +767,7 @@ fun HomeScreen(
                 onDismiss = { showMenuSheet = false },
                 onOpenReview = { onNavigateToReview(ReviewKind.MONTH) },
                 onOpenShareCard = onNavigateToShareStudio,
+                onOpenAchievements = onNavigateToAchievements,
                 onOpenSettings = onNavigateToSettings,
                 onEditHome = { showEditWidgetsSheet = true },
                 onReadMessagesAgain = { showFullResyncDialog = true }

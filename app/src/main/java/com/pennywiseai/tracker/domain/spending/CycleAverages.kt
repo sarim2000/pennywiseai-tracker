@@ -6,8 +6,12 @@ import java.math.RoundingMode
 
 /**
  * A usual cycle in one currency: the average income and spending of the [CYCLES]
- * complete cycles before the current one. Home's forecast "usual", the runway and
- * goal affordability all read history through [mean], so they agree on what counts.
+ * complete cycles before the current one, by Period Review's definitions (spending
+ * net of refunds). The runway and goal affordability read it through [of].
+ *
+ * Home's forecast "usual" shares only [mean]: it still loads its own previous cycles
+ * under its headline spend rules (any recorded row makes a cycle count), so the two
+ * figures can differ for the same months.
  */
 data class CycleAverages(val currency: String, val income: BigDecimal, val spent: BigDecimal) {
     /** What a usual cycle leaves over; negative when more goes out than comes in. */

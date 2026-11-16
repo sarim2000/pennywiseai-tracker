@@ -136,6 +136,11 @@ M0, M2, M7 and M8 are independent and can run in parallel worktrees.
 
 **Acceptance:** zero spending never shows "infinite" runway. Goals in a currency with no income show "no data", not "unaffordable". Home's figures don't change after the refactor in task 1 (snapshot test).
 
+**Notes (as built):**
+- **Task 1 is partial.** Only the averaging (`CycleAverages.mean`) moved. Home still loads its own 3 previous cycles under its headline spend rules (gross `MonthlyBreakdown.expenses` plus loan loss, unified-currency conversion; a cycle counts when any row exists). Routing it through `PeriodReviewLoader` would change Home's figures, so the runway and goals use Period Review's net-of-refunds cycles via `CycleAverages.of`, and Home's forecast "usual" can differ from Insights' "Usual month" for the same months.
+- **Decision 3, "non-default profile":** the default is the *All profiles* view (`selectedProfileId == null`). Goal figures hide while any single profile is selected, Personal included, because the surplus then covers only that profile.
+- **Runway:** accounts with no anchored balance are left out rather than guessed. A currency held only in them has no runway, and a low figure that leaves some out never warns.
+
 ---
 
 ## M4 — Card bills + commitment-aware Safe-to-spend

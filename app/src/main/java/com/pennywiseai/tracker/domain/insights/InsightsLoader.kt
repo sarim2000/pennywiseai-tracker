@@ -121,6 +121,7 @@ internal fun budgetStatuses(summary: BudgetOverallSummary, today: LocalDate): Li
                 limit = it.totalBudget,
                 daysElapsed = it.daysElapsed,
                 windowDays = it.windowDays,
+                windowStart = it.windowStart,
                 windowEnd = it.windowEnd,
                 incomplete = it.hasUnconvertedSpend,
             )

@@ -37,11 +37,15 @@ data class BudgetStatus(
     /** Today included, as the Budgets screen counts it. */
     val daysElapsed: Int,
     val windowDays: Int,
+    val windowStart: LocalDate,
     val windowEnd: LocalDate,
     /** Some spending had no exchange rate, so [spent] reads low. */
     val incomplete: Boolean = false,
 ) {
     val isRunning: Boolean get() = limit.signum() > 0 && daysElapsed in 1..windowDays
+
+    /** A weekly budget's week 2 is news again after week 1 was dismissed. */
+    internal val windowKey: String get() = "$id@$windowStart"
 
     /** At or under an even pace, as the Budgets meter reads it: the rules and the score share this. */
     val isOnTrack: Boolean
@@ -103,11 +107,11 @@ object InsightRules {
             when {
                 // Nothing left a day with days to go reads as over, not as "0 a day".
                 pace.isOverBudget || perDayLeft.signum() <= 0 -> Insight(
-                    id("budget_over", period, b.currency, b.id), InsightSeverity.ALERT, b.currency,
+                    id("budget_over", period, b.currency, b.windowKey), InsightSeverity.ALERT, b.currency,
                     BudgetOver(b.name, spent, limit, b.incomplete), action,
                 )
                 b.daysElapsed * 4 >= b.windowDays -> Insight(
-                    id("budget_pace", period, b.currency, b.id), InsightSeverity.WARNING, b.currency,
+                    id("budget_pace", period, b.currency, b.windowKey), InsightSeverity.WARNING, b.currency,
                     BudgetPace(
                         name = b.name,
                         spent = spent,
@@ -158,17 +162,21 @@ object InsightRules {
             )
         }.sortedByDescending { (it.fact as CardUtilisation).percent }
 
-    /** Subscription payments due in the next [BILLS_DAYS] days, one line per currency. */
+    /**
+     * Subscription payments due in the next [BILLS_DAYS] days, one line per currency.
+     * Keyed on the first due date, so a dismissal lasts until that payment has gone.
+     */
     internal fun billsDue(subscriptions: List<SubscriptionEntity>, today: LocalDate, period: String): List<Insight> =
         SafeToSpend.billsInWindow(SafeToSpend.billsFrom(subscriptions), today, today.plusDays(BILLS_DAYS))
             .groupBy { it.amount.currency }
             .map { (currency, bills) ->
+                val firstDue = bills.minOf { it.dueDate }
                 Insight(
-                    id("bills_due", period, currency, "next$BILLS_DAYS"), InsightSeverity.WARNING, currency,
+                    id("bills_due", period, currency, "next$BILLS_DAYS@$firstDue"), InsightSeverity.WARNING, currency,
                     BillsDue(
                         count = bills.size,
                         total = bills.sumByCurrency({ it.amount.currency }, { it.amount.amount }).getValue(currency),
-                        firstDue = bills.minOf { it.dueDate },
+                        firstDue = firstDue,
                         withinDays = BILLS_DAYS.toInt(),
                     ),
                     InsightAction.OpenSubscriptions,

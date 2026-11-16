@@ -80,9 +80,10 @@ class InsightRulesTest {
         days: Int = 30,
         currency: String = "INR",
         incomplete: Boolean = false,
+        start: String = "2026-11-01",
     ) = BudgetStatus(
         id, "Budget $id", currency, BigDecimal(spent), BigDecimal(limit), elapsed, days,
-        LocalDate.parse("2026-11-30"), incomplete,
+        LocalDate.parse(start), LocalDate.parse(start).plusDays(days - 1L), incomplete,
     )
 
     private fun subscription(
@@ -175,6 +176,16 @@ class InsightRulesTest {
         val onTrack = insights.filter { it.fact is BudgetsOnTrack }
         assertEquals(listOf("INR"), onTrack.map { it.currency })
         assertEquals(BudgetsOnTrack(2), onTrack.single().fact)
+    }
+
+    @Test
+    fun `a new window of a weekly budget is a new insight, in the same cycle`() {
+        val week1 = evaluate(budgets = listOf(budget(1, "800", limit = "700", elapsed = 5, days = 7))).single()
+        val week2 = evaluate(
+            budgets = listOf(budget(1, "800", limit = "700", elapsed = 5, days = 7, start = "2026-11-08")),
+        ).single()
+        assertTrue(week1.id != week2.id)
+        assertEquals(insightCycleOf(week1.id), insightCycleOf(week2.id))
     }
 
     // --- Category spike
@@ -318,6 +329,15 @@ class InsightRulesTest {
         assertEquals(1, bills.getValue("USD").count)
     }
 
+    @Test
+    fun `bills due move to a new insight once the first one has gone`() {
+        val subscriptions = listOf(subscription(1, "100", "2026-11-22"), subscription(2, "50", "2026-11-26"))
+        val before = evaluate(subscriptions = subscriptions).single { it.fact is BillsDue }
+        val after = evaluate(subscriptions = subscriptions.drop(1)).single { it.fact is BillsDue }
+        assertEquals("bills_due:v1:2026-11-01:INR:next7@2026-11-22", before.id)
+        assertTrue(before.id != after.id)
+    }
+
     // --- Cards
 
     @Test
@@ -349,7 +369,7 @@ class InsightRulesTest {
         assertEquals(insights.map { it.severity }.sorted(), insights.map { it.severity })
         assertEquals(InsightSeverity.ALERT, insights.first().severity)
         assertEquals(InsightSeverity.GOOD, insights.last().severity)
-        assertEquals("budget_over:v1:2026-11-01:INR:2", insights.first().id)
+        assertEquals("budget_over:v1:2026-11-01:INR:2@2026-11-01", insights.first().id)
         assertEquals(insights.map { it.id }, run().map { it.id })
     }
 }

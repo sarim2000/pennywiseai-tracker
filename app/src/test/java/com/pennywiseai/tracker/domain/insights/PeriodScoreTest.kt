@@ -21,7 +21,8 @@ class PeriodScoreTest {
     }
 
     private fun budget(spent: String, currency: String = "INR") = BudgetStatus(
-        1, "Food", currency, BigDecimal(spent), BigDecimal("3000"), 10, 30, LocalDate.parse("2026-11-30"),
+        1, "Food", currency, BigDecimal(spent), BigDecimal("3000"), 10, 30,
+        LocalDate.parse("2026-11-01"), LocalDate.parse("2026-11-30"),
     )
 
     private fun score(

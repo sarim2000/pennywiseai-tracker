@@ -30,9 +30,13 @@ import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.rememberCoroutineScope
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -66,6 +70,7 @@ import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.DateRangeUtils
 import kotlinx.coroutines.launch
@@ -197,6 +202,7 @@ internal fun shareText(context: Context, kind: ShareKind): String = context.getS
 @Composable
 private fun CardPreview(card: ShareCardState, theme: ShareTheme, scale: Float, previewModifier: Modifier) {
     val description = stringResource(R.string.share_studio_preview_description)
+    var revealed by rememberSaveable { mutableStateOf(false) }
     Box(
         Modifier
             .size(ShareCardWidth * scale, ShareCardHeight * scale)
@@ -207,7 +213,27 @@ private fun CardPreview(card: ShareCardState, theme: ShareTheme, scale: Float, p
         contentAlignment = Alignment.Center,
     ) {
         when (card) {
-            is ShareCardState.Ready -> ShareCard(card.content, theme, Modifier.scaleTo(scale).then(previewModifier))
+            is ShareCardState.Ready -> {
+                ShareCard(card.content, theme, Modifier.scaleTo(scale).then(previewModifier))
+                // With amounts hidden app-wide, the figures stay covered on screen until
+                // asked for. The cover is drawn over the card, outside the recorded
+                // layer, so the shared image is still exactly what was chosen.
+                if (AmountPrivacy.hidden && !revealed) {
+                    Placeholder {
+                        Column(horizontalAlignment = Alignment.CenterHorizontally, modifier = Modifier.padding(Spacing.lg)) {
+                            Text(
+                                text = stringResource(R.string.share_studio_hidden),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                textAlign = TextAlign.Center,
+                            )
+                            TextButton(onClick = { revealed = true }, shapes = ButtonDefaults.shapes()) {
+                                Text(stringResource(R.string.share_studio_hidden_reveal))
+                            }
+                        }
+                    }
+                }
+            }
             ShareCardState.Loading -> Placeholder { LoadingIndicator() }
             is ShareCardState.Unavailable -> Placeholder {
                 Text(

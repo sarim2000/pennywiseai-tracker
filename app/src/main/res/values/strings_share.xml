@@ -12,6 +12,8 @@
     <string name="share_studio_section_style">Style</string>
     <string name="share_studio_footnote">The image is made on your phone. Only what the preview shows is shared, and only with the app you pick.</string>
     <string name="share_studio_preview_description">Preview of the card to share</string>
+    <string name="share_studio_hidden">Amounts are hidden. The card shows what you choose below.</string>
+    <string name="share_studio_hidden_reveal">Show preview</string>
 
     <string name="share_kind_recap">Recap</string>
     <string name="share_kind_spending">Spending change</string>

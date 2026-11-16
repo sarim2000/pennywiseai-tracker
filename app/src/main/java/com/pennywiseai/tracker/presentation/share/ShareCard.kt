@@ -36,6 +36,8 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -493,16 +495,49 @@ private fun ChartBlock(chart: ShareChart, p: SharePalette, modifier: Modifier) {
     }
 }
 
-private val ChartLabel = Body.copy(fontSize = 13.sp, fontWeight = FontWeight.SemiBold)
+// Bar rows are one line of text tall, set explicitly: the app's body style would make
+// each 24dp.
+private val ChartRowHeight = 17.sp
+private val ChartLabel = Body.copy(fontSize = 13.sp, lineHeight = ChartRowHeight, fontWeight = FontWeight.SemiBold)
+
+/**
+ * Chart rows stacked [gap] apart, as many as fit whole. A card with every detail on has
+ * little height left for its chart, and Arabic lines run taller than Latin ones; a row
+ * squeezed into what's left would be cut through its text, so it is left off instead.
+ */
+@Composable
+private fun WholeRows(modifier: Modifier, gap: Dp = 8.dp, content: @Composable () -> Unit) {
+    Layout(content, modifier) { measurables, constraints ->
+        val gapPx = gap.roundToPx()
+        val row = Constraints(minWidth = constraints.maxWidth, maxWidth = constraints.maxWidth)
+        val placeables = mutableListOf<Placeable>()
+        var height = 0
+        for (measurable in measurables) {
+            val placeable = measurable.measure(row)
+            val next = if (placeables.isEmpty()) placeable.height else height + gapPx + placeable.height
+            if (placeables.isNotEmpty() && next > constraints.maxHeight) break
+            placeables += placeable
+            height = next
+        }
+        val layoutHeight = height.coerceIn(constraints.minHeight, constraints.maxHeight)
+        layout(constraints.maxWidth, layoutHeight) {
+            var y = (layoutHeight - height) / 2
+            placeables.forEach {
+                it.place(0, y)
+                y += it.height + gapPx
+            }
+        }
+    }
+}
 
 /** One row per point: name and figure over a thick bar sized against the largest. */
 @Composable
 private fun BarsChart(chart: ShareChart, p: SharePalette, modifier: Modifier) {
     val points = chart.points.take(MAX_BAR_ROWS)
     val max = points.maxOfOrNull { it.value }?.takeIf { it > 0 } ?: 1.0
-    val valueStyle = Figures.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = p.text, textAlign = TextAlign.End)
+    val valueStyle = Figures.copy(fontSize = 13.sp, lineHeight = ChartRowHeight, fontWeight = FontWeight.Bold, color = p.text, textAlign = TextAlign.End)
     val valueWidth = valueColumnWidth(points, valueStyle)
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically)) {
+    WholeRows(modifier) {
         points.forEachIndexed { i, point ->
             val highlighted = i == (chart.highlightIndex ?: 0)
             Row(verticalAlignment = Alignment.CenterVertically) {
@@ -542,9 +577,9 @@ private fun BarsChart(chart: ShareChart, p: SharePalette, modifier: Modifier) {
 private fun DivergingChart(chart: ShareChart, p: SharePalette, modifier: Modifier) {
     val points = chart.points.take(MAX_BAR_ROWS)
     val max = points.maxOfOrNull { abs(it.value) }?.takeIf { it > 0 } ?: 1.0
-    val valueStyle = Figures.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, textAlign = TextAlign.End)
+    val valueStyle = Figures.copy(fontSize = 13.sp, lineHeight = ChartRowHeight, fontWeight = FontWeight.Bold, textAlign = TextAlign.End)
     val valueWidth = valueColumnWidth(points, valueStyle)
-    Column(modifier, verticalArrangement = Arrangement.spacedBy(10.dp, Alignment.CenterVertically)) {
+    WholeRows(modifier) {
         points.forEach { point ->
             val fraction = (abs(point.value) / max).toFloat().coerceIn(0.04f, 1f)
             val positive = point.value >= 0

@@ -33,6 +33,7 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import androidx.navigation3.ui.NavDisplay
 import androidx.savedstate.serialization.encodeToSavedState
+import com.pennywiseai.tracker.domain.insights.InsightAction
 import com.pennywiseai.tracker.ui.LocalNavAnimatedVisibilityScope
 import com.pennywiseai.tracker.ui.LocalSharedTransitionScope
 import com.pennywiseai.tracker.ui.animations.LocalNavEntrance
@@ -444,6 +445,21 @@ fun PennyWiseNavHost(
                         )
                     }
 
+                    entry<Insights> { key ->
+                        com.pennywiseai.tracker.presentation.insights.InsightsScreen(
+                            onNavigateBack = { backStack.pop(key) },
+                            onAction = { action -> backStack.navigate(insightDestination(action)) },
+                        )
+                    }
+
+                    // Also a tab screen; here for an insight's "Open subscriptions".
+                    entry<Subscriptions> { key ->
+                        com.pennywiseai.tracker.presentation.subscriptions.SubscriptionsScreen(
+                            onNavigateBack = { backStack.pop(key) },
+                            onAddSubscriptionClick = { backStack.navigate(AddTransaction()) },
+                        )
+                    }
+
                     entry<TransactionsWithFilter> { args ->
                         com.pennywiseai.tracker.presentation.transactions.TransactionsScreen(
                             initialCategory = args.category,
@@ -465,4 +481,20 @@ fun PennyWiseNavHost(
             )
         }
     }
+}
+
+/** Where an insight's button leads; the domain names the target, the app picks the screen. */
+private fun insightDestination(action: InsightAction): NavKey = when (action) {
+    is InsightAction.OpenBudget -> BudgetGroups()
+    is InsightAction.OpenCategory -> TransactionsWithFilter(
+        category = action.category,
+        period = com.pennywiseai.tracker.presentation.common.TimePeriod.CUSTOM.name,
+        currency = action.currency,
+        startDate = action.start.toEpochDay(),
+        endDate = action.end.toEpochDay(),
+        currencyOnly = true,
+    )
+    is InsightAction.OpenTransaction -> TransactionDetail(action.transactionId)
+    is InsightAction.OpenAccount -> AccountDetail(action.bankName, action.accountLast4)
+    InsightAction.OpenSubscriptions -> Subscriptions
 }

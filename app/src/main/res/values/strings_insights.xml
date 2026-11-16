@@ -1,0 +1,114 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Insights screen -->
+    <string name="insights_title">Insights</string>
+    <string name="insights_back">Back</string>
+    <string name="insights_this_cycle">This cycle</string>
+    <string name="insights_spent">Spent</string>
+    <string name="insights_income">Income</string>
+    <string name="insights_saved">Saved</string>
+    <string name="insights_savings_rate">Savings rate</string>
+    <string name="insights_last_cycles">Spending by cycle</string>
+    <string name="insights_section_alert">Needs attention</string>
+    <string name="insights_section_warning">Heads up</string>
+    <string name="insights_section_good">Doing well</string>
+    <string name="insights_all_clear">Nothing needs your attention right now.</string>
+    <string name="insights_empty_headline">Insights are on their way</string>
+    <string name="insights_empty_body">Once a few weeks of transactions are in, this page shows what needs attention and what\'s going well.</string>
+    <string name="insights_coverage">Worked out on this phone from your recorded transactions. Nothing is sent anywhere.</string>
+    <string name="insights_dismiss">Dismiss</string>
+    <string name="insights_dismissed">Insight dismissed</string>
+    <string name="insights_undo">Undo</string>
+    <string name="insights_restore">Show again</string>
+    <!-- %1$d = how many insights were dismissed this cycle -->
+    <string name="insights_show_dismissed">Show dismissed (%1$d)</string>
+    <string name="insights_hide_dismissed">Hide dismissed</string>
+    <string name="insights_expand">Show details</string>
+    <string name="insights_collapse">Hide details</string>
+    <!-- %1$d = a whole percentage -->
+    <string name="insights_percent">%1$d%%</string>
+
+    <!-- Metric labels on an expanded insight -->
+    <string name="insights_metric_spent">Spent</string>
+    <string name="insights_metric_budget">Budget</string>
+    <string name="insights_metric_projected">Projected</string>
+    <string name="insights_metric_per_day">Per day left</string>
+    <string name="insights_metric_usual">Usual</string>
+    <string name="insights_metric_this_cycle">This cycle</string>
+    <string name="insights_metric_amount">Amount</string>
+    <string name="insights_metric_income">Income</string>
+    <string name="insights_metric_saved">Saved</string>
+    <string name="insights_metric_used">Used</string>
+    <string name="insights_metric_limit">Limit</string>
+    <string name="insights_metric_tracked">Tracked at</string>
+    <string name="insights_metric_charged">Charged</string>
+
+    <!-- Action buttons -->
+    <string name="insights_action_budgets">Open budgets</string>
+    <string name="insights_action_transactions">See transactions</string>
+    <string name="insights_action_transaction">Open transaction</string>
+    <string name="insights_action_subscriptions">Open subscriptions</string>
+    <string name="insights_action_account">Open account</string>
+
+    <!-- Budget over. %1$s = amount over, %2$s = budget name -->
+    <string name="insights_budget_over_title">%1$s over your %2$s budget</string>
+    <!-- %1$s = spent, %2$s = budget limit -->
+    <string name="insights_budget_over_body">You\'ve spent %1$s of %2$s.</string>
+    <!-- Budget pace. %1$s = amount per day, %2$s = budget name -->
+    <string name="insights_budget_pace_title">%1$s a day keeps %2$s on budget</string>
+    <!-- %1$s = projected spend, %2$s = end date, %3$s = budget limit -->
+    <string name="insights_budget_pace_body">At this pace you\'d spend %1$s by %2$s, against a budget of %3$s.</string>
+    <string name="insights_budget_incomplete">Some spending in other currencies has no exchange rate yet, so the real figure may be higher.</string>
+    <plurals name="insights_budgets_on_track_title">
+        <item quantity="one">%1$d budget is on track</item>
+        <item quantity="other">All %1$d budgets are on track</item>
+    </plurals>
+    <string name="insights_budgets_on_track_body">Spending is at or under an even pace for the rest of the period.</string>
+
+    <!-- Category spike. %1$s = amount, %2$s = category, %3$s = percentage -->
+    <string name="insights_spike_title">%1$s on %2$s, %3$s more than usual</string>
+    <!-- %1$s = usual amount for a whole cycle -->
+    <string name="insights_spike_body">You usually spend about %1$s on it in a whole cycle, and this one isn\'t over yet.</string>
+
+    <!-- Savings rate. %1$s = percentage -->
+    <string name="insights_savings_good_title">You\'ve kept %1$s of your income</string>
+    <!-- %1$s = amount saved, %2$s = income -->
+    <string name="insights_savings_good_body">%1$s of %2$s so far this cycle.</string>
+    <!-- %1$s = amount -->
+    <string name="insights_savings_negative_title">%1$s more spent than earned</string>
+    <!-- %1$s = income -->
+    <string name="insights_savings_negative_body">Income recorded so far this cycle is %1$s.</string>
+
+    <!-- Large transaction. %1$s = amount, %2$s = merchant, %3$d = how many times -->
+    <string name="insights_large_title">%1$s at %2$s, %3$d× your usual</string>
+    <!-- %1$s = category, %2$s = typical amount, %3$s = date -->
+    <string name="insights_large_body">A typical %1$s spend is about %2$s. This one was on %3$s.</string>
+
+    <!-- Price change. %1$s = subscription name, %2$s = new amount -->
+    <string name="insights_price_title">%1$s charged %2$s</string>
+    <!-- %1$s = tracked amount -->
+    <string name="insights_price_body">You track it at %1$s. Update it so upcoming bills stay right.</string>
+
+    <!-- Subscription cost. %1$s = monthly amount -->
+    <string name="insights_subscriptions_title">Subscriptions cost %1$s a month</string>
+    <plurals name="insights_subscriptions_body">
+        <item quantity="one">Across %1$d subscription.</item>
+        <item quantity="other">Across %1$d subscriptions.</item>
+    </plurals>
+
+    <!-- Card utilisation. %1$s = percentage, %2$s = card name -->
+    <string name="insights_card_title">%1$s of your %2$s limit used</string>
+    <!-- %1$s = used, %2$s = limit -->
+    <string name="insights_card_body">%1$s of %2$s.</string>
+
+    <!-- Bills due. %1$s = total, %2$d = days -->
+    <plurals name="insights_bills_title">
+        <item quantity="one">%1$s due in the next %2$d day</item>
+        <item quantity="other">%1$s due in the next %2$d days</item>
+    </plurals>
+    <!-- %1$d = number of payments, %2$s = date of the first -->
+    <plurals name="insights_bills_body">
+        <item quantity="one">%1$d payment, on %2$s.</item>
+        <item quantity="other">%1$d payments, the first on %2$s.</item>
+    </plurals>
+</resources>

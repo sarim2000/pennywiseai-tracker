@@ -56,7 +56,6 @@ import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.*
-import com.pennywiseai.tracker.utils.TrackingProblem
 import com.pennywiseai.tracker.utils.canReceiveSms
 import com.pennywiseai.tracker.utils.trackingProblem
 import dev.chrisbanes.haze.HazeState
@@ -82,7 +81,7 @@ fun HomeScreen(
     onLoanClick: (Long) -> Unit = {},
     onNavigateToAddScreen: () -> Unit = {},
     onNavigateToManageAccounts: () -> Unit = {},
-    onNavigateToBackgroundAccess: () -> Unit = {},
+    onNavigateToSmsCheckup: () -> Unit = {},
     onTransactionClick: (Long) -> Unit = {},
     onGroupClick: (Long) -> Unit = {},
     onGoalClick: (Long) -> Unit = {},
@@ -391,13 +390,8 @@ fun HomeScreen(
                     item(key = "tracking_problem") {
                         TrackingProblemCard(
                             problem = trackingIssue,
-                            onFix = {
-                                if (trackingIssue == TrackingProblem.SMS_ACCESS) {
-                                    smsAccess.request()
-                                } else {
-                                    onNavigateToBackgroundAccess()
-                                }
-                            },
+                            // The check-up shows the fix for either problem, and what else may be off.
+                            onFix = onNavigateToSmsCheckup,
                             onDismiss = { viewModel.snoozeTrackingCard() },
                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                         )

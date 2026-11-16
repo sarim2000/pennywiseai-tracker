@@ -191,7 +191,7 @@ fun MainScreen(
 
     // What a Settings row opens lives either in this tab's graph or above the tabs.
     fun openFromSettings(tab: BottomNavItem, key: NavKey) = when (key) {
-        Rules, Loans, RecurringTransactions, ExchangeRates, TransactionGroups, Webhooks, AiAccess, BackgroundAccess, LearnedCategories,
+        Rules, Loans, RecurringTransactions, ExchangeRates, TransactionGroups, Webhooks, AiAccess, BackgroundAccess, SmsCheckup, LearnedCategories,
         is BudgetGroups -> openRoot(key)
         else -> open(tab, key)
     }
@@ -305,8 +305,8 @@ fun MainScreen(
                 onNavigateToManageAccounts = {
                     open(tab, ManageAccounts)
                 },
-                onNavigateToBackgroundAccess = {
-                    openRoot(BackgroundAccess)
+                onNavigateToSmsCheckup = {
+                    openRoot(SmsCheckup)
                 },
                 onNavigateToAddScreen = {
                     openRoot(AddTransaction())

@@ -614,8 +614,7 @@ class ChatTurnTest {
             repository.links.value[saved.last().id]
         )
 
-        // Several currencies: one pinned link per currency and period, so a period with none of
-        // the category's rows opens empty instead of on every row, and USD isn't behind the base.
+        // Several currencies: one pinned link per currency and period, so USD isn't behind the base.
         coEvery { aiContext.compareSpending(any(), any(), any(), any()) } returns
             SpendingComparison.Result.Rows(now, before, listOf(inr.copy(currency = "USD"), inr))
         repository.answerQuickAction(QuickAction.COMPARE_MONTH)
@@ -625,6 +624,22 @@ class ChatTurnTest {
                 com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Nov–16 Nov · USD", nov1, nov16, null, "USD"),
                 com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Oct–16 Oct · INR", oct1, oct16, null, "INR"),
                 com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Oct–16 Oct · USD", oct1, oct16, null, "USD"),
+            ),
+            repository.links.value[saved.last().id]
+        )
+
+        // A currency only a forgiven loan has, or one a period spent nothing in, has no rows to open.
+        val eurForgiven = SpendingComparison.Row("EUR", BigDecimal("5"), BigDecimal.ZERO, null)
+        coEvery { aiContext.compareSpending(any(), any(), any(), any()) } returns SpendingComparison.Result.Rows(
+            now, before, listOf(eurForgiven, inr, inr.copy(currency = "USD", previous = BigDecimal.ZERO)),
+            currentSpentIn = setOf("INR", "USD"), previousSpentIn = setOf("INR"),
+        )
+        repository.answerQuickAction(QuickAction.COMPARE_MONTH)
+        assertEquals(
+            listOf(
+                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Nov–16 Nov · INR", nov1, nov16, null, "INR"),
+                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Nov–16 Nov · USD", nov1, nov16, null, "USD"),
+                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Oct–16 Oct", oct1, oct16, null, "INR"),
             ),
             repository.links.value[saved.last().id]
         )

@@ -714,11 +714,14 @@ class LlmRepository @Inject constructor(
         }
     }
 
-    /** Both periods of a comparison, each by its dates, per currency as [linksTo] gives them. */
+    /**
+     * Both periods of a comparison, each by its dates, per currency as [linksTo] gives them: only
+     * the currencies that period has transactions in, so no link opens on an empty list.
+     */
     private suspend fun comparisonLinks(result: SpendingComparison.Result, category: String?): List<ChatLink> {
         val rows = (result as? SpendingComparison.Result.Rows)?.takeIf { it.rows.isNotEmpty() } ?: return emptyList()
-        val currencies = rows.rows.mapTo(mutableSetOf()) { it.currency }
-        return listOf(rows.current, rows.previous).flatMap { linksTo(it, category, currencies, dated = true) }
+        return linksTo(rows.current, category, rows.currentSpentIn, dated = true) +
+            linksTo(rows.previous, category, rows.previousSpentIn, dated = true)
     }
 
     /** Home's one converted figure, when it shows one, and what it had to leave out. */

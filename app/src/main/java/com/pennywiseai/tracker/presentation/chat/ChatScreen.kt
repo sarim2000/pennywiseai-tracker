@@ -104,7 +104,8 @@ fun ChatScreen(
         val draft = chatDraft ?: return@LaunchedEffect
         if (!composerShown) return@LaunchedEffect
         voice.cancel()
-        inputText = draft.text
+        // A message already typed stays: the question goes under it.
+        inputText = if (inputText.isBlank()) draft.text else inputText.trimEnd() + "\n" + draft.text
         viewModel.takeChatDraft(draft)
     }
     // The mic stops with the screen; words already heard stay in the box.

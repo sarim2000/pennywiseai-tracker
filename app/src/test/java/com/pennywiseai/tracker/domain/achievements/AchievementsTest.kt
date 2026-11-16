@@ -325,6 +325,23 @@ class AchievementsTest {
     }
 
     @Test
+    fun `a lone weekly limit's month counts what was recorded in any of its weeks`() {
+        // In unified mode the page is only the last week; the record on the 12th is in an earlier week.
+        val lastWeek = BudgetWindow(day("2026-10-26"), october.end, 6)
+        val weekly = page(lastWeek, limit("100", "0", weeks = listOf("90", "100", "70"), window = lastWeek))
+        assertEquals(true, budgetMonthOf(weekly, october.end, trackedInOctober).kept)
+    }
+
+    @Test
+    fun `a record after a limit's own cycle doesn't make that cycle tracked`() {
+        // The page runs to 31 October for a calendar-month target; the limit's cycle ends on the 24th.
+        val fromThe25th = BudgetWindow(day("2026-09-25"), day("2026-10-24"), 30)
+        val page = page(BudgetWindow(fromThe25th.start, october.end, 37), limit("100", "10", window = fromThe25th))
+        assertNull(budgetMonthOf(page, october.end, listOf(day("2026-10-30"))).kept)
+        assertEquals(BudgetMonth(fromThe25th.end, kept = true), budgetMonthOf(page, october.end, trackedInOctober))
+    }
+
+    @Test
     fun `a one-time limit that already ended doesn't judge a later month`() {
         // The repository keeps its amount but gives it no window in October.
         assertNull(budgetMonthOf(october(limit("100", "0", windowDays = 0)), october.end, trackedInOctober).kept)

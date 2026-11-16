@@ -175,19 +175,22 @@ data class BudgetMonth(val end: LocalDate, val kept: Boolean?)
  * count: one set up today wasn't kept through the year before it, and a limit whose cycle
  * starts after another budget's is judged from its own start. A weekly limit counts as
  * kept only when every week of the month was, not just the last one the summary shows. A limit
- * with no window in the month (a one-time limit that already ended) judges nothing. With nothing [recorded] in the
- * month, nothing was tracked, so it isn't a month kept.
+ * with no window in the month (a one-time limit that already ended) judges nothing. With nothing [recorded] in
+ * any window a limit judges, nothing was tracked, so it isn't a month kept. The month is dated by the last
+ * of those windows: the page can run on past them for a target or another currency's budget.
  */
 internal fun budgetMonthOf(summary: BudgetOverallSummary, monthEnd: LocalDate, recorded: List<LocalDate>): BudgetMonth {
-    val window = summary.pageWindow
     val limits = summary.groups.filter {
         it.group.budget.groupType == BudgetGroupType.LIMIT && it.totalBudget.signum() > 0 && it.windowDays > 0 &&
             !it.group.budget.createdAt.toLocalDate().isAfter(it.firstWindowStart())
     }
     if (limits.isEmpty()) return BudgetMonth(monthEnd, kept = null)
-    if (recorded.none { !it.isBefore(window.start) && !it.isAfter(window.end) }) return BudgetMonth(window.end, kept = null)
+    // Every week of a weekly limit, not just the last one the page shows.
+    val judged = limits.flatMap { g -> g.previousWindows.map { it.window.start..it.window.end } + (g.windowStart..g.windowEnd) }
+    val end = limits.maxOf { it.windowEnd }
+    if (recorded.none { day -> judged.any { day in it } }) return BudgetMonth(end, kept = null)
     val kept = limits.all { g -> g.totalActual <= g.totalBudget && g.previousWindows.all { it.spent <= g.totalBudget } }
-    return BudgetMonth(window.end, kept)
+    return BudgetMonth(end, kept)
 }
 
 /** Where the limit's first window in the month began: its earliest week for a weekly one. */

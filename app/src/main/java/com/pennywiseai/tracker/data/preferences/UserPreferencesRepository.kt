@@ -108,6 +108,8 @@ open class UserPreferencesRepository internal constructor(
         val BUDGET_ALERTS_ENABLED = booleanPreferencesKey("budget_alerts_enabled")
         val WEEKLY_SUMMARY_ENABLED = booleanPreferencesKey("weekly_summary_enabled")
         val WEEKLY_SUMMARY_LAST_WEEK = stringPreferencesKey("weekly_summary_last_week")
+        // The last day WarrantyReminderWorker dealt with (ISO date).
+        val WARRANTY_REMINDER_LAST_DAY = stringPreferencesKey("warranty_reminder_last_day")
         val REVIEW_PROMPT_HANDLED_YEAR = stringPreferencesKey("review_prompt_handled_year")
         val CONSCIENCE_ENABLED = booleanPreferencesKey("conscience_enabled")
         val CONSCIENCE_LOG = stringSetPreferencesKey("conscience_log")
@@ -311,7 +313,8 @@ open class UserPreferencesRepository internal constructor(
          * owner makes) and onboarding (a restore always runs after it).
          */
         val DEVICE_ONLY = setOf(
-            K.BACKGROUND_OEM_STEP_CONFIRMED_ON, K.WEEKLY_SUMMARY_LAST_WEEK, K.REVIEW_PROMPT_HANDLED_YEAR,
+            K.BACKGROUND_OEM_STEP_CONFIRMED_ON, K.WEEKLY_SUMMARY_LAST_WEEK, K.WARRANTY_REMINDER_LAST_DAY,
+            K.REVIEW_PROMPT_HANDLED_YEAR,
             K.CONSCIENCE_LOG, K.ACTIVE_DOWNLOAD_ID, K.SHARE_PROMPT_HANDLED_MONTH, K.PRO_HOME_CARD_HANDLED,
             K.PAYDAY_SUGGESTION_HANDLED, K.RECURRING_HOME_CARD_SEEN, K.RECURRING_HOME_CARD_DISMISSED_AT,
             K.TRACKING_CARD_SNOOZED_UNTIL, K.RECURRING_OFFER_LOG, K.DISMISSED_INSIGHTS, K.APP_LOCK_ENABLED, K.APP_LOCK_TIMEOUT_MINUTES,
@@ -841,6 +844,14 @@ open class UserPreferencesRepository internal constructor(
 
     override suspend fun setWeeklySummaryLastWeek(weekStart: String) {
         dataStore.edit { it[PreferencesKeys.WEEKLY_SUMMARY_LAST_WEEK] = weekStart }
+    }
+
+    /** The last day the warranty reminders were dealt with, or null before the first run. */
+    val warrantyReminderLastDay: Flow<LocalDate?> = dataStore.data
+        .map { prefs -> prefs[PreferencesKeys.WARRANTY_REMINDER_LAST_DAY]?.let { runCatching { LocalDate.parse(it) }.getOrNull() } }
+
+    suspend fun setWarrantyReminderLastDay(day: LocalDate) {
+        dataStore.edit { it[PreferencesKeys.WARRANTY_REMINDER_LAST_DAY] = day.toString() }
     }
 
     /** Whether the one-time Home Pro card (#945) has been tapped or dismissed. */

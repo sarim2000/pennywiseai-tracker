@@ -1,0 +1,100 @@
+package com.pennywiseai.tracker.domain.warranty
+
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
+import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
+import org.junit.Test
+import java.math.BigDecimal
+import java.time.LocalDate
+import java.time.LocalDateTime
+
+class WarrantyRemindersTest {
+
+    private val today = LocalDate.of(2026, 3, 10)
+    private val yesterday = today.minusDays(1)
+
+    private fun purchase(id: Long, until: LocalDate?, deleted: Boolean = false) = TransactionEntity(
+        id = id,
+        amount = BigDecimal("899"),
+        merchantName = "Synthetic store $id",
+        category = "Shopping",
+        transactionType = TransactionType.EXPENSE,
+        dateTime = LocalDateTime.of(2025, 3, 1, 10, 0),
+        transactionHash = "synthetic-warranty-$id",
+        isDeleted = deleted,
+        warrantyUntil = until
+    )
+
+    private fun dueIds(vararg txns: TransactionEntity, lastRun: LocalDate? = yesterday) =
+        WarrantyReminders.due(txns.toList(), today, lastRun).map { it.id }
+
+    @Test
+    fun remindsThirtyDaysAndOneDayBefore() {
+        assertEquals(
+            listOf(1L, 2L),
+            dueIds(purchase(1, today.plusDays(30)), purchase(2, today.plusDays(1)))
+        )
+    }
+
+    @Test
+    fun otherDaysStayQuiet() {
+        assertEquals(
+            emptyList<Long>(),
+            dueIds(
+                purchase(1, today.plusDays(29)),
+                purchase(2, today.plusDays(31)),
+                purchase(3, today.plusDays(2)),
+                purchase(4, today),
+                purchase(5, null)
+            )
+        )
+    }
+
+    @Test
+    fun anEndedOrDeletedPurchaseIsNeverReminded() {
+        // Both reminder days fell in a long gap, but the warranty ended yesterday.
+        assertEquals(
+            emptyList<Long>(),
+            dueIds(purchase(1, yesterday), purchase(2, today.plusDays(1), deleted = true), lastRun = today.minusDays(60))
+        )
+    }
+
+    @Test
+    fun aMissedDayIsCaughtUp() {
+        // The worker last ran three days ago; the 1-day reminder was due yesterday,
+        // and the warranty still covers today.
+        assertEquals(listOf(1L), dueIds(purchase(1, today), lastRun = today.minusDays(3)))
+    }
+
+    @Test
+    fun bothRemindersInTheGapListThePurchaseOnce() {
+        assertEquals(listOf(1L), dueIds(purchase(1, today.plusDays(1)), lastRun = today.minusDays(40)))
+    }
+
+    @Test
+    fun aSecondRunTheSameDaySendsNothing() {
+        assertTrue(dueIds(purchase(1, today.plusDays(30)), lastRun = today).isEmpty())
+    }
+
+    @Test
+    fun firstRunOnlyLooksAtToday() {
+        assertEquals(
+            listOf(1L),
+            dueIds(purchase(1, today.plusDays(30)), purchase(2, today.plusDays(29)), lastRun = null)
+        )
+    }
+
+    @Test
+    fun aClockSetBackStillRemindsToday() {
+        assertEquals(listOf(1L), dueIds(purchase(1, today.plusDays(1)), lastRun = today.plusDays(5)))
+    }
+
+    /** The 30-day reminder counts calendar days, so a short February is no special case. */
+    @Test
+    fun countsCalendarDaysAcrossFebruary() {
+        val feb = LocalDate.of(2026, 2, 27)
+        val due = WarrantyReminders.due(listOf(purchase(1, LocalDate.of(2026, 3, 29))), feb, feb.minusDays(1))
+        assertEquals(listOf(1L), due.map { it.id })
+    }
+}

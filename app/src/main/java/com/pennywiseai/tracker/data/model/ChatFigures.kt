@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.data.model
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.ledger.ConvertedEstimate
 import java.math.BigDecimal
+import java.time.LocalDate
 
 /**
  * What a chat figure covers: [window], in the profile Home shows ([profile], null for all).
@@ -51,6 +52,20 @@ data class TopCategories(
     val ranking: Map<String, List<Pair<String, BigDecimal>>>,
     val forgiven: Map<String, BigDecimal> = emptyMap(),
     val share: Float? = null,
+)
+
+/**
+ * A way from a chat figure to the transactions behind it: [start] to [end] (whole days), in
+ * [category] and its subcategories when set, and only rows written in [currency] when set.
+ * Forgiven loans aren't transactions: the answer names them in its own text. The screen's
+ * only: never saved, so a chat restored later is text.
+ */
+data class ChatLink(
+    val label: String,
+    val start: LocalDate,
+    val end: LocalDate,
+    val category: String? = null,
+    val currency: String? = null,
 )
 
 /**

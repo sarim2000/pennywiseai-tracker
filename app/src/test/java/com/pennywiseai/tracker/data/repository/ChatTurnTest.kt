@@ -541,6 +541,69 @@ class ChatTurnTest {
         }
     }
 
+    @Test
+    fun `a total links to its days' transactions, one per currency, and only for this session`() = runTest {
+        every { context.getString(R.string.chat_link_transactions) } returns "SEE"
+        every { context.getString(R.string.chat_link_transactions_in, any()) } answers { "SEE ${(args[1] as Array<*>)[0]}" }
+        val (nov1, nov16) = LocalDate.of(2026, 11, 1) to LocalDate.of(2026, 11, 16)
+        coEvery { aiContext.spending(any()) } returns com.pennywiseai.tracker.data.model.PeriodSpending(
+            com.pennywiseai.tracker.data.model.ChatScope(SpendingComparison.Window(nov1.atStartOfDay(), nov16.atTime(23, 59))),
+            spent = mapOf("USD" to BigDecimal("5"), "INR" to BigDecimal("600")),
+            income = mapOf("AED" to BigDecimal("50")),
+            forgiven = mapOf("EUR" to BigDecimal("9")),
+        )
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.MONTH_SUMMARY, emptyMap()))
+        send("how much this month?")
+        // The user's own currency first, each pinned; a forgiven loan has no transactions to show.
+        assertEquals(
+            listOf("INR", "AED", "USD").map { com.pennywiseai.tracker.data.model.ChatLink("SEE $it", nov1, nov16, null, it) },
+            repository.links.value[saved.last().id]
+        )
+
+        // A category in one currency: one plain link, pinned, with the category.
+        coEvery { aiContext.categorySpending(any(), any()) } returns spent("120").copy(category = "طعام")
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "طعام")))
+        send("how much on food?")
+        assertEquals(listOf(com.pennywiseai.tracker.data.model.ChatLink("SEE", nov1, nov16, "طعام", "INR")), repository.links.value[saved.last().id])
+
+        // Nothing found, nothing to open; the model's own words never get a link.
+        coEvery { aiContext.categorySpending(any(), any()) } returns spent()
+        send("how much on food?")
+        events = listOf(LlmEvent.Text("Hello!"))
+        send("hi")
+        assertEquals(2, repository.links.value.size)
+
+        // One-tap answers link the same way.
+        repository.answerQuickAction(QuickAction.MONTH_SPEND)
+        assertEquals(3, repository.links.value[saved.last().id]?.size)
+
+        repository.deleteAllMessages()
+        assertEquals(emptyMap<String, Any>(), repository.links.value)
+    }
+
+    @Test
+    fun `a comparison links to both of its periods, pinned only when it has one currency`() = runTest {
+        every { context.getString(R.string.chat_link_transactions_dates, any()) } answers { "SEE ${(args[1] as Array<*>)[0]}" }
+        val now = SpendingComparison.Window(LocalDateTime.of(2026, 11, 1, 0, 0), LocalDateTime.of(2026, 11, 16, 23, 59))
+        val before = SpendingComparison.Window(LocalDateTime.of(2026, 10, 1, 0, 0), LocalDateTime.of(2026, 10, 16, 23, 59))
+        val inr = SpendingComparison.Row("INR", BigDecimal("700"), BigDecimal("500"), BigDecimal("40"))
+        coEvery { aiContext.compareSpending(any(), any(), any(), any()) } returns SpendingComparison.Result.Rows(now, before, listOf(inr))
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "طعام")))
+        send("compare food with last month")
+        assertEquals(
+            listOf(
+                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Nov–16 Nov", LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 16), "طعام", "INR"),
+                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Oct–16 Oct", LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 16), "طعام", "INR"),
+            ),
+            repository.links.value[saved.last().id]
+        )
+
+        coEvery { aiContext.compareSpending(any(), any(), any(), any()) } returns
+            SpendingComparison.Result.Rows(now, before, listOf(inr, inr.copy(currency = "USD")))
+        repository.answerQuickAction(QuickAction.COMPARE_MONTH)
+        assertEquals(listOf(null, null), repository.links.value[saved.last().id]?.map { it.currency })
+    }
+
     /** A category lookup's result: nothing spent, or [inr] rupees. */
     private fun spent(inr: String? = null) = com.pennywiseai.tracker.data.model.CategorySpend(
         com.pennywiseai.tracker.data.model.ChatScope(SpendingComparison.Window(LocalDateTime.of(2026, 11, 1, 0, 0), LocalDateTime.of(2026, 11, 16, 23, 59))),

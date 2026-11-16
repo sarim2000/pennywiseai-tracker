@@ -10,6 +10,7 @@ import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.ledger.ConvertedEstimate
+import com.pennywiseai.tracker.data.model.ChatLink
 import com.pennywiseai.tracker.data.model.ChatMessageFacts
 import com.pennywiseai.tracker.data.model.ChatScope
 import com.pennywiseai.tracker.data.model.PendingChatAction
@@ -39,6 +40,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.JsonPrimitive
@@ -102,6 +104,14 @@ class LlmRepository @Inject constructor(
     // What the turn in progress answers so far: its last tool, with that tool's figure.
     private var turnSubject: ReplySubject? = null
 
+    // Each reply's links to the transactions behind its figures, by message id. Set before the
+    // reply is saved, so it lands with them. Never saved: a chat restored later is text.
+    private val _links = MutableStateFlow<Map<String, List<ChatLink>>>(emptyMap())
+    val links: StateFlow<Map<String, List<ChatLink>>> = _links.asStateFlow()
+
+    // The links the turn in progress has found so far.
+    private val turnLinks = mutableListOf<ChatLink>()
+
     private val _contextTokens = MutableStateFlow(0)
     /** Tokens the model's window holds, measured by LiteRT-LM (developer stats). */
     val contextTokens: StateFlow<Int> = _contextTokens.asStateFlow()
@@ -150,6 +160,7 @@ class LlmRepository @Inject constructor(
     fun sendMessageStream(userMessage: String): Flow<String> = flow {
         _lastReply.value = null
         turnSubject = null
+        turnLinks.clear()
         val existingMessages = chatDao.getAllMessagesForContext()
         val isNewChat = existingMessages.isEmpty()
 
@@ -312,6 +323,7 @@ class LlmRepository @Inject constructor(
             callsMade[aiMessage.id] = callsText(toolCalls)
         }
         _lastReply.value = (turnSubject ?: ReplySubject()).copy(messageId = aiMessage.id)
+        addLinks(aiMessage.id, turnLinks)
         chatDao.insertMessage(aiMessage)
         Log.d(TAG, "AI response saved")
     }
@@ -422,6 +434,7 @@ class LlmRepository @Inject constructor(
             lastCard = null
             callsMade.clear()
             _lastReply.value = null
+            _links.value = emptyMap()
             droppedIds.clear()
             _contextTokens.value = 0
         }
@@ -507,9 +520,15 @@ class LlmRepository @Inject constructor(
             val unknown = category != null && known == null && result is SpendingComparison.Result.Rows && result.rows.isEmpty()
             when {
                 unknown && SpendingComparison.meansAllSpending(asked) ->
-                    aiContextRepository.compareSpending(period, null, creditAsExpense()).let { comparisonText(it.alsoTrend(), null) }
+                    aiContextRepository.compareSpending(period, null, creditAsExpense()).let {
+                        turnLinks += comparisonLinks(it, null)
+                        comparisonText(it.alsoTrend(), null)
+                    }
                 unknown -> context.getString(R.string.chat_reply_unknown_category, asked)
-                else -> comparisonText(result.alsoTrend(), category)
+                else -> {
+                    turnLinks += comparisonLinks(result, category)
+                    comparisonText(result.alsoTrend(), category)
+                }
             }
         }
     } else when (call.name) {
@@ -545,7 +564,10 @@ class LlmRepository @Inject constructor(
             }
         }
         // The same figures as the one-tap question, and as Home's "Spent this month".
-        PennyWiseTools.MONTH_SUMMARY -> spendingText(aiContextRepository.spending(), typed = true)
+        PennyWiseTools.MONTH_SUMMARY -> aiContextRepository.spending().let { p ->
+            turnLinks += spendingLinks(p)
+            spendingText(p, typed = true)
+        }
         PennyWiseTools.SPENDING_BY_CATEGORY -> {
             val wanted = (call.arguments["category"] as? String)?.trim().orEmpty()
             // Hidden categories still hold transactions, and a row can name a category that no
@@ -563,7 +585,10 @@ class LlmRepository @Inject constructor(
                     spend.category,
                     scopeLabel(spend.scope),
                     spend.transactionCount
-                ).also { turnSubject = turnSubject?.copy(share = spend.share) }
+                ).also {
+                    turnSubject = turnSubject?.copy(share = spend.share)
+                    turnLinks += linksTo(spend.scope.window, spend.category, spend.byCurrency.keys)
+                }
             }
         }
         else -> null
@@ -595,20 +620,27 @@ class LlmRepository @Inject constructor(
         _lastReply.value = null
         // For the reply's mascot: the shape of the tool asked the same question, and its figure.
         var subject = ReplySubject(tool = action.tool)
+        var links = emptyList<ChatLink>()
         val answer = when (action) {
             QuickAction.COMPARE_MONTH -> aiContextRepository.compareSpending(SpendingComparison.Period.MONTH, null, creditAsExpense()).let {
                 subject = subject.copy(trend = SpendingComparison.direction(it))
+                links = comparisonLinks(it, null)
                 comparisonText(it, null)
             }
-            QuickAction.MONTH_SPEND -> spendingText(aiContextRepository.spending())
+            QuickAction.MONTH_SPEND -> aiContextRepository.spending().let { p ->
+                links = spendingLinks(p)
+                spendingText(p)
+            }
             QuickAction.TOP_CATEGORIES -> aiContextRepository.topCategories().let { top ->
                 subject = subject.copy(share = top.share)
+                links = linksTo(top.scope.window, null, top.ranking.keys)
                 topCategoriesText(top)
             }
         }
         val at = System.currentTimeMillis()
         val reply = ChatMessage(id = QUICK_ID + UUID.randomUUID(), message = answer, isUser = false, timestamp = at + 1)
         _lastReply.value = subject.copy(messageId = reply.id)
+        addLinks(reply.id, links)
         // The DAO orders by timestamp alone: the reply must sort after its question.
         chatDao.insertMessages(listOf(
             ChatMessage(id = QUICK_ID + UUID.randomUUID(), message = context.getString(action.label), isUser = true, timestamp = at),
@@ -641,6 +673,33 @@ class LlmRepository @Inject constructor(
             else if (typed) add(context.getString(R.string.chat_reply_received_nothing))
             if (typed) add(context.resources.getQuantityString(R.plurals.chat_reply_transaction_count, p.transactionCount, p.transactionCount))
         }.joinToString("\n")
+    }
+
+    private fun addLinks(messageId: String, links: List<ChatLink>) {
+        if (links.isNotEmpty()) _links.update { it + (messageId to links.toList()) }
+    }
+
+    /** The transactions behind a month's spending and income; forgiven loans have none. */
+    private suspend fun spendingLinks(p: PeriodSpending) = linksTo(p.scope.window, null, p.spent.keys + p.income.keys)
+
+    /**
+     * [window]'s transactions in [category]: one link pinned to the answer's only currency, or
+     * one per currency when it gave several, the user's own first. None when it had no figure.
+     */
+    private suspend fun linksTo(window: SpendingComparison.Window, category: String?, currencies: Set<String>): List<ChatLink> {
+        val (start, end) = window.start.toLocalDate() to window.end.toLocalDate()
+        val codes = ordered(currencies.associateWith { it }).map { it.first }
+        return codes.singleOrNull()?.let { listOf(ChatLink(context.getString(R.string.chat_link_transactions), start, end, category, it)) }
+            ?: codes.map { ChatLink(context.getString(R.string.chat_link_transactions_in, it), start, end, category, it) }
+    }
+
+    /** Both periods of a comparison, each by its dates; pinned to the currency when there's only one. */
+    private fun comparisonLinks(result: SpendingComparison.Result, category: String?): List<ChatLink> {
+        val rows = (result as? SpendingComparison.Result.Rows)?.takeIf { it.rows.isNotEmpty() } ?: return emptyList()
+        val currency = rows.rows.map { it.currency }.distinct().singleOrNull()
+        return listOf(rows.current, rows.previous).map { w ->
+            ChatLink(context.getString(R.string.chat_link_transactions_dates, range(w)), w.start.toLocalDate(), w.end.toLocalDate(), category, currency)
+        }
     }
 
     /** Home's one converted figure, when it shows one, and what it had to leave out. */

@@ -93,6 +93,9 @@ class ChatViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
+    /** Each reply's links to the transactions behind its figures, by message id. */
+    val links: StateFlow<Map<String, List<com.pennywiseai.tracker.data.model.ChatLink>>> = llmRepository.links
+
     private val _currentResponse = MutableStateFlow("")
     val currentResponse: StateFlow<String> = _currentResponse.asStateFlow()
 

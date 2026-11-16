@@ -32,6 +32,8 @@ data class Transactions(
     val endDate: Long? = null,
     val account: String? = null,
     val tag: String? = null,
+    /** Only rows written in [currency], even in unified mode: the list behind one currency's figure. */
+    val currencyOnly: Boolean = false,
     // Set by an explicit open from Home ("See all", search): a new entry, so the
     // list's ViewModel starts over instead of keeping filters picked in the tab.
     val openId: Long = 0L

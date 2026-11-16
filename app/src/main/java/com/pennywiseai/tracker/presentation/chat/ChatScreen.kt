@@ -12,6 +12,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.filled.Delete
@@ -35,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.model.ChatLink
 import com.pennywiseai.tracker.data.repository.ModelState
 import com.pennywiseai.tracker.data.repository.QuickAction
 import com.pennywiseai.tracker.ui.animations.pwCollapse
@@ -66,12 +68,14 @@ import java.util.Locale
 fun ChatScreen(
     modifier: Modifier = Modifier,
     viewModel: ChatViewModel = hiltViewModel(),
-    onNavigateToSettings: () -> Unit
+    onNavigateToSettings: () -> Unit,
+    onOpenTransactions: (ChatLink) -> Unit = {}
 ) {
     val messages by viewModel.messages.collectAsStateWithLifecycle()
     val modelState by viewModel.modelState.collectAsStateWithLifecycle()
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val currentResponse by viewModel.currentResponse.collectAsStateWithLifecycle()
+    val links by viewModel.links.collectAsStateWithLifecycle()
     val pendingAction by viewModel.pendingAction.collectAsStateWithLifecycle()
     val categories by viewModel.categories.collectAsStateWithLifecycle()
     val isConfirming by viewModel.isConfirming.collectAsStateWithLifecycle()
@@ -252,7 +256,9 @@ fun ChatScreen(
                                         message = message,
                                         modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null),
                                         topic = uiState.replyTopic?.takeIf { it.messageId == message.id },
-                                        celebrating = savedBeat
+                                        celebrating = savedBeat,
+                                        links = links[message.id].orEmpty(),
+                                        onOpenLink = onOpenTransactions
                                     )
                                 }
                             }
@@ -438,7 +444,9 @@ fun ChatScreen(
                                         message = message,
                                         modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null),
                                         topic = uiState.replyTopic?.takeIf { it.messageId == message.id },
-                                        celebrating = savedBeat
+                                        celebrating = savedBeat,
+                                        links = links[message.id].orEmpty(),
+                                        onOpenLink = onOpenTransactions
                                     )
                                 }
 
@@ -836,6 +844,7 @@ fun TypingIndicator(
  * reply's start, with "Saved" by the time for a confirmed Add. [reserveMascot] keeps that
  * space for a reply still on its way, so the saved one lands without moving.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun ChatMessageItem(
     message: com.pennywiseai.tracker.data.database.entity.ChatMessage,
@@ -843,7 +852,9 @@ fun ChatMessageItem(
     isStreaming: Boolean = false,
     topic: ReplyTopic? = null,
     reserveMascot: Boolean = false,
-    celebrating: Boolean = false
+    celebrating: Boolean = false,
+    links: List<ChatLink> = emptyList(),
+    onOpenLink: (ChatLink) -> Unit = {}
 ) {
     val timeFormat = remember { SimpleDateFormat("h:mm a", Locale.getDefault()) }
 
@@ -875,6 +886,13 @@ fun ChatMessageItem(
                     MaterialTheme.colorScheme.onSecondaryContainer
             )
 
+            // The transactions behind the figures above, for this session only.
+            if (links.isNotEmpty()) {
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    links.forEach { link -> ChatLinkChip(link, onClick = { onOpenLink(link) }) }
+                }
+            }
+
             Spacer(modifier = Modifier.height(Spacing.xs))
 
             Row(
@@ -899,6 +917,20 @@ fun ChatMessageItem(
             }
         }
     }
+}
+
+@Composable
+private fun ChatLinkChip(link: ChatLink, onClick: () -> Unit) {
+    val color = MaterialTheme.colorScheme.onSecondaryContainer
+    AssistChip(
+        onClick = onClick,
+        label = { Text(link.label) },
+        leadingIcon = {
+            Icon(Icons.AutoMirrored.Filled.ReceiptLong, contentDescription = null, modifier = Modifier.size(AssistChipDefaults.IconSize))
+        },
+        colors = AssistChipDefaults.assistChipColors(labelColor = color, leadingIconContentColor = color),
+        border = AssistChipDefaults.assistChipBorder(enabled = true, borderColor = color.copy(alpha = 0.4f))
+    )
 }
 
 /**

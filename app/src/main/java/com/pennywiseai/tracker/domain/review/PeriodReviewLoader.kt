@@ -86,13 +86,53 @@ class PeriodReviewLoader @Inject constructor(
 
     /** How many transactions a period holds, by the same scope the review itself uses. */
     suspend fun rowCount(start: LocalDate, end: LocalDate): Int {
-        val keep = scopeOf(
-            ignoredKeys().first(),
-            userPreferencesRepository.selectedProfileId.first(),
-            accountBalanceRepository.getAllLatestBalances().first(),
-        )
+        val keep = currentScope()
         return rowsIn(start, end).first().count { keep(it.transaction) }
     }
+
+    /** The day of every transaction in scope, oldest first. */
+    suspend fun recordedDates(today: LocalDate = LocalDate.now()): List<LocalDate> {
+        val keep = currentScope()
+        return transactionRepository.getTransactionsBetweenDates(LocalDate.of(2000, 1, 1), today).first()
+            .filter(keep).map { it.dateTime.toLocalDate() }.sorted()
+    }
+
+    /**
+     * The last [count] finished budget cycles, oldest first: the same reviews [observe]
+     * builds, from one read of their rows instead of one per cycle.
+     */
+    suspend fun finishedCycles(count: Int, today: LocalDate = LocalDate.now()): List<PeriodReview> {
+        if (count <= 0) return emptyList()
+        val cycleStartDay = userPreferencesRepository.getBudgetCycleStartDay()
+        val ranges = (count downTo 1).map { back ->
+            reviewRange(ReviewKind.MONTH, -back, today, cycleStartDay, localFirstDayOfWeek())
+        }
+        val keep = currentScope()
+        val rows = rowsIn(ranges.first().previousStart, ranges.last().end).first().filter { keep(it.transaction) }
+        val creditAsExpense = userPreferencesRepository.countCreditCardAsExpense.first()
+        val parentOf = categoryRepository.getAllCategories().first().parentNameOf()
+        fun within(start: LocalDate, end: LocalDate) = rows.filter { it.transaction.dateTime.toLocalDate() in start..end }
+        val losses = mutableMapOf<LocalDate, Map<String, BigDecimal>>()
+        suspend fun lossIn(start: LocalDate, end: LocalDate) =
+            losses.getOrPut(start) { settlementLoss(start, end, keep) }
+        return ranges.map { range ->
+            buildPeriodReview(
+                range = range,
+                rows = within(range.start, range.end),
+                previousRows = within(range.previousStart, range.previousEnd),
+                creditAsExpense = creditAsExpense,
+                parentOf = parentOf,
+                settlementLoss = lossIn(range.start, range.end),
+                previousSettlementLoss = lossIn(range.previousStart, range.previousEnd),
+            )
+        }
+    }
+
+    private suspend fun currentScope(): (TransactionEntity) -> Boolean = scopeOf(
+        ignoredKeys().first(),
+        userPreferencesRepository.selectedProfileId.first(),
+        accountBalanceRepository.getAllLatestBalances().first(),
+    )
 
     /** Asks SQL for a wider window and filters to the exact dates: see [dateQueryWindow]. */
     private fun rowsIn(start: LocalDate, end: LocalDate): Flow<List<TransactionWithSplits>> {

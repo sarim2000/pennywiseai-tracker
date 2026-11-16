@@ -1339,6 +1339,20 @@ class ChatTurnTest {
     }
 
     @Test
+    fun `a spending query's links open the profile its figure counted`() = runTest {
+        val business = ChatScope(nov, ProfileEntity(ProfileEntity.BUSINESS_ID, "Business", "#000"))
+        coEvery { aiContext.spending(any(), any()) } returns PeriodSpending(business, spent = mapOf("INR" to BigDecimal("700")), income = emptyMap())
+        coEvery { aiContext.categorySpending(any(), any(), any()) } returns spent("120").copy(scope = business, category = "طعام")
+        coEvery { aiContext.topCategories(any(), any(), any(), any()) } returns TopCategories(business, mapOf("INR" to listOf("طعام" to BigDecimal("120"))))
+        for (args in listOf(emptyMap(), mapOf("category" to "طعام"), mapOf("group_by" to "category"))) {
+            events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, args))
+            send("how much this month?")
+            // Whatever Home shows by the time the link is tapped.
+            assertEquals(args.toString(), listOf(ProfileEntity.BUSINESS_ID), repository.links.value[saved.last().id]?.map { it.profileId })
+        }
+    }
+
+    @Test
     fun `a merchant or account the call names is no date, and a year named is that year`() = runTest {
         every { context.getString(R.string.chat_reply_query_period_unknown) } returns "PERIOD"
         every { context.getString(R.string.chat_reply_month_spend, any()) } returns "SPENT"

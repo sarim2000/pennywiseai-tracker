@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.domain.achievements
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
 import com.pennywiseai.tracker.data.database.entity.GoalEntity
+import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.data.repository.GoalDetail
 import com.pennywiseai.tracker.domain.goals.percent
@@ -159,22 +160,27 @@ data class BudgetMonth(val end: LocalDate, val kept: Boolean?)
 
 /**
  * [summary]'s finished month as the rule reads it, dated by its window ([monthEnd] when it
- * has none). Only limits in place from the month's start count: one set up today wasn't
- * kept through the year before it. A weekly limit counts as kept only when every week of
- * the month was, not just the last one the summary shows. With nothing [recorded] in the
+ * has none). Only limits in place from the start of their own first window in the month
+ * count: one set up today wasn't kept through the year before it, and a limit whose cycle
+ * starts after another budget's is judged from its own start. A weekly limit counts as
+ * kept only when every week of the month was, not just the last one the summary shows. With nothing [recorded] in the
  * month, nothing was tracked, so it isn't a month kept.
  */
 internal fun budgetMonthOf(summary: BudgetOverallSummary, monthEnd: LocalDate, recorded: List<LocalDate>): BudgetMonth {
     val window = summary.pageWindow
     val limits = summary.groups.filter {
         it.group.budget.groupType == BudgetGroupType.LIMIT && it.totalBudget.signum() > 0 &&
-            !it.group.budget.createdAt.toLocalDate().isAfter(window.start)
+            !it.group.budget.createdAt.toLocalDate().isAfter(it.firstWindowStart())
     }
     if (limits.isEmpty()) return BudgetMonth(monthEnd, kept = null)
     if (recorded.none { !it.isBefore(window.start) && !it.isAfter(window.end) }) return BudgetMonth(window.end, kept = null)
     val kept = limits.all { g -> g.totalActual <= g.totalBudget && g.previousWindows.all { it.spent <= g.totalBudget } }
     return BudgetMonth(window.end, kept)
 }
+
+/** Where the limit's first window in the month began: its earliest week for a weekly one. */
+private fun BudgetGroupSpending.firstWindowStart(): LocalDate =
+    previousWindows.minOfOrNull { it.window.start }?.coerceAtMost(windowStart) ?: windowStart
 
 /** [months] must be consecutive; a month without limits breaks the run. */
 fun budgetKeptAchievement(months: List<BudgetMonth>): Achievement {

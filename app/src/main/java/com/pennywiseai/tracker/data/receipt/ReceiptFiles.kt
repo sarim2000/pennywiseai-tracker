@@ -29,12 +29,31 @@ object ReceiptFiles {
         }
     }
 
-    /** True when [file] starts like a PDF does (`%PDF-`), whatever its name or MIME type says. */
+    /**
+     * True when a PDF header (`%PDF-`) appears in the first [PDF_HEADER_WINDOW] bytes of
+     * [file], whatever its name or MIME type says. Readers allow junk before the header
+     * (a BOM, whitespace), so some generators' bills start that way.
+     */
     fun hasPdfMagic(file: File): Boolean {
-        if (file.length() < PDF_MAGIC.size) return false
-        val head = ByteArray(PDF_MAGIC.size)
-        val read = file.inputStream().use { it.read(head) }
-        return read == PDF_MAGIC.size && head.contentEquals(PDF_MAGIC)
+        val head = ByteArray(PDF_HEADER_WINDOW)
+        val read = file.inputStream().use { it.readNBytesCompat(head) }
+        if (read < PDF_MAGIC.size) return false
+        return (0..read - PDF_MAGIC.size).any { start ->
+            PDF_MAGIC.indices.all { head[start + it] == PDF_MAGIC[it] }
+        }
+    }
+
+    private const val PDF_HEADER_WINDOW = 1024
+
+    /** Fills [buffer] as far as the stream allows; a single read can stop short. */
+    private fun InputStream.readNBytesCompat(buffer: ByteArray): Int {
+        var total = 0
+        while (total < buffer.size) {
+            val read = read(buffer, total, buffer.size - total)
+            if (read < 0) break
+            total += read
+        }
+        return total
     }
 
     /** A stored receipt path names a PDF; every other receipt is a JPEG photo. */

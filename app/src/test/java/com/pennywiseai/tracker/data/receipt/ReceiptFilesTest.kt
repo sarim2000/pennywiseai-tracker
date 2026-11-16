@@ -62,9 +62,27 @@ class ReceiptFilesTest {
         val jpeg = tmp.newFile("bill.pdf").apply { writeBytes(byteArrayOf(0xFF.toByte(), 0xD8.toByte(), 0xFF.toByte(), 0xE0.toByte(), 0, 0)) }
         val short = tmp.newFile("short.pdf").apply { writeBytes("%PD".toByteArray()) }
         val empty = tmp.newFile("empty.pdf")
-        val html = tmp.newFile("page.pdf").apply { writeBytes("<html>%PDF-</html>".toByteArray()) }
 
-        listOf(jpeg, short, empty, html).forEach { assertFalse(it.name, ReceiptFiles.hasPdfMagic(it)) }
+        listOf(jpeg, short, empty).forEach { assertFalse(it.name, ReceiptFiles.hasPdfMagic(it)) }
+    }
+
+    /** PDF readers allow junk before the header, so a bill that starts with a BOM or blank lines still counts. */
+    @Test
+    fun hasPdfMagic_allowsLeadingBytes() {
+        val bom = byteArrayOf(0xEF.toByte(), 0xBB.toByte(), 0xBF.toByte())
+        val file = tmp.newFile("bill.pdf").apply { writeBytes(bom + "\r\n  %PDF-1.4\n%synthetic".toByteArray()) }
+
+        assertTrue(ReceiptFiles.hasPdfMagic(file))
+    }
+
+    @Test
+    fun hasPdfMagic_onlyLooksInTheFirstKilobyte() {
+        // The header's last byte is byte 1024 in the first file, byte 1025 in the second.
+        val atTheEdge = tmp.newFile("edge.pdf").apply { writeBytes(ByteArray(1019) { ' '.code.toByte() } + "%PDF-1.4".toByteArray()) }
+        val tooLate = tmp.newFile("too-late.pdf").apply { writeBytes(ByteArray(1020) { ' '.code.toByte() } + "%PDF-1.4".toByteArray()) }
+
+        assertTrue(atTheEdge.name, ReceiptFiles.hasPdfMagic(atTheEdge))
+        assertFalse(tooLate.name, ReceiptFiles.hasPdfMagic(tooLate))
     }
 
     @Test

@@ -36,13 +36,13 @@ fun Application.configureShares(service: ShareService) {
     routing {
         post("/api/shares") {
             val fingerprint = ShareClientKey.of(call)
+            if (service.isRateLimited(fingerprint)) return@post call.respondRateLimited()
             val body = readShareUpload(call).getOrElse { return@post call.respondShareError(it.message) }
             val snapshot = ShareSnapshotValidator.parse(body.snapshot).getOrElse { return@post call.respondShareError(it.message) }
             val png = ShareService.reencodePng(body.og).getOrElse { return@post call.respondShareError(it.message) }
 
             when (val result = service.create(snapshot, png, fingerprint)) {
-                ShareService.CreateResult.RateLimited ->
-                    call.respondShareError("Too many shares from this device. Try again later.", HttpStatusCode.TooManyRequests)
+                ShareService.CreateResult.RateLimited -> call.respondRateLimited()
                 is ShareService.CreateResult.Ok -> {
                     val created = result.created
                     val response = CreateShareResponse(
@@ -170,6 +170,9 @@ private suspend fun readShareUpload(call: ApplicationCall): Result<ShareUpload> 
 
 private fun tooLarge(): Result<Nothing> =
     Result.failure(IllegalArgumentException("upload is larger than ${MAX_SHARE_BODY_BYTES / 1024} KiB"))
+
+private suspend fun ApplicationCall.respondRateLimited() =
+    respondShareError("Too many shares from this device. Try again later.", HttpStatusCode.TooManyRequests)
 
 private suspend fun ApplicationCall.respondShareError(message: String?, status: HttpStatusCode = HttpStatusCode.BadRequest) {
     respondText(

@@ -152,6 +152,14 @@ class ShareService(
     enum class DeleteResult { DELETED, FORBIDDEN, NOT_FOUND }
 
     /**
+     * Cheap early check, so a client already over its limit is turned away before its upload
+     * is read and decoded. [create] checks again, since parallel uploads can all pass this.
+     */
+    suspend fun isRateLimited(fingerprint: String): Boolean = withContext(Dispatchers.IO) {
+        publishedSince(fingerprint, now().minus(Duration.ofHours(1))) >= MAX_SHARES_PER_HOUR
+    }
+
+    /**
      * Cache lifetime for a share's page or image: [maxSeconds], cut to the whole seconds the
      * share has left. Null when under a second is left, so nothing should cache it.
      */

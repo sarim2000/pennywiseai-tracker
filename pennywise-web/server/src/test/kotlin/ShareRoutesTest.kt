@@ -324,6 +324,8 @@ class ShareRoutesTest {
         val ip = "2001:db8:1:2:aaaa::1"
         repeat(ShareService.MAX_SHARES_PER_HOUR) { assertEquals(HttpStatusCode.Created, publish(clientIp = ip).status) }
         assertEquals(HttpStatusCode.TooManyRequests, publish(clientIp = ip).status)
+        // Turned away before the upload is read: a bad image gets 429, not the 400 its decode would give.
+        assertEquals(HttpStatusCode.TooManyRequests, publish(clientIp = ip, og = png(100, 100)).status)
         // A new User-Agent or another address in the same IPv6 /64 is the same client.
         assertEquals(HttpStatusCode.TooManyRequests, publish(clientIp = ip, userAgent = "another-device").status)
         assertEquals(HttpStatusCode.TooManyRequests, publish(clientIp = "2001:db8:1:2:bbbb::9").status)

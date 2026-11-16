@@ -106,6 +106,8 @@
     <string name="insights_metric_charged">Charged</string>
     <string name="insights_metric_held">In accounts</string>
     <string name="insights_metric_usual_month">Usual month</string>
+    <string name="insights_metric_goals_need">Goals need</string>
+    <string name="insights_metric_left_over">Usually left over</string>
 
     <!-- Action buttons -->
     <string name="insights_action_budgets">Open budgets</string>
@@ -113,6 +115,7 @@
     <string name="insights_action_transaction">Open transaction</string>
     <string name="insights_action_subscriptions">Open subscriptions</string>
     <string name="insights_action_account">Open account</string>
+    <string name="insights_action_goals">Open goals</string>
 
     <!-- Budget over. %1$s = amount over, %2$s = budget name (often already ends in "Budget", so don't add the word) -->
     <string name="insights_budget_over_title">%1$s over on %2$s</string>
@@ -165,6 +168,17 @@
     <!-- %1$s = money in savings, current and cash accounts, %2$s = a usual month's spending, %3$d = months many aim for -->
     <string name="insights_runway_good_body">That\'s %1$s in your accounts against %2$s spent in a usual month, past the %3$d months many people aim for.</string>
     <string name="insights_runway_estimate">Some balances are worked out from transactions alone. Update them in Accounts for a truer figure.</string>
+
+    <!-- Goals fit what a usual month leaves over. %1$s = what all goals in progress need a month -->
+    <string name="insights_goals_fit_title">%1$s a month reaches all your goals</string>
+    <!-- %1$s = what a usual month leaves over -->
+    <string name="insights_goals_fit_body">A usual month leaves you about %1$s, so they fit.</string>
+    <!-- Goals need more than a usual month leaves. %1$s = the gap a month -->
+    <string name="insights_goals_short_title">Your goals need %1$s more a month</string>
+    <!-- %1$s = what all goals in progress need a month, %2$s = what a usual month leaves over -->
+    <string name="insights_goals_short_body">They need %1$s a month together, and a usual month leaves about %2$s.</string>
+    <!-- A usual month spends all its income or more. %1$s = what all goals in progress need a month -->
+    <string name="insights_goals_no_surplus_body">They need %1$s a month together, but a usual month spends all that comes in.</string>
 
     <!-- Bills due. %1$s = total, %2$d = days -->
     <plurals name="insights_bills_title">

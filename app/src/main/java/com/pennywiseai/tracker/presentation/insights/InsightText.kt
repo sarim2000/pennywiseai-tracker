@@ -133,6 +133,26 @@ internal fun insightText(insight: Insight): InsightText = when (val f = insight.
         ),
         note = stringResource(R.string.insights_runway_estimate).takeIf { f.lowConfidence },
     )
+    is InsightFact.GoalsFit -> InsightText(
+        title = if (f.fits) {
+            stringResource(R.string.insights_goals_fit_title, f.needed.format())
+        } else {
+            stringResource(
+                R.string.insights_goals_short_title,
+                Money(f.needed.amount - f.surplus.amount, f.needed.currency).format(),
+            )
+        },
+        body = when {
+            f.fits -> stringResource(R.string.insights_goals_fit_body, f.surplus.format())
+            f.surplus.amount.signum() > 0 ->
+                stringResource(R.string.insights_goals_short_body, f.needed.format(), f.surplus.format())
+            else -> stringResource(R.string.insights_goals_no_surplus_body, f.needed.format())
+        },
+        metrics = listOf(
+            stringResource(R.string.insights_metric_goals_need) to f.needed.format(),
+            stringResource(R.string.insights_metric_left_over) to f.surplus.format(),
+        ),
+    )
     is InsightFact.BillsDue -> InsightText(
         title = pluralStringResource(R.plurals.insights_bills_title, f.withinDays, f.total.format(), f.withinDays),
         body = ListFormatter.getInstance(LocalConfiguration.current.locales[0]).format(f.names.map { merchant(it) })
@@ -155,6 +175,7 @@ internal fun actionLabel(action: InsightAction): String = stringResource(
         is InsightAction.OpenTransaction -> R.string.insights_action_transaction
         is InsightAction.OpenAccount -> R.string.insights_action_account
         InsightAction.OpenSubscriptions -> R.string.insights_action_subscriptions
+        InsightAction.OpenGoals -> R.string.insights_action_goals
     }
 )
 

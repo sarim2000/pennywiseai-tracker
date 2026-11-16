@@ -6,12 +6,14 @@ import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
+import com.pennywiseai.tracker.domain.goals.GoalAffordability
 import com.pennywiseai.tracker.domain.insights.InsightFact.BillsDue
 import com.pennywiseai.tracker.domain.insights.InsightFact.BudgetOver
 import com.pennywiseai.tracker.domain.insights.InsightFact.BudgetPace
 import com.pennywiseai.tracker.domain.insights.InsightFact.BudgetsOnTrack
 import com.pennywiseai.tracker.domain.insights.InsightFact.CardUtilisation
 import com.pennywiseai.tracker.domain.insights.InsightFact.CategorySpike
+import com.pennywiseai.tracker.domain.insights.InsightFact.GoalsFit
 import com.pennywiseai.tracker.domain.insights.InsightFact.LargeTransaction
 import com.pennywiseai.tracker.domain.insights.InsightFact.MoneyLasts
 import com.pennywiseai.tracker.domain.insights.InsightFact.PriceChange
@@ -70,6 +72,8 @@ data class InsightInputs(
     val profileId: Long? = null,
     /** Per currency, from the same scope as [review]. */
     val runways: List<Runway> = emptyList(),
+    /** Per goal currency; empty while one profile is selected, as goals span them all. */
+    val goals: List<GoalAffordability> = emptyList(),
 )
 
 /**
@@ -92,7 +96,8 @@ object InsightRules {
                 categorySpikes(inputs.review, period) +
                 largeTransactions(inputs.review, subscriptions, period) +
                 savingsRate(inputs.review, inputs.today, period) +
-                runway(inputs.runways, period)
+                runway(inputs.runways, period) +
+                goalsFit(inputs.goals, period)
             ).sortedBy { it.severity }
     }
 
@@ -371,6 +376,21 @@ object InsightRules {
             id("runway", period, r.currency, "held"), severity, r.currency,
             MoneyLasts(r.months, Money(r.balance, r.currency), Money(r.monthlySpend, r.currency), r.lowConfidence),
             null,
+        )
+    }
+
+    /**
+     * Whether the goals in progress fit what a usual month leaves over. A currency with
+     * no income history says nothing: no data isn't the same as can't afford.
+     */
+    internal fun goalsFit(goals: List<GoalAffordability>, period: String): List<Insight> = goals.mapNotNull { g ->
+        val surplus = g.surplus ?: return@mapNotNull null
+        Insight(
+            id("goals_fit", period, g.currency, "all"),
+            if (g.fits == true) InsightSeverity.GOOD else InsightSeverity.WARNING,
+            g.currency,
+            GoalsFit(Money(g.needed, g.currency), Money(surplus, g.currency), g.goalCount),
+            InsightAction.OpenGoals,
         )
     }
 

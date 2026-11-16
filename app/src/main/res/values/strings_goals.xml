@@ -12,6 +12,14 @@
     <string name="goals_archived_row">Archived (%1$d)</string>
     <string name="goals_archived_title">Archived goals</string>
     <string name="goals_unarchive">Unarchive</string>
+    <!-- Above the goals: whether they fit what a usual month leaves over. %1$s = what all goals in progress need a month -->
+    <string name="goals_need_per_month">Your goals need %1$s a month</string>
+    <!-- %1$s = what a usual month leaves over -->
+    <string name="goals_fit">A usual month leaves about %1$s, so they fit.</string>
+    <!-- %1$s = how much more a month the goals need -->
+    <string name="goals_short">That\'s %1$s more than a usual month leaves over.</string>
+    <string name="goals_no_surplus">A usual month spends all that comes in, so nothing is left for them yet.</string>
+    <string name="goals_fit_no_data">Once three months of income are recorded, you\'ll see whether they fit.</string>
     <string name="goals_amount_of">%1$s of %2$s</string>
     <string name="goals_per_month">%1$s/mo</string>
     <string name="goals_behind">Behind %1$s</string>

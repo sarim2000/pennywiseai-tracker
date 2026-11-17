@@ -121,20 +121,18 @@ class DailySummaryWorker @AssistedInject constructor(
 
         // The recap is built outside any Activity, so it needs the Latin-digit context too (14b00ada).
         val context = applicationContext.withLatinDigits()
-        // Only the tightest budgets, so the recap stays short; the rest are a count.
         val budgetLines = budgetSummary?.let { summary ->
-            val budgets = budgetsLeft(summary, today)
-            budgets.take(MAX_BUDGET_LINES).map { budget ->
-                val amount = CurrencyFormatter.formatCurrency(budget.left.abs(), summary.currency, maskIfHidden = false)
-                val line = context.getString(
-                    if (budget.left.signum() < 0) R.string.notif_daily_budget_over else R.string.notif_daily_budget_left,
-                    amount,
-                    budget.name
-                )
-                if (budget.incomplete) context.getString(R.string.notif_daily_budget_incomplete, line) else line
-            } + listOfNotNull(
-                (budgets.size - MAX_BUDGET_LINES).takeIf { it > 0 }
-                    ?.let { context.resources.getQuantityString(R.plurals.notif_daily_budget_more, it, it) }
+            budgetSegments(
+                budgetsLeft(summary, today),
+                line = { budget ->
+                    context.getString(
+                        if (budget.left.signum() < 0) R.string.notif_daily_budget_over else R.string.notif_daily_budget_left,
+                        CurrencyFormatter.formatCurrency(budget.left.abs(), summary.currency, maskIfHidden = false),
+                        budget.name
+                    )
+                },
+                incompleteNote = context.getString(R.string.notif_daily_budget_incomplete),
+                more = { context.resources.getQuantityString(R.plurals.notif_daily_budget_more, it, it) }
             )
         }.orEmpty()
         val text = listOfNotNull(
@@ -269,6 +267,25 @@ class DailySummaryWorker @AssistedInject constructor(
                 }
                 .sortedBy { it.remaining.divide(it.totalBudget, MathContext.DECIMAL64) }
                 .map { BudgetLeft(it.group.budget.name, it.remaining, it.hasUnconvertedSpend) }
+
+        /**
+         * The recap's budget segments: only the tightest [MAX_BUDGET_LINES] budgets,
+         * so it stays short, then one [incompleteNote] if any of those figures
+         * leaves spending out (once, not after every line), then a count of the rest.
+         */
+        internal fun budgetSegments(
+            budgets: List<BudgetLeft>,
+            line: (BudgetLeft) -> String,
+            incompleteNote: String,
+            more: (Int) -> String
+        ): List<String> {
+            val shown = budgets.take(MAX_BUDGET_LINES)
+            return shown.map(line) +
+                listOfNotNull(
+                    incompleteNote.takeIf { shown.any { it.incomplete } },
+                    (budgets.size - shown.size).takeIf { it > 0 }?.let(more)
+                )
+        }
 
         /**
          * Schedules the recap while [enabled] (KEEP: an existing schedule stands)

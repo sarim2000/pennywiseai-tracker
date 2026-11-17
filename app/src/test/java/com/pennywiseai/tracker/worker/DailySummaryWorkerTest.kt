@@ -188,4 +188,21 @@ class DailySummaryWorkerTest {
         val left = DailySummaryWorker.budgetsLeft(summary(spending(1, "Food", "200", unconverted = true)), today)
         assertTrue(left.single().incomplete)
     }
+
+    @Test
+    fun `the incomplete note shows once for the recap, only for budgets it shows`() {
+        fun segments(vararg budgets: DailySummaryWorker.BudgetLeft) = DailySummaryWorker.budgetSegments(
+            budgets.toList(),
+            line = { it.name },
+            incompleteNote = "note",
+            more = { "$it more" }
+        )
+        fun budget(name: String, incomplete: Boolean) = DailySummaryWorker.BudgetLeft(name, BigDecimal.TEN, incomplete)
+
+        assertEquals(listOf("A", "B", "note"), segments(budget("A", true), budget("B", true)))
+        assertEquals(listOf("A", "B", "note", "1 more"), segments(budget("A", false), budget("B", true), budget("C", false)))
+        // A budget only counted in "more" has no figure shown to qualify.
+        assertEquals(listOf("A", "B", "1 more"), segments(budget("A", false), budget("B", false), budget("C", true)))
+        assertEquals(listOf("A"), segments(budget("A", false)))
+    }
 }

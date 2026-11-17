@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -26,5 +28,13 @@ class RestatesBalanceTest {
     @Test
     fun aFirstBalanceIsAnAnchor() {
         assertTrue(restatesBalance(null, null, BigDecimal("900"), "INR"))
+    }
+
+    @Test
+    fun aNewCurrencyMarksTheAnchorAsACurrencyChange() {
+        assertEquals(AccountBalanceRepository.ANCHOR_CURRENCY_CHANGE, anchorSourceFor("USD", "EUR"))
+        assertEquals(AccountBalanceRepository.ANCHOR_ENTERED, anchorSourceFor("USD", "USD"))
+        // A first balance has no old currency to change from.
+        assertEquals(AccountBalanceRepository.ANCHOR_ENTERED, anchorSourceFor(null, "EUR"))
     }
 }

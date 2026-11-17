@@ -4,6 +4,7 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.LoanStatus
+import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -113,6 +114,19 @@ class NetWorthTest {
         val acct = account("1111", "900", anchorAmount = "1000", anchorAt = at, anchorSource = "STATEMENT")
         val source = NetWorth.source(acct, null, unanchored = false) as BalanceSource.Entered
         assertTrue(source.fromStatement)
+    }
+
+    @Test
+    fun `a balance given with a new currency reads as entered`() {
+        val at = now.minusDays(3)
+        val acct = account(
+            "1111", "900", currency = "EUR", anchorAmount = "900", anchorAt = at,
+            anchorSource = AccountBalanceRepository.ANCHOR_CURRENCY_CHANGE,
+        )
+        assertEquals(
+            BalanceSource.Entered(d("900"), at, fromStatement = false),
+            NetWorth.source(acct, null, unanchored = false),
+        )
     }
 
     @Test

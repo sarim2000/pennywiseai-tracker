@@ -808,14 +808,16 @@ class ManageAccountsViewModel @Inject constructor(
                     bankName = newBankName
                 )
 
+                val oldCurrency = latestBalance?.let {
+                    CurrencyFormatter.resolveAccountCurrency(it.sourceType, it.currency, oldBankName)
+                }
                 val balanceChanged = restatesBalance(
                     oldBalance = latestBalance?.balance,
-                    oldCurrency = latestBalance?.let {
-                        CurrencyFormatter.resolveAccountCurrency(it.sourceType, it.currency, oldBankName)
-                    },
+                    oldCurrency = oldCurrency,
                     newBalance = newBalance,
                     newCurrency = resolvedCurrency,
                 )
+                val anchorSource = anchorSourceFor(oldCurrency, resolvedCurrency)
                 if (latestBalance?.isLiability != true && accountBalanceRepository.isManualAccount(newBankName, accountLast4)) {
                     // Manual/cash account: balance is derived. Atomically update the
                     // currency on its anchor rows and back-solve the opening from the
@@ -827,7 +829,9 @@ class ManageAccountsViewModel @Inject constructor(
                         currency = resolvedCurrency,
                         targetBalance = newBalance
                     )
-                    if (balanceChanged) accountBalanceRepository.setAnchor(newBankName, accountLast4, newBalance)
+                    if (balanceChanged) {
+                        accountBalanceRepository.setAnchor(newBankName, accountLast4, newBalance, source = anchorSource)
+                    }
                 } else if (latestBalance == null || !latestBalance.matches(newBalance, newCreditLimit, resolvedCurrency)) {
                     // Insert new balance record with updated values. Skipped when only the
                     // name or type changed: a MANUAL row would make an SMS account look
@@ -852,7 +856,9 @@ class ManageAccountsViewModel @Inject constructor(
                             sourceType = "MANUAL"
                         ).withAccountFieldsOf(latestBalance)
                     )
-                    if (balanceChanged) accountBalanceRepository.setAnchor(newBankName, accountLast4, newBalance)
+                    if (balanceChanged) {
+                        accountBalanceRepository.setAnchor(newBankName, accountLast4, newBalance, source = anchorSource)
+                    }
                 }
 
                 _uiState.update {
@@ -888,3 +894,14 @@ internal fun restatesBalance(
     newBalance: BigDecimal,
     newCurrency: String,
 ): Boolean = oldBalance == null || oldBalance.compareTo(newBalance) != 0 || oldCurrency != newCurrency
+
+/**
+ * How an edit's anchor is recorded: as a currency change when the account had another
+ * currency (so its derived past starts there), else as a balance the user entered.
+ */
+internal fun anchorSourceFor(oldCurrency: String?, newCurrency: String): String =
+    if (oldCurrency != null && oldCurrency != newCurrency) {
+        AccountBalanceRepository.ANCHOR_CURRENCY_CHANGE
+    } else {
+        AccountBalanceRepository.ANCHOR_ENTERED
+    }

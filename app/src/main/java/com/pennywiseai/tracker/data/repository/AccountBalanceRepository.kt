@@ -40,6 +40,13 @@ open class AccountBalanceRepository @Inject constructor(
 
         /** `anchor_source` of a balance set from an imported statement. */
         const val ANCHOR_STATEMENT = "STATEMENT"
+
+        /**
+         * `anchor_source` of a balance the user gave with a new currency. It's entered
+         * like [ANCHOR_ENTERED]; it also marks when the currency changed, which a manual
+         * account's derived past mustn't reach back over.
+         */
+        const val ANCHOR_CURRENCY_CHANGE = "CURRENCY_CHANGE"
     }
 
     /**

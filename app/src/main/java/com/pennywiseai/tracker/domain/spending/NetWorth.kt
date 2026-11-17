@@ -152,21 +152,27 @@ object NetWorth {
      * [account]'s past as a manual account, from its [effects] and its [firstRow].
      *
      * Its past is in its currency today, so it can't reach back over a currency change:
-     * the old currency's amounts would be relabelled as the new one's. A transaction in
-     * another currency shows there was one; the change re-anchored the account, so its
-     * past then starts at the later of its anchor and that transaction, and before that
-     * it adds nothing to any line. (A change before any transaction leaves no trace, and
-     * its figure carries back.)
+     * the old currency's figures would be relabelled as the new one's. A change of
+     * currency re-anchors the account ([AccountBalanceRepository.ANCHOR_CURRENCY_CHANGE]),
+     * and a transaction in another currency shows there was one; either way its past
+     * starts at the later of its anchor and that transaction, and before that it adds
+     * nothing to any line. A later plain balance edit replaces the anchor and so loses
+     * that mark; then only a transaction in the old currency still shows the change.
      */
     fun derivedHistory(account: AccountBalanceEntity, effects: List<BalanceEffect>, firstRow: LocalDateTime?): DerivedHistory {
         val existsFrom = listOfNotNull(firstRow, effects.minOfOrNull { it.at }).minOrNull()
         val lastForeign = effects.filter { it.currency != account.currency }.maxOfOrNull { it.at }
+        val currencyChangedAt = account.anchorAt.takeIf { account.anchorSource == AccountBalanceRepository.ANCHOR_CURRENCY_CHANGE }
         return DerivedHistory(
             currency = account.currency,
             current = account.balance,
             anchored = account.anchorAt != null,
             effects = effects.map { it.at to it.amount },
-            existsFrom = if (lastForeign == null) existsFrom else listOfNotNull(existsFrom, lastForeign, account.anchorAt).max(),
+            existsFrom = if (lastForeign == null && currencyChangedAt == null) {
+                existsFrom
+            } else {
+                listOfNotNull(existsFrom, lastForeign, account.anchorAt).max()
+            },
         )
     }
 

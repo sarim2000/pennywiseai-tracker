@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.domain.spending
 
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -114,10 +115,31 @@ class NetWorthTrendTest {
         assertEquals(listOf(end), fresh.getValue("INR").map { it.date })
     }
 
-    private fun cash(currency: String, balance: String, anchorAt: LocalDateTime) = AccountBalanceEntity(
+    private fun cash(
+        currency: String,
+        balance: String,
+        anchorAt: LocalDateTime,
+        anchorSource: String = AccountBalanceRepository.ANCHOR_ENTERED,
+    ) = AccountBalanceEntity(
         bankName = "Cash", accountLast4 = "0000", balance = d(balance), timestamp = anchorAt,
         accountType = "SAVINGS", currency = currency, anchorAmount = d(balance), anchorAt = anchorAt,
+        anchorSource = anchorSource,
     )
+
+    @Test
+    fun `a currency change with no transactions in the old one still starts the line`() {
+        // USD 100 cash since October with nothing spent, moved to EUR 100 on Nov 3: the
+        // days before must not show EUR 100.
+        val history = NetWorth.derivedHistory(
+            cash("EUR", "100", anchorAt = day(3, hour = 12), anchorSource = AccountBalanceRepository.ANCHOR_CURRENCY_CHANGE),
+            emptyList(),
+            firstRow = LocalDateTime.of(2026, 10, 1, 9, 0),
+        )
+        val trend = NetWorth.trend(emptyList(), mapOf(("Cash" to "0000") to history), start, end)
+
+        assertEquals(listOf(day(3), day(4), day(5)).map { it.toLocalDate() }, trend.getValue("EUR").map { it.date })
+        assertEquals(listOf("100", "100", "100"), values(trend["EUR"]))
+    }
 
     @Test
     fun `a manual account's past doesn't cross a change of its currency`() {

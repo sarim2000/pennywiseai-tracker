@@ -4,19 +4,14 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
@@ -138,8 +133,10 @@ private fun CardBillDialog(
     onDismiss: () -> Unit,
     onSave: (Int?, BigDecimal?) -> Unit
 ) {
-    // No day until the user picks one: a made-up due day could mark the bill overdue.
-    var day by remember { mutableStateOf(dueDay) }
+    // No day until the user types one: a made-up due day could mark the bill overdue.
+    var dayText by remember { mutableStateOf(dueDay?.toString().orEmpty()) }
+    val day = dayText.trim().toIntOrNull()?.takeIf { it in 1..31 }
+    val dayValid = dayText.isBlank() || day != null
     var text by remember { mutableStateOf(amount?.toPlainString().orEmpty()) }
     val parsed = text.trim().toBigDecimalOrNull()
     val valid = text.isBlank() || (parsed != null && parsed.signum() >= 0)
@@ -149,28 +146,22 @@ private fun CardBillDialog(
         title = { Text(stringResource(R.string.card_bill_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Text(
-                    text = stringResource(R.string.card_bill_due_day_description),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.Center,
+                OutlinedTextField(
+                    value = dayText,
+                    onValueChange = { if (it.length <= 2 && it.all(Char::isDigit)) dayText = it },
+                    label = { Text(stringResource(R.string.card_bill_due_day_label)) },
+                    supportingText = {
+                        Text(
+                            stringResource(
+                                if (dayValid) R.string.card_bill_due_day_description else R.string.card_bill_due_day_error
+                            )
+                        )
+                    },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    isError = !dayValid,
                     modifier = Modifier.fillMaxWidth()
-                ) {
-                    IconButton(onClick = { day = ((day ?: 2) - 1).coerceAtLeast(1) }, shapes = IconButtonDefaults.shapes()) {
-                        Icon(Icons.Default.Remove, contentDescription = stringResource(R.string.manage_accounts_decrease))
-                    }
-                    Text(
-                        text = day?.toString() ?: "–",
-                        style = MaterialTheme.typography.headlineMedium,
-                        modifier = Modifier.padding(horizontal = Spacing.lg)
-                    )
-                    IconButton(onClick = { day = ((day ?: 0) + 1).coerceAtMost(31) }, shapes = IconButtonDefaults.shapes()) {
-                        Icon(Icons.Default.Add, contentDescription = stringResource(R.string.manage_accounts_increase))
-                    }
-                }
+                )
                 OutlinedTextField(
                     value = text,
                     onValueChange = { text = it },
@@ -186,7 +177,7 @@ private fun CardBillDialog(
         confirmButton = {
             TextButton(
                 onClick = { onSave(day, parsed) },
-                enabled = valid,
+                enabled = valid && dayValid,
                 shapes = ButtonDefaults.shapes()
             ) { Text(stringResource(R.string.accounts_action_save)) }
         },

@@ -14,6 +14,7 @@ import com.pennywiseai.tracker.domain.insights.InsightFact.LargeTransaction
 import com.pennywiseai.tracker.domain.insights.InsightFact.PriceChange
 import com.pennywiseai.tracker.domain.insights.InsightFact.SavingsRate
 import com.pennywiseai.tracker.domain.review.PeriodReview
+import com.pennywiseai.tracker.domain.spending.Bill
 import com.pennywiseai.tracker.domain.spending.RecurringCharge
 import com.pennywiseai.tracker.domain.spending.SafeToSpend
 import com.pennywiseai.tracker.domain.spending.SpendForecast
@@ -76,7 +77,7 @@ object InsightRules {
         return (
             budgets(inputs.budgets, period) +
                 cardUtilisation(inputs.creditCards, period) +
-                billsDue(subscriptions, inputs.today, period) +
+                billsDue(subscriptions, inputs.review, inputs.today, period) +
                 priceChanges(inputs.review, subscriptions, period) +
                 categorySpikes(inputs.review, period) +
                 largeTransactions(inputs.review, subscriptions, period) +
@@ -159,28 +160,48 @@ object InsightRules {
 
     /**
      * Subscription payments due in the next [BILLS_DAYS] days, one line per currency,
-     * on the dates the Subscriptions screen shows. Keyed on the first due date, so a
-     * dismissal lasts until that payment has gone.
+     * on the dates the Subscriptions screen shows. One already charged is paid, even when
+     * the charge wasn't linked to it (a new price, or the subscription added after it).
+     * Keyed on the first due date, so a dismissal lasts until that payment has gone.
      */
-    internal fun billsDue(subscriptions: List<SubscriptionEntity>, today: LocalDate, period: String): List<Insight> =
-        SafeToSpend.billsFrom(subscriptions)
-            .map { it.copy(dueDate = RecurringCharge.nextPaymentShown(it.dueDate, today)) }
-            .let { SafeToSpend.billsInWindow(it, today, today.plusDays(BILLS_DAYS)) }
+    internal fun billsDue(
+        subscriptions: List<SubscriptionEntity>,
+        review: PeriodReview,
+        today: LocalDate,
+        period: String,
+    ): List<Insight> {
+        val charges = review.detail?.spendRows.orEmpty().map { it.transaction }
+        val bills = subscriptions.mapNotNull { sub ->
+            val due = RecurringCharge.nextPaymentShown(sub.nextPaymentDate ?: return@mapNotNull null, today)
+            val paid = charges.any {
+                val date = it.dateTime.toLocalDate()
+                it.currency == sub.currency &&
+                    RecurringCharge.sameMerchant(it.merchantName, sub.merchantName) &&
+                    !date.isBefore(due.minusDays(RecurringCharge.DUE_WINDOW_DAYS)) && !date.isAfter(today) &&
+                    (
+                        RecurringCharge.sameAmount(sub.amount, it.amount) ||
+                            RecurringCharge.isPriceChange(sub.amount, due, it.amount, date)
+                        )
+            }
+            if (paid) null else Bill(sub.merchantName, Money(sub.amount, sub.currency), due)
+        }
+        return SafeToSpend.billsInWindow(bills, today, today.plusDays(BILLS_DAYS))
             .groupBy { it.amount.currency }
-            .map { (currency, bills) ->
-                val firstDue = bills.minOf { it.dueDate }
+            .map { (currency, due) ->
+                val firstDue = due.minOf { it.dueDate }
                 Insight(
                     id("bills_due", period, currency, "next$BILLS_DAYS@$firstDue"), InsightSeverity.WARNING, currency,
                     BillsDue(
-                        count = bills.size,
-                        total = bills.sumByCurrency({ it.amount.currency }, { it.amount.amount }).getValue(currency),
+                        count = due.size,
+                        total = due.sumByCurrency({ it.amount.currency }, { it.amount.amount }).getValue(currency),
                         firstDue = firstDue,
                         withinDays = BILLS_DAYS.toInt(),
-                        names = bills.sortedBy { it.dueDate }.map { it.name },
+                        names = due.sortedBy { it.dueDate }.map { it.name },
                     ),
                     InsightAction.OpenSubscriptions,
                 )
             }
+    }
 
     /**
      * A charge this cycle that looks like a subscription at a new price, by the same

@@ -164,4 +164,13 @@
         <item quantity="many">دفعات %1$s. أولها في %2$s.</item>
         <item quantity="other">دفعات %1$s. أولها في %2$s.</item>
     </plurals>
+    <!-- The first is due today. %1$s = the subscriptions due, soonest first, as a list -->
+    <plurals name="insights_bills_body_today">
+        <item quantity="zero">دفعات %1$s. أولها اليوم.</item>
+        <item quantity="one">دفعة %1$s، اليوم.</item>
+        <item quantity="two">دفعتا %1$s. أولاهما اليوم.</item>
+        <item quantity="few">دفعات %1$s. أولها اليوم.</item>
+        <item quantity="many">دفعات %1$s. أولها اليوم.</item>
+        <item quantity="other">دفعات %1$s. أولها اليوم.</item>
+    </plurals>
 </resources>

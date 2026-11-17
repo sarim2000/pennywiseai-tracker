@@ -383,6 +383,25 @@ class InsightRulesTest {
     }
 
     @Test
+    fun `a bill already charged is not due, even at a new price or before it was linked`() {
+        val insights = evaluate(
+            rows = listOf(
+                tx("2026-11-19", "100", merchant = "STREAMER"),
+                tx("2026-11-18", "65", merchant = "Gym"),
+                // Last month's charge doesn't pay this one.
+                tx("2026-10-24", "20", merchant = "Cloud"),
+            ),
+            subscriptions = listOf(
+                subscription(1, "100", "2026-11-20"),
+                subscription(2, "50", "2026-11-22", merchant = "Gym"),
+                subscription(3, "20", "2026-11-24", merchant = "Cloud"),
+            ),
+        )
+        val bills = insights.single { it.fact is BillsDue }.fact as BillsDue
+        assertEquals(listOf("Cloud"), bills.names)
+    }
+
+    @Test
     fun `bills due move to a new insight once the first one has gone`() {
         val subscriptions = listOf(subscription(1, "100", "2026-11-22"), subscription(2, "50", "2026-11-26"))
         val before = evaluate(subscriptions = subscriptions).single { it.fact is BillsDue }

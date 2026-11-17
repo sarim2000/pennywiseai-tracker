@@ -144,4 +144,9 @@
         <item quantity="one">%1$s, on %2$s.</item>
         <item quantity="other">%1$s. The first is on %2$s.</item>
     </plurals>
+    <!-- The first is due today. %1$s = the subscriptions due, soonest first, as a list -->
+    <plurals name="insights_bills_body_today">
+        <item quantity="one">%1$s, due today.</item>
+        <item quantity="other">%1$s. The first is due today.</item>
+    </plurals>
 </resources>

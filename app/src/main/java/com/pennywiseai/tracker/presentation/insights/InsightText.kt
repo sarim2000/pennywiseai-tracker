@@ -115,12 +115,14 @@ internal fun insightText(insight: Insight): InsightText = when (val f = insight.
     )
     is InsightFact.BillsDue -> InsightText(
         title = pluralStringResource(R.plurals.insights_bills_title, f.withinDays, f.total.format(), f.withinDays),
-        body = pluralStringResource(
-            R.plurals.insights_bills_body,
-            f.count,
-            ListFormatter.getInstance(LocalConfiguration.current.locales[0]).format(f.names.map { merchant(it) }),
-            date(f.firstDue),
-        ),
+        body = ListFormatter.getInstance(LocalConfiguration.current.locales[0]).format(f.names.map { merchant(it) })
+            .let { names ->
+                if (f.firstDue == LocalDate.now()) {
+                    pluralStringResource(R.plurals.insights_bills_body_today, f.count, names)
+                } else {
+                    pluralStringResource(R.plurals.insights_bills_body, f.count, names, date(f.firstDue))
+                }
+            },
         metrics = emptyList(),
     )
 }

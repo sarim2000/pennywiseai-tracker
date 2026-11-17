@@ -4,7 +4,9 @@ import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.parser.core.test.ExpectedTransaction
 import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ParserTestUtils
+import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.DynamicTest
+import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.TestFactory
 import java.math.BigDecimal
 
@@ -80,6 +82,12 @@ class UnionBankParserTest {
                 shouldParse = false
             ),
             ParserTestCase(
+                name = "Promo is ignored",
+                message = "Get 10% cashback offer on Union Bank Debit Card. Pay Rs 500 or more. T&C apply.",
+                sender = "JX-UNIONB-S",
+                shouldParse = false
+            ),
+            ParserTestCase(
                 name = "OTP is ignored",
                 message = "123456 is your OTP for login to Union Bank Vyom. Do not share it with anyone.",
                 sender = "JX-UNIONB-S",
@@ -88,5 +96,16 @@ class UnionBankParserTest {
         )
         val handleCases = listOf("JX-UNIONB-S" to true, "VM-UNIONB" to true, "HDFCBK" to false)
         return ParserTestUtils.runTestSuite(UnionBankParser(), testCases, handleCases, "Union Bank Parser Tests")
+    }
+
+    @Test
+    fun `factory routes the short form to Union Bank`() {
+        val parsed = BankParserFactory.parse(
+            "Union Bank of India A/c*1234 Dr Rs166.00 on 15-11-26 21:26 by MB 6600000000 SAMPLE STORE, Bal Rs137.57",
+            "JX-UNIONB-S",
+            0L
+        )
+        assertEquals("Union Bank of India", parsed?.bankName)
+        assertEquals(TransactionType.EXPENSE, parsed?.type)
     }
 }

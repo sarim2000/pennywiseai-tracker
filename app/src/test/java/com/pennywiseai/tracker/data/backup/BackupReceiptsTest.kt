@@ -158,6 +158,24 @@ class BackupReceiptsTest {
         }
     }
 
+    /**
+     * Unpadded Base64 of one byte over the cap fits the cap's padded length when the
+     * cap isn't a multiple of 3 (8 bytes -> 12 chars, as do 9 bytes), so the decoded
+     * size is checked too.
+     */
+    @Test
+    fun restore_skipsAReceiptOneByteOverTheLimitThatPassesTheLengthCheck() {
+        val filesDir = tmp.newFolder("files")
+        val path = "receipts/over.pdf"
+        val text = b64(ByteArray(9) { 3 })
+        assertTrue(text.length <= BackupReceipts.encodedLength(8))
+
+        val restored = BackupReceipts.restore(filesDir, listOf(BackupReceipt(path, text)), setOf(path), maxFileBytes = 8)
+
+        assertEquals(BackupReceipts.Restored(written = 0, skipped = 1), restored)
+        assertFalse(File(filesDir, path).exists())
+    }
+
     /** An old backup's JPEG receipt (no size fields anywhere) restores as before. */
     @Test
     fun restore_oldJpegReceiptRestoresUnchanged() {

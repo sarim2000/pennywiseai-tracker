@@ -88,7 +88,8 @@ object BackupReceipts {
      * restores exactly the photos of the rows it kept. An existing file is
      * never overwritten. A receipt whose Base64 text is longer than [maxFileBytes]
      * encodes to is skipped before it's decoded, so a hostile backup can't make
-     * the restore allocate a huge array.
+     * the restore allocate a huge array; one that decodes to more than
+     * [maxFileBytes] anyway is skipped too.
      */
     fun restore(
         filesDir: File,
@@ -113,6 +114,13 @@ object BackupReceipts {
             try {
                 val bytes = Base64.getDecoder().decode(receipt.dataBase64)
                 if (bytes.isEmpty()) continue
+                // The length check above allows a byte or two over when the cap isn't
+                // a multiple of 3 and the text drops its padding.
+                if (bytes.size > maxFileBytes) {
+                    Log.w(TAG, "Skipped an oversized receipt in backup")
+                    skipped++
+                    continue
+                }
                 if (target.exists()) {
                     if (!target.readBytes().contentEquals(bytes)) {
                         Log.w(TAG, "Kept existing different receipt file: ${target.name}")

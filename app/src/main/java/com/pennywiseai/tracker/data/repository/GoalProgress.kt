@@ -81,6 +81,14 @@ object GoalRules {
             .min(goal.targetAmount)
     }
 
+    /**
+     * Whether what changed between [before] and [after] took the goal from active (In
+     * progress or Missed) to Reached. An archived goal never reaches, and one already
+     * Reached can't reach again.
+     */
+    fun reachedBetween(before: GoalProgress, after: GoalProgress): Boolean =
+        before.goal.id == after.goal.id && before.isActive && after.status == GoalStatus.REACHED
+
     /** Soonest due date first, Reached last; Archived goals are left out. */
     fun orderForDisplay(goals: List<GoalProgress>): List<GoalProgress> =
         goals.filter { it.status != GoalStatus.ARCHIVED }

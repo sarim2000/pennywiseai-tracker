@@ -1,11 +1,11 @@
 package com.pennywiseai.tracker.data.repository
 
-import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.GoalDao
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
 import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
 import com.pennywiseai.tracker.data.database.entity.GoalEntity
+import com.pennywiseai.tracker.data.database.withTransaction
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -19,6 +19,9 @@ import javax.inject.Singleton
 
 /** A goal's progress plus its effective contributions, newest first. */
 data class GoalDetail(val progress: GoalProgress, val contributions: List<GoalContributionEntity>)
+
+/** A Contribution saved as row [id], with the goal's progress just [before] and [after] it. */
+data class GoalDeposit(val id: Long, val before: GoalProgress, val after: GoalProgress)
 
 /**
  * Goals and their Contributions / Withdrawals (#914). Math lives in [GoalRules];
@@ -118,6 +121,10 @@ class GoalRepository @Inject constructor(
      * from a transaction pass [transactionId]; [originalAmount] is then the
      * share of the transaction in its currency (defaults to [amount] when the
      * currencies match) and must fit in what the transaction has left.
+     *
+     * Returns the row and the goal's progress just before and after it, read in
+     * the write's own DB transaction, so two deposits saved at once never both
+     * see themselves reach the goal.
      */
     suspend fun addContribution(
         goalId: Long,
@@ -127,7 +134,12 @@ class GoalRepository @Inject constructor(
         originalAmount: BigDecimal? = null,
         originalCurrency: String? = null,
         transactionId: Long? = null,
-    ): Long = insertMovement(goalId, amount, date, note, originalAmount, originalCurrency, transactionId, sign = 1)
+        today: LocalDate = LocalDate.now(),
+    ): GoalDeposit = database.withTransaction {
+        val before = progressNow(goalId, today)
+        val id = writeMovement(goalId, amount, date, note, originalAmount, originalCurrency, transactionId, sign = 1)
+        GoalDeposit(id, before, progressNow(goalId, today))
+    }
 
     /** Records a Withdrawal of [amount] (> 0); stored negative. Same options as [addContribution]. */
     suspend fun addWithdrawal(
@@ -138,9 +150,18 @@ class GoalRepository @Inject constructor(
         originalAmount: BigDecimal? = null,
         originalCurrency: String? = null,
         transactionId: Long? = null,
-    ): Long = insertMovement(goalId, amount, date, note, originalAmount, originalCurrency, transactionId, sign = -1)
+    ): Long = database.withTransaction {
+        writeMovement(goalId, amount, date, note, originalAmount, originalCurrency, transactionId, sign = -1)
+    }
 
-    private suspend fun insertMovement(
+    /** [goalId]'s progress as stored; one-shot reads, so it can run inside a DB transaction. */
+    private suspend fun progressNow(goalId: Long, today: LocalDate): GoalProgress {
+        val goal = checkNotNull(goalDao.getGoal(goalId)) { "Goal $goalId not found" }
+        return GoalRules.progress(goal, goalDao.getEffectiveContributionsForGoal(goalId), today)
+    }
+
+    /** Inserts a movement; the caller is inside a DB transaction. */
+    private suspend fun writeMovement(
         goalId: Long,
         amount: BigDecimal,
         date: LocalDate,
@@ -149,7 +170,7 @@ class GoalRepository @Inject constructor(
         originalCurrency: String?,
         transactionId: Long?,
         sign: Int,
-    ): Long = database.withTransaction {
+    ): Long {
         require(amount.signum() > 0) { "Amount must be positive" }
         require(originalAmount == null || originalAmount.signum() > 0) { "Original amount must be positive" }
         val goal = checkNotNull(goalDao.getGoal(goalId)) { "Goal $goalId not found" }
@@ -165,7 +186,7 @@ class GoalRepository @Inject constructor(
             createdAt = now,
             updatedAt = now,
         )
-        goalDao.insertContribution(validated(contribution, goal))
+        return goalDao.insertContribution(validated(contribution, goal))
     }
 
     /**

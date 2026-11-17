@@ -1,6 +1,5 @@
 package com.pennywiseai.tracker.data.repository
 
-import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.GoalDao
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
@@ -8,6 +7,7 @@ import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
 import com.pennywiseai.tracker.data.database.entity.GoalEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.withTransaction
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -118,6 +118,37 @@ class GoalRepositoryTest {
         repo.addContribution(1, BigDecimal("4100"), originalAmount = BigDecimal("50"), transactionId = 9)
         assertEquals("USD", inserted.captured.originalCurrency)
         assertEquals(0, BigDecimal("4100").compareTo(inserted.captured.amount))
+    }
+
+    @Test
+    fun contributionReportsTheProgressAroundItReadInItsOwnTransaction() = runBlocking {
+        var inTransaction = false
+        coEvery { database.withTransaction(any<suspend () -> Any?>()) } coAnswers {
+            inTransaction = true
+            try { secondArg<suspend () -> Any?>().invoke() } finally { inTransaction = false }
+        }
+        val rows = mutableListOf(GoalContributionEntity(id = 1, goalId = 1, amount = BigDecimal("900")))
+        coEvery { goalDao.getEffectiveContributionsForGoal(1) } answers {
+            assertTrue("read outside the write's transaction", inTransaction)
+            rows.toList()
+        }
+        coEvery { goalDao.insertContribution(any()) } answers {
+            rows += firstArg<GoalContributionEntity>().copy(id = rows.size + 1L)
+            rows.size.toLong()
+        }
+        val today = LocalDate.of(2026, 10, 16)
+
+        val reaching = repo.addContribution(1, BigDecimal("100"), today = today)
+        assertEquals(2L, reaching.id)
+        assertEquals(GoalStatus.IN_PROGRESS, reaching.before.status)
+        assertEquals(GoalStatus.REACHED, reaching.after.status)
+        assertTrue(GoalRules.reachedBetween(reaching.before, reaching.after))
+
+        // The next one, even queued right behind it, sees the goal already reached.
+        val next = repo.addContribution(1, BigDecimal("50"), today = today)
+        assertEquals(GoalStatus.REACHED, next.before.status)
+        assertFalse(GoalRules.reachedBetween(next.before, next.after))
+        coVerify(exactly = 0) { goalDao.observeEffectiveContributionsForGoal(any()) }
     }
 
     @Test

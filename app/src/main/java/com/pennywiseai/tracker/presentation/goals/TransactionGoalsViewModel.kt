@@ -6,8 +6,10 @@ import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
 import com.pennywiseai.tracker.data.database.entity.GoalEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.events.MascotMoments
 import com.pennywiseai.tracker.data.repository.GoalProgress
 import com.pennywiseai.tracker.data.repository.GoalRepository
+import com.pennywiseai.tracker.utils.Money
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -44,6 +46,7 @@ data class AddToGoalState(
 class TransactionGoalsViewModel @Inject constructor(
     private val goalRepository: GoalRepository,
     private val conversionService: CurrencyConversionService,
+    private val mascotMoments: MascotMoments,
 ) : ViewModel() {
 
     private val transaction = MutableStateFlow<TransactionEntity?>(null)
@@ -106,7 +109,8 @@ class TransactionGoalsViewModel @Inject constructor(
             val result = shareForGoal(share, left, txn.currency, goal.currency, manual) {
                 conversionService.convertAmountOrNull(it, txn.currency, goal.currency)
             }.mapCatching {
-                goalRepository.addContribution(
+                // Comes back with the goal's progress around it, so the Chat tab hears whether it reached the goal.
+                val deposit = goalRepository.addContribution(
                     goalId = goal.id,
                     amount = it.amount,
                     date = txn.dateTime.toLocalDate(),
@@ -115,9 +119,14 @@ class TransactionGoalsViewModel @Inject constructor(
                     originalCurrency = it.originalCurrency,
                     transactionId = txn.id,
                 )
+                // The share as typed, in the transaction's currency.
+                goalDepositMoment(deposit.before, deposit.after, Money(it.originalAmount ?: it.amount, txn.currency))
             }
             _sheet.value = result.fold(
-                onSuccess = { AddToGoalState(left = left, done = true) },
+                onSuccess = { moment ->
+                    moment?.let(mascotMoments::announce)
+                    AddToGoalState(left = left, done = true)
+                },
                 onFailure = { e ->
                     val error = when (e) {
                         is MoneyException -> e.error

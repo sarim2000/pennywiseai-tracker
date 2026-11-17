@@ -6,8 +6,10 @@ import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
+import com.pennywiseai.tracker.data.events.MascotMoments
 import com.pennywiseai.tracker.data.repository.GoalDetail
 import com.pennywiseai.tracker.data.repository.GoalRepository
+import com.pennywiseai.tracker.utils.Money
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -44,6 +46,7 @@ class GoalDetailViewModel @Inject constructor(
     private val goalRepository: GoalRepository,
     private val conversionService: CurrencyConversionService,
     private val entitlementGate: EntitlementGate,
+    private val mascotMoments: MascotMoments,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -93,14 +96,20 @@ class GoalDetailViewModel @Inject constructor(
             }
             if (converted == null) { _sheet.value = MoneySheetState(error = MoneyError.NO_RATE); return@launch }
             validateMovement(converted, isWithdrawal, saved)?.let { _sheet.value = MoneySheetState(error = it); return@launch }
+            // A deposit comes back with the goal's progress around it, for the Chat tab; a withdrawal with none.
             val result = runCatching {
                 val original = if (foreign) amount else null
                 val originalCurrency = if (foreign) currency else null
-                if (isWithdrawal) goalRepository.addWithdrawal(goalId, converted, date, note, original, originalCurrency)
-                else goalRepository.addContribution(goalId, converted, date, note, original, originalCurrency)
+                if (isWithdrawal) {
+                    goalRepository.addWithdrawal(goalId, converted, date, note, original, originalCurrency)
+                    null
+                } else {
+                    goalRepository.addContribution(goalId, converted, date, note, original, originalCurrency)
+                }
             }
             _sheet.value = if (result.isSuccess) MoneySheetState(done = true, addedFrom = before.takeUnless { isWithdrawal })
             else MoneySheetState(error = MoneyError.FAILED)
+            result.getOrNull()?.let { goalDepositMoment(it.before, it.after, Money(amount, currency)) }?.let(mascotMoments::announce)
         }
     }
 

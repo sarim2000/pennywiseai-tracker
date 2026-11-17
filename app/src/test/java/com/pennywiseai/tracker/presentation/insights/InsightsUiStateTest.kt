@@ -68,6 +68,18 @@ class InsightsUiStateTest {
     }
 
     @Test
+    fun `a currency with only a subscription keeps its monthly cost reachable`() {
+        val usd = Money(BigDecimal.TEN, "USD")
+        val state = insightsUiState(
+            snapshot(listOf(currency("INR", 30)), emptyList()).copy(subscriptionsMonthly = mapOf("USD" to usd)),
+            chosen = "USD",
+        )
+        assertEquals(listOf("INR", "USD"), state.currencies)
+        assertEquals("USD", state.currency)
+        assertEquals(usd, state.subscriptionsMonthly)
+    }
+
+    @Test
     fun `dismissed insights move aside, and a gone currency falls back`() {
         val state = insightsUiState(
             snapshot(listOf(currency("INR", 3)), listOf(insight("a", "INR"), insight("b", "INR")), setOf("a")),

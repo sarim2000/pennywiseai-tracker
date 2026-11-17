@@ -263,6 +263,11 @@
     <string name="loan_detail_settle_message">Dieses Darlehen als begleicht? Alle verbleibenden Guthaben werden vergeben.</string>
     <string name="loan_detail_expected_return_title">Erwartete Rückkehr</string>
     <string name="loan_detail_expected_return_label">Erwarteter Betrag zurück</string>
+    <!-- A repayment larger than what's left on the loan. %1$s = formatted extra amount -->
+    <!-- %1$s = person name, %2$s = formatted extra amount -->
+    <!-- %1$s = person name, %2$s = formatted extra amount -->
+    <!-- %1$s = person name -->
+    <!-- %1$s = person name -->
     <string name="loan_detail_delete_title">Darlehen löschen</string>
     <string name="loan_detail_delete_message">Dieses Darlehen löschen? Verknüpfte Transaktionen werden nicht verlinkt, aber nicht gelöscht.</string>
     <string name="loan_detail_original_chip">Ursprünglich</string>

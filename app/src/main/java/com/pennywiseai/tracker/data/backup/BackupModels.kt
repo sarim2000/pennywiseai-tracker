@@ -297,7 +297,54 @@ data class PreferencesSnapshot(
     val developer: DeveloperPreferences = DeveloperPreferences(),
 
     @SerialName("app")
-    val app: AppPreferences = AppPreferences()
+    val app: AppPreferences = AppPreferences(),
+
+    // Every portable setting, by its on-device key (see
+    // UserPreferencesRepository.BACKED_UP_SETTINGS). Null in older backups,
+    // which then restore through the sections above only.
+    @SerialName("settings")
+    val settings: SettingsSnapshot? = null
+)
+
+/**
+ * The app's settings as typed key → value maps. A key that is present wins on
+ * restore; a present null resets it to the default (e.g. dark theme back to
+ * "follow system"); a missing key leaves the device's value alone, so a masked
+ * export (no FULL-only keys) never wipes them. Unknown or wrongly typed keys
+ * are ignored, so newer and crafted backups can't write anything else.
+ */
+@Serializable
+data class SettingsSnapshot(
+    @SerialName("booleans")
+    val booleans: Map<String, Boolean?> = emptyMap(),
+
+    @SerialName("ints")
+    val ints: Map<String, Int?> = emptyMap(),
+
+    @SerialName("longs")
+    val longs: Map<String, Long?> = emptyMap(),
+
+    @SerialName("strings")
+    val strings: Map<String, String?> = emptyMap(),
+
+    @SerialName("string_sets")
+    val stringSets: Map<String, List<String>?> = emptyMap(),
+
+    // Settings kept outside the main store. Null = leave the device's alone.
+    @SerialName("webhook_interval_hours")
+    val webhookIntervalHours: Int? = null,
+
+    // BCP 47 tags; "" = follow the device language. Android 13+ only.
+    @SerialName("app_language")
+    val appLanguage: String? = null,
+
+    // FULL only: package names of the apps whose notifications are tracked.
+    @SerialName("tracked_notification_apps")
+    val trackedNotificationApps: List<String>? = null,
+
+    // FULL only: normalized sender → the store's encoded account ("" = none).
+    @SerialName("learned_senders")
+    val learnedSenders: Map<String, String>? = null
 )
 
 @Serializable

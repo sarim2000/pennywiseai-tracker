@@ -354,9 +354,8 @@
     <string name="appearance_mode_dark">داكن</string>
     <!-- Theme style -->
     <string name="appearance_style_dynamic">ديناميكي</string>
-    <string name="appearance_style_dynamic_subtitle">ألوان خلفية الشاشة</string>
     <string name="appearance_style_default">افتراضي</string>
-    <string name="appearance_style_default_subtitle">ألوان Rose Pine</string>
+    <!-- Fixed palettes ported from Mihon: proper names, not translated -->
     <!-- Toggles -->
     <string name="appearance_amoled_title">أسود AMOLED</string>
     <string name="appearance_amoled_subtitle">استخدم خلفية سوداء نقية لتباين أعمق</string>

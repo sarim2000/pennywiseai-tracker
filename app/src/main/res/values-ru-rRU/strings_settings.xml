@@ -280,9 +280,8 @@
     <string name="appearance_mode_dark">Темный</string>
     <!-- Theme style -->
     <string name="appearance_style_dynamic">Динамический</string>
-    <string name="appearance_style_dynamic_subtitle">Цвета обоев</string>
     <string name="appearance_style_default">По умолчанию</string>
-    <string name="appearance_style_default_subtitle">Цвета розовой сосны</string>
+    <!-- Fixed palettes ported from Mihon: proper names, not translated -->
     <!-- Toggles -->
     <string name="appearance_amoled_title">Чёрный AMOLED</string>
     <string name="appearance_amoled_subtitle">Использовать чисто черный фон для более глубокого контраста</string>

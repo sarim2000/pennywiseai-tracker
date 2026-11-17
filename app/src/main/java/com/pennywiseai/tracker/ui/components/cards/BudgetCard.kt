@@ -37,7 +37,6 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.compositeOver
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
@@ -58,6 +57,7 @@ import com.pennywiseai.tracker.ui.animations.pwExpand
 import com.pennywiseai.tracker.ui.components.toColorOr
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.bestInk
 import com.pennywiseai.tracker.ui.theme.money
 import com.pennywiseai.tracker.ui.theme.warning
 import com.pennywiseai.tracker.utils.AppDates
@@ -101,11 +101,10 @@ fun BudgetCard(
     val (statusTarget, _) = budgetStatusColors(pillPercent.toFloat())
     val colorSpec = MaterialTheme.motionScheme.fastEffectsSpec<Color>()
     val statusColor by animateColorAsState(statusTarget, colorSpec, label = "budgetStatusColor")
-    // Text snaps to whichever on-colour reads best on the fill as it is right now.
-    // Crossfading light→dark text while the fill goes dark→light meets in an
-    // unreadable middle (e.g. Pine dark: primary → tertiary).
-    val onStatusColor = with(MaterialTheme.colorScheme) { listOf(onPrimary, onTertiary, onError) }
-        .maxBy { contrastRatio(it, statusColor) }
+    // Text snaps to black or white, whichever reads best on the fill as it is right
+    // now. Crossfading light→dark text while the fill goes dark→light meets in an
+    // unreadable middle, and black/white always clears 4.5:1.
+    val onStatusColor = statusColor.bestInk()
     // The bar wears the budget's own color while it's healthy; the pill and
     // hero text stay semantic so a red budget at 36% doesn't read as danger.
     val barColor by animateColorAsState(
@@ -385,24 +384,19 @@ private const val BUDGET_WARN_PERCENT = 70
 private const val BUDGET_DANGER_PERCENT = 90
 
 /**
- * A budget's status colour at [percent] used — primary, tertiary from 70%, error
+ * A budget's status colour at [percent] used — primary, `warning` from 70%, error
  * from 90% — paired with the colour to draw on it, so pill text keeps its contrast.
+ * Not `tertiary`: that is a palette accent (pale lilac in Lavender light), not a status.
  */
 @Composable
 @ReadOnlyComposable
 fun budgetStatusColors(percent: Float): Pair<Color, Color> = with(MaterialTheme.colorScheme) {
     when {
         percent >= BUDGET_DANGER_PERCENT -> error to onError
-        percent >= BUDGET_WARN_PERCENT -> tertiary to onTertiary
+        percent >= BUDGET_WARN_PERCENT ->
+            warning to warning.bestInk()
         else -> primary to onPrimary
     }
-}
-
-/** WCAG contrast ratio between two opaque colours (1..21). */
-private fun contrastRatio(a: Color, b: Color): Float {
-    val la = a.luminance() + 0.05f
-    val lb = b.luminance() + 0.05f
-    return maxOf(la, lb) / minOf(la, lb)
 }
 
 /** A whisper of the budget's color over the card surface (#763). */

@@ -282,6 +282,8 @@
     <string name="chat_cancel">إلغاء</string>
     <string name="chat_settings">الإعدادات</string>
     <string name="chat_model_required_short">النموذج مطلوب</string>
+    <string name="chat_draft_waiting">محفوظ لحين جاهزية النموذج: «%1$s»</string>
+    <string name="chat_draft_after_screen">سيكون سؤالك في الدردشة عند عودتك إلى الرئيسية.</string>
     <string name="chat_model_size_hint">1.6 GB · استخدم Wi-Fi</string>
     <string name="chat_initializing_model">جارٍ تهيئة نموذج الذكاء الاصطناعي...</string>
     <string name="chat_initializing_hint">قد يستغرق هذا بضع ثوانٍ</string>

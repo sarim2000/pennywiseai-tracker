@@ -259,9 +259,8 @@
     <string name="appearance_mode_dark">गाढा</string>
     <!-- Theme style -->
     <string name="appearance_style_dynamic">गतिशील</string>
-    <string name="appearance_style_dynamic_subtitle">वॉलपेपर रङहरू</string>
     <string name="appearance_style_default">पूर्वनिर्धारित</string>
-    <string name="appearance_style_default_subtitle">Rose Pine रङहरू</string>
+    <!-- Fixed palettes ported from Mihon: proper names, not translated -->
     <!-- Toggles -->
     <string name="appearance_amoled_title">AMOLED कालो</string>
     <string name="appearance_amoled_subtitle">गहिरो विरोधाभासको लागि पूर्ण कालो पृष्ठभूमि प्रयोग गर्नुहोस्</string>

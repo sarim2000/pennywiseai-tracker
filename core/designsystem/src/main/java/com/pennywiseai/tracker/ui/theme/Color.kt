@@ -8,7 +8,7 @@ val md_theme_light_onPrimary = Color(0xFFFFFFFF)  // White on blue - good contra
 val md_theme_light_primaryContainer = Color(0xFFD1E4FF)  // Light blue container
 val md_theme_light_onPrimaryContainer = Color(0xFF001D36)  // Very dark blue for text
 val md_theme_light_secondary = Color(0xFFF57C00)  // Darker orange for better contrast
-val md_theme_light_onSecondary = Color(0xFFFFFFFF)  // White on orange - better than black
+val md_theme_light_onSecondary = Color(0xFF000000)  // Black: white on this orange is only 2.7:1
 val md_theme_light_secondaryContainer = Color(0xFFFFE0B2)  // Light gold
 val md_theme_light_onSecondaryContainer = Color(0xFF2C1600)  // Very dark brown for text
 val md_theme_light_tertiary = Color(0xFF0277BD)  // Darker cyan blue for contrast
@@ -64,28 +64,29 @@ val md_theme_dark_surfaceTint = Color(0xFF90CAF9)  // Light blue
 val md_theme_dark_outlineVariant = Color(0xFF49454F)
 val md_theme_dark_scrim = Color(0xFF000000)
 
-// Custom Semantic Colors
-val success_light = Color(0xFF2E7D32)  // Medium green for good contrast on white
-val success_dark = Color(0xFF81C784)  // Lighter green for better contrast on dark backgrounds
-val warning_light = Color(0xFFE65100)  // Darker orange for better contrast
-val warning_dark = Color(0xFFFFB74D)  // Lighter orange for dark mode
+// Semantic colours (status + transaction kinds). Bases are tuned to clear 4.6:1 on the
+// default and Rosé Pine surfaces; ColorScheme.income & co. (Theme.kt) nudge them further
+// toward black/white on palettes that need it. Use those getters, never these constants,
+// except where no ColorScheme exists (Glance widgets).
+val success_light = Color(0xFF286F2C)
+val success_dark = Color(0xFF81C784)
+val warning_light = Color(0xFFAD3B00)
+val warning_dark = Color(0xFFFFB74D)
 
-// Transaction Type Colors
-// Using distinct colors that work well on both light and dark backgrounds
-val income_light = Color(0xFF00796B)  // Teal 700 - good on white
-val income_dark = Color(0xFF80CBC4)   // Teal 200 - readable on dark backgrounds
-val expense_light = Color(0xFFC62828) // Red 800 - good on white
-val expense_dark = Color(0xFFE57373)  // Red 300 - readable on dark backgrounds
-val credit_light = Color(0xFFEF6C00)  // Orange 800 for credit card - good on white
-val credit_dark = Color(0xFFFFD54F)   // Amber 300 for credit card - readable on dark
-val transfer_light = Color(0xFF303F9F) // Indigo 700 for transfers - good on white
-val transfer_dark = Color(0xFF9FA8DA)  // Indigo 200 for transfers - readable on dark
-val investment_light = Color(0xFF37474F) // Blue Grey 800 for investments - good on white
-val investment_dark = Color(0xFF90A4AE)  // Blue Grey 300 for investments - readable on dark
+val income_light = Color(0xFF006E61)
+val income_dark = Color(0xFF80CBC4)
+val expense_light = Color(0xFFBB2525)
+val expense_dark = Color(0xFFF1A19E)
+val credit_light = Color(0xFFA14600)
+val credit_dark = Color(0xFFFFD54F)
+val transfer_light = Color(0xFF303F9F)
+val transfer_dark = Color(0xFFABB4DF)
+val investment_light = Color(0xFF37474F)
+val investment_dark = Color(0xFFA9B8C0)
 
 // Loan Colors (Amber / Warm)
-val loan_light = Color(0xFFFF8F00)           // Amber 800
-val loan_dark = Color(0xFFFFCA28)            // Amber 400
+val loan_light = Color(0xFF935000)
+val loan_dark = Color(0xFFFFCA28)
 val loan_container_light = Color(0xFFFFF8E1) // Amber 50
 val loan_container_dark = Color(0xFF3E2723)  // Brown 900
 

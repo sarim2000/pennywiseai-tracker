@@ -59,6 +59,7 @@ import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.spending
 import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -543,9 +544,9 @@ private fun SwipeableSubscriptionItem(
     var showMenu by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
-    // Spending is ink; a recurring income gets its colour and a "+" so it reads apart without colour.
+    // Spending takes its colour; a recurring income gets its colour and a "+" so it reads apart without colour.
     val isIncome = subscription.direction == SubscriptionDirection.INCOME
-    val amountColor = if (isIncome) MaterialTheme.colorScheme.income else MaterialTheme.colorScheme.onSurface
+    val amountColor = if (isIncome) MaterialTheme.colorScheme.income else MaterialTheme.colorScheme.spending
     val amountPrefix = if (isIncome) "+" else ""
 
     // Not rememberSaveable: a restored row (e.g. after Undo) must start at rest, or onDismiss re-fires.

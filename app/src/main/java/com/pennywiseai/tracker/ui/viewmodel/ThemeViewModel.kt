@@ -39,6 +39,7 @@ class ThemeViewModel @Inject constructor(
                 appFont = preferences.appFont,
                 hasSkippedSmsPermission = preferences.hasSkippedSmsPermission,
                 blurEffectsEnabled = preferences.blurEffectsEnabled,
+                redSpending = preferences.redSpending,
                 navBarStyle = preferences.navBarStyle,
                 hiddenNavTabs = preferences.hiddenNavTabs,
                 coverStyle = preferences.coverStyle,
@@ -96,6 +97,12 @@ class ThemeViewModel @Inject constructor(
         }
     }
 
+    fun updateRedSpending(enabled: Boolean) {
+        viewModelScope.launch {
+            userPreferencesRepository.updateRedSpending(enabled)
+        }
+    }
+
     fun updateNavBarStyle(style: NavBarStyle) {
         viewModelScope.launch {
             userPreferencesRepository.updateNavBarStyle(style)
@@ -131,6 +138,7 @@ data class ThemeUiState(
     val appFont: AppFont = AppFont.DEFAULT,
     val hasSkippedSmsPermission: Boolean = false,
     val blurEffectsEnabled: Boolean = true,
+    val redSpending: Boolean = true,
     val navBarStyle: NavBarStyle = NavBarStyle.NORMAL,
     val hiddenNavTabs: Set<String> = emptySet(),
     val coverStyle: CoverStyle = CoverStyle.AURORA,
@@ -157,6 +165,7 @@ fun PennyWiseUserTheme(content: @Composable () -> Unit) {
         isAmoledMode = state.isAmoledMode,
         appFont = state.appFont,
         blurEffects = state.blurEffectsEnabled,
+        redSpending = state.redSpending,
         content = content,
     )
 }

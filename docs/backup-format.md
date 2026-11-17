@@ -236,3 +236,42 @@ default is applied — that's the only thing that protects real users' old files
 exports only: its text names the bank and whatever a message always says). Fields
 and enums travel by name. A template this version can't fully understand stays in
 the list, and in the next export, but reads nothing. Restore is additive by `id`.
+
+## Settings (`preferences.settings`)
+
+Every portable setting travels in one defaulted, nullable `SettingsSnapshot`,
+keyed by its on-device DataStore name in typed maps (`booleans`, `ints`,
+`longs`, `strings`, `string_sets`), plus a few settings kept elsewhere:
+`webhook_interval_hours`, `app_language` (BCP 47 tags, `""` = follow the
+device; Android 13+), and FULL-only `tracked_notification_apps` and
+`learned_senders`.
+
+```json
+"settings": {
+  "booleans": { "is_amoled_mode": true, "dark_theme_enabled": null },
+  "strings": { "theme_style": "BRANDED", "user_name": "…" },
+  "string_sets": { "hidden_nav_tabs": ["chat"] },
+  "app_language": "ar"
+}
+```
+
+- **Which keys:** `UserPreferencesRepository.SettingsBackup`. Every key in
+  `PreferencesKeys` is in exactly one bucket: a typed allowlist (backed up),
+  `IN_LEGACY_SECTIONS` (still carried by `theme`/`sms`/`developer`/`app` with
+  their own merge rules), or `DEVICE_ONLY` (nudge/"seen" flags, delivery
+  watermarks, caches, one-shot migrations, App Lock, onboarding, the folder
+  backup's SAF grant). `SettingsBackupTest` fails on a new unclassified key.
+- **Privacy:** `SettingsBackup.FULL_ONLY` (name, AI prompt, account keys,
+  statement mappings) is left out of MASKED/ANONYMOUS exports. A profile
+  photo is a file on the old phone, so only a built-in `avatar://` choice
+  travels.
+- **Restore:** applied after the older sections, so the backup's value wins.
+  A present key is written, a present `null` resets it to the default, a
+  missing key is left alone (so a masked export never wipes the FULL-only
+  ones). Only allowlisted keys of the right type are read. `selected_profile_id`
+  goes through the import's profile-id map (unmapped = all profiles). Settings
+  then re-syncs the daily/weekly recap workers and redraws the widgets, and the
+  app language is applied last.
+- **Not backed up:** webhook profiles, logs and cursors (headers can hold
+  credentials, and a restore would start posting data), AI relay pairing,
+  voice-input language/consent, GPU fallback, widget caches.

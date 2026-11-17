@@ -10,6 +10,17 @@ import java.math.BigDecimal
  * the JVM and Android's ICU regex.
  */
 internal object ChatMessageFacts {
+    /**
+     * Lowercased, with Arabic folded so spellings meet: no short vowels, "أ", "إ" and "آ" as
+     * "ا", "ة" as "ه", "ى" as "ي". "إيجار" equals "ايجار".
+     */
+    fun foldSpelling(text: String): String = text.lowercase()
+        .replace(ARABIC_SHORT_VOWELS, "")
+        .replace(ALEF_WITH_HAMZA, "ا").replace('ة', 'ه').replace('ى', 'ي')
+
+    private val ARABIC_SHORT_VOWELS = Regex("[\\u064B-\\u0652]")
+    private val ALEF_WITH_HAMZA = Regex("[أإآ]")
+
     private fun word(alternatives: String) = "(?<![\\p{L}\\p{M}])(?:$alternatives)(?![\\p{L}\\p{M}])"
     private fun regex(pattern: String) = Regex(pattern, RegexOption.IGNORE_CASE)
 
@@ -293,6 +304,48 @@ internal object ChatMessageFacts {
     /** A day the code can't count. A number it refused ("60 weeks ago") isn't one. */
     private fun namesOtherDay(message: String) =
         OTHER_DAY.containsMatchIn(N_DAYS_AGO.replace(N_WEEKS_AGO.replace(latin(message), " "), " "))
+
+    /**
+     * The one day a spoken entry names, as days ago: 0 when it names none, null when it
+     * names two, or one this code can't count ("last Monday").
+     */
+    fun spokenDaysAgo(message: String): Int? {
+        if (namesOtherDay(message) || refusesACount(message)) return null
+        return statedDays(message).let { if (it.size > 1) null else it.singleOrNull() ?: 0 }
+    }
+
+    /** A count [statedDays] drops ("400 days ago"): a day, just not one it can count. */
+    private fun refusesACount(message: String): Boolean {
+        val text = latin(message)
+        return listOf(N_WEEKS_AGO to 7L, N_DAYS_AGO to 1L).any { (pattern, daysEach) ->
+            pattern.findAll(text).any { m ->
+                val count = m.groupValues[1].ifEmpty { m.groupValues[2] }.toLongOrNull()
+                count == null || count > MAX_DAYS_AGO / daysEach
+            }
+        }
+    }
+
+    private val DAY_WORDS = listOf(DAY_BEFORE_YESTERDAY, TWO_DAYS_AGO, TWO_WEEKS_AGO, WEEK_AGO, N_WEEKS_AGO, N_DAYS_AGO, YESTERDAY, TODAY)
+
+    // Spoken entries
+
+    /** Every amount [message] states, in order, scale included: "15k" is 15000. A day's count ("3 days ago") is one too. */
+    fun statedAmounts(message: String): List<BigDecimal> = statedNumbers(latin(message)).map { it.second }
+
+    /** [message] in Latin digits without its day words: what's left of "taxi 30 3 days ago" states one amount. */
+    fun withoutDays(message: String): String = DAY_WORDS.fold(latin(message)) { text, words -> words.replace(text, " ") }
+
+    /**
+     * [message] without its day words, currency words and amounts, each left as a space:
+     * the words left say what it was for.
+     */
+    fun withoutFacts(message: String): String {
+        // Currencies before amounts: "sr" and "jd" count only beside a number.
+        var text = (CURRENCY_MARKS.map { it.first } + CURRENCY_WORDS.map { it.first })
+            .fold(withoutDays(message)) { rest, words -> words.replace(rest, " ") }
+        statedNumbers(text).asReversed().forEach { (range, _) -> text = text.replaceRange(range, " ") }
+        return text
+    }
 
     /** Whether the message names a particular day at all. */
     fun statesADay(message: String): Boolean = statedDays(message).isNotEmpty() || namesOtherDay(message)

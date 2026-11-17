@@ -75,10 +75,18 @@
     <string name="txn_detail_unmark_loan_title">Als Darlehen aufheben?</string>
     <string name="txn_detail_unmark_loan_message">Dies entfernt die Darlehensverbindung aus dieser Transaktion. Wenn keine anderen Transaktionen miteinander verbunden sind, wird auch das Darlehen gelöscht.</string>
     <string name="txn_detail_unmark_loan_confirm">Markierung entfernen</string>
+    <!-- Unmarking leaves the loan's other transactions running the other way (e.g. undoing an overpayment that turned the loan around) -->
+    <!-- %1$s = person name, %2$s = formatted amount -->
+    <!-- %1$s = person name, %2$s = formatted amount -->
     <string name="txn_detail_unmark_loan">Als Darlehen aufheben</string>
     <string name="txn_detail_mark_as_loan">Als Darlehen markieren</string>
     <string name="txn_detail_loan_lent_to">Verspätet auf %1$s</string>
     <string name="txn_detail_loan_borrowed_from">Geliehen von %1$s</string>
+    <!-- A repayment row on a loan. %1$s = person name -->
+    <!-- A repayment row on a loan. %1$s = person name -->
+    <!-- Part of a loan-linked transaction that is on the loan. %1$s = formatted amount -->
+    <!-- Part of a loan-linked transaction that counts as the user's own spending. %1$s = formatted amount -->
+    <!-- Part of a loan-linked transaction that counts as the user's own income. %1$s = formatted amount -->
     <string name="txn_detail_receipt_full_screen">Beleg Vollbild</string>
     <string name="txn_detail_close">Schließen</string>
     <string name="txn_detail_exclude_analytics_title">Von der Analyse ausschließen</string>

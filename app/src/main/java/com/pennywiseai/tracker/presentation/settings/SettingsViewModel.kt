@@ -642,9 +642,19 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 _importExportMessage.value = UiText.Res(R.string.settings_importing_backup)
+                val baseBefore = userPreferencesRepository.baseCurrency.first()
                 val result = backupImporter.importBackup(uri, ImportStrategy.MERGE)
                 when (result) {
                     is ImportResult.Success -> {
+                        // A restored base currency moves this device's budgets with it, as picking it in Settings does.
+                        val baseAfter = userPreferencesRepository.baseCurrency.first()
+                        if (baseAfter != baseBefore) {
+                            baseCurrencyChange.withLock { budgetGroupRepository.moveBudgetsToCurrency(baseAfter, rate = null) }
+                        }
+                        // The restored switches only saved; schedule what they turn on, redraw widgets.
+                        com.pennywiseai.tracker.worker.DailySummaryWorker.sync(context, userPreferencesRepository.dailySummaryEnabled.first())
+                        com.pennywiseai.tracker.worker.WeeklySummaryWorker.sync(context, userPreferencesRepository.weeklySummaryEnabled.first())
+                        com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
                         val counts = listOf(result.importedTransactions, result.importedCategories, result.skippedDuplicates)
                         _importExportMessage.value = if (result.skippedRows > 0) {
                             UiText.Res(R.string.settings_import_backup_success_with_skipped_rows, counts + result.skippedRows)

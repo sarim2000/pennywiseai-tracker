@@ -403,7 +403,7 @@ private fun UnrecognizedSmsItem(
                 Text(
                     text = stringResource(R.string.teach_format_changed),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.tertiary
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
 

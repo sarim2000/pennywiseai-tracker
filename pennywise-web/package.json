@@ -10,10 +10,10 @@
     "cf-typegen": "wrangler types"
   },
   "devDependencies": {
-    "wrangler": "^4.156.2"
+    "wrangler": "^4.161.0"
   },
   "dependencies": {
     "@cloudflare/containers": "^0.3.7",
-    "hono": "^4.13.16"
+    "hono": "^4.13.18"
   }
 }

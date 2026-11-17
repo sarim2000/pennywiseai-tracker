@@ -44,6 +44,16 @@ class LearnedSendersStore @Inject constructor(
         prefs.edit().putString(normalize(sender), value).apply()
     }
 
+    /** As stored, for backups: normalized sender to the encoded account ("" = none). */
+    fun raw(): Map<String, String> = prefs.all.mapNotNull { (k, v) -> (v as? String)?.let { k to it } }.toMap()
+
+    /** Adds a backup's senders; on a clash the backup's account wins. Malformed entries are dropped. */
+    fun restore(senders: Map<String, String>) {
+        val valid = senders.filter { (k, v) -> k.isNotBlank() && (v.isEmpty() || decode(v) != null) }
+        if (valid.isEmpty()) return
+        prefs.edit().apply { valid.forEach { (k, v) -> putString(normalize(k), v) } }.apply()
+    }
+
     companion object {
         private const val PREFS_NAME = "learned_sms_senders"
         private const val SEP = '\n'

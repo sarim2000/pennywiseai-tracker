@@ -1,22 +1,26 @@
 package com.pennywiseai.tracker.presentation.subscriptions
 
-import com.pennywiseai.tracker.ui.UiText
-import com.pennywiseai.tracker.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.events.MascotMoment
+import com.pennywiseai.tracker.data.events.MascotMoments
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.domain.spending.RecurringCharge
-import com.pennywiseai.tracker.domain.spending.SubscriptionCost
 import com.pennywiseai.tracker.domain.spending.RecurringSuggestion
+import com.pennywiseai.tracker.domain.spending.SubscriptionCost
 import com.pennywiseai.tracker.domain.usecase.MarkSubscriptionPaidUseCase
 import com.pennywiseai.tracker.domain.usecase.RecurringSuggestionsUseCase
+import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.sumByCurrency
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -40,6 +44,7 @@ class SubscriptionsViewModel @Inject constructor(
     private val transactionRepository: com.pennywiseai.tracker.data.repository.TransactionRepository,
     private val recurringSuggestionsUseCase: RecurringSuggestionsUseCase,
     accountBalanceRepository: AccountBalanceRepository,
+    private val mascotMoments: MascotMoments,
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(SubscriptionsUiState())
@@ -63,6 +68,7 @@ class SubscriptionsViewModel @Inject constructor(
     fun acceptSuggestion(suggestion: RecurringSuggestion, amount: BigDecimal) {
         viewModelScope.launch {
             val tracked = recurringSuggestionsUseCase.accept(suggestion, amount)
+            billTrackedMoment(tracked?.direction)?.let(mascotMoments::announce)
             _uiState.value = _uiState.value.copy(
                 markPaidMessage = if (tracked != null) {
                     UiText.Res(R.string.subscriptions_suggestion_tracked, listOf(suggestion.merchantName))
@@ -192,7 +198,7 @@ class SubscriptionsViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun hideSubscription(subscriptionId: Long) {
         viewModelScope.launch {
             subscriptionRepository.hideSubscription(subscriptionId)
@@ -301,7 +307,18 @@ class SubscriptionsViewModel @Inject constructor(
                 markPaidMessage = message,
                 settledSubscriptionId = subscriptionId.takeIf { paid } ?: _uiState.value.settledSubscriptionId,
             )
+            announceBillPaid(result)
         }
+    }
+
+    /** Tells the Chat tab about a payment the user just recorded or linked, at its own amount. */
+    private suspend fun announceBillPaid(result: MarkSubscriptionPaidUseCase.Result) {
+        val paymentId = when (result) {
+            is MarkSubscriptionPaidUseCase.Result.Created -> result.transactionId
+            is MarkSubscriptionPaidUseCase.Result.Linked -> result.transactionId
+            else -> return
+        }
+        billPaidMoment(transactionRepository.getTransactionById(paymentId))?.let(mascotMoments::announce)
     }
 
     /** Ends the settled check on [subscriptionId]'s row, unless a newer one took over. */
@@ -362,9 +379,25 @@ class SubscriptionsViewModel @Inject constructor(
                 settledSubscriptionId = subscriptionId.takeIf { result is MarkSubscriptionPaidUseCase.Result.Linked }
                     ?: _uiState.value.settledSubscriptionId,
             )
+            announceBillPaid(result)
         }
     }
 }
+
+/**
+ * The Chat tab's moment for a subscription the user just started tracking: a bill, so only
+ * one the user pays. Null when nothing new was tracked, or for income.
+ */
+internal fun billTrackedMoment(direction: SubscriptionDirection?): MascotMoment.BillTracked? =
+    MascotMoment.BillTracked.takeIf { direction == SubscriptionDirection.EXPENSE }
+
+/**
+ * The Chat tab's moment for a bill the user marked paid, carrying the [payment] recorded or
+ * linked for it, in its own currency. Null when there's no payment, or it's money coming in.
+ */
+internal fun billPaidMoment(payment: TransactionEntity?): MascotMoment.BillPaid? =
+    payment?.takeIf { it.transactionType == TransactionType.EXPENSE }
+        ?.let { MascotMoment.BillPaid(Money(it.amount, it.currency)) }
 
 data class SubscriptionsUiState(
     val activeSubscriptions: List<SubscriptionEntity> = emptyList(),

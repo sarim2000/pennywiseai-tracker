@@ -237,6 +237,7 @@ class BudgetRolloverRoutingTest {
         for (unified in listOf(false, true)) {
             assertFigures(summary(repo, unified), carry = "40", limit = "140", remaining = "110")
         }
+        assertFigures(home(repo), carry = "40", limit = "140", remaining = "110")
     }
 
     @Test
@@ -262,6 +263,36 @@ class BudgetRolloverRoutingTest {
         for (unified in listOf(false, true)) {
             assertFigures(summary(repo, unified), carry = "40", limit = "140", remaining = "110")
         }
+    }
+
+    @Test
+    fun `Home counts a budget's investments as the Budgets screen and its carry do`() {
+        val invested = { amount: String, at: LocalDateTime ->
+            spend(amount, at = at, category = "Investments", type = TransactionType.INVESTMENT)
+        }
+        val transactions = listOf(
+            spend("60", at = lastWeek), invested("30", lastWeek),
+            spend("10"), invested("30", today.atTime(9, 0))
+        )
+        // Tracking every expense: last week's 90 leaves 10 to carry; 40 spent this week.
+        val trackAll = repository(budget().copy(categories = emptyList()), transactions)
+        for (g in listOf(summary(trackAll, unified = false), summary(trackAll, unified = true), home(trackAll))) {
+            assertFigures(g, carry = "10", limit = "110", remaining = "70")
+        }
+        // A type bucket row counts the investments, on Home too.
+        val withBucket = budget().let { group ->
+            group.copy(
+                categories = group.categories + BudgetCategoryEntity(
+                    budgetId = 1, categoryName = "Investments", matchType = TransactionType.INVESTMENT.name
+                )
+            )
+        }
+        val repo = repository(withBucket, transactions)
+        for (g in listOf(summary(repo, unified = false), summary(repo, unified = true), home(repo))) {
+            assertFigures(g, carry = "10", limit = "110", remaining = "70")
+        }
+        val homeBucket = home(repo).categorySpending.single { it.categoryName == "Investments" }
+        assertEquals(0, BigDecimal("30").compareTo(homeBucket.actualAmount))
     }
 
     @Test

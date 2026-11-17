@@ -12,6 +12,7 @@ import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.data.repository.BudgetWindow
 import com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.budgetPercentUsed
+import com.pennywiseai.tracker.data.repository.budgetSpend
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
@@ -72,30 +73,36 @@ internal suspend fun homeBudgetSummary(
     // way they do on the Budgets screen and the widget. Per budget, over its
     // own current window: allTransactions spans every budget's windows this
     // month, so a weekly budget would otherwise count earlier weeks too.
-    suspend fun spendIn(window: BudgetWindow?) = aggregateBudgetCategorySpending(
-        transactions = if (window == null) analyticsTransactions else analyticsTransactions.filter {
-            val d = it.transaction.dateTime.toLocalDate()
-            !d.isBefore(window.start) && !d.isAfter(window.end)
-        },
-        convertSplit = { fromCurrency, amount ->
-            convert(amount, fromCurrency, displayCurrency)
-        },
-        convertIncome = { tx ->
-            convert(tx.amount, tx.currency, displayCurrency)
-        }
-    )
+    val toDisplay: suspend (String, BigDecimal) -> BigDecimal? = { fromCurrency, amount ->
+        convert(amount, fromCurrency, displayCurrency)
+    }
+    fun inWindow(window: BudgetWindow?) = if (window == null) analyticsTransactions else analyticsTransactions.filter {
+        val d = it.transaction.dateTime.toLocalDate()
+        !d.isBefore(window.start) && !d.isAfter(window.end)
+    }
 
     val groupSpendingList = raw.budgetsWithCategories.map { group ->
         val isTrackingAll = group.categories.isEmpty()
         val window = raw.currentWindows[group.budget.id]
-        val (categoryAmounts, categoryLimitBoosts) = spendIn(window)
+        val transactions = inWindow(window)
+        // A parent row counts its sub-categories, as on the Budgets screen (#374).
+        val (categoryAmounts, categoryLimitBoosts, typeAmounts) = aggregateBudgetCategorySpending(
+            transactions = transactions,
+            convertSplit = toDisplay,
+            convertIncome = { tx -> toDisplay(tx.currency, tx.amount) },
+            parentOf = raw.parentOf
+        )
         val daysRemaining = daysRemainingFor(group.budget)
         val daysElapsed = daysElapsedFor(group.budget)
         val catSpending = group.categories.map { cat ->
-            val actual = categoryAmounts[cat.categoryName] ?: BigDecimal.ZERO
+            val actual = if (cat.matchType != null) {
+                typeAmounts[cat.matchType] ?: BigDecimal.ZERO
+            } else {
+                categoryAmounts[cat.categoryName] ?: BigDecimal.ZERO
+            }
             val convertedBudget = convert(cat.budgetAmount, baseCurrency, displayCurrency) ?: BigDecimal.ZERO
             val effectiveBudget = convertedBudget +
-                (categoryLimitBoosts[cat.categoryName] ?: BigDecimal.ZERO)
+                (if (cat.matchType != null) BigDecimal.ZERO else categoryLimitBoosts[cat.categoryName] ?: BigDecimal.ZERO)
             val pctUsed = if (effectiveBudget > BigDecimal.ZERO) {
                 (actual.toFloat() / effectiveBudget.toFloat() * 100f).coerceAtLeast(0f)
             } else 0f
@@ -117,9 +124,7 @@ internal suspend fun homeBudgetSummary(
         // source of truth when set (including when isTrackingAll), with
         // the per-cat sum as a fallback for budgets that only define
         // per-cat amounts.
-        val carry = raw.carryFor(group, displayCurrency, baseCurrency) { fromCurrency, amount ->
-            convert(amount, fromCurrency, displayCurrency)
-        }
+        val carry = raw.carryFor(group, displayCurrency, baseCurrency, toDisplay)
         val totalBudget = carry.appliedTo(
             if (convertedGroupLimit > BigDecimal.ZERO) {
                 convertedGroupLimit
@@ -127,11 +132,9 @@ internal suspend fun homeBudgetSummary(
                 catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
             }
         )
-        val totalActual = if (isTrackingAll) {
-            categoryAmounts.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
-        } else {
-            catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
-        }
+        // Added up as the Budgets screen and the carry add it up: type buckets
+        // (investments) included, a child listed with its parent counted once.
+        val totalActual = budgetSpend(group, transactions, raw.parentOf, toDisplay).amount
         val remaining = totalBudget - totalActual
         val pctUsed = budgetPercentUsed(totalActual, totalBudget, carry.amount.amount)
         val dailyAllowance = if (daysRemaining > 0 && remaining > BigDecimal.ZERO) {

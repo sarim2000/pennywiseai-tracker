@@ -66,8 +66,7 @@ class BudgetGroupRepository @Inject constructor(
         )
     }
 
-    /** Sub-category name → parent name; a parent budget row also counts its children (#374). */
-    suspend fun parentOf(): Map<String, String> = categoryDao.getAllCategoriesList().parentNameOf()
+    private suspend fun parentOf(): Map<String, String> = categoryDao.getAllCategoriesList().parentNameOf()
     private suspend fun expandWithChildren(names: Set<String>): Set<String> =
         categoryDao.getAllCategoriesList().expandWithChildren(names)
 
@@ -1149,8 +1148,6 @@ suspend fun aggregateBudgetCategorySpending(
 ): CategoryAggregation {
     val categoryAmounts = mutableMapOf<String, BigDecimal>()
     val typeAmounts = mutableMapOf<String, BigDecimal>()
-    val skippedCategories = mutableSetOf<String>()
-    val skippedTypes = mutableSetOf<String>()
     for (rawWithSplits in transactions) {
         val txWithSplits = rawWithSplits.forTotals() ?: continue
         val type = txWithSplits.transaction.transactionType
@@ -1162,18 +1159,13 @@ suspend fun aggregateBudgetCategorySpending(
             // contributes to a category (Spending) budget.
             // Null = the converter has no rate for this pair; leave the row out
             // instead of counting a face-value foreign amount (#670).
-            val converted = convertSplit(fromCurrency, txWithSplits.transaction.amount)
-                ?: run { skippedTypes += type.name; continue }
+            val converted = convertSplit(fromCurrency, txWithSplits.transaction.amount) ?: continue
             typeAmounts[type.name] = (typeAmounts[type.name] ?: BigDecimal.ZERO) + converted
             continue
         }
         for ((category, amount) in txWithSplits.getAmountByCategory()) {
             val categoryName = category.ifEmpty { "Others" }
-            val converted = convertSplit(fromCurrency, amount) ?: run {
-                skippedCategories += categoryName
-                parentOf[categoryName]?.let { skippedCategories += it }
-                continue
-            }
+            val converted = convertSplit(fromCurrency, amount) ?: continue
             categoryAmounts[categoryName] =
                 (categoryAmounts[categoryName] ?: BigDecimal.ZERO) + converted
             parentOf[categoryName]?.let { parent ->
@@ -1205,7 +1197,7 @@ suspend fun aggregateBudgetCategorySpending(
         }
     }
 
-    return CategoryAggregation(categoryAmounts, categoryLimitBoosts, typeAmounts, skippedCategories, skippedTypes)
+    return CategoryAggregation(categoryAmounts, categoryLimitBoosts, typeAmounts)
 }
 
 /**
@@ -1217,10 +1209,7 @@ suspend fun aggregateBudgetCategorySpending(
 data class CategoryAggregation(
     val categoryAmounts: Map<String, BigDecimal>,
     val categoryLimitBoosts: Map<String, BigDecimal>,
-    val typeAmounts: Map<String, BigDecimal>,
-    /** Categories / type buckets with spending `convertSplit` had no rate for (#670). */
-    val skippedCategories: Set<String> = emptySet(),
-    val skippedTypes: Set<String> = emptySet()
+    val typeAmounts: Map<String, BigDecimal>
 )
 
 /**

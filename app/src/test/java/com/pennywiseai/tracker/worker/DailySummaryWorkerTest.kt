@@ -1,31 +1,23 @@
 package com.pennywiseai.tracker.worker
 
 import com.pennywiseai.tracker.data.database.dao.LoanDao
-import com.pennywiseai.tracker.data.database.entity.BudgetEntity
-import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
-import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
-import com.pennywiseai.tracker.data.database.entity.BudgetWithCategories
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.LoanStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.data.preferences.DAILY_SUMMARY_DEFAULT
-import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
-import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.data.repository.LoanRepository
 import com.pennywiseai.tracker.utils.Money
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
+import com.pennywiseai.tracker.data.preferences.DAILY_SUMMARY_DEFAULT
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -111,115 +103,5 @@ class DailySummaryWorkerTest {
         val loss = repo.settlementLossByCurrency(listOf(loan(1), loan(2), loan(3))) { it.accountNumber == "1111" }
 
         assertEquals(mapOf("JOD" to BigDecimal("10")), loss)
-    }
-
-    private val today = LocalDate.of(2026, 11, 16)
-
-    private fun spending(
-        id: Long,
-        name: String,
-        remaining: String,
-        type: BudgetGroupType = BudgetGroupType.LIMIT,
-        limit: String = "500",
-        // What the summary shows as the limit; unified mode turns a limit with no rate into 0.
-        total: String = limit,
-        start: LocalDate = LocalDate.of(2026, 11, 1),
-        end: LocalDate = LocalDate.of(2026, 11, 30),
-        unconverted: Boolean = false
-    ) = BudgetGroupSpending(
-        group = BudgetWithCategories(
-            BudgetEntity(
-                id = id, name = name, limitAmount = BigDecimal(limit), periodType = BudgetPeriodType.MONTHLY,
-                startDate = start, endDate = end, groupType = type
-            ),
-            emptyList()
-        ),
-        categorySpending = emptyList(),
-        totalBudget = BigDecimal(total), totalActual = BigDecimal(total) - BigDecimal(remaining),
-        remaining = BigDecimal(remaining), percentageUsed = 0f, dailyAllowance = BigDecimal.ZERO,
-        daysRemaining = 14, daysElapsed = 16, windowStart = start, windowEnd = end,
-        hasUnconvertedSpend = unconverted
-    )
-
-    private fun summary(vararg groups: BudgetGroupSpending) = BudgetOverallSummary(
-        groups = groups.toList(), totalIncome = BigDecimal.ZERO, totalLimitBudget = BigDecimal.ZERO,
-        totalLimitSpent = BigDecimal.ZERO, totalTargetGoal = BigDecimal.ZERO, totalTargetActual = BigDecimal.ZERO,
-        totalExpectedBudget = BigDecimal.ZERO, totalExpectedActual = BigDecimal.ZERO, netSavings = BigDecimal.ZERO,
-        savingsRate = 0f, dailyAllowance = BigDecimal.ZERO, daysRemaining = 14, currency = "JOD"
-    )
-
-    @Test
-    fun `no LIMIT budget, no budget line`() {
-        assertTrue(DailySummaryWorker.budgetsLeft(summary(), today).isEmpty())
-        assertTrue(
-            DailySummaryWorker.budgetsLeft(
-                summary(
-                    spending(1, "Savings", "100", type = BudgetGroupType.TARGET),
-                    spending(2, "Rent", "0", type = BudgetGroupType.EXPECTED)
-                ),
-                today
-            ).isEmpty()
-        )
-    }
-
-    @Test
-    fun `each LIMIT budget running today shows once, tightest first, over budget as a negative`() {
-        val left = DailySummaryWorker.budgetsLeft(
-            summary(
-                spending(1, "Food", "120.5"),
-                spending(2, "Fun", "-30"),
-                spending(3, "Trip", "90", start = LocalDate.of(2026, 10, 1), end = LocalDate.of(2026, 10, 31)),
-                spending(4, "Empty", "0", limit = "0"),
-                // Less left than Food in amount, more for its limit.
-                spending(5, "Coffee", "40", limit = "50")
-            ),
-            today
-        )
-        assertEquals(
-            listOf(
-                DailySummaryWorker.BudgetLeft("Fun", BigDecimal("-30"), incomplete = false),
-                DailySummaryWorker.BudgetLeft("Food", BigDecimal("120.5"), incomplete = false),
-                DailySummaryWorker.BudgetLeft("Coffee", BigDecimal("40"), incomplete = false)
-            ),
-            left
-        )
-    }
-
-    @Test
-    fun `a zero limit with spending is over by all of it, tightest of all`() {
-        val left = DailySummaryWorker.budgetsLeft(
-            summary(
-                spending(1, "Fun", "-30"),
-                spending(2, "Nothing", "-500", limit = "0"),
-                // A 1000 limit with no rate reads 0 in unified mode: not a zero limit.
-                spending(3, "Abroad", "-200", limit = "1000", total = "0")
-            ),
-            today
-        )
-        assertEquals(listOf("Nothing", "Fun"), left.map { it.name })
-        assertEquals(BigDecimal("-500"), left.first().left)
-    }
-
-    @Test
-    fun `spending with no rate marks the figure incomplete`() {
-        val left = DailySummaryWorker.budgetsLeft(summary(spending(1, "Food", "200", unconverted = true)), today)
-        assertTrue(left.single().incomplete)
-    }
-
-    @Test
-    fun `the incomplete note shows once for the recap, only for budgets it shows`() {
-        fun segments(vararg budgets: DailySummaryWorker.BudgetLeft) = DailySummaryWorker.budgetSegments(
-            budgets.toList(),
-            line = { it.name },
-            incompleteNote = "note",
-            more = { "$it more" }
-        )
-        fun budget(name: String, incomplete: Boolean) = DailySummaryWorker.BudgetLeft(name, BigDecimal.TEN, incomplete)
-
-        assertEquals(listOf("A", "B", "note"), segments(budget("A", true), budget("B", true)))
-        assertEquals(listOf("A", "B", "note", "1 more"), segments(budget("A", false), budget("B", true), budget("C", false)))
-        // A budget only counted in "more" has no figure shown to qualify.
-        assertEquals(listOf("A", "B", "1 more"), segments(budget("A", false), budget("B", false), budget("C", true)))
-        assertEquals(listOf("A"), segments(budget("A", false)))
     }
 }

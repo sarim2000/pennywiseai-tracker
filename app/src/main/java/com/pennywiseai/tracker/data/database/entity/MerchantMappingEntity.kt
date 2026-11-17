@@ -3,9 +3,9 @@ package com.pennywiseai.tracker.data.database.entity
 import androidx.room3.ColumnInfo
 import androidx.room3.Entity
 import androidx.room3.PrimaryKey
-import java.time.LocalDateTime
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
+import java.time.LocalDateTime
 
 @Entity(tableName = "merchant_mappings")
 @Serializable
@@ -13,10 +13,10 @@ data class MerchantMappingEntity(
     @PrimaryKey
     @ColumnInfo(name = "merchant_name")
     val merchantName: String,
-    
+
     @ColumnInfo(name = "category")
     val category: String,
-    
+
     @ColumnInfo(name = "created_at")
     @Contextual
     val createdAt: LocalDateTime = LocalDateTime.now(),

@@ -35,8 +35,8 @@ class AlRajhiBankParser : BankParser() {
     private fun isEnglishPosFormat(message: String): Boolean {
         // "Online Purchase" uses the same By:/Amount:/At: layout (plus a From: line).
         return (message.contains("PoS Purchase", ignoreCase = true) ||
-                message.contains("Online Purchase", ignoreCase = true)) &&
-                POS_DETECT.containsMatchIn(message)
+            message.contains("Online Purchase", ignoreCase = true)) &&
+            POS_DETECT.containsMatchIn(message)
     }
 
     private companion object {
@@ -58,8 +58,8 @@ class AlRajhiBankParser : BankParser() {
         // Al Rajhi Jordan ("AlRajhi JO") quotes JOD; this parser would book it as SAR.
         if (normalized.endsWith(" JO")) return false
         return normalized.contains("ALRAJHI") ||
-                normalized.contains("RAJHI") ||
-                sender.contains("الراجحي")
+            normalized.contains("RAJHI") ||
+            sender.contains("الراجحي")
     }
 
     override fun extractAmount(message: String): BigDecimal? {

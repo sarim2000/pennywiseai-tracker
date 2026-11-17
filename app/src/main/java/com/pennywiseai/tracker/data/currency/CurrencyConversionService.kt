@@ -1,9 +1,9 @@
 package com.pennywiseai.tracker.data.currency
 
 import com.pennywiseai.shared.domain.money.MinorUnits
+import com.pennywiseai.tracker.core.TimeConstants
 import com.pennywiseai.tracker.data.database.dao.ExchangeRateDao
 import com.pennywiseai.tracker.data.database.entity.ExchangeRateEntity
-import com.pennywiseai.tracker.core.TimeConstants
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -14,7 +14,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
-import java.util.concurrent.ConcurrentHashMap
 import java.math.BigDecimal
 import java.math.MathContext
 import java.math.RoundingMode
@@ -22,6 +21,7 @@ import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -316,7 +316,7 @@ class CurrencyConversionService @Inject constructor(
         // and the stored uppercase DB row, instead of missing and refetching.
         val from = fromCurrency.uppercase()
         val to = toCurrency.uppercase()
-        val cacheKey = "${from}_${to}"
+        val cacheKey = "${from}_$to"
         if (isCacheValid()) {
             val cached = rateCache[cacheKey]
             if (cached != null) return cached
@@ -411,7 +411,7 @@ class CurrencyConversionService @Inject constructor(
         return null
     }
 
-    /**
+    /*
      * Check if we should refresh rates for the given base currency
      * Returns true if rates are stale or we don't have any rates
      */

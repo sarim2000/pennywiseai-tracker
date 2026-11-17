@@ -37,8 +37,8 @@ class EMolaParser : BankParser() {
     override fun isTransactionMessage(message: String): Boolean {
         val lower = message.lowercase()
         return lower.contains("you transfered") ||
-                lower.contains("you received") ||
-                lower.contains("you withdrew")
+            lower.contains("you received") ||
+            lower.contains("you withdrew")
     }
 
     override fun extractAmount(message: String): BigDecimal? {

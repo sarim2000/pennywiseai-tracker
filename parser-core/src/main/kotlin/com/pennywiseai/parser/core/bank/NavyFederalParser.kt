@@ -15,11 +15,11 @@ class NavyFederalParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val upperSender = sender.uppercase()
         return upperSender == "NFCU" ||
-                upperSender == "21398" || // NFCU's US alert shortcode (#852)
-                upperSender == "NAVYFED" ||
-                upperSender.contains("NAVY FEDERAL") ||
-                upperSender.contains("NAVYFEDERAL") ||
-                upperSender.matches(Regex("""^[A-Z]{2}-NFCU-[A-Z]$"""))
+            upperSender == "21398" || // NFCU's US alert shortcode (#852)
+            upperSender == "NAVYFED" ||
+            upperSender.contains("NAVY FEDERAL") ||
+            upperSender.contains("NAVYFEDERAL") ||
+            upperSender.matches(Regex("""^[A-Z]{2}-NFCU-[A-Z]$"""))
     }
 
     override fun extractAmount(message: String): BigDecimal? {

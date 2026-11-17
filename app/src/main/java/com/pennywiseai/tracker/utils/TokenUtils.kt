@@ -7,7 +7,7 @@ import kotlin.math.roundToInt
  * Based on the rough approximation that 1 token ≈ 4 characters for English text.
  */
 object TokenUtils {
-    
+
     // Average characters per token for English text
     private const val CHARS_PER_TOKEN = 4.0
 
@@ -22,14 +22,14 @@ object TokenUtils {
     /**
      * Estimates the number of tokens in a given text.
      * This is a rough approximation based on character count.
-     * 
+     *
      * @param text The input text
      * @return Estimated token count
      */
     fun estimateTokens(text: String): Int {
         return (text.length / CHARS_PER_TOKEN).roundToInt()
     }
-    
+
     /**
      * Whether a conversation holding [usedTokens] (LiteRT-LM's count) has room for [incoming] and a
      * reply. [incoming] counts a token per character: there is no tokenizer to ask, and chars/4
@@ -40,7 +40,7 @@ object TokenUtils {
 
     /**
      * Formats a number in a user-friendly way (e.g., 1234 -> "1.2k")
-     * 
+     *
      * @param number The number to format
      * @return Formatted string
      */
@@ -52,10 +52,10 @@ object TokenUtils {
             else -> String.format("%.1fM", number / 1000000.0)
         }
     }
-    
+
     /**
      * Calculates the percentage of context used.
-     * 
+     *
      * @param usedTokens Number of tokens used
      * @param maxTokens Maximum context window size
      * @return Percentage as an integer (0-100)
@@ -64,11 +64,11 @@ object TokenUtils {
         if (maxTokens <= 0) return 0
         return ((usedTokens.toFloat() / maxTokens) * 100).roundToInt().coerceIn(0, 100)
     }
-    
+
     /**
      * Returns a color suggestion based on context usage.
      * Can be used to show warnings when approaching context limits.
-     * 
+     *
      * @param percentage Usage percentage (0-100)
      * @return Color suggestion as a string
      */

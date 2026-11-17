@@ -36,9 +36,9 @@ class BkashParser : BankParser() {
     override fun isTransactionMessage(message: String): Boolean {
         val lower = message.lowercase()
         return lower.contains("you have received") ||
-                lower.contains("cash in") ||
-                lower.contains("payment of") ||
-                lower.contains("send money")
+            lower.contains("cash in") ||
+            lower.contains("payment of") ||
+            lower.contains("send money")
     }
 
     override fun extractAmount(message: String): BigDecimal? {

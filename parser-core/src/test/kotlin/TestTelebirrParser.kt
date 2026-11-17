@@ -171,7 +171,5 @@ class TelebirrParserTest {
             handleCases = handleChecks,
             suiteName = "Telebirr Parser"
         )
-
-
     }
 }

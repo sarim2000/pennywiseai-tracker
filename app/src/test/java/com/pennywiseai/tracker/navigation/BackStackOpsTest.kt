@@ -2,10 +2,10 @@ package com.pennywiseai.tracker.navigation
 
 import androidx.navigation3.runtime.NavBackStack
 import androidx.navigation3.runtime.NavKey
+import kotlinx.serialization.json.Json
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
-import kotlinx.serialization.json.Json
 import org.junit.Test
 
 /** The navigation-compose behaviours the Navigation 3 back stack helpers stand in for. */

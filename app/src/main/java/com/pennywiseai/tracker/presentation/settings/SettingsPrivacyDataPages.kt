@@ -118,7 +118,7 @@ internal fun SecurityPage(
             choices = listOf(0, 1, 5, 15).map { minutes ->
                 SettingsChoice(
                     label = if (minutes == 0) stringResource(R.string.settings_lock_timeout_option_immediately)
-                        else pluralStringResource(R.plurals.settings_lock_timeout_option_minutes, minutes, minutes),
+                    else pluralStringResource(R.plurals.settings_lock_timeout_option_minutes, minutes, minutes),
                     selected = appLockUiState.timeoutMinutes == minutes,
                 ) { appLockViewModel.setTimeoutMinutes(minutes) }
             }

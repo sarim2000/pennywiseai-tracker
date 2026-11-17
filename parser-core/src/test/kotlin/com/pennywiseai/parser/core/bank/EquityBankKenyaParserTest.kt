@@ -15,9 +15,9 @@ class EquityBankKenyaParserTest {
         "Your transaction of Kshs. 200.0  has been credited to  254700000000  Jane Doe. Ref.  EQA0000000000000. MPESA Ref.  TESTMPESA1 on  13/09/2026 at 16:13:44."
 
     private // Edge case, passed by variable so BankSamplesDocTest doesn't harvest it.
-        val receivedWithSpaceRuns = "You have  received  2000.00 KES from TEST ENTERPRISES 0********1111 " +
-            "to your Equity account 0********1234. Ref. TESTREF0002 on 12 Sep 2026 at 17:56 EAT"
-        val received =
+    val receivedWithSpaceRuns = "You have  received  2000.00 KES from TEST ENTERPRISES 0********1111 " +
+        "to your Equity account 0********1234. Ref. TESTREF0002 on 12 Sep 2026 at 17:56 EAT"
+    val received =
         "You have received 2000.00 KES from TEST ENTERPRISES 0********1111 to your Equity account 0********1234. Ref. TESTREF0001 on 12 Sep 2026 at 17:56 EAT"
 
     private val transferOutExpected = ExpectedTransaction(

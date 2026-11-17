@@ -135,7 +135,5 @@ class EverestBankParserTest {
             handleCases = handleChecks,
             suiteName = "Everest Bank Parser"
         )
-
-
     }
 }

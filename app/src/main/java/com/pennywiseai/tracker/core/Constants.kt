@@ -1,11 +1,10 @@
 package com.pennywiseai.tracker.core
 
-
 /**
  * Application-wide constants to avoid hardcoded values
  */
 object Constants {
-    
+
     /**
      * SMS Processing Configuration
      */
@@ -20,7 +19,7 @@ object Constants {
         /** Stored in [last_scan_period] when SMS scan period is a custom start date. */
         const val SCAN_PERIOD_CUSTOM_DATE = -2
     }
-    
+
     /**
      * UI Configuration - Moved to ui/theme/Dimensions.kt for better organization
      * Keeping only non-dimension constants here
@@ -29,7 +28,7 @@ object Constants {
         const val BUTTON_WIDTH_RATIO = 0.8f
         const val PROGRESS_STROKE_WIDTH = 2f
     }
-    
+
     /**
      * Database Configuration
      */
@@ -38,7 +37,7 @@ object Constants {
         const val CURRENT_VERSION = 2
         const val TRANSACTION_HASH_DEFAULT = ""
     }
-    
+
     /**
      * WorkManager Configuration
      */
@@ -47,7 +46,7 @@ object Constants {
         const val PERIODIC_SCAN_INTERVAL_HOURS = 24L
         const val INITIAL_DELAY_MINUTES = 15L
     }
-    
+
     /**
      * Parsing Configuration
      */
@@ -58,7 +57,7 @@ object Constants {
         const val CONFIDENCE_PATTERN_BASED = 0.7f
         const val CONFIDENCE_AI_BASED = 0.9f
     }
-    
+
     /**
      * Navigation Routes
      */
@@ -69,7 +68,7 @@ object Constants {
         const val CHAT = "chat"
         const val SETTINGS = "settings"
     }
-    
+
     /**
      * LLM Model Configuration
      *

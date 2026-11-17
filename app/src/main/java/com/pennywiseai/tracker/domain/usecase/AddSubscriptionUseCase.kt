@@ -47,13 +47,13 @@ class AddSubscriptionUseCase @Inject constructor(
             direction = direction,
             billingCycle = billingCycle
         )
-        
+
         Log.d("AddSubscriptionUseCase", "Subscription entity created: $subscription")
         Log.d("AddSubscriptionUseCase", "Calling repository.insertSubscription...")
-        
+
         val id = subscriptionRepository.insertSubscription(subscription)
         Log.d("AddSubscriptionUseCase", "Subscription inserted with ID: $id")
-        
+
         return id
     }
 }

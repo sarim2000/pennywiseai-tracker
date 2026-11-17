@@ -1,19 +1,19 @@
 package com.pennywiseai.tracker.ui.components
 
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
 import android.content.Context
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.rounded.AutoAwesome
+import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import com.pennywiseai.tracker.BuildConfig
 import androidx.compose.ui.Alignment
-import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.AutoAwesome
-import androidx.compose.material.icons.Icons
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
+import com.pennywiseai.tracker.BuildConfig
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 

@@ -14,7 +14,7 @@ class KTCCreditCardParser : BaseThailandBankParser() {
     override fun canHandle(sender: String): Boolean {
         val upperSender = sender.uppercase()
         return upperSender == "KTC" ||
-                upperSender.contains("KRUNGTHAI CARD")
+            upperSender.contains("KRUNGTHAI CARD")
     }
 
     override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {

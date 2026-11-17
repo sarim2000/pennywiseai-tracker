@@ -8,5 +8,3 @@ enum class TransactionType {
     INVESTMENT,
     BALANCE_UPDATE
 }
-
-

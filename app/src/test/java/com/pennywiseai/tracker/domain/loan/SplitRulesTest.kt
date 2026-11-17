@@ -4,9 +4,9 @@ import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.LoanShareEntity
 import com.pennywiseai.tracker.domain.usecase.landedOn
 import com.pennywiseai.tracker.presentation.split.FormPerson
-import com.pennywiseai.tracker.presentation.split.owedFor
 import com.pennywiseai.tracker.presentation.split.SplitForm
 import com.pennywiseai.tracker.presentation.split.SplitMode
+import com.pennywiseai.tracker.presentation.split.owedFor
 import com.pennywiseai.tracker.presentation.split.preview
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

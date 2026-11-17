@@ -1,17 +1,17 @@
 package com.pennywiseai.shared.data.local
 
-import androidx.room3.Database
 import androidx.room3.ConstructedBy
+import androidx.room3.Database
 import androidx.room3.RoomDatabase
 import androidx.room3.RoomDatabaseConstructor
 import androidx.room3.migration.Migration
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.execSQL
-import com.pennywiseai.shared.data.local.dao.SharedCategoryDao
-import com.pennywiseai.shared.data.local.dao.SharedCategoryBudgetLimitDao
 import com.pennywiseai.shared.data.local.dao.SharedAccountBalanceDao
 import com.pennywiseai.shared.data.local.dao.SharedBudgetDao
 import com.pennywiseai.shared.data.local.dao.SharedCardDao
+import com.pennywiseai.shared.data.local.dao.SharedCategoryBudgetLimitDao
+import com.pennywiseai.shared.data.local.dao.SharedCategoryDao
 import com.pennywiseai.shared.data.local.dao.SharedExchangeRateDao
 import com.pennywiseai.shared.data.local.dao.SharedMerchantMappingDao
 import com.pennywiseai.shared.data.local.dao.SharedRuleApplicationDao
@@ -24,8 +24,8 @@ import com.pennywiseai.shared.data.local.entity.SharedAccountBalanceEntity
 import com.pennywiseai.shared.data.local.entity.SharedBudgetCategoryEntity
 import com.pennywiseai.shared.data.local.entity.SharedBudgetEntity
 import com.pennywiseai.shared.data.local.entity.SharedCardEntity
-import com.pennywiseai.shared.data.local.entity.SharedCategoryEntity
 import com.pennywiseai.shared.data.local.entity.SharedCategoryBudgetLimitEntity
+import com.pennywiseai.shared.data.local.entity.SharedCategoryEntity
 import com.pennywiseai.shared.data.local.entity.SharedExchangeRateEntity
 import com.pennywiseai.shared.data.local.entity.SharedMerchantMappingEntity
 import com.pennywiseai.shared.data.local.entity.SharedRuleApplicationEntity

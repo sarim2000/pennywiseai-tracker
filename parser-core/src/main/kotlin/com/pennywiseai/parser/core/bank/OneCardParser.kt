@@ -21,19 +21,19 @@ class OneCardParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("ONECRD") ||
-                normalizedSender.contains("ONECARD") ||
-                // DLT patterns for transactions (-S suffix)
-                normalizedSender.matches(Regex("^[A-Z]{2}-ONECRD-S$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-ONECARD-S$")) ||
-                // Other DLT patterns (OTP, Promotional, Govt)
-                normalizedSender.matches(Regex("^[A-Z]{2}-ONECRD-[TPG]$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-ONECARD-[TPG]$")) ||
-                // Legacy patterns without suffix
-                normalizedSender.matches(Regex("^[A-Z]{2}-ONECRD$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-ONECARD$")) ||
-                // Direct sender IDs
-                normalizedSender == "ONECRD" ||
-                normalizedSender == "ONECARD"
+            normalizedSender.contains("ONECARD") ||
+            // DLT patterns for transactions (-S suffix)
+            normalizedSender.matches(Regex("^[A-Z]{2}-ONECRD-S$")) ||
+            normalizedSender.matches(Regex("^[A-Z]{2}-ONECARD-S$")) ||
+            // Other DLT patterns (OTP, Promotional, Govt)
+            normalizedSender.matches(Regex("^[A-Z]{2}-ONECRD-[TPG]$")) ||
+            normalizedSender.matches(Regex("^[A-Z]{2}-ONECARD-[TPG]$")) ||
+            // Legacy patterns without suffix
+            normalizedSender.matches(Regex("^[A-Z]{2}-ONECRD$")) ||
+            normalizedSender.matches(Regex("^[A-Z]{2}-ONECARD$")) ||
+            // Direct sender IDs
+            normalizedSender == "ONECRD" ||
+            normalizedSender == "ONECARD"
     }
 
     override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {

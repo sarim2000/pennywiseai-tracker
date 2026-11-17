@@ -1,12 +1,12 @@
 package com.pennywiseai.tracker.ui.components
 
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.R
 import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -48,7 +48,7 @@ fun CustomDateRangePickerDialog(
                     }
                 },
                 enabled = dateRangePickerState.selectedStartDateMillis != null &&
-                         dateRangePickerState.selectedEndDateMillis != null,
+                    dateRangePickerState.selectedEndDateMillis != null,
                 shapes = ButtonDefaults.shapes()
             ) {
                 Text(stringResource(R.string.date_range_ok))

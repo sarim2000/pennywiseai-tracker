@@ -221,7 +221,7 @@ object XlsxReader {
 
     /** A UTF-16 BOM, or a NUL byte in the first few KB. */
     internal fun isWideText(bytes: ByteArray): Boolean {
-        if (bytes.size >= 2 && (bytes[0] == 0xFE.toByte() && bytes[1] == 0xFF.toByte() || bytes[0] == 0xFF.toByte() && bytes[1] == 0xFE.toByte())) return true
+        if (bytes.size >= 2 && ((bytes[0] == 0xFE.toByte() && bytes[1] == 0xFF.toByte()) || (bytes[0] == 0xFF.toByte() && bytes[1] == 0xFE.toByte()))) return true
         return (0 until minOf(bytes.size, 4096)).any { bytes[it] == 0.toByte() }
     }
 

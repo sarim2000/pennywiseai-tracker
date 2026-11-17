@@ -21,10 +21,10 @@ class CredParser : BankParser() {
         val normalizedSender = sender.uppercase()
         // DLT patterns: JK-CREDIN-S, AX-CREDIN-S, etc.
         return normalizedSender.matches(Regex("^[A-Z]{2}-CREDIN-S$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-CRED-[TPG]$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-CRED-S$")) ||
-                normalizedSender == "CRED" ||
-                normalizedSender == "CREDIN"
+            normalizedSender.matches(Regex("^[A-Z]{2}-CRED-[TPG]$")) ||
+            normalizedSender.matches(Regex("^[A-Z]{2}-CRED-S$")) ||
+            normalizedSender == "CRED" ||
+            normalizedSender == "CREDIN"
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -69,9 +69,7 @@ class CredParser : BankParser() {
     override fun isTransactionMessage(message: String): Boolean {
         val lowerMessage = message.lowercase()
         // Must contain "payment of" and "credited towards your" to be a CRED transaction
-        return lowerMessage.contains("payment of") && 
-               lowerMessage.contains("credited towards your")
+        return lowerMessage.contains("payment of") &&
+            lowerMessage.contains("credited towards your")
     }
-
-
 }

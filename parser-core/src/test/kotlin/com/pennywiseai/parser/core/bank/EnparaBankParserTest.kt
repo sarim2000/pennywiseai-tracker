@@ -18,8 +18,8 @@ class EnparaBankParserTest {
             ParserTestCase(
                 name = "Card spend (Encard) - simple merchant",
                 message = "Vadesiz TL hesabınıza bağlı 2589 ile biten Encard'ınızla " +
-                        "10/05/2026 tarihinde 105100000024364-OBILET ISTANBUL TR " +
-                        "firmasında 520,00 TL tutarında harcama yapıldı.",
+                    "10/05/2026 tarihinde 105100000024364-OBILET ISTANBUL TR " +
+                    "firmasında 520,00 TL tutarında harcama yapıldı.",
                 sender = "Enpara",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("520.00"),
@@ -33,8 +33,8 @@ class EnparaBankParserTest {
             ParserTestCase(
                 name = "Card spend (Encard) - hyphenated merchant",
                 message = "Vadesiz TL hesabınıza bağlı 2589 ile biten Encard'ınızla " +
-                        "11/05/2026 tarihinde 105100000248567-Trendyol - Yemek ISTANBUL TR " +
-                        "firmasında 350,00 TL tutarında harcama yapıldı.",
+                    "11/05/2026 tarihinde 105100000248567-Trendyol - Yemek ISTANBUL TR " +
+                    "firmasında 350,00 TL tutarında harcama yapıldı.",
                 sender = "Enpara",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("350.00"),
@@ -48,8 +48,8 @@ class EnparaBankParserTest {
             ParserTestCase(
                 name = "Card spend (Encard) - space before dash in reference",
                 message = "Vadesiz TL hesabınıza bağlı 2589 ile biten Encard'ınızla " +
-                        "11/05/2026 tarihinde 2288088 -SBUX KRK KIRIKKALE PODIU KIRIKKALE TR " +
-                        "firmasında 465,00 TL tutarında harcama yapıldı.",
+                    "11/05/2026 tarihinde 2288088 -SBUX KRK KIRIKKALE PODIU KIRIKKALE TR " +
+                    "firmasında 465,00 TL tutarında harcama yapıldı.",
                 sender = "Enpara",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("465.00"),
@@ -63,8 +63,8 @@ class EnparaBankParserTest {
             ParserTestCase(
                 name = "Card spend (Encard) - merchant with slash",
                 message = "Vadesiz TL hesabınıza bağlı 2589 ile biten Encard'ınızla " +
-                        "11/05/2026 tarihinde 000000003718799-NKOLAY/DIRK ROSSMANN ISTANBUL TR " +
-                        "firmasında 528,00 TL tutarında harcama yapıldı.",
+                    "11/05/2026 tarihinde 000000003718799-NKOLAY/DIRK ROSSMANN ISTANBUL TR " +
+                    "firmasında 528,00 TL tutarında harcama yapıldı.",
                 sender = "Enpara",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("528.00"),
@@ -78,8 +78,8 @@ class EnparaBankParserTest {
             ParserTestCase(
                 name = "Outgoing FAST transfer with balanceAfter",
                 message = "13/05/2026 tarihinde vadesiz TL hesabınızdan Hakan G adlı alıcıya " +
-                        "500,00 TL tutarında para transferi (FAST) yapıldı. " +
-                        "İşlem sonrası hesap bakiyesi: 1.175,28 TL",
+                    "500,00 TL tutarında para transferi (FAST) yapıldı. " +
+                    "İşlem sonrası hesap bakiyesi: 1.175,28 TL",
                 sender = "Enpara",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("500.00"),
@@ -93,8 +93,8 @@ class EnparaBankParserTest {
             ParserTestCase(
                 name = "Incoming FAST transfer with balanceAfter",
                 message = "Vadesiz TL hesabınıza 11/05/2026 tarihinde Ismail U tarafından " +
-                        "yapılan para transferi (FAST) sonucunda 200,00 TL giriş oldu. " +
-                        "İşlem sonrası hesap bakiyesi: 3.231,27 TL",
+                    "yapılan para transferi (FAST) sonucunda 200,00 TL giriş oldu. " +
+                    "İşlem sonrası hesap bakiyesi: 3.231,27 TL",
                 sender = "Enpara",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("200.00"),

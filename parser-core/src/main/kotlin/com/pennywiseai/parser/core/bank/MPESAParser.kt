@@ -43,9 +43,9 @@ class MPESAParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("MPESA") ||
-                normalizedSender.contains("M-PESA") ||
-                normalizedSender == "MPESA" ||
-                normalizedSender == "M-PESA"
+            normalizedSender.contains("M-PESA") ||
+            normalizedSender == "MPESA" ||
+            normalizedSender == "M-PESA"
     }
 
     override fun extractAmount(message: String): BigDecimal? {

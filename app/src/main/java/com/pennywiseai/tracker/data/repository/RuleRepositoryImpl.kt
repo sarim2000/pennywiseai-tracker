@@ -1,12 +1,12 @@
 package com.pennywiseai.tracker.data.repository
 
-import com.pennywiseai.tracker.domain.model.rule.withCategoryRenamed
 import com.pennywiseai.tracker.data.database.dao.RuleApplicationDao
 import com.pennywiseai.tracker.data.database.dao.RuleDao
 import com.pennywiseai.tracker.data.database.entity.RuleApplicationEntity
 import com.pennywiseai.tracker.data.database.entity.RuleEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.domain.model.rule.*
+import com.pennywiseai.tracker.domain.model.rule.withCategoryRenamed
 import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.domain.service.RuleEngine
 import kotlinx.coroutines.flow.Flow

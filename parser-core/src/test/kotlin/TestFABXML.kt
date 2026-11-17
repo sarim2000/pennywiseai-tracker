@@ -4,8 +4,8 @@ import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.parser.core.test.ParserTestUtils
 import com.pennywiseai.parser.core.test.SMSData
 import com.pennywiseai.parser.core.test.XMLTestUtils
-import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.*
+import org.junit.jupiter.api.Assertions.fail
 import java.math.BigDecimal
 
 class FABXmlTest {

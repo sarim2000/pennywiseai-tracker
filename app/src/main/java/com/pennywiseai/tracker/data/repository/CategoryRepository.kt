@@ -1,17 +1,17 @@
 package com.pennywiseai.tracker.data.repository
 
 import com.pennywiseai.shared.data.bootstrap.DefaultCategoryData
-import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.CategoryDao
-import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
-import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.hierarchical
-import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.withContext
+import com.pennywiseai.tracker.data.database.withTransaction
+import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
+import com.pennywiseai.tracker.domain.repository.RuleRepository
 import kotlinx.coroutines.NonCancellable
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import java.time.LocalDateTime
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -22,15 +22,15 @@ class CategoryRepository @Inject constructor(
     private val database: PennyWiseDatabase,
     private val ruleRepository: RuleRepository
 ) {
-    
+
     fun getAllCategories(): Flow<List<CategoryEntity>> {
         return categoryDao.getAllCategories().map { it.hierarchical() }
     }
-    
+
     fun getExpenseCategories(): Flow<List<CategoryEntity>> {
         return categoryDao.getExpenseCategories().map { it.hierarchical() }
     }
-    
+
     fun getIncomeCategories(): Flow<List<CategoryEntity>> {
         return categoryDao.getIncomeCategories().map { it.hierarchical() }
     }
@@ -63,11 +63,11 @@ class CategoryRepository @Inject constructor(
     suspend fun getCategoryById(categoryId: Long): CategoryEntity? {
         return categoryDao.getCategoryById(categoryId)
     }
-    
+
     suspend fun getCategoryByName(categoryName: String): CategoryEntity? {
         return categoryDao.getCategoryByName(categoryName)
     }
-    
+
     suspend fun createCategory(
         name: String,
         color: String,
@@ -86,7 +86,7 @@ class CategoryRepository @Inject constructor(
         )
         return categoryDao.insertCategory(category)
     }
-    
+
     /**
      * Saves an edited category. When its name changed, every transaction,
      * split, budget, merchant mapping, recurring entry, subscription and rule
@@ -114,7 +114,7 @@ class CategoryRepository @Inject constructor(
             throw e
         }
     }
-    
+
     suspend fun deleteCategory(categoryId: Long): Boolean {
         // Only delete non-system categories
         val category = categoryDao.getCategoryById(categoryId)
@@ -125,11 +125,11 @@ class CategoryRepository @Inject constructor(
         }
         return false
     }
-    
+
     suspend fun categoryExists(categoryName: String): Boolean {
         return categoryDao.categoryExists(categoryName)
     }
-    
+
     suspend fun initializeDefaultCategories() {
         // Only initialize if no categories exist
         if (categoryDao.getCategoryCount() == 0) {

@@ -30,9 +30,9 @@ class SelcomPesaParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("SELCOM") ||
-                normalizedSender.contains("SELCOMPESA") ||
-                normalizedSender == "SELCOM PESA" ||
-                normalizedSender == "SELCOM"
+            normalizedSender.contains("SELCOMPESA") ||
+            normalizedSender == "SELCOM PESA" ||
+            normalizedSender == "SELCOM"
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -221,7 +221,7 @@ class SelcomPesaParser : BankParser() {
 
         // Card transactions mention "card ending with" or "using your card"
         return lowerMessage.contains("card ending") ||
-                lowerMessage.contains("using your card")
+            lowerMessage.contains("using your card")
     }
 
     override fun cleanMerchantName(merchant: String): String {

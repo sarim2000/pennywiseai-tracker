@@ -4,11 +4,11 @@ import com.pennywiseai.shared.data.local.entity.SharedAccountBalanceEntity
 import com.pennywiseai.shared.data.model.SharedTransaction
 import com.pennywiseai.shared.data.model.SharedTransactionType
 import com.pennywiseai.shared.data.repository.SharedAccountRepository
+import com.pennywiseai.shared.data.repository.SharedRuleRepository
 import com.pennywiseai.shared.data.repository.SharedTransactionRepository
 import com.pennywiseai.shared.data.statement.SharedPdfTextExtractor
 import com.pennywiseai.shared.data.statement.SharedStatementImportResult
 import com.pennywiseai.shared.data.statement.SharedStatementParserFactory
-import com.pennywiseai.shared.data.repository.SharedRuleRepository
 import com.pennywiseai.shared.data.util.currentTimeMillis
 import com.pennywiseai.shared.domain.mapping.SharedCategoryMapping
 import com.pennywiseai.shared.domain.rules.SharedRuleEvaluator

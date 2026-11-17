@@ -12,8 +12,8 @@ class PrimeCommercialBankParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase().replace("-", "_")
         return normalizedSender.contains("PCBLNPKA") ||
-                normalizedSender == "PRIME_ALERT" ||
-                normalizedSender.contains("PRIME")
+            normalizedSender == "PRIME_ALERT" ||
+            normalizedSender.contains("PRIME")
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -50,6 +50,6 @@ class PrimeCommercialBankParser : BankParser() {
     override fun isTransactionMessage(message: String): Boolean {
         val lower = message.lowercase()
         return lower.contains("npr") &&
-                (lower.contains("withdrawn") || lower.contains("deposited"))
+            (lower.contains("withdrawn") || lower.contains("deposited"))
     }
 }

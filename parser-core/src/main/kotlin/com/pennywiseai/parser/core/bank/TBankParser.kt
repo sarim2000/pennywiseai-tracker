@@ -24,8 +24,8 @@ class TBankParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalized = sender.uppercase()
         return normalized.contains("TBANK") ||
-                normalized.contains("T-BANK") ||
-                normalized.contains("TINKOFF")
+            normalized.contains("T-BANK") ||
+            normalized.contains("TINKOFF")
     }
 
     override fun extractAmount(message: String): BigDecimal? {

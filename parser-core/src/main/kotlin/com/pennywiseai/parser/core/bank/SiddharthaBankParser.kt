@@ -23,8 +23,8 @@ class SiddharthaBankParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase().replace("-", "_")
         return normalizedSender.contains("SBL") ||
-                normalizedSender == "SBL_ALERT" ||
-                normalizedSender.contains("SIDDHARTHA")
+            normalizedSender == "SBL_ALERT" ||
+            normalizedSender.contains("SIDDHARTHA")
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -162,10 +162,10 @@ class SiddharthaBankParser : BankParser() {
         // Must contain transaction keywords and NPR amount
         val hasAmount = lowerMessage.contains("npr")
         val hasTransactionKeyword = lowerMessage.contains("withdrawn") ||
-                lowerMessage.contains("deposited") ||
-                lowerMessage.contains("fund trf") ||
-                lowerMessage.contains("fund transfer") ||
-                lowerMessage.contains("qr payment")
+            lowerMessage.contains("deposited") ||
+            lowerMessage.contains("fund trf") ||
+            lowerMessage.contains("fund transfer") ||
+            lowerMessage.contains("qr payment")
 
         return hasAmount && hasTransactionKeyword
     }

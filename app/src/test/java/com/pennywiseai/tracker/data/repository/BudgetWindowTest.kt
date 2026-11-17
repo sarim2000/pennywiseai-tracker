@@ -270,8 +270,8 @@ class BudgetWindowTest {
         val monthEnd = LocalDate.of(2026, 6, 30)
         val window = BudgetWindow(LocalDate.of(2026, 6, 30), LocalDate.of(2026, 7, 6), 7)
         val isCurrentMonth = false
-        val isCurrentWeek = !isCurrentMonth && false ||
-            isCurrentMonth && !today.isBefore(window.start) && !today.isAfter(window.end)
+        val isCurrentWeek = (!isCurrentMonth && false) ||
+            (isCurrentMonth && !today.isBefore(window.start) && !today.isAfter(window.end))
         assertEquals(false, isCurrentWeek)
         // The repo's effective end for the spend query is the cap date,
         // which is monthEnd for a frozen window.

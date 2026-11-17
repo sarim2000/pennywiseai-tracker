@@ -28,8 +28,8 @@ class ApolloParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val upperSender = sender.uppercase().trim()
         return upperSender == "APOLLO" ||
-                // DLT-style variants such as "AB-APOLLO-S"
-                upperSender.matches(Regex("""^[A-Z]{2}-APOLLO-[A-Z]$"""))
+            // DLT-style variants such as "AB-APOLLO-S"
+            upperSender.matches(Regex("""^[A-Z]{2}-APOLLO-[A-Z]$"""))
     }
 
     override fun extractAmount(message: String): BigDecimal? {

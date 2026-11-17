@@ -157,5 +157,3 @@ object CompiledPatterns {
         val HH_MM = Regex("""\d{1,2}:\d{2}""")
     }
 }
-
-

@@ -58,9 +58,9 @@ class CIBEgyptParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender == "CIB" ||
-                normalizedSender.contains("CIB") ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-CIB$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-CIB-[A-Z]$"))
+            normalizedSender.contains("CIB") ||
+            normalizedSender.matches(Regex("^[A-Z]{2}-CIB$")) ||
+            normalizedSender.matches(Regex("^[A-Z]{2}-CIB-[A-Z]$"))
     }
 
     override fun isTransactionMessage(message: String): Boolean {
@@ -210,8 +210,8 @@ class CIBEgyptParser : BankParser() {
 
         // CIB messages explicitly mention credit card
         return lowerMessage.contains("credit card") ||
-                lowerMessage.contains("debit card") ||
-                lowerMessage.contains("card ending") ||
-                lowerMessage.contains("card#")
+            lowerMessage.contains("debit card") ||
+            lowerMessage.contains("card ending") ||
+            lowerMessage.contains("card#")
     }
 }

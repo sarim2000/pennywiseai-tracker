@@ -4,10 +4,10 @@ import androidx.room3.ColumnTypeConverter
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
-import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
-import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.LoanStatus
+import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
+import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.WebhookDataType
 import com.pennywiseai.tracker.data.database.entity.WebhookLogStatus
@@ -23,22 +23,22 @@ class Converters {
     private val dateTimeFormatter = DateTimeFormatter.ISO_LOCAL_DATE_TIME
     private val dateTimeFormatterWithSpace = DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm:ss")
     private val dateFormatter = DateTimeFormatter.ISO_LOCAL_DATE
-    
+
     @ColumnTypeConverter
     fun fromBigDecimal(value: BigDecimal?): String? {
         return value?.toString()
     }
-    
+
     @ColumnTypeConverter
     fun toBigDecimal(value: String?): BigDecimal? {
         return value?.let { BigDecimal(it) }
     }
-    
+
     @ColumnTypeConverter
     fun fromLocalDateTime(value: LocalDateTime?): String? {
         return value?.format(dateTimeFormatter)
     }
-    
+
     @ColumnTypeConverter
     fun toLocalDateTime(value: String?): LocalDateTime? {
         return value?.let { dateStr ->
@@ -51,12 +51,12 @@ class Converters {
             }
         }
     }
-    
+
     @ColumnTypeConverter
     fun fromLocalDate(value: LocalDate?): String? {
         return value?.format(dateFormatter)
     }
-    
+
     @ColumnTypeConverter
     fun toLocalDate(value: String?): LocalDate? {
         return value?.let { dateString ->
@@ -72,17 +72,17 @@ class Converters {
             }
         }
     }
-    
+
     @ColumnTypeConverter
     fun fromTransactionType(value: TransactionType): String {
         return value.name
     }
-    
+
     @ColumnTypeConverter
     fun toTransactionType(value: String): TransactionType {
         return TransactionType.valueOf(value)
     }
-    
+
     @ColumnTypeConverter
     fun fromSubscriptionState(value: SubscriptionState): String {
         return value.name

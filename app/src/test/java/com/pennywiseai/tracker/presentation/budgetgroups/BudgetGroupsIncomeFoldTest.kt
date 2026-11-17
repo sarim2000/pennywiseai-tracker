@@ -52,7 +52,7 @@ class BudgetGroupsIncomeFoldTest {
             windowedSpend(1L, count = 5) +                      // 5 (weekly)
                 windowedSpend(2L, count = 1) +                  // 1 (monthly)
                 windowedSpend(3L, count = 1)                   // 1 (monthly)
-                                                              // 7 windowed entries total
+        // 7 windowed entries total
 
         // The fixed shape: pick the list once, fold once.
         fun fold(windowed: List<WindowSpending>, isCurrentMonth: Boolean): BigDecimal {

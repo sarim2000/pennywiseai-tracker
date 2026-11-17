@@ -1,9 +1,6 @@
 package com.pennywiseai.tracker.ui.components.cards
 
-import com.pennywiseai.tracker.ui.animations.pwExpand
-import com.pennywiseai.tracker.ui.animations.pwCollapse
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
+import android.view.HapticFeedbackConstants
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.clickable
@@ -28,8 +25,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import android.view.HapticFeedbackConstants
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.ui.animations.pwCollapse
+import com.pennywiseai.tracker.ui.animations.pwExpand
 import com.pennywiseai.tracker.ui.theme.Spacing
 
 @Composable

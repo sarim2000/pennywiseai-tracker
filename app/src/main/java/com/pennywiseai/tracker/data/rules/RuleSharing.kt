@@ -1,10 +1,10 @@
 package com.pennywiseai.tracker.data.rules
 
 import com.pennywiseai.tracker.domain.model.rule.RuleAction
-import com.pennywiseai.tracker.domain.model.rule.isExecutable
 import com.pennywiseai.tracker.domain.model.rule.RuleCondition
-import com.pennywiseai.tracker.domain.model.rule.supportedOperators
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
+import com.pennywiseai.tracker.domain.model.rule.isExecutable
+import com.pennywiseai.tracker.domain.model.rule.supportedOperators
 import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 
@@ -103,7 +103,7 @@ object RuleSharingCodec {
         val duplicatedInFile: Int
     )
 
-    /**
+    /*
      * Parses [text] into the rules it holds, all or nothing.
      *
      * An unusable entry fails the whole file rather than being skipped:

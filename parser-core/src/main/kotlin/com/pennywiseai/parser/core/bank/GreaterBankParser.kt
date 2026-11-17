@@ -18,10 +18,10 @@ class GreaterBankParser : BaseIndianBankParser() {
     override fun canHandle(sender: String): Boolean {
         val upper = sender.uppercase()
         return upper.contains("GRTRBN") ||
-                upper.contains("GREATRBN") ||
-                upper.contains("GREATERBNK") ||
-                upper.contains("GREATERBANK") ||
-                upper.contains("GREATER")
+            upper.contains("GREATRBN") ||
+            upper.contains("GREATERBNK") ||
+            upper.contains("GREATERBANK") ||
+            upper.contains("GREATER")
     }
 
     override fun extractAmount(message: String): BigDecimal? {

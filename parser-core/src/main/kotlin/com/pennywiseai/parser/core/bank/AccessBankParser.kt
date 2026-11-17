@@ -37,7 +37,7 @@ class AccessBankParser : BankParser() {
         }
         // Must look like the Access Bank line-based alert.
         return Regex("""(?im)^\s*(debit|credit)\b""").containsMatchIn(message) &&
-                Regex("""(?i)Amt:\s*NGN""").containsMatchIn(message)
+            Regex("""(?i)Amt:\s*NGN""").containsMatchIn(message)
     }
 
     override fun extractTransactionType(message: String): TransactionType? {

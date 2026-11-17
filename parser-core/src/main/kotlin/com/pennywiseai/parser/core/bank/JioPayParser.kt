@@ -17,9 +17,9 @@ class JioPayParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("JIOPAY") ||
-                normalizedSender.endsWith("-JIOPAY-S") ||
-                normalizedSender.endsWith("-JIOPAY-T") ||
-                normalizedSender == "JM-JIOPAY"
+            normalizedSender.endsWith("-JIOPAY-S") ||
+            normalizedSender.endsWith("-JIOPAY-T") ||
+            normalizedSender == "JM-JIOPAY"
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -148,6 +148,6 @@ class JioPayParser : BankParser() {
         // JioPay messages don't use standard transaction keywords
         // but "recharge successful" indicates a transaction
         return lowerMessage.contains("recharge successful") ||
-                super.isTransactionMessage(message)
+            super.isTransactionMessage(message)
     }
 }

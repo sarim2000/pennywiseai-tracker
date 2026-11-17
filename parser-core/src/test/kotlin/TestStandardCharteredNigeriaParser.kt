@@ -1,6 +1,6 @@
 import com.pennywiseai.parser.core.TransactionType
-import com.pennywiseai.parser.core.bank.StandardCharteredNigeriaParser
 import com.pennywiseai.parser.core.bank.BankParserFactory
+import com.pennywiseai.parser.core.bank.StandardCharteredNigeriaParser
 import com.pennywiseai.parser.core.test.ExpectedTransaction
 import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ParserTestUtils

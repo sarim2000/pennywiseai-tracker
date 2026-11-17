@@ -28,8 +28,7 @@ internal class SmsScanCleanup(
     private val database: PennyWiseDatabase,
 ) {
     suspend fun run(savedAny: Boolean) {
-        try { unrecognizedSmsRepository.cleanupOldEntries() }
-        catch (e: Exception) {
+        try { unrecognizedSmsRepository.cleanupOldEntries() } catch (e: Exception) {
             if (e is CancellationException) throw e
             Log.e(TAG, "Cleanup error: ${e.message}")
         }
@@ -47,8 +46,7 @@ internal class SmsScanCleanup(
             Log.e(TAG, "GPay duplicate cleanup error: ${e.message}")
         }
         if (savedAny) {
-            try { llmRepository.updateSystemPrompt() }
-            catch (e: Exception) {
+            try { llmRepository.updateSystemPrompt() } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 Log.e(TAG, "Prompt update error: ${e.message}")
             }

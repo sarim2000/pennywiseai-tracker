@@ -12,8 +12,8 @@ import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
 import java.util.concurrent.TimeUnit
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -28,17 +28,17 @@ class InAppReviewManager @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository
 ) {
     private val reviewManager: ReviewManager = ReviewManagerFactory.create(context)
-    
+
     companion object {
         private const val TAG = "InAppReviewManager"
         private const val DAYS_BEFORE_PROMPT = 1L // Days to wait before showing review
         private const val MINIMUM_TRANSACTIONS = 10 // Minimum transactions before showing review
     }
-    
+
     /**
      * Checks if eligible and shows review prompt if conditions are met.
      * Should be called from an activity context.
-     * 
+     *
      * @param activity The activity to launch the review flow from
      * @param transactionCount Optional transaction count for additional eligibility check
      */
@@ -50,11 +50,11 @@ class InAppReviewManager @Inject constructor(
             Log.d(TAG, "Not eligible for review prompt")
             return
         }
-        
+
         Log.d(TAG, "User is eligible for review prompt, requesting review flow")
         requestAndLaunchReview(activity)
     }
-    
+
     /**
      * Checks if the user is eligible for a review prompt.
      * Conditions:
@@ -68,7 +68,7 @@ class InAppReviewManager @Inject constructor(
             Log.d(TAG, "Review already shown before")
             return false
         }
-        
+
         // Check first launch time
         val firstLaunchTime = userPreferencesRepository.getFirstLaunchTime().first()
         if (firstLaunchTime == null) {
@@ -77,28 +77,28 @@ class InAppReviewManager @Inject constructor(
             Log.d(TAG, "First launch recorded")
             return false
         }
-        
+
         // Calculate days since first launch
         val currentTime = System.currentTimeMillis()
         val daysSinceFirstLaunch = TimeUnit.MILLISECONDS.toDays(currentTime - firstLaunchTime)
-        
+
         Log.d(TAG, "Days since first launch: $daysSinceFirstLaunch")
-        
+
         // Check if enough days have passed
         if (daysSinceFirstLaunch < DAYS_BEFORE_PROMPT) {
             Log.d(TAG, "Not enough days passed (need $DAYS_BEFORE_PROMPT days)")
             return false
         }
-        
+
         // Optional: Check transaction count if provided
         if (transactionCount > 0 && transactionCount < MINIMUM_TRANSACTIONS) {
             Log.d(TAG, "Not enough transactions: $transactionCount (need $MINIMUM_TRANSACTIONS)")
             return false
         }
-        
+
         return true
     }
-    
+
     /**
      * Requests ReviewInfo and launches the review flow.
      * Following Google's guidelines:
@@ -107,13 +107,13 @@ class InAppReviewManager @Inject constructor(
      */
     private fun requestAndLaunchReview(activity: ComponentActivity) {
         val request = reviewManager.requestReviewFlow()
-        
+
         request.addOnCompleteListener { task ->
             if (task.isSuccessful) {
                 // We got the ReviewInfo object
                 val reviewInfo = task.result
                 Log.d(TAG, "ReviewInfo obtained successfully")
-                
+
                 // Launch the review flow immediately
                 launchReviewFlow(activity, reviewInfo)
             } else {
@@ -128,16 +128,16 @@ class InAppReviewManager @Inject constructor(
             }
         }
     }
-    
+
     /**
      * Launches the actual review flow.
      * The API doesn't indicate whether the user reviewed or not.
      */
     private fun launchReviewFlow(activity: ComponentActivity, reviewInfo: ReviewInfo) {
         Log.d(TAG, "Launching review flow")
-        
+
         val flow = reviewManager.launchReviewFlow(activity, reviewInfo)
-        
+
         flow.addOnCompleteListener { task ->
             // The flow has finished. The API does not indicate whether the user
             // reviewed or not, or even whether the review dialog was shown.
@@ -148,7 +148,7 @@ class InAppReviewManager @Inject constructor(
             } else {
                 Log.d(TAG, "Review flow successful")
             }
-            
+
             // Mark review as shown in a coroutine
             CoroutineScope(Dispatchers.IO).launch {
                 userPreferencesRepository.markReviewPromptShown()
@@ -156,7 +156,7 @@ class InAppReviewManager @Inject constructor(
             }
         }
     }
-    
+
     /**
      * Special method to trigger review after successful SMS import.
      * This is a good moment to ask for review as user just had a positive experience.

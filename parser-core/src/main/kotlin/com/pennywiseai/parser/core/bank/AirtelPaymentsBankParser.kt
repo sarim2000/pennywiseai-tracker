@@ -146,8 +146,10 @@ class AirtelPaymentsBankParser : BankParser() {
         // Check for Airtel Payments Bank specific transaction patterns
         if (lowerMessage.contains("credited with") ||
             lowerMessage.contains("debited from") ||
-            lowerMessage.contains("airtel payments bank") &&
-            (lowerMessage.contains("credited") || lowerMessage.contains("debited"))
+            (
+                lowerMessage.contains("airtel payments bank") &&
+                    (lowerMessage.contains("credited") || lowerMessage.contains("debited"))
+                )
         ) {
             return true
         }

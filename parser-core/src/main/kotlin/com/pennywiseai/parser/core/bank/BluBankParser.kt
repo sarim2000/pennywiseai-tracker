@@ -52,7 +52,7 @@ class BluBankParser : BankParser() {
         if (!message.contains(bankNameMarker)) return false
         // Must carry one of the action signals.
         return message.contains("برداشت پول") || message.contains("پرید") ||
-                message.contains("واریز پول") || message.contains("نشست")
+            message.contains("واریز پول") || message.contains("نشست")
     }
 
     override fun extractAmount(message: String): BigDecimal? {

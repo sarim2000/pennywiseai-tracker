@@ -4,14 +4,14 @@ import androidx.room3.ColumnInfo
 import androidx.room3.Entity
 import androidx.room3.Index
 import androidx.room3.PrimaryKey
-import java.math.BigDecimal
-import java.time.LocalDateTime
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
+import java.math.BigDecimal
+import java.time.LocalDateTime
 
 /**
  * Entity representing a debit or credit card.
- * 
+ *
  * Debit cards can be linked to bank accounts via accountLast4.
  * Credit cards are standalone (accountLast4 is null).
  */
@@ -28,33 +28,33 @@ data class CardEntity(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
     val id: Long = 0,
-    
+
     @ColumnInfo(name = "card_last4")
     val cardLast4: String,
-    
+
     @ColumnInfo(name = "card_type")
     val cardType: CardType,
-    
+
     @ColumnInfo(name = "bank_name")
     val bankName: String,
-    
+
     @ColumnInfo(name = "account_last4")
-    val accountLast4: String? = null,  // Links to AccountBalanceEntity for debit cards
-    
+    val accountLast4: String? = null, // Links to AccountBalanceEntity for debit cards
+
     @ColumnInfo(name = "nickname")
     val nickname: String? = null,
-    
+
     @ColumnInfo(name = "is_active", defaultValue = "1")
     val isActive: Boolean = true,
-    
+
     // Balance tracking for card transactions
     @ColumnInfo(name = "last_balance")
     @Contextual
     val lastBalance: BigDecimal? = null,
-    
+
     @ColumnInfo(name = "last_balance_source")
-    val lastBalanceSource: String? = null,  // SMS snippet for debugging
-    
+    val lastBalanceSource: String? = null, // SMS snippet for debugging
+
     @ColumnInfo(name = "last_balance_date")
     @Contextual
     val lastBalanceDate: LocalDateTime? = null,

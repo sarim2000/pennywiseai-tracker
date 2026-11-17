@@ -1,16 +1,14 @@
 package com.pennywiseai.tracker.presentation.settings
 
-import com.pennywiseai.tracker.ui.animations.pwCollapse
-import com.pennywiseai.tracker.ui.animations.pwExpand
 import android.content.Intent
 import android.net.Uri
+import androidx.annotation.StringRes
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Message
@@ -24,13 +22,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.annotation.StringRes
-import com.pennywiseai.tracker.R
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.ui.animations.pwCollapse
+import com.pennywiseai.tracker.ui.animations.pwExpand
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import dev.chrisbanes.haze.HazeState
@@ -54,7 +54,7 @@ fun FAQScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    
+
     val faqCategories = remember {
         listOf(
             FAQCategory(
@@ -141,7 +141,7 @@ fun FAQScreen(
             )
         )
     }
-    
+
     var expandedCategories by remember { mutableStateOf(setOf<Int>()) }
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
@@ -180,14 +180,14 @@ fun FAQScreen(
             // FAQ Categories
             faqCategories.forEachIndexed { categoryIndex, category ->
                 SectionHeaderV2(title = stringResource(category.title))
-                
+
                 PennyWiseCardV2(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Column {
                         category.items.forEachIndexed { itemIndex, faqItem ->
                             val isExpanded = expandedCategories.contains(categoryIndex * 100 + itemIndex)
-                            
+
                             Column(
                                 modifier = Modifier
                                     .fillMaxWidth()
@@ -219,7 +219,7 @@ fun FAQScreen(
                                         } else {
                                             Spacer(modifier = Modifier.width(Dimensions.Icon.medium))
                                         }
-                                        
+
                                         Text(
                                             text = stringResource(faqItem.question),
                                             style = MaterialTheme.typography.bodyLarge,
@@ -227,14 +227,14 @@ fun FAQScreen(
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
                                     }
-                                    
+
                                     Icon(
                                         imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                                         contentDescription = if (isExpanded) stringResource(R.string.faq_collapse) else stringResource(R.string.faq_expand),
                                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
-                                
+
                                 AnimatedVisibility(
                                     visible = isExpanded,
                                     enter = pwExpand(),
@@ -254,7 +254,7 @@ fun FAQScreen(
                                     }
                                 }
                             }
-                            
+
                             if (itemIndex < category.items.size - 1) {
                                 HorizontalDivider(
                                     modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
@@ -264,10 +264,10 @@ fun FAQScreen(
                     }
                 }
             }
-            
+
             // Still need help section
             SectionHeaderV2(title = stringResource(R.string.faq_still_need_help_section))
-            
+
             PennyWiseCardV2(
                 modifier = Modifier
                     .fillMaxWidth()
@@ -314,7 +314,7 @@ fun FAQScreen(
                     )
                 }
             }
-            
+
             Spacer(modifier = Modifier.height(Spacing.lg))
         }
     }

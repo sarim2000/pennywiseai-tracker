@@ -1,8 +1,8 @@
 package com.pennywiseai.tracker.data.webhook
 
 import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.data.database.entity.WebhookRangePreset
 import com.pennywiseai.tracker.core.ResText
+import com.pennywiseai.tracker.data.database.entity.WebhookRangePreset
 import java.net.URI
 import java.util.Currency
 

@@ -95,6 +95,5 @@ class KeralaGraminBankParserTest {
             handleCases,
             "Kerala Gramin Bank Parser Tests"
         )
-
     }
 }

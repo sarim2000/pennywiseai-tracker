@@ -18,20 +18,20 @@ class FaysalBankParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalized = sender.uppercase().replace(" ", "")
         return normalized.contains("FAYSAL") ||
-                normalized.contains("FBL") ||
-                normalized.contains("AVANZA.AMBITWIZFBL") ||
-                normalized == "8756"
+            normalized.contains("FBL") ||
+            normalized.contains("AVANZA.AMBITWIZFBL") ||
+            normalized == "8756"
     }
 
     override fun isTransactionMessage(message: String): Boolean {
         val lowerMessage = message.lowercase()
         val hasCurrency = lowerMessage.contains("pkr")
         val hasTransferKeyword = lowerMessage.contains("sent to") ||
-                lowerMessage.contains("transfer") ||
-                lowerMessage.contains("ibft") ||
-                lowerMessage.contains("received") ||
-                lowerMessage.contains("debit card purchase") ||
-                lowerMessage.contains("atm cash withdrawal")
+            lowerMessage.contains("transfer") ||
+            lowerMessage.contains("ibft") ||
+            lowerMessage.contains("received") ||
+            lowerMessage.contains("debit card purchase") ||
+            lowerMessage.contains("atm cash withdrawal")
         return hasCurrency && hasTransferKeyword
     }
 

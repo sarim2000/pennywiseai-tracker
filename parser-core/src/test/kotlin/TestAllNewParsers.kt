@@ -16,7 +16,7 @@ class AllNewParsersTest {
         T*** R** DUBAI ARE
         23/09/25 16:17
         Available Balance AED **30.16
-    """.trimIndent()
+        """.trimIndent()
 
         val citiMessage =
             "Citi Alert: A $3.01 transaction was made at BP#1234E on card ending in 1234. View details at citi.com/citimobileapp"

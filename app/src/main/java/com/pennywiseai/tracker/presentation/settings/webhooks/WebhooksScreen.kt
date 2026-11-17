@@ -174,7 +174,7 @@ private fun WebhookEditor(editor: WebhookEditorState, interval: Int, update: ((W
         OutlinedTextField(editor.url, { value -> update { it.copy(url = value) } }, Modifier.fillMaxWidth(),
             label = { Text(stringResource(R.string.webhooks_editor_url)) }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri))
         Text(if (editor.enabled) pluralStringResource(R.plurals.webhooks_editor_auto_on_warning, interval, interval)
-            else stringResource(R.string.webhooks_editor_auto_off_warning),
+        else stringResource(R.string.webhooks_editor_auto_off_warning),
             style = MaterialTheme.typography.bodyMedium)
         if (editor.url.trim().startsWith("http://", true)) {
             Text(stringResource(R.string.webhooks_editor_http_warning), color = MaterialTheme.colorScheme.error)

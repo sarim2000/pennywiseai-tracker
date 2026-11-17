@@ -191,7 +191,5 @@ class CBEBankParserTest {
             handleCases = handleChecks,
             suiteName = "CBE Parser"
         )
-
-
     }
 }

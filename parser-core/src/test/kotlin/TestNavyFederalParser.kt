@@ -198,8 +198,6 @@ class NavyFederalParserTest {
             handleCases = handleChecks,
             suiteName = "Navy Federal Credit Union Parser"
         )
-
-
     }
 
     @TestFactory
@@ -238,6 +236,5 @@ class NavyFederalParserTest {
         )
 
         return ParserTestUtils.runFactoryTestSuite(cases, "Navy Federal Factory Tests")
-
     }
 }

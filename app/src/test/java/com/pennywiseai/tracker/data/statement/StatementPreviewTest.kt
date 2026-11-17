@@ -1,7 +1,6 @@
 package com.pennywiseai.tracker.data.statement
 
 import com.pennywiseai.parser.core.ParsedTransaction
-import com.pennywiseai.parser.core.TransactionType as ParsedType
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import kotlinx.coroutines.runBlocking
@@ -13,6 +12,7 @@ import org.junit.Test
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
+import com.pennywiseai.parser.core.TransactionType as ParsedType
 
 /** The preview (#13) must say exactly what the import then does. */
 class StatementPreviewTest {

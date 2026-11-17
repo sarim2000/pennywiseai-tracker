@@ -76,7 +76,7 @@ val LinearScrollEasing: (currentOffset: Float, newOffset: Float) -> Float =
 
 internal val DefaultParabolaScrollEasing: (currentOffset: Float, newOffset: Float) -> Float
     @Composable
-        get() {
+    get() {
         val density = LocalDensity.current.density
         return { currentOffset, newOffset ->
             parabolaScrollEasing(currentOffset, newOffset, density = density)
@@ -324,7 +324,7 @@ fun rememberOverscrollFlingBehavior(
         private val Float.canNotBeConsumed: Boolean // this is Velocity
             get() {
                 val state = getScrollState()
-                return !(this < 0 && state.canScrollBackward || this > 0 && state.canScrollForward)
+                return !((this < 0 && state.canScrollBackward) || (this > 0 && state.canScrollForward))
             }
 
         override suspend fun ScrollScope.performFling(initialVelocity: Float): Float {

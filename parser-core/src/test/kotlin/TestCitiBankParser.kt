@@ -69,7 +69,5 @@ class CitiBankParserTest {
             handleCases = handleChecks,
             suiteName = "Citi Bank Parser"
         )
-
-
     }
 }

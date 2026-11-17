@@ -16,13 +16,13 @@ class BSFBankParserTest {
             ParserTestCase(
                 name = "Outgoing transfer (debit) — amount not fee",
                 message = "عملية حوالة مالية صادرة مقبولة\n" +
-                        "خصمت من حساب ****0136\n" +
-                        "إلى RECIPIENT NAME****\n" +
-                        "بنك إس تي سي\n" +
-                        "آيبان ****8287\n" +
-                        "القيمة SAR 505.00\n" +
-                        "الرسوم SAR 0.58\n" +
-                        "في28-07-2026 14:33:53",
+                    "خصمت من حساب ****0136\n" +
+                    "إلى RECIPIENT NAME****\n" +
+                    "بنك إس تي سي\n" +
+                    "آيبان ****8287\n" +
+                    "القيمة SAR 505.00\n" +
+                    "الرسوم SAR 0.58\n" +
+                    "في28-07-2026 14:33:53",
                 sender = "BSF",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("505.00"),
@@ -36,12 +36,12 @@ class BSFBankParserTest {
             ParserTestCase(
                 name = "Incoming transfer (credit)",
                 message = "حوالة واردة\n" +
-                        "مبلغ: 359.0 SAR\n" +
-                        "لـ:SA**********R1******8\n" +
-                        "من: ACME TRADING COMPANY\n" +
-                        "آيبان: ********************4318\n" +
-                        "GULF\n" +
-                        "في: 04-08-2026 15:51",
+                    "مبلغ: 359.0 SAR\n" +
+                    "لـ:SA**********R1******8\n" +
+                    "من: ACME TRADING COMPANY\n" +
+                    "آيبان: ********************4318\n" +
+                    "GULF\n" +
+                    "في: 04-08-2026 15:51",
                 sender = "BSF",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("359.0"),

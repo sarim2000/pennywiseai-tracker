@@ -19,19 +19,19 @@ class AMEXBankParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("AMEX") ||
-                normalizedSender.contains("AMEXIN") ||
-                // DLT patterns for transactions (-S suffix)
-                normalizedSender.matches(Regex("^[A-Z]{2}-AMEXIN-S$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-AMEX-S$")) ||
-                // Other DLT patterns (OTP, Promotional, Govt)
-                normalizedSender.matches(Regex("^[A-Z]{2}-AMEXIN-[TPG]$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-AMEX-[TPG]$")) ||
-                // Legacy patterns without suffix
-                normalizedSender.matches(Regex("^[A-Z]{2}-AMEXIN$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-AMEX$")) ||
-                // Direct sender IDs
-                normalizedSender == "AMEXIN" ||
-                normalizedSender == "AMEX"
+            normalizedSender.contains("AMEXIN") ||
+            // DLT patterns for transactions (-S suffix)
+            normalizedSender.matches(Regex("^[A-Z]{2}-AMEXIN-S$")) ||
+            normalizedSender.matches(Regex("^[A-Z]{2}-AMEX-S$")) ||
+            // Other DLT patterns (OTP, Promotional, Govt)
+            normalizedSender.matches(Regex("^[A-Z]{2}-AMEXIN-[TPG]$")) ||
+            normalizedSender.matches(Regex("^[A-Z]{2}-AMEX-[TPG]$")) ||
+            // Legacy patterns without suffix
+            normalizedSender.matches(Regex("^[A-Z]{2}-AMEXIN$")) ||
+            normalizedSender.matches(Regex("^[A-Z]{2}-AMEX$")) ||
+            // Direct sender IDs
+            normalizedSender == "AMEXIN" ||
+            normalizedSender == "AMEX"
     }
 
     override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {

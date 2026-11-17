@@ -40,8 +40,8 @@ abstract class BaseIndianBankParser : BankParser() {
     open fun isEMandateNotification(message: String): Boolean {
         val lowerMessage = message.lowercase()
         return lowerMessage.contains("e-mandate") ||
-                lowerMessage.contains("upi-mandate") ||
-                (lowerMessage.contains("mandate") && lowerMessage.contains("successfully created"))
+            lowerMessage.contains("upi-mandate") ||
+            (lowerMessage.contains("mandate") && lowerMessage.contains("successfully created"))
     }
 
     /**
@@ -50,8 +50,8 @@ abstract class BaseIndianBankParser : BankParser() {
     open fun isFutureDebitNotification(message: String): Boolean {
         val lowerMessage = message.lowercase()
         return lowerMessage.contains("will be debited") ||
-                lowerMessage.contains("mandate set for") ||
-                (lowerMessage.contains("upcoming") && lowerMessage.contains("mandate"))
+            lowerMessage.contains("mandate set for") ||
+            (lowerMessage.contains("upcoming") && lowerMessage.contains("mandate"))
     }
 
     /**
@@ -138,18 +138,18 @@ abstract class BaseIndianBankParser : BankParser() {
         // Must contain "Available Balance" or similar keywords
         // And typically "as on" or "is Rs." without transaction words like "debited", "spent"
         val hasBalanceKeyword = lowerMessage.contains("available bal") ||
-                lowerMessage.contains("avl bal") ||
-                lowerMessage.contains("account balance") ||
-                lowerMessage.contains("a/c balance") ||
-                lowerMessage.contains("updated balance")
+            lowerMessage.contains("avl bal") ||
+            lowerMessage.contains("account balance") ||
+            lowerMessage.contains("a/c balance") ||
+            lowerMessage.contains("updated balance")
 
         val hasTxnKeyword = lowerMessage.contains("debited") ||
-                lowerMessage.contains("credited") ||
-                lowerMessage.contains("withdrawn") ||
-                lowerMessage.contains("deposited") ||
-                lowerMessage.contains("spent") ||
-                lowerMessage.contains("transferred") ||
-                lowerMessage.contains("payment of")
+            lowerMessage.contains("credited") ||
+            lowerMessage.contains("withdrawn") ||
+            lowerMessage.contains("deposited") ||
+            lowerMessage.contains("spent") ||
+            lowerMessage.contains("transferred") ||
+            lowerMessage.contains("payment of")
 
         return hasBalanceKeyword && !hasTxnKeyword
     }

@@ -22,9 +22,9 @@ class JupiterBankParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.matches(Regex("^[A-Z]{2}-JTEDGE-S$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-JTEDGE-T$")) ||
-                // Legacy patterns
-                normalizedSender.matches(Regex("^[A-Z]{2}-JTEDGE$"))
+            normalizedSender.matches(Regex("^[A-Z]{2}-JTEDGE-T$")) ||
+            // Legacy patterns
+            normalizedSender.matches(Regex("^[A-Z]{2}-JTEDGE$"))
     }
 
     override fun extractAmount(message: String): BigDecimal? {

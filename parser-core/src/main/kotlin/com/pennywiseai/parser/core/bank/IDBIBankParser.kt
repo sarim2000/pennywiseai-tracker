@@ -20,17 +20,17 @@ class IDBIBankParser : BaseIndianBankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("IDBIBK") ||
-                normalizedSender.contains("IDBIBANK") ||
-                normalizedSender.contains("IDBI") ||
-                // DLT patterns for transactions (-S suffix)
-                normalizedSender.matches(Regex("^[A-Z]{2}-IDBIBK-S$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-IDBI-S$")) ||
-                // Legacy patterns
-                normalizedSender.matches(Regex("^[A-Z]{2}-IDBIBK$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-IDBI$")) ||
-                // Direct sender IDs
-                normalizedSender == "IDBIBK" ||
-                normalizedSender == "IDBIBANK"
+            normalizedSender.contains("IDBIBANK") ||
+            normalizedSender.contains("IDBI") ||
+            // DLT patterns for transactions (-S suffix)
+            normalizedSender.matches(Regex("^[A-Z]{2}-IDBIBK-S$")) ||
+            normalizedSender.matches(Regex("^[A-Z]{2}-IDBI-S$")) ||
+            // Legacy patterns
+            normalizedSender.matches(Regex("^[A-Z]{2}-IDBIBK$")) ||
+            normalizedSender.matches(Regex("^[A-Z]{2}-IDBI$")) ||
+            // Direct sender IDs
+            normalizedSender == "IDBIBK" ||
+            normalizedSender == "IDBIBANK"
     }
 
     override fun extractAmount(message: String): BigDecimal? {

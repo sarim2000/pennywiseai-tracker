@@ -36,7 +36,7 @@ class JaizBankParser : BankParser() {
             return false
         }
         return Regex("""(?i)Amt:\s*N\s*[0-9,]+(?:\.\d{1,2})?\s*(?:DR|CR)""").containsMatchIn(message) &&
-                Regex("""(?i)Acct:""").containsMatchIn(message)
+            Regex("""(?i)Acct:""").containsMatchIn(message)
     }
 
     override fun extractTransactionType(message: String): TransactionType? {

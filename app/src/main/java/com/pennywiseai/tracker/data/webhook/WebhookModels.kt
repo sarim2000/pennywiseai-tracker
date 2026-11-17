@@ -2,12 +2,12 @@ package com.pennywiseai.tracker.data.webhook
 
 import com.pennywiseai.tracker.data.database.entity.WebhookDataType
 import com.pennywiseai.tracker.data.database.entity.WebhookRangePreset
+import kotlinx.serialization.SerialName
+import kotlinx.serialization.Serializable
 import java.math.BigDecimal
 import java.time.DayOfWeek
 import java.time.LocalDate
 import java.time.LocalDateTime
-import kotlinx.serialization.SerialName
-import kotlinx.serialization.Serializable
 
 enum class WebhookSyncReason {
     MANUAL,

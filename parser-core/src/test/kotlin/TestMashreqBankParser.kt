@@ -201,6 +201,5 @@ class MashreqBankParserTest {
             handleCases,
             "Mashreq Bank Parser Tests"
         )
-
     }
 }

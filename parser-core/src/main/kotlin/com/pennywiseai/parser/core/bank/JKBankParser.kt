@@ -73,37 +73,37 @@ class JKBankParser : BaseIndianBankParser() {
             // BEST CASE: Amount + UTR/Ref + Transaction Time
             // This uniquely identifies the transaction even if SMS is sent multiple times
             reference != null && transactionTime != null -> {
-                "JKBANK|${normalizedAmount}|REF:${reference}|TIME:${transactionTime}"
+                "JKBANK|$normalizedAmount|REF:$reference|TIME:$transactionTime"
             }
 
             // GOOD: Amount + UTR/Ref (unique per transaction)
             reference != null -> {
-                "JKBANK|${normalizedAmount}|REF:${reference}"
+                "JKBANK|$normalizedAmount|REF:$reference"
             }
 
             // GOOD: Amount + Transaction Time + Balance
             // Transaction time helps identify the actual transaction, not SMS time
             transactionTime != null && transaction.balance != null -> {
                 val normalizedBalance = transaction.balance.setScale(2, RoundingMode.HALF_UP)
-                "JKBANK|${normalizedAmount}|TIME:${transactionTime}|BAL:${normalizedBalance}"
+                "JKBANK|$normalizedAmount|TIME:$transactionTime|BAL:$normalizedBalance"
             }
 
             // FALLBACK: Amount + Transaction Time
             transactionTime != null -> {
-                "JKBANK|${normalizedAmount}|TIME:${transactionTime}"
+                "JKBANK|$normalizedAmount|TIME:$transactionTime"
             }
 
             // FALLBACK: Amount + Sender + Closing Balance
             // Balance helps differentiate multiple transactions of same amount
             transaction.balance != null -> {
                 val normalizedBalance = transaction.balance.setScale(2, RoundingMode.HALF_UP)
-                "JKBANK|${normalizedAmount}|${sender}|BAL:${normalizedBalance}"
+                "JKBANK|$normalizedAmount|$sender|BAL:$normalizedBalance"
             }
 
             // LAST RESORT: Original method (Amount + Sender + SMS Timestamp)
             // Only used if no transaction-specific data is available
             else -> {
-                "${sender}|${normalizedAmount}|${transaction.timestamp}"
+                "$sender|$normalizedAmount|${transaction.timestamp}"
             }
         }
 
@@ -239,7 +239,7 @@ class JKBankParser : BaseIndianBankParser() {
             return when {
                 // Bank charges patterns - return null as these are internal bank charges
                 merchant.contains("CHRGS", ignoreCase = true) ||
-                        merchant.contains("CHARGES", ignoreCase = true) -> null
+                    merchant.contains("CHARGES", ignoreCase = true) -> null
                 // Check for specific institutions
                 merchant.contains(
                     "INDIAN CLEARING CORPO",

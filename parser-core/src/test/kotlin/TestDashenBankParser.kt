@@ -85,7 +85,5 @@ class DashenBankParserTest {
             handleCases = handleChecks,
             suiteName = "Dashen Bank Parser"
         )
-
-
     }
 }

@@ -46,7 +46,7 @@ class BankinoBankParser : BaseIranianBankParser() {
     override fun isTransactionMessage(message: String): Boolean {
         // Must look like a Bankino SMS and carry a signed amount.
         return message.contains(bankNameMarker) &&
-                signedAmountPattern.containsMatchIn(message)
+            signedAmountPattern.containsMatchIn(message)
     }
 
     override fun extractAmount(message: String): BigDecimal? {

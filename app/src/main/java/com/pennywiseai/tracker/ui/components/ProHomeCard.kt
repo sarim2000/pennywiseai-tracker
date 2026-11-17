@@ -1,9 +1,5 @@
 package com.pennywiseai.tracker.ui.components
 
-import com.pennywiseai.tracker.ui.theme.yellow_accent_dark
-import com.pennywiseai.tracker.ui.theme.yellow_on_dark
-import com.pennywiseai.tracker.ui.theme.yellow_surface_dark
-import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,9 +10,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -28,9 +24,13 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
+import com.pennywiseai.tracker.ui.theme.yellow_accent_dark
 import com.pennywiseai.tracker.ui.theme.yellow_dark
 import com.pennywiseai.tracker.ui.theme.yellow_light
+import com.pennywiseai.tracker.ui.theme.yellow_on_dark
 import com.pennywiseai.tracker.ui.theme.yellow_on_light
+import com.pennywiseai.tracker.ui.theme.yellow_surface_dark
 
 /**
  * The one-time Home card pointing engaged free users to Pro (#945).

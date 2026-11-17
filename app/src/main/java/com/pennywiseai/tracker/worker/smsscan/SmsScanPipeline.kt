@@ -77,8 +77,7 @@ internal class SmsScanPipeline(
         val balanceUpdates = Channel<DeferredBalanceUpdate>(Channel.BUFFERED)
         val balanceUpdater = launch(Dispatchers.IO) {
             for (update in balanceUpdates) {
-                try { writer.applyBalanceUpdate(update) }
-                catch (e: Exception) {
+                try { writer.applyBalanceUpdate(update) } catch (e: Exception) {
                     if (e is CancellationException) throw e
                     Log.e(TAG, "Balance update failed: ${e.message}")
                 }
@@ -105,8 +104,7 @@ internal class SmsScanPipeline(
                                 writer.flushUnrecognizedBatch(unrecognizedBatch, isTaught)
                         }
                         is ParseResult.SpecialNotification -> {
-                            try { result.onSave() }
-                            catch (e: Exception) { Log.e(TAG, "Error saving special notification: ${e.message}") }
+                            try { result.onSave() } catch (e: Exception) { Log.e(TAG, "Error saving special notification: ${e.message}") }
                         }
                         is ParseResult.Transaction -> {
                             stats.parsed.incrementAndGet()

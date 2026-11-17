@@ -28,9 +28,9 @@ class SaraswatBankParser : BaseIndianBankParser() {
 
         // DLT patterns (XX-SARBNK-S/T format)
         return normalizedSender.matches(Regex("^[A-Z]{2}-SARBNK-[ST]$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-SARASWAT-[ST]$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-SARBNK$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-SARASWAT$"))
+            normalizedSender.matches(Regex("^[A-Z]{2}-SARASWAT-[ST]$")) ||
+            normalizedSender.matches(Regex("^[A-Z]{2}-SARBNK$")) ||
+            normalizedSender.matches(Regex("^[A-Z]{2}-SARASWAT$"))
     }
 
     override fun extractAmount(message: String): BigDecimal? {

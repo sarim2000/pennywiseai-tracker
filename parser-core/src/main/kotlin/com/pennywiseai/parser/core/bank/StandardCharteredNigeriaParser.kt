@@ -29,9 +29,9 @@ class StandardCharteredNigeriaParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val upper = sender.uppercase()
         return upper.contains("SCBANK") ||
-                upper.contains("STANCHART") ||
-                upper.contains("STANDARDCHARTERED") ||
-                upper.contains("STANDARD CHARTERED")
+            upper.contains("STANCHART") ||
+            upper.contains("STANDARDCHARTERED") ||
+            upper.contains("STANDARD CHARTERED")
     }
 
     override fun isTransactionMessage(message: String): Boolean {
@@ -43,7 +43,7 @@ class StandardCharteredNigeriaParser : BankParser() {
         // AND carries an "Amt:NGN" field. This shape does not occur in the
         // India/Pakistan Standard Chartered formats, so the two parsers never overlap.
         return Regex("""(?i)\b(credit|debit)\s+alert!""").containsMatchIn(message) &&
-                Regex("""(?i)Amt:\s*NGN""").containsMatchIn(message)
+            Regex("""(?i)Amt:\s*NGN""").containsMatchIn(message)
     }
 
     override fun extractTransactionType(message: String): TransactionType? {

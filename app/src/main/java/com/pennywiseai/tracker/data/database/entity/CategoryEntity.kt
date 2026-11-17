@@ -4,9 +4,9 @@ import androidx.room3.ColumnInfo
 import androidx.room3.Entity
 import androidx.room3.Index
 import androidx.room3.PrimaryKey
-import java.time.LocalDateTime
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
+import java.time.LocalDateTime
 
 @Entity(
     tableName = "categories",
@@ -17,10 +17,10 @@ data class CategoryEntity(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
     val id: Long = 0,
-    
+
     @ColumnInfo(name = "name")
     val name: String,
-    
+
     @ColumnInfo(name = "color")
     val color: String,
 
@@ -34,7 +34,7 @@ data class CategoryEntity(
     // offers top-level parents). Nullable + defaulted so old backups restore.
     @ColumnInfo(name = "parent_id")
     val parentId: Long? = null,
-    
+
     @ColumnInfo(name = "is_system")
     val isSystem: Boolean = false,
 
@@ -44,7 +44,7 @@ data class CategoryEntity(
     // Null for user categories. Nullable + defaulted so old backups restore (#414).
     @ColumnInfo(name = "system_name", defaultValue = "NULL")
     val systemName: String? = null,
-    
+
     @ColumnInfo(name = "is_income")
     val isIncome: Boolean = false,
 
@@ -57,7 +57,7 @@ data class CategoryEntity(
 
     @ColumnInfo(name = "display_order")
     val displayOrder: Int = 999,
-    
+
     @ColumnInfo(name = "created_at")
     @Contextual
     val createdAt: LocalDateTime = LocalDateTime.now(),
@@ -110,4 +110,3 @@ fun List<CategoryEntity>.expandWithChildren(names: Collection<String>): Set<Stri
     val parentIds = names.mapNotNull { byName[it]?.takeIf { c -> c.parentId == null }?.id }.toSet()
     return names.toSet() + filter { it.parentId in parentIds }.map { it.name }
 }
-

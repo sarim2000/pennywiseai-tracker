@@ -16,8 +16,8 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import java.math.BigDecimal
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
+import java.math.BigDecimal
 
 @Composable
 fun BalanceSparkline(

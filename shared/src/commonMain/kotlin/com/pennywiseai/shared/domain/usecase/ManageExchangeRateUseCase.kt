@@ -1,8 +1,8 @@
 package com.pennywiseai.shared.domain.usecase
 
+import com.pennywiseai.shared.core.SharedTimeConstants
 import com.pennywiseai.shared.data.local.entity.SharedExchangeRateEntity
 import com.pennywiseai.shared.data.repository.SharedExchangeRateRepository
-import com.pennywiseai.shared.core.SharedTimeConstants
 import com.pennywiseai.shared.data.util.currentTimeMillis
 
 class ManageExchangeRateUseCase(

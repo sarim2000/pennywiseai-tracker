@@ -50,12 +50,12 @@ class PhonePePdfParser : PdfStatementParser {
         for (line in lines) {
             val trimmed = line.trim()
             val isDebit = trimmed.equals("DEBIT", ignoreCase = true) ||
-                    trimmed.startsWith("DEBIT ", ignoreCase = true)
+                trimmed.startsWith("DEBIT ", ignoreCase = true)
             val isCredit = trimmed.equals("CREDIT", ignoreCase = true) ||
-                    trimmed.startsWith("CREDIT ", ignoreCase = true)
+                trimmed.startsWith("CREDIT ", ignoreCase = true)
             val isPaidTo = trimmed.startsWith("Paid to", ignoreCase = true) ||
-                    trimmed.startsWith("Sent to", ignoreCase = true) ||
-                    trimmed.startsWith("Transferred to", ignoreCase = true)
+                trimmed.startsWith("Sent to", ignoreCase = true) ||
+                trimmed.startsWith("Transferred to", ignoreCase = true)
             val isReceivedFrom = trimmed.startsWith("Received from", ignoreCase = true)
 
             if (isDebit || isCredit || isPaidTo || isReceivedFrom) {
@@ -115,8 +115,8 @@ class PhonePePdfParser : PdfStatementParser {
             firstLine.startsWith("DEBIT") -> TransactionType.EXPENSE
             firstLine.startsWith("CREDIT") -> TransactionType.INCOME
             firstLine.startsWith("PAID TO", ignoreCase = true) ||
-                    firstLine.startsWith("SENT TO", ignoreCase = true) ||
-                    firstLine.startsWith("TRANSFERRED TO", ignoreCase = true) -> TransactionType.EXPENSE
+                firstLine.startsWith("SENT TO", ignoreCase = true) ||
+                firstLine.startsWith("TRANSFERRED TO", ignoreCase = true) -> TransactionType.EXPENSE
             firstLine.startsWith("RECEIVED FROM", ignoreCase = true) -> TransactionType.INCOME
             block.contains("DEBIT", ignoreCase = true) -> TransactionType.EXPENSE
             block.contains("CREDIT", ignoreCase = true) -> TransactionType.INCOME

@@ -17,10 +17,10 @@ class ADCBParser : FABParser() {
     override fun canHandle(sender: String): Boolean {
         val upperSender = sender.uppercase()
         return upperSender == "ADCBALERT" ||
-                upperSender.contains("ADCB") ||
-                upperSender.contains("ADCBANK") ||
-                // DLT patterns for UAE
-                upperSender.matches(Regex("^[A-Z]{2}-ADCB-[A-Z]$"))
+            upperSender.contains("ADCB") ||
+            upperSender.contains("ADCBANK") ||
+            // DLT patterns for UAE
+            upperSender.matches(Regex("^[A-Z]{2}-ADCB-[A-Z]$"))
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -145,7 +145,7 @@ class ADCBParser : FABParser() {
     override fun containsCardPurchase(message: String): Boolean {
         // ADCB debit card purchase patterns
         return message.contains("was used for", ignoreCase = true) ||
-                message.contains("used for", ignoreCase = true)
+            message.contains("used for", ignoreCase = true)
     }
 
     override fun extractMerchant(message: String, sender: String): String? {

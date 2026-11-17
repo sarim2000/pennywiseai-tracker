@@ -23,10 +23,10 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
-import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
-import com.pennywiseai.tracker.presentation.common.label
+import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.filterIcon
+import com.pennywiseai.tracker.presentation.common.label
 import com.pennywiseai.tracker.presentation.common.shortLabel
 import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.ui.animations.pwExpand
@@ -243,7 +243,7 @@ internal fun TransactionFilterHeader(
                             icon = Icons.Default.Tune,
                             onClick = onMoreFiltersClick,
                             enabled = availableCategories.isNotEmpty() || profiles.isNotEmpty() ||
-                                    hasCategoryFilter || hasProfileFilter
+                                hasCategoryFilter || hasProfileFilter
                         )
 
                         DropdownMenu(

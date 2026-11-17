@@ -30,7 +30,7 @@ class FABParserTest {
                 TR              DUBAI           ARE
                 23/09/25 16:17
                 Available Balance AED 4530.16
-            """.trimIndent(),
+                """.trimIndent(),
                 sender = "FAB",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("8.00"),
@@ -51,7 +51,7 @@ class FABParserTest {
                 AED 444.00
                 Value Date 18/09/2025
                 Available Balance AED 5444.00
-            """.trimIndent(),
+                """.trimIndent(),
                 sender = "FAB",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("444.00"),
@@ -82,7 +82,7 @@ class FABParserTest {
                 WWW.GRAB.COM          BANGKOK         TH
                 26/07/25 17:55
                 Available Balance AED 8500.25
-            """.trimIndent(),
+                """.trimIndent(),
                 sender = "FAB",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("1500.50"),
@@ -104,7 +104,7 @@ class FABParserTest {
                 THB 5000.00
                 18/06/25 13:06
                 Available Balance AED 15000.00
-            """.trimIndent(),
+                """.trimIndent(),
                 sender = "FAB",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("5000.00"),
@@ -127,7 +127,7 @@ class FABParserTest {
                 WWW.GRAB.COM          BANGKOK         TH 
                 26/06/25 11:51 
                 Available Balance AED 9999.00
-            """.trimIndent(),
+                """.trimIndent(),
                 sender = "FAB",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("283.00"),
@@ -148,7 +148,7 @@ class FABParserTest {
                 AED 150.00
                 Value Date 10/07/24
                 Available Balance AED 6337.92
-            """.trimIndent(),
+                """.trimIndent(),
                 sender = "FAB",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("150.00"),
@@ -169,7 +169,7 @@ class FABParserTest {
                 CLAUDE.AI SUBSCRIPTION+14152360599 CA US
                 10/07/24 20:07
                 Available Balance AED 5978.78
-            """.trimIndent(),
+                """.trimIndent(),
                 sender = "FAB",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("20.00"),
@@ -192,7 +192,7 @@ class FABParserTest {
                 WWW.GRAB.COM          BANGKOK         TH 
                 26/07/25 17:55 
                 Available Balance AED 8888.30
-            """.trimIndent(),
+                """.trimIndent(),
                 sender = "FAB",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("636.00"),
@@ -213,7 +213,7 @@ class FABParserTest {
                 AED 500.00
                 Value Date 20/06/2025  
                 Available Balance AED 12345.67
-            """.trimIndent(),
+                """.trimIndent(),
                 sender = "FAB",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("500.00"),
@@ -231,7 +231,7 @@ class FABParserTest {
                 Account XXXX4321
                 AED 10000.00
                 Date 20/06/25
-            """.trimIndent(),
+                """.trimIndent(),
                 sender = "FAB",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("10000.00"),
@@ -250,7 +250,7 @@ class FABParserTest {
                 THB 3000.00
                 18/06/25 13:06 
                 Available Balance AED 5500.50
-            """.trimIndent(),
+                """.trimIndent(),
                 sender = "FAB",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("3000.00"),
@@ -268,7 +268,7 @@ class FABParserTest {
         Cheque Credited
         Cheque No 000020 for AED 9999.00 deposited in your account XXXX0002 has been credited on 01/10/2024 
         Your available balance is AED 7777.62.
-    """.trimIndent(),
+                """.trimIndent(),
                 sender = "FAB",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("9999.00"),
@@ -285,7 +285,7 @@ class FABParserTest {
         Cheque Returned
         Cheque No 000020 for AED 8888.00 deposited in your account XXXX0002  has been returned unpaid.
         Please contact the branch.
-    """.trimIndent(),
+                """.trimIndent(),
                 sender = "FAB",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("8888.00"),
@@ -299,7 +299,7 @@ class FABParserTest {
                 name = "Unsuccessful transaction refund",
                 message = """
         Dear customer, unsuccessful transaction of AED 42.13 has been credited to your account XXXX0002 Card XXXX2865 on 19/06/25 02:50 and your current available balance is AED 4444.13
-    """.trimIndent(),
+                """.trimIndent(),
                 sender = "FAB",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("42.13"),
@@ -315,7 +315,7 @@ class FABParserTest {
                 name = "Funds transfer with comma amount",
                 message = """
         Dear Customer, your funds transfer request of  AED 3,555.00 to IBAN/Account/Card XXXX0001  has been processed successfully from your account/card XXXX0002 on 12/06/2025 16:43
-    """.trimIndent(),
+                """.trimIndent(),
                 sender = "FAB",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("3555.00"),
@@ -331,7 +331,7 @@ class FABParserTest {
                 name = "Generic account credit",
                 message = """
         An amount of AED 555.00 has been credited to your FAB account XXXX0002 on 08/06/25 .Your Available Balance is AED 5555.43
-    """.trimIndent(),
+                """.trimIndent(),
                 sender = "FAB",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("555.00"),
@@ -346,7 +346,7 @@ class FABParserTest {
                 name = "Funds transfer to account XXXX0002",
                 message = """
                 Dear Customer, your funds transfer request of AED 130.00 from account XXXX0003 to account XXXX0002 has been processed on 24/02/2025 00:31. For more information please call 600525500 (+97126811511 if calling from overseas).
-            """.trimIndent(),
+                """.trimIndent(),
                 sender = "FAB",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("130.00"),
@@ -362,7 +362,7 @@ class FABParserTest {
                 name = "Funds transfer to account XXXX0003",
                 message = """
                 Dear Customer, your funds transfer request of AED 250.00 from account XXXX0001 to account XXXX0003 has been processed on 24/02/2025 14:45. For more information please call 600525500 (+97126811511 if calling from overseas).
-            """.trimIndent(),
+                """.trimIndent(),
                 sender = "FAB",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("250.00"),
@@ -378,7 +378,7 @@ class FABParserTest {
                 name = "Funds transfer AED 7,000.00",
                 message = """
                 Dear Customer, your funds transfer request of AED 7,000.00 from account XXXX0003 to account XXXX0002 has been processed on 11/02/2025 00:11. For more information please call 600525500 (+97126811511 if calling from overseas).
-            """.trimIndent(),
+                """.trimIndent(),
                 sender = "FAB",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("7000.00"),
@@ -406,7 +406,5 @@ class FABParserTest {
             handleCases = handleChecks,
             suiteName = "FAB Parser Comprehensive Suite"
         )
-
-
     }
 }

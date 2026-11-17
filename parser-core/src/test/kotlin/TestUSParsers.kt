@@ -129,7 +129,5 @@ class USParsersTest {
         )
 
         return ParserTestUtils.runFactoryTestSuite(factoryCases, "US Parser Factory Coverage")
-
-
     }
 }

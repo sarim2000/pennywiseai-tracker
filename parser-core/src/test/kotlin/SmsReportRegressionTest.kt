@@ -14,7 +14,6 @@ import java.math.BigDecimal
  */
 class SmsReportRegressionTest {
 
-
     @TestFactory
     fun `reported messages parse correctly`(): List<DynamicTest> {
         val cases = listOf(
@@ -125,8 +124,7 @@ class SmsReportRegressionTest {
                     currency = "INR",
                     type = TransactionType.INCOME
                 )
-            )
-            ,
+            ),
             SimpleTestCase(
                 description = "Kotak NEFT credit names the sender and keeps the UTR",
                 bankName = "Kotak Bank",

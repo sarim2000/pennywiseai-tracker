@@ -4,10 +4,10 @@ import androidx.room3.ColumnInfo
 import androidx.room3.Entity
 import androidx.room3.Index
 import androidx.room3.PrimaryKey
-import java.math.BigDecimal
-import java.time.LocalDateTime
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
+import java.math.BigDecimal
+import java.time.LocalDateTime
 
 @Entity(
     tableName = "account_balances",
@@ -22,13 +22,13 @@ data class AccountBalanceEntity(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
     val id: Long = 0,
-    
+
     @ColumnInfo(name = "bank_name")
     val bankName: String,
-    
+
     @ColumnInfo(name = "account_last4")
     val accountLast4: String,
-    
+
     @ColumnInfo(name = "balance")
     @Contextual
     val balance: BigDecimal,
@@ -36,25 +36,25 @@ data class AccountBalanceEntity(
     @ColumnInfo(name = "timestamp")
     @Contextual
     val timestamp: LocalDateTime,
-    
+
     @ColumnInfo(name = "transaction_id")
     val transactionId: Long? = null,
-    
+
     @ColumnInfo(name = "credit_limit")
     @Contextual
     val creditLimit: BigDecimal? = null,
 
     @ColumnInfo(name = "is_credit_card", defaultValue = "0")
     val isCreditCard: Boolean = false,
-    
+
     @ColumnInfo(name = "sms_source")
     val smsSource: String? = null,
-    
+
     @ColumnInfo(name = "source_type")
-    val sourceType: String? = null,  // TRANSACTION, SMS_BALANCE, MANUAL, CARD_LINK
+    val sourceType: String? = null, // TRANSACTION, SMS_BALANCE, MANUAL, CARD_LINK
 
     @ColumnInfo(name = "account_type")
-    val accountType: String? = null,  // SAVINGS, CURRENT, CREDIT, CASH, LOAN
+    val accountType: String? = null, // SAVINGS, CURRENT, CREDIT, CASH, LOAN
 
     @ColumnInfo(name = "created_at")
     @Contextual

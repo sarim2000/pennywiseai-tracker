@@ -18,7 +18,7 @@ class JanaSmallFinanceBankParser : BaseIndianBankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("JANABK") ||
-                normalizedSender.contains("JANASFB")
+            normalizedSender.contains("JANASFB")
     }
 
     override fun extractMerchant(message: String, sender: String): String? {

@@ -22,18 +22,18 @@ class BankMuscatParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalized = sender.uppercase()
         return normalized.contains("MUSCAT") ||
-                normalized.contains("BKMUSCAT") ||
-                normalized.contains("BANKMUSCAT") ||
-                normalized.contains("BK MUSCAT") ||
-                sender.contains("بنك مسقط")
+            normalized.contains("BKMUSCAT") ||
+            normalized.contains("BANKMUSCAT") ||
+            normalized.contains("BK MUSCAT") ||
+            sender.contains("بنك مسقط")
     }
 
     override fun isTransactionMessage(message: String): Boolean {
         // Arabic debit/credit keywords
         return message.contains("تم خصم") ||        // deducted
-                message.contains("تم إيداع") ||      // deposited
-                message.contains("تم تحويل") ||      // transferred
-                message.contains("تم سداد")          // payment made
+            message.contains("تم إيداع") ||      // deposited
+            message.contains("تم تحويل") ||      // transferred
+            message.contains("تم سداد")          // payment made
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -128,7 +128,7 @@ class BankMuscatParser : BankParser() {
 
     override fun detectIsCard(message: String): Boolean {
         return message.contains("بطاقة الخصم المباشر") ||  // debit card
-                message.contains("بطاقة الائتمان") ||       // credit card
-                message.contains("بطاقة")                    // card (generic)
+            message.contains("بطاقة الائتمان") ||       // credit card
+            message.contains("بطاقة")                    // card (generic)
     }
 }

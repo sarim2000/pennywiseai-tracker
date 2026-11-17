@@ -35,7 +35,7 @@ class StandardBankMozambiqueParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("STDBANK") ||
-                normalizedSender == "7832265"
+            normalizedSender == "7832265"
     }
 
     override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {
@@ -66,8 +66,8 @@ class StandardBankMozambiqueParser : BankParser() {
     override fun isTransactionMessage(message: String): Boolean {
         val lower = message.lowercase()
         return lower.contains("credito") ||
-                lower.contains("debito") ||
-                lower.contains("operacao de compra")
+            lower.contains("debito") ||
+            lower.contains("operacao de compra")
     }
 
     override fun extractAmount(message: String): BigDecimal? {

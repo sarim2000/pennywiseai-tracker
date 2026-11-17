@@ -476,8 +476,6 @@ class HDFCBankParser : BaseIndianBankParser() {
         return super.cleanMerchantName(merchant)
     }
 
-
-
     override fun isTransactionMessage(message: String): Boolean {
         // Skip E-Mandate notifications
         if (isEMandateNotification(message)) {
@@ -523,7 +521,6 @@ class HDFCBankParser : BaseIndianBankParser() {
         ) {
             return false
         }
-
 
         // Skip credit card payment confirmations
         if (lowerMessage.contains("received towards your credit card")) {

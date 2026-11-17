@@ -45,7 +45,7 @@ class MoniepointParser : BankParser() {
         }
         // Must carry the alert header AND an Amt line — the defining shape.
         return Regex("""(?i)\b(credit|debit)\s+alert\b""").containsMatchIn(message) &&
-                Regex("""(?i)Amt:\s*NGN""").containsMatchIn(message)
+            Regex("""(?i)Amt:\s*NGN""").containsMatchIn(message)
     }
 
     override fun extractTransactionType(message: String): TransactionType? {

@@ -5,11 +5,11 @@ import com.pennywiseai.parser.core.test.ExpectedTransaction
 import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ParserTestUtils
 import com.pennywiseai.parser.core.test.SimpleTestCase
+import org.junit.jupiter.api.Assertions.assertEquals
+import org.junit.jupiter.api.Assertions.assertNotNull
+import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.DynamicTest
 import org.junit.jupiter.api.TestFactory
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.Assertions.assertNotNull
 import java.math.BigDecimal
 
 /** All sample account numbers, OTP values, and links are synthetic. */
@@ -17,7 +17,7 @@ class CityBankBangladeshParserTest {
     private val parser = CityBankBangladeshParser()
 
     private fun sms(date: String, channel: String, action: String, balance: String,
-                    account: String = "7777***1234", feedback: Boolean = true): String =
+        account: String = "7777***1234", feedback: Boolean = true): String =
         listOfNotNull(
             date,
             "$channel TXN",

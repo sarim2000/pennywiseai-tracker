@@ -66,11 +66,11 @@ class MashreqBankParser : UAEBankParser() {
         // "SHREQ" is the common tail of every Mashreq header — MASHREQ, MSHREQ, and the
         // bare "Shreq" alphanumeric header some users see — so one check covers them all.
         return upperSender.contains("SHREQ") ||
-                // DLT patterns for UAE
-                upperSender.matches(Regex("^[A-Z]{2}-MASHREQ-[A-Z]$")) ||
-                upperSender.matches(Regex("^[A-Z]{2}-MSHREQ-[A-Z]$"))
+            // DLT patterns for UAE
+            upperSender.matches(Regex("^[A-Z]{2}-MASHREQ-[A-Z]$")) ||
+            upperSender.matches(Regex("^[A-Z]{2}-MSHREQ-[A-Z]$"))
     }
-    
+
     // extractAmount handled by UAEBankParser
 
     override fun extractMerchant(message: String, sender: String): String? {
@@ -81,7 +81,6 @@ class MashreqBankParser : UAEBankParser() {
             message.contains("credit card", ignoreCase = true) ||
             message.contains("card ending", ignoreCase = true)
         ) {
-
             // Pattern: "at MERCHANT on DATE"
             val merchantPattern =
                 Regex("""at\s+([^,\n]+?)\s+on\s+\d{1,2}-[A-Z]{3}-\d{4}""", RegexOption.IGNORE_CASE)
@@ -212,23 +211,23 @@ class MashreqBankParser : UAEBankParser() {
         return when {
             // Debit card purchases are expenses (any currency)
             lowerMessage.contains("debit card") &&
-                    Regex("""for\s+[A-Z]{3}\s+[0-9,]+""", RegexOption.IGNORE_CASE).containsMatchIn(
-                        message
-                    ) -> TransactionType.EXPENSE
+                Regex("""for\s+[A-Z]{3}\s+[0-9,]+""", RegexOption.IGNORE_CASE).containsMatchIn(
+                    message
+                ) -> TransactionType.EXPENSE
 
             // Credit card purchases are credit transactions (any currency)
             lowerMessage.contains("credit card") &&
-                    Regex("""for\s+[A-Z]{3}\s+[0-9,]+""", RegexOption.IGNORE_CASE).containsMatchIn(
-                        message
-                    ) -> TransactionType.CREDIT
+                Regex("""for\s+[A-Z]{3}\s+[0-9,]+""", RegexOption.IGNORE_CASE).containsMatchIn(
+                    message
+                ) -> TransactionType.CREDIT
 
             // Newer credit-card purchase alert that omits the "credit card" wording:
             // "Thank you for using your card ending 1234 for AED 50.00 at ... Avl.Limit: AED 1,000.00"
             // An available *limit* (vs the debit-card alert's available *balance*) marks it a credit card.
             lowerMessage.contains("card ending") &&
-                    Regex("""for\s+[A-Z]{3}\s+[0-9,]+""", RegexOption.IGNORE_CASE).containsMatchIn(message) &&
-                    Regex("""Avl\.?\s*Limit|Available\s+Limit""", RegexOption.IGNORE_CASE).containsMatchIn(message)
-                    -> TransactionType.CREDIT
+                Regex("""for\s+[A-Z]{3}\s+[0-9,]+""", RegexOption.IGNORE_CASE).containsMatchIn(message) &&
+                Regex("""Avl\.?\s*Limit|Available\s+Limit""", RegexOption.IGNORE_CASE).containsMatchIn(message)
+            -> TransactionType.CREDIT
 
             // ATM withdrawals are expenses
             lowerMessage.contains("atm") && lowerMessage.contains("withdrawn") -> TransactionType.EXPENSE
@@ -264,7 +263,7 @@ class MashreqBankParser : UAEBankParser() {
         )
 
         return mashreqCardPatterns.any { lowerMessage.contains(it) } ||
-                super.detectIsCard(message)
+            super.detectIsCard(message)
     }
 
     override fun isTransactionMessage(message: String): Boolean {

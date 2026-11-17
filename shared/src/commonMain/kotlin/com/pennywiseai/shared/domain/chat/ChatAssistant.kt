@@ -408,7 +408,7 @@ object ChatPrompt {
         Accounts: ${promptList(accounts, MAX_ACCOUNT_CHARS).ifEmpty { "none yet" }}
 
         Plain text only: no markdown, asterisks or backticks.
-        """.trimIndent()
+    """.trimIndent()
 
     /** Names joined in order until [maxChars]; the rest are counted, not listed. */
     fun promptList(names: List<String>, maxChars: Int): String {

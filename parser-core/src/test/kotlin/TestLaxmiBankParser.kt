@@ -86,7 +86,5 @@ class LaxmiBankParserTest {
             handleCases = handleChecks,
             suiteName = "Laxmi Sunrise Bank Parser"
         )
-
-
     }
 }

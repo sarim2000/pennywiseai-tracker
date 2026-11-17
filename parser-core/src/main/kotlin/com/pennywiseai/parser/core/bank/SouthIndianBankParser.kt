@@ -43,8 +43,8 @@ class SouthIndianBankParser : BaseIndianBankParser() {
 
         // DLT patterns
         return upperSender.startsWith("AD-SIB") ||
-                upperSender.startsWith("CP-SIB") ||
-                upperSender.startsWith("VM-SIB")
+            upperSender.startsWith("CP-SIB") ||
+            upperSender.startsWith("VM-SIB")
     }
 
     override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {
@@ -121,7 +121,7 @@ class SouthIndianBankParser : BaseIndianBankParser() {
                     return cleanMerchantName(merchant)
                 }
             }
-            
+
             // Fallback: capture everything up to period
             val impsPattern2 = Regex("""Info:\s*IMPS/[^/]+/[^/]+/([^.]+)""", RegexOption.IGNORE_CASE)
             impsPattern2.find(message)?.let { match ->
@@ -175,7 +175,7 @@ class SouthIndianBankParser : BaseIndianBankParser() {
         // For debit/credit transactions - merchant between amount and balance
         // Only apply this if NOT a UPI transaction (already handled above)
         if ((message.contains("debit", ignoreCase = true) ||
-                    message.contains("credit", ignoreCase = true)) &&
+                message.contains("credit", ignoreCase = true)) &&
             !message.contains("UPI", ignoreCase = true)) {
             // Pattern for "DEBIT:Rs.983.75 MERCHANT NAME Bal:Rs.79184.67"
             val debitCreditPattern = Regex(
@@ -254,7 +254,7 @@ class SouthIndianBankParser : BaseIndianBankParser() {
                     return ref
                 }
             }
-            
+
             // Fallback pattern: capture reference number between second and third slash
             val impsRefPattern2 = Regex("""Info:\s*IMPS/[^/]+/([^/]+)/""", RegexOption.IGNORE_CASE)
             impsRefPattern2.find(message)?.let { match ->

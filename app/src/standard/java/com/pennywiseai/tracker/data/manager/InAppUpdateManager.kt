@@ -33,7 +33,7 @@ class InAppUpdateManager @Inject constructor(
     private var updateListener: InstallStateUpdatedListener? = null
     private var snackbarHostState: SnackbarHostState? = null
     private var coroutineScope: CoroutineScope? = null
-    
+
     /**
      * Checks for available updates and starts the update flow if available.
      * Google Play handles all the UI - showing update dialog, progress, etc.
@@ -49,16 +49,16 @@ class InAppUpdateManager @Inject constructor(
         this.snackbarHostState = snackbarHostState
         this.coroutineScope = scope
         val appUpdateInfoTask = appUpdateManager.appUpdateInfo
-        
+
         appUpdateInfoTask.addOnSuccessListener { appUpdateInfo ->
             when {
                 // Check if update is available and allowed
-                appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE
-                    && appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE) -> {
+                appUpdateInfo.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
+                    appUpdateInfo.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE) -> {
                     // Start flexible update flow
                     startFlexibleUpdate(activity, appUpdateInfo)
                 }
-                
+
                 // Check if update was downloaded but not installed
                 appUpdateInfo.installStatus() == InstallStatus.DOWNLOADED -> {
                     // Notify user to complete update
@@ -70,7 +70,7 @@ class InAppUpdateManager @Inject constructor(
             Log.e(TAG, "Update check failed", exception)
         }
     }
-    
+
     /**
      * Starts the flexible update flow.
      * User can continue using the app while the update downloads in background.
@@ -80,11 +80,11 @@ class InAppUpdateManager @Inject constructor(
         updateListener = InstallStateUpdatedListener { state ->
             handleUpdateState(state)
         }
-        
+
         updateListener?.let {
             appUpdateManager.registerListener(it)
         }
-        
+
         try {
             appUpdateManager.startUpdateFlowForResult(
                 appUpdateInfo,
@@ -97,7 +97,7 @@ class InAppUpdateManager @Inject constructor(
             unregisterListener()
         }
     }
-    
+
     /**
      * Handles update state changes.
      */
@@ -123,7 +123,7 @@ class InAppUpdateManager @Inject constructor(
             }
         }
     }
-    
+
     /**
      * Shows a Snackbar notification to complete the update.
      * Prompts the user to restart the app to apply the update.
@@ -132,7 +132,7 @@ class InAppUpdateManager @Inject constructor(
         // If we have both SnackbarHostState and CoroutineScope, show the Snackbar
         val hostState = snackbarHostState
         val scope = coroutineScope
-        
+
         if (hostState != null && scope != null) {
             scope.launch {
                 val result = hostState.showSnackbar(
@@ -140,7 +140,7 @@ class InAppUpdateManager @Inject constructor(
                     actionLabel = "Restart",
                     duration = SnackbarDuration.Indefinite
                 )
-                
+
                 if (result == SnackbarResult.ActionPerformed) {
                     // User clicked restart, complete the update
                     completeUpdate()
@@ -151,14 +151,14 @@ class InAppUpdateManager @Inject constructor(
             Log.i(TAG, "Update downloaded. App will be updated on next restart.")
         }
     }
-    
+
     /**
      * Completes the update and restarts the app.
      */
     fun completeUpdate() {
         appUpdateManager.completeUpdate()
     }
-    
+
     /**
      * Unregisters the update listener.
      */
@@ -168,7 +168,7 @@ class InAppUpdateManager @Inject constructor(
             updateListener = null
         }
     }
-    
+
     /**
      * Call this in onDestroy to clean up.
      */
@@ -178,7 +178,7 @@ class InAppUpdateManager @Inject constructor(
         snackbarHostState = null
         coroutineScope = null
     }
-    
+
     companion object {
         private const val TAG = "InAppUpdateManager"
         const val UPDATE_REQUEST_CODE = 123

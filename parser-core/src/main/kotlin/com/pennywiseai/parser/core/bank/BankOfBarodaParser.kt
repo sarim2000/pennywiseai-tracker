@@ -13,18 +13,18 @@ class BankOfBarodaParser : BaseIndianBankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("BOB") ||
-                normalizedSender.contains("BARODA") ||
-                normalizedSender.contains("BOBSMS") ||
-                normalizedSender.contains("BOBTXN") ||
-                normalizedSender.contains("BOBCRD") ||  // Credit card messages
-                // DLT patterns
-                normalizedSender.matches(Regex("^[A-Z]{2}-BOBSMS-[A-Z]$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-BOBTXN-[A-Z]$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-BOB-[A-Z]$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-BOBCRD-[A-Z]$")) ||  // Credit card DLT pattern
-                // Direct sender IDs
-                normalizedSender == "BOB" ||
-                normalizedSender == "BANKOFBARODA"
+            normalizedSender.contains("BARODA") ||
+            normalizedSender.contains("BOBSMS") ||
+            normalizedSender.contains("BOBTXN") ||
+            normalizedSender.contains("BOBCRD") ||  // Credit card messages
+            // DLT patterns
+            normalizedSender.matches(Regex("^[A-Z]{2}-BOBSMS-[A-Z]$")) ||
+            normalizedSender.matches(Regex("^[A-Z]{2}-BOBTXN-[A-Z]$")) ||
+            normalizedSender.matches(Regex("^[A-Z]{2}-BOB-[A-Z]$")) ||
+            normalizedSender.matches(Regex("^[A-Z]{2}-BOBCRD-[A-Z]$")) ||  // Credit card DLT pattern
+            // Direct sender IDs
+            normalizedSender == "BOB" ||
+            normalizedSender == "BANKOFBARODA"
     }
 
     override fun extractAmount(message: String): BigDecimal? {

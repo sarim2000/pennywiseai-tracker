@@ -1,25 +1,25 @@
 package com.pennywiseai.tracker.presentation.accounts
 
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.theme.*
-import androidx.compose.ui.text.style.TextOverflow
-import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 
 @Composable
 internal fun OrphanedCardItem(
@@ -36,7 +36,7 @@ internal fun OrphanedCardItem(
     var showLinkDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var expandedSource by remember { mutableStateOf(false) }
-    
+
     Card(
         modifier = Modifier
             .fillMaxWidth()
@@ -145,7 +145,7 @@ internal fun OrphanedCardItem(
             }
         }
     }
-    
+
     if (showLinkDialog) {
         LinkCardDialog(
             card = card,
@@ -261,7 +261,7 @@ private fun LinkCardDialog(
     onConfirm: (String) -> Unit
 ) {
     var selectedAccount by remember { mutableStateOf<String?>(null) }
-    
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {

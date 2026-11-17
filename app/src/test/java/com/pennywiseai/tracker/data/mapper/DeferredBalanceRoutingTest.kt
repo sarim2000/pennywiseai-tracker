@@ -67,8 +67,7 @@ class DeferredBalanceRoutingTest {
         val key = store.mappingKey(parsed.bankName, "INR", "000")
         val mappings = mapOf(key to "1000")
         val resolved = store.resolve(parsed, mappings)
-        val saved = resolved.toEntity().copy(
-            transactionType = com.pennywiseai.tracker.data.database.entity.TransactionType.CREDIT)
+        val saved = resolved.toEntity().copy(transactionType = com.pennywiseai.tracker.data.database.entity.TransactionType.CREDIT)
         val queued = requireNotNull(parsed.atEnqueuedAccount(resolved, saved))
         val routed = requireNotNull(queued.forSavedTransaction(store.resolve(queued.account, mappings), saved))
         assertEquals("1000", routed.accountLast4)

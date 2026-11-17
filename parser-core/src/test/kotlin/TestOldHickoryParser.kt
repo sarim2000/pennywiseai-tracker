@@ -114,7 +114,5 @@ class OldHickoryParserTest {
             handleCases = handleChecks,
             suiteName = "Old Hickory Parser Tests"
         )
-
-
     }
 }

@@ -16,7 +16,7 @@ class WorkManagerInitializer @Inject constructor(
     @ApplicationContext private val context: Context,
     private val workerFactory: HiltWorkerFactory
 ) {
-    
+
     /**
      * Initializes WorkManager with custom configuration.
      * This must be called before any work is enqueued.
@@ -25,7 +25,7 @@ class WorkManagerInitializer @Inject constructor(
         val config = Configuration.Builder()
             .setWorkerFactory(workerFactory)
             .build()
-        
+
         WorkManager.initialize(context, config)
     }
 }

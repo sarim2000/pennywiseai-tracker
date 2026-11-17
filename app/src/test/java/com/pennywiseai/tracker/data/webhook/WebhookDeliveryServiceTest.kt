@@ -424,5 +424,4 @@ class WebhookDeliveryServiceTest {
             assertEquals(1, requests.size)
         }
     }
-
 }

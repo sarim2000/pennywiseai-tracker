@@ -31,8 +31,8 @@ class GTBankParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val upper = sender.uppercase()
         return upper.contains("GTBANK") ||
-                upper.contains("GTB") ||
-                upper.contains("GUARANTY")
+            upper.contains("GTB") ||
+            upper.contains("GUARANTY")
     }
 
     override fun isTransactionMessage(message: String): Boolean {

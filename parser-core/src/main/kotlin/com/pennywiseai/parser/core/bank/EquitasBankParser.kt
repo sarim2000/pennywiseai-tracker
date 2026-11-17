@@ -19,8 +19,8 @@ class EquitasBankParser : BaseIndianBankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("EQUTAS") ||
-                normalizedSender.contains("EQUITA") ||
-                normalizedSender.contains("EQUITS")
+            normalizedSender.contains("EQUITA") ||
+            normalizedSender.contains("EQUITS")
     }
 
     override fun extractAmount(message: String): BigDecimal? {

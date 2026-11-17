@@ -23,8 +23,8 @@ class MBankCZParser : BankParser() {
 
     override fun canHandle(sender: String): Boolean {
         val normalized = sender.uppercase()
-        return normalized.contains("MBANK") && normalized.contains("CZ") ||
-                normalized == "MBANK"
+        return (normalized.contains("MBANK") && normalized.contains("CZ")) ||
+            normalized == "MBANK"
     }
 
     override fun extractAmount(message: String): BigDecimal? {

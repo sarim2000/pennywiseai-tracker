@@ -48,7 +48,6 @@ object XMLTestUtils {
                     smsList.add(parseSMSElement(smsElement))
                 }
             }
-
         } catch (e: Exception) {
             throw RuntimeException("Failed to load SMS data from XML file: $fileName", e)
         }
@@ -91,7 +90,6 @@ object XMLTestUtils {
                     smsList.add(parseMMSElement(mmsElement))
                 }
             }
-
         } catch (e: Exception) {
             throw RuntimeException("Failed to load SMS data from XML resource: $resourcePath", e)
         }
@@ -148,5 +146,4 @@ object XMLTestUtils {
             description = "MMS: $readableDate"
         )
     }
-
 }

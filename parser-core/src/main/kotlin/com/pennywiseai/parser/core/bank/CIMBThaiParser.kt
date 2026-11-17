@@ -10,7 +10,7 @@ class CIMBThaiParser : BaseThailandBankParser() {
     override fun canHandle(sender: String): Boolean {
         val upperSender = sender.uppercase()
         return upperSender == "CIMB" ||
-                upperSender.contains("CIMB THAI") ||
-                upperSender.contains("CIMBTHAI")
+            upperSender.contains("CIMB THAI") ||
+            upperSender.contains("CIMBTHAI")
     }
 }

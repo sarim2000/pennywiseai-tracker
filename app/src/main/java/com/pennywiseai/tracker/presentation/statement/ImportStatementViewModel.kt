@@ -2,11 +2,10 @@ package com.pennywiseai.tracker.presentation.statement
 
 import android.net.Uri
 import androidx.lifecycle.ViewModel
-import com.pennywiseai.tracker.BuildConfig
-import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.ui.UiText
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.parser.core.ParsedTransaction
+import com.pennywiseai.tracker.BuildConfig
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.preferences.BillingPreferences
@@ -17,9 +16,14 @@ import com.pennywiseai.tracker.data.statement.StatementColumnMapping
 import com.pennywiseai.tracker.data.statement.StatementImportPlan
 import com.pennywiseai.tracker.data.statement.StatementImportResult
 import com.pennywiseai.tracker.data.statement.StatementTableParser
+import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.widget.WidgetRefresher
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -27,11 +31,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.Job
-import kotlinx.coroutines.currentCoroutineContext
-import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.withContext
-import kotlinx.coroutines.Dispatchers
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneId

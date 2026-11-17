@@ -21,9 +21,9 @@ class BankOfAbyssiniaParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val upperSender = sender.uppercase().trim()
         return upperSender == "BOA" ||
-                upperSender.contains("ABYSSINIA") ||
-                // DLT-style variants such as "AB-BOA-S"
-                upperSender.matches(Regex("""^[A-Z]{2}-BOA-[A-Z]$"""))
+            upperSender.contains("ABYSSINIA") ||
+            // DLT-style variants such as "AB-BOA-S"
+            upperSender.matches(Regex("""^[A-Z]{2}-BOA-[A-Z]$"""))
     }
 
     override fun extractAmount(message: String): BigDecimal? {

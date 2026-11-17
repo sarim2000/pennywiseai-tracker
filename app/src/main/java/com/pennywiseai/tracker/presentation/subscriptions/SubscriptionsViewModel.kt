@@ -1,9 +1,8 @@
 package com.pennywiseai.tracker.presentation.subscriptions
 
-import com.pennywiseai.tracker.ui.UiText
-import com.pennywiseai.tracker.R
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
@@ -13,10 +12,11 @@ import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.domain.spending.RecurringCharge
-import com.pennywiseai.tracker.domain.spending.SubscriptionCost
 import com.pennywiseai.tracker.domain.spending.RecurringSuggestion
+import com.pennywiseai.tracker.domain.spending.SubscriptionCost
 import com.pennywiseai.tracker.domain.usecase.MarkSubscriptionPaidUseCase
 import com.pennywiseai.tracker.domain.usecase.RecurringSuggestionsUseCase
+import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.sumByCurrency
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -192,7 +192,7 @@ class SubscriptionsViewModel @Inject constructor(
             }
         }
     }
-    
+
     fun hideSubscription(subscriptionId: Long) {
         viewModelScope.launch {
             subscriptionRepository.hideSubscription(subscriptionId)

@@ -10,7 +10,7 @@ class GSBBankParser : BaseThailandBankParser() {
     override fun canHandle(sender: String): Boolean {
         val upperSender = sender.uppercase()
         return upperSender == "GSB" ||
-                upperSender.contains("GOVERNMENT SAVINGS") ||
-                upperSender.contains("GOVT SAVINGS")
+            upperSender.contains("GOVERNMENT SAVINGS") ||
+            upperSender.contains("GOVT SAVINGS")
     }
 }

@@ -1,10 +1,10 @@
 package com.pennywiseai.tracker.data.mapper
 
 import com.pennywiseai.parser.core.ParsedTransaction
+import com.pennywiseai.shared.domain.mapping.SharedCategoryMapping
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.shared.domain.mapping.SharedCategoryMapping
 import java.time.Instant
 import java.time.LocalDateTime
 import java.time.ZoneId
@@ -86,7 +86,7 @@ internal fun ParsedTransaction.atEnqueuedAccount(
         )
     }
     val selectedType = if (saved.transactionType == type.toEntityType()) type
-        else com.pennywiseai.parser.core.TransactionType.valueOf(saved.transactionType.name)
+    else com.pennywiseai.parser.core.TransactionType.valueOf(saved.transactionType.name)
     return DeferredBalanceInput(account, selectedType, saved.amount)
 }
 

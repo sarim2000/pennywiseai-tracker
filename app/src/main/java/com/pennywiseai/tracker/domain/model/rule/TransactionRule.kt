@@ -16,8 +16,8 @@ data class TransactionRule(
 ) {
     fun validate(): Boolean {
         return name.isNotBlank() &&
-               conditions.isNotEmpty() &&
-               actions.isNotEmpty()
+            conditions.isNotEmpty() &&
+            actions.isNotEmpty()
     }
 }
 
@@ -34,4 +34,3 @@ fun TransactionRule.withCategoryRenamed(oldName: String, newName: String): Trans
         if (a.field == TransactionField.CATEGORY && a.actionType == ActionType.SET && a.value == oldName) a.copy(value = newName) else a
     }
 )
-

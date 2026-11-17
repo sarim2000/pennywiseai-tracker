@@ -11,11 +11,11 @@ import javax.inject.Singleton
 class MerchantMappingRepository @Inject constructor(
     private val merchantMappingDao: MerchantMappingDao
 ) {
-    
+
     suspend fun getCategoryForMerchant(merchantName: String): String? {
         return merchantMappingDao.getCategoryForMerchant(merchantName)
     }
-    
+
     suspend fun setMapping(merchantName: String, category: String, updatedAt: LocalDateTime = LocalDateTime.now()) {
         merchantMappingDao.insertOrUpdateMapping(
             MerchantMappingEntity(
@@ -28,15 +28,15 @@ class MerchantMappingRepository @Inject constructor(
 
     suspend fun getMapping(merchantName: String): MerchantMappingEntity? =
         merchantMappingDao.getMapping(merchantName)
-    
+
     suspend fun removeMapping(merchantName: String) {
         merchantMappingDao.deleteMapping(merchantName)
     }
-    
+
     fun getAllMappings(): Flow<List<MerchantMappingEntity>> {
         return merchantMappingDao.getAllMappings()
     }
-    
+
     suspend fun getMappingCount(): Int {
         return merchantMappingDao.getMappingCount()
     }

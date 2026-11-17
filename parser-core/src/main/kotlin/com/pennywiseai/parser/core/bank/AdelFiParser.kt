@@ -20,7 +20,7 @@ class AdelFiParser : BankParser() {
 
     override fun isTransactionMessage(message: String): Boolean {
         return message.contains("Transaction Alert from AdelFi", ignoreCase = true) &&
-                message.contains("had a transaction of", ignoreCase = true)
+            message.contains("had a transaction of", ignoreCase = true)
     }
 
     override fun extractAmount(message: String): BigDecimal? {

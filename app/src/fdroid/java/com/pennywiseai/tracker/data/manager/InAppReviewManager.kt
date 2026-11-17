@@ -18,11 +18,11 @@ class InAppReviewManager @Inject constructor(
     @ApplicationContext private val context: Context,
     private val userPreferencesRepository: UserPreferencesRepository
 ) {
-    
+
     companion object {
         private const val TAG = "InAppReviewManager"
     }
-    
+
     /**
      * No-op for F-Droid builds.
      * F-Droid users can rate the app directly on the F-Droid app page.
@@ -35,7 +35,7 @@ class InAppReviewManager @Inject constructor(
         // Users need to rate on F-Droid directly
         Log.d(TAG, "In-app reviews not available on F-Droid builds")
     }
-    
+
     /**
      * No-op for F-Droid builds.
      */

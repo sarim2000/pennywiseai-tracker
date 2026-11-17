@@ -220,7 +220,7 @@ class PaytmPdfParser : PdfStatementParser {
 
         Log.i(
             TAG, "Block[$index] OK — $type merchant='$merchant' amount=$amount " +
-                    "upi=$upiRef bank='${account.bankName}' last4=${account.last4}"
+                "upi=$upiRef bank='${account.bankName}' last4=${account.last4}"
         )
 
         return ParsedTransaction(

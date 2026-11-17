@@ -248,8 +248,6 @@ class IndusIndBankParserTest {
             handleCases = handleChecks,
             suiteName = "IndusInd Bank Parser"
         )
-
-
     }
 
     @Test
@@ -298,7 +296,5 @@ class IndusIndBankParserTest {
         )
 
         return ParserTestUtils.runFactoryTestSuite(cases, "Factory smoke tests - IndusInd")
-
     }
-
 }

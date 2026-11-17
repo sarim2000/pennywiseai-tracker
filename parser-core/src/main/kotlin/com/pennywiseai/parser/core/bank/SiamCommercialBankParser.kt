@@ -10,7 +10,7 @@ class SiamCommercialBankParser : BaseThailandBankParser() {
     override fun canHandle(sender: String): Boolean {
         val upperSender = sender.uppercase()
         return upperSender == "SCB" ||
-                upperSender.contains("SIAM COMMERCIAL") ||
-                upperSender.contains("SIAMCOMMERCIAL")
+            upperSender.contains("SIAM COMMERCIAL") ||
+            upperSender.contains("SIAMCOMMERCIAL")
     }
 }

@@ -16,9 +16,9 @@ class ZamZamBankParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalized = sender.uppercase().trim()
         return normalized == "ZAMZAM BANK" ||
-                normalized == "ZAMZAMBANK" ||
-                // DLT-style variant, e.g. "AB-ZAMZAM-S"
-                normalized.matches(Regex("""^[A-Z]{2}-ZAMZAM-[A-Z]$"""))
+            normalized == "ZAMZAMBANK" ||
+            // DLT-style variant, e.g. "AB-ZAMZAM-S"
+            normalized.matches(Regex("""^[A-Z]{2}-ZAMZAM-[A-Z]$"""))
     }
 
     /**

@@ -12,7 +12,7 @@ class TTBBankParser : BaseThailandBankParser() {
         // Not contains("TMB"): that also captured India's Tamilnad Mercantile Bank
         // ("VA-TMBANK-S") and dropped every one of its SMS (#917).
         return upperSender == "TTB" ||
-                upperSender.contains("TMBTHANACHART") ||
-                upperSender == "TMB"
+            upperSender.contains("TMBTHANACHART") ||
+            upperSender == "TMB"
     }
 }

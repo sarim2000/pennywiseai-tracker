@@ -4,11 +4,11 @@ import android.content.Context
 import androidx.annotation.StringRes
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.aiaccess.AiRelayClient
 import com.pennywiseai.tracker.aiaccess.AiSessionService
 import com.pennywiseai.tracker.aiaccess.AiSessionState
 import com.pennywiseai.tracker.aiaccess.AiWriteAccess
-import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.billing.EntitlementGate
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext

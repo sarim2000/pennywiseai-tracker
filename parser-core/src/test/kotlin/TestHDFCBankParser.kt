@@ -145,6 +145,5 @@ T&C. Ignore if paid""",
         )
 
         return ParserTestUtils.runTestSuite(parser, testCases, handleCases, "HDFC Bank Parser Tests")
-
     }
 }

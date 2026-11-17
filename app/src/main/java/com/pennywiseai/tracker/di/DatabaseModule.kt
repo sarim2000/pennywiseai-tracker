@@ -6,35 +6,35 @@ import androidx.room3.RoomDatabase
 import androidx.sqlite.SQLiteConnection
 import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.sqlite.execSQL
-import com.pennywiseai.tracker.data.database.execSQL
+import com.pennywiseai.shared.data.bootstrap.DefaultCategoryData
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.PennyWiseMigrations
 import com.pennywiseai.tracker.data.database.dao.AccountBalanceDao
-import com.pennywiseai.tracker.data.database.dao.ProfileDao
 import com.pennywiseai.tracker.data.database.dao.BankNotificationDao
 import com.pennywiseai.tracker.data.database.dao.BudgetDao
 import com.pennywiseai.tracker.data.database.dao.BudgetSnapshotDao
 import com.pennywiseai.tracker.data.database.dao.CardDao
-import com.pennywiseai.shared.data.bootstrap.DefaultCategoryData
 import com.pennywiseai.tracker.data.database.dao.CategoryDao
 import com.pennywiseai.tracker.data.database.dao.ChatDao
 import com.pennywiseai.tracker.data.database.dao.ExchangeRateDao
+import com.pennywiseai.tracker.data.database.dao.GoalDao
 import com.pennywiseai.tracker.data.database.dao.LoanDao
-import com.pennywiseai.tracker.data.database.dao.TransactionGroupDao
-import com.pennywiseai.tracker.data.database.dao.MerchantMappingDao
 import com.pennywiseai.tracker.data.database.dao.MerchantAliasDao
-import com.pennywiseai.tracker.data.database.dao.RuleApplicationDao
+import com.pennywiseai.tracker.data.database.dao.MerchantMappingDao
+import com.pennywiseai.tracker.data.database.dao.ProfileDao
 import com.pennywiseai.tracker.data.database.dao.RecurringTransactionDao
+import com.pennywiseai.tracker.data.database.dao.RuleApplicationDao
 import com.pennywiseai.tracker.data.database.dao.RuleDao
 import com.pennywiseai.tracker.data.database.dao.SubscriptionDao
 import com.pennywiseai.tracker.data.database.dao.TagDao
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
+import com.pennywiseai.tracker.data.database.dao.TransactionGroupDao
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.dao.UnrecognizedSmsDao
-import com.pennywiseai.tracker.data.database.dao.WebhookProfileDao
-import com.pennywiseai.tracker.data.database.dao.WebhookLogDao
 import com.pennywiseai.tracker.data.database.dao.WebhookCursorDao
-import com.pennywiseai.tracker.data.database.dao.GoalDao
+import com.pennywiseai.tracker.data.database.dao.WebhookLogDao
+import com.pennywiseai.tracker.data.database.dao.WebhookProfileDao
+import com.pennywiseai.tracker.data.database.execSQL
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -48,10 +48,10 @@ import javax.inject.Singleton
 @Module
 @InstallIn(SingletonComponent::class)
 object DatabaseModule {
-    
+
     /**
      * Provides the singleton instance of PennyWiseDatabase.
-     * 
+     *
      * @param context Application context
      * @return Configured Room database instance
      */
@@ -84,10 +84,10 @@ object DatabaseModule {
 
         return database
     }
-    
+
     /**
      * Provides the TransactionDao from the database.
-     * 
+     *
      * @param database The PennyWiseDatabase instance
      * @return TransactionDao for accessing transaction data
      */
@@ -96,10 +96,10 @@ object DatabaseModule {
     fun provideTransactionDao(database: PennyWiseDatabase): TransactionDao {
         return database.transactionDao()
     }
-    
+
     /**
      * Provides the SubscriptionDao from the database.
-     * 
+     *
      * @param database The PennyWiseDatabase instance
      * @return SubscriptionDao for accessing subscription data
      */
@@ -108,10 +108,10 @@ object DatabaseModule {
     fun provideSubscriptionDao(database: PennyWiseDatabase): SubscriptionDao {
         return database.subscriptionDao()
     }
-    
+
     /**
      * Provides the ChatDao from the database.
-     * 
+     *
      * @param database The PennyWiseDatabase instance
      * @return ChatDao for accessing chat message data
      */
@@ -120,10 +120,10 @@ object DatabaseModule {
     fun provideChatDao(database: PennyWiseDatabase): ChatDao {
         return database.chatDao()
     }
-    
+
     /**
      * Provides the MerchantMappingDao from the database.
-     * 
+     *
      * @param database The PennyWiseDatabase instance
      * @return MerchantMappingDao for accessing merchant mapping data
      */
@@ -147,7 +147,7 @@ object DatabaseModule {
 
     /**
      * Provides the CategoryDao from the database.
-     * 
+     *
      * @param database The PennyWiseDatabase instance
      * @return CategoryDao for accessing category data
      */
@@ -156,10 +156,10 @@ object DatabaseModule {
     fun provideCategoryDao(database: PennyWiseDatabase): CategoryDao {
         return database.categoryDao()
     }
-    
+
     /**
      * Provides the AccountBalanceDao from the database.
-     * 
+     *
      * @param database The PennyWiseDatabase instance
      * @return AccountBalanceDao for accessing account balance data
      */
@@ -168,10 +168,10 @@ object DatabaseModule {
     fun provideAccountBalanceDao(database: PennyWiseDatabase): AccountBalanceDao {
         return database.accountBalanceDao()
     }
-    
+
     /**
      * Provides the UnrecognizedSmsDao from the database.
-     * 
+     *
      * @param database The PennyWiseDatabase instance
      * @return UnrecognizedSmsDao for accessing unrecognized SMS data
      */
@@ -180,7 +180,7 @@ object DatabaseModule {
     fun provideUnrecognizedSmsDao(database: PennyWiseDatabase): UnrecognizedSmsDao {
         return database.unrecognizedSmsDao()
     }
-    
+
     /**
      * Provides the CardDao from the database.
      *
@@ -307,14 +307,14 @@ object DatabaseModule {
 class DatabaseCallback : RoomDatabase.Callback() {
     override suspend fun onCreate(db: SQLiteConnection) {
         super.onCreate(db)
-        
+
         // Seed default categories for new installations. Synchronous: Room 3
         // confines the connection to this call, so it can't be used from a
         // coroutine launched here.
         seedCategories(db)
         seedProfiles(db)
     }
-    
+
     private fun seedCategories(db: SQLiteConnection) {
         val categories = DefaultCategoryData.ALL
 

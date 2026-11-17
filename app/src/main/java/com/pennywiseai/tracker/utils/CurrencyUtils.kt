@@ -4,7 +4,7 @@ package com.pennywiseai.tracker.utils
  * Currency list helpers. Format money with [CurrencyFormatter].
  */
 object CurrencyUtils {
-    
+
     /**
      * Sorts a list of currency codes with INR prioritized first, then alphabetically.
      * This is the standard sorting for currency lists throughout the app.

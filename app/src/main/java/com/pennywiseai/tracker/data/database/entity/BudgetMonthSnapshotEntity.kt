@@ -3,9 +3,9 @@ package com.pennywiseai.tracker.data.database.entity
 import androidx.room3.ColumnInfo
 import androidx.room3.Entity
 import androidx.room3.PrimaryKey
-import java.math.BigDecimal
 import kotlinx.serialization.Contextual
 import kotlinx.serialization.Serializable
+import java.math.BigDecimal
 
 @Entity(tableName = "budget_month_snapshots")
 @Serializable

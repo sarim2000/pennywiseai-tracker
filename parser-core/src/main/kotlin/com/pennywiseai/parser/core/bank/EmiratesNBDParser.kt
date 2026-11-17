@@ -15,8 +15,8 @@ class EmiratesNBDParser : UAEBankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase().replace(Regex("\\s+"), "")
         return normalizedSender.contains("EMIRATESNBD") ||
-                normalizedSender.contains("ENBD") ||
-                normalizedSender.contains("EMIRATESNB")
+            normalizedSender.contains("ENBD") ||
+            normalizedSender.contains("EMIRATESNB")
     }
 
     override fun isTransactionMessage(message: String): Boolean {
@@ -24,11 +24,11 @@ class EmiratesNBDParser : UAEBankParser() {
 
         // Check for transaction keywords
         return lowerMessage.contains("purchase of") ||
-                lowerMessage.contains("debited") ||
-                lowerMessage.contains("credited") ||
-                lowerMessage.contains("withdrawn") ||
-                lowerMessage.contains("deposited") ||
-                lowerMessage.contains("transfer")
+            lowerMessage.contains("debited") ||
+            lowerMessage.contains("credited") ||
+            lowerMessage.contains("withdrawn") ||
+            lowerMessage.contains("deposited") ||
+            lowerMessage.contains("transfer")
     }
 
     // extractAmount is now handled by UAEBankParser which supports multi-currency patterns

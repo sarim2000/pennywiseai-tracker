@@ -4,12 +4,12 @@ import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.parser.core.test.ExpectedTransaction
 import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ParserTestUtils
-import org.junit.jupiter.api.DynamicTest
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
+import org.junit.jupiter.api.DynamicTest
+import org.junit.jupiter.api.Test
+import org.junit.jupiter.api.TestFactory
 import java.math.BigDecimal
 
 class UCOBankParserTest {
@@ -59,8 +59,7 @@ class UCOBankParserTest {
                     accountLast4 = "1234",
                     balance = BigDecimal("2992.54")
                 )
-            )
-            ,
+            ),
             ParserTestCase(
                 // No "Debited with" clause, so the fallback runs. It must only
                 // look before the balance clause, or it could still land on the

@@ -14,12 +14,12 @@ class CentralBankOfIndiaParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("CENTBK") ||
-                normalizedSender.contains("CBOI") ||
-                normalizedSender.contains("CENTRALBANK") ||
-                normalizedSender.contains("CENTRAL") ||
-                // DLT patterns
-                normalizedSender.matches(Regex("^[A-Z]{2}-CENTBK-[A-Z]$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-CBOI-[A-Z]$"))
+            normalizedSender.contains("CBOI") ||
+            normalizedSender.contains("CENTRALBANK") ||
+            normalizedSender.contains("CENTRAL") ||
+            // DLT patterns
+            normalizedSender.matches(Regex("^[A-Z]{2}-CENTBK-[A-Z]$")) ||
+            normalizedSender.matches(Regex("^[A-Z]{2}-CBOI-[A-Z]$"))
     }
 
     override fun parse(
@@ -235,7 +235,7 @@ class CentralBankOfIndiaParser : BankParser() {
 
         // Check for CBoI-specific transaction keywords
         if ((lowerMessage.contains("credited by") ||
-                    lowerMessage.contains("debited by")) &&
+                lowerMessage.contains("debited by")) &&
             lowerMessage.contains("bal")
         ) {
             return true
@@ -244,7 +244,7 @@ class CentralBankOfIndiaParser : BankParser() {
         // Check for signature
         if (lowerMessage.contains("-cboi")) {
             return lowerMessage.contains("credited") ||
-                    lowerMessage.contains("debited")
+                lowerMessage.contains("debited")
         }
 
         return super.isTransactionMessage(message)

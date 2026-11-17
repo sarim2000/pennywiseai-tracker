@@ -3,10 +3,10 @@ package com.pennywiseai.tracker.receiver
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.tracker.data.mapper.toEntity
+import org.junit.Test
 import java.math.BigDecimal
 import kotlin.test.assertEquals
 import kotlin.test.assertNotEquals
-import org.junit.Test
 
 class BankNotificationDedupHashTest {
 
@@ -35,7 +35,7 @@ class BankNotificationDedupHashTest {
     fun `carrier redelivery identical body produces identical hash`() {
         val body = "Rs 500 spent at Coffee Co card x1234"
         assertEquals(tx(body, 1_700_000_000_000L).generateTransactionId(),
-                     tx(body, 1_700_005_000_000L).generateTransactionId())
+            tx(body, 1_700_005_000_000L).generateTransactionId())
     }
 
     @Test

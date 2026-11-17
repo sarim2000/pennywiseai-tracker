@@ -223,6 +223,5 @@ class BankOfBarodaParserTest {
             handleCases,
             "Bank of Baroda Parser Tests"
         )
-
     }
 }

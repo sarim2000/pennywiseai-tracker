@@ -135,7 +135,5 @@ class HuntingtonBankParserTest {
             handleCases = handleChecks,
             suiteName = "Huntington Bank Parser Tests"
         )
-
-
     }
 }

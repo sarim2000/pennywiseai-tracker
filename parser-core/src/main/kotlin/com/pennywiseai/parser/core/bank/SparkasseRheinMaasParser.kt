@@ -46,7 +46,7 @@ class SparkasseRheinMaasParser : BankParser() {
 
         // Skip OTP / verification codes if they ever appear.
         if (lower.contains("otp") ||
-            lower.contains("tan") && lower.contains("code") ||
+            (lower.contains("tan") && lower.contains("code")) ||
             lower.contains("verifizierungscode")
         ) {
             return false
@@ -118,7 +118,7 @@ class SparkasseRheinMaasParser : BankParser() {
 
     override fun detectIsCard(message: String): Boolean {
         return message.lowercase().contains("kartenwecker") ||
-                message.lowercase().contains("kartenumsatz")
+            message.lowercase().contains("kartenumsatz")
     }
 
     /**

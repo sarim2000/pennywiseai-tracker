@@ -14,28 +14,28 @@ class SliceParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("SLICE") ||
-                normalizedSender.contains("SLICEIT") ||
-                normalizedSender.contains("SLCEIT") ||  // Matches JD-SLCEIT-S and similar
-                normalizedSender.contains("SLCBNK")  // Slice SFB sender, e.g. VA-SLCBNK-S
+            normalizedSender.contains("SLICEIT") ||
+            normalizedSender.contains("SLCEIT") ||  // Matches JD-SLCEIT-S and similar
+            normalizedSender.contains("SLCBNK")  // Slice SFB sender, e.g. VA-SLCBNK-S
     }
 
     private fun isSuccessMessage(message: String): Boolean {
         val lower = message.lowercase()
         // Use word boundaries to avoid matching "unsuccessful"
-        return Regex("""\bsuccessful\b""").containsMatchIn(lower) || 
-               Regex("""\bsuccess\b""").containsMatchIn(lower) || 
-               lower.contains("approved") ||
-               lower.contains("confirmed")
+        return Regex("""\bsuccessful\b""").containsMatchIn(lower) ||
+            Regex("""\bsuccess\b""").containsMatchIn(lower) ||
+            lower.contains("approved") ||
+            lower.contains("confirmed")
     }
 
     private fun isFailureMessage(message: String): Boolean {
         val lower = message.lowercase()
         return lower.contains("declined") ||
-               lower.contains("failed") ||
-               lower.contains("rejected") ||
-               lower.contains("error") ||
-               lower.contains("denied") ||
-               lower.contains("unsuccessful")
+            lower.contains("failed") ||
+            lower.contains("rejected") ||
+            lower.contains("error") ||
+            lower.contains("denied") ||
+            lower.contains("unsuccessful")
     }
 
     private fun isDatePhrase(text: String): Boolean {
@@ -155,7 +155,7 @@ class SliceParser : BankParser() {
         val onPattern = Regex("""\bon\s+([A-Za-z0-9\s./&-]+?)(?:\s+is|$)""", RegexOption.IGNORE_CASE)
         onPattern.find(message)?.let { match ->
             val merchant = match.groupValues[1].trim()
-            if (merchant.isNotEmpty() && 
+            if (merchant.isNotEmpty() &&
                 !merchant.equals("slice", ignoreCase = true) &&
                 !merchant.equals("RS", ignoreCase = true) &&
                 !isDatePhrase(merchant)) {
@@ -224,13 +224,13 @@ class SliceParser : BankParser() {
      */
     private fun hasCardContext(lowerMessage: String): Boolean {
         return lowerMessage.contains("credit card") ||
-                lowerMessage.contains("credit limit") ||
-                lowerMessage.contains("available limit") ||
-                lowerMessage.contains("card ending") ||
-                lowerMessage.contains("card xx") ||
-                lowerMessage.contains("card no") ||
-                lowerMessage.contains("on your slice card") ||
-                lowerMessage.contains("slice card")
+            lowerMessage.contains("credit limit") ||
+            lowerMessage.contains("available limit") ||
+            lowerMessage.contains("card ending") ||
+            lowerMessage.contains("card xx") ||
+            lowerMessage.contains("card no") ||
+            lowerMessage.contains("on your slice card") ||
+            lowerMessage.contains("slice card")
     }
 
     override fun extractTransactionType(message: String): TransactionType? {

@@ -32,7 +32,7 @@ class OpayBankParser : BankParser() {
             return false
         }
         return Regex("""(?i)Dear\s+OPay\s+user""").containsMatchIn(message) &&
-                Regex("""(?i)has\s+been\s+(?:debited|credited)""").containsMatchIn(message)
+            Regex("""(?i)has\s+been\s+(?:debited|credited)""").containsMatchIn(message)
     }
 
     override fun extractTransactionType(message: String): TransactionType? {

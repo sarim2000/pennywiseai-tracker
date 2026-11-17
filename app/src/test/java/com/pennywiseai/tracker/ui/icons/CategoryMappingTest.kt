@@ -1,10 +1,10 @@
-import org.junit.Test
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
-import kotlin.test.assertEquals
-import kotlin.test.assertTrue
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.icons.IconProvider
 import com.pennywiseai.tracker.ui.icons.IconResource
+import org.junit.Test
+import kotlin.test.assertEquals
+import kotlin.test.assertTrue
 
 class CategoryMappingTest {
 
@@ -23,7 +23,6 @@ class CategoryMappingTest {
         assertEquals("Food & Dining", getCategory("GHL*JHAROKA BY INDUS BANGKOK  11 TH"))
         assertEquals("Food & Dining", getCategory("GHLJHAROKA BY INDUS BANGKOK  11 TH"))
         assertEquals("Food & Dining", getCategory("Ksher  *AKARASKYROOFTOBangkok TH"))
-
 
         assertEquals("Groceries", getCategory("7-11"))
 
@@ -54,7 +53,6 @@ class CategoryMappingTest {
         assertEquals("Travel", getCategory("WESTIN KL-FRONT OFFICE KUALA LUMPUR MY MY"))
         assertEquals("Travel", getCategory("WWW.MAGNOLIASSERVICEDRBANGKOK TH"))
         assertEquals("Travel", getCategory("FOUR POINTS BY SHERATOBANGKOK 11 TH"))
-
 
         assertEquals("Healthcare", getCategory("Life Pharm"))
         assertEquals("Healthcare", getCategory("Bumrungrad"))
@@ -217,7 +215,6 @@ class CategoryMappingTest {
         assertEquals(com.pennywiseai.tracker.R.string.category_tax, CategoryMapping.labelRes("Tax", rows)) // no row, still auto-assigned
         assertEquals(null, CategoryMapping.labelRes("Pets", rows))
     }
-
 }
 
 // Helper function to test categorization

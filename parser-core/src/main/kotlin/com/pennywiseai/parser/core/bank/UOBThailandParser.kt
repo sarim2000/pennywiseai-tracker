@@ -10,7 +10,7 @@ class UOBThailandParser : BaseThailandBankParser() {
     override fun canHandle(sender: String): Boolean {
         val upperSender = sender.uppercase()
         return upperSender == "UOB" ||
-                upperSender.contains("UOB THAILAND") ||
-                upperSender.contains("UOBTHAILAND")
+            upperSender.contains("UOB THAILAND") ||
+            upperSender.contains("UOBTHAILAND")
     }
 }

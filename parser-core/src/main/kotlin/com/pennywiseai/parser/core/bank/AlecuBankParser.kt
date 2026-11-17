@@ -21,8 +21,8 @@ class AlecuBankParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalized = sender.uppercase()
         return normalized == "39872" ||
-                normalized.contains("ALECU") ||
-                normalized.contains("ALEC")
+            normalized.contains("ALECU") ||
+            normalized.contains("ALEC")
     }
 
     override fun isTransactionMessage(message: String): Boolean {

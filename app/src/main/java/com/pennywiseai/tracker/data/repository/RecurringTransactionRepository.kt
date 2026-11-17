@@ -1,11 +1,11 @@
 package com.pennywiseai.tracker.data.repository
 
 import android.util.Log
-import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.RecurringTransactionDao
 import com.pennywiseai.tracker.data.database.entity.RecurringTransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.withTransaction
 import kotlinx.coroutines.flow.Flow
 import java.math.BigDecimal
 import java.security.MessageDigest
@@ -150,7 +150,7 @@ class RecurringTransactionRepository @Inject constructor(
     ): String {
         // Template id + due date make this deterministic per (template, cycle),
         // so a repeated run before the date advances collides on the unique hash.
-        val data = "RECURRING_${templateId}_${amount}_${merchant}_${dueDate}"
+        val data = "RECURRING_${templateId}_${amount}_${merchant}_$dueDate"
         return MessageDigest.getInstance("MD5")
             .digest(data.toByteArray())
             .joinToString("") { "%02x".format(it) }

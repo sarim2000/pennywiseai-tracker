@@ -40,5 +40,3 @@ data class ParsedTransaction(
         return md5Hex(data)
     }
 }
-
-

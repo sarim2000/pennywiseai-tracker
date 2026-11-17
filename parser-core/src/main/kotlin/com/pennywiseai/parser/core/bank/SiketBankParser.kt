@@ -23,9 +23,9 @@ class SiketBankParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalized = sender.uppercase().trim()
         return normalized == "SIKET BANK" ||
-                normalized == "SIKETBANK" ||
-                normalized == "SIKET" ||
-                normalized.matches(Regex("""^[A-Z]{2}-SIKET-[A-Z]$"""))
+            normalized == "SIKETBANK" ||
+            normalized == "SIKET" ||
+            normalized.matches(Regex("""^[A-Z]{2}-SIKET-[A-Z]$"""))
     }
 
     override fun extractAmount(message: String): BigDecimal? {

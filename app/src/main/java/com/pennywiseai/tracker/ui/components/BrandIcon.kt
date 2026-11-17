@@ -7,18 +7,18 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.MaterialShapes
-import androidx.compose.material3.toShape
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
@@ -27,8 +27,8 @@ import com.pennywiseai.tracker.ui.icons.BrandIcons
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.icons.IconProvider
 import com.pennywiseai.tracker.ui.icons.IconResource
-import com.pennywiseai.tracker.ui.icons.isValidCategoryOverride
 import com.pennywiseai.tracker.ui.icons.categoryLabel
+import com.pennywiseai.tracker.ui.icons.isValidCategoryOverride
 
 /**
  * Displays a brand icon with intelligent fallback
@@ -44,8 +44,8 @@ fun BrandIcon(
 ) {
     val iconResource = IconProvider.getTransactionIcon(merchantName, category)
 
-    val backgroundColor = if (category.isValidCategoryOverride()
-        && iconResource !is IconResource.DrawableResource
+    val backgroundColor = if (category.isValidCategoryOverride() &&
+        iconResource !is IconResource.DrawableResource
     ) {
         when (iconResource) {
             is IconResource.VectorIcon -> iconResource.tint
@@ -57,7 +57,7 @@ fun BrandIcon(
         brandColor?.let { Color(it.toColorInt()) }
             ?: MaterialTheme.colorScheme.surfaceVariant
     }
-    
+
     Box(
         modifier = modifier
             .size(size)
@@ -107,10 +107,10 @@ fun LetterAvatar(
     size: Dp = 40.dp
 ) {
     val letter = merchantName.firstOrNull()?.uppercase() ?: "?"
-    val backgroundColor = BrandIcons.getBrandColor(merchantName)?.let { 
-        Color(it.toColorInt()) 
+    val backgroundColor = BrandIcons.getBrandColor(merchantName)?.let {
+        Color(it.toColorInt())
     } ?: generateColorFromString(merchantName)
-    
+
     Box(
         modifier = modifier
             .size(size)
@@ -184,7 +184,7 @@ private fun generateColorFromString(str: String): Color {
         Color(0xFF43A047), // Green
         Color(0xFFE53935), // Red
     )
-    
+
     val hash = str.hashCode()
     return colors[Math.abs(hash) % colors.size]
 }

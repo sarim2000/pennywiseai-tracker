@@ -1,7 +1,5 @@
 package com.pennywiseai.tracker.widget
 
-import com.pennywiseai.tracker.utils.AppDates
-
 import android.content.Context
 import android.graphics.Bitmap
 import android.graphics.Canvas
@@ -50,6 +48,7 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.Typography
+import com.pennywiseai.tracker.utils.AppDates
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 import java.time.LocalDate

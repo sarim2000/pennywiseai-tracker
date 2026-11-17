@@ -135,8 +135,6 @@ class SouthIndianBankParserTest {
             handleCases = handleChecks,
             suiteName = "South Indian Bank Parser"
         )
-
-
     }
 
     @TestFactory
@@ -157,6 +155,5 @@ class SouthIndianBankParserTest {
         )
 
         return ParserTestUtils.runFactoryTestSuite(cases, "Factory smoke tests - South Indian Bank")
-
     }
 }

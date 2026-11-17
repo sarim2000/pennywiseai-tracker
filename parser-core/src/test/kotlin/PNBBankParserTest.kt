@@ -9,8 +9,8 @@ import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
 import org.junit.jupiter.api.DynamicTest
-import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.DynamicTest.dynamicTest
+import org.junit.jupiter.api.TestFactory
 import java.math.BigDecimal
 
 class PNBBankParserTest {
@@ -230,7 +230,6 @@ class PNBBankParserTest {
             "PNBBNK" to true,
             "UNKNOWN" to false
         )
-
 
         return ParserTestUtils.runTestSuite(
             parser = parser,

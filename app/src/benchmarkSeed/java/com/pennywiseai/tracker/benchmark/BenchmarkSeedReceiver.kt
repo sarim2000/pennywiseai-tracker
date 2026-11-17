@@ -12,12 +12,12 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import dagger.hilt.android.AndroidEntryPoint
-import java.math.BigDecimal
-import java.time.LocalDateTime
-import javax.inject.Inject
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
+import java.math.BigDecimal
+import java.time.LocalDateTime
+import javax.inject.Inject
 
 /**
  * Benchmark variants only (never in release): puts the app past onboarding with

@@ -35,7 +35,7 @@ class KeystoneBankParser : BankParser() {
             return false
         }
         return Regex("""(?im)^\s*(debit|credit)!""").containsMatchIn(message) &&
-                Regex("""(?i)Amt:\s*NGN""").containsMatchIn(message)
+            Regex("""(?i)Amt:\s*NGN""").containsMatchIn(message)
     }
 
     override fun extractTransactionType(message: String): TransactionType? {

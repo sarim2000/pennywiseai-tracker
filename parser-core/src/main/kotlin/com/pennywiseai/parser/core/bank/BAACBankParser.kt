@@ -10,6 +10,6 @@ class BAACBankParser : BaseThailandBankParser() {
     override fun canHandle(sender: String): Boolean {
         val upperSender = sender.uppercase()
         return upperSender == "BAAC" ||
-                upperSender.contains("AGRICULTURE")
+            upperSender.contains("AGRICULTURE")
     }
 }

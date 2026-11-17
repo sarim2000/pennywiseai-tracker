@@ -22,9 +22,9 @@ class OldHickoryParser : BankParser() {
             // Text-based senders
             sender.uppercase().let { upper ->
                 upper == "OLDHICKORY" ||
-                        upper == "OHCU" ||
-                        upper.contains("HICKORY") ||
-                        upper.contains("OLD HICKORY")
+                    upper == "OHCU" ||
+                    upper.contains("HICKORY") ||
+                    upper.contains("OLD HICKORY")
             } -> true
 
             // DLT patterns for US credit unions

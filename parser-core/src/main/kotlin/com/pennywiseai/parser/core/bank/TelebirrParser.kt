@@ -6,7 +6,7 @@ import java.math.BigDecimal
 /**
  * Parser for Telebirr - handles ETB currency transactions
  */
-class TelebirrParser: BankParser() {
+class TelebirrParser : BankParser() {
 
     override fun getBankName() = "Telebirr"
 
@@ -15,12 +15,12 @@ class TelebirrParser: BankParser() {
     override fun canHandle(sender: String): Boolean {
         val upperSender = sender.uppercase().trim()
         return upperSender == "127" ||
-                upperSender.contains("127") ||
-                // DLT patterns for Ethiopia: "XX-127-X" format
-                upperSender.matches(Regex("""^[A-Z]{2}-127-[A-Z]$""")) ||
-                // Alternative patterns: "127-XXX" or "XXX-127"
-                upperSender.matches(Regex("""^127-[A-Z0-9]+$""")) ||
-                upperSender.matches(Regex("""^[A-Z0-9]+-127$"""))
+            upperSender.contains("127") ||
+            // DLT patterns for Ethiopia: "XX-127-X" format
+            upperSender.matches(Regex("""^[A-Z]{2}-127-[A-Z]$""")) ||
+            // Alternative patterns: "127-XXX" or "XXX-127"
+            upperSender.matches(Regex("""^127-[A-Z0-9]+$""")) ||
+            upperSender.matches(Regex("""^[A-Z0-9]+-127$"""))
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -56,9 +56,9 @@ class TelebirrParser: BankParser() {
             // - Deposit TO saving account => money leaves telebirr wallet => EXPENSE
             // - Withdraw FROM saving account => money enters telebirr wallet => INCOME
             lowerMessage.contains("deposited etb") &&
-                    lowerMessage.contains("to your saving account") -> TransactionType.EXPENSE
+                lowerMessage.contains("to your saving account") -> TransactionType.EXPENSE
             (lowerMessage.contains(" withdraw etb") || lowerMessage.contains("withdraw etb")) &&
-                    lowerMessage.contains("from your saving account") -> TransactionType.INCOME
+                lowerMessage.contains("from your saving account") -> TransactionType.INCOME
 
             // Credit transactions are income
             lowerMessage.contains("you have received") -> TransactionType.INCOME

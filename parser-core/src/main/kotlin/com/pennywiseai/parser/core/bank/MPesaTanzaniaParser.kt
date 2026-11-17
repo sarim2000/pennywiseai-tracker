@@ -63,10 +63,10 @@ class MPesaTanzaniaParser : BankParser() {
         val normalizedSender = sender.uppercase()
         // M-Pesa Tanzania uses same sender IDs as Kenya; differentiation is by content.
         return normalizedSender.contains("MPESA") ||
-                normalizedSender.contains("M-PESA") ||
-                normalizedSender == "MPESA" ||
-                normalizedSender == "M-PESA" ||
-                normalizedSender.contains("VODACOM")
+            normalizedSender.contains("M-PESA") ||
+            normalizedSender == "MPESA" ||
+            normalizedSender == "M-PESA" ||
+            normalizedSender.contains("VODACOM")
     }
 
     /**

@@ -137,7 +137,7 @@ internal fun TrackingPage(
             iconTint = indigo_dark,
             title = stringResource(R.string.settings_tracked_apps_title),
             subtitle = if (trackedApps.isEmpty()) stringResource(R.string.settings_tracked_apps_subtitle_none)
-                else pluralStringResource(R.plurals.settings_tracked_apps_subtitle_count, trackedApps.size, trackedApps.size),
+            else pluralStringResource(R.plurals.settings_tracked_apps_subtitle_count, trackedApps.size, trackedApps.size),
             onClick = { showTrackedAppsDialog = true },
             position = ListItemPosition.Bottom
         )
@@ -178,7 +178,7 @@ internal fun TrackingPage(
                 add(
                     SettingsChoice(
                         label = if (customDate != null) stringResource(R.string.settings_sms_scan_option_custom_with_date, customDate)
-                            else stringResource(R.string.settings_sms_scan_option_custom),
+                        else stringResource(R.string.settings_sms_scan_option_custom),
                         selected = smsScanUseCustomDate && !smsScanAllTime,
                     ) { customDatePicked = true }
                 )
@@ -186,7 +186,7 @@ internal fun TrackingPage(
                     add(
                         SettingsChoice(
                             label = if (months == 24) pluralStringResource(R.plurals.settings_sms_scan_option_years, 2, 2)
-                                else pluralStringResource(R.plurals.settings_sms_scan_option_months, months, months),
+                            else pluralStringResource(R.plurals.settings_sms_scan_option_months, months, months),
                             selected = monthly && smsScanMonths == months,
                         ) {
                             settingsViewModel.updateSmsScanMonths(months)

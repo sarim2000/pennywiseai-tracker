@@ -10,7 +10,7 @@ class KrungThaiBankParser : BaseThailandBankParser() {
     override fun canHandle(sender: String): Boolean {
         val upperSender = sender.uppercase()
         return upperSender == "KTB" ||
-                upperSender.contains("KRUNGTHAI") ||
-                upperSender.contains("KRUNG THAI")
+            upperSender.contains("KRUNGTHAI") ||
+            upperSender.contains("KRUNG THAI")
     }
 }

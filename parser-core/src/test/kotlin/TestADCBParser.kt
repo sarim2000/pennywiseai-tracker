@@ -246,6 +246,5 @@ class ADCBParserTest {
         )
         val result =
             return ParserTestUtils.runTestSuite(parser, testCases, handleCases, "ADCB Parser Tests")
-
     }
 }

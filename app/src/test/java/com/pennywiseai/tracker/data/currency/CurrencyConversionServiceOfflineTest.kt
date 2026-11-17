@@ -11,13 +11,13 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import java.math.BigDecimal
-import java.util.concurrent.CountDownLatch
-import java.time.LocalDateTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.math.BigDecimal
+import java.time.LocalDateTime
+import java.util.concurrent.CountDownLatch
 
 /**
  * #881: with the network down or the app's internet blocked, a failed lazy rate

@@ -3,11 +3,11 @@ package com.pennywiseai.tracker.data.database.entity
 import androidx.room3.ColumnInfo
 import androidx.room3.Entity
 import androidx.room3.PrimaryKey
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.Serializable
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
-import kotlinx.serialization.Contextual
-import kotlinx.serialization.Serializable
 
 @Entity(tableName = "subscriptions")
 @Serializable
@@ -15,10 +15,10 @@ data class SubscriptionEntity(
     @PrimaryKey(autoGenerate = true)
     @ColumnInfo(name = "id")
     val id: Long = 0,
-    
+
     @ColumnInfo(name = "merchant_name")
     val merchantName: String,
-    
+
     @ColumnInfo(name = "amount")
     @Contextual
     val amount: BigDecimal,
@@ -26,10 +26,10 @@ data class SubscriptionEntity(
     @ColumnInfo(name = "next_payment_date")
     @Contextual
     val nextPaymentDate: LocalDate?,
-    
+
     @ColumnInfo(name = "state")
     val state: SubscriptionState = SubscriptionState.ACTIVE,
-    
+
     @ColumnInfo(name = "bank_name")
     val bankName: String? = null,
 
@@ -44,13 +44,13 @@ data class SubscriptionEntity(
 
     @ColumnInfo(name = "umn")
     val umn: String? = null, // Unique Mandate Number for E-Mandates
-    
+
     @ColumnInfo(name = "category")
     val category: String? = null,
-    
+
     @ColumnInfo(name = "sms_body")
     val smsBody: String? = null,
-    
+
     @ColumnInfo(name = "created_at")
     @Contextual
     val createdAt: LocalDateTime = LocalDateTime.now(),

@@ -22,8 +22,8 @@ class KeralaGraminBankParser : BaseIndianBankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("KGBANK") ||
-                normalizedSender.contains("KERALA GRAMIN") ||
-                normalizedSender.contains("KERALAGR")
+            normalizedSender.contains("KERALA GRAMIN") ||
+            normalizedSender.contains("KERALAGR")
     }
 
     override fun extractAmount(message: String): BigDecimal? {

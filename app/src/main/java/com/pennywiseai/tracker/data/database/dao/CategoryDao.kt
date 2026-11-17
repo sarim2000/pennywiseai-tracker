@@ -7,13 +7,13 @@ import kotlinx.coroutines.flow.Flow
 
 @Dao
 interface CategoryDao {
-    
+
     @Query("SELECT * FROM categories ORDER BY display_order ASC, name ASC")
     fun getAllCategories(): Flow<List<CategoryEntity>>
-    
+
     @Query("SELECT * FROM categories WHERE is_income = 0 ORDER BY display_order ASC, name ASC")
     fun getExpenseCategories(): Flow<List<CategoryEntity>>
-    
+
     @Query("SELECT * FROM categories WHERE is_income = 1 ORDER BY display_order ASC, name ASC")
     fun getIncomeCategories(): Flow<List<CategoryEntity>>
 
@@ -71,28 +71,28 @@ interface CategoryDao {
     /** Deleting a parent promotes its children to top level (#374). */
     @Query("UPDATE categories SET parent_id = NULL WHERE parent_id = :parentId")
     suspend fun detachChildren(parentId: Long)
-    
+
     @Query("SELECT * FROM categories WHERE name = :categoryName LIMIT 1")
     suspend fun getCategoryByName(categoryName: String): CategoryEntity?
-    
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertCategory(category: CategoryEntity): Long
-    
+
     @Insert(onConflict = OnConflictStrategy.IGNORE)
     suspend fun insertCategories(categories: List<CategoryEntity>)
-    
+
     @Update
     suspend fun updateCategory(category: CategoryEntity)
-    
+
     @Query("DELETE FROM categories WHERE id = :categoryId AND is_system = 0")
     suspend fun deleteCategory(categoryId: Long)
-    
+
     @Query("SELECT COUNT(*) FROM categories")
     suspend fun getCategoryCount(): Int
-    
+
     @Query("SELECT EXISTS(SELECT 1 FROM categories WHERE name = :categoryName)")
     suspend fun categoryExists(categoryName: String): Boolean
-    
+
     @Query("DELETE FROM categories")
     suspend fun deleteAllCategories()
 

@@ -4,8 +4,8 @@ import com.pennywiseai.parser.core.TransactionType
 import com.pennywiseai.parser.core.test.ExpectedTransaction
 import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ParserTestUtils
-import org.junit.jupiter.api.TestFactory
 import org.junit.jupiter.api.DynamicTest
+import org.junit.jupiter.api.TestFactory
 import java.math.BigDecimal
 
 class GreaterBankParserTest {

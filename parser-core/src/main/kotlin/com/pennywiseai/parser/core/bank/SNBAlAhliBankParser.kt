@@ -24,10 +24,10 @@ class SNBAlAhliBankParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalized = sender.uppercase()
         return normalized.contains("SNB") ||
-                normalized.contains("ALAHLI") ||
-                normalized.contains("AL-AHLI") ||
-                normalized.contains("AL AHLI") ||
-                sender.contains("الأهلي")
+            normalized.contains("ALAHLI") ||
+            normalized.contains("AL-AHLI") ||
+            normalized.contains("AL AHLI") ||
+            sender.contains("الأهلي")
     }
 
     override fun extractAmount(message: String): BigDecimal? {

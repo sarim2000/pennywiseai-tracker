@@ -118,6 +118,5 @@ class AlinmaBankParserTest {
 
         val result =
             return ParserTestUtils.runTestSuite(parser, testCases, handleCases, "Alinma Bank Parser Tests")
-
     }
 }

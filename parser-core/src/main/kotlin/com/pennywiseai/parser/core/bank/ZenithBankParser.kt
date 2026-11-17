@@ -35,7 +35,7 @@ class ZenithBankParser : BankParser() {
             return false
         }
         return Regex("""(?i)(?:DR|CR)\s*Amt:""").containsMatchIn(message) &&
-                Regex("""(?i)Acct:""").containsMatchIn(message)
+            Regex("""(?i)Acct:""").containsMatchIn(message)
     }
 
     override fun extractTransactionType(message: String): TransactionType? {

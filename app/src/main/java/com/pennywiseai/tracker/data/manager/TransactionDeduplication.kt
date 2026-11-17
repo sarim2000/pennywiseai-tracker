@@ -166,8 +166,8 @@ object TransactionDeduplication {
 
     private fun accountsMatch(existingAccount: String?, incomingAccount: String?): Boolean {
         return existingAccount.isNullOrBlank() ||
-                incomingAccount.isNullOrBlank() ||
-                existingAccount == incomingAccount
+            incomingAccount.isNullOrBlank() ||
+            existingAccount == incomingAccount
     }
 
     private data class DuplicateKey(

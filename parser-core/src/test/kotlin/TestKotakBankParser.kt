@@ -254,8 +254,6 @@ class KotakBankParserTest {
             handleCases = handleChecks,
             suiteName = "Kotak Bank Parser"
         )
-
-
     }
 
     private val kotakAtm =

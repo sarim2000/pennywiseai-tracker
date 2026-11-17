@@ -29,7 +29,7 @@ class ModelRepository @Inject constructor(
         Log.d("ModelRepository", "Model file path: ${file.absolutePath}")
         return file
     }
-    
+
     fun isModelDownloaded(): Boolean {
         val modelFile = getModelFile()
         val exists = modelFile.exists()
@@ -39,11 +39,11 @@ class ModelRepository @Inject constructor(
         // But also accept any file over 2GB as models can vary in size
         val minSize = minOf((expectedSize * 0.95).toLong(), 2L * 1024L * 1024L * 1024L) // 95% of expected or 2GB minimum
         val isDownloaded = exists && size >= minSize
-        
-        Log.d("ModelRepository", "Checking model: exists=$exists, size=$size bytes (${size/1024/1024}MB), expectedSize=$expectedSize, minSize=$minSize, isDownloaded=$isDownloaded")
+
+        Log.d("ModelRepository", "Checking model: exists=$exists, size=$size bytes (${size / 1024 / 1024}MB), expectedSize=$expectedSize, minSize=$minSize, isDownloaded=$isDownloaded")
         return isDownloaded
     }
-    
+
     /**
      * Verifies the downloaded model against the pinned [Constants.ModelDownload.MODEL_SHA256]
      * by streaming its full SHA-256 — every call actually re-hashes the bytes on disk.

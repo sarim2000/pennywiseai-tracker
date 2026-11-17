@@ -266,6 +266,5 @@ Not you? SMS BLOCK 6018 to 919951860002""",
 
         val result =
             return ParserTestUtils.runTestSuite(parser, testCases, handleCases, "Axis Bank Parser Tests")
-
     }
 }

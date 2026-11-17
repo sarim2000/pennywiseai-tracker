@@ -156,7 +156,6 @@ internal class SmsScanClassifier(
         sms: ScannedSms,
         isRecent: Boolean
     ): ParseResult? = when (parser) {
-
         is SBIBankParser -> {
             if (!parser.isUPIMandateNotification(sms.body) || !isRecent) null
             else parser.parseUPIMandateSubscription(sms.body)?.let { info ->

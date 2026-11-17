@@ -13,8 +13,8 @@ class UtkarshBankParser : BaseIndianBankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("UTKSPR") ||
-                normalizedSender.contains("UTKARSH") ||
-                normalizedSender.contains("UTKSFB")
+            normalizedSender.contains("UTKARSH") ||
+            normalizedSender.contains("UTKSFB")
     }
 
     override fun extractMerchant(message: String, sender: String): String? {

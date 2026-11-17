@@ -96,6 +96,5 @@ class BankOfIndiaParserTest {
             handleCases,
             "Bank of India Parser Tests"
         )
-
     }
 }

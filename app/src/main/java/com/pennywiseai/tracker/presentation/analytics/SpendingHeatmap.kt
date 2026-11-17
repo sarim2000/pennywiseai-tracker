@@ -1,7 +1,6 @@
 package com.pennywiseai.tracker.presentation.analytics
 
-import java.time.format.TextStyle
-import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
@@ -16,11 +15,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.animation.core.Animatable
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.ui.components.BalancePoint
 import com.pennywiseai.tracker.ui.components.buildHeatmapMonthLabels
 import java.time.DayOfWeek
+import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit
 
 @Composable

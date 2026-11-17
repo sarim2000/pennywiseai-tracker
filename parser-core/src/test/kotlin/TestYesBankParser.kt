@@ -116,7 +116,5 @@ class YesBankParserTest {
             ),
             suiteName = "Yes Bank Parser"
         )
-
-
     }
 }

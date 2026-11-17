@@ -38,7 +38,7 @@ class MPesaMozambiqueParser : BankParser() {
         val normalizedSender = sender.uppercase()
         // M-Pesa Mozambique uses the same sender ID; differentiation is by content.
         return normalizedSender.contains("MPESA") ||
-                normalizedSender.contains("M-PESA")
+            normalizedSender.contains("M-PESA")
     }
 
     /**
@@ -54,7 +54,7 @@ class MPesaMozambiqueParser : BankParser() {
 
     private fun isMozambiqueMessage(message: String): Boolean {
         return message.contains("Confirmado", ignoreCase = true) &&
-                message.contains("MT", ignoreCase = false)
+            message.contains("MT", ignoreCase = false)
     }
 
     private fun parseAmount(raw: String): BigDecimal? {

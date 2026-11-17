@@ -80,6 +80,5 @@ Your  Esewa Wallet Load for 9850000007 of 300.00 is successful on 24-May-2025 18
 
         val result =
             return ParserTestUtils.runTestSuite(parser, testCases, handleCases, "NMB Bank Parser Tests")
-
     }
 }

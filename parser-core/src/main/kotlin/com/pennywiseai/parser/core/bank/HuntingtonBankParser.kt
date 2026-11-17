@@ -25,9 +25,9 @@ class HuntingtonBankParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val upperSender = sender.uppercase()
         return upperSender == "446622" || // Huntington's US alert shortcode
-                upperSender.contains("HUNTINGTON") ||
-                upperSender == "HUNTINGTON BANK" ||
-                upperSender.matches(Regex("""^[A-Z]{2}-HUNTINGTON-[A-Z]$"""))
+            upperSender.contains("HUNTINGTON") ||
+            upperSender == "HUNTINGTON BANK" ||
+            upperSender.matches(Regex("""^[A-Z]{2}-HUNTINGTON-[A-Z]$"""))
     }
 
     override fun extractAmount(message: String): BigDecimal? {

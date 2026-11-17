@@ -40,13 +40,13 @@ class CsvExporter @Inject constructor(
             "Description",
             "SMS Body"
         )
-        
+
         // Date and time formatters
         private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
         private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
         private val fileNameFormatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")
     }
-    
+
     /**
      * Exports transactions to CSV file with progress updates
      * @param transactions List of transactions to export
@@ -58,24 +58,24 @@ class CsvExporter @Inject constructor(
         fileName: String? = null
     ): Flow<ExportResult> = flow {
         emit(ExportResult.Progress(0f, "Preparing export..."))
-        
+
         try {
             // Prepare export directory
             val exportDir = File(context.cacheDir, EXPORT_DIR)
             if (!exportDir.exists()) {
                 exportDir.mkdirs()
             }
-            
+
             // Clean up old export files (older than 24 hours)
             cleanOldExports(exportDir)
-            
+
             // Generate filename
             val timestamp = LocalDateTime.now().format(fileNameFormatter)
             val finalFileName = fileName ?: "transactions_$timestamp"
             val file = File(exportDir, "$finalFileName.csv")
-            
+
             emit(ExportResult.Progress(0.1f, "Creating CSV file..."))
-            
+
             // Write CSV using OpenCSV for proper escaping
             FileWriter(file).use { fileWriter ->
                 CSVWriter(fileWriter).use { csvWriter ->
@@ -85,7 +85,7 @@ class CsvExporter @Inject constructor(
                     val totalTransactions = transactions.size
                     transactions.forEachIndexed { index, transaction ->
                         csvWriter.writeNext(transaction.toCsvRow())
-                        
+
                         // Update progress (10% to 90% for writing)
                         val progress = 0.1f + (0.8f * (index + 1) / totalTransactions)
                         if (index % 100 == 0 || index == totalTransactions - 1) {
@@ -97,16 +97,16 @@ class CsvExporter @Inject constructor(
                     }
                 }
             }
-            
+
             emit(ExportResult.Progress(0.95f, "Finalizing export..."))
-            
+
             // Generate content URI for sharing
             val uri = FileProvider.getUriForFile(
                 context,
                 "${context.packageName}$PROVIDER_AUTHORITY",
                 file
             )
-            
+
             emit(ExportResult.Progress(1.0f, "Export complete!"))
             emit(ExportResult.Success(
                 uri = uri,
@@ -114,7 +114,6 @@ class CsvExporter @Inject constructor(
                 transactionCount = transactions.size,
                 fileSizeBytes = file.length()
             ))
-            
         } catch (e: Exception) {
             emit(ExportResult.Error(
                 message = "Failed to export transactions: ${e.message}",
@@ -122,7 +121,7 @@ class CsvExporter @Inject constructor(
             ))
         }
     }.flowOn(Dispatchers.IO)
-    
+
     /**
      * Exports transactions directly to file (blocking version for simple use cases)
      */
@@ -134,11 +133,11 @@ class CsvExporter @Inject constructor(
         if (!exportDir.exists()) {
             exportDir.mkdirs()
         }
-        
+
         val timestamp = LocalDateTime.now().format(fileNameFormatter)
         val finalFileName = fileName ?: "transactions_$timestamp"
         val file = File(exportDir, "$finalFileName.csv")
-        
+
         FileWriter(file).use { fileWriter ->
             CSVWriter(fileWriter).use { csvWriter ->
                 csvWriter.writeNext(CSV_HEADER)
@@ -149,14 +148,14 @@ class CsvExporter @Inject constructor(
                 }
             }
         }
-        
+
         FileProvider.getUriForFile(
             context,
             "${context.packageName}$PROVIDER_AUTHORITY",
             file
         )
     }
-    
+
     /**
      * Cleans up old export files older than 24 hours
      */
@@ -203,14 +202,14 @@ sealed class ExportResult {
         val progress: Float, // 0.0 to 1.0
         val message: String
     ) : ExportResult()
-    
+
     data class Success(
         val uri: Uri,
         val fileName: String,
         val transactionCount: Int,
         val fileSizeBytes: Long
     ) : ExportResult()
-    
+
     data class Error(
         val message: String,
         val exception: Exception? = null

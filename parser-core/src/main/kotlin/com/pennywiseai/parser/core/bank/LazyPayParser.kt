@@ -16,7 +16,7 @@ class LazyPayParser : BankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("LZYPAY") ||
-                normalizedSender.contains("LAZYPAY")
+            normalizedSender.contains("LAZYPAY")
     }
 
     override fun extractMerchant(message: String, sender: String): String? {

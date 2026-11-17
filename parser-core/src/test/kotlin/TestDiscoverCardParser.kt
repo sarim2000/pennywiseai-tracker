@@ -82,7 +82,5 @@ class DiscoverCardParserTest {
             handleCases = handleChecks,
             suiteName = "Discover Card Parser"
         )
-
-
     }
 }

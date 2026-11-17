@@ -20,9 +20,9 @@ class DhanlaxmiBankParser : BaseIndianBankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("DHANBK") ||
-                normalizedSender.contains("DHANLAXMI") ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-DHANBK-?[A-Z]?$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-DHANBK$"))
+            normalizedSender.contains("DHANLAXMI") ||
+            normalizedSender.matches(Regex("^[A-Z]{2}-DHANBK-?[A-Z]?$")) ||
+            normalizedSender.matches(Regex("^[A-Z]{2}-DHANBK$"))
     }
 
     override fun extractAmount(message: String): BigDecimal? {

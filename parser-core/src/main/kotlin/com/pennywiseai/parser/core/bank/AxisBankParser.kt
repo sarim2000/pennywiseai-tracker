@@ -13,20 +13,20 @@ class AxisBankParser : BaseIndianBankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("AXIS BANK") ||
-                normalizedSender.contains("AXISBANK") ||
-                normalizedSender.contains("AXISBK") ||
-                normalizedSender.contains("AXISB") ||
-                // DLT patterns for transactions (-S suffix)
-                normalizedSender.matches(Regex("^[A-Z]{2}-AXISBK-S$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-AXISBANK-S$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-AXIS-S$")) ||
-                // Legacy patterns
-                normalizedSender.matches(Regex("^[A-Z]{2}-AXISBK$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-AXIS$")) ||
-                // Direct sender IDs
-                normalizedSender == "AXISBK" ||
-                normalizedSender == "AXISBANK" ||
-                normalizedSender == "AXIS"
+            normalizedSender.contains("AXISBANK") ||
+            normalizedSender.contains("AXISBK") ||
+            normalizedSender.contains("AXISB") ||
+            // DLT patterns for transactions (-S suffix)
+            normalizedSender.matches(Regex("^[A-Z]{2}-AXISBK-S$")) ||
+            normalizedSender.matches(Regex("^[A-Z]{2}-AXISBANK-S$")) ||
+            normalizedSender.matches(Regex("^[A-Z]{2}-AXIS-S$")) ||
+            // Legacy patterns
+            normalizedSender.matches(Regex("^[A-Z]{2}-AXISBK$")) ||
+            normalizedSender.matches(Regex("^[A-Z]{2}-AXIS$")) ||
+            // Direct sender IDs
+            normalizedSender == "AXISBK" ||
+            normalizedSender == "AXISBANK" ||
+            normalizedSender == "AXIS"
     }
 
     /**

@@ -28,8 +28,8 @@ class EmiratesIslamicParser : UAEBankParser() {
         // two-letter "EI" substring (far too broad; would steal other banks' SMS).
         val normalizedSender = sender.uppercase().replace(Regex("\\s+"), "")
         return normalizedSender == "EISMS" ||
-                normalizedSender == "EMIRATESISLAMIC" ||
-                normalizedSender == "EMIRATESISLAMICBANK"
+            normalizedSender == "EMIRATESISLAMIC" ||
+            normalizedSender == "EMIRATESISLAMICBANK"
     }
 
     override fun isTransactionMessage(message: String): Boolean {

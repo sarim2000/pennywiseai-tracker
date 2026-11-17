@@ -145,7 +145,5 @@ class ZemenBankParserTest {
             handleCases = handleChecks,
             suiteName = "Zemen Bank Parser"
         )
-
-
     }
 }

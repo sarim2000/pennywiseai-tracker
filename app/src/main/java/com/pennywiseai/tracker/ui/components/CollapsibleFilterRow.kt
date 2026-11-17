@@ -1,11 +1,5 @@
 package com.pennywiseai.tracker.ui.components
 
-import com.pennywiseai.tracker.ui.animations.chevronRotation
-import com.pennywiseai.tracker.ui.animations.pwCollapse
-import com.pennywiseai.tracker.ui.animations.pwExpand
-import androidx.compose.ui.res.pluralStringResource
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
@@ -18,8 +12,14 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.rotate
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.ui.animations.chevronRotation
+import com.pennywiseai.tracker.ui.animations.pwCollapse
+import com.pennywiseai.tracker.ui.animations.pwExpand
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 
@@ -32,7 +32,7 @@ fun CollapsibleFilterRow(
     content: @Composable () -> Unit
 ) {
     val rotationAngle = chevronRotation(isExpanded)
-    
+
     Column(modifier = modifier) {
         // Toggle button
         Row(
@@ -49,7 +49,7 @@ fun CollapsibleFilterRow(
                 modifier = Modifier.size(Dimensions.Icon.small),
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            
+
             Text(
                 text = if (activeFilterCount > 0) {
                     pluralStringResource(R.plurals.filter_row_more_active, activeFilterCount, activeFilterCount)
@@ -65,7 +65,7 @@ fun CollapsibleFilterRow(
                 fontWeight = if (activeFilterCount > 0) FontWeight.Medium else FontWeight.Normal,
                 modifier = Modifier.weight(1f)
             )
-            
+
             Icon(
                 imageVector = Icons.Default.ExpandMore,
                 contentDescription = if (isExpanded) stringResource(R.string.filter_row_collapse) else stringResource(R.string.filter_row_expand),
@@ -75,7 +75,7 @@ fun CollapsibleFilterRow(
                 tint = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        
+
         // Expandable content
         AnimatedVisibility(
             visible = isExpanded,

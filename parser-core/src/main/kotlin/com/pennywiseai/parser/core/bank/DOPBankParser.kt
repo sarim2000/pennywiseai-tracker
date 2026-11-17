@@ -12,10 +12,10 @@ class DOPBankParser : BaseIndianBankParser() {
     override fun canHandle(sender: String): Boolean {
         val upper = sender.uppercase()
         return upper.contains("DOPBNK") ||
-                upper.contains("DEPARTMENT OF POST") ||
-                upper.contains("DOP-") ||
-                upper.endsWith("-DOP") ||
-                upper == "DOP"
+            upper.contains("DEPARTMENT OF POST") ||
+            upper.contains("DOP-") ||
+            upper.endsWith("-DOP") ||
+            upper == "DOP"
     }
 
     override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {

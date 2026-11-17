@@ -174,6 +174,5 @@ class MPESAParserTest {
 
         val result =
             return ParserTestUtils.runTestSuite(parser, testCases, handleCases, "M-PESA Parser Tests")
-
     }
 }

@@ -145,6 +145,5 @@ class PriorbankParserTest {
 
         val result =
             return ParserTestUtils.runTestSuite(parser, testCases, handleCases, "Priorbank Parser Tests")
-
     }
 }

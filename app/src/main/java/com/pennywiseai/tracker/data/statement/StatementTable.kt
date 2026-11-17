@@ -111,7 +111,7 @@ object StatementTableParser {
     fun readTable(bytes: ByteArray): List<List<String>> = when {
         bytes.startsWith(0x50, 0x4B, 0x03, 0x04) -> XlsxReader.readRows(ByteArrayInputStream(bytes))
         bytes.startsWith(0xD0, 0xCF, 0x11, 0xE0) -> throw LegacyXlsException()
-        else -> readCsv(String(bytes, Charsets.UTF_8).removePrefix("﻿"))
+        else -> readCsv(String(bytes, Charsets.UTF_8).removePrefix(""))
     }
 
     fun readCsv(text: String): List<List<String>> {
@@ -481,8 +481,7 @@ object StatementTableParser {
 
     /** Day numbers of 1990-01-01 … 2100-12-31 ([YEARS]) in Excel's 1900 system. */
     private val SERIAL_RANGE: ClosedFloatingPointRange<Double> =
-        ChronoUnit.DAYS.between(EXCEL_EPOCH, LocalDate.of(YEARS.first, 1, 1)).toDouble()..
-            ChronoUnit.DAYS.between(EXCEL_EPOCH, LocalDate.of(YEARS.last, 12, 31)).toDouble()
+        ChronoUnit.DAYS.between(EXCEL_EPOCH, LocalDate.of(YEARS.first, 1, 1)).toDouble()..ChronoUnit.DAYS.between(EXCEL_EPOCH, LocalDate.of(YEARS.last, 12, 31)).toDouble()
 
     private const val ISOLATION_DAYS = 366L
 }

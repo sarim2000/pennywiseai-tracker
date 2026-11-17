@@ -60,8 +60,8 @@ class EnparaBankParser : BankParser() {
 
         // Must look like one of the three known transaction notification shapes.
         return lower.contains("harcama yapıldı") ||
-                lower.contains("para transferi") ||
-                lower.contains("giriş oldu")
+            lower.contains("para transferi") ||
+            lower.contains("giriş oldu")
     }
 
     override fun extractAmount(message: String): BigDecimal? {

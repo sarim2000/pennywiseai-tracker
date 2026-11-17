@@ -52,6 +52,14 @@ internal class ProcessingStats(val total: Int) {
         failed = failed.get(),
     )
 
+    /**
+     * Whether the incremental scan cursor may move past this scan's window. A failed save
+     * keeps it put, so the next ordinary scan reads that window again; what did save is
+     * deduped then. Moving it would leave a failed message older than the 3-day overlap
+     * unread for good, and the next clean scan would clear the failed-save warning.
+     */
+    fun mayAdvanceCursor() = failed.get() == 0
+
     private val RING_SIZE          = 8192
     private val MIN_SAMPLES        = 10
     private val ring               = java.util.concurrent.atomic.AtomicLongArray(RING_SIZE)

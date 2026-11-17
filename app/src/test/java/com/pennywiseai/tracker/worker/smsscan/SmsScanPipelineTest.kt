@@ -1,7 +1,10 @@
 package com.pennywiseai.tracker.worker.smsscan
 
+import com.pennywiseai.tracker.core.TimeConstants
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.manager.SmsScanParamsCalculator
+import com.pennywiseai.tracker.data.manager.SmsScanParamsInput
 import com.pennywiseai.tracker.data.mapper.toEntity
 import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
 import com.pennywiseai.tracker.domain.smsimport.SmsScanCounts
@@ -177,6 +180,47 @@ class SmsScanPipelineTest {
         assertEquals(5, h.store.all.size)
         assertEquals(SmsScanCounts(saved = 5, failed = 1), stats.counts())
         assertEquals(6, stats.counts().examined)
+    }
+
+    @Test
+    fun `a failed save keeps the scan cursor, so an ordinary retry re-reads and saves it`() = scanTest {
+        val day = TimeConstants.MILLIS_PER_DAY
+        val lastScan = 1_760_000_000_000L
+        val firstRun = lastScan + 10 * day
+        val retryRun = firstRun + 60 * 60_000L
+        // Inside the first scan's window, but older than the retry's 3-day overlap.
+        val old = hdfcDebit(1).copy(timestamp = lastScan + day)
+        val inbox = object : SmsMessageSource {
+            override suspend fun streamTo(feed: SendChannel<ScannedSms>, scanStartMillis: Long) {
+                if (old.timestamp >= scanStartMillis) feed.send(old)
+            }
+        }
+        fun scanStart(cursor: Long, now: Long) = SmsScanParamsCalculator.compute(
+            SmsScanParamsInput(
+                lastScanTimestamp = cursor,
+                scanMonths = 12,
+                scanAllTime = false,
+                scanUseCustomDate = false,
+                lastScanPeriod = 12,
+                nowMillis = now,
+            )
+        ).scanStartTime
+        assertTrue("an advanced cursor would skip it", scanStart(firstRun, retryRun) > old.timestamp)
+
+        var cursor = lastScan
+        h.store.beforeInsert = { error("disk full") }
+        val first = ProcessingStats(total = 1)
+        h.pipeline(inbox).run(scanStart(cursor, firstRun), first)
+        if (first.mayAdvanceCursor()) cursor = firstRun
+        assertEquals(1, first.failed.get())
+
+        h.store.beforeInsert = {}
+        val retry = ProcessingStats(total = 1)
+        h.pipeline(inbox).run(scanStart(cursor, retryRun), retry)
+
+        assertEquals(1, retry.saved.get())
+        assertEquals(1, h.store.all.size)
+        assertTrue(retry.mayAdvanceCursor())
     }
 
     @Test

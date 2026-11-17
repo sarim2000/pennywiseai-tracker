@@ -125,11 +125,13 @@ object CardBills {
 
     /**
      * Where [card]'s bill stands on [today]. The bill the user entered belongs to the
-     * statement closed by the time they entered it (or, without a statement day, to
-     * that day, and the next statement is a month on). It needs a bill when the card
-     * owes something and its due day or amount is missing, or a newer statement has
-     * closed since: an unknown bill sets nothing aside, it's never guessed from the
-     * card's purchases.
+     * statement closed by the time they entered it. Without a statement day that date
+     * is a guess, so the bill dates from the day it was entered and falls due on the
+     * due day of that month (overdue if it had passed), and it stays the card's bill
+     * until it's paid or a newer one is entered ([newerStatement]). It needs a bill
+     * when the card owes something and its due day or amount is missing, or a newer
+     * statement has closed since: an unknown bill sets nothing aside, it's never
+     * guessed from the card's purchases.
      */
     fun status(card: AccountBalanceEntity, transactions: List<TransactionEntity>, today: LocalDate): CardBillStatus {
         val owes = card.balance.signum() > 0
@@ -147,9 +149,9 @@ object CardBills {
             amount = amount,
             paid = paymentsTo(card, transactions, statement, today),
             statementDate = statement,
-            dueDate = dueDate(statement, dueDay),
+            dueDate = if (card.statementDay != null) dueDate(statement, dueDay) else YearMonth.from(asOf).dayClamped(dueDay),
         )
-        val newerStatement = newerStatement(card, statement, today)
+        val newerStatement = newerStatement(card, statement, today, paidOff = bill.isRetired)
         return CardBillStatus(
             card, bill.takeIf { !it.isRetired }, needsBill = owes && newerStatement,
             enteredStatement = statement.takeIf { !newerStatement },
@@ -183,19 +185,21 @@ object CardBills {
         val asOf = card.cardBillAsOf?.toLocalDate() ?: return false
         if (amount == null || card.cardBillAmount?.compareTo(amount) != 0) return false
         val statement = card.statementDay?.let { statementDate(it, asOf) } ?: asOf
-        if (newerStatement(card, statement, today)) return false
         val paidOff = status.bill == null && card.cardDueDay != null
+        if (newerStatement(card, statement, today, paidOff)) return false
         return !paidOff || dueDay != card.cardDueDay
     }
 
     /**
      * Whether a statement after [statement] has closed by [today]. Without a statement
-     * day the bill's own date stands in for it, monthly: otherwise a paid bill would
-     * stay the card's latest forever, and what's charged to the card since would
-     * never be set aside.
+     * day nobody knows when the next one closes: a bill not yet [paidOff] stays the
+     * latest, so it's never dropped while owed, and a paid one gives way a month
+     * after its own date, or the card would never ask for its next bill.
      */
-    private fun newerStatement(card: AccountBalanceEntity, statement: LocalDate, today: LocalDate): Boolean =
-        statementDate(card.statementDay ?: statement.dayOfMonth, today).isAfter(statement)
+    private fun newerStatement(card: AccountBalanceEntity, statement: LocalDate, today: LocalDate, paidOff: Boolean): Boolean {
+        if (card.statementDay == null && !paidOff) return false
+        return statementDate(card.statementDay ?: statement.dayOfMonth, today).isAfter(statement)
+    }
 
     private fun YearMonth.dayClamped(day: Int): LocalDate = atDay(day.coerceIn(1, lengthOfMonth()))
 }

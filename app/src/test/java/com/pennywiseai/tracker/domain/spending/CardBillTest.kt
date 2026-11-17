@@ -194,6 +194,27 @@ class CardBillTest {
     }
 
     @Test
+    fun `without a statement day an unpaid bill stays reserved until it's paid`() {
+        // Entered on 17 November with the 15th as due day: it's overdue, not December's.
+        val card = card(statementDay = null, dueDay = 15, enteredOn = "2026-11-17")
+
+        val entered = CardBills.status(card, emptyList(), date("2026-11-17"))
+        assertEquals(date("2026-11-15"), entered.bill!!.dueDate)
+        assertTrue(entered.bill!!.isOverdue(date("2026-11-17")))
+
+        // Months on, still owed and still the card's bill.
+        val later = CardBills.status(card, emptyList(), date("2027-01-20"))
+        assertEquals(d("4000"), later.bill!!.remaining)
+        assertTrue(later.isKnown)
+        assertFalse(later.needsBill)
+        assertTrue(CardBills.keepsStatement(later, 15, d("4000"), date("2027-01-20")))
+
+        // Paid: retired.
+        val paid = CardBills.status(card, listOf(tx("2026-12-01", "4000", TransactionType.INCOME)), date("2026-12-02"))
+        assertNull(paid.bill)
+    }
+
+    @Test
     fun `without a statement day a paid bill stops being the card's latest a month on`() {
         val card = card(statementDay = null, dueDay = 25)
         val paid = listOf(tx("2026-03-20", "4000", TransactionType.INCOME))

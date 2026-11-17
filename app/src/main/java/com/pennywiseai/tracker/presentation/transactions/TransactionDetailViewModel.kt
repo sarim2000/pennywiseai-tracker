@@ -990,16 +990,14 @@ class TransactionDetailViewModel @Inject constructor(
             _isSaving.value = true
             try {
                 // Handle receipt changes. The new file is saved first, so a failed one
-                // leaves the old receipt in place and the edit open.
+                // leaves the old receipt in place and the edit open. The old file is
+                // only deleted once the row points away from it (see below).
                 val pendingUri = _pendingReceiptUri.value
                 val savedReceiptPath = pendingUri?.let { uri ->
                     receiptManager.saveReceipt(uri) ?: run {
                         _receiptError.value = UiText.Res(R.string.add_receipt_save_failed)
                         return@launch
                     }
-                }
-                if (_receiptRemoved.value || pendingUri != null) {
-                    toSave.receiptPath?.let { receiptManager.deleteReceipt(it) }
                 }
                 val newReceiptPath = when {
                     pendingUri != null -> savedReceiptPath
@@ -1037,9 +1035,15 @@ class TransactionDetailViewModel @Inject constructor(
                     lentSharesTotal = if (persisted != null) persisted.lentSharesTotal else toSave.lentSharesTotal
                 )
 
-                accountBalanceRepository.pinManualOpenings(_transaction.value, normalizedTransaction)
+                persistReceiptChange(
+                    oldPath = toSave.receiptPath,
+                    newPath = newReceiptPath,
+                    deleteReceipt = receiptManager::deleteReceipt
+                ) {
+                    accountBalanceRepository.pinManualOpenings(_transaction.value, normalizedTransaction)
 
-                transactionRepository.updateTransaction(normalizedTransaction)
+                    transactionRepository.updateTransaction(normalizedTransaction)
+                }
 
                 // Persist the edited tag set (create-or-select handled in repo).
                 tagRepository.setTagsForTransaction(normalizedTransaction.id, _editableTags.value)
@@ -1560,6 +1564,30 @@ internal fun merchantKeyForApply(originalMerchant: String?, savedMerchant: Strin
 
 /** A typed reference number as stored: trimmed, and null when blank (#996). */
 internal fun normalizeReference(raw: String?): String? = raw?.trim()?.ifEmpty { null }
+
+/**
+ * Runs [persist], which writes a row whose receipt goes from [oldPath] to [newPath],
+ * so the row never points at a deleted file. The old file is deleted only after
+ * [persist] succeeds. If it fails, the just-saved new file is deleted and the old
+ * one kept. A cancellation deletes nothing: the write may already have committed,
+ * and an orphaned file is harmless where a dangling path is not.
+ */
+internal suspend fun persistReceiptChange(
+    oldPath: String?,
+    newPath: String?,
+    deleteReceipt: (String) -> Unit,
+    persist: suspend () -> Unit
+) {
+    try {
+        persist()
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        if (newPath != null && newPath != oldPath) deleteReceipt(newPath)
+        throw e
+    }
+    if (oldPath != null && oldPath != newPath) deleteReceipt(oldPath)
+}
 
 internal sealed class AliasWrite {
     data class Set(val merchant: String, val alias: String) : AliasWrite()

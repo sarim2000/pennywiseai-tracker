@@ -66,7 +66,7 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 /*
- * The image users send to WhatsApp, and its link-preview twin.
+ * The image users send to WhatsApp.
  *
  * Designed at ~260px chat-thumbnail scale and scaled up, not the other way round. An early
  * version was calibrated against the in-app preview — the one context where the card is
@@ -86,13 +86,6 @@ import kotlin.math.roundToInt
 /** 4:5 — the aspect WhatsApp and Instagram both render without cropping. */
 val ShareCardWidth = 360.dp
 val ShareCardHeight = 450.dp
-
-/**
- * The link preview (Open Graph) artboard. Rendered at density 2 it is exactly the
- * 1200×630 px that chat apps and social sites expect.
- */
-val ShareCardLandscapeWidth = 600.dp
-val ShareCardLandscapeHeight = 315.dp
 
 /**
  * Draws a fixed artboard at [scale] and reports the scaled size to the layout, so a
@@ -246,60 +239,6 @@ fun ShareCard(content: ShareCardContent, theme: ShareTheme, modifier: Modifier =
     }
 }
 
-/**
- * The same content laid out for a link preview: words on the start side, the chart on
- * the end side. Rendered at 600×315dp, density 2, for the uploaded 1200×630 image.
- */
-@Composable
-fun ShareCardLandscape(content: ShareCardContent, theme: ShareTheme, modifier: Modifier = Modifier) {
-    val p = theme.palette()
-    val chart = content.chart
-    Row(
-        modifier = modifier
-            .size(ShareCardLandscapeWidth, ShareCardLandscapeHeight)
-            .cardBackground(p)
-            .padding(horizontal = 28.dp, vertical = 24.dp),
-        horizontalArrangement = Arrangement.spacedBy(24.dp),
-    ) {
-        Column(Modifier.weight(if (chart == null) 1f else 0.56f).fillMaxHeight()) {
-            BrandRow(p, periodLabel = if (chart == null) content.periodLabel else null)
-            Spacer(Modifier.height(14.dp))
-            if (chart != null) content.periodLabel?.let { PeriodText(it, p) }
-            Text(
-                text = content.title,
-                style = Heading.copy(fontSize = 21.sp, lineHeight = 25.sp, fontWeight = FontWeight.SemiBold, color = p.text),
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
-            )
-            content.subtitle?.let {
-                Text(
-                    text = it,
-                    style = Body.copy(fontSize = 13.sp, lineHeight = 17.sp, fontWeight = FontWeight.Medium, color = p.muted),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            Spacer(Modifier.weight(1f))
-            if (chart?.type != ShareChartType.RING) content.hero?.let { HeroBlock(it, p, maxSize = 64.sp) }
-            Spacer(Modifier.weight(1f))
-            if (content.stats.isNotEmpty()) {
-                StatsRow(content.stats.take(3), p, compact = true)
-                Spacer(Modifier.height(12.dp))
-            }
-            Text(text = SHARE_CARD_URL, style = Heading.copy(fontSize = 16.sp, fontWeight = FontWeight.Bold, color = p.text))
-        }
-        if (chart != null) {
-            Box(Modifier.weight(0.44f).fillMaxHeight(), contentAlignment = Alignment.Center) {
-                if (chart.type == ShareChartType.RING && content.hero != null) {
-                    RingHero(content.hero, chart, p, diameter = 210.dp, valueSize = 48.sp)
-                } else {
-                    ChartBlock(chart, p, Modifier.fillMaxWidth().height(chartHeight(chart, landscape = true)))
-                }
-            }
-        }
-    }
-}
-
 @Composable
 private fun BrandRow(p: SharePalette, periodLabel: String?) {
     Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
@@ -421,7 +360,7 @@ private fun RingHero(hero: ShareCardHero, chart: ShareChart, p: SharePalette, di
 }
 
 @Composable
-private fun StatsRow(stats: List<ShareCardStat>, p: SharePalette, compact: Boolean = false) {
+private fun StatsRow(stats: List<ShareCardStat>, p: SharePalette) {
     Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
         stats.forEach { stat ->
             Column(
@@ -449,7 +388,7 @@ private fun StatsRow(stats: List<ShareCardStat>, p: SharePalette, compact: Boole
                         color = if (stat.sentiment == Sentiment.NEUTRAL) p.text else p.colorFor(stat.sentiment),
                     ),
                     maxLines = 1,
-                    autoSize = TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = if (compact) 15.sp else 17.sp),
+                    autoSize = TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = 17.sp),
                 )
             }
         }
@@ -473,11 +412,11 @@ private fun Footer(p: SharePalette) {
     }
 }
 
-private fun chartHeight(chart: ShareChart, landscape: Boolean = false): Dp = when (chart.type) {
-    ShareChartType.LINE -> if (landscape) 200.dp else 112.dp
+private fun chartHeight(chart: ShareChart): Dp = when (chart.type) {
+    ShareChartType.LINE -> 112.dp
     ShareChartType.RING -> 120.dp
     ShareChartType.BARS, ShareChartType.DIVERGING ->
-        (chart.points.take(MAX_BAR_ROWS).size * (if (landscape) 44 else 36)).dp
+        (chart.points.take(MAX_BAR_ROWS).size * 36).dp
 }
 
 private const val MAX_BAR_ROWS = 4
@@ -820,17 +759,4 @@ private fun ShareCardThumbnailPreview() {
     Box(Modifier.background(Color(0xFF303030))) {
         ShareCard(previewSpending, ShareTheme.MIDNIGHT, Modifier.scaleTo(130.dp / ShareCardWidth))
     }
-}
-
-/** The 1200×630 link-preview image, at the size it is rendered for upload. */
-@Preview(name = "Link preview (savings)", widthDp = 600, heightDp = 315)
-@Composable
-private fun ShareCardLandscapeSavingsPreview() {
-    ShareCardLandscape(previewSavings, ShareTheme.AURORA)
-}
-
-@Preview(name = "Link preview (goal)", widthDp = 600, heightDp = 315)
-@Composable
-private fun ShareCardLandscapeGoalPreview() {
-    ShareCardLandscape(previewGoal, ShareTheme.MIDNIGHT)
 }

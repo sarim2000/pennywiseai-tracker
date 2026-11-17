@@ -1,5 +1,8 @@
 package com.pennywiseai.tracker.domain.spending
 
+import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -129,5 +132,26 @@ class RecurringChargeTest {
         assertEquals(LocalDate.of(2027, 5, 13), RecurringCharge.advance(date, "Semi-Annual"))
         assertEquals(LocalDate.of(2027, 11, 13), RecurringCharge.advance(date, "Yearly"))
         assertEquals(LocalDate.of(2026, 12, 13), RecurringCharge.advance(date, "Fortnightly"))
+    }
+
+    @Test
+    fun `a charge pays only from every part of the account the bill names`() {
+        fun sub(bank: String?, last4: String?) = SubscriptionEntity(
+            merchantName = "Streamer", amount = BigDecimal("100"), nextPaymentDate = null, bankName = bank, accountLast4 = last4,
+        )
+        fun charge(bank: String?, account: String?) = TransactionEntity(
+            amount = BigDecimal("100"), merchantName = "Streamer", category = "Bills", transactionType = TransactionType.EXPENSE,
+            dateTime = LocalDate.of(2026, 11, 17).atStartOfDay(), transactionHash = "h", bankName = bank, accountNumber = account,
+        )
+        assertTrue(RecurringCharge.couldBePaidFrom(sub("Bank A", "1111"), charge("bank a", "1111")))
+        assertFalse(RecurringCharge.couldBePaidFrom(sub("Bank A", "1111"), charge("Bank A", "2222")))
+        assertFalse(RecurringCharge.couldBePaidFrom(sub("Bank A", "1111"), charge("Bank B", "1111")))
+        // Missing on the charge: not enough to pay an account-tied bill.
+        assertFalse(RecurringCharge.couldBePaidFrom(sub("Bank A", "1111"), charge("Bank A", null)))
+        assertFalse(RecurringCharge.couldBePaidFrom(sub("Bank A", "1111"), charge(null, null)))
+        assertFalse(RecurringCharge.couldBePaidFrom(sub("Bank A", null), charge(null, "1111")))
+        // Only what the bill names has to match.
+        assertTrue(RecurringCharge.couldBePaidFrom(sub("Bank A", null), charge("Bank A", "2222")))
+        assertTrue(RecurringCharge.couldBePaidFrom(sub(null, null), charge(null, null)))
     }
 }

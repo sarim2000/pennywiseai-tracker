@@ -439,10 +439,13 @@ class InsightRulesTest {
 
         // Paid from Bank A: Bank B's bill is still due.
         assertEquals(LocalDate.parse("2026-11-21"), dueAfter(tx("2026-11-19", "100", merchant = "Streamer", bank = "Bank A", account = "1111")))
-        // A known bank that conflicts rules it out, even without an account number.
-        assertEquals(LocalDate.parse("2026-11-21"), dueAfter(tx("2026-11-19", "100", merchant = "Streamer", bank = "Bank A")))
-        // A charge whose account isn't known pays one of them, not both.
-        assertEquals(1, evaluate(rows = listOf(tx("2026-11-19", "100", merchant = "Streamer")), subscriptions = listOf(onA, onB)).facts<BillsDue>().single().count)
+        // A charge that doesn't say its account, or names only the bank, pays neither: both stay due.
+        fun dueCount(row: TransactionWithSplits) =
+            evaluate(rows = listOf(row), subscriptions = listOf(onA, onB)).facts<BillsDue>().single().count
+        assertEquals(2, dueCount(tx("2026-11-19", "100", merchant = "Streamer")))
+        assertEquals(2, dueCount(tx("2026-11-19", "100", merchant = "Streamer", bank = "Bank A")))
+        // A bill that names no account can be paid from any.
+        assertEquals(null, evaluate(rows = listOf(tx("2026-11-19", "100", merchant = "Streamer", bank = "Bank A", account = "1111")), subscriptions = listOf(subscription(3, "100", "2026-11-20"))).facts<BillsDue>().singleOrNull())
         // One for each pays both.
         assertEquals(
             null,
@@ -450,6 +453,19 @@ class InsightRulesTest {
                 tx("2026-11-19", "100", merchant = "Streamer", bank = "Bank B", account = "2222"),
                 tx("2026-11-19", "100", merchant = "Streamer", bank = "Bank A", account = "1111"),
             ),
+        )
+    }
+
+    @Test
+    fun `a charge without its account is no new price for an account-tied bill, which stays due`() {
+        val insights = evaluate(
+            rows = listOf(tx("2026-11-19", "130", merchant = "Streamer", bank = "Bank A")),
+            subscriptions = listOf(subscription(1, "100", "2026-11-20", bank = "Bank A", last4 = "1111")),
+        )
+        assertTrue(insights.facts<PriceChange>().isEmpty())
+        assertEquals(
+            BillsDue(1, Money(BigDecimal("100"), "INR"), LocalDate.parse("2026-11-20"), 7, listOf("Streamer")),
+            insights.facts<BillsDue>().single(),
         )
     }
 

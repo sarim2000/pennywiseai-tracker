@@ -4,7 +4,6 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
-import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
 import com.pennywiseai.tracker.domain.insights.InsightFact.BillsDue
 import com.pennywiseai.tracker.domain.insights.InsightFact.BudgetOver
@@ -170,7 +169,7 @@ object InsightRules {
      * the charge wasn't linked to it (a new price, or the subscription added after it),
      * and whether or not card spending counts as expense: settled from the cycle's
      * payment rows, not its spending rows.
-     * A charge pays at most one bill, and only one paid from an account it could be from.
+     * A charge pays at most one bill, and only one it [RecurringCharge.couldBePaidFrom].
      * Keyed on the first due date, so a dismissal lasts until that payment has gone.
      */
     internal fun billsDue(
@@ -186,7 +185,7 @@ object InsightRules {
                 val date = it.dateTime.toLocalDate()
                 it.currency == sub.currency &&
                     RecurringCharge.sameMerchant(it.merchantName, sub.merchantName) &&
-                    couldBePaidFrom(sub, it) &&
+                    RecurringCharge.couldBePaidFrom(sub, it) &&
                     !date.isBefore(due.minusDays(RecurringCharge.DUE_WINDOW_DAYS)) && !date.isAfter(today) &&
                     (
                         RecurringCharge.sameAmount(sub.amount, it.amount) ||
@@ -217,7 +216,7 @@ object InsightRules {
     /**
      * A charge this cycle that looks like a subscription at a new price, by the same
      * test the SMS matcher uses: until the user updates the subscription, it stays news.
-     * As with bills due, a charge counts for one subscription, on an account it could be from.
+     * As with bills due, a charge counts for one subscription that it [RecurringCharge.couldBePaidFrom].
      */
     internal fun priceChanges(
         review: PeriodReview,
@@ -231,7 +230,7 @@ object InsightRules {
             val charge = unclaimed.filter {
                 it.currency == sub.currency &&
                     RecurringCharge.sameMerchant(it.merchantName, sub.merchantName) &&
-                    couldBePaidFrom(sub, it) &&
+                    RecurringCharge.couldBePaidFrom(sub, it) &&
                     RecurringCharge.isPriceChange(sub.amount, sub.nextPaymentDate, it.amount, it.dateTime.toLocalDate())
             }.maxByOrNull { it.dateTime } ?: return@mapNotNull null
             unclaimed.remove(charge)
@@ -351,18 +350,8 @@ object InsightRules {
             .sumByCurrency({ it.currency }) { SubscriptionCost.monthlyEquivalent(it.amount, it.billingCycle) }
 
     /**
-     * Whether [charge] could have come from the account [sub] is paid from. Not knowing
-     * one side's bank or account doesn't rule it out; a known one that differs does,
-     * so a bank that conflicts rules it out even when an account number is missing.
-     */
-    private fun couldBePaidFrom(sub: SubscriptionEntity, charge: TransactionEntity): Boolean {
-        fun conflict(a: String?, b: String?) = !a.isNullOrBlank() && !b.isNullOrBlank() && !a.equals(b, ignoreCase = true)
-        return !conflict(sub.bankName, charge.bankName) && !conflict(sub.accountLast4, charge.accountNumber)
-    }
-
-    /**
      * Subscriptions whose funding account is known first, so a charge goes to the bill
-     * on its own account before one that could be on any.
+     * on its own account before one that could be paid from any.
      */
     private fun bySpecificAccount(subscriptions: List<SubscriptionEntity>) =
         subscriptions.sortedByDescending { listOf(it.bankName, it.accountLast4).count { s -> !s.isNullOrBlank() } }

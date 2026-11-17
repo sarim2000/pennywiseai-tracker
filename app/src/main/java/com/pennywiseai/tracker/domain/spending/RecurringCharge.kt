@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.domain.spending
 
+import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -24,6 +26,18 @@ object RecurringCharge {
     fun sameMerchant(a: String, b: String): Boolean {
         val key = merchantKey(a)
         return key.isNotEmpty() && key == merchantKey(b)
+    }
+
+    /**
+     * Whether [charge] can pay [subscription] without asking: every part of the funding
+     * account the subscription names (bank, account number) is on the charge and the
+     * same. A charge that doesn't say which account it came from can't pay a bill tied
+     * to one; a bill that names no account can be paid from any.
+     */
+    fun couldBePaidFrom(subscription: SubscriptionEntity, charge: TransactionEntity): Boolean {
+        fun meets(required: String?, actual: String?) =
+            required.isNullOrBlank() || (!actual.isNullOrBlank() && required.trim().equals(actual.trim(), ignoreCase = true))
+        return meets(subscription.bankName, charge.bankName) && meets(subscription.accountLast4, charge.accountNumber)
     }
 
     /** Within 5% of the larger amount — symmetric, so match(a, b) == match(b, a). */

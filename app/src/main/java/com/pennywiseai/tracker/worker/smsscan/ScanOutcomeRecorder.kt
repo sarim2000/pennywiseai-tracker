@@ -14,7 +14,8 @@ import kotlinx.coroutines.withContext
  * Brackets one scan with the [SmsScanRecord]s the SMS check-up reads: RUNNING before any
  * work, SUCCEEDED only once the scan returns, FAILED when it throws, and CANCELLED when it
  * is cancelled or its work was stopped. A scan that dies with its process stays RUNNING,
- * which reads as interrupted, so no early end ever shows as a success.
+ * which reads as interrupted, so no early end ever shows as a success. A scan that returns
+ * with failed saves is SUCCEEDED with them counted, and isn't the last success either.
  */
 internal class ScanOutcomeRecorder(
     private val preferences: ScanPreferences,
@@ -40,15 +41,20 @@ internal class ScanOutcomeRecorder(
         return result
     }
 
-    /** A success stamps its own finish time; anything else carries the last success on. */
+    /**
+     * A success with everything saved stamps its own finish time; anything else carries
+     * the last success on, so "Scan again" never sits next to "last successful: just now".
+     */
     private fun finished(state: SmsScanState, startedAt: Long, lastSucceededAt: Long?): SmsScanRecord {
         val finishedAt = clock()
+        val counts = stats?.counts() ?: SmsScanCounts()
+        val clean = state == SmsScanState.SUCCEEDED && counts.failed == 0
         return SmsScanRecord(
             state = state,
             startedAt = startedAt,
             finishedAt = finishedAt,
-            counts = stats?.counts() ?: SmsScanCounts(),
-            lastSucceededAt = if (state == SmsScanState.SUCCEEDED) finishedAt else lastSucceededAt,
+            counts = counts,
+            lastSucceededAt = if (clean) finishedAt else lastSucceededAt,
         )
     }
 

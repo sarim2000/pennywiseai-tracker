@@ -43,7 +43,7 @@ data class SmsScanRecord(
     val startedAt: Long = 0L,
     val finishedAt: Long? = null,
     val counts: SmsScanCounts = SmsScanCounts(),
-    /** When a scan last finished successfully: this one, or an earlier one. */
+    /** When a scan last finished with everything saved: this one, or an earlier one. */
     val lastSucceededAt: Long? = null,
 ) {
     fun toJson(): String = json.encodeToString(serializer(), this)
@@ -62,12 +62,18 @@ enum class LastScanStatus {
     NEVER,
     RUNNING,
     SUCCEEDED,
+
+    /** Finished, but some transactions it read couldn't be saved. */
+    SAVE_FAILED,
     FAILED,
     CANCELLED,
     INTERRUPTED;
 
     /** The scan ended without finishing, so new messages may be missing. */
-    val needsAttention: Boolean get() = this == FAILED || this == CANCELLED || this == INTERRUPTED
+    val endedEarly: Boolean get() = this == FAILED || this == CANCELLED || this == INTERRUPTED
+
+    /** Messages may be missing: the scan ended early, or some of what it read wasn't saved. */
+    val needsAttention: Boolean get() = endedEarly || this == SAVE_FAILED
 }
 
 /**
@@ -79,7 +85,8 @@ fun lastScanStatus(record: SmsScanRecord?, scanRunning: Boolean): LastScanStatus
     record == null -> LastScanStatus.NEVER
     else -> when (record.state) {
         SmsScanState.RUNNING -> LastScanStatus.INTERRUPTED
-        SmsScanState.SUCCEEDED -> LastScanStatus.SUCCEEDED
+        SmsScanState.SUCCEEDED ->
+            if (record.counts.failed > 0) LastScanStatus.SAVE_FAILED else LastScanStatus.SUCCEEDED
         SmsScanState.FAILED -> LastScanStatus.FAILED
         SmsScanState.CANCELLED -> LastScanStatus.CANCELLED
     }

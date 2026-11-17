@@ -124,6 +124,20 @@ class ScanOutcomeRecorderTest {
     }
 
     @Test
+    fun `a scan that returns with failed saves keeps them counted and the last success`() = runTest {
+        recorder.run(isStopped = { false }) { now = 2_000L }
+        now = 3_000L
+
+        recorder.run(isStopped = { false }) {
+            recorder.stats = countedStats().apply { failed.set(1) }
+        }
+
+        assertEquals(SmsScanState.SUCCEEDED, written.last().state)
+        assertEquals(1, written.last().counts.failed)
+        assertEquals("not a clean success, so it can't be the last one", 2_000L, written.last().lastSucceededAt)
+    }
+
+    @Test
     fun `with no earlier scan there is no last success`() = runTest {
         runCatching { recorder.run(isStopped = { false }) { error("no inbox") } }
 

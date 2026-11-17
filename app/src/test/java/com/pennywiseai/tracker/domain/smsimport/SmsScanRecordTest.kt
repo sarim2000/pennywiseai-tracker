@@ -66,9 +66,18 @@ class SmsScanRecordTest {
     }
 
     @Test
-    fun `only a scan that ended early needs attention`() {
-        val flagged = LastScanStatus.entries.filter { it.needsAttention }.toSet()
+    fun `a finished scan with failed saves is not a plain success`() {
+        val withFailures = SmsScanRecord(SmsScanState.SUCCEEDED, counts = SmsScanCounts(saved = 3, failed = 1))
 
-        assertEquals(setOf(LastScanStatus.FAILED, LastScanStatus.CANCELLED, LastScanStatus.INTERRUPTED), flagged)
+        assertEquals(LastScanStatus.SAVE_FAILED, lastScanStatus(withFailures, scanRunning = false))
+    }
+
+    @Test
+    fun `only a scan that ended early or lost saves needs attention`() {
+        val flagged = LastScanStatus.entries.filter { it.needsAttention }.toSet()
+        val endedEarly = LastScanStatus.entries.filter { it.endedEarly }.toSet()
+
+        assertEquals(setOf(LastScanStatus.FAILED, LastScanStatus.CANCELLED, LastScanStatus.INTERRUPTED), endedEarly)
+        assertEquals(endedEarly + LastScanStatus.SAVE_FAILED, flagged)
     }
 }

@@ -26,6 +26,11 @@
     <string name="sms_checkup_scan_never">No scan yet</string>
     <string name="sms_checkup_scan_running">Scanning your messages now…</string>
     <string name="sms_checkup_scan_succeeded">Finished %1$s</string>
+    <string name="sms_checkup_scan_save_failed">Finished %1$s, but some weren\'t saved</string>
+    <plurals name="sms_checkup_scan_save_failed_body">
+        <item quantity="one">%1$s transaction couldn\'t be saved. Scan again to try it again.</item>
+        <item quantity="other">%1$s transactions couldn\'t be saved. Scan again to try them again.</item>
+    </plurals>
     <string name="sms_checkup_scan_failed">Failed %1$s</string>
     <string name="sms_checkup_scan_cancelled">Stopped %1$s</string>
     <string name="sms_checkup_scan_interrupted">Didn\'t finish</string>

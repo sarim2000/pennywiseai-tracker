@@ -193,6 +193,7 @@ private fun LastScanCard(scan: SmsCheckupState, canScan: Boolean, onRescan: () -
         LastScanStatus.NEVER -> stringResource(R.string.sms_checkup_scan_never)
         LastScanStatus.RUNNING -> stringResource(R.string.sms_checkup_scan_running)
         LastScanStatus.SUCCEEDED -> stringResource(R.string.sms_checkup_scan_succeeded, ended)
+        LastScanStatus.SAVE_FAILED -> stringResource(R.string.sms_checkup_scan_save_failed, ended)
         LastScanStatus.FAILED -> stringResource(R.string.sms_checkup_scan_failed, ended)
         LastScanStatus.CANCELLED -> stringResource(R.string.sms_checkup_scan_cancelled, ended)
         LastScanStatus.INTERRUPTED -> stringResource(R.string.sms_checkup_scan_interrupted)
@@ -202,7 +203,10 @@ private fun LastScanCard(scan: SmsCheckupState, canScan: Boolean, onRescan: () -
     val lines = buildList {
         when {
             scan.status == LastScanStatus.NEVER -> add(stringResource(R.string.sms_checkup_scan_never_body))
-            scan.status.needsAttention -> add(stringResource(R.string.sms_checkup_scan_ended_early_body))
+            scan.status.endedEarly -> add(stringResource(R.string.sms_checkup_scan_ended_early_body))
+            scan.status == LastScanStatus.SAVE_FAILED -> record?.counts?.failed?.let { failed ->
+                add(pluralStringResource(R.plurals.sms_checkup_scan_save_failed_body, failed, formatCount(failed)))
+            }
         }
         if (scan.status.needsAttention || scan.status == LastScanStatus.RUNNING) {
             // From the record, not the incremental cursor: a scan-window change resets

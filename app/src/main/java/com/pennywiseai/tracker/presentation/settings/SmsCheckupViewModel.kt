@@ -20,8 +20,33 @@ data class SmsCheckupState(
     val status: LastScanStatus,
     val record: SmsScanRecord?,
     val lastLiveSmsAt: Long?,
-    val notImported: Int,
+    val notImported: NotImported,
 )
+
+/** What the Not imported card says. */
+sealed interface NotImported {
+    /** Messages in an unknown format the Unrecognized SMS list still shows. */
+    data class Waiting(val count: Int) : NotImported
+
+    /**
+     * The list is empty, but the last scan did find unknown formats: ones already dealt
+     * with, or past the list's 30 days. Saying "every message was read" would be false.
+     */
+    data object NoneWaiting : NotImported
+
+    /** The list is empty and the last scan found no unknown formats. */
+    data object AllRead : NotImported
+}
+
+/**
+ * [waiting] is what the Unrecognized SMS list shows; [lastScan] is what the latest scan
+ * counted, which also includes messages dismissed, added or aged out of that list.
+ */
+fun notImported(waiting: Int, lastScan: SmsScanRecord?): NotImported = when {
+    waiting > 0 -> NotImported.Waiting(waiting)
+    (lastScan?.counts?.unrecognised ?: 0) > 0 -> NotImported.NoneWaiting
+    else -> NotImported.AllRead
+}
 
 @HiltViewModel
 class SmsCheckupViewModel @Inject constructor(
@@ -36,8 +61,8 @@ class SmsCheckupViewModel @Inject constructor(
         scanPreferences.lastLiveSmsAt,
         unrecognizedSmsRepository.getVisibleCount(),
         smsScanManager.isScanRunning(),
-    ) { record, lastLiveSmsAt, notImported, running ->
-        SmsCheckupState(lastScanStatus(record, running), record, lastLiveSmsAt, notImported)
+    ) { record, lastLiveSmsAt, waiting, running ->
+        SmsCheckupState(lastScanStatus(record, running), record, lastLiveSmsAt, notImported(waiting, record))
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** Re-reads the whole scan window: adds what was missed, keeps every edit. */

@@ -58,9 +58,10 @@
 
     <string name="sms_checkup_section_not_imported">Not imported</string>
     <plurals name="sms_checkup_not_imported_title">
-        <item quantity="one">%d bank message wasn\'t read</item>
-        <item quantity="other">%d bank messages weren\'t read</item>
+        <item quantity="one">%d bank message is waiting for review</item>
+        <item quantity="other">%d bank messages are waiting for review</item>
     </plurals>
     <string name="sms_checkup_not_imported_body">PennyWise doesn\'t know these formats yet. Review them to add the transaction yourself or report the format.</string>
-    <string name="sms_checkup_not_imported_none">Nothing waiting. Every bank message found so far was read.</string>
+    <string name="sms_checkup_not_imported_none">Nothing waiting for review</string>
+    <string name="sms_checkup_not_imported_none_waiting_body">The last scan found bank messages in a format PennyWise doesn\'t know yet. Ones you\'ve already dealt with, or older than 30 days, aren\'t listed.</string>
 </resources>

@@ -291,28 +291,41 @@ private fun CountDetails(counts: SmsScanCounts) {
 }
 
 @Composable
-private fun NotImportedCard(count: Int, onReview: () -> Unit) {
+private fun NotImportedCard(notImported: NotImported, onReview: () -> Unit) {
     GroupedColumn(position = ListItemPosition.Single) {
-        if (count == 0) {
-            StatusHeader(
+        when (notImported) {
+            is NotImported.Waiting -> {
+                StatusHeader(
+                    Icons.Default.Sms,
+                    MaterialTheme.colorScheme.warning,
+                    pluralStringResource(R.plurals.sms_checkup_not_imported_title, notImported.count, notImported.count)
+                )
+                Text(
+                    stringResource(R.string.sms_checkup_not_imported_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Button(onClick = onReview, shapes = ButtonDefaults.shapes()) {
+                    Text(stringResource(R.string.sms_checkup_review))
+                }
+            }
+            NotImported.NoneWaiting -> {
+                StatusHeader(
+                    Icons.Default.Check,
+                    MaterialTheme.colorScheme.success,
+                    stringResource(R.string.sms_checkup_not_imported_none)
+                )
+                Text(
+                    stringResource(R.string.sms_checkup_not_imported_none_waiting_body),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            NotImported.AllRead -> StatusHeader(
                 Icons.Default.Check,
                 MaterialTheme.colorScheme.success,
                 stringResource(R.string.sms_checkup_not_imported_none)
             )
-        } else {
-            StatusHeader(
-                Icons.Default.Sms,
-                MaterialTheme.colorScheme.warning,
-                pluralStringResource(R.plurals.sms_checkup_not_imported_title, count, count)
-            )
-            Text(
-                stringResource(R.string.sms_checkup_not_imported_body),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Button(onClick = onReview, shapes = ButtonDefaults.shapes()) {
-                Text(stringResource(R.string.sms_checkup_review))
-            }
         }
     }
 }

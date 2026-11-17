@@ -15,6 +15,7 @@ import com.pennywiseai.tracker.data.manager.SmsScanParamsCalculator
 import com.pennywiseai.tracker.data.manager.SmsScanParamsInput
 import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
+import com.pennywiseai.tracker.data.preferences.RebuildAccountFieldsStore
 import com.pennywiseai.tracker.data.preferences.ScanPreferences
 import com.pennywiseai.tracker.data.repository.*
 import com.pennywiseai.tracker.domain.repository.RuleRepository
@@ -71,6 +72,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
     taughtTemplatesStore: com.pennywiseai.tracker.data.preferences.TaughtTemplatesStore
 ) : CoroutineWorker(appContext, workerParams) {
     private val bankAccountMerges = BankAccountMergeStore(appContext)
+    private val rebuildAccountFields = RebuildAccountFieldsStore(appContext)
     private val taughtTemplates = lazy {
         taughtTemplatesStore.all().groupBy { it.senderKey }
     }
@@ -169,7 +171,9 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
             var rebuildStartedAt: LocalDateTime? = null
             var accountsBeforeRebuild: Map<Pair<String, String>, AccountBalanceEntity> = emptyMap()
-            var latestBeforeRebuild: List<AccountBalanceEntity> = emptyList()
+            // The account fields a rebuild saved before deleting their rows. One that never
+            // finished left them on disk, and whichever scan finishes next puts them back.
+            var accountFieldsToKeep = rebuildAccountFields.pending()
             if (forceResync) {
                 rebuildStartedAt = LocalDateTime.now()
                 Trace.beginSection("clearDatabase")
@@ -188,10 +192,15 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                     // never regenerate them (hash collision short-circuits
                     // processBalanceUpdate), leaving gaps in the balance
                     // time-series.
-                    latestBeforeRebuild = accountBalanceRepository.getAllLatestBalancesOnce()
+                    val latestBeforeRebuild = accountBalanceRepository.getAllLatestBalancesOnce()
                     accountsBeforeRebuild = latestBeforeRebuild
                         .filter { it.accountType != null }
                         .associateBy { it.bankName to it.accountLast4 }
+                    // On disk before any row goes, so a scan that stops part-way can't lose
+                    // the bill or anchor the user set. Today's rows come first: put back
+                    // first, they win over an older interrupted rebuild's.
+                    accountFieldsToKeep = latestBeforeRebuild + accountFieldsToKeep
+                    rebuildAccountFields.save(accountFieldsToKeep)
                     transactionRepository.deleteRebuildableSmsTransactions(
                         java.time.LocalDateTime.ofInstant(
                             java.time.Instant.ofEpochMilli(scanStartTime), java.time.ZoneId.systemDefault()
@@ -277,7 +286,10 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             // so put each typed account's type back on the rows that lost it (#792).
             for (row in accountsBeforeRebuild.values) accountBalanceRepository.restoreAccountType(row)
             // Likewise the statement and due day, card bill and balance anchor the user set.
-            for (row in latestBeforeRebuild) accountBalanceRepository.keepAccountFields(row)
+            // An account with no rows yet keeps its fields saved for a later scan.
+            if (accountFieldsToKeep.isNotEmpty()) {
+                rebuildAccountFields.save(accountFieldsToKeep.filter { accountBalanceRepository.keepAccountFields(it) == 0 })
+            }
             // A rebuild drops ATM transfers into Cash wallets (#1062) and may not route
             // them again (setting since turned off), so re-derive every Cash wallet.
             if (rebuildStartedAt != null) {

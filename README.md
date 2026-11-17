@@ -52,29 +52,30 @@ Your bank already texts you every transaction — PennyWise turns those SMS into
 
 - **🔒 Private by Design** — All AI processing and transaction storage happen on your phone; no accounts, no analytics, no servers collecting your data
 - **⚡ Zero Setup** — Just grant SMS permission, no accounts to create, works instantly
-- **🆓 Free & Open Source** — AGPL v3 licensed, no ads, no trackers; an optional **[PennyWise Pro](#pennywise-pro)** upgrade (unlimited rules, PDF statement imports, CSV export, account merge, scheduled backups) supports the solo developer
+- **🆓 Free & Open Source** — AGPL v3 licensed, no ads, no trackers; an optional **[PennyWise Pro](#pennywise-pro)** upgrade supports the solo developer
+- **🌐 Your Language** — Translated via Crowdin, with full Arabic (RTL) support; pick your language and currency on first launch
 
 **Core Features**
 
-- **🤖 Smart SMS Parsing** — <!-- BANKS_SUMMARY -->176 banks across 26 countries<!-- /BANKS_SUMMARY --> with real-time detection of incoming SMS
-- **🌍 Multi-Currency** — Native support for INR, USD, AED, THB, NPR, ETB, and more with exchange rate management
-- **💬 On-Device AI Assistant** — Ask "What did I spend on food?" — powered by Qwen 2.5, runs entirely on your phone
-- **🏷️ Auto-Categorization & Smart Rules** — Pattern-based rules that auto-categorize transactions
-- **💰 Budget Tracking** — Multiple budget groups (Limit/Target/Expected types), daily allowance, category-level budgets
-- **📊 Analytics & Charts** — Bar charts, line trends, heatmaps, category breakdowns, top merchants, custom date ranges
-- **🏦 Multi-Account & Balance Tracking** — Track multiple bank accounts with live balance from SMS and balance history
-- **🔄 Subscription Detection** — Automatic recurring payment detection with due date alerts
-- **🎨 Custom Categories** — Create your own with custom colors and icons
+- **🤖 Smart SMS Parsing** — <!-- BANKS_SUMMARY -->176 banks across 26 countries<!-- /BANKS_SUMMARY --> with real-time detection of incoming SMS; SMS from banks we don't support yet, and notifications from apps you pick, become suggested transactions
+- **🌍 Multi-Currency** — Per-account currency, live exchange rates, and totals that never mix currencies
+- **💬 On-Device AI Assistant** — Ask "What did I spend on food?", compare with last month, add or review transactions in plain words, or dictate with the mic — powered by Qwen 2.5, runs entirely on your phone
+- **🏷️ Categories, Tags & Smart Rules** — Sub-categories, emoji icons, renamable built-ins, learned merchant categories, and rules with multiple conditions and actions
+- **💰 Budgets & Savings Goals** — Category or type budgets with custom cycles (including last working day), per-day allowance, safe-to-spend and a month-end forecast; goals you add to straight from transactions
+- **📊 Analytics & Charts** — Group by category, merchant, account, tag or weekday; trends, heatmaps, top merchants, custom date ranges
+- **🏦 Accounts, Cards & Loans** — Live balances from SMS, balance history, discrepancy fixes, low-balance alerts, account merge, loans by person, and bill splits with UPI QR requests
+- **🔄 Subscriptions** — Spots repeat charges, suggests untracked bills, flags price changes, and reminds you before a bill is due
+- **📥 Statement Import** — PDF (including password-protected), Excel and CSV statements with column mapping, preview and balance check
 
 **More Features**
 
-- **🔐 Biometric App Lock** — Fingerprint/face unlock with configurable timeout
-- **📱 Home Screen Widgets** — Budget progress and recent transactions at a glance
-- **📤 Data Export & Backup** — CSV export for taxes, full backup/restore (.pennywisebackup)
-- **🎭 Material You Theming** — Dynamic colors, multiple cover styles (Aurora, Gradient, Wave), light/dark/system themes
-- **✏️ Manual Transactions** — Add and edit transactions manually
-- **🔍 Search & Filters** — Filter by category, merchant, period, currency, transaction type
-- **🎯 Guided Onboarding** — Spotlight tutorial for first-time users
+- **🔐 Privacy Controls** — Biometric app lock, and hide amounts on every screen (or shake the phone to toggle)
+- **🔔 Smart Notifications** — Clear transaction alerts with a one-tap "Not an expense", bill reminders, and an opt-in spending conscience
+- **📱 Widgets & Quick Add** — Budget, recent transactions, spending pie and goal widgets; a Quick Settings tile and shortcut to add a transaction
+- **📤 Backup & Export** — Full backup/restore (.pennywisebackup) including settings and receipt photos, scheduled folder backups, CSV export, rule import/export
+- **🤝 AI Access & Webhooks** *(Pro)* — Let Claude or ChatGPT read your on-phone data during a session you start, open a dashboard on your computer, or push summaries to your own webhook
+- **🎭 Material 3 Expressive** — Dynamic color, extra colour themes, Google Sans Flex, light/dark/system, and a Home screen you can reorder
+- **🍎 iOS App** — On the [App Store](https://apps.apple.com/app/id6793073167), with on-device AI chat and Shortcuts automation for bank SMS
 
 ### Smart Rules Engine
 
@@ -217,7 +218,9 @@ All AI processing happens on your device, powered by Google AI Edge LiteRT-LM ru
 3. **On-device AI model** — a one-time ~1.5 GB download from Cloudflare R2, **only if you open the AI chat and choose to download it**. The bytes are SHA-256 pinned; after that the AI runs 100% offline. (`Constants.MODEL_URL`)
 4. **Report a parsing problem** — when you use this flow it opens `pennywise.zynth.dev` with the SMS text, its sender, and an RSA-encrypted device identifier (your Android ID plus a timestamp) pre-filled, and parses them server-side to show a preview. Nothing is sent unless you start this yourself. (`SmsReportUrlBuilder.kt`, `DeviceEncryption.kt`)
 5. **Online voice in chat** *(optional, off until you agree)* — dictation runs on your phone's speech service, on-device by default. A language your phone can't recognize offline (e.g. Arabic) can be used online after a one-time prompt that names the service; your speech then goes to that service, not to PennyWise. No audio is recorded or kept. (`VoiceInput.kt`)
-6. **Links** (Discord, GitHub, Play Store, user guide, backup docs) open your browser — no background data.
+6. **AI access** *(Pro, off until you connect an app)* — while an AI session you started is on, questions from Claude, ChatGPT or the PennyWise dashboard reach your phone through the PennyWise relay (`ai.pennywise.zynth.dev`, or your own self-hosted relay); your phone answers from its database. The relay doesn't store or log them, and SMS text, full account numbers and notes never leave. See [docs/ai-access.md](docs/ai-access.md).
+7. **Webhook sync** *(Pro, off unless you add one)* — sends the data you choose (summary, transactions, budgets, accounts, subscriptions) to a URL you enter. (`WebhookDeliveryService.kt`)
+8. **Links** (Discord, GitHub, Play Store, user guide, backup docs) open your browser — no background data.
 
 Everything else stays on your phone.
 
@@ -307,11 +310,13 @@ adb install app/build/outputs/apk/standard/debug/app-standard-universal-debug.ap
   <img src="https://skillicons.dev/icons?i=hilt,room,coroutines" />
 </p>
 
-**Architecture**: MVVM • Jetpack Compose • Room • Coroutines • Hilt • Google AI Edge (on-device LLM) • Material Design 3
+**Architecture**: MVVM • Jetpack Compose • Room • Coroutines • Hilt • WorkManager • Google AI Edge LiteRT-LM (on-device LLM) • Material 3 Expressive
+
+**Modules**: `app` (Android) • `parser-core` (pure-Kotlin bank SMS parsers) • `shared` (Kotlin Multiplatform) • `iosApp` • `pennywise-web` (site & user guide) • `relay` (AI access relay)
 
 ## PennyWise Pro
 
-Pro unlocks unlimited custom rules, unlimited PDF statement imports, unlimited CSV export, duplicate-account merge and scheduled daily backups. It's how a solo developer keeps adding banks and features.
+Pro unlocks unlimited custom rules, unlimited PDF statement imports, unlimited CSV export, duplicate-account merge, scheduled daily backups, AI access (Claude, ChatGPT and the dashboard) and webhook sync. It's how a solo developer keeps adding banks and features.
 
 **Buy it on the website: [pennywise.zynth.dev/pro](https://pennywise.zynth.dev/pro)** — ₹2,000 lifetime, ₹699/year or ₹149/month, GST included, cards and UPI accepted. You get a license key by email; in the app open **Settings → PennyWise Pro → Have a license key?** and paste it. One phone at a time; restoring a full PennyWise backup on a new phone carries Pro over, and the key dialog offers "Move to this device" for everything else (Play build 2.20.0+).
 
@@ -331,8 +336,8 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before participating.
 
 ```bash
-./gradlew test          # Run tests
-./gradlew lint   # Check style
+./init.sh            # Format, compile and test — the same gate CI runs
+./init.sh parser     # Just parser-core, when you only touched a bank parser
 ```
 
 ## Security

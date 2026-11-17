@@ -38,6 +38,8 @@ data class VoiceEntry(
         ): VoiceEntry? {
             if (text.isBlank() || asksOrPlans(text)) return null
             val daysAgo = ChatMessageFacts.spokenDaysAgo(text) ?: return null
+            // "taxi 30 monday": a weekday this can't count must not be dated today.
+            if (daysAgo == 0 && WEEKDAY.containsMatchIn(text)) return null
             val amount = ChatMessageFacts.statedAmounts(ChatMessageFacts.withoutDays(text)).singleOrNull()
                 ?.abs()?.takeIf { it.signum() > 0 } ?: return null
             val type = TransactionDraft.statedType(text, amount) ?: TransactionType.EXPENSE
@@ -61,8 +63,14 @@ data class VoiceEntry(
          * whose amount wasn't heard ("lunch cash", or an amount said in words) is not one of
          * these: the user says it again or types it.
          */
-        fun needsModel(text: String): Boolean = ChatMessageFacts.spokenDaysAgo(text) == null ||
+        fun needsModel(text: String): Boolean = ChatMessageFacts.spokenDaysAgo(text).let { it == null || it == 0 && WEEKDAY.containsMatchIn(text) } ||
             ChatMessageFacts.statedAmounts(ChatMessageFacts.withoutDays(text)).size > 1
+
+        private val WEEKDAY = Regex(
+            "(?<![\\p{L}\\p{M}])(?:monday|tuesday|wednesday|thursday|friday|saturday|sunday|" +
+                "الاثنين|الإثنين|الثلاثاء|الأربعاء|الاربعاء|الخميس|الجمعة|السبت|الأحد|الاحد)(?![\\p{L}\\p{M}])",
+            RegexOption.IGNORE_CASE
+        )
 
         private fun asks(text: String) = '?' in text || '؟' in text || QUESTION_START.containsMatchIn(text)
 

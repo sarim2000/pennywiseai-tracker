@@ -40,6 +40,15 @@ class VoiceEntryTest {
     }
 
     @Test
+    fun `a bare weekday is not dated today, it goes to the model`() {
+        assertNull(parse("taxi 30 monday"))
+        assertNull(parse("تاكسي ٣٠ يوم الاثنين"))
+        assertTrue(VoiceEntry.needsModel("taxi 30 monday"))
+        // Not a weekday on its own word: still today.
+        assertEquals(today, entry("200 lunch cash").date)
+    }
+
+    @Test
     fun `a named currency and day are taken out of the merchant`() {
         val e = entry("spent 45 dollars on coffee yesterday", base = "INR")
         assertEquals(0, e.amount.compareTo(BigDecimal(45)))

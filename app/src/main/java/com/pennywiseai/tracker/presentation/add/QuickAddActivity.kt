@@ -307,9 +307,10 @@ class QuickAddActivity : FragmentActivity() {
             if (!started) {
                 // Until the recognizer says which languages it has, Arabic on Google's (online
                 // only) would start on-device and fail, or skip the consent question.
-                withTimeoutOrNull(LANGUAGES_WAIT_MS) { snapshotFlow { voice.ready }.first { it } }
+                val ready = withTimeoutOrNull(LANGUAGES_WAIT_MS) { snapshotFlow { voice.ready }.first { it } } != null
                 started = true
-                if (!voice.active) voice.toggle("")
+                // Still unanswered: leave the mic for the user to tap rather than guess the recognizer.
+                if (ready && !voice.active) voice.toggle("")
             }
         }
         Column(

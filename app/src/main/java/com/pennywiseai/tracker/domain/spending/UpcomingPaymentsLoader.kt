@@ -7,6 +7,7 @@ import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.RecurringTransactionRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.domain.insights.scopedSubscriptions
 import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
 import com.pennywiseai.tracker.domain.model.filterTransactionsByProfile
 import kotlinx.coroutines.ExperimentalCoroutinesApi
@@ -61,7 +62,8 @@ class UpcomingPaymentsLoader @Inject constructor(
         ) { subscriptions, recurring, cardBills, posted ->
             Upcoming(
                 bills = UpcomingPayments.of(
-                    subscriptions = subscriptions,
+                    // One with no known account is Personal's, as Insights counts it.
+                    subscriptions = scopedSubscriptions(subscriptions, ignored, profileId, accounts),
                     recurring = recurring.filter { profileId == null || it.profileId == profileId },
                     cardBills = cardBills,
                     cards = cards,

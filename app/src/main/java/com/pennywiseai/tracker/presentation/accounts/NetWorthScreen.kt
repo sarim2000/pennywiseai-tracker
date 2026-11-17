@@ -146,7 +146,11 @@ private fun NetWorthContent(
         sections.forEach { (title, accounts) ->
             item(key = "header_$title") { SectionHeaderV2(title = stringResource(title)) }
             items(accounts, key = { "${it.account.bankName}_${it.account.accountLast4}" }) { line ->
-                AccountLine(line, onClick = { onAccountClick(line.account.bankName, line.account.accountLast4) })
+                AccountLine(
+                    line,
+                    onClick = { onAccountClick(line.account.bankName, line.account.accountLast4) },
+                    modifier = Modifier.animateItem(),
+                )
             }
         }
     }
@@ -275,10 +279,10 @@ private val NetWorthRange.spokenLabel: Int
 
 /** An account, what it adds or takes off, and what its balance rests on. */
 @Composable
-private fun AccountLine(line: NetWorthAccount, onClick: () -> Unit) {
+private fun AccountLine(line: NetWorthAccount, onClick: () -> Unit, modifier: Modifier = Modifier) {
     val account = line.account
     val signed = if (account.isLiability) account.balance.negate() else account.balance
-    PennyWiseCardV2(modifier = Modifier.fillMaxWidth(), onClick = onClick) {
+    PennyWiseCardV2(modifier = modifier.fillMaxWidth(), onClick = onClick) {
         Row(
             modifier = Modifier.fillMaxWidth(),
             verticalAlignment = Alignment.CenterVertically,

@@ -16,4 +16,6 @@
     <string name="warranty_field_label">Warranty ends</string>
     <string name="warranty_field_empty">Add a date to get a reminder</string>
     <string name="warranty_field_clear">Remove warranty date</string>
+    <!-- Date picker headline before a day is picked -->
+    <string name="warranty_picker_no_date">Pick the last day</string>
 </resources>

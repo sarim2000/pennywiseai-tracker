@@ -566,12 +566,17 @@ internal fun WarrantyField(
         DatePickerDialog(
             onDismissRequest = { showDatePicker = false },
             confirmButton = {
-                TextButton(onClick = {
-                    pickerState.selectedDateMillis?.let { millis ->
-                        onWarrantyChange(Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate())
-                    }
-                    showDatePicker = false
-                }, shapes = ButtonDefaults.shapes()) {
+                // Nothing to save until a day is picked (a new warranty opens with none).
+                TextButton(
+                    onClick = {
+                        pickerState.selectedDateMillis?.let { millis ->
+                            onWarrantyChange(Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate())
+                        }
+                        showDatePicker = false
+                    },
+                    enabled = pickerState.selectedDateMillis != null,
+                    shapes = ButtonDefaults.shapes()
+                ) {
                     Text(stringResource(R.string.txn_detail_action_ok))
                 }
             },
@@ -589,6 +594,24 @@ internal fun WarrantyField(
                         // DatePicker's own title padding.
                         modifier = Modifier.padding(start = 24.dp, end = 12.dp, top = 16.dp)
                     )
+                },
+                headline = {
+                    // The default headline reads "Selected date" before anything is picked.
+                    if (pickerState.selectedDateMillis == null) {
+                        Text(
+                            text = stringResource(R.string.warranty_picker_no_date),
+                            style = MaterialTheme.typography.headlineLarge,
+                            // DatePicker's own headline padding.
+                            modifier = Modifier.padding(start = 24.dp, end = 12.dp, bottom = 12.dp)
+                        )
+                    } else {
+                        DatePickerDefaults.DatePickerHeadline(
+                            selectedDateMillis = pickerState.selectedDateMillis,
+                            displayMode = pickerState.displayMode,
+                            dateFormatter = remember { DatePickerDefaults.dateFormatter() },
+                            modifier = Modifier.padding(start = 24.dp, end = 12.dp, bottom = 12.dp)
+                        )
+                    }
                 }
             )
         }

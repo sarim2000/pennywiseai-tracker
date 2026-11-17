@@ -27,6 +27,8 @@
         <item quantity="other">%d دفعة مستحقة</item>
     </plurals>
     <string name="calendar_day_today">اليوم</string>
+    <!-- A weekday and a date; %1$s = the weekday, %2$s = the date -->
+    <string name="calendar_day_date">%1$s، %2$s</string>
 
     <!-- The sheet for one day -->
     <string name="calendar_day_section_spent">المصروف</string>

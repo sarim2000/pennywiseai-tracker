@@ -23,6 +23,8 @@
         <item quantity="other">%d payments due</item>
     </plurals>
     <string name="calendar_day_today">Today</string>
+    <!-- A weekday and a date, e.g. "Monday, 16 Nov 2026"; %1$s = the weekday, %2$s = the date -->
+    <string name="calendar_day_date">%1$s, %2$s</string>
 
     <!-- The sheet for one day -->
     <string name="calendar_day_section_spent">Spent</string>

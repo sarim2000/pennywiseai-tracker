@@ -335,7 +335,9 @@ private fun dayFill(level: Int): Color {
 /** What a screen reader says for a day: the date, what was spent, how many payments are due. */
 @Composable
 private fun dayDescription(date: LocalDate, day: CalendarDay?): String {
-    val parts = mutableListOf(date.format(AppDates.pattern("EEEE")) + ", " + date.format(AppDates.dayMonthFormatter()))
+    val parts = mutableListOf(
+        stringResource(R.string.calendar_day_date, date.format(AppDates.pattern("EEEE")), date.format(AppDates.dayMonthFormatter()))
+    )
     day?.spent?.takeIf { it.isNotEmpty() }?.let { spent ->
         val amounts = spent.entries.sortedBy { it.key }.joinToString(", ") { (currency, amount) ->
             CurrencyFormatter.formatCurrency(amount, currency)
@@ -414,7 +416,7 @@ private fun DaySheet(
             verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent),
         ) {
             Text(
-                text = day.format(AppDates.pattern("EEEE")) + ", " + day.format(AppDates.dateFormatter()),
+                text = stringResource(R.string.calendar_day_date, day.format(AppDates.pattern("EEEE")), day.format(AppDates.dateFormatter())),
                 style = MaterialTheme.typography.titleMedium,
                 modifier = Modifier.semantics { heading() },
             )

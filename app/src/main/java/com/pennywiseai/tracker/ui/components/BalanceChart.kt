@@ -101,9 +101,7 @@ fun BalanceChart(
         val figure = CurrencyFormatter.formatAbbreviated(abs(value), primaryCurrency)
         if (value < 0 && figure != AmountPrivacy.MASK) "-$figure" else figure
     }
-    // The chart's default range: from zero, or from the lowest point when one is below it.
-    val minValue = chartValues.minOf { it }.coerceAtMost(0.0)
-    val maxValue = chartValues.maxOf { it }
+    val (minValue, maxValue) = valueRange(chartValues)
 
     val density = LocalDensity.current
     val textMeasurer = rememberTextMeasurer()
@@ -249,6 +247,21 @@ private val DATE_GAP: Dp = 16.dp
 
 /** Space between the value column and the plot. */
 private val INDICATOR_PADDING: Dp = 12.dp
+
+/**
+ * The value axis for [values]: from zero, or from the lowest point when one is below
+ * it, up to the highest. The chart divides by the range, so a flat line that has none
+ * (all zero, or one steady debt) is given one: up to zero below it, else up to one.
+ */
+internal fun valueRange(values: List<Double>): Pair<Double, Double> {
+    val min = values.min().coerceAtMost(0.0)
+    val max = values.max()
+    return when {
+        max > min -> min to max
+        min < 0.0 -> min to 0.0
+        else -> min to min + 1.0
+    }
+}
 
 /** Most values the Y axis names. */
 private const val MAX_Y_TICKS = 5

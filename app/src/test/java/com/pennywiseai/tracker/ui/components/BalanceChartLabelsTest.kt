@@ -35,4 +35,20 @@ class BalanceChartLabelsTest {
         // Too short for even two still names the top and the bottom.
         assertEquals(2, yTicksThatFit(plotHeight = 10f, lineHeight = 32f))
     }
+
+    @Test
+    fun `the value axis runs from zero or the lowest point to the highest`() {
+        assertEquals(0.0 to 500.0, valueRange(listOf(100.0, 500.0)))
+        assertEquals(-200.0 to 300.0, valueRange(listOf(-200.0, 300.0)))
+        // A steady positive balance still has zero below it.
+        assertEquals(0.0 to 100.0, valueRange(listOf(100.0, 100.0)))
+    }
+
+    @Test
+    fun `a flat line still has a range to draw in`() {
+        // The chart divides by max - min: an empty range would put every point at NaN.
+        assertEquals(0.0 to 1.0, valueRange(listOf(0.0, 0.0, 0.0)))
+        assertEquals(-250.0 to 0.0, valueRange(listOf(-250.0, -250.0)))
+        assertEquals(0.0 to 1.0, valueRange(listOf(0.0)))
+    }
 }

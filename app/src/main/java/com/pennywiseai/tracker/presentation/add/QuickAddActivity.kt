@@ -78,6 +78,7 @@ import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase
 import com.pennywiseai.tracker.navigation.BottomNavItem
 import com.pennywiseai.tracker.ui.components.CategoryChip
+import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.security.BiometricAuthManager
@@ -422,38 +423,33 @@ class QuickAddActivity : FragmentActivity() {
             }
             // What the words were read as, to correct: the plain sheet adds spends only.
             if (voiceMode) {
-                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
-                    listOf(false to R.string.quick_add_spent, true to R.string.quick_add_received).forEach { (isIncome, label) ->
-                        FilterChip(
-                            selected = income == isIncome,
-                            shapes = FilterChipDefaults.shapes(),
-                            colors = FilterChipDefaults.filterChipColors(),
-                            onClick = {
-                                if (income != isIncome) {
-                                    income = isIncome
-                                    // Categories are per type.
-                                    category = null
-                                }
-                            },
-                            label = { Text(stringResource(label)) }
-                        )
-                    }
-                    day?.let { d ->
-                        InputChip(
-                            selected = false,
-                            shapes = InputChipDefaults.shapes(),
-                            colors = InputChipDefaults.inputChipColors(),
-                            onClick = { day = null },
-                            label = { Text(d.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))) },
-                            trailingIcon = {
-                                Icon(
-                                    Icons.Default.Close,
-                                    contentDescription = stringResource(R.string.quick_add_date_today),
-                                    modifier = Modifier.size(InputChipDefaults.IconSize)
-                                )
-                            }
-                        )
-                    }
+                ConnectedChoiceRow(
+                    options = listOf(false, true),
+                    selected = income,
+                    onSelect = { isIncome ->
+                        if (income != isIncome) {
+                            income = isIncome
+                            // Categories are per type.
+                            category = null
+                        }
+                    },
+                    label = { stringResource(if (it) R.string.quick_add_received else R.string.quick_add_spent) }
+                )
+                day?.let { d ->
+                    InputChip(
+                        selected = false,
+                        shapes = InputChipDefaults.shapes(),
+                        colors = InputChipDefaults.inputChipColors(),
+                        onClick = { day = null },
+                        label = { Text(d.format(DateTimeFormatter.ofLocalizedDate(FormatStyle.MEDIUM))) },
+                        trailingIcon = {
+                            Icon(
+                                Icons.Default.Close,
+                                contentDescription = stringResource(R.string.quick_add_date_today),
+                                modifier = Modifier.size(InputChipDefaults.IconSize)
+                            )
+                        }
+                    )
                 }
             }
             // Only with a choice to make; one account or none needs no line.

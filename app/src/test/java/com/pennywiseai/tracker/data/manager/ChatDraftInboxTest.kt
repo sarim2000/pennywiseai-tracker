@@ -1,4 +1,4 @@
-package com.pennywiseai.tracker.presentation.chat
+package com.pennywiseai.tracker.data.manager
 
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse

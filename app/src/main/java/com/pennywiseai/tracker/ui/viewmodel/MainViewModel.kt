@@ -26,7 +26,7 @@ class MainViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository,
     private val merchantAliasRepository: MerchantAliasRepository,
     internal val contactsResolver: ContactsResolver,
-    private val chatDrafts: com.pennywiseai.tracker.presentation.chat.ChatDraftInbox
+    private val chatDrafts: com.pennywiseai.tracker.data.manager.ChatDraftInbox
 ) : ViewModel() {
 
     /** A question from the quick add mic, cleared to Home: MainScreen switches to Chat for it, once. */

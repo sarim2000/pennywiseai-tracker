@@ -1,4 +1,4 @@
-package com.pennywiseai.tracker.presentation.chat
+package com.pennywiseai.tracker.data.manager
 
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow

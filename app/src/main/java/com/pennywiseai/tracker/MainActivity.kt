@@ -91,7 +91,7 @@ class MainActivity : FragmentActivity() {
         private set
 
     @Inject lateinit var appLockRepository: AppLockRepository
-    @Inject lateinit var chatDrafts: com.pennywiseai.tracker.presentation.chat.ChatDraftInbox
+    @Inject lateinit var chatDrafts: com.pennywiseai.tracker.data.manager.ChatDraftInbox
 
     override fun attachBaseContext(newBase: android.content.Context) {
         super.attachBaseContext(newBase.withLatinDigits())

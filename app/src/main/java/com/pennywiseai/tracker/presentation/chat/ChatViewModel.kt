@@ -9,6 +9,7 @@ import com.pennywiseai.tracker.data.database.entity.ChatMessage
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.events.TransactionEvents
 import com.pennywiseai.tracker.data.events.TransactionOrigin
+import com.pennywiseai.tracker.data.manager.ChatDraftInbox
 import com.pennywiseai.tracker.data.manager.ModelDownloader
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.LlmRepository

@@ -833,6 +833,19 @@ fun ReceiptPickerSection(
             Toast.makeText(context, R.string.add_receipt_no_app, Toast.LENGTH_SHORT).show()
         }
     }
+    val pickPhoto = {
+        try {
+            galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+        } catch (_: ActivityNotFoundException) {
+            launchPicker { galleryFallbackLauncher.launch("image/*") }
+        }
+    }
+    val takePhoto = {
+        val uri = onCreateCameraUri()
+        cameraUri = uri
+        launchPicker { cameraLauncher.launch(uri) }
+    }
+    val pickPdf = { launchPicker { pdfLauncher.launch(arrayOf(ReceiptManager.PDF_MIME)) } }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -905,21 +918,52 @@ fun ReceiptPickerSection(
                     )
                 }
             }
+            // Swaps in another file; the current one stays until the new one passes its check.
+            var showReplaceMenu by remember { mutableStateOf(false) }
+            Box {
+                OutlinedButton(
+                    onClick = { showReplaceMenu = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shapes = ButtonDefaults.shapes()
+                ) {
+                    Icon(Icons.Default.SwapHoriz, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text(stringResource(R.string.add_receipt_replace))
+                }
+                DropdownMenu(expanded = showReplaceMenu, onDismissRequest = { showReplaceMenu = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.add_receipt_gallery)) },
+                        leadingIcon = { Icon(Icons.Default.Image, contentDescription = null) },
+                        onClick = {
+                            showReplaceMenu = false
+                            pickPhoto()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.add_receipt_camera)) },
+                        leadingIcon = { Icon(Icons.Default.CameraAlt, contentDescription = null) },
+                        onClick = {
+                            showReplaceMenu = false
+                            takePhoto()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.add_receipt_pdf)) },
+                        leadingIcon = { Icon(Icons.Default.PictureAsPdf, contentDescription = null) },
+                        onClick = {
+                            showReplaceMenu = false
+                            pickPdf()
+                        }
+                    )
+                }
+            }
         } else {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 OutlinedButton(
-                    onClick = {
-                        try {
-                            galleryLauncher.launch(
-                                PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                            )
-                        } catch (_: ActivityNotFoundException) {
-                            launchPicker { galleryFallbackLauncher.launch("image/*") }
-                        }
-                    },
+                    onClick = pickPhoto,
                     modifier = Modifier.weight(1f),
                     shapes = ButtonDefaults.shapes()
                 ) {
@@ -928,11 +972,7 @@ fun ReceiptPickerSection(
                     Text(stringResource(R.string.add_receipt_gallery))
                 }
                 OutlinedButton(
-                    onClick = {
-                        val uri = onCreateCameraUri()
-                        cameraUri = uri
-                        launchPicker { cameraLauncher.launch(uri) }
-                    },
+                    onClick = takePhoto,
                     modifier = Modifier.weight(1f),
                     shapes = ButtonDefaults.shapes()
                 ) {
@@ -942,7 +982,7 @@ fun ReceiptPickerSection(
                 }
             }
             OutlinedButton(
-                onClick = { launchPicker { pdfLauncher.launch(arrayOf(ReceiptManager.PDF_MIME)) } },
+                onClick = pickPdf,
                 modifier = Modifier.fillMaxWidth(),
                 shapes = ButtonDefaults.shapes()
             ) {

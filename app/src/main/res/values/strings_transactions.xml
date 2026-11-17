@@ -298,6 +298,7 @@
     <string name="add_receipt_gallery">Gallery</string>
     <string name="add_receipt_camera">Camera</string>
     <string name="add_receipt_pdf">PDF file</string>
+    <string name="add_receipt_replace">Replace</string>
     <string name="receipt_pdf_label">PDF</string>
     <string name="add_receipt_pdf_too_large">This PDF is over 5 MB. Try a smaller file.</string>
     <string name="add_receipt_pdf_unreadable">This PDF can\'t be opened. It may be damaged or password-protected.</string>

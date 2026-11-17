@@ -3,6 +3,8 @@ package com.pennywiseai.tracker.presentation.home
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -209,7 +211,7 @@ private fun PerDayLine(s: SafeToSpend, until: String, dueBefore: String) {
 }
 
 /** Breakdown behind [SafeToSpendCard]: accounts counted, bills due, and the total. */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun SafeToSpendSheet(
     state: SafeToSpendUi,
@@ -387,15 +389,20 @@ fun SafeToSpendSheet(
 
             Spacer(Modifier.height(Spacing.md))
             // Inset like the grouped rows above, so the total lines up with their amounts.
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(horizontal = Spacing.md)
+            // The label keeps its width: amounts in several currencies that don't fit
+            // beside it wrap onto the line below instead of squeezing it.
+            FlowRow(
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalArrangement = Arrangement.spacedBy(Spacing.xxs),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Spacing.md)
             ) {
                 Text(
                     text = stringResource(R.string.safe_to_spend_title),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.padding(end = Spacing.sm)
                 )
                 Text(
                     text = (listOf(primary) + state.others).formatAmounts(),

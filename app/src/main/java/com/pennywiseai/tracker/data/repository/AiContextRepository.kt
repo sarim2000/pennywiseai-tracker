@@ -117,17 +117,17 @@ class AiContextRepository @Inject constructor(
     /**
      * Home's card setting, for a figure of all spending: left off, a card's purchases wait for
      * its bill, paid from another account, and counting both would count them twice. A figure
-     * narrowed to an account or a merchant (or a ranking of accounts) is that account's or
-     * merchant's own: the bill is paid elsewhere, so left off, a card would read "nothing
-     * spent" beside a list full of its purchases.
+     * narrowed to a merchant (or a ranking of accounts) is that merchant's or account's own: the
+     * bill is paid elsewhere, so left off, a card would read "nothing spent" beside a list full
+     * of its purchases.
      */
     private suspend fun creditAsExpense(filter: SpendingFilter, byAccount: Boolean = false) =
         filter.narrowed || byAccount || creditAsExpense()
 
     /**
      * Home's "Spent this month" and income, with one converted figure only when Home shows one.
-     * [filter] picks other days, or narrows it to a merchant or account: forgiven loans belong
-     * to neither, so they're only in a figure of all spending.
+     * [filter] picks other days, or narrows it to a merchant: forgiven loans belong to none, so
+     * they're only in a figure of all spending.
      */
     suspend fun spending(today: LocalDate = LocalDate.now(), filter: SpendingFilter = SpendingFilter()): PeriodSpending {
         val scope = scopeOf(filter, today)

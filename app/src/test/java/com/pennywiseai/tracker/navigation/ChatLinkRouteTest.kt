@@ -29,9 +29,4 @@ class ChatLinkRouteTest {
         val all = transactionsFor(ChatLink("See", nov1, nov16, null, "USD", null))
         assertEquals(true to null, all.profilePinned to all.profileId)
     }
-
-    @Test
-    fun `a figure for one account opens on that account`() {
-        assertEquals("HDFC_1234", transactionsFor(ChatLink("See", nov1, nov16, null, "INR", null, "HDFC_1234")).account)
-    }
 }

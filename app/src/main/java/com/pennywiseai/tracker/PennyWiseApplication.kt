@@ -102,9 +102,6 @@ class PennyWiseApplication : Application(), Configuration.Provider {
         // was taken, and reading it inside that snapshot crashed with "Reading a
         // state that was created after the snapshot was taken" (Play vitals, 2.22.0).
         CategoryMapping.userStyles
-        com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames.shown = { name, categories ->
-            CategoryMapping.labelRes(name, categories)?.let(::getString)
-        }
         // Same for the hide-amounts switch, which every money format reads.
         AmountPrivacy.hidden
         // The weekend a last-working-day budget cycle rolls back over: the SIM country, kept once saved.

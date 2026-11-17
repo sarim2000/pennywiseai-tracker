@@ -71,11 +71,11 @@ data class TopCategories(
 
 /**
  * A way from a chat figure to the transactions behind it: [start] to [end] (whole days), in
- * [category] and its subcategories when set, on [account] (a "bank_last4" key) when set, and
- * only rows written in [currency]: the list left to its own currency would open on the base
- * one alone. [profileId] is the profile the figure counted (null for all), whatever Home shows
- * by the time it's opened. Forgiven loans aren't transactions: the answer names them in its own
- * text. The screen's only: never saved, so a chat restored later is text.
+ * [category] and its subcategories when set, and only rows written in [currency]: the list
+ * left to its own currency would open on the base one alone. [profileId] is the profile the
+ * figure counted (null for all), whatever Home shows by the time it's opened. Forgiven loans
+ * aren't transactions: the answer names them in its own text. The screen's only: never
+ * saved, so a chat restored later is text.
  */
 data class ChatLink(
     val label: String,
@@ -84,7 +84,6 @@ data class ChatLink(
     val category: String?,
     val currency: String,
     val profileId: Long?,
-    val account: String? = null,
 )
 
 /**

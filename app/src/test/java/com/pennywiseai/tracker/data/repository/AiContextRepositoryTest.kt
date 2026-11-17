@@ -450,7 +450,7 @@ class AiContextRepositoryTest {
     }
 
     @Test
-    fun `a figure narrowed to a merchant or account is theirs alone, refunds off and forgiven loans out`() = runBlocking {
+    fun `a figure narrowed to a merchant is its alone, refunds off and forgiven loans out`() = runBlocking {
         forgiven = mapOf("INR" to BigDecimal("400"))
         aliases["AMZN MKTP IN"] = "Amazon"
         tx("300", merchant = "AMZN MKTP IN", account = "1234")
@@ -461,9 +461,6 @@ class AiContextRepositoryTest {
         // Found by the name the user gave it, not only the one the SMS used.
         val amazon = repository.spending(today, SpendingFilter(merchant = "amazon"))
         assertEquals(mapOf("INR" to "250"), amounts(amazon.spentWithForgiven))
-        val card = repository.spending(today, SpendingFilter(account = "Bank_1234"))
-        assertEquals(mapOf("INR" to "250", "USD" to "70"), amounts(card.spentWithForgiven))
-        assertEquals(3, card.transactionCount)
         // Not narrowed, it's Home's figure, the forgiven loan in.
         assertEquals(mapOf("INR" to "850", "USD" to "70"), amounts(repository.spending(today).spentWithForgiven))
         // A merchant nobody has is nothing spent: no figure to invent.
@@ -471,7 +468,7 @@ class AiContextRepositoryTest {
     }
 
     @Test
-    fun `a card's purchases count once narrowed to the card or a merchant, whatever Home's card setting`() = runBlocking {
+    fun `a card's purchases count once narrowed to a merchant, whatever Home's card setting`() = runBlocking {
         preferences.setCountCreditCardAsExpense(false)
         accounts += AccountBalanceEntity(bankName = "Bank", accountLast4 = "1234", balance = BigDecimal.ZERO, timestamp = today.atStartOfDay(), isCreditCard = true)
         tx("300", type = TransactionType.CREDIT, merchant = "Amazon", account = "1234")
@@ -480,11 +477,10 @@ class AiContextRepositoryTest {
 
         // Home's figure counts the bill, not the purchase as well.
         assertEquals(mapOf("INR" to "250"), amounts(repository.spending(today).spentWithForgiven))
-        val card = repository.spending(today, SpendingFilter(account = "Bank_1234"))
-        assertEquals(mapOf("INR" to "300"), amounts(card.spentWithForgiven))
-        assertEquals(1, card.transactionCount)
-        assertEquals(mapOf("INR" to "300"), amounts(repository.spending(today, SpendingFilter(merchant = "amazon")).spentWithForgiven))
-        assertEquals(mapOf("INR" to "300"), amounts(repository.categorySpending("food", today, SpendingFilter(account = "Bank_1234")).byCurrency))
+        val amazon = repository.spending(today, SpendingFilter(merchant = "amazon"))
+        assertEquals(mapOf("INR" to "300"), amounts(amazon.spentWithForgiven))
+        assertEquals(1, amazon.transactionCount)
+        assertEquals(mapOf("INR" to "300"), amounts(repository.categorySpending("food", today, SpendingFilter(merchant = "amazon")).byCurrency))
         // Each account's own spending: the card is ranked too.
         val byAccount = repository.topCategories(today, by = SpendingQuery.GroupBy.ACCOUNT)
         assertEquals(listOf("Bank ••1234", "Bank ••9999"), byAccount.ranking.getValue("INR").map { it.first })

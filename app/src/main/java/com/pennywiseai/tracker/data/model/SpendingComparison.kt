@@ -352,9 +352,6 @@ object SpendingComparison {
      */
     fun namesThePreviousPeriod(userMessage: String) = PREVIOUS.containsMatchIn(userMessage)
 
-    /** The user's words name a week or a month, so those decide the days rather than a day word. */
-    fun namesWeekOrMonth(userMessage: String) = WEEK.containsMatchIn(userMessage) || MONTH.containsMatchIn(userMessage)
-
     // A comparison is of spending: "how much income last month?" stays with the summary.
     private val INCOME = Regex(
         "\\b(?:income|received|receive|earned|earn|salary|kamai|aamdani)\\b|دخل|راتب|استلمت|قبضت|कमाई|आमदनी|आय|वेतन|तनख्वाह",

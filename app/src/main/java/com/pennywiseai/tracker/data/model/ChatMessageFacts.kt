@@ -192,29 +192,6 @@ internal object ChatMessageFacts {
     private fun isCurrencyCode(code: String) =
         code.length == 3 && code.all { it in 'A'..'Z' } && runCatching { java.util.Currency.getInstance(code) }.isSuccess
 
-    // Questions
-
-    private val QUESTION_START = regex(
-        "^\\s*(?:${word("how much|how many|what|which|did i|kitna|kitne|kya|ب?كم|ايش|إيش|شو|وش|هل|कितना|कितने|क्या")})"
-    )
-    private val ADD_WORD = regex(
-        word("add|log|record|save|note down|track|سجل|سجّل|اضف|أضف|ضيف|اضيف|أضيف|احفظ|دون|دوّن|اكتب|जोड़|लिख")
-    )
-
-    /**
-     * Whether [message] only asks something ("كم صرفت في ستاربكس هالشهر؟", "how much at
-     * Starbucks"), with no word asking to add. Qwen2.5 answers some with an add call; a question
-     * records nothing. Opening with a question word ("how much", "كم") it asks whatever numbers
-     * it holds: "in 2026", "on HDFC 1234". A question by its mark alone stops asking when it
-     * states one of [amounts] ("got 25 back from Starbucks?").
-     */
-    fun asksOnly(message: String, amounts: List<BigDecimal>): Boolean {
-        val text = message.trim()
-        if (ADD_WORD.containsMatchIn(text)) return false
-        if (QUESTION_START.containsMatchIn(text)) return true
-        return (text.endsWith("?") || text.endsWith("؟")) && amounts.none { statesAmount(text, it) }
-    }
-
     // Received money
 
     private val MONEY_MARK = "(?:[₹$€£]|rs\\.?|sr|jd|dhs?|rupees?|rupaye|रुपये|रुपए|रुपया|dollars?|डॉलर|euros?|pounds?|riyals?|dirhams?|dinars?|" +
@@ -275,7 +252,7 @@ internal object ChatMessageFacts {
     )
 
     /** Days ago the message states, as numbers. */
-    fun statedDays(message: String): Set<Int> {
+    private fun statedDays(message: String): Set<Int> {
         val text = latin(message)
         val days = mutableSetOf<Int>()
         // Longest phrases first, each removed so "day before yesterday" can't also read as yesterday.

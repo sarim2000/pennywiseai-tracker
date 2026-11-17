@@ -334,7 +334,6 @@
         <item quantity="other">Received %1$s as %2$s in %3$s, across %4$d transactions.</item>
     </plurals>
     <string name="chat_reply_nothing_received_in">Nothing received as %1$s in %2$s.</string>
-    <string name="chat_reply_income_category_unclear">I couldn\'t tell which income you mean. Try naming its category, like \"salary this month\".</string>
     <string name="chat_reply_income_ranking_unsupported">I can total what came in, but not rank it yet. Try \"how much salary did I receive this month?\"</string>
     <string name="chat_reply_spent_with_forgiven">%1$s, including %2$s in forgiven loans</string>
     <string name="chat_reply_forgiven_loans">Forgiven loans: %1$s</string>
@@ -351,8 +350,6 @@
     <string name="chat_reply_converted_estimate">About %1$s in all: a converted estimate in %2$s</string>
     <string name="chat_reply_converted_left_out">Left out of the estimate, no exchange rate: %1$s</string>
     <string name="chat_reply_unknown_category">I don\'t have a category called %1$s.</string>
-    <string name="chat_reply_unknown_account">I don\'t have an account called %1$s.</string>
-    <string name="chat_reply_account_ambiguous">%1$s could be %2$s. Which one?</string>
     <string name="chat_reply_query_group_unknown">I can list your biggest categories, merchants or accounts.</string>
     <string name="chat_reply_query_period_unknown">I can\'t look up those days. Try this month, last month, this week, last week, this year, last year, a month like 2026-10, or a start and end date.</string>
     <string name="chat_reply_query_date_unreadable">I couldn\'t read the date %1$s. Try one like 2026-10-31.</string>

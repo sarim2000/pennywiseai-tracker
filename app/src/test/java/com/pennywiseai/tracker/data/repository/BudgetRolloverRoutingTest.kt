@@ -9,6 +9,7 @@ import com.pennywiseai.tracker.data.database.entity.BudgetEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.database.entity.BudgetWithCategories
+import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
@@ -69,22 +70,41 @@ class BudgetRolloverRoutingTest {
     )
 
     private var nextId = 1L
-    private fun spend(amount: String, currency: String = "JOD", at: LocalDateTime = today.atTime(9, 0)) =
+    private fun spend(
+        amount: String,
+        currency: String = "JOD",
+        at: LocalDateTime = today.atTime(9, 0),
+        category: String = "Food",
+        type: TransactionType = TransactionType.EXPENSE
+    ) =
         TransactionWithSplits(
             TransactionEntity(
-                id = nextId, amount = BigDecimal(amount), merchantName = "Shop", category = "Food",
-                transactionType = TransactionType.EXPENSE, dateTime = at, currency = currency,
+                id = nextId, amount = BigDecimal(amount), merchantName = "Shop", category = category,
+                transactionType = type, dateTime = at, currency = currency,
                 transactionHash = "h${nextId++}"
             ),
             emptyList()
         )
 
-    private fun repository(group: BudgetWithCategories, transactions: List<TransactionWithSplits>) =
-        repository(group, MutableStateFlow(transactions))
+    // Groceries is a sub-category of Food.
+    private val subCategories = listOf(
+        CategoryEntity(id = 1, name = "Food", color = "#000000"),
+        CategoryEntity(id = 2, name = "Groceries", color = "#000000", parentId = 1)
+    )
+
+    private fun repository(
+        group: BudgetWithCategories,
+        transactions: List<TransactionWithSplits>,
+        categories: List<CategoryEntity> = emptyList()
+    ) = repository(group, MutableStateFlow(transactions), categories)
 
     // Each query re-emits only when its own range changes, so a figure that reads a
     // range it doesn't observe goes stale.
-    private fun repository(group: BudgetWithCategories, transactions: StateFlow<List<TransactionWithSplits>>): BudgetGroupRepository {
+    private fun repository(
+        group: BudgetWithCategories,
+        transactions: StateFlow<List<TransactionWithSplits>>,
+        categoryList: List<CategoryEntity> = emptyList()
+    ): BudgetGroupRepository {
         fun between(start: LocalDateTime, end: LocalDateTime) = transactions.map { all ->
             all.filter { !it.transaction.dateTime.isBefore(start) && !it.transaction.dateTime.isAfter(end) }
         }.distinctUntilChanged()
@@ -102,7 +122,7 @@ class BudgetRolloverRoutingTest {
             every { budgetCycleStartDay } returns flowOf(1)
             coEvery { getBudgetCycleStartDay() } returns 1
         }
-        val categories = mockk<CategoryDao> { coEvery { getAllCategoriesList() } returns emptyList() }
+        val categories = mockk<CategoryDao> { coEvery { getAllCategoriesList() } returns categoryList }
         return BudgetGroupRepository(budgetDao, splitDao, prefs, categories)
     }
 
@@ -204,6 +224,43 @@ class BudgetRolloverRoutingTest {
             transactions.value = transactions.value + spend("25", at = lastWeek)
             withTimeout(5_000) { while (BigDecimal("15").compareTo(seen.receive()) != 0) Unit }
             collecting.cancel()
+        }
+    }
+
+    @Test
+    fun `a parent budget counts its sub-categories this week as it did for last week's carry`() {
+        val repo = repository(
+            budget(),
+            listOf(spend("60", at = lastWeek, category = "Groceries"), spend("30", category = "Groceries")),
+            subCategories
+        )
+        for (unified in listOf(false, true)) {
+            assertFigures(summary(repo, unified), carry = "40", limit = "140", remaining = "110")
+        }
+    }
+
+    @Test
+    fun `a budget tracking every expense counts a sub-category's spending once`() {
+        val trackAll = budget().copy(categories = emptyList())
+        val repo = repository(
+            trackAll,
+            listOf(spend("60", at = lastWeek, category = "Groceries"), spend("30", category = "Groceries")),
+            subCategories
+        )
+        for (unified in listOf(false, true)) {
+            assertFigures(summary(repo, unified), carry = "40", limit = "140", remaining = "110")
+        }
+    }
+
+    @Test
+    fun `a budget tracking every expense counts card purchases this week as it did for last week's carry`() {
+        val trackAll = budget().copy(categories = emptyList())
+        val repo = repository(
+            trackAll,
+            listOf(spend("60", at = lastWeek, type = TransactionType.CREDIT), spend("30", type = TransactionType.CREDIT))
+        )
+        for (unified in listOf(false, true)) {
+            assertFigures(summary(repo, unified), carry = "40", limit = "140", remaining = "110")
         }
     }
 

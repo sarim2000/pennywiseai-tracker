@@ -119,11 +119,16 @@ class BudgetSummaryProviderTest {
         val all = budget(1, "Everything")
         assertEquals(
             mapOf("Everything" to false),
-            flags(provider(true, listOf(all), listOf(tx(1, "10", "Others", "XYZ", TransactionType.CREDIT))))
+            flags(provider(true, listOf(all), listOf(tx(1, "10", "Others", "XYZ", TransactionType.TRANSFER))))
         )
         assertEquals(
             mapOf("Everything" to true),
             flags(provider(true, listOf(all), listOf(tx(1, "10", "Others", "XYZ"))))
+        )
+        // A card purchase is spending it counts, as native mode and the carry do.
+        assertEquals(
+            mapOf("Everything" to true),
+            flags(provider(true, listOf(all), listOf(tx(1, "10", "Others", "XYZ", TransactionType.CREDIT))))
         )
     }
 

@@ -223,7 +223,7 @@ data class BudgetGroupSpendingRaw(
      * [budgetCarry] with [parentOf].
      */
     val carrySources: Map<Long, List<TransactionWithSplits>> = emptyMap(),
-    /** Sub-category → parent name, for [budgetCarry]. */
+    /** Sub-category → parent name, for [budgetSpend]: live totals and [budgetCarry] alike. */
     val parentOf: Map<String, String> = emptyMap()
 ) {
     /** What [group] carries into its current window, in [currency]; see [budgetCarry]. */

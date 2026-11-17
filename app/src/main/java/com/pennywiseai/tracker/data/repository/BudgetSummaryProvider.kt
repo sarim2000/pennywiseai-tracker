@@ -68,9 +68,9 @@ class BudgetSummaryProvider @Inject constructor(
                             )
                             // Same match as the base-currency query: anything else isn't counted.
                             g.copy(
-                                hasUnconvertedSpend = hasUncountedSpend(g.group, txs, parentOf) { fromCurrency, amount ->
+                                hasUnconvertedSpend = budgetSpend(g.group, txs, parentOf) { fromCurrency, amount ->
                                     amount.takeIf { fromCurrency == baseCurrency }
-                                }
+                                }.incomplete
                             )
                         }
                     )
@@ -123,6 +123,7 @@ class BudgetSummaryProvider @Inject constructor(
                 currentWindow = perBudgetWindow,
                 displayCurrency = displayCurrency,
                 baseCurrency = baseCurrency,
+                parentOf = raw.parentOf,
                 carry = raw.carryFor(group, displayCurrency, baseCurrency) { fromCurrency, amount ->
                     currencyConversionService.convertAmountOrNull(amount, fromCurrency, displayCurrency)
                 }
@@ -214,66 +215,6 @@ class BudgetSummaryProvider @Inject constructor(
      * overlaps the displayed window. Each per-month window's spend is
      * already in the page's currency, so no further conversion needed.
      */
-    private suspend fun getBudgetWindowFilteredSpend(
-        group: com.pennywiseai.tracker.data.database.entity.BudgetWithCategories,
-        transactions: List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>,
-        displayCurrency: String,
-        baseCurrency: String
-    ): BigDecimal {
-        if (group.categories.isEmpty()) {
-            return transactions.fold(BigDecimal.ZERO) { acc, txWithSplits ->
-                val tx = txWithSplits.transaction.forTotals() ?: return@fold acc
-                if (tx.transactionType != com.pennywiseai.tracker.data.database.entity.TransactionType.EXPENSE && tx.transactionType != com.pennywiseai.tracker.data.database.entity.TransactionType.INVESTMENT) return@fold acc
-                // Skip unconvertible amounts rather than counting them at face value (#670).
-                currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
-                    ?.let { acc + it } ?: acc
-            }
-        }
-        val (categoryAmounts, _, typeAmounts) = com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending(
-            transactions = transactions,
-            convertSplit = { fromCurrency, amount ->
-                currencyConversionService.convertAmountOrNull(amount, fromCurrency, displayCurrency)
-            },
-            convertIncome = { tx ->
-                currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
-            }
-        )
-        val catNames = group.categories.filter { it.matchType == null }.map { it.categoryName }.toSet()
-        val matchTypes = group.categories.mapNotNull { it.matchType }.toSet()
-        val catTotal = categoryAmounts.filterKeys { it in catNames }.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
-        val typeTotal = typeAmounts.filterKeys { it in matchTypes }.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
-        return catTotal + typeTotal
-    }
-
-    /**
-     * Whether [transactions] hold spending [group] counts that [convert] has no
-     * rate for, so its total reads low and its remaining high (#670). Matches as
-     * [getBudgetWindowFilteredSpend] does: every expense and investment for a
-     * budget with no categories, else only its own categories and type buckets.
-     * [parentOf] must be the one the matching total used, so a parent row is
-     * marked for its sub-categories' left-out spending exactly when the total
-     * counts their spending under it.
-     */
-    private suspend fun hasUncountedSpend(
-        group: BudgetWithCategories,
-        transactions: List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>,
-        parentOf: Map<String, String>,
-        convert: suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?
-    ): Boolean {
-        if (group.categories.isEmpty()) {
-            return transactions.any { txWithSplits ->
-                val tx = txWithSplits.transaction.forTotals() ?: return@any false
-                (tx.transactionType == TransactionType.EXPENSE || tx.transactionType == TransactionType.INVESTMENT) &&
-                    convert(tx.currency, tx.amount) == null
-            }
-        }
-        val aggregation = aggregateBudgetCategorySpending(transactions, convertSplit = convert, convertIncome = { null }, parentOf = parentOf)
-        return group.categories.any { cat ->
-            if (cat.matchType != null) cat.matchType in aggregation.skippedTypes
-            else cat.categoryName in aggregation.skippedCategories
-        }
-    }
-
     private fun transactionsInWindow(
         budgetId: Long,
         windowedSpend: List<WindowSpending>,
@@ -324,6 +265,8 @@ class BudgetSummaryProvider @Inject constructor(
         currentWindow: com.pennywiseai.tracker.data.repository.BudgetWindow,
         displayCurrency: String,
         baseCurrency: String,
+        // Sub-category → parent: a parent row counts its children, as in native mode (#374).
+        parentOf: Map<String, String>,
         carry: BudgetCarry = BudgetCarry.none(displayCurrency)
     ): BudgetGroupSpending {
         val budget = group.budget
@@ -337,12 +280,14 @@ class BudgetSummaryProvider @Inject constructor(
         // clipped per month. Match by containment: pick the window whose
         // [start, end] range fully contains displayedWindow.
         val txsInDisplay = transactionsInWindow(group.budget.id, windowedSpend, displayedWindow)
-        val convertedTotalActual = getBudgetWindowFilteredSpend(group, txsInDisplay, displayCurrency, baseCurrency)
-        // Spending with no rate is skipped above, not counted at face value. This
-        // path's totals don't roll sub-categories into parents, so neither does the flag.
-        val hasUnconvertedSpend = hasUncountedSpend(group, txsInDisplay, parentOf = emptyMap()) { fromCurrency, amount ->
+        val convert: suspend (String, BigDecimal) -> BigDecimal? = { fromCurrency, amount ->
             currencyConversionService.convertAmountOrNull(amount, fromCurrency, displayCurrency)
         }
+        // Added up as the carry is; spending with no rate is left out (not counted at
+        // face value, #670) and flagged.
+        val spend = budgetSpend(group, txsInDisplay, parentOf, convert)
+        val convertedTotalActual = spend.amount
+        val hasUnconvertedSpend = spend.incomplete
 
         // previousWindows: Weekly historical only. The displayed window
         // is the budget's own current window; older per-week windows
@@ -353,7 +298,7 @@ class BudgetSummaryProvider @Inject constructor(
                 .map {
                     PastWindowSpending(
                         window = it.window,
-                        spent = getBudgetWindowFilteredSpend(group, it.transactions, displayCurrency, baseCurrency),
+                        spent = budgetSpend(group, it.transactions, parentOf, convert).amount,
                         capDate = it.window.end,
                         isLive = false
                     )
@@ -375,12 +320,9 @@ class BudgetSummaryProvider @Inject constructor(
         val categorySpending = if (group.categories.isEmpty()) emptyList() else {
             val (categoryAmounts, categoryLimitBoosts, typeAmounts) = com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending(
                 transactions = txsInDisplay,
-                convertSplit = { fromCurrency, amount ->
-                    currencyConversionService.convertAmountOrNull(amount, fromCurrency, displayCurrency)
-                },
-                convertIncome = { tx ->
-                    currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
-                }
+                convertSplit = convert,
+                convertIncome = { tx -> convert(tx.currency, tx.amount) },
+                parentOf = parentOf
             )
             val days = displayedWindow.days.coerceAtLeast(1)
             group.categories.map { cat ->
@@ -508,7 +450,9 @@ class BudgetSummaryProvider @Inject constructor(
             return cumulative to pace
         }
 
+        // A parent's pace includes its sub-categories, as its total does.
         val catNames = if (group.categories.isEmpty()) null else group.categories.filter { it.matchType == null }.map { it.categoryName }.toSet()
+            .let { names -> names + parentOf.filterValues { it in names }.keys }
         val matchTypes = group.categories.mapNotNull { it.matchType }.toSet()
         val (cumSpending, budgetPace) = buildGroupPace(catNames, matchTypes, convertedTotalBudget)
 

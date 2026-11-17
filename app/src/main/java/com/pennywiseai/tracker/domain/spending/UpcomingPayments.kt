@@ -26,7 +26,8 @@ object UpcomingPayments {
      *   entered it still counts, or nothing would be set aside for it. Nothing
      *   charged to a hidden card counts.
      * @param posted transactions from just before today on; one that pays a
-     *   subscription's occurrence settles it, each at most one.
+     *   subscription's occurrence settles it, each at most one. Only a charge in
+     *   scope can, and only from the subscription's own account when both are known.
      * @param isExcluded an account whose payments don't count (ignored, or in another
      *   profile); null accounts never are.
      */
@@ -46,8 +47,10 @@ object UpcomingPayments {
                 cardBills.any { it.isKnown && it.card.accountLast4 == c.accountLast4 && it.card.bankName.equals(c.bankName, ignoreCase = true) }
         }
         fun counts(bank: String?, last4: String?) = !onCard(bank, last4, covered) && !isExcluded(bank, last4)
+        // A charge on an ignored account, or another profile's, pays nothing in this scope.
         val charges = posted.filter {
-            !it.isDeleted && it.transactionType in RecurringCharge.SPEND_TYPES && !it.dateTime.toLocalDate().isAfter(today)
+            !it.isDeleted && it.transactionType in RecurringCharge.SPEND_TYPES && !it.dateTime.toLocalDate().isAfter(today) &&
+                !isExcluded(it.bankName, it.accountNumber)
         }.sortedBy { it.dateTime }.toMutableList()
         val subs = activeExpense(subscriptions).filter { counts(it.bankName, it.accountLast4) }.flatMap { s ->
             occurrences(s, today, end).map { s to Bill(s.merchantName, Money(s.amount, s.currency), it) }
@@ -96,15 +99,17 @@ object UpcomingPayments {
             }
 
     /**
-     * Whether a posted charge already paid [s]'s payment due [due]: a spend at the
-     * same merchant, currency and amount within [RecurringCharge.settles] of it,
-     * after the last payment the subscription recorded. A charge that settles one
-     * is taken out of [charges], so it settles no other.
+     * Whether a posted charge already paid [s]'s payment due [due]: a spend from its
+     * account at the same merchant, currency and amount within
+     * [RecurringCharge.settles] of it, after the last payment the subscription
+     * recorded. A charge that settles one is taken out of [charges], so it settles
+     * no other.
      */
     private fun settled(s: SubscriptionEntity, due: LocalDate, charges: MutableList<TransactionEntity>): Boolean {
         val charge = charges.firstOrNull { t ->
             val on = t.dateTime.toLocalDate()
             t.currency == s.currency &&
+                paidFrom(s, t) &&
                 RecurringCharge.sameMerchant(t.merchantName, s.merchantName) &&
                 RecurringCharge.sameAmount(t.amount, s.amount) &&
                 RecurringCharge.settles(due, on) &&
@@ -112,6 +117,17 @@ object UpcomingPayments {
         } ?: return false
         charges.remove(charge)
         return true
+    }
+
+    /**
+     * Whether [t] could come from [s]'s account. Unknown on either side matches (an
+     * older subscription, a payment entered by hand); two known accounts must agree,
+     * so a same-priced plan on another card doesn't pay this one.
+     */
+    private fun paidFrom(s: SubscriptionEntity, t: TransactionEntity): Boolean {
+        val last4 = s.accountLast4 ?: return true
+        val from = t.accountNumber ?: return true
+        return from == last4 && (s.bankName == null || t.bankName == null || t.bankName.equals(s.bankName, ignoreCase = true))
     }
 
     /** A subscription and a template for the same payment: merchant, currency, amount and date all agree. */

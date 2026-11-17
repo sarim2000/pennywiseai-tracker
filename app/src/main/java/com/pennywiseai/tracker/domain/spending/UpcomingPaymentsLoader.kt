@@ -7,6 +7,8 @@ import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.RecurringTransactionRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
+import com.pennywiseai.tracker.domain.model.filterTransactionsByProfile
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
@@ -23,7 +25,8 @@ data class Upcoming(
 
 /**
  * Loads [UpcomingPayments] in the active profile's scope: ignored accounts and those
- * in another profile neither pay anything nor have a bill counted.
+ * in another profile, and transactions filed under another profile, neither pay
+ * anything nor have a bill counted.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class UpcomingPaymentsLoader @Inject constructor(
@@ -47,6 +50,7 @@ class UpcomingPaymentsLoader @Inject constructor(
             val account = if (bank == null || last4 == null) null else byKey[bank.lowercase() to last4]
             return profileId != null && account != null && account.profileId != profileId
         }
+        val profileKeys = buildProfileAccountKeys(accounts)
         val cards = accounts.filter { it.isCreditCard }
         val visibleCards = cards.filter { !excluded(it.bankName, it.accountLast4) }
         combine(
@@ -61,7 +65,7 @@ class UpcomingPaymentsLoader @Inject constructor(
                     recurring = recurring.filter { profileId == null || it.profileId == profileId },
                     cardBills = cardBills,
                     cards = cards,
-                    posted = posted,
+                    posted = filterTransactionsByProfile(posted, profileId, profileKeys),
                     today = today,
                     end = end,
                     isExcluded = ::excluded,

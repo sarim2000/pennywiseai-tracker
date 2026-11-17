@@ -45,9 +45,9 @@ class UpcomingPaymentsTest {
             dayOfMonth = date(next).dayOfMonth, accountLast4 = last4, bankName = last4?.let { "Test Bank" },
         )
 
-    private fun charge(name: String, on: String, amount: String = "100") = TransactionEntity(
+    private fun charge(name: String, on: String, amount: String = "100", bank: String? = null, last4: String? = null) = TransactionEntity(
         id = nextId, amount = d(amount), merchantName = name, category = "Bills", transactionType = TransactionType.EXPENSE,
-        dateTime = date(on).atTime(10, 0), transactionHash = "h${nextId++}",
+        dateTime = date(on).atTime(10, 0), transactionHash = "h${nextId++}", bankName = bank, accountNumber = last4,
     )
 
     private val card = AccountBalanceEntity(
@@ -172,6 +172,31 @@ class UpcomingPaymentsTest {
         val bills = upcoming(
             subscriptions = listOf(sub("Cleaner", "2026-10-24", cycle = "Weekly", lastPaid = "2026-10-20")),
             posted = listOf(charge("Cleaner", "2026-10-20")),
+        )
+
+        assertEquals(date("2026-10-24"), bills.first().dueDate)
+    }
+
+    @Test
+    fun `a same-priced charge from another account doesn't settle the subscription`() {
+        val netflix = sub("Netflix", "2026-10-24", bank = "Test Bank", last4 = "1111")
+
+        val otherAccount = upcoming(subscriptions = listOf(netflix), posted = listOf(charge("Netflix", "2026-10-23", bank = "Test Bank", last4 = "2222")))
+        val ownAccount = upcoming(subscriptions = listOf(netflix), posted = listOf(charge("Netflix", "2026-10-23", bank = "Test Bank", last4 = "1111")))
+        val byHand = upcoming(subscriptions = listOf(netflix), posted = listOf(charge("Netflix", "2026-10-23")))
+
+        assertEquals(listOf(date("2026-10-24")), otherAccount.map { it.dueDate })
+        // Paid; the next one, 24 November, falls after payday.
+        assertTrue(ownAccount.isEmpty())
+        assertTrue(byHand.isEmpty())
+    }
+
+    @Test
+    fun `a charge on an excluded account settles nothing`() {
+        val bills = upcoming(
+            subscriptions = listOf(sub("Netflix", "2026-10-24")),
+            posted = listOf(charge("Netflix", "2026-10-23", bank = "Other Bank", last4 = "9999")),
+            isExcluded = { bank, last4 -> bank == "Other Bank" && last4 == "9999" },
         )
 
         assertEquals(date("2026-10-24"), bills.first().dueDate)

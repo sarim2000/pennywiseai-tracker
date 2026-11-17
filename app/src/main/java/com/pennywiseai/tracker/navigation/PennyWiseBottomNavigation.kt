@@ -28,6 +28,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -82,6 +83,7 @@ import com.pennywiseai.tracker.ui.components.mascot.ReactionAmount
 import com.pennywiseai.tracker.ui.effects.BlurredAnimatedVisibility
 import com.pennywiseai.tracker.ui.effects.frostedBlur
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.income
 import com.pennywiseai.tracker.ui.theme.spending
@@ -494,11 +496,14 @@ private fun ChatAmountChip(
         },
         modifier = modifier
     ) { measurables, constraints ->
-        val chip = measurables.firstOrNull()?.measure(constraints.copy(minWidth = 0, minHeight = 0))
+        val gap = Spacing.sm.roundToPx()
+        // Never wider than the screen less its edge gaps: a long figure shrinks to fit instead.
+        val chip = measurables.firstOrNull()?.measure(
+            constraints.copy(minWidth = 0, minHeight = 0, maxWidth = (constraints.maxWidth - 2 * gap).coerceAtLeast(0))
+        )
         layout(constraints.maxWidth, constraints.maxHeight) {
             val origin = coordinates?.positionInRoot()
             if (chip == null || origin == null || anchor.centerX.isNaN() || anchor.barTop.isNaN()) return@layout
-            val gap = Spacing.sm.roundToPx()
             val centred = (anchor.centerX - origin.x - chip.width / 2f).roundToInt()
             val maxX = constraints.maxWidth - gap - chip.width
             val x = if (maxX >= gap) centred.coerceIn(gap, maxX) else (constraints.maxWidth - chip.width) / 2
@@ -530,6 +535,11 @@ private fun AmountPill(amount: ReactionAmount) {
         style = MaterialTheme.typography.labelLarge.tabular(),
         color = color,
         maxLines = 1,
+        // A figure is never cut short: a long one steps down to the money-text floor.
+        autoSize = TextAutoSize.StepBased(
+            minFontSize = PennyWiseText.autoSizeFloor,
+            maxFontSize = MaterialTheme.typography.labelLarge.fontSize
+        ),
         modifier = Modifier
             .clearAndSetSemantics {}
             .shadow(elevation = Dimensions.Elevation.bottomBar, shape = CircleShape)

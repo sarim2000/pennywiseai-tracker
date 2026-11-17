@@ -12,6 +12,7 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
@@ -49,18 +50,24 @@ internal fun AccountItem(
     val isLowBalance = !account.isLiability &&
         account.lowBalanceThreshold != null &&
         account.balance <= account.lowBalanceThreshold
+    val cardFill = when {
+        isLowBalance -> MaterialTheme.colorScheme.errorContainer.copy(
+            alpha = if (isHidden) 0.4f else 0.7f
+        )
+        isHidden -> MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f)
+        else -> MaterialTheme.colorScheme.surfaceContainerLow
+    }
+    // The low-balance tint matches no on* role (errorContainer is near-black in some light
+    // themes), so ink against the fill as composited on the list. A no-op on neutral cards.
+    val inkOn = listOf(cardFill.compositeOver(MaterialTheme.colorScheme.background))
+    val ink = MaterialTheme.colorScheme.onSurface.readableOn(inkOn)
+    val inkVariant = MaterialTheme.colorScheme.onSurfaceVariant.readableOn(inkOn)
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
-            containerColor = when {
-                isLowBalance -> MaterialTheme.colorScheme.errorContainer.copy(
-                    alpha = if (isHidden) 0.4f else 0.7f
-                )
-                isHidden -> MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f)
-                else -> MaterialTheme.colorScheme.surfaceContainerLow
-            },
+            containerColor = cardFill,
             // Set outright: a translucent container matches no theme colour, so the default went black.
-            contentColor = MaterialTheme.colorScheme.onSurface
+            contentColor = ink
         ),
         elevation = CardDefaults.cardElevation(defaultElevation = 0.dp)
     ) {
@@ -84,7 +91,7 @@ internal fun AccountItem(
                     Icon(
                         imageVector = if (account.isLoan) AccountType.LOAN.icon else Icons.Default.AccountBalance,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                        tint = inkVariant
                     )
                     val alias = account.alias?.takeIf { it.isNotBlank() }
                     Column {
@@ -120,7 +127,7 @@ internal fun AccountItem(
                                     Icons.Default.VisibilityOff,
                                     contentDescription = stringResource(R.string.manage_accounts_hidden_badge),
                                     modifier = Modifier.size(Dimensions.Icon.small),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                    tint = inkVariant
                                 )
                             }
                         }
@@ -134,7 +141,7 @@ internal fun AccountItem(
                                 AccountBalanceEntity.accountLabel("", account.accountLast4).trim()
                             },
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            color = inkVariant,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -158,7 +165,7 @@ internal fun AccountItem(
                         ),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold,
-                        color = MaterialTheme.colorScheme.onSurface,
+                        color = ink,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -171,9 +178,9 @@ internal fun AccountItem(
                         style = MaterialTheme.typography.labelSmall,
                         fontWeight = if (isLowBalance) FontWeight.Medium else null,
                         color = if (isLowBalance) {
-                            MaterialTheme.colorScheme.error
+                            MaterialTheme.colorScheme.error.readableOn(inkOn)
                         } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
+                            inkVariant
                         }
                     )
                 }
@@ -218,7 +225,7 @@ internal fun AccountItem(
                     Text(
                         text = stringResource(R.string.manage_accounts_linked_cards),
                         style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = inkVariant,
                         modifier = Modifier.padding(bottom = Spacing.xs)
                     )
                     linkedCards.forEach { card ->
@@ -302,6 +309,9 @@ internal fun AccountItem(
                 // Primary action
                 OutlinedButton(
                     onClick = if (isManualAccount) onEditAccount else onUpdateBalance,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        contentColor = MaterialTheme.colorScheme.primary.readableOn(inkOn)
+                    ),
                     shapes = ButtonDefaults.shapes()
                 ) {
                     Icon(

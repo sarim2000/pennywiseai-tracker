@@ -56,6 +56,7 @@ import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -91,6 +92,7 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.GoogleSansFlexHeadingFamily
 import com.pennywiseai.tracker.ui.theme.SNProFontFamily
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.bestInk
 import com.pennywiseai.tracker.ui.theme.pennyWiseColorScheme
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
 import dev.chrisbanes.haze.HazeState
@@ -633,7 +635,7 @@ private fun NavBarStyleSelector(
                         text = stringResource(R.string.appearance_nav_floating_subtitle),
                         style = MaterialTheme.typography.labelSmall,
                         color = if (currentStyle == NavBarStyle.FLOATING)
-                            MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.7f)
+                            MaterialTheme.colorScheme.onTertiaryContainer
                         else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -671,7 +673,7 @@ private fun NavBarStyleSelector(
                         text = stringResource(R.string.appearance_nav_normal_subtitle),
                         style = MaterialTheme.typography.labelSmall,
                         color = if (currentStyle == NavBarStyle.NORMAL)
-                            MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                            MaterialTheme.colorScheme.onSecondaryContainer
                         else MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
@@ -729,10 +731,18 @@ private fun CoverStyleSelector(
                     )
                 }
                 if (isSelected) {
+                    // White vanished on the pale gradients and on "None"; ink the tile's centre instead.
+                    val behind = if (style == CoverStyle.NONE) {
+                        MaterialTheme.colorScheme.surfaceContainerLow
+                    } else {
+                        getCoverGradientColors(style, isDark, forPreview = true)
+                            .let { it[it.size / 2] }
+                            .compositeOver(MaterialTheme.colorScheme.background)
+                    }
                     Icon(
                         Icons.Default.Check,
                         contentDescription = stringResource(R.string.appearance_cover_selected),
-                        tint = Color.White,
+                        tint = behind.bestInk(),
                         modifier = Modifier.size(Dimensions.Icon.medium)
                     )
                 }
@@ -827,8 +837,7 @@ private fun FontSelector(
                     text = option.subtitle,
                     style = MaterialTheme.typography.labelSmall,
                     fontFamily = option.family,
-                    color = if (selected) nameColor.copy(alpha = Dimensions.Alpha.subtitle)
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = nameColor,
                     textAlign = TextAlign.Center
                 )
             }

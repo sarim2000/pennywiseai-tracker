@@ -576,7 +576,7 @@ private fun UpcomingSubscriptionsCard(
                             }
                         ),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = Dimensions.Alpha.subtitle)
+                        color = MaterialTheme.colorScheme.onSecondaryContainer
                     )
                     val nextDate = nextDue?.nextPaymentDate
                     if (nextDue != null && nextDate != null) {
@@ -590,8 +590,8 @@ private fun UpcomingSubscriptionsCard(
                         Text(
                             text = stringResource(R.string.home_subscriptions_next_due, nextDue.merchantName, due),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = if (days < 0) MaterialTheme.colorScheme.error
-                            else MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = Dimensions.Alpha.subtitle),
+                            color = if (days < 0) MaterialTheme.colorScheme.error.readableOn(listOf(MaterialTheme.colorScheme.secondaryContainer))
+                            else MaterialTheme.colorScheme.onSecondaryContainer,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis
                         )
@@ -601,7 +601,7 @@ private fun UpcomingSubscriptionsCard(
             Text(
                 text = stringResource(R.string.home_view),
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
+                color = MaterialTheme.colorScheme.primary.readableOn(listOf(MaterialTheme.colorScheme.secondaryContainer)),
                 fontWeight = FontWeight.Medium
             )
         }

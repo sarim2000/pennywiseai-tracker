@@ -79,7 +79,7 @@ internal fun HomeTopBarActions(
                 Icon(
                     imageVector = Icons.Default.AutoAwesome,
                     contentDescription = stringResource(R.string.home_upgrade_pro),
-                    tint = com.pennywiseai.tracker.ui.theme.yellow_dark,
+                    tint = com.pennywiseai.tracker.ui.theme.yellow_on_light,
                     modifier = Modifier.size(Dimensions.Icon.inline),
                 )
             }
@@ -105,7 +105,7 @@ internal fun HomeTopBarActions(
                 Icon(
                     imageVector = profileFilterIcon(profiles, selectedProfileId),
                     contentDescription = stringResource(R.string.home_profile_filter),
-                    tint = MaterialTheme.colorScheme.inverseSurface,
+                    tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(Dimensions.Icon.inline)
                 )
             }
@@ -136,7 +136,7 @@ internal fun HomeTopBarActions(
                 Icon(
                     imageVector = Icons.Default.Add,
                     contentDescription = stringResource(R.string.home_fab_add),
-                    tint = MaterialTheme.colorScheme.inverseSurface,
+                    tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(Dimensions.Icon.medium)
                 )
             }
@@ -160,7 +160,7 @@ internal fun HomeTopBarActions(
             Icon(
                 imageVector = Icons.Default.MoreHoriz,
                 contentDescription = stringResource(R.string.home_more_options),
-                tint = MaterialTheme.colorScheme.inverseSurface,
+                tint = MaterialTheme.colorScheme.onSurface,
                 modifier = Modifier.size(Dimensions.Icon.medium)
             )
         }

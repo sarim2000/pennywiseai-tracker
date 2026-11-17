@@ -203,7 +203,7 @@ private fun MenuListItem(
         horizontalArrangement = Arrangement.spacedBy(Spacing.smd)
     ) {
         CompositionLocalProvider(
-            LocalContentColor provides MaterialTheme.colorScheme.secondary
+            LocalContentColor provides MaterialTheme.colorScheme.primary
         ) { icon() }
         Text(
             text = headline,

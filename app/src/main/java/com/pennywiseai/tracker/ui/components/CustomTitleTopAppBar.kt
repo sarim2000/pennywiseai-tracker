@@ -52,6 +52,7 @@ import coil3.compose.AsyncImage
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.bestInk
 import com.pennywiseai.tracker.ui.effects.BlurredAnimatedVisibility
 import com.pennywiseai.tracker.ui.effects.LocalBlurEffects
 import dev.chrisbanes.haze.HazeProgressive
@@ -421,7 +422,9 @@ private fun HomeBarTitle(
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontWeight = FontWeight.Bold
                     ),
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    // A user-picked avatar colour has no on-role.
+                    color = if (profileBackgroundColor != 0) Color(profileBackgroundColor).bestInk()
+                    else MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
         }

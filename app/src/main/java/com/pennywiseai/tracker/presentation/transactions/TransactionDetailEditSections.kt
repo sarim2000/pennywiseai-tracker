@@ -44,7 +44,7 @@ internal fun editFilledColors() = TextFieldDefaults.colors(
     focusedIndicatorColor = Color.Transparent,
     unfocusedIndicatorColor = Color.Transparent,
     focusedLabelColor = MaterialTheme.colorScheme.primary,
-    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f),
+    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
     disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
     disabledIndicatorColor = Color.Transparent,
     disabledLabelColor = MaterialTheme.colorScheme.primary,
@@ -233,6 +233,7 @@ internal fun EditableTransactionHeader(
                     colors = FilterChipDefaults.filterChipColors(
                         selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
                         selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                        selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimaryContainer,
                         containerColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(0.7f),
                         labelColor = MaterialTheme.colorScheme.onSurface
                     ),

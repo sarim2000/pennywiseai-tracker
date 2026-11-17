@@ -295,6 +295,7 @@ fun ChatScreen(
                                         OutlinedButton(
                                             onClick = { viewModel.cancelDownload() },
                                             modifier = Modifier.padding(start = Spacing.sm),
+                                            colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.onTertiaryContainer),
                                             shapes = ButtonDefaults.shapes()
                                         ) {
                                             Text(stringResource(R.string.chat_cancel))
@@ -302,7 +303,8 @@ fun ChatScreen(
                                     }
                                     LinearWavyProgressIndicator(
                                         progress = { downloadProgress / 100f },
-                                        modifier = Modifier.fillMaxWidth()
+                                        modifier = Modifier.fillMaxWidth(),
+                                        color = MaterialTheme.colorScheme.onTertiaryContainer
                                     )
                                 }
                             } else {
@@ -885,6 +887,10 @@ fun ChatMessageItem(
                 if (isStreaming) {
                     CircularProgressIndicator(
                         modifier = Modifier.size(12.dp),
+                        color = if (message.isUser)
+                            MaterialTheme.colorScheme.onPrimaryContainer
+                        else
+                            MaterialTheme.colorScheme.onSecondaryContainer,
                         strokeWidth = 1.dp
                     )
                 }
@@ -892,9 +898,9 @@ fun ChatMessageItem(
                     text = timeFormat.format(Date(message.timestamp)),
                     style = MaterialTheme.typography.labelSmall,
                     color = if (message.isUser)
-                        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                        MaterialTheme.colorScheme.onPrimaryContainer
                     else
-                        MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                        MaterialTheme.colorScheme.onSecondaryContainer
                 )
                 if (topic?.saved == true) SavedBadge()
             }
@@ -1009,12 +1015,12 @@ private fun PendingActionCard(
             Text(text = headline, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold, color = fg)
             Text(text = detail, style = MaterialTheme.typography.bodySmall, color = fg)
             Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                OutlinedButton(onClick = onDismiss, enabled = enabled, modifier = Modifier.weight(1f), shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.chat_cancel)) }
+                OutlinedButton(onClick = onDismiss, enabled = enabled, modifier = Modifier.weight(1f), colors = ButtonDefaults.outlinedButtonColors(contentColor = fg), shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.chat_cancel)) }
                 Button(
                     onClick = onConfirm,
                     enabled = enabled,
                     modifier = Modifier.weight(1f),
-                    colors = if (isDelete) ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error) else ButtonDefaults.buttonColors(),
+                    colors = if (isDelete) ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError) else ButtonDefaults.buttonColors(),
                     shapes = ButtonDefaults.shapes()
                 ) { Text(button) }
             }

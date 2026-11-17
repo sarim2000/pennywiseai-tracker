@@ -165,7 +165,8 @@ private fun AiChatSettingsItem(
                     Button(
                         onClick = onDownload,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = MaterialTheme.colorScheme.onError
                         ),
                         shapes = ButtonDefaults.shapes()
                     ) {
@@ -208,7 +209,8 @@ private fun AiChatSettingsItem(
                     onClick = onCancel,
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
                     ),
                     shapes = ButtonDefaults.shapes()
                 ) {

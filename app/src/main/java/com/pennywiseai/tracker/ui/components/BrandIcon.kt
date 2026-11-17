@@ -29,6 +29,7 @@ import com.pennywiseai.tracker.ui.icons.IconProvider
 import com.pennywiseai.tracker.ui.icons.IconResource
 import com.pennywiseai.tracker.ui.icons.isValidCategoryOverride
 import com.pennywiseai.tracker.ui.icons.categoryLabel
+import com.pennywiseai.tracker.ui.theme.bestInk
 
 /**
  * Displays a brand icon with intelligent fallback
@@ -87,7 +88,7 @@ fun BrandIcon(
                 Icon(
                     imageVector = iconResource.icon,
                     contentDescription = merchantName,
-                    tint = if (showBackground) Color.White else iconResource.tint,
+                    tint = if (showBackground) backgroundColor.bestInk() else iconResource.tint,
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -120,7 +121,7 @@ fun LetterAvatar(
     ) {
         Text(
             text = letter,
-            color = Color.White,
+            color = backgroundColor.bestInk(),
             fontWeight = FontWeight.Bold,
             style = MaterialTheme.typography.bodyLarge
         )

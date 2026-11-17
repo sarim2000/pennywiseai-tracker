@@ -39,6 +39,7 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.yellow_dark
 import com.pennywiseai.tracker.ui.theme.yellow_light
+import com.pennywiseai.tracker.ui.theme.yellow_on_light
 
 /**
  * The "Support development" tip-jar dialog. Shared so both the Settings entry
@@ -143,13 +144,13 @@ fun SupportNudgeCard(
                 text = stringResource(R.string.support_nudge_body),
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.Medium,
-                color = yellow_dark,
+                color = yellow_on_light,
                 modifier = Modifier.weight(1f)
             )
             Icon(
                 Icons.AutoMirrored.Filled.KeyboardArrowRight,
                 contentDescription = null,
-                tint = yellow_dark,
+                tint = yellow_on_light,
                 modifier = Modifier.size(Dimensions.Icon.small)
             )
         }

@@ -566,7 +566,8 @@ fun BudgetGroupEditScreen(
                             viewModel.deleteGroup()
                         },
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = MaterialTheme.colorScheme.onError
                         ),
                         shapes = ButtonDefaults.shapes()
                     ) {

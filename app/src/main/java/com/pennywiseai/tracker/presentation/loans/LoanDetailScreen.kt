@@ -583,7 +583,7 @@ private fun RecordPaymentBottomSheet(
                     },
                     enabled = manualAmount.toBigDecimalOrNull()?.let { it > BigDecimal.ZERO } == true,
                     shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
-                    colors = ButtonDefaults.buttonColors(containerColor = loanColor)
+                    colors = ButtonDefaults.buttonColors(containerColor = loanColor, contentColor = loanColor.bestInk())
                 ) {
                     Text(stringResource(R.string.loan_detail_add))
                 }

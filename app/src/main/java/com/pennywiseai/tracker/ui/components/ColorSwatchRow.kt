@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.bestInk
 
 /** Preset palette shared by categories and budgets. */
 val PRESET_COLORS = listOf(
@@ -36,9 +37,6 @@ val PRESET_COLORS = listOf(
 /** `"#RRGGBB"` → [Color], or [fallback] when the string is malformed. */
 fun String.toColorOr(fallback: Color): Color =
     runCatching { Color(android.graphics.Color.parseColor(this)) }.getOrDefault(fallback)
-
-private fun isLightColor(color: Color): Boolean =
-    (0.299 * color.red + 0.587 * color.green + 0.114 * color.blue) > 0.5
 
 /**
  * A wrapping row of [PRESET_COLORS] circles; the selected one carries a check.
@@ -84,7 +82,7 @@ fun ColorSwatchRow(
                         Icon(
                             Icons.Default.Check,
                             contentDescription = stringResource(R.string.color_swatch_selected),
-                            tint = if (isLightColor(color)) Color.Black.copy(alpha = 0.87f) else Color.White,
+                            tint = color.bestInk(),
                             modifier = Modifier.size(Dimensions.Icon.small)
                         )
                     }

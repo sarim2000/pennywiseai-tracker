@@ -47,6 +47,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.bestInk
 import com.pennywiseai.tracker.ui.theme.yellow_dark
 import coil3.compose.AsyncImage
 import java.time.LocalDate
@@ -169,7 +170,9 @@ fun GreetingCard(
                     style = MaterialTheme.typography.titleSmall.copy(
                         fontWeight = FontWeight.Bold
                     ),
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    // A user-picked avatar colour has no on-role.
+                    color = if (profileBackgroundColor != 0) avatarBackground.bestInk()
+                    else MaterialTheme.colorScheme.onPrimaryContainer
                 )
             }
         }

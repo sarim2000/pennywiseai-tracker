@@ -67,7 +67,7 @@ fun PreferenceSwitch(
         ) {
             if (leadingIcon != null) {
                 CompositionLocalProvider(
-                    LocalContentColor provides MaterialTheme.colorScheme.secondary
+                    LocalContentColor provides MaterialTheme.colorScheme.onSurfaceVariant
                 ) { leadingIcon() }
             }
             RowLabels(title = title, subtitle = subtitle.ifBlank { null })

@@ -311,7 +311,7 @@ fun BudgetCard(
             Text(
                 text = subtitleText,
                 style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = Dimensions.Alpha.subtitle)
+                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             if (pace != null && !pace.isOverBudget) {
                 Text(
@@ -341,7 +341,7 @@ fun BudgetCard(
                 CurrencyFormatter.formatCurrency(groupSpending.totalBudget, currency)
             ),
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }

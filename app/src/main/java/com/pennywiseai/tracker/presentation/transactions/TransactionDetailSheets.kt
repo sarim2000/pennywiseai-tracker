@@ -229,7 +229,8 @@ internal fun MarkAsLoanBottomSheet(
                 enabled = personName.isNotBlank() && isLoanAmountValid,
                 shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = loanColor
+                    containerColor = loanColor,
+                    contentColor = loanColor.bestInk()
                 )
             ) {
                 Icon(

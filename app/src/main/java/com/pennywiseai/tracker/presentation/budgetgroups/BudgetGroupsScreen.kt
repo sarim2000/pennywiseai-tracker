@@ -338,7 +338,8 @@ private fun BudgetGroupsContent(
                         deleteGroupId = null
                     },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
                     ),
                     shapes = ButtonDefaults.shapes()
                 ) {
@@ -518,7 +519,7 @@ private fun BudgetCard(
                             Icons.Default.Delete,
                             contentDescription = stringResource(R.string.budgets_delete),
                             modifier = Modifier.size(Dimensions.Icon.small),
-                            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
+                            tint = MaterialTheme.colorScheme.error
                         )
                     }
                     Box {

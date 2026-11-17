@@ -11,6 +11,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.material3.ListItemDefaults
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Text
@@ -127,7 +128,8 @@ fun ListItemCardV2(
                     Text(
                         text = subtitle,
                         style = PennyWiseText.metadata,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        // On an override fill (a selected row's primaryContainer) onSurfaceVariant isn't its ink.
+                        color = if (containerColor == null) MaterialTheme.colorScheme.onSurfaceVariant else LocalContentColor.current,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )

@@ -5,6 +5,7 @@ import android.view.HapticFeedbackConstants
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.Text
 import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
@@ -63,7 +64,7 @@ fun TransactionItem(
         TransactionType.CREDIT -> colorScheme.credit
         TransactionType.TRANSFER -> colorScheme.transfer
         TransactionType.INVESTMENT -> colorScheme.investment
-    }
+    }.let { ink -> containerColor?.let { ink.readableOn(listOf(it)) } ?: ink }
 
     val dateTimeFormatter = if (showDate) AppDates.dayMonthTimeFormatter() else AppDates.pattern("h:mm a")
     val dateTimeText = remember(transaction.dateTime, dateTimeFormatter) {
@@ -200,7 +201,7 @@ fun TransactionItem(
                     Text(
                         text = "($nativeAmount)",
                         style = PennyWiseText.amountSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = if (containerColor == null) MaterialTheme.colorScheme.onSurfaceVariant else LocalContentColor.current,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )

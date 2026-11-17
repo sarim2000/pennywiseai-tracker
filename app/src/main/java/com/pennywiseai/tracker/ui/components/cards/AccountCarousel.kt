@@ -28,6 +28,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -40,6 +41,7 @@ import com.pennywiseai.tracker.ui.effects.frostedBlur
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.money
+import com.pennywiseai.tracker.ui.theme.readableOn
 import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
@@ -126,6 +128,10 @@ private fun AccountCarouselCard(
         blurEffects -> MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f)
         else -> MaterialTheme.colorScheme.surfaceContainerLow
     }
+    // A translucent errorContainer has no on-role that reads on every palette (Catppuccin
+    // light's is dark red), so nudge each ink until it reads on the composited fill.
+    val lowBalanceFill = containerColor.compositeOver(MaterialTheme.colorScheme.background)
+    fun Color.onCard() = if (isLowBalance) readableOn(listOf(lowBalanceFill)) else this
 
     val cardShape = MaterialTheme.shapes.large
 
@@ -158,7 +164,7 @@ private fun AccountCarouselCard(
                 text = account.bankName,
                 style = MaterialTheme.typography.bodyMedium,
                 fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
+                color = MaterialTheme.colorScheme.onSurface.onCard(),
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis,
                 modifier = Modifier.weight(1f, fill = false)
@@ -169,7 +175,7 @@ private fun AccountCarouselCard(
                 Text(
                     text = "••${account.accountLast4}",
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.onCard(),
                     maxLines = 1
                 )
             }
@@ -206,9 +212,9 @@ private fun AccountCarouselCard(
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = if (isLowBalance) FontWeight.Medium else null,
                 color = if (isLowBalance) {
-                    MaterialTheme.colorScheme.error
+                    MaterialTheme.colorScheme.error.onCard()
                 } else {
-                    MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+                    MaterialTheme.colorScheme.onSurfaceVariant
                 }
             )
 
@@ -228,7 +234,7 @@ private fun AccountCarouselCard(
                     text = if (isAmountHidden) AmountPrivacy.MASK else account.formatBalance(),
                     style = MaterialTheme.typography.titleLarge.money(),
                     fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    color = MaterialTheme.colorScheme.onSurface.onCard(),
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
                     modifier = Modifier.weight(1f, fill = false)
@@ -244,7 +250,7 @@ private fun AccountCarouselCard(
                         else Icons.Default.Visibility,
                         contentDescription = if (isAmountHidden) stringResource(R.string.balance_show) else stringResource(R.string.balance_hide),
                         modifier = Modifier.size(Dimensions.Icon.small),
-                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.onCard()
                     )
                 }
             }

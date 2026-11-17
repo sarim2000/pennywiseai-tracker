@@ -343,7 +343,7 @@ private fun SupportNote() {
 @Composable
 private fun EyebrowChip(text: String, isAccent: Boolean) {
     val container = if (isAccent) yellow_light else MaterialTheme.colorScheme.surfaceContainerLow
-    val content = if (isAccent) yellow_dark else MaterialTheme.colorScheme.primary
+    val content = if (isAccent) yellow_on_light else MaterialTheme.colorScheme.primary
     Surface(
         color = container,
         shape = RoundedCornerShape(50),

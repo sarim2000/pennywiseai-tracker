@@ -73,8 +73,8 @@ private fun BarChartCanvas(frame: BarFrame, growIn: Boolean, height: Int) {
 
     val barColor = themeColors.primary.copy(alpha = 0.8f)
     val gridColor = themeColors.onSurface.copy(alpha = 0.1f)
-    val labelColor = themeColors.onSurface.copy(alpha = 0.7f)
-    val valueLabelColor = themeColors.onSurface.copy(alpha = 0.7f)
+    val labelColor = themeColors.onSurfaceVariant
+    val valueLabelColor = themeColors.onSurfaceVariant
     val indicatorColor = themeColors.onSurfaceVariant
 
     val chartLabel = PennyWiseText.chartLabel

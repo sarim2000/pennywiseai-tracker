@@ -206,6 +206,7 @@ fun RowScope.RowLabels(
     title: String,
     modifier: Modifier = Modifier,
     subtitle: String? = null,
+    titleColor: Color = MaterialTheme.colorScheme.onSurface,
     subtitleColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     titleMaxLines: Int = 1,
     subtitleMaxLines: Int = 2
@@ -217,7 +218,7 @@ fun RowScope.RowLabels(
         Text(
             text = title,
             style = PennyWiseText.rowTitle,
-            color = MaterialTheme.colorScheme.onSurface,
+            color = titleColor,
             maxLines = titleMaxLines,
             overflow = TextOverflow.Ellipsis
         )

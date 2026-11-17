@@ -20,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -251,9 +250,7 @@ private fun CategoryItem(
         Row(
             modifier = Modifier
                 .fillMaxWidth()
-                .padding(Dimensions.Padding.content)
-                // Dim a hidden category so it reads as "tucked away" in the manager.
-                .alpha(if (category.isHidden) 0.5f else 1f),
+                .padding(Dimensions.Padding.content),
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Category with colored dot

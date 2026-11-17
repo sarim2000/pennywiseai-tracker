@@ -23,7 +23,7 @@ object PennyWiseWidgetTheme {
     @Composable
     fun budgetStatusColor(percentageUsed: Float): ColorProvider = when {
         percentageUsed > 100f -> ColorProvider(day = budget_danger_light, night = budget_danger_dark)
-        percentageUsed >= 90f -> ColorProvider(day = budget_warning_light, night = budget_warning_dark)
+        percentageUsed >= 90f -> ColorProvider(day = warning_light, night = warning_dark)
         else -> GlanceTheme.colors.primary
     }
 
@@ -43,7 +43,7 @@ object PennyWiseWidgetTheme {
     @Composable
     fun goalToneColor(tone: GoalTone): ColorProvider = when (tone) {
         GoalTone.SUCCESS -> ColorProvider(day = budget_safe_light, night = budget_safe_dark)
-        GoalTone.WARNING -> ColorProvider(day = budget_warning_light, night = budget_warning_dark)
+        GoalTone.WARNING -> ColorProvider(day = warning_light, night = warning_dark)
         GoalTone.ERROR -> ColorProvider(day = budget_danger_light, night = budget_danger_dark)
         GoalTone.NEUTRAL -> GlanceTheme.colors.onSurfaceVariant
     }

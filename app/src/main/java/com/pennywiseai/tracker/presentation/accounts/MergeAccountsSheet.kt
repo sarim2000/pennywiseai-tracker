@@ -264,7 +264,8 @@ private fun AccountPickerRow(
                         if (acct.isCreditCard) append(" · $creditTag")
                     },
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
+                    else MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
             if (isSelected) {

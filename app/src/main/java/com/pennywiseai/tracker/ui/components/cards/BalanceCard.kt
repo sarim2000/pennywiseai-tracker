@@ -47,6 +47,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -66,6 +67,7 @@ import com.pennywiseai.tracker.ui.theme.expense
 import com.pennywiseai.tracker.ui.theme.income
 import com.pennywiseai.tracker.ui.theme.loan
 import com.pennywiseai.tracker.ui.theme.money
+import com.pennywiseai.tracker.ui.theme.orBestInkOn
 import com.pennywiseai.tracker.ui.theme.spending
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -277,7 +279,7 @@ fun BalanceCard(
                                     Text(
                                         text = stringResource(R.string.balance_card_this_month),
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Spacer(modifier = Modifier.width(Spacing.md))
                                     Box(
@@ -293,7 +295,7 @@ fun BalanceCard(
                                     Text(
                                         text = stringResource(R.string.balance_card_last_month),
                                         style = MaterialTheme.typography.labelSmall,
-                                        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
@@ -309,7 +311,7 @@ fun BalanceCard(
                         Text(
                             text = stringResource(R.string.balance_card_this_month),
                             style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                             fontWeight = FontWeight.Medium
                         )
                         Spacer(modifier = Modifier.height(Spacing.sm))
@@ -369,7 +371,7 @@ fun BalanceCard(
                             Text(
                                 text = stringResource(R.string.balance_card_accounts),
                                 style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
                                 fontWeight = FontWeight.Medium
                             )
                             Spacer(modifier = Modifier.height(Spacing.sm))
@@ -413,7 +415,7 @@ fun BalanceCard(
                                 Text(
                                     text = stringResource(R.string.balance_card_credit_cards),
                                     style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                                     fontWeight = FontWeight.Medium
                                 )
                                 Spacer(modifier = Modifier.height(Spacing.sm))
@@ -493,7 +495,7 @@ fun BalanceCard(
                 Icon(
                     imageVector = Icons.Default.KeyboardArrowDown,
                     contentDescription = if (isExpanded) stringResource(R.string.card_collapse) else stringResource(R.string.card_expand),
-                    tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier
                         .size(Dimensions.Icon.small)
                         .rotate(chevronRotation)
@@ -514,7 +516,7 @@ private fun SpendingAmountHeader(
     Text(
         text = stringResource(R.string.balance_card_spent_this_month),
         style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+        color = MaterialTheme.colorScheme.onSurfaceVariant,
         fontWeight = FontWeight.Medium
     )
     Spacer(modifier = Modifier.height(Spacing.xs))
@@ -545,7 +547,7 @@ private fun SpendingAmountHeader(
         Text(
             text = text,
             style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+            color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
@@ -654,10 +656,14 @@ private fun CurrencyChip(
     currency: String,
     onClick: () -> Unit
 ) {
+    val chipFill = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.8f)
+    // The see-through fill lets the card bleed in, so the on-role alone can miss 4.5:1.
+    val ink = MaterialTheme.colorScheme.onTertiaryContainer
+        .orBestInkOn(chipFill.compositeOver(MaterialTheme.colorScheme.surfaceContainerLow))
     Surface(
         onClick = onClick,
         shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
-        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.8f),
+        color = chipFill,
         border = BorderStroke(
             Dimensions.Component.hairline,
             MaterialTheme.colorScheme.outline.copy(alpha = 0.2f)
@@ -675,12 +681,12 @@ private fun CurrencyChip(
                 text = currency,
                 style = MaterialTheme.typography.labelSmall,
                 fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.onTertiaryContainer
+                color = ink
             )
             Icon(
                 imageVector = Icons.Default.KeyboardArrowDown,
                 contentDescription = stringResource(R.string.balance_card_change_currency),
-                tint = MaterialTheme.colorScheme.onTertiaryContainer,
+                tint = ink,
                 modifier = Modifier.size(Dimensions.Icon.small)
             )
         }
@@ -720,7 +726,7 @@ private fun SummaryItem(
             Text(
                 text = label,
                 style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
                 fontWeight = FontWeight.Bold
             )
         }

@@ -1,10 +1,14 @@
 package com.pennywiseai.tracker.domain.insights
 
+import com.pennywiseai.tracker.data.database.dao.CategoryDao
+import com.pennywiseai.tracker.data.database.dao.SubscriptionDao
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
+import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
+import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.domain.insights.InsightFact.BillsDue
 import com.pennywiseai.tracker.domain.insights.InsightFact.BudgetOver
 import com.pennywiseai.tracker.domain.insights.InsightFact.BudgetPace
@@ -21,6 +25,8 @@ import com.pennywiseai.tracker.domain.review.buildPeriodReview
 import com.pennywiseai.tracker.domain.review.cyclesEndingWith
 import com.pennywiseai.tracker.domain.review.reviewRange
 import com.pennywiseai.tracker.utils.Money
+import io.mockk.coEvery
+import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -482,6 +488,38 @@ class InsightRulesTest {
         )
         assertTrue(insights.facts<PriceChange>().isEmpty())
         assertEquals(Money(BigDecimal("100"), "INR"), insights.facts<BillsDue>().single().total)
+    }
+
+    @Test
+    fun `a charge ingestion recorded against one bill does not also settle another`() = runBlocking {
+        // Two bills at one merchant: one on an account, one that could be paid from any.
+        val stored = mutableListOf(
+            subscription(1, "100", "2026-11-19", bank = "Bank A", last4 = "1111"),
+            subscription(2, "110", "2026-11-22"),
+        )
+        val dao = mockk<SubscriptionDao>()
+        coEvery { dao.getSubscriptionsByStateList(SubscriptionState.ACTIVE) } answers { stored.toList() }
+        coEvery { dao.getSubscriptionById(any()) } answers { stored.firstOrNull { it.id == firstArg<Long>() } }
+        coEvery { dao.markPaid(any(), any(), any()) } answers {
+            val i = stored.indexOfFirst { it.id == firstArg<Long>() }
+            stored[i] = stored[i].copy(lastPaidAt = secondArg(), nextPaymentDate = thirdArg())
+        }
+        val repository = SubscriptionRepository(dao, mockk<CategoryDao>())
+
+        // The SMS arrives: ingestion matches it to the first bill and moves that one on.
+        val row = tx("2026-11-19", "100", merchant = "Streamer", bank = "Bank A", account = "1111")
+        val matched = repository.matchTransactionToSubscription(row.transaction)
+        assertEquals(1L, matched?.id)
+        repository.recordCharge(matched!!, row.transaction.dateTime.toLocalDate())
+        val ingested = row.copy(transaction = row.transaction.copy(isRecurring = true))
+
+        // The second bill is still due, at its own price: one payment pays one bill.
+        val insights = evaluate(rows = listOf(ingested), subscriptions = stored)
+        assertEquals(
+            BillsDue(1, Money(BigDecimal("110"), "INR"), LocalDate.parse("2026-11-22"), 7, listOf("Streamer")),
+            insights.facts<BillsDue>().single(),
+        )
+        assertTrue(insights.facts<PriceChange>().isEmpty())
     }
 
     @Test

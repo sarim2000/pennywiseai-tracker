@@ -171,7 +171,8 @@ object InsightRules {
      * and whether or not card spending counts as expense: settled from the cycle's
      * payment rows, not its spending rows.
      * A charge pays at most one bill, and only one it [RecurringCharge.couldBePaidFrom];
-     * charges at a bill's exact amount are placed before new prices.
+     * charges at a bill's exact amount are placed before new prices, and one already
+     * recorded against a subscription stays that one's ([withoutRecorded]).
      * Keyed on the first due date, so a dismissal lasts until that payment has gone.
      */
     internal fun billsDue(
@@ -191,12 +192,12 @@ object InsightRules {
             compareBy<TransactionEntity> { Math.abs(ChronoUnit.DAYS.between(dues.getValue(sub), it.dateTime.toLocalDate())) }
         }
         // Exact amounts first, across every bill, and only then new prices.
-        val unclaimed = review.detail?.paymentRows.orEmpty().toMutableList()
+        val unclaimed = withoutRecorded(subscriptions, review.detail?.paymentRows.orEmpty())
         val paid = claim(dues.keys, unclaimed, closestToDue) { sub, charge ->
-            inWindow(sub, charge) && RecurringCharge.sameAmount(sub.amount, charge.amount)
+            canPay(sub, charge) && inWindow(sub, charge) && RecurringCharge.sameAmount(sub.amount, charge.amount)
         }.keys
         val repriced = claim(dues.keys.filter { it.id !in paid }, unclaimed, closestToDue) { sub, charge ->
-            inWindow(sub, charge) &&
+            canPay(sub, charge) && inWindow(sub, charge) &&
                 RecurringCharge.isPriceChange(sub.amount, dues.getValue(sub), charge.amount, charge.dateTime.toLocalDate())
         }.keys
         val bills = dues.filterKeys { it.id !in paid && it.id !in repriced }
@@ -233,12 +234,13 @@ object InsightRules {
         val charges = review.detail?.paymentRows.orEmpty()
             .filter { it.dateTime.toLocalDate() in review.range.start..review.range.end }
         // A charge at some subscription's exact amount is that one's payment, not another's new price.
-        val unclaimed = charges.filterNot { charge ->
+        val unclaimed = withoutRecorded(subscriptions, charges).filterNot { charge ->
             subscriptions.any { canPay(it, charge) && RecurringCharge.sameAmount(it.amount, charge.amount) }
         }.toMutableList()
         val latestFirst = { _: SubscriptionEntity -> compareByDescending<TransactionEntity> { it.dateTime } }
         val repriced = claim(subscriptions, unclaimed, latestFirst) { sub, charge ->
-            RecurringCharge.isPriceChange(sub.amount, sub.nextPaymentDate, charge.amount, charge.dateTime.toLocalDate())
+            canPay(sub, charge) &&
+                RecurringCharge.isPriceChange(sub.amount, sub.nextPaymentDate, charge.amount, charge.dateTime.toLocalDate())
         }
         return subscriptions.mapNotNull { sub ->
             val charge = repriced[sub.id] ?: return@mapNotNull null
@@ -364,8 +366,31 @@ object InsightRules {
             RecurringCharge.couldBePaidFrom(sub, charge)
 
     /**
-     * Gives each of [subscriptions] at most one of [unclaimed] that it [canPay] and that
-     * [matches], removing it so no other subscription gets it. Subscriptions that name
+     * [charges] less those already recorded against one of [subscriptions]. Ingestion
+     * (and marking a bill paid) keeps no link to the row: it stamps the charge's date as
+     * the bill's lastPaidAt and moves the bill on a cycle, so that's the trace matched
+     * here. Such a charge is that bill's, so it can't settle or reprice a second one
+     * after the first has moved on. One per subscription, a row marked recurring first.
+     */
+    private fun withoutRecorded(
+        subscriptions: Collection<SubscriptionEntity>,
+        charges: List<TransactionEntity>,
+    ): MutableList<TransactionEntity> {
+        val unclaimed = charges.toMutableList()
+        val recurringFirst = { _: SubscriptionEntity -> compareByDescending<TransactionEntity> { it.isRecurring } }
+        // By the matcher's own test, which doesn't look at the account.
+        claim(subscriptions.filter { it.lastPaidAt != null }, unclaimed, recurringFirst) { sub, charge ->
+            charge.currency == sub.currency &&
+                RecurringCharge.sameMerchant(charge.merchantName, sub.merchantName) &&
+                charge.dateTime.toLocalDate() == sub.lastPaidAt &&
+                RecurringCharge.sameAmount(sub.amount, charge.amount)
+        }
+        return unclaimed
+    }
+
+    /**
+     * Gives each of [subscriptions] at most one of [unclaimed] that [matches] it,
+     * removing it so no other subscription gets it. Subscriptions that name
      * their account choose first, so a charge goes to the bill on its own account before
      * one that could be paid from any; each takes the charge [preferred] puts first.
      */
@@ -378,7 +403,7 @@ object InsightRules {
         val claimed = mutableMapOf<Long, TransactionEntity>()
         subscriptions.sortedByDescending { listOf(it.bankName, it.accountLast4).count { s -> !s.isNullOrBlank() } }
             .forEach { sub ->
-                val charge = unclaimed.filter { canPay(sub, it) && matches(sub, it) }.minWithOrNull(preferred(sub))
+                val charge = unclaimed.filter { matches(sub, it) }.minWithOrNull(preferred(sub))
                     ?: return@forEach
                 unclaimed.remove(charge)
                 claimed[sub.id] = charge

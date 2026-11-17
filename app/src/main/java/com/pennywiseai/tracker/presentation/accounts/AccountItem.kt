@@ -1,10 +1,7 @@
 package com.pennywiseai.tracker.presentation.accounts
 
-import com.pennywiseai.tracker.domain.model.AccountType
-import com.pennywiseai.tracker.utils.AppDates
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.filled.LinkOff
@@ -13,17 +10,20 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
-import com.pennywiseai.tracker.utils.CurrencyFormatter
-import com.pennywiseai.tracker.ui.theme.*
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.text.style.TextOverflow
-import java.math.BigDecimal
+import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
+import com.pennywiseai.tracker.domain.model.AccountType
+import com.pennywiseai.tracker.ui.theme.*
+import com.pennywiseai.tracker.utils.AppDates
+import com.pennywiseai.tracker.utils.CurrencyFormatter
+import java.math.BigDecimal
 
 @Composable
 internal fun AccountItem(

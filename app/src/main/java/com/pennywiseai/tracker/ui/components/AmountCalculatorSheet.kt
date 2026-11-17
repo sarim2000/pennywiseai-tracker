@@ -65,8 +65,18 @@ fun AmountCalculatorSheet(
 ) {
     // Kept with '.' as the point; shown with the locale's.
     var expression by rememberSaveable { mutableStateOf(initialAmount.take(AmountExpression.MAX_LENGTH)) }
-    val result = AmountExpression.evaluate(expression, MinorUnits.digits(currency))
+    val outcome = AmountExpression.check(expression, MinorUnits.digits(currency))
+    val result = (outcome as? AmountExpression.Outcome.Amount)?.value
     val canApply = result != null && result.signum() > 0
+    // Why there's nothing to use, when it's worth saying; null shows the result.
+    val problem = when {
+        canApply -> null
+        result != null -> stringResource(R.string.calculator_must_be_positive)
+        outcome == AmountExpression.Outcome.DividesByZero -> stringResource(R.string.calculator_divide_by_zero)
+        outcome == AmountExpression.Outcome.TooLarge -> stringResource(R.string.calculator_too_large)
+        expression.isNotEmpty() -> stringResource(R.string.calculator_unfinished)
+        else -> null
+    }
     val locale = LocalConfiguration.current.locales[0]
     val point = remember(locale) { DecimalFormatSymbols.getInstance(locale).decimalSeparator }
     fun shown(text: String) = text.replace('.', point)
@@ -102,12 +112,12 @@ fun AmountCalculatorSheet(
                     )
                     Text(
                         text = when {
-                            result == null -> " "
                             canApply -> "= " + shown(result.toPlainString())
-                            else -> stringResource(R.string.calculator_must_be_positive)
+                            else -> problem ?: " "
                         },
                         style = MaterialTheme.typography.titleMedium.money(),
-                        color = if (result != null && !canApply) {
+                        // A sum still being typed isn't a mistake, so it isn't red.
+                        color = if (problem != null && outcome != AmountExpression.Outcome.Unfinished) {
                             MaterialTheme.colorScheme.error
                         } else {
                             MaterialTheme.colorScheme.onSurfaceVariant

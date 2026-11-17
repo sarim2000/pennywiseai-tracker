@@ -1,8 +1,10 @@
 package com.pennywiseai.tracker.domain.model
 
+import com.pennywiseai.tracker.domain.model.AmountExpression.Outcome
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
+import java.math.BigDecimal
 
 class AmountExpressionTest {
 
@@ -71,5 +73,15 @@ class AmountExpressionTest {
     @Test
     fun `local digits and the Arabic decimal mark are read`() {
         assertEquals("15.50", eval("١٢٫٥+٣"))
+    }
+
+    @Test
+    fun `no amount says why, so the keypad can explain it`() {
+        assertEquals(Outcome.DividesByZero, AmountExpression.check("5÷0", 2))
+        assertEquals(Outcome.DividesByZero, AmountExpression.check("1+5/(2-2)×3", 2))
+        assertEquals(Outcome.TooLarge, AmountExpression.check("999999999999999×10", 2))
+        listOf("", "12+", "(1+2", "1..2", "1+".repeat(40) + "1")
+            .forEach { assertEquals("'$it'", Outcome.Unfinished, AmountExpression.check(it, 2)) }
+        assertEquals(Outcome.Amount(BigDecimal("2.50")), AmountExpression.check("5÷2", 2))
     }
 }

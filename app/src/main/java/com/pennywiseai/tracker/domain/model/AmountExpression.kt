@@ -20,24 +20,48 @@ object AmountExpression {
     /** Results this large or larger are rejected: no real amount is, and storage has limits. */
     private val MAX_AMOUNT = BigDecimal.TEN.pow(15)
 
+    /** What [check] makes of an expression. */
+    sealed interface Outcome {
+        data class Amount(val value: BigDecimal) : Outcome
+
+        /** Somewhere it divides by zero. */
+        data object DividesByZero : Outcome
+
+        /** The result is [MAX_AMOUNT] or more either way. */
+        data object TooLarge : Outcome
+
+        /** Empty, unfinished ("12+", "(1+2") or otherwise not a sum ("1..2"). */
+        data object Unfinished : Outcome
+    }
+
     /**
      * [input] evaluated and rounded half-up to [fractionDigits] (the currency's
      * decimals). Null for a malformed or over-long expression, division by
      * zero, or a result of [MAX_AMOUNT] or more either way.
      */
-    fun evaluate(input: String, fractionDigits: Int): BigDecimal? {
-        if (input.length > MAX_LENGTH) return null
+    fun evaluate(input: String, fractionDigits: Int): BigDecimal? =
+        (check(input, fractionDigits) as? Outcome.Amount)?.value
+
+    /** Like [evaluate], but says why there's no amount, so the keypad can tell the user. */
+    fun check(input: String, fractionDigits: Int): Outcome {
+        if (input.length > MAX_LENGTH) return Outcome.Unfinished
         val tokens = normalize(input)
-        if (tokens.isEmpty()) return null
+        if (tokens.isEmpty()) return Outcome.Unfinished
+        val parser = Parser(tokens)
         val value = try {
-            Parser(tokens).parse()
+            parser.parse()
         } catch (_: ArithmeticException) {
-            null
+            // Only a result beyond BigDecimal's range gets here.
+            return Outcome.TooLarge
         } catch (_: NumberFormatException) {
             null
-        } ?: return null
-        if (value.abs() >= MAX_AMOUNT) return null
-        return value.setScale(fractionDigits, RoundingMode.HALF_UP)
+        }
+        return when {
+            parser.dividedByZero -> Outcome.DividesByZero
+            value == null -> Outcome.Unfinished
+            value.abs() >= MAX_AMOUNT -> Outcome.TooLarge
+            else -> Outcome.Amount(value.setScale(fractionDigits, RoundingMode.HALF_UP))
+        }
     }
 
     /** ASCII digits, '.', and the operators `+ - * / ( )`; anything unknown is kept so parsing fails. */
@@ -59,6 +83,10 @@ object AmountExpression {
         private var i = 0
         private val math = MathContext.DECIMAL128
 
+        /** Set when parsing stopped at a division by zero. */
+        var dividedByZero = false
+            private set
+
         fun parse(): BigDecimal? = expression()?.takeIf { i == s.length }
 
         private fun expression(): BigDecimal? {
@@ -79,7 +107,10 @@ object AmountExpression {
                 left = if (op == '*') {
                     left.multiply(right, math)
                 } else {
-                    if (right.signum() == 0) return null
+                    if (right.signum() == 0) {
+                        dividedByZero = true
+                        return null
+                    }
                     left.divide(right, math)
                 }
             }

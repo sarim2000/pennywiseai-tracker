@@ -133,7 +133,8 @@ data class SafeToSpend(
         /**
          * Unified mode: [money] in [display], or as it is when there's no rate
          * ([convert] returns null), so it stays a line of its own rather than being
-         * added in (#670).
+         * added in (#670). A converted amount is an estimate at today's rate, so it's
+         * whole units, like the per-day figure: no paise from a rate in the total.
          */
         suspend fun inDisplay(
             money: Money,
@@ -141,7 +142,7 @@ data class SafeToSpend(
             convert: suspend (amount: BigDecimal, from: String, to: String) -> BigDecimal?,
         ): Money =
             if (money.currency == display) money
-            else convert(money.amount, money.currency, display)?.let { Money(it, display) } ?: money
+            else convert(money.amount, money.currency, display)?.let { Money(it.setScale(0, RoundingMode.HALF_UP), display) } ?: money
 
         /** Bills due today..[periodEnd], and overdue card bills: those are still owed. */
         fun billsInWindow(bills: List<Bill>, today: LocalDate, periodEnd: LocalDate): List<Bill> =

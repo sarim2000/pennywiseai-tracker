@@ -242,4 +242,13 @@ class SpendOutlookTest {
         assertEquals(d("10000"), r.getValue("INR").amount)
         assertEquals(d("-120"), r.getValue("USD").amount)
     }
+
+    @Test
+    fun `a converted amount is whole units, an own-currency one stays exact`() = runTest {
+        suspend fun inr(m: Money) = SafeToSpend.inDisplay(m, "INR") { a, _, _ -> a * d("83.2726") }
+
+        // 500 USD is 41636.30 at this rate: shown as 41636, not with paise.
+        assertEquals(Money(d("41636"), "INR"), inr(Money(d("500"), "USD")))
+        assertEquals(Money(d("96763.70"), "INR"), inr(Money(d("96763.70"), "INR")))
+    }
 }

@@ -63,7 +63,7 @@ data class VoiceEntry(
          * whose amount wasn't heard ("lunch cash", or an amount said in words) is not one of
          * these: the user says it again or types it.
          */
-        fun needsModel(text: String): Boolean = ChatMessageFacts.spokenDaysAgo(text).let { it == null || it == 0 && WEEKDAY.containsMatchIn(text) } ||
+        fun needsModel(text: String): Boolean = ChatMessageFacts.spokenDaysAgo(text).let { it == null || (it == 0 && WEEKDAY.containsMatchIn(text)) } ||
             ChatMessageFacts.statedAmounts(ChatMessageFacts.withoutDays(text)).size > 1
 
         private val WEEKDAY = Regex(

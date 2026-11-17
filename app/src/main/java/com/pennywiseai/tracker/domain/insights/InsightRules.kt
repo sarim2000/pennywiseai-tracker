@@ -64,6 +64,8 @@ data class InsightInputs(
     val budgets: List<BudgetStatus> = emptyList(),
     val subscriptions: List<SubscriptionEntity> = emptyList(),
     val creditCards: List<AccountBalanceEntity> = emptyList(),
+    /** The profile all of the above is scoped to; null for all profiles. */
+    val profileId: Long? = null,
 )
 
 /**
@@ -74,7 +76,9 @@ object InsightRules {
 
     /** Most severe first; within a severity, in the order of the rules below. */
     fun evaluate(inputs: InsightInputs): List<Insight> {
-        val period = inputs.review.range.start.toString()
+        // The cycle, then the profile it's seen in: dismissing Personal's leaves Business's.
+        // insightCycleOf still reads the cycle first.
+        val period = "${inputs.review.range.start}:${inputs.profileId?.let { "p$it" } ?: "all"}"
         val subscriptions = inputs.subscriptions.filter(::isActiveExpense)
         return (
             budgets(inputs.budgets, period) +
@@ -382,7 +386,7 @@ object InsightRules {
         else (sorted[mid - 1] + sorted[mid]).divide(BigDecimal(2), 2, RoundingMode.HALF_UP)
     }
 
-    private fun id(rule: String, period: String, currency: String, subject: Any) = "$rule:v1:$period:$currency:$subject"
+    private fun id(rule: String, period: String, currency: String, subject: Any) = "$rule:v2:$period:$currency:$subject"
 
     /** The bucket a row without a category is totalled under ([com.pennywiseai.tracker.domain.review.buildPeriodDetail]). */
     private const val UNCATEGORISED = "Others"

@@ -65,9 +65,9 @@ class InsightsLoader @Inject constructor(
         budgets(today),
         subscriptions(),
         creditCards(),
-        insightPreferences.dismissedInsights,
-    ) { review, budgets, subscriptions, cards, dismissed ->
-        val inputs = InsightInputs(today, review, budgets, subscriptions, cards)
+        combine(insightPreferences.dismissedInsights, userPreferencesRepository.selectedProfileId, ::Pair),
+    ) { review, budgets, subscriptions, cards, (dismissed, profileId) ->
+        val inputs = InsightInputs(today, review, budgets, subscriptions, cards, profileId)
         InsightsSnapshot(
             review, InsightRules.evaluate(inputs), dismissed, scores(review, budgets),
             InsightRules.subscriptionsMonthly(subscriptions),

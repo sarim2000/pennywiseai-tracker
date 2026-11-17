@@ -73,7 +73,8 @@ sealed interface InsightFact {
 
 /**
  * One finding in one currency. [id] is stable for the period
- * (`rule:v1:period:currency:subject`), which is what a dismissal remembers.
+ * and profile (`rule:v2:period:profile:currency:subject`, profile `p<id>` or `all`),
+ * which is what a dismissal remembers.
  */
 data class Insight(
     val id: String,

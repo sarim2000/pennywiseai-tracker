@@ -463,7 +463,7 @@ class InsightRulesTest {
                 subscription(3, "499", "2026-11-15"),
             ),
         ).filter { it.fact is PriceChange }
-        assertEquals("price_change:v1:2026-11-01:INR:2", changes.single().id)
+        assertEquals("price_change:v2:2026-11-01:all:INR:2", changes.single().id)
     }
 
     @Test
@@ -471,7 +471,7 @@ class InsightRulesTest {
         val subscriptions = listOf(subscription(1, "100", "2026-11-22"), subscription(2, "50", "2026-11-26"))
         val before = evaluate(subscriptions = subscriptions).single { it.fact is BillsDue }
         val after = evaluate(subscriptions = subscriptions.drop(1)).single { it.fact is BillsDue }
-        assertEquals("bills_due:v1:2026-11-01:INR:next7@2026-11-22", before.id)
+        assertEquals("bills_due:v2:2026-11-01:all:INR:next7@2026-11-22", before.id)
         assertTrue(before.id != after.id)
     }
 
@@ -506,7 +506,18 @@ class InsightRulesTest {
         assertEquals(insights.map { it.severity }.sorted(), insights.map { it.severity })
         assertEquals(InsightSeverity.ALERT, insights.first().severity)
         assertEquals(InsightSeverity.GOOD, insights.last().severity)
-        assertEquals("budget_over:v1:2026-11-01:INR:2@2026-11-01", insights.first().id)
+        assertEquals("budget_over:v2:2026-11-01:all:INR:2@2026-11-01", insights.first().id)
         assertEquals(insights.map { it.id }, run().map { it.id })
+    }
+
+    @Test
+    fun `each profile's insights have their own ids, so a dismissal stays in its profile`() {
+        val cards = listOf(card("950", "1000"))
+        fun idIn(profileId: Long?) =
+            InsightRules.evaluate(InsightInputs(today, review(emptyList()), creditCards = cards, profileId = profileId)).single().id
+        assertEquals("card_use:v2:2026-11-01:all:INR:Test Bank_1111", idIn(null))
+        assertEquals("card_use:v2:2026-11-01:p1:INR:Test Bank_1111", idIn(1))
+        assertEquals("card_use:v2:2026-11-01:p2:INR:Test Bank_1111", idIn(2))
+        assertEquals(setOf("2026-11-01"), listOf(idIn(null), idIn(1), idIn(2)).map(::insightCycleOf).toSet())
     }
 }

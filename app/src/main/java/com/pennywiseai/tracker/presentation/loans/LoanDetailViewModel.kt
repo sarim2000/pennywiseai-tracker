@@ -6,6 +6,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.events.MascotMoment
+import com.pennywiseai.tracker.data.events.MascotMoments
 import com.pennywiseai.tracker.data.repository.LoanRepository
 import com.pennywiseai.tracker.domain.loan.LoanOverflow
 import com.pennywiseai.tracker.domain.loan.LoanOverflowPrompt
@@ -38,6 +40,7 @@ data class LoanDetailUiState(
 class LoanDetailViewModel @Inject constructor(
     private val loanRepository: LoanRepository,
     @ApplicationContext private val context: Context,
+    private val mascotMoments: MascotMoments,
     savedStateHandle: SavedStateHandle
 ) : ViewModel() {
 
@@ -136,15 +139,17 @@ class LoanDetailViewModel @Inject constructor(
 
     private suspend fun record(payment: PendingPayment, overflow: LoanOverflow) {
         val loan = _uiState.value.loan ?: return
-        when (payment) {
+        // Whether it paid the loan off is decided under the repository's repayment lock.
+        val paidOff = when (payment) {
             // Refused for a split bill (#346); the picker already hides those.
             is PendingPayment.Linked -> runCatching {
                 loanRepository.recordRepayment(loanId, payment.transactionId, overflow = overflow)
-            }
+            }.getOrDefault(false)
             is PendingPayment.Manual ->
-                loanRepository.recordManualRepayment(loanId, payment.amount, loan.personName, loan.currency, overflow)
+                loanRepository.recordManualRepayment(loanId, payment.amount, loan.personName, loan.currency, overflow)?.paidOff == true
         }
         refreshLoan()
+        if (paidOff) mascotMoments.announce(MascotMoment.DebtPaidOff)
     }
 
     fun showSettleDialog() { _uiState.value = _uiState.value.copy(showSettleDialog = true) }
@@ -162,6 +167,8 @@ class LoanDetailViewModel @Inject constructor(
         }
     }
 
+    // Settling forgives what's left without a payment (#938 counts it as spent), so the
+    // Chat tab doesn't celebrate it: only a repayment that clears the debt is paid off.
     fun settleLoan() {
         viewModelScope.launch {
             loanRepository.settleLoan(loanId)

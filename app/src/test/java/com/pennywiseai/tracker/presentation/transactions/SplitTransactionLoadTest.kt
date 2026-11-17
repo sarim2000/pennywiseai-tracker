@@ -62,7 +62,7 @@ class SplitTransactionLoadTest {
         mockk(relaxed = true), loans, mockk(relaxed = true), mockk(relaxed = true),
         mockk(relaxed = true), mockk(relaxed = true), prefs, mockk(relaxed = true),
         mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true),
-        mockk(relaxed = true)
+        mockk(relaxed = true), mockk(relaxed = true)
     )
 
     @Before fun setUp() = Dispatchers.setMain(UnconfinedTestDispatcher())

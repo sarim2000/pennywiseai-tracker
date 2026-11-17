@@ -41,7 +41,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -100,7 +100,10 @@ fun SpendingCalendarScreen(
     viewModel: SpendingCalendarViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    var selectedDay by rememberSaveable { mutableStateOf<Long?>(null) }
+    // The open sheet is this one value: shown while it's set, cleared on every way out.
+    // Deliberately not saved: restored after a recreation, it named a day whose sheet was no
+    // longer on screen, and tapping that day again set the same value, so nothing opened.
+    var selectedDay by remember { mutableStateOf<LocalDate?>(null) }
     LifecycleResumeEffect(Unit) {
         viewModel.refreshDate()
         onPauseOrDispose { }
@@ -135,9 +138,9 @@ fun SpendingCalendarScreen(
                     state = loaded,
                     onMonth = viewModel::showMonth,
                     onSelectCurrency = viewModel::selectCurrency,
-                    onDay = { selectedDay = it.toEpochDay() },
+                    onDay = { selectedDay = it },
                 )
-                selectedDay?.let(LocalDate::ofEpochDay)?.let { day ->
+                selectedDay?.let { day ->
                     DaySheet(
                         day = day,
                         today = loaded.today,

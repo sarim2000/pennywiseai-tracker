@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.domain.warranty
 
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
 import java.time.LocalDate
 
@@ -56,3 +57,6 @@ object WarrantyReminders {
     // "XX1234", "**1234", "A/c 1234": an account number, not a shop. ("Unknown" is the CSV import's.)
     private val MASKED_ACCOUNT = Regex("""[x*•]{2,}\s*\d{2,}|^(a/c|acct)\b""", RegexOption.IGNORE_CASE)
 }
+
+/** A warranty belongs to something bought: an expense, from a bank account or a card. */
+fun TransactionType.canHaveWarranty(): Boolean = this == TransactionType.EXPENSE || this == TransactionType.CREDIT

@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.domain.usecase
 
 import com.pennywiseai.tracker.core.AppForegroundState
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.events.TransactionEvent
@@ -12,6 +13,7 @@ import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import io.mockk.coEvery
 import io.mockk.mockk
 import io.mockk.mockkStatic
+import io.mockk.slot
 import io.mockk.unmockkStatic
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -66,6 +68,24 @@ class AddTransactionUseCaseEventsTest {
             toBankName = "Bank B",
             toLast4 = "2222",
         )
+    }
+
+    @Test
+    fun `a warranty date picked on Add is stored on the new row`() {
+        val inserted = slot<TransactionEntity>()
+        coEvery { balances.insertTransactionWithBalance(capture(inserted), any(), any()) } returns 7
+        val until = LocalDate.of(2027, 6, 30)
+        runBlocking {
+            useCase.execute(
+                amount = BigDecimal.TEN,
+                merchant = "Shop",
+                category = "Electronics",
+                type = TransactionType.EXPENSE,
+                date = LocalDateTime.now(),
+                warrantyUntil = until
+            )
+        }
+        assertEquals(until, inserted.captured.warrantyUntil)
     }
 
     @Test

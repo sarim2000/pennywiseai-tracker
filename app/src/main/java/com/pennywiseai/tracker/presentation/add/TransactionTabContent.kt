@@ -45,10 +45,12 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.receipt.ReceiptManager
 import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.domain.model.getAccountType
+import com.pennywiseai.tracker.domain.warranty.canHaveWarranty
 import com.pennywiseai.tracker.presentation.accounts.displayName
 import com.pennywiseai.tracker.presentation.accounts.icon
 import com.pennywiseai.tracker.presentation.categories.CategoryEditDialog
 import com.pennywiseai.tracker.presentation.common.ReceiptPreview
+import com.pennywiseai.tracker.presentation.transactions.WarrantyField
 import com.pennywiseai.tracker.presentation.transactions.transactionTypeLabel
 import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.ui.components.AmountCalculatorSheet
@@ -685,6 +687,14 @@ fun TransactionTabContent(
                 receiptError = uiState.receiptError?.asString(),
                 checking = uiState.checkingReceipt
             )
+
+            // ── Warranty (purchases only, as in the edit view) ──
+            if (uiState.transactionType.canHaveWarranty()) {
+                WarrantyField(
+                    warrantyUntil = uiState.warrantyUntil,
+                    onWarrantyChange = viewModel::updateWarrantyUntil
+                )
+            }
 
             // Bottom padding for save button overlay
             Spacer(modifier = Modifier.height(72.dp + Spacing.lg))

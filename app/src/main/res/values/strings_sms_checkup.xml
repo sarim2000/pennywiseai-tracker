@@ -67,6 +67,7 @@
     <string name="sms_checkup_scan_again">Scan again</string>
     <string name="sms_checkup_scan_now">Scan now</string>
     <string name="sms_checkup_scan_needs_access">Scanning needs SMS access. Allow it above.</string>
+    <string name="sms_checkup_scan_needs_access_settings">Scanning needs SMS access. Tap %1$s above and allow it there.</string>
     <string name="sms_checkup_just_now">just now</string>
 
     <string name="sms_checkup_section_not_imported">Not imported</string>

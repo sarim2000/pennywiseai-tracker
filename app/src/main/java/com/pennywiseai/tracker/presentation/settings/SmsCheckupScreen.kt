@@ -173,7 +173,12 @@ fun SmsCheckupScreen(
             }
 
             SectionHeaderV2(title = stringResource(R.string.sms_checkup_section_scan))
-            LastScanCard(scan, canScan = smsAccess.granted, onRescan = viewModel::rescan)
+            LastScanCard(
+                scan,
+                canScan = smsAccess.granted,
+                accessInSettings = smsAccess.blocked,
+                onRescan = viewModel::rescan
+            )
 
             SectionHeaderV2(title = stringResource(R.string.sms_checkup_section_not_imported))
             NotImportedCard(scan.notImported, onOpenUnrecognized)
@@ -182,7 +187,7 @@ fun SmsCheckupScreen(
 }
 
 @Composable
-private fun LastScanCard(scan: SmsCheckupState, canScan: Boolean, onRescan: () -> Unit) {
+private fun LastScanCard(scan: SmsCheckupState, canScan: Boolean, accessInSettings: Boolean, onRescan: () -> Unit) {
     val record = scan.record
     val ended = record?.finishedAt?.let { relativeTime(it) }.orEmpty()
     val (icon, color) = when {
@@ -217,8 +222,20 @@ private fun LastScanCard(scan: SmsCheckupState, canScan: Boolean, onRescan: () -
         }
         if (counts != null) add(scanSummary(counts, stoppedEarly = scan.status.endedEarly))
         scan.lastLiveSmsAt?.let { add(stringResource(R.string.sms_checkup_live_sms, relativeTime(it))) }
-        // The way to fix it is further up; say why the button is off right next to it.
-        if (!canScan) add(stringResource(R.string.sms_checkup_scan_needs_access))
+        // The way to fix it is further up; say why the button is off right next to it,
+        // naming the button the SMS access row shows.
+        if (!canScan) {
+            add(
+                if (accessInSettings) {
+                    stringResource(
+                        R.string.sms_checkup_scan_needs_access_settings,
+                        stringResource(R.string.background_access_open_settings)
+                    )
+                } else {
+                    stringResource(R.string.sms_checkup_scan_needs_access)
+                }
+            )
+        }
     }
     var showDetails by rememberSaveable { mutableStateOf(false) }
 

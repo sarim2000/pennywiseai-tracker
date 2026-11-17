@@ -281,6 +281,7 @@
     <!-- Theme style -->
     <string name="appearance_style_dynamic">Dynamické</string>
     <string name="appearance_style_default">Výchozí</string>
+    <!-- Fixed palettes ported from Mihon: proper names, not translated -->
     <!-- Toggles -->
     <string name="appearance_amoled_title">AMOLED černá</string>
     <string name="appearance_amoled_subtitle">Použijte čistě černé pozadí pro hlubší kontrast</string>

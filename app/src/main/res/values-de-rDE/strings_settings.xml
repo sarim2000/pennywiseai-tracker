@@ -262,6 +262,7 @@
     <!-- Theme style -->
     <string name="appearance_style_dynamic">Dynamisch</string>
     <string name="appearance_style_default">Standard</string>
+    <!-- Fixed palettes ported from Mihon: proper names, not translated -->
     <!-- Toggles -->
     <string name="appearance_amoled_title">AMOLED Schwarz</string>
     <string name="appearance_amoled_subtitle">Verwende reinen schwarzen Hintergrund für höheren Kontrast</string>

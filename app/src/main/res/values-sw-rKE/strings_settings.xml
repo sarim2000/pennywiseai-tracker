@@ -260,6 +260,7 @@
     <!-- Theme style -->
     <string name="appearance_style_dynamic">Inayobadilika</string>
     <string name="appearance_style_default">Chaguomsingi</string>
+    <!-- Fixed palettes ported from Mihon: proper names, not translated -->
     <!-- Toggles -->
     <string name="appearance_amoled_title">Nyeusi ya AMOLED</string>
     <string name="appearance_amoled_subtitle">Tumia mandharinyuma nyeusi tupu kwa utofautishaji zaidi</string>

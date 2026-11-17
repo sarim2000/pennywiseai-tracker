@@ -74,10 +74,18 @@
     <string name="txn_detail_unmark_loan_title">Ondoa alama ya mkopo?</string>
     <string name="txn_detail_unmark_loan_message">Hii inaondoa kiungo cha mkopo kwenye muamala huu. Ikiwa hakuna miamala mingine iliyounganishwa, mkopo nao utafutwa.</string>
     <string name="txn_detail_unmark_loan_confirm">Ondoa alama</string>
+    <!-- Unmarking leaves the loan's other transactions running the other way (e.g. undoing an overpayment that turned the loan around) -->
+    <!-- %1$s = person name, %2$s = formatted amount -->
+    <!-- %1$s = person name, %2$s = formatted amount -->
     <string name="txn_detail_unmark_loan">Ondoa alama ya mkopo</string>
     <string name="txn_detail_mark_as_loan">Weka alama kama mkopo</string>
     <string name="txn_detail_loan_lent_to">Umemkopesha %1$s</string>
     <string name="txn_detail_loan_borrowed_from">Umekopa kwa %1$s</string>
+    <!-- A repayment row on a loan. %1$s = person name -->
+    <!-- A repayment row on a loan. %1$s = person name -->
+    <!-- Part of a loan-linked transaction that is on the loan. %1$s = formatted amount -->
+    <!-- Part of a loan-linked transaction that counts as the user's own spending. %1$s = formatted amount -->
+    <!-- Part of a loan-linked transaction that counts as the user's own income. %1$s = formatted amount -->
     <string name="txn_detail_receipt_full_screen">Risiti skrini nzima</string>
     <string name="txn_detail_close">Funga</string>
     <string name="txn_detail_exclude_analytics_title">Usijumuishe kwenye takwimu</string>

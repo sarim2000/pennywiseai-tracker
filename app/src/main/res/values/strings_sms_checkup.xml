@@ -38,8 +38,20 @@
     <string name="sms_checkup_scan_ended_early_body">Some messages may be missing. Scan again to pick them up.</string>
     <string name="sms_checkup_last_success">Last successful scan: %1$s</string>
     <plurals name="sms_checkup_scan_summary">
-        <item quantity="one">Checked %1$s message, %2$s added</item>
-        <item quantity="other">Checked %1$s messages, %2$s added</item>
+        <item quantity="one">Checked %1$s message: %2$s new</item>
+        <item quantity="other">Checked %1$s messages: %2$s new</item>
+    </plurals>
+    <plurals name="sms_checkup_scan_summary_existing">
+        <item quantity="one">Checked %1$s message: %2$s new, %3$s already in PennyWise</item>
+        <item quantity="other">Checked %1$s messages: %2$s new, %3$s already in PennyWise</item>
+    </plurals>
+    <plurals name="sms_checkup_scan_summary_stopped">
+        <item quantity="one">Checked %1$s message before it stopped: %2$s new</item>
+        <item quantity="other">Checked %1$s messages before it stopped: %2$s new</item>
+    </plurals>
+    <plurals name="sms_checkup_scan_summary_stopped_existing">
+        <item quantity="one">Checked %1$s message before it stopped: %2$s new, %3$s already in PennyWise</item>
+        <item quantity="other">Checked %1$s messages before it stopped: %2$s new, %3$s already in PennyWise</item>
     </plurals>
     <string name="sms_checkup_live_sms">Last new SMS arrived %1$s</string>
     <string name="sms_checkup_show_details">Show details</string>

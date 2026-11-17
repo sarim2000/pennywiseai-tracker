@@ -213,16 +213,7 @@ private fun LastScanCard(scan: SmsCheckupState, canScan: Boolean, onRescan: () -
             // that to 0, and a restore brings it back without this record.
             record?.lastSucceededAt?.let { add(stringResource(R.string.sms_checkup_last_success, relativeTime(it))) }
         }
-        if (counts != null) {
-            add(
-                pluralStringResource(
-                    R.plurals.sms_checkup_scan_summary,
-                    counts.examined,
-                    formatCount(counts.examined),
-                    formatCount(counts.saved)
-                )
-            )
-        }
+        if (counts != null) add(scanSummary(counts, stoppedEarly = scan.status.endedEarly))
         scan.lastLiveSmsAt?.let { add(stringResource(R.string.sms_checkup_live_sms, relativeTime(it))) }
         // The way to fix it is further up; say why the button is off right next to it.
         if (!canScan) add(stringResource(R.string.sms_checkup_scan_needs_access))
@@ -257,6 +248,27 @@ private fun LastScanCard(scan: SmsCheckupState, canScan: Boolean, onRescan: () -
             }
         }
     }
+}
+
+/**
+ * "0 added" alone reads as a failure when the messages were already imported live, and a
+ * stopped scan's count isn't the inbox, so say both.
+ */
+@Composable
+private fun scanSummary(counts: SmsScanCounts, stoppedEarly: Boolean): String {
+    val res = when {
+        stoppedEarly && counts.duplicates > 0 -> R.plurals.sms_checkup_scan_summary_stopped_existing
+        stoppedEarly -> R.plurals.sms_checkup_scan_summary_stopped
+        counts.duplicates > 0 -> R.plurals.sms_checkup_scan_summary_existing
+        else -> R.plurals.sms_checkup_scan_summary
+    }
+    return pluralStringResource(
+        res,
+        counts.examined,
+        formatCount(counts.examined),
+        formatCount(counts.saved),
+        formatCount(counts.duplicates)
+    )
 }
 
 @Composable

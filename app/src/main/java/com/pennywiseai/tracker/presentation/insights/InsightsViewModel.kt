@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.presentation.insights
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pennywiseai.tracker.core.DefaultDispatcher
 import com.pennywiseai.tracker.data.preferences.InsightPreferences
 import com.pennywiseai.tracker.domain.insights.Insight
 import com.pennywiseai.tracker.domain.insights.InsightFact
@@ -14,12 +15,14 @@ import com.pennywiseai.tracker.domain.review.CycleTotal
 import com.pennywiseai.tracker.domain.review.ReviewRange
 import com.pennywiseai.tracker.utils.Money
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.CoroutineDispatcher
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOn
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -88,6 +91,7 @@ class InsightsViewModel @Inject constructor(
     loader: InsightsLoader,
     private val insightPreferences: InsightPreferences,
     private val savedStateHandle: SavedStateHandle,
+    @DefaultDispatcher defaultDispatcher: CoroutineDispatcher,
 ) : ViewModel() {
 
     /**
@@ -96,15 +100,17 @@ class InsightsViewModel @Inject constructor(
      */
     private val today = MutableStateFlow(LocalDate.now())
 
+    /** Worked out off the main thread: Home holds this too, and its first frame mustn't wait on it. */
     @OptIn(ExperimentalCoroutinesApi::class)
     private val snapshot = today.flatMapLatest { loader.observe(it) }
+        .flowOn(defaultDispatcher)
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** Null while loading. */
     val state: StateFlow<InsightsUiState?> =
         combine(snapshot, savedStateHandle.getStateFlow<String?>(KEY_CURRENCY, null)) { loaded, chosen ->
             loaded?.let { insightsUiState(it, chosen) }
-        }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+        }.flowOn(defaultDispatcher).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /** Not dismissed, what matters most first; Home picks its card from these with [homeInsights]. */
     val active: StateFlow<List<Insight>> = snapshot

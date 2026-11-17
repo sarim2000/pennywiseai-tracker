@@ -226,4 +226,20 @@ class CardBillTest {
         assertFalse(CardBills.keepsStatement(paidOff, 2, d("4000"), date("2026-03-20")))
         assertFalse(CardBills.keepsStatement(newer, 2, d("4000"), date("2026-04-13")))
     }
+
+    @Test
+    fun `a paid bill isn't offered for editing, and left blank it stays as it was`() {
+        val now = date("2026-03-20").atTime(18, 0)
+        val paidOff = CardBills.status(card(), listOf(tx("2026-03-15", "4000", TransactionType.INCOME)), now.toLocalDate())
+        val current = CardBills.status(card(), emptyList(), now.toLocalDate())
+
+        assertTrue(paidOff.awaitsNewStatement)
+        assertFalse(current.awaitsNewStatement)
+        // Only the due day changed: the paid bill keeps its amount and statement.
+        assertEquals(d("4000") to paidOff.card.cardBillAsOf, CardBills.toSave(paidOff, 5, null, now))
+        // An amount typed in is the new statement's, even the same figure.
+        assertEquals(d("4000") to now, CardBills.toSave(paidOff, 2, d("4000"), now))
+        // On the current bill, a blank amount clears it.
+        assertEquals(null to null, CardBills.toSave(current, 2, null, now))
+    }
 }

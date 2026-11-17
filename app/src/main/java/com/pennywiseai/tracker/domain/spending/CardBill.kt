@@ -6,6 +6,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import java.math.BigDecimal
 import java.time.LocalDate
+import java.time.LocalDateTime
 import java.time.YearMonth
 
 /**
@@ -47,7 +48,15 @@ data class CardBillStatus(
      * the card is counted through its bills, not one payment at a time.
      */
     val isKnown: Boolean = bill != null,
-)
+) {
+    /**
+     * The bill the user entered is behind the card: paid off, or a newer statement
+     * has closed since. Its amount is no longer the one to edit; the next amount
+     * they give is the new statement's.
+     */
+    val awaitsNewStatement: Boolean
+        get() = card.cardDueDay != null && card.cardBillAmount != null && card.cardBillAsOf != null && (bill == null || !isKnown)
+}
 
 /** Pure rules for a card's bill: statement dates, due dates and payments. */
 object CardBills {
@@ -140,6 +149,22 @@ object CardBills {
         return CardBillStatus(
             card, bill.takeIf { !it.isRetired }, needsBill = owes && newerStatement, isKnown = !newerStatement,
         )
+    }
+
+    /**
+     * The amount to store when the user saves [dueDay] and [amount], and the time it's
+     * dated from (which decides its statement). Left blank on a bill that
+     * [CardBillStatus.awaitsNewStatement], the entered bill stays as it was and only
+     * the due day changes; an unchanged current bill keeps its statement
+     * ([keepsStatement]); any other amount is the latest statement's, dated [now].
+     */
+    fun toSave(status: CardBillStatus?, dueDay: Int?, amount: BigDecimal?, now: LocalDateTime): Pair<BigDecimal?, LocalDateTime?> {
+        val card = status?.card
+        return when {
+            amount == null && status?.awaitsNewStatement == true -> card?.cardBillAmount to card?.cardBillAsOf
+            status != null && keepsStatement(status, dueDay, amount, now.toLocalDate()) -> amount to card?.cardBillAsOf
+            else -> amount to amount?.let { now }
+        }
     }
 
     /**

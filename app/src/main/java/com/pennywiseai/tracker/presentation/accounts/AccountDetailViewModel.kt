@@ -68,18 +68,14 @@ class AccountDetailViewModel @Inject constructor(
 
     /**
      * Saves the card's due day and last statement amount; nulls clear them. The
-     * amount is dated now, so it counts as the latest statement's, unless the bill
-     * is unchanged and still current ([CardBills.keepsStatement]): then it stays
-     * the statement it was.
+     * amount is dated now, so it counts as the latest statement's, unless it's the
+     * current bill unchanged, or left blank on a paid or older bill: then the
+     * entered bill stays as it was ([CardBills.toSave]).
      */
     fun setCardBill(dueDay: Int?, amount: BigDecimal?) {
-        val status = _uiState.value.cardBill
-        val keep = status != null && CardBills.keepsStatement(status, dueDay, amount, LocalDate.now())
+        val (billAmount, asOf) = CardBills.toSave(_uiState.value.cardBill, dueDay, amount, LocalDateTime.now())
         viewModelScope.launch {
-            accountBalanceRepository.setCardBill(
-                bankName, accountLast4, dueDay, amount,
-                asOf = if (keep) status?.card?.cardBillAsOf else amount?.let { LocalDateTime.now() },
-            )
+            accountBalanceRepository.setCardBill(bankName, accountLast4, dueDay, billAmount, asOf)
         }
     }
 

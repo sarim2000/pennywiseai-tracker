@@ -327,6 +327,7 @@
     <string name="card_bill_due_day_error">Enter a day from 1 to 31</string>
     <string name="card_bill_amount_label">Statement amount (%1$s)</string>
     <string name="card_bill_amount_hint">The total on your latest statement</string>
+    <string name="card_bill_amount_new_hint">The total on your new statement. Left blank, the last bill stays as it is.</string>
     <string name="card_bill_clear_title">Clear card bill?</string>
     <string name="card_bill_clear_message">The due day and statement amount are removed, and Safe to spend stops setting this bill aside.</string>
 </resources>

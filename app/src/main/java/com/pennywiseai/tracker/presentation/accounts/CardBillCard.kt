@@ -113,7 +113,10 @@ fun CardBillCard(status: CardBillStatus, onSave: (dueDay: Int?, amount: BigDecim
     if (editing) {
         CardBillDialog(
             dueDay = card.cardDueDay,
-            amount = card.cardBillAmount,
+            // A paid or older bill's amount isn't offered: saved unchanged, it would
+            // quietly become the new statement's. Left blank, that bill stays as it was.
+            amount = card.cardBillAmount.takeUnless { status.awaitsNewStatement },
+            forNewStatement = status.awaitsNewStatement,
             currency = card.currency,
             onDismiss = { editing = false },
             onSave = { day, amount ->
@@ -129,6 +132,7 @@ fun CardBillCard(status: CardBillStatus, onSave: (dueDay: Int?, amount: BigDecim
 private fun CardBillDialog(
     dueDay: Int?,
     amount: BigDecimal?,
+    forNewStatement: Boolean,
     currency: String,
     onDismiss: () -> Unit,
     onSave: (Int?, BigDecimal?) -> Unit
@@ -195,7 +199,9 @@ private fun CardBillDialog(
                     value = text,
                     onValueChange = { text = it },
                     label = { Text(stringResource(R.string.card_bill_amount_label, currency)) },
-                    supportingText = { Text(stringResource(R.string.card_bill_amount_hint)) },
+                    supportingText = {
+                        Text(stringResource(if (forNewStatement) R.string.card_bill_amount_new_hint else R.string.card_bill_amount_hint))
+                    },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
                     isError = !valid,

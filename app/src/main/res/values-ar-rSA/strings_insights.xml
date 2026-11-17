@@ -232,4 +232,22 @@
         <item quantity="many">دفعات %1$s. أولها اليوم.</item>
         <item quantity="other">دفعات %1$s. أولها اليوم.</item>
     </plurals>
+
+    <!-- Card bill. %1$s = card name, %2$d = days until it's due -->
+    <plurals name="insights_card_bill_title">
+        <item quantity="zero">فاتورة %1$s مستحقة اليوم</item>
+        <item quantity="one">فاتورة %1$s مستحقة خلال %2$d يوم</item>
+        <item quantity="two">فاتورة %1$s مستحقة خلال يومين</item>
+        <item quantity="few">فاتورة %1$s مستحقة خلال %2$d أيام</item>
+        <item quantity="many">فاتورة %1$s مستحقة خلال %2$d يومًا</item>
+        <item quantity="other">فاتورة %1$s مستحقة خلال %2$d يوم</item>
+    </plurals>
+    <string name="insights_card_bill_today_title">فاتورة %1$s مستحقة اليوم</string>
+    <string name="insights_card_bill_overdue_title">فاتورة %1$s متأخرة</string>
+    <!-- Under the Left to pay and Statement figures. %1$s = due date -->
+    <string name="insights_card_bill_body">ادفعها قبل %1$s.</string>
+    <!-- Under the Left to pay and Statement figures. %1$s = due date -->
+    <string name="insights_card_bill_overdue_body">كان موعد استحقاقها %1$s.</string>
+    <string name="insights_metric_left_to_pay">المتبقي للدفع</string>
+    <string name="insights_metric_statement">الكشف</string>
 </resources>

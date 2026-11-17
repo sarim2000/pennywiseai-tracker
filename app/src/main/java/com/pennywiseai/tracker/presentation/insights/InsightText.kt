@@ -151,13 +151,12 @@ internal fun insightText(insight: Insight): InsightText = when (val f = insight.
     )
     is InsightFact.CardBillDue -> InsightText(
         title = when {
-            f.daysLeft < 0 -> stringResource(R.string.insights_card_bill_overdue_title, f.label)
-            f.daysLeft == 0 -> stringResource(R.string.insights_card_bill_today_title, f.label)
-            else -> pluralStringResource(R.plurals.insights_card_bill_title, f.daysLeft, f.label, f.daysLeft)
+            f.daysLeft < 0 -> stringResource(R.string.insights_card_bill_overdue_title, name(f.label))
+            f.daysLeft == 0 -> stringResource(R.string.insights_card_bill_today_title, name(f.label))
+            else -> pluralStringResource(R.plurals.insights_card_bill_title, f.daysLeft, name(f.label), f.daysLeft)
         },
         body = stringResource(
             if (f.daysLeft < 0) R.string.insights_card_bill_overdue_body else R.string.insights_card_bill_body,
-            f.left.format(),
             date(f.dueDate),
         ),
         metrics = listOf(

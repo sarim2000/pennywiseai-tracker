@@ -204,9 +204,10 @@
     </plurals>
     <string name="insights_card_bill_today_title">%1$s bill due today</string>
     <string name="insights_card_bill_overdue_title">%1$s bill is overdue</string>
-    <!-- %1$s = left to pay, %2$s = due date -->
-    <string name="insights_card_bill_body">%1$s left to pay by %2$s.</string>
-    <string name="insights_card_bill_overdue_body">%1$s still to pay. It was due on %2$s.</string>
+    <!-- Under the Left to pay and Statement figures. %1$s = due date -->
+    <string name="insights_card_bill_body">Pay it by %1$s.</string>
+    <!-- Under the Left to pay and Statement figures. %1$s = due date -->
+    <string name="insights_card_bill_overdue_body">It was due on %1$s.</string>
     <string name="insights_metric_left_to_pay">Left to pay</string>
     <string name="insights_metric_statement">Statement</string>
 </resources>

@@ -44,9 +44,20 @@ open class AccountBalanceRepository @Inject constructor(
         /**
          * `anchor_source` of a balance the user gave with a new currency. It's entered
          * like [ANCHOR_ENTERED]; it also marks when the currency changed, which a manual
-         * account's derived past mustn't reach back over.
+         * account's derived past mustn't reach back over. A balance entered later keeps
+         * it (see [anchorSourceAfter]), so that past never reaches back over the change.
          */
         const val ANCHOR_CURRENCY_CHANGE = "CURRENCY_CHANGE"
+
+        /**
+         * The source an anchor from [requested] is stored with, given the account's
+         * [current] one. A balance entered after a currency change keeps the change's
+         * mark: the newer anchor is no earlier than the change, so the account's past
+         * still can't cross it, at the cost of the days between the two. It still
+         * reads as entered.
+         */
+        fun anchorSourceAfter(current: String?, requested: String): String =
+            if (current == ANCHOR_CURRENCY_CHANGE && requested == ANCHOR_ENTERED) ANCHOR_CURRENCY_CHANGE else requested
     }
 
     /**
@@ -60,7 +71,10 @@ open class AccountBalanceRepository @Inject constructor(
         amount: BigDecimal,
         at: LocalDateTime = LocalDateTime.now(),
         source: String = ANCHOR_ENTERED,
-    ): Int = accountBalanceDao.setAnchor(bankName, accountLast4, amount, at, source)
+    ): Int {
+        val current = accountBalanceDao.getLatestBalance(bankName, accountLast4)?.anchorSource
+        return accountBalanceDao.setAnchor(bankName, accountLast4, amount, at, anchorSourceAfter(current, source))
+    }
 
     suspend fun insertBalance(balance: AccountBalanceEntity): Long {
         return accountBalanceDao.insertBalance(balance)

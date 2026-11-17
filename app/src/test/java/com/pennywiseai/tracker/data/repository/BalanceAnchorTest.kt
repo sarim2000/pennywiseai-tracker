@@ -5,6 +5,8 @@ import com.pennywiseai.tracker.data.database.dao.AccountBalanceDao
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.withTransaction
+import com.pennywiseai.tracker.domain.spending.BalanceSource
+import com.pennywiseai.tracker.domain.spending.NetWorth
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -18,6 +20,7 @@ import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.math.BigDecimal
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 /** A balance the user gives is remembered as the account's anchor, with when and how. */
@@ -98,6 +101,50 @@ class BalanceAnchorTest {
             assertEquals("MANUAL", it.anchorSource)
             assertTrue(it.anchorAt != null)
         }
+    }
+
+    @Test
+    fun `balances entered after a currency change never take the trend back over it`() = runBlocking {
+        // The account's anchor as the database holds it, rewritten by every setAnchor.
+        var anchor = Triple<BigDecimal?, LocalDateTime?, String?>(null, null, null)
+        coEvery { balanceDao.setAnchor(BANK, ACCT, any(), any(), any()) } answers {
+            anchor = Triple(thirdArg(), arg(3), arg(4))
+            1
+        }
+        coEvery { balanceDao.getLatestBalance(BANK, ACCT) } answers { row("MANUAL").copy(anchorSource = anchor.third) }
+        coEvery { balanceDao.getOpeningRow(BANK, ACCT) } returns row("OPENING")
+        coEvery { balanceDao.getManualCurrentRow(BANK, ACCT) } returns row("MANUAL")
+        val changed = LocalDateTime.now().minusDays(10)
+
+        // USD cash with no transactions moved to EUR, then its EUR balance edited, then
+        // "Update balance": neither later anchor may drop the change's mark.
+        repo.setAnchor(BANK, ACCT, BigDecimal("100"), changed, AccountBalanceRepository.ANCHOR_CURRENCY_CHANGE)
+        repo.setAnchor(BANK, ACCT, BigDecimal("120"), changed.plusDays(5))
+        assertEquals(AccountBalanceRepository.ANCHOR_CURRENCY_CHANGE, anchor.third)
+        repo.setCurrentBalance(BANK, ACCT, BigDecimal("150"))
+        assertEquals(AccountBalanceRepository.ANCHOR_CURRENCY_CHANGE, anchor.third)
+
+        val account = row("MANUAL").copy(
+            balance = BigDecimal("150"), currency = "EUR",
+            anchorAmount = anchor.first, anchorAt = anchor.second, anchorSource = anchor.third,
+        )
+        val history = NetWorth.derivedHistory(account, emptyList(), firstRow = changed.minusDays(30))
+        val trend = NetWorth.trend(emptyList(), mapOf((BANK to ACCT) to history), changed.toLocalDate().minusDays(5), LocalDate.now())
+        assertTrue(trend.getValue("EUR").all { !it.date.isBefore(changed.toLocalDate()) })
+        // Still a balance the user entered.
+        assertEquals(
+            BalanceSource.Entered(BigDecimal("150"), anchor.second!!, fromStatement = false),
+            NetWorth.source(account, null, unanchored = false),
+        )
+    }
+
+    @Test
+    fun `only an entered balance keeps a currency change's mark`() {
+        val change = AccountBalanceRepository.ANCHOR_CURRENCY_CHANGE
+        assertEquals(change, AccountBalanceRepository.anchorSourceAfter(change, AccountBalanceRepository.ANCHOR_ENTERED))
+        assertEquals("STATEMENT", AccountBalanceRepository.anchorSourceAfter(change, AccountBalanceRepository.ANCHOR_STATEMENT))
+        assertEquals("MANUAL", AccountBalanceRepository.anchorSourceAfter("MANUAL", AccountBalanceRepository.ANCHOR_ENTERED))
+        assertEquals(change, AccountBalanceRepository.anchorSourceAfter(null, change))
     }
 
     private companion object {

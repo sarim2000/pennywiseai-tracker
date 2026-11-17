@@ -140,6 +140,30 @@ private fun CardBillDialog(
     var text by remember { mutableStateOf(amount?.toPlainString().orEmpty()) }
     val parsed = text.trim().toBigDecimalOrNull()
     val valid = text.isBlank() || (parsed != null && parsed.signum() >= 0)
+    var confirmClear by remember { mutableStateOf(false) }
+
+    if (confirmClear) {
+        // Clearing drops the bill from Safe to spend, so ask first. Cancel returns
+        // to the edit dialog with what was typed still there.
+        AlertDialog(
+            onDismissRequest = { confirmClear = false },
+            title = { Text(stringResource(R.string.card_bill_clear_title)) },
+            text = { Text(stringResource(R.string.card_bill_clear_message)) },
+            confirmButton = {
+                TextButton(
+                    onClick = { onSave(null, null) },
+                    colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                    shapes = ButtonDefaults.shapes()
+                ) { Text(stringResource(R.string.manage_accounts_action_clear)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirmClear = false }, shapes = ButtonDefaults.shapes()) {
+                    Text(stringResource(R.string.accounts_action_cancel))
+                }
+            }
+        )
+        return
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -184,7 +208,7 @@ private fun CardBillDialog(
         dismissButton = {
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 if (dueDay != null || amount != null) {
-                    TextButton(onClick = { onSave(null, null) }, shapes = ButtonDefaults.shapes()) {
+                    TextButton(onClick = { confirmClear = true }, shapes = ButtonDefaults.shapes()) {
                         Text(stringResource(R.string.manage_accounts_action_clear))
                     }
                 }

@@ -64,8 +64,9 @@ fun AmountCalculatorSheet(
     onApply: (BigDecimal) -> Unit,
     onDismiss: () -> Unit
 ) {
-    // Kept with '.' as the point; shown with the locale's.
-    var expression by rememberSaveable { mutableStateOf(initialAmount.take(AmountExpression.MAX_LENGTH)) }
+    // Kept with '.' as the point; shown with the locale's. Never cut short: dropping
+    // digits changes the amount, so an over-long start is left for check() to reject.
+    var expression by rememberSaveable { mutableStateOf(initialAmount) }
     val outcome = AmountExpression.check(expression, MinorUnits.digits(currency))
     val result = (outcome as? AmountExpression.Outcome.Amount)?.value
     val canApply = result != null && result.signum() > 0

@@ -9,7 +9,9 @@
     <string name="calendar_next_month">Next month</string>
     <string name="calendar_this_month">Back to this month</string>
     <string name="calendar_legend_due">Payment due</string>
-    <string name="calendar_legend_shade">Darker days, more spent</string>
+    <!-- The ends of the shading scale under the calendar: less spent on a day, more spent -->
+    <string name="calendar_legend_less">Spent less</string>
+    <string name="calendar_legend_more">Spent more</string>
     <!-- %1$s = a month, e.g. "November 2026" -->
     <string name="calendar_empty_headline">Nothing spent or due in %1$s</string>
     <string name="calendar_empty_body">Spending from your bank texts, and the subscriptions, recurring payments and card bills you track, show up here.</string>

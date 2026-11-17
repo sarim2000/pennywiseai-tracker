@@ -36,6 +36,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.ReadOnlyComposable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -267,7 +268,7 @@ private fun DayCell(
     modifier: Modifier = Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
-    val fill = if (level == 0) colors.surfaceContainerLow else colors.primary.copy(alpha = level.toFloat() / SpendingCalendar.LEVELS)
+    val fill = dayFill(level)
     val ink = if (level == 0) colors.onSurface else fill.compositeOver(colors.background).bestInk()
     val hasDue = day?.planned?.isNotEmpty() == true
     val description = dayDescription(date, day)
@@ -318,6 +319,14 @@ private fun DayCell(
     }
 }
 
+/** A day's shade for a [level] of spend; the legend draws its scale from this too. */
+@Composable
+@ReadOnlyComposable
+private fun dayFill(level: Int): Color {
+    val colors = MaterialTheme.colorScheme
+    return if (level == 0) colors.surfaceContainerLow else colors.primary.copy(alpha = level.toFloat() / SpendingCalendar.LEVELS)
+}
+
 /** What a screen reader says for a day: the date, what was spent, how many payments are due. */
 @Composable
 private fun dayDescription(date: LocalDate, day: CalendarDay?): String {
@@ -354,15 +363,24 @@ private fun Legend() {
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        // The scale the days are shaded with, drawn from the same colours: a stronger shade
+        // is darker in a light theme and brighter in a dark one, so words alone can't say it.
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-            Box(
-                Modifier
-                    .size(Dimensions.Component.legendDot)
-                    .clip(MaterialTheme.shapes.extraSmall)
-                    .background(MaterialTheme.colorScheme.primary)
-            )
             Text(
-                stringResource(R.string.calendar_legend_shade),
+                stringResource(R.string.calendar_legend_less),
+                style = MaterialTheme.typography.labelMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            (1..SpendingCalendar.LEVELS).forEach { level ->
+                Box(
+                    Modifier
+                        .size(Dimensions.Component.legendDot)
+                        .clip(MaterialTheme.shapes.extraSmall)
+                        .background(dayFill(level))
+                )
+            }
+            Text(
+                stringResource(R.string.calendar_legend_more),
                 style = MaterialTheme.typography.labelMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant,
             )

@@ -24,6 +24,19 @@ private fun smoothstep(from: Float, to: Float, x: Float): Float {
     return c * c * (3 - 2 * c)
 }
 
+/**
+ * Where [shape]'s arrival has nothing left to move, as a share of [ARRIVAL_MS]: its clock
+ * stops there, so a settled shape draws no frames. 0 for a shape without an arrival.
+ */
+internal fun arrivalEnd(shape: MascotShape): Float = when (shape) {
+    MascotShape.Coin -> COIN_SPARKLES.maxOf { it.delay } + SPARKLE_LIFE
+    MascotShape.Receipt -> STAMP_IN
+    MascotShape.Wallet -> GLANCE_DONE
+    MascotShape.Jar -> JAR_DROP_END + JAR_SETTLE
+    MascotShape.Bell -> 1f
+    else -> 0f
+}
+
 /** Where the arrival is, 0..1, [sinceMs] after it began. */
 internal fun arrivalAt(sinceMs: Long): Float = (sinceMs / ARRIVAL_MS.toFloat()).coerceIn(0f, 1f)
 
@@ -48,7 +61,9 @@ internal fun arrived(pose: MascotPose, shape: MascotShape, sinceMs: Long): Masco
 internal fun walletGlance(t: Float): Offset = Offset(-GLANCE_REACH + 2 * GLANCE_REACH * smoothstep(0.12f, 0.55f, t), 0.15f)
 
 /** How much the glance holds the eyes: it takes them, then gives them back before the end. */
-internal fun walletAttention(t: Float): Float = smoothstep(0f, 0.1f, t) * (1 - smoothstep(0.7f, 0.95f, t))
+internal fun walletAttention(t: Float): Float = smoothstep(0f, 0.1f, t) * (1 - smoothstep(0.7f, GLANCE_DONE, t))
+
+private const val GLANCE_DONE = 0.95f
 
 private const val GLANCE_REACH = 0.8f
 
@@ -107,4 +122,6 @@ internal fun sparkleAlpha(sparkle: Sparkle, t: Float): Float {
 private const val SPARKLE_LIFE = 0.45f
 
 /** How much of the receipt's check shows at [t]; once stamped it stays. */
-internal fun stampAlpha(t: Float): Float = smoothstep(0.05f, 0.22f, t)
+internal fun stampAlpha(t: Float): Float = smoothstep(0.05f, STAMP_IN, t)
+
+private const val STAMP_IN = 0.22f

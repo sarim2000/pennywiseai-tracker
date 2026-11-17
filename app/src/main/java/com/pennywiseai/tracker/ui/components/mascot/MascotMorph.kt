@@ -19,8 +19,14 @@ import kotlin.math.sin
  */
 internal const val PROFILE_RAYS = 180
 
-/** The first ray points up (twelve o'clock); the rest go clockwise, y down. */
+/**
+ * The rays start half a step clockwise of twelve o'clock and go clockwise, y down, so
+ * none runs exactly along a shape's straight up, down or side edge (a pie's cut).
+ */
 private const val FIRST_RAY = -PI / 2
+
+/** A crossing nearer the centre than this, in box units, is the ray leaving through a gap. */
+private const val MIN_HIT = 2f
 
 /** How finely a curved contour is walked into straight edges, in box units. */
 private const val CONTOUR_STEP = 0.75f
@@ -30,14 +36,15 @@ internal class MascotProfile(val center: Offset, val radii: FloatArray)
 
 /** The unit direction of ray [i] of [count]. */
 internal fun rayDirection(i: Int, count: Int = PROFILE_RAYS): Offset {
-    val a = FIRST_RAY + 2 * PI * i / count
+    val a = FIRST_RAY + 2 * PI * (i + 0.5) / count
     return Offset(cos(a).toFloat(), sin(a).toFloat())
 }
 
 /**
  * The profile of the closed [polygons] (x, y pairs; each closes on itself) from [center].
  * Each ray takes its farthest crossing, so a notch hidden behind an edge is filled in. A
- * ray that crosses nothing (a centre outside the outline) keeps the ray before it.
+ * ray that crosses nothing, or only right by the centre (out through a gap), takes the
+ * mean of its nearest rays each side, bridging the gap while the morph runs.
  */
 internal fun profileOf(polygons: List<FloatArray>, center: Offset, rays: Int = PROFILE_RAYS): MascotProfile {
     val radii = FloatArray(rays)
@@ -55,9 +62,29 @@ internal fun profileOf(polygons: List<FloatArray>, center: Offset, rays: Int = P
                 if (t > far) far = t
             }
         }
-        radii[i] = if (far >= 0f) far else if (i > 0) radii[i - 1] else 0f
+        // Grazing the centre is no edge: a ray out through the gap by a pie's slice.
+        radii[i] = if (far >= MIN_HIT) far else -1f
     }
+    fillMisses(radii)
     return MascotProfile(center, radii)
+}
+
+/** Gives each missed ray (negative) the mean of the nearest hits either side, round the circle. */
+private fun fillMisses(radii: FloatArray) {
+    val n = radii.size
+    if (radii.none { it >= 0f }) {
+        radii.fill(0f)
+        return
+    }
+    val hit = radii.copyOf()
+    for (i in 0 until n) {
+        if (hit[i] >= 0f) continue
+        var before = 1
+        while (hit[(i - before + n) % n] < 0f) before++
+        var after = 1
+        while (hit[(i + after) % n] < 0f) after++
+        radii[i] = (hit[(i - before + n) % n] + hit[(i + after) % n]) / 2
+    }
 }
 
 /** How far along the ray from [o] in [d] it crosses the segment p..q, or -1 if it doesn't. */
@@ -114,8 +141,8 @@ internal fun Path.toPolygons(step: Float = CONTOUR_STEP): List<FloatArray> {
     return out
 }
 
-/** A shape's profile, seen from the middle of its outline's bounds. */
-internal fun MascotGeometry.profile(): MascotProfile = profileOf(body.toPolygons(), body.getBounds().center)
+/** A shape's profile, seen from its [MascotGeometry.core], or the middle of its outline's bounds. */
+internal fun MascotGeometry.profile(): MascotProfile = profileOf(body.toPolygons(), core ?: body.getBounds().center)
 
 /**
  * The lids through a morph at [progress]: they narrow to dots in the middle and open as
@@ -137,5 +164,21 @@ internal fun lerp(a: Offset, b: Offset, w: Float) = Offset(lerp(a.x, b.x, w), le
 
 private fun lerp(a: Float, b: Float, w: Float) = a + (b - a) * w
 
-/** Where a morph began: the outline, eyes and tilt point on screen then, and the shape it most was. */
-internal class MorphFrom(val profile: MascotProfile, val eyes: EyeSpec, val pivot: Offset, val shape: MascotShape)
+/**
+ * Where a morph began: what was on screen then, so a morph that cuts into another one
+ * carries on from it rather than jumping.
+ */
+internal class MorphFrom(
+    val profile: MascotProfile,
+    val eyes: EyeSpec,
+    val pivot: Offset,
+    /** The shape whose face showed, and how much of it showed (at the detailed size). */
+    val shape: MascotShape,
+    val faceAlpha: Float = 1f,
+    /** The body's colour: [colorFrom]'s, [colorWeight] of the way to [colorTo]'s. */
+    val colorFrom: MascotShape = shape,
+    val colorTo: MascotShape = shape,
+    val colorWeight: Float = 0f,
+    /** How shut the eyes were, 0..1. */
+    val squint: Float = 0f,
+)

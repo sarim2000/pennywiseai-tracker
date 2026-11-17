@@ -424,8 +424,12 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
         morph.animateTo(1f, spec)
         morphFrom = null
         arrivedShape = target
-        arrival.snapTo(0f)
-        arrival.animateTo(1f, tween(ARRIVAL_MS.toInt(), easing = LinearEasing))
+        // Only as long as the arrival moves: a settled shape asks for no more frames.
+        val end = arrivalEnd(target)
+        if (end > 0f) {
+            arrival.snapTo(0f)
+            arrival.animateTo(end, tween((end * ARRIVAL_MS).toInt(), easing = LinearEasing))
+        }
     }
 
     /** The outline drawn right now: the shape, or the morph where it has got to. */
@@ -434,11 +438,19 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
         val here = profileOf(shape, value)
         val from = morphFrom ?: return MorphFrom(here, g.eyes, g.pivot, shape)
         val p = morph.value
+        val w = p.coerceIn(0f, 1f)
+        val early = w < 0.5f
         return MorphFrom(
             profile = blendProfiles(from.profile, here, p),
             eyes = lerpEyes(from.eyes, g.eyes, p),
             pivot = lerp(from.pivot, g.pivot, p),
-            shape = if (p < 0.5f) from.shape else shape,
+            // The face that shows most, and how much of it, as drawMorph draws them.
+            shape = if (early) from.shape else shape,
+            faceAlpha = if (early) fromFaceAlpha(from, w) else fadeAt(1f - FACE_FADE, 1f, w),
+            colorFrom = if (from.colorWeight < 0.5f) from.colorFrom else from.colorTo,
+            colorTo = shape,
+            colorWeight = w,
+            squint = morphEyes(from, p),
         )
     }
 
@@ -624,7 +636,7 @@ private fun DrawScope.drawMorph(
     outline: Path,
 ) {
     val w = progress.coerceIn(0f, 1f)
-    val squinting = pose.copy(blink = max(pose.blink, morphSquint(progress)))
+    val squinting = pose.copy(blink = max(pose.blink, morphEyes(m.from, progress)))
     val eyes = lerpEyes(m.from.eyes, g.eyes, progress)
     val from = m.from.shape
     posed(pose, lerp(m.from.pivot, g.pivot, progress), k) {
@@ -637,13 +649,15 @@ private fun DrawScope.drawMorph(
                 drawStamp(1f - fadeAt(0f, FACE_FADE, w), d.tint, TWO_TONE_STAMP, BlendMode.DstOut, d.scratch)
             }
         } else {
-            drawPath(body, lerpColor(bodyColor(from, c), bodyColor(shape, c), w))
+            val fromColor = lerpColor(bodyColor(m.from.colorFrom, c), bodyColor(m.from.colorTo, c), m.from.colorWeight)
+            drawPath(body, lerpColor(fromColor, bodyColor(shape, c), w))
+            val fromFace = fromFaceAlpha(m.from, w)
             clipPath(body) {
-                withAlpha(1f - fadeAt(0f, FACE_FADE, w), d.layer) { drawFace(from, m.fromGeometry, pose, c, d.scratch) }
+                withAlpha(fromFace, d.layer) { drawFace(from, m.fromGeometry, pose, c, d.scratch) }
                 withAlpha(fadeAt(1f - FACE_FADE, 1f, w), d.layer) { drawFace(shape, g, pose, c, d.scratch) }
             }
             // The owl looks out of its disc eyes; while it's mid-morph, pill eyes stand in.
-            val eyesIn = if (from == MascotShape.Owl) fadeAt(0f, FACE_FADE, w) else 1f
+            val eyesIn = if (from == MascotShape.Owl) 1f - fromFace else 1f
             val eyesOut = if (shape == MascotShape.Owl) 1f - fadeAt(1f - FACE_FADE, 1f, w) else 1f
             withAlpha(min(eyesIn, eyesOut), d.layer) {
                 drawPillEyes(eyes, 1f, squinting, lerpColor(inkOf(from, c), inkOf(shape, c), w), d.scratch, DrawScope.DefaultBlendMode)
@@ -654,6 +668,13 @@ private fun DrawScope.drawMorph(
 
 /** The part of a morph over which a face fades, at each end. */
 private const val FACE_FADE = 0.3f
+
+/** How much of the old face shows [w] into a morph: what showed when it began, fading early. */
+private fun fromFaceAlpha(from: MorphFrom, w: Float) = from.faceAlpha * (1f - fadeAt(0f, FACE_FADE, w))
+
+/** How shut the eyes are [progress] into a morph: narrowing through it, from however shut they were. */
+private fun morphEyes(from: MorphFrom, progress: Float) =
+    max(morphSquint(progress), from.squint * (1f - progress.coerceIn(0f, 1f)))
 
 private fun fadeAt(from: Float, to: Float, x: Float): Float {
     val c = ((x - from) / (to - from)).coerceIn(0f, 1f)

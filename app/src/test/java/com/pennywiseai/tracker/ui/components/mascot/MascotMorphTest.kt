@@ -25,20 +25,18 @@ class MascotMorphTest {
     }
 
     @Test
-    fun `the first ray points up and the rays go clockwise`() {
-        val up = rayDirection(0)
-        assertEquals(0f, up.x, 1e-5f)
-        assertEquals(-1f, up.y, 1e-5f)
+    fun `the rays go clockwise from just past twelve o'clock`() {
+        val first = rayDirection(0)
+        assertTrue(first.y < -0.99f && first.x > 0f)
         val quarter = rayDirection(PROFILE_RAYS / 4)
-        assertEquals(1f, quarter.x, 1e-5f)
-        assertEquals(0f, quarter.y, 1e-5f)
+        assertTrue(quarter.x > 0.99f && quarter.y > 0f)
     }
 
     @Test
     fun `a square reaches its corners on the diagonals and its sides straight out`() {
         val p = profileOf(listOf(square(20f, 20f, 80f, 80f)), Offset(50f, 50f))
-        assertEquals(30f, p.radii[0], 1e-3f)
-        assertEquals(30f, p.radii[PROFILE_RAYS / 4], 1e-3f)
+        assertEquals(30f, p.radii[0], 0.01f)
+        assertEquals(30f, p.radii[PROFILE_RAYS / 4], 0.01f)
         val corner = 30f * kotlin.math.sqrt(2f)
         assertTrue(p.radii.max() in corner - 1f..corner + 1e-3f)
     }
@@ -47,7 +45,7 @@ class MascotMorphTest {
     fun `each ray keeps the farthest edge, so a part apart from the body still shows`() {
         // A body and, straight above it, a separate lid: the up ray reaches the lid's top.
         val p = profileOf(listOf(square(30f, 40f, 70f, 80f), square(40f, 10f, 60f, 20f)), Offset(50f, 60f))
-        assertEquals(50f, p.radii[0], 1e-3f)
+        assertEquals(50f, p.radii[0], 0.01f)
     }
 
     @Test
@@ -137,5 +135,45 @@ class MascotMorphTest {
     fun `a bell rings as it arrives`() {
         val ringing = arrived(MascotPose(), MascotShape.Bell, 100)
         assertTrue(ringing.roll != 0f)
+    }
+
+    private fun halfDisc(c: Offset, r: Float, fromDeg: Double, n: Int = 360): FloatArray {
+        val pts = ArrayList<Float>()
+        pts += c.x
+        pts += c.y
+        for (i in 0..n) {
+            val a = Math.toRadians(fromDeg + 180.0 * i / n)
+            pts += c.x + (r * cos(a)).toFloat()
+            pts += c.y + (r * sin(a)).toFloat()
+        }
+        return pts.toFloatArray()
+    }
+
+    @Test
+    fun `a pie with its half pulled out is seen whole from its own centre`() {
+        // The rest (left half) at the centre, the slice (right half) pulled 6 to the right:
+        // the gap between them runs through the middle of their bounds, but not the centre.
+        val c = Offset(50f, 54f)
+        val pie = listOf(halfDisc(c, 36f, 90.0), halfDisc(Offset(56f, 54f), 36f, -90.0))
+        val p = profileOf(pie, c)
+        assertTrue(p.radii.min() > 30f)
+    }
+
+    @Test
+    fun `each arrival's clock stops once it has nothing left to move`() {
+        for (shape in MascotShape.entries) {
+            val end = arrivalEnd(shape)
+            assertTrue(end in 0f..1f)
+            if (end == 0f) continue
+            val at = (end * ARRIVAL_MS).toLong()
+            val still = arrived(MascotPose(), shape, at)
+            assertEquals(0f, still.roll, 0.05f)
+            assertEquals(0f, still.lift, 1e-4f)
+            assertEquals(0f, still.gazeX, 1e-4f)
+        }
+        assertEquals(0f, arrivalEnd(MascotShape.Owl), 0f)
+        assertEquals(1f, stampAlpha(arrivalEnd(MascotShape.Receipt)), 0f)
+        COIN_SPARKLES.forEach { assertEquals(0f, sparkleAlpha(it, arrivalEnd(MascotShape.Coin)), 1e-4f) }
+        assertNull(jarCoin(arrivalEnd(MascotShape.Jar)))
     }
 }

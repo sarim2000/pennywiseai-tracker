@@ -53,6 +53,11 @@ internal class MascotGeometry(
     /** An object's markings, drawn over its body at [detailAlpha], at the detailed size only. */
     val details: Path? = null,
     val detailAlpha: Float = DETAIL_ALPHA,
+    /**
+     * Where a morph sees the outline from (MascotMorph.kt), when the middle of its bounds
+     * won't do: a pie's falls in the gap by its pulled slice, so the pie's own centre.
+     */
+    val core: Offset? = null,
 )
 
 /** How faintly an object's markings sit over its body. */
@@ -211,6 +216,7 @@ private fun pie(share: Float): MascotGeometry {
         },
         eyes = EyeSpec(x = c.x + eyes.x, y = c.y + eyes.y, spacing = 16f, scale = 0.9f),
         pivot = STANDING,
+        core = c,
     )
 }
 

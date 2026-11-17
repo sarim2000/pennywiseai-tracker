@@ -53,6 +53,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.withLock
 import java.io.File
+import java.io.IOException
 import java.net.URLEncoder
 import javax.inject.Inject
 
@@ -593,9 +594,12 @@ class SettingsViewModel @Inject constructor(
         viewModelScope.launch {
             try {
                 _exportedBackupFile.value?.let { file ->
-                    context.contentResolver.openOutputStream(uri)?.use { outputStream ->
+                    // A provider can hand back no stream at all: nothing was written then.
+                    val outputStream = context.contentResolver.openOutputStream(uri)
+                        ?: throw IOException("Couldn't open the chosen file")
+                    outputStream.use { out ->
                         file.inputStream().use { inputStream ->
-                            inputStream.copyTo(outputStream)
+                            inputStream.copyTo(out)
                         }
                     }
                     _importExportMessage.value = UiText.Res(R.string.settings_backup_saved)

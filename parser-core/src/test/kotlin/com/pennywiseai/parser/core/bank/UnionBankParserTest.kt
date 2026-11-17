@@ -63,6 +63,17 @@ class UnionBankParserTest {
                 )
             ),
             ParserTestCase(
+                name = "Short form \"Cr\" from an investment platform is INCOME",
+                message = "Union Bank of India A/c*1234 Cr Rs800.00 on 15-11-26 21:26 by MB 6600000003 GROWW, Bal Rs937.57",
+                sender = "JX-UNIONB-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("800.00"),
+                    currency = "INR",
+                    type = TransactionType.INCOME,
+                    accountLast4 = "1234"
+                )
+            ),
+            ParserTestCase(
                 name = "OTP quoting a \"Dr\" amount is ignored",
                 message = "OTP 123456 for A/c*1234 Dr Rs166.00. Do not share.",
                 sender = "JX-UNIONB-S",

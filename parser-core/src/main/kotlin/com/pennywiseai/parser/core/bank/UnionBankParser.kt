@@ -85,9 +85,8 @@ class UnionBankParser : BaseIndianBankParser() {
     override fun extractTransactionType(message: String): TransactionType? {
         // Short form marks the direction with "Dr"/"Cr" before the amount.
         DR_CR.find(message)?.let {
-            if (isInvestmentTransaction(message.lowercase())) return TransactionType.INVESTMENT
-            return if (it.groupValues[1].equals("Dr", ignoreCase = true)) TransactionType.EXPENSE
-            else TransactionType.INCOME
+            if (!it.groupValues[1].equals("Dr", ignoreCase = true)) return TransactionType.INCOME
+            return if (isInvestmentTransaction(message.lowercase())) TransactionType.INVESTMENT else TransactionType.EXPENSE
         }
         return super.extractTransactionType(message)
     }

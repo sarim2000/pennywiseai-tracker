@@ -30,6 +30,8 @@ abstract class BankParser {
                 """sent|charged|used|refunded|reversed|paid|purchased)\b"""
         )
 
+        // National Stock Exchange as a whole word; plain "nse" also matches "finserv"/"expense".
+        private val NSE_WORD = Regex("""\bnse\b""")
         /** ACH/NACH/ECS as a word, or glued to ICICI's "Info" ("InfoACH*…"). Lowercase input. */
         private val AUTO_PAY_RAIL = Regex("""(?:\b|info)(?:n?ach|ecs)\b""")
 
@@ -365,12 +367,12 @@ abstract class BankParser {
             "sovereign gold",               // Sovereign Gold Bonds
 
             // Stock exchanges
-            "nse",                          // National Stock Exchange
             "bse",                          // Bombay Stock Exchange
             "cdsl",                         // Central Depository Services
             "nsdl"                          // National Securities Depository
         )
 
+        if (NSE_WORD.containsMatchIn(lowerMessage)) return true
         if (investmentKeywords.any { lowerMessage.contains(it) }) return true
 
         // Auto-pay rails (excluding mandate/UMRN to avoid subscription false

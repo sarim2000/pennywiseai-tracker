@@ -271,6 +271,18 @@ class ICICIBankParserTest {
                 )
             ),
             ParserTestCase(
+                name = "ACH EMI to BAJAJ FINSERV is an EXPENSE (\"finserv\" isn't NSE)",
+                message = "ICICI Bank Acc XX710 debited Rs. 4,500.00 on 10-Nov-26 InfoACH*BAJAJ FINSERV EMI.Avl Bal Rs. 50,000.00.To dispute call 0000000000",
+                sender = "BP-ICICIT-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("4500.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    accountLast4 = "710",
+                    balance = BigDecimal("50000.00")
+                )
+            ),
+            ParserTestCase(
                 name = "ACH debit via ICICI is INVESTMENT",
                 message = "ICICI Bank Account XX123 debited Rs. 5,000.00 on 19-May-26 InfoACH*BD-ACHKFL.Avl Bal Rs. 3,25,000.04.To dispute call 1800 blah blah",
                 sender = "AX-ICICIT",

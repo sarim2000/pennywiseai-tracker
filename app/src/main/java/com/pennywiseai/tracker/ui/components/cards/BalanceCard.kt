@@ -467,7 +467,7 @@ fun BalanceCard(
                             )
                             Spacer(modifier = Modifier.height(Spacing.xs))
                             Row(
-                                modifier = Modifier.fillMaxWidth().netWorthLink(onOpenNetWorth),
+                                modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
@@ -477,19 +477,16 @@ fun BalanceCard(
                                     color = MaterialTheme.colorScheme.onSurface,
                                     fontWeight = FontWeight.Bold
                                 )
-                                Row(verticalAlignment = Alignment.CenterVertically) {
-                                    Text(
-                                        text = if (isBalanceHidden) {
-                                            "••••••"
-                                        } else {
-                                            "${CurrencyFormatter.formatCurrency(totalBalance, currency)}${if (isApproximate) "*" else ""}"
-                                        },
-                                        style = MaterialTheme.typography.titleSmall.money(),
-                                        fontWeight = FontWeight.Bold,
-                                        color = MaterialTheme.colorScheme.onSurface
-                                    )
-                                    if (onOpenNetWorth != null) NetWorthChevron()
-                                }
+                                Text(
+                                    text = if (isBalanceHidden) {
+                                        "••••••"
+                                    } else {
+                                        "${CurrencyFormatter.formatCurrency(totalBalance, currency)}${if (isApproximate) "*" else ""}"
+                                    },
+                                    style = MaterialTheme.typography.titleSmall.money(),
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
                             }
                             if (isApproximate) {
                                 Spacer(modifier = Modifier.height(Spacing.xs))
@@ -499,6 +496,22 @@ fun BalanceCard(
                                     color = MaterialTheme.colorScheme.error,
                                     modifier = Modifier.fillMaxWidth()
                                 )
+                            }
+                            // Named for where it goes: Net worth takes off cards and loans, so
+                            // its figure isn't this total, and a chevron on the total implied it was.
+                            if (onOpenNetWorth != null) {
+                                Row(
+                                    modifier = Modifier.fillMaxWidth().netWorthLink(onOpenNetWorth),
+                                    horizontalArrangement = Arrangement.End,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.net_worth_title),
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    NetWorthChevron(tint = MaterialTheme.colorScheme.primary)
+                                }
                             }
                         }
 
@@ -532,11 +545,11 @@ private fun Modifier.netWorthLink(onOpen: (() -> Unit)?): Modifier {
 }
 
 @Composable
-private fun NetWorthChevron() {
+private fun NetWorthChevron(tint: Color = MaterialTheme.colorScheme.onSurfaceVariant) {
     Icon(
         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
         contentDescription = null,
-        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+        tint = tint,
         modifier = Modifier.size(Dimensions.Icon.small)
     )
 }

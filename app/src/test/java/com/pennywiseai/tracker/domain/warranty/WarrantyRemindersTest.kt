@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.domain.warranty
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
@@ -140,5 +141,17 @@ class WarrantyRemindersTest {
         assertEquals("Synthetic store 1", WarrantyReminders.itemName(txn))
         assertEquals("Synthetic store 1", WarrantyReminders.itemName(txn.copy(description = "  ")))
         assertEquals("Laptop", WarrantyReminders.itemName(txn.copy(description = " Laptop \nextended cover")))
+    }
+
+    @Test
+    fun leavesOutAMerchantThatSaysNothingAboutThePurchase() {
+        val txn = purchase(1, today.plusDays(30))
+        listOf("Unknown Merchant", "Unknown", "UPI Payment", "A/c XX1234", "Card **9876", "Acct 0000").forEach {
+            assertNull(it, WarrantyReminders.itemName(txn.copy(merchantName = it)))
+        }
+        // A note still names it, and real shops that merely look close keep their name.
+        assertEquals("Headphones", WarrantyReminders.itemName(txn.copy(merchantName = "Unknown Merchant", description = "Headphones")))
+        assertEquals("AC Services", WarrantyReminders.itemName(txn.copy(merchantName = "AC Services")))
+        assertEquals("Xbox Store", WarrantyReminders.itemName(txn.copy(merchantName = "Xbox Store")))
     }
 }

@@ -3,12 +3,14 @@
     <!-- Warranty reminder notifications (WarrantyReminderWorker) -->
     <string name="warranty_reminder_channel_name">Warranty reminders</string>
     <string name="warranty_reminder_channel_description">A heads-up 30 days and 1 day before a purchase\'s warranty ends</string>
-    <string name="warranty_reminder_title_today">%1$s: warranty ends today</string>
-    <string name="warranty_reminder_title_tomorrow">%1$s: warranty ends tomorrow</string>
+    <string name="warranty_reminder_title_today">Warranty ends today</string>
+    <string name="warranty_reminder_title_tomorrow">Warranty ends tomorrow</string>
     <plurals name="warranty_reminder_title">
-        <item quantity="one">%1$s: warranty ends in %2$d day</item>
-        <item quantity="other">%1$s: warranty ends in %2$d days</item>
+        <item quantity="one">Warranty ends in %d day</item>
+        <item quantity="other">Warranty ends in %d days</item>
     </plurals>
+    <!-- %1$s = one of the titles above, %2$s = the item (the purchase's note) or the shop -->
+    <string name="warranty_reminder_title_named">%1$s: %2$s</string>
     <string name="warranty_reminder_text">Covered until %1$s. Bought for %2$s on %3$s.</string>
     <!-- Transaction edit view and detail -->
     <string name="warranty_field_label">Warranty ends</string>

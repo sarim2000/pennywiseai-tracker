@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.domain.warranty
 
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
 import java.time.LocalDate
 
 /**
@@ -39,8 +40,19 @@ object WarrantyReminders {
 
     /**
      * What the reminder calls the purchase: the first line of the user's note, which
-     * usually names the item, else the merchant (for SMS rows often just the account).
+     * usually names the item, else the merchant. Null when the merchant says nothing
+     * about the purchase: a parser placeholder ("Unknown Merchant", "UPI Payment") or
+     * a masked account ("A/c XX1234"), which SMS rows often carry.
      */
-    fun itemName(txn: TransactionEntity): String =
-        txn.description?.lineSequence()?.firstOrNull()?.trim()?.takeIf { it.isNotEmpty() } ?: txn.merchantName
+    fun itemName(txn: TransactionEntity): String? {
+        txn.description?.lineSequence()?.firstOrNull()?.trim()?.takeIf { it.isNotEmpty() }?.let { return it }
+        val merchant = txn.merchantName.trim()
+        return merchant.takeUnless {
+            LearnCategoryUseCase.isPlaceholderMerchant(it) || it.equals("Unknown", ignoreCase = true) ||
+                MASKED_ACCOUNT.containsMatchIn(it)
+        }
+    }
+
+    // "XX1234", "**1234", "A/c 1234": an account number, not a shop. ("Unknown" is the CSV import's.)
+    private val MASKED_ACCOUNT = Regex("""[x*•]{2,}\s*\d{2,}|^(a/c|acct)\b""", RegexOption.IGNORE_CASE)
 }

@@ -109,14 +109,16 @@ class WarrantyReminderWorker @AssistedInject constructor(
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .build()
 
+    /** The time left first, so a narrow shade cuts the name rather than when it ends. */
     private fun title(context: Context, txn: TransactionEntity, today: LocalDate): String {
-        val merchant = context.bidiIsolate(WarrantyReminders.itemName(txn))
         val daysLeft = txn.warrantyUntil?.let { ChronoUnit.DAYS.between(today, it) } ?: 0
-        return when {
-            daysLeft <= 0 -> context.getString(R.string.warranty_reminder_title_today, merchant)
-            daysLeft == 1L -> context.getString(R.string.warranty_reminder_title_tomorrow, merchant)
-            else -> context.resources.getQuantityString(R.plurals.warranty_reminder_title, daysLeft.toInt(), merchant, daysLeft.toInt())
+        val ends = when {
+            daysLeft <= 0 -> context.getString(R.string.warranty_reminder_title_today)
+            daysLeft == 1L -> context.getString(R.string.warranty_reminder_title_tomorrow)
+            else -> context.resources.getQuantityString(R.plurals.warranty_reminder_title, daysLeft.toInt(), daysLeft.toInt())
         }
+        val name = WarrantyReminders.itemName(txn) ?: return ends
+        return context.getString(R.string.warranty_reminder_title_named, ends, context.bidiIsolate(name))
     }
 
     companion object {

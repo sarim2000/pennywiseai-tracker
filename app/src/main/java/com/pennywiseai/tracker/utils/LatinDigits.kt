@@ -1,7 +1,10 @@
 package com.pennywiseai.tracker.utils
 
+import android.app.Activity
+import android.app.Application
 import android.content.Context
 import android.content.res.Configuration
+import android.os.Bundle
 import android.os.LocaleList
 import java.util.Locale
 
@@ -28,6 +31,21 @@ fun Context.withLatinDigits(): Context {
 /** Process default (String.format, NumberFormat, SimpleDateFormat without an explicit locale). */
 fun useLatinDigitsByDefault() {
     Locale.setDefault(Locale.getDefault().withLatinDigits())
+}
+
+/**
+ * Android 17 resets the process default locale when an activity launches, after
+ * Application.onCreate, so screens (and M3's TimePicker, which formats with the
+ * default) showed ١، ٢، ٣ again. Re-tag it before each activity draws.
+ */
+object LatinDigitsDefaultKeeper : Application.ActivityLifecycleCallbacks {
+    override fun onActivityCreated(activity: Activity, savedInstanceState: Bundle?) = useLatinDigitsByDefault()
+    override fun onActivityResumed(activity: Activity) = useLatinDigitsByDefault()
+    override fun onActivityStarted(activity: Activity) {}
+    override fun onActivityPaused(activity: Activity) {}
+    override fun onActivityStopped(activity: Activity) {}
+    override fun onActivitySaveInstanceState(activity: Activity, outState: Bundle) {}
+    override fun onActivityDestroyed(activity: Activity) {}
 }
 
 /** Any decimal digit (٠-٩, ۰-۹, ०-९…) as 0-9; everything else unchanged. */

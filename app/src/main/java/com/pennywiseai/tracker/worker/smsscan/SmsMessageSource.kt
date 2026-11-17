@@ -112,7 +112,11 @@ internal class DeviceSmsMessageSource(private val context: Context) : SmsMessage
         return count
     }
 
-    /** Streams SMS cursor rows directly into the feed channel — no intermediate list. */
+    /**
+     * Streams SMS cursor rows directly into the feed channel — no intermediate list.
+     * A read that breaks off throws: ending the feed quietly would pass for the whole
+     * inbox, record a success and move the incremental cursor past messages never read.
+     */
     private suspend fun streamSmsToChannel(
         feed: SendChannel<ScannedSms>,
         scanStartTime: Long
@@ -143,13 +147,16 @@ internal class DeviceSmsMessageSource(private val context: Context) : SmsMessage
                 }
             }
         } catch (e: Exception) {
-            if (e is CancellationException || e is SecurityException) throw e
-            Log.e(TAG, "Error streaming SMS", e)
+            if (e !is CancellationException) Log.e(TAG, "SMS read broke off after $count messages", e)
+            throw e
         }
         Log.i(TAG, "Streamed $count SMS messages to pipeline")
     }
 
-    /** Streams RCS messages into the feed channel. */
+    /**
+     * Streams RCS messages into the feed channel. Best effort, unlike SMS: RCS sits in the
+     * undocumented MMS provider, which differs by phone, and must not fail every SMS scan.
+     */
     private suspend fun streamRcsToChannel(
         feed: SendChannel<ScannedSms>,
         scanStartSeconds: Long

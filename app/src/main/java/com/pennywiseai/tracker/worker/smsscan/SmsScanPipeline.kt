@@ -9,13 +9,15 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicReference
 
 private const val TAG = "OptimizedSmsReaderWorker"
 
 /**
  * The scan's topology: one feed into bounded channels, parallel parsers, one sequential
  * saver and one balance consumer. A coroutineScope, so a failing stage cancels the rest
- * and [run] only returns normally once every stage has finished.
+ * and [run] only returns normally once every stage has finished. A feed that breaks off
+ * is the exception: what it already read is still saved, then [run] throws its error.
  */
 internal class SmsScanPipeline(
     private val source: SmsMessageSource,
@@ -36,10 +38,16 @@ internal class SmsScanPipeline(
         val feed    = Channel<ScannedSms>(PARSE_CHANNEL_CAPACITY)
         val results = Channel<ParseResult>(RESULT_CHANNEL_CAPACITY)
 
-        // Stage 1 – Feed (streams SMS cursor + RCS directly into the channel)
+        // Stage 1 – Feed (streams SMS cursor + RCS directly into the channel). A read error
+        // ends the feed instead of cancelling the scan, so the messages already read (up to
+        // both channels' worth) are saved; a bad row can't keep the ones before it out.
+        val feedError = AtomicReference<Exception?>(null)
         launch(Dispatchers.IO) {
             try {
                 source.streamTo(feed, scanStartTime)
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                feedError.set(e)
             } finally {
                 feed.close()
             }
@@ -153,5 +161,8 @@ internal class SmsScanPipeline(
         saver.join()
         balanceUpdates.close()
         balanceUpdater.join()
+        // Not a finished scan: the caller must neither record a success nor move the cursor.
+        val readError = feedError.get()
+        if (readError != null) throw readError
     }
 }

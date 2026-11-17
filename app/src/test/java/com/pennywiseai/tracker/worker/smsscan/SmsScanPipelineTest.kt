@@ -193,6 +193,24 @@ class SmsScanPipelineTest {
     }
 
     @Test
+    fun `an SMS read that breaks off saves what it read, then fails the scan`() = scanTest {
+        val read = (1..5).map(::hdfcDebit)
+        val brokenRead = object : SmsMessageSource {
+            override suspend fun streamTo(feed: SendChannel<ScannedSms>, scanStartMillis: Long) {
+                read.forEach { feed.send(it) }
+                throw IllegalStateException("cursor window broke")
+            }
+        }
+        val stats = ProcessingStats(total = 10)
+
+        val failure = runCatching { h.pipeline(brokenRead).run(0L, stats) }.exceptionOrNull()
+
+        assertTrue("the scan must not pass for a finished one", failure is IllegalStateException)
+        assertEquals(5, stats.processed.get())
+        assertEquals("every message read before the break is saved", 5, h.store.all.size)
+    }
+
+    @Test
     fun `every message lands in exactly one outcome`() = scanTest {
         val special = hdfcDebit(3)
         val broken = hdfcDebit(4)

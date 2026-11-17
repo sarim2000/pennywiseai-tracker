@@ -4,6 +4,7 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
+import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
 import com.pennywiseai.tracker.domain.insights.InsightFact.BillsDue
 import com.pennywiseai.tracker.domain.insights.InsightFact.BudgetOver
 import com.pennywiseai.tracker.domain.insights.InsightFact.BudgetPace
@@ -236,17 +237,19 @@ object InsightRules {
      * A category already [SPIKE_RATIO] times its usual this cycle, against the average of
      * up to [BASELINE_CYCLES] earlier cycles that had any activity. Needs [MIN_BASELINE]
      * of them, and a rise worth at least [SPIKE_FLOOR] of a usual cycle's spending, so a
-     * coffee going from 3 to 9 isn't news. A category new this cycle has no usual.
+     * coffee going from 3 to 9 isn't news. A category new this cycle has no usual, and
+     * uncategorised spending isn't one place to spend less, so it's never flagged.
      */
-    internal fun categorySpikes(review: PeriodReview, period: String): List<Insight> =
-        review.detail?.cycles.orEmpty().flatMap { (currency, cycles) ->
+    internal fun categorySpikes(review: PeriodReview, period: String): List<Insight> {
+        val uncategorised = setOf(UNCATEGORISED, BuiltinCategoryNames.current(UNCATEGORISED))
+        return review.detail?.cycles.orEmpty().flatMap { (currency, cycles) ->
             val now = cycles.lastOrNull() ?: return@flatMap emptyList()
             val before = cycles.dropLast(1).takeLast(BASELINE_CYCLES).filter { it.hasActivity }
             if (before.size < MIN_BASELINE) return@flatMap emptyList()
             val count = BigDecimal(before.size)
             val floor = before.fold(BigDecimal.ZERO) { sum, c -> sum + c.spent }
                 .divide(count, 2, RoundingMode.HALF_UP).multiply(SPIKE_FLOOR)
-            now.byCategory.mapNotNull { (category, spent) ->
+            now.byCategory.filterKeys { it !in uncategorised }.mapNotNull { (category, spent) ->
                 val usual = before.fold(BigDecimal.ZERO) { sum, c -> sum + (c.byCategory[category] ?: BigDecimal.ZERO) }
                     .divide(count, 2, RoundingMode.HALF_UP)
                 if (usual.signum() <= 0 || spent < usual.multiply(SPIKE_RATIO) || spent - usual < floor) {
@@ -263,6 +266,7 @@ object InsightRules {
             }.sortedByDescending { (it.fact as CategorySpike).let { f -> f.spent.amount - f.usual.amount } }
                 .take(MAX_PER_RULE)
         }
+    }
 
     /**
      * A spend this cycle over [LARGE_TIMES] times its category's median across the loaded
@@ -275,7 +279,7 @@ object InsightRules {
         period: String,
     ): List<Insight> {
         val rows = review.detail?.spendRows.orEmpty().filter { !it.hasSplits }.map { it.transaction }
-        return rows.groupBy { it.currency to it.category.ifEmpty { "Others" } }
+        return rows.groupBy { it.currency to it.category.ifEmpty { UNCATEGORISED } }
             .flatMap { (key, group) ->
                 val (currency, category) = key
                 if (group.size < MIN_SAMPLES) return@flatMap emptyList()
@@ -354,6 +358,8 @@ object InsightRules {
 
     private fun id(rule: String, period: String, currency: String, subject: Any) = "$rule:v1:$period:$currency:$subject"
 
+    /** The bucket a row without a category is totalled under ([com.pennywiseai.tracker.domain.review.buildPeriodDetail]). */
+    private const val UNCATEGORISED = "Others"
     private val HUNDRED = BigDecimal(100)
     private val SPIKE_RATIO = BigDecimal("1.5")
     private val SPIKE_FLOOR = BigDecimal("0.05")

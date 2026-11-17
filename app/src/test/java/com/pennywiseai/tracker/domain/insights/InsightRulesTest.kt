@@ -205,6 +205,13 @@ class InsightRulesTest {
     }
 
     @Test
+    fun `uncategorised spending is never a spike`() {
+        val others = listOf("2026-08-10", "2026-09-10", "2026-10-10").map { tx(it, "100", category = "Others") }
+        val insights = evaluate(rows = others + tx("2026-11-05", "300", category = "Others"))
+        assertTrue(insights.facts<CategorySpike>().isEmpty())
+    }
+
+    @Test
     fun `a spike needs two earlier cycles with activity`() {
         val insights = evaluate(rows = listOf(tx("2026-10-10", "100"), tx("2026-11-05", "300")))
         assertTrue(insights.facts<CategorySpike>().isEmpty())

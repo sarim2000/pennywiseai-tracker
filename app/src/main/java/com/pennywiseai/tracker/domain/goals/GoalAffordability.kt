@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.domain.goals
 
 import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
+import com.pennywiseai.tracker.data.ledger.countedAmount
 import com.pennywiseai.tracker.data.repository.GoalProgress
 import com.pennywiseai.tracker.data.repository.GoalStatus
 import com.pennywiseai.tracker.domain.review.PeriodDetail
@@ -56,6 +57,8 @@ data class GoalAffordability(
          * shares of spending rows a contribution is linked to (a recurring deposit's debit,
          * say), averaged over the cycles [CycleAverages.of] averages. That money already
          * lowered the surplus, so without adding it back the goals would ask for it twice.
+         * Only up to what the row counted as spending: of a 1,000 bill with 800 lent out,
+         * 200 lowered the surplus, so a 1,000 contribution from it gives back 200.
          */
         fun savedThroughSpending(detail: PeriodDetail, linked: List<GoalContributionEntity>): Map<String, BigDecimal> {
             val shareOf = linked.filter { it.transactionId != null }
@@ -69,7 +72,10 @@ data class GoalAffordability(
                 val saved = detail.spendRows
                     .map { it.transaction }
                     .filter { it.currency == currency && it.dateTime.toLocalDate() in window }
-                    .fold(BigDecimal.ZERO) { sum, t -> sum + (shareOf[t.id]?.max(BigDecimal.ZERO) ?: BigDecimal.ZERO) }
+                    .fold(BigDecimal.ZERO) { sum, t ->
+                        val share = shareOf[t.id] ?: return@fold sum
+                        sum + share.min(t.countedAmount()).max(BigDecimal.ZERO)
+                    }
                 if (saved.signum() == 0) null
                 else currency to saved.divide(BigDecimal(CycleAverages.CYCLES), 2, RoundingMode.HALF_UP)
             }.toMap()

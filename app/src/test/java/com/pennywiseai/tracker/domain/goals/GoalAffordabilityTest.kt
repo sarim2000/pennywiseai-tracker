@@ -5,6 +5,7 @@ import com.pennywiseai.tracker.data.database.entity.GoalEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
+import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.repository.GoalRules
 import com.pennywiseai.tracker.domain.insights.InsightAction
 import com.pennywiseai.tracker.domain.insights.InsightFact.GoalsFit
@@ -113,6 +114,41 @@ class GoalAffordabilityTest {
         assertEquals(true, result.fits)
         val unlinked = GoalAffordabilityLoader.affordability(GoalsToWeigh(listOf(goal("12000")), emptyList()), detail).single()
         assertEquals(false, unlinked.fits)
+    }
+
+    @Test
+    fun `only the part of a linked row that counted as spending is given back`() {
+        // A 1,000 bill each cycle, 800 of it lent out: only 200 lowered the surplus.
+        val cycles = (3 downTo 0).map { ago ->
+            val start = today.withDayOfMonth(1).minusMonths(ago.toLong())
+            CycleTotal(start, start.plusMonths(1).minusDays(1), d("50000"), d("49500"), emptyMap())
+        }
+        val bills = cycles.mapIndexed { i, cycle ->
+            TransactionWithSplits(
+                TransactionEntity(
+                    id = 20L + i, amount = d("1000"), merchantName = "Dinner", category = "Food",
+                    currency = "INR", transactionType = TransactionType.EXPENSE,
+                    dateTime = cycle.start.plusDays(4).atTime(9, 0), transactionHash = "bill-$i",
+                    lentSharesTotal = d("800"),
+                ),
+                emptyList(),
+            )
+        }
+        val linked = bills.map {
+            GoalContributionEntity(
+                goalId = 1, amount = d("1000"), originalAmount = d("1000"), originalCurrency = "INR",
+                transactionId = it.transaction.id,
+            )
+        }
+        // As Period Review hands them over: cut to what counts toward totals.
+        val detail = PeriodDetail(mapOf("INR" to cycles), bills.forTotals())
+
+        assertEquals(mapOf("INR" to d("200.00")), GoalAffordability.savedThroughSpending(detail, linked))
+        // Raw rows are cut the same way.
+        assertEquals(
+            mapOf("INR" to d("200.00")),
+            GoalAffordability.savedThroughSpending(PeriodDetail(mapOf("INR" to cycles), bills), linked),
+        )
     }
 
     @Test

@@ -50,11 +50,13 @@ class InsightRulesTest {
         recurring: Boolean = false,
         bank: String? = null,
         account: String? = null,
+        last4: String? = null,
     ) = TransactionWithSplits(
         TransactionEntity(
             id = nextId, amount = BigDecimal(amount), merchantName = merchant, category = category,
             transactionType = type, dateTime = LocalDate.parse(date).atTime(12, 0), currency = currency,
-            transactionHash = "h${nextId++}", isRecurring = recurring, bankName = bank, accountNumber = account,
+            transactionHash = "h${nextId++}", isRecurring = recurring,
+            bankName = bank ?: last4?.let { "Test Bank" }, accountNumber = account ?: last4,
         ),
         emptyList()
     )
@@ -102,11 +104,12 @@ class InsightRulesTest {
         merchant: String = "Streamer",
         cycle: String = "Monthly",
         bank: String? = null,
+        lastPaid: String? = null,
         last4: String? = null,
     ) = SubscriptionEntity(
         id = id, merchantName = merchant, amount = BigDecimal(amount),
         nextPaymentDate = due?.let(LocalDate::parse), currency = currency, billingCycle = cycle,
-        bankName = bank, accountLast4 = last4,
+        lastPaidAt = lastPaid?.let(LocalDate::parse), bankName = bank, accountLast4 = last4,
     )
 
     private fun card(balance: String, limit: String?, currency: String = "INR", last4: String = "1111") =
@@ -533,6 +536,24 @@ class InsightRulesTest {
             ),
         ).filter { it.fact is PriceChange }
         assertEquals("price_change:v2:2026-11-01:all:INR:2", changes.single().id)
+    }
+
+    @Test
+    fun `a bill is paid only as Safe to spend sees it paid`() {
+        val insights = evaluate(
+            rows = listOf(
+                // Paid the last weekly bill, recorded as such: it doesn't pay the next one.
+                tx("2026-11-17", "40", merchant = "Cleaner"),
+                // From another card than the subscription's.
+                tx("2026-11-19", "100", merchant = "Streamer", last4 = "2222"),
+            ),
+            subscriptions = listOf(
+                subscription(1, "40", "2026-11-22", merchant = "Cleaner", cycle = "Weekly", lastPaid = "2026-11-17"),
+                subscription(2, "100", "2026-11-21", last4 = "1111"),
+            ),
+        )
+        val bills = insights.single { it.fact is BillsDue }.fact as BillsDue
+        assertEquals(listOf("Streamer", "Cleaner"), bills.names)
     }
 
     @Test

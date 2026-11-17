@@ -74,7 +74,7 @@ class UpcomingPaymentsTest {
                 sub("Ended", "2026-10-28", state = SubscriptionState.ENDED),
                 sub("Salary", "2026-10-28", direction = SubscriptionDirection.INCOME),
             ),
-            today, end,
+            emptyList(), today, end,
         )
         assertEquals(listOf("Netflix"), bills.map { it.name })
     }
@@ -155,6 +155,16 @@ class UpcomingPaymentsTest {
 
         assertEquals(date("2026-10-31"), bills.first().dueDate)
         assertEquals(4, bills.size)
+    }
+
+    @Test
+    fun `a charge at a new price still settles the payment`() {
+        val bills = upcoming(
+            subscriptions = listOf(sub("Netflix", "2026-10-24")),
+            posted = listOf(charge("Netflix", "2026-10-23", amount = "130")),
+        )
+
+        assertTrue(bills.isEmpty())
     }
 
     @Test

@@ -774,6 +774,9 @@ private fun DrawScope.drawArrival(cue: MascotCue, shape: MascotShape, g: MascotG
         MascotCue.CoverEyes -> drawCoverEyes(g, d.t, ink)
         MascotCue.Peek -> drawPeek(g, d.t, ink)
         MascotCue.Learned -> drawLearned(d.t, ink)
+        MascotCue.Sorted -> drawSorted(shape, g, d.t, ink)
+        MascotCue.Secured -> drawSecured(g, d.t, ink)
+        MascotCue.Paid -> drawPaid(d.t, ink)
         else -> Unit
     }
 }

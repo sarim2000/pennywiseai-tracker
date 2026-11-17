@@ -14,8 +14,8 @@ import com.pennywiseai.tracker.domain.insights.InsightFact
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.AppDates
-import com.pennywiseai.tracker.utils.bidiIsolate
 import com.pennywiseai.tracker.utils.Money
+import com.pennywiseai.tracker.utils.bidiIsolate
 import java.time.LocalDate
 
 /**

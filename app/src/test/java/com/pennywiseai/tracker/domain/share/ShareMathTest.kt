@@ -197,6 +197,12 @@ class ShareMathTest {
     }
 
     @Test
+    fun `a huge overspend of a tiny limit stays a large percent, not a wrapped negative one`() {
+        val result = budgetResult(summary(limit("0.01", "300000")))!!
+        assertEquals(Int.MAX_VALUE, result.usedPercent)
+    }
+
+    @Test
     fun `a limit with no window in the month counts toward nothing`() {
         // A one-time limit that ended last month: the repository gives it an empty window.
         val result = budgetResult(summary(limit("500", "400"), limit("300", "0", windowDays = 0)))!!

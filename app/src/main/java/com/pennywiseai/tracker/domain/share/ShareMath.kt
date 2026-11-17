@@ -128,7 +128,9 @@ fun budgetResult(summary: BudgetOverallSummary): BudgetResult? {
         currency = summary.currency,
         spent = spent,
         limit = limit,
-        usedPercent = spent.multiply(BigDecimal(100)).divide(limit, 0, RoundingMode.HALF_UP).toInt(),
+        // Clamped before toInt(), which would wrap a tiny limit's huge overspend into a negative percent.
+        usedPercent = spent.multiply(BigDecimal(100)).divide(limit, 0, RoundingMode.HALF_UP)
+            .min(BigDecimal(Int.MAX_VALUE)).toInt(),
         kept = limits.count { it.totalActual <= it.totalBudget },
         total = limits.size,
     )

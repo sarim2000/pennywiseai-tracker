@@ -118,7 +118,7 @@ fun Mascot(
         alive -> MascotMotion.Full
         else -> MascotMotion.Quiet
     }
-    val state = remember { MascotState(mood, shape, cue) }
+    val state = remember { MascotState(mood, shape) }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     val thinking = mood == MascotMood.Thinking
     LaunchedEffect(motion, lifecycle, thinking) { state.runClock(motion, lifecycle, thinking) }
@@ -135,7 +135,9 @@ fun Mascot(
     // A change plays out with the motion in effect when it arrives, not the one at the last change.
     val currentMotion by rememberUpdatedState(motion)
     LaunchedEffect(mood) { state.changeMood(mood, currentMotion, blendSpec, lifecycle) }
-    LaunchedEffect(shape, cue) { state.change(shape, cue, currentMotion, morphSpec) }
+    // Only a new cue restarts the change: one dropped (a reaction ending) plays out.
+    val cueRequest = remember { CueRequests(cue) }.idFor(cue)
+    LaunchedEffect(shape, cueRequest) { state.change(shape, cue, currentMotion, morphSpec) }
 
     val colors = if (detailed) mascotColors(tint) else null
     // The artwork is symmetric and never mirrored; only where it looks and leans is.
@@ -227,7 +229,7 @@ private const val MAX_PROFILES = 32
 private const val MASK_MIN_CONTRAST = 1.6f
 
 @Stable
-private class MascotState(initialMood: MascotMood, initialShape: MascotShape, initialCue: MascotCue?) {
+private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
     var mood by mutableStateOf(initialMood)
         private set
     var shape by mutableStateOf(initialShape)
@@ -246,8 +248,8 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape, in
         private set
     private val arrival = Animatable(1f)
 
-    /** The cue last asked for, so only a new one plays in place. */
-    private var requestedCue = initialCue
+    /** False until the first change, which is the mascot first showing: no cue then. */
+    private var started = false
 
     /** How far that arrival has played, 0..1. Read it in the draw phase. */
     val arrivalProgress: Float get() = arrival.value
@@ -413,14 +415,14 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape, in
     /**
      * Bends the outline on screen into [target] on [spec], then plays [cue], or [target]'s
      * own. A change that lands mid-morph starts from the outline as it is, so nothing jumps.
-     * The same shape with a new non-null [cue] plays it in place (or once a morph cut short
-     * into it lands).
+     * The same shape with a non-null [cue] plays it in place (or once a morph cut short into
+     * it lands). Called again only for a new shape or a new cue (see [CueRequests]).
      */
     suspend fun change(target: MascotShape, cue: MascotCue?, motion: MascotMotion, spec: FiniteAnimationSpec<Float>) {
-        val newCue = cue != requestedCue
-        requestedCue = cue
+        val first = !started
+        started = true
         if (target == shape && morphFrom == null) {
-            if (!newCue || cue == null) return
+            if (first || cue == null) return
             if (motion == MascotMotion.Still) {
                 arrival.snapTo(1f)
                 arrivedCue = null

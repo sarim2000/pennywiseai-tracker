@@ -59,6 +59,20 @@ enum class MascotCue {
     Peek,
 }
 
+/**
+ * Numbers each new cue a mascot is asked for: a change of cue to another non-null one, or
+ * back to one after none. Dropping a cue (to null) keeps the number, so it plays out.
+ */
+internal class CueRequests(private var last: MascotCue?) {
+    private var id = 0
+
+    fun idFor(cue: MascotCue?): Int {
+        if (cue != null && cue != last) id++
+        last = cue
+        return id
+    }
+}
+
 /** The cue [shape] plays when it lands and no other is asked for, or null for none. */
 internal fun defaultCue(shape: MascotShape): MascotCue? = when (shape) {
     MascotShape.Coin -> MascotCue.Shine

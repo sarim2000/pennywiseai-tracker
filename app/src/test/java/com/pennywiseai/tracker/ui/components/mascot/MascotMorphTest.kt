@@ -192,4 +192,21 @@ class MascotMorphTest {
         }
         assertNull(defaultCue(MascotShape.Owl))
     }
+
+    @Test
+    fun `only a new cue asks for a change, so a dropped one plays out`() {
+        val requests = CueRequests(null)
+        val owl = requests.idFor(null)
+        val hidden = requests.idFor(MascotCue.CoverEyes)
+        assertTrue(hidden != owl)
+        // The reaction ends: no new request, the wings come down on their own clock.
+        assertEquals(hidden, requests.idFor(null))
+        // Hidden again, or shown: each a new request.
+        val again = requests.idFor(MascotCue.CoverEyes)
+        assertTrue(again != hidden)
+        assertTrue(requests.idFor(MascotCue.Peek) != again)
+        // The same cue asked for again while it stands is no new request.
+        val peek = requests.idFor(MascotCue.Peek)
+        assertEquals(peek, requests.idFor(MascotCue.Peek))
+    }
 }

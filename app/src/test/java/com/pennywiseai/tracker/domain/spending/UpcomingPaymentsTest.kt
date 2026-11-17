@@ -184,11 +184,24 @@ class UpcomingPaymentsTest {
         val otherAccount = upcoming(subscriptions = listOf(netflix), posted = listOf(charge("Netflix", "2026-10-23", bank = "Test Bank", last4 = "2222")))
         val ownAccount = upcoming(subscriptions = listOf(netflix), posted = listOf(charge("Netflix", "2026-10-23", bank = "Test Bank", last4 = "1111")))
         val byHand = upcoming(subscriptions = listOf(netflix), posted = listOf(charge("Netflix", "2026-10-23")))
+        val otherBank = upcoming(subscriptions = listOf(netflix), posted = listOf(charge("Netflix", "2026-10-23", bank = "Other Bank")))
 
         assertEquals(listOf(date("2026-10-24")), otherAccount.map { it.dueDate })
         // Paid; the next one, 24 November, falls after payday.
         assertTrue(ownAccount.isEmpty())
-        assertTrue(byHand.isEmpty())
+        // A charge with no account, even from another bank, can't be told to come from this one.
+        assertEquals(listOf(date("2026-10-24")), byHand.map { it.dueDate })
+        assertEquals(listOf(date("2026-10-24")), otherBank.map { it.dueDate })
+    }
+
+    @Test
+    fun `a subscription with no account is paid from any`() {
+        val bills = upcoming(
+            subscriptions = listOf(sub("Netflix", "2026-10-24")),
+            posted = listOf(charge("Netflix", "2026-10-23", bank = "Test Bank", last4 = "2222")),
+        )
+
+        assertTrue(bills.isEmpty())
     }
 
     @Test

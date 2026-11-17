@@ -28,7 +28,7 @@ object UpcomingPayments {
      *   card counts.
      * @param posted transactions from just before today on; one that pays a
      *   subscription's occurrence settles it, each at most one. Only a charge in
-     *   scope can, and only from the subscription's own account when both are known.
+     *   scope can, and only from the subscription's own account when it has one.
      * @param isExcluded an account whose payments don't count (ignored, or in another
      *   profile); null accounts never are.
      */
@@ -128,14 +128,16 @@ object UpcomingPayments {
     }
 
     /**
-     * Whether [t] could come from [s]'s account. Unknown on either side matches (an
-     * older subscription, a payment entered by hand); two known accounts must agree,
-     * so a same-priced plan on another card doesn't pay this one.
+     * Whether [t] could come from [s]'s account. Two known banks must agree, and a
+     * subscription tied to an account is paid only from that account: a charge with
+     * none (entered by hand) or another's doesn't pay it, so a same-priced plan on
+     * another card doesn't either. A subscription with no account (an older one) can
+     * be paid from any.
      */
     private fun paidFrom(s: SubscriptionEntity, t: TransactionEntity): Boolean {
+        if (s.bankName != null && t.bankName != null && !t.bankName.equals(s.bankName, ignoreCase = true)) return false
         val last4 = s.accountLast4 ?: return true
-        val from = t.accountNumber ?: return true
-        return from == last4 && (s.bankName == null || t.bankName == null || t.bankName.equals(s.bankName, ignoreCase = true))
+        return t.accountNumber == last4
     }
 
     /** A subscription and a template for the same payment: merchant, currency, amount and date all agree. */

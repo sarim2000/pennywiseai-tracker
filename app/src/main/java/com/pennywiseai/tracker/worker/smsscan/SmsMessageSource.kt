@@ -123,13 +123,16 @@ internal class DeviceSmsMessageSource(private val context: Context) : SmsMessage
     ) {
         var count = 0
         try {
-            context.contentResolver.query(
+            // No cursor means the provider failed, not an empty inbox (that is a cursor
+            // with no rows); reading it as empty would advance the scan cursor.
+            val cursor = context.contentResolver.query(
                 Telephony.Sms.CONTENT_URI,
                 SMS_PROJECTION,
                 "${Telephony.Sms.TYPE} = ? AND ${Telephony.Sms.DATE} >= ?",
                 arrayOf(Telephony.Sms.MESSAGE_TYPE_INBOX.toString(), scanStartTime.toString()),
                 "${Telephony.Sms.DATE} ASC"
-            )?.use { c ->
+            ) ?: throw IllegalStateException("SMS query returned no cursor")
+            cursor.use { c ->
                 val idIdx      = c.getColumnIndexOrThrow(Telephony.Sms._ID)
                 val addressIdx = c.getColumnIndexOrThrow(Telephony.Sms.ADDRESS)
                 val dateIdx    = c.getColumnIndexOrThrow(Telephony.Sms.DATE)

@@ -325,4 +325,24 @@ class UpcomingPaymentsTest {
         assertEquals(listOf(Money(d("2500"), "INR"), Money(d("4000"), "INR")), bills.map { it.amount })
         assertTrue(bills.all { it.isCardBill })
     }
+
+    @Test
+    fun `a month far ahead still holds every daily and weekly payment`() {
+        // Over 400 days out: the guard on a schedule counts from the window, not today.
+        val from = date("2028-03-01")
+        val bills = UpcomingPayments.of(
+            subscriptions = listOf(sub("Cleaner", "2026-10-24", cycle = "Weekly")),
+            recurring = listOf(template("Lunch", "2026-10-24", frequency = RecurringFrequency.DAILY)),
+            cardBills = emptyList(),
+            cards = listOf(card),
+            posted = emptyList(),
+            today = today,
+            end = date("2028-03-31"),
+            from = from,
+        )
+
+        assertEquals(31, bills.count { it.name == "Lunch" })
+        assertEquals(from, bills.first { it.name == "Lunch" }.dueDate)
+        assertEquals(4, bills.count { it.name == "Cleaner" }) // the Saturdays of March 2028
+    }
 }

@@ -22,8 +22,9 @@ class SpendingCalendarLoader @Inject constructor(
 ) {
     fun observe(month: YearMonth, today: LocalDate): Flow<Map<LocalDate, CalendarDay>> {
         val end = month.atEndOfMonth()
-        // For a month that's over, this is just the card bills from it still owed.
-        val planned = upcomingPaymentsLoader.observe(today, end, keepCardCharges = true).map { it.bills }
+        // For a month that's over, this is just the card bills from it still owed. For one
+        // ahead, schedules are walked from its first day, so a daily payment still shows.
+        val planned = upcomingPaymentsLoader.observe(today, end, keepCardCharges = true, from = month.atDay(1)).map { it.bills }
         return combine(
             periodReviewLoader.scopedRows(month.atDay(1), end),
             planned,

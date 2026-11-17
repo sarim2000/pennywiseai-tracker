@@ -48,7 +48,7 @@ class SpendingCalendarLoaderTest {
         every { ignored.keysFlow } returns flowOf(emptySet())
         every { balances.getAllLatestBalances() } returns flowOf(emptyList())
         every { transactions.getTransactionsWithSplitsFiltered(any<LocalDate>(), any<LocalDate>()) } returns flowOf(emptyList())
-        every { upcoming.observe(any(), any(), any()) } returns flowOf(Upcoming(listOf(cardBill), emptyList()))
+        every { upcoming.observe(any(), any(), any(), any()) } returns flowOf(Upcoming(listOf(cardBill), emptyList()))
     }
 
     private fun row(day: Int, account: String, profileId: Long? = null) = TransactionWithSplits(
@@ -66,7 +66,16 @@ class SpendingCalendarLoaderTest {
 
         assertEquals(listOf(cardBill), days.getValue(cardBill.dueDate).planned)
         // Asked with the calendar's rule: card charges stay on their own days.
-        verify { upcoming.observe(today, october.atEndOfMonth(), keepCardCharges = true) }
+        verify { upcoming.observe(today, october.atEndOfMonth(), keepCardCharges = true, from = october.atDay(1)) }
+    }
+
+    @Test
+    fun `a month ahead walks its payments from its own first day`() = runTest {
+        val ahead = YearMonth.from(today).plusMonths(15)
+
+        loader.observe(ahead, today).first()
+
+        verify { upcoming.observe(today, ahead.atEndOfMonth(), keepCardCharges = true, from = ahead.atDay(1)) }
     }
 
     @Test
@@ -78,7 +87,7 @@ class SpendingCalendarLoaderTest {
 
     @Test
     fun `spend from an ignored account or another profile stays out`() = runTest {
-        every { upcoming.observe(any(), any(), any()) } returns flowOf(Upcoming(emptyList(), emptyList()))
+        every { upcoming.observe(any(), any(), any(), any()) } returns flowOf(Upcoming(emptyList(), emptyList()))
         every { prefs.selectedProfileId } returns flowOf(ProfileEntity.PERSONAL_ID)
         every { ignored.keysFlow } returns flowOf(setOf(IgnoredAccountsStore.keyFor("Test Bank", "1111")))
         every { transactions.getTransactionsWithSplitsFiltered(any<LocalDate>(), any<LocalDate>()) } returns flowOf(

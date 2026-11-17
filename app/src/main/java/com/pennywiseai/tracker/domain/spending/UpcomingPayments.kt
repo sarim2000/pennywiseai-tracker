@@ -35,6 +35,9 @@ object UpcomingPayments {
      * @param keepCardCharges keep what's charged to a card with a bill entered: the
      *   calendar shows each payment on its own day and never adds them up, so there's
      *   nothing to count twice.
+     * @param from where the subscription and template occurrences start, if later than
+     *   [today]: the calendar's month, which can be far ahead. Card bills still owed
+     *   aren't cut by it.
      */
     fun of(
         subscriptions: List<SubscriptionEntity>,
@@ -46,7 +49,9 @@ object UpcomingPayments {
         end: LocalDate,
         isExcluded: (bankName: String?, accountLast4: String?) -> Boolean = { _, _ -> false },
         keepCardCharges: Boolean = false,
+        from: LocalDate = today,
     ): List<Bill> {
+        val start = maxOf(today, from)
         // Cards whose charges never count, and each card's entered statement (none when
         // card charges are kept).
         val hidden = cards.filter { isExcluded(it.bankName, it.accountLast4) }
@@ -57,11 +62,13 @@ object UpcomingPayments {
         fun subCounts(s: SubscriptionEntity, on: LocalDate) = counts(s.bankName, s.accountLast4, on)
         // Matched against every subscription occurrence, settled or not: a template for a
         // payment that's already posted is paid too.
-        val subs = occurrences(subscriptions, today, end, ::subCounts)
-        val templates = recurring(recurring, today, end) { t, on -> counts(t.bankName, t.accountLast4, on) }
+        val subs = occurrences(subscriptions, start, end, ::subCounts)
+        val templates = recurring(recurring, today, start, end) { t, on -> counts(t.bankName, t.accountLast4, on) }
             .filter { t -> subs.none { (_, bill) -> bill.sameOccurrence(t) } }
         // A charge on an ignored account, or another profile's, pays nothing in this scope.
-        val unpaid = subscriptions(subscriptions, posted.filter { !isExcluded(it.bankName, it.accountNumber) }, today, end, ::subCounts)
+        val unpaid = subscriptions(
+            subscriptions, posted.filter { !isExcluded(it.bankName, it.accountNumber) }, today, end, ::subCounts, from = start,
+        )
         val bills = cardBills.mapNotNull { it.bill }.filter { !it.isRetired && !it.dueDate.isAfter(end) }
             .map {
                 Bill(it.label, Money(it.remaining, it.currency), it.dueDate, source = BillSource.Card(it.bankName, it.accountLast4))
@@ -70,9 +77,9 @@ object UpcomingPayments {
     }
 
     /**
-     * Each occurrence of the active expense [subscriptions] due today..[end] that
-     * [counts] and that none of the [posted] transactions has paid yet. Insights' bills
-     * due and Safe to spend both read this, so the two always agree.
+     * Each occurrence of the active expense [subscriptions] due today (or [from], if
+     * later)..[end] that [counts] and that none of the [posted] transactions has paid
+     * yet. Insights' bills due and Safe to spend both read this, so the two always agree.
      *
      * A charge pays one occurrence at most: one of its merchant and currency, from an
      * account the subscription [RecurringCharge.couldBePaidFrom], within
@@ -92,10 +99,12 @@ object UpcomingPayments {
         today: LocalDate,
         end: LocalDate,
         counts: (SubscriptionEntity, LocalDate) -> Boolean = { _, _ -> true },
+        from: LocalDate = today,
     ): List<Bill> {
         val active = subscriptions.filter(::isActiveExpense)
-        // A charge up to today pays nothing due more than DUE_WINDOW_DAYS after it.
-        val due = occurrences(active, today, maxOf(end, today.plusDays(RecurringCharge.DUE_WINDOW_DAYS))) { _, _ -> true }
+        // Charges are placed over every occurrence one could pay, wherever the caller's
+        // window is: a charge up to today pays nothing due more than DUE_WINDOW_DAYS after it.
+        val due = occurrences(active, today, today.plusDays(RecurringCharge.DUE_WINDOW_DAYS)) { _, _ -> true }
         val charges = posted.filter {
             !it.isDeleted && it.transactionType in RecurringCharge.SPEND_TYPES && !it.dateTime.toLocalDate().isAfter(today)
         }.sortedBy { it.dateTime }
@@ -115,7 +124,9 @@ object UpcomingPayments {
         val repriced = claim(due.filter { it !in paid }, unclaimed, { it.first }, nearestDue) { o, t ->
             payable(o, t) && RecurringCharge.isPriceChange(o.first.amount, o.second.dueDate, t.amount, t.dateTime.toLocalDate())
         }.keys
-        return due.filter { (s, bill) -> !bill.dueDate.isAfter(end) && counts(s, bill.dueDate) }
+        // Then the window ([from], which can be a calendar month far ahead, to [end]) and
+        // [counts] narrow what's returned.
+        return occurrences(active, maxOf(today, from), end, counts)
             .filter { it !in paid && it !in repriced }.map { it.second }
     }
 
@@ -174,10 +185,13 @@ object UpcomingPayments {
     private fun isActiveExpense(s: SubscriptionEntity) =
         s.state == SubscriptionState.ACTIVE && s.direction == SubscriptionDirection.EXPENSE
 
-    /** Each occurrence of the active expense [subscriptions] due today..[end] that [counts]. */
+    /**
+     * Each occurrence of the active expense [subscriptions] due [start]..[end] that
+     * [counts]. The guard counts from [start], so a far window isn't cut short.
+     */
     private fun occurrences(
         subscriptions: List<SubscriptionEntity>,
-        today: LocalDate,
+        start: LocalDate,
         end: LocalDate,
         counts: (SubscriptionEntity, LocalDate) -> Boolean,
     ): List<Pair<SubscriptionEntity, Bill>> =
@@ -188,21 +202,23 @@ object UpcomingPayments {
                 // Each counted from the scheduled date, as RecurringCharge.nextPaymentShown
                 // counts, so a bill due on the 31st comes back to the 31st after February.
                 generateSequence(0L) { it + 1 }.map { RecurringCharge.advance(scheduled, s.billingCycle, it) }
+                    .dropWhile { it.isBefore(start) }
                     .take(MAX_OCCURRENCES)
                     .takeWhile { !it.isAfter(end) }
-                    .filter { !it.isBefore(today) && counts(s, it) }
+                    .filter { counts(s, it) }
                     .map { s to Bill(s.merchantName, Money(s.amount, s.currency), it, source = BillSource.Subscription) }
                     .toList()
             }
 
     /**
-     * Each occurrence of the active expense templates due today..[end]. One already
-     * due is the daily worker's to post (it then moves the schedule past today,
+     * Each occurrence of the active expense templates due [start]..[end]. One already
+     * due is the daily worker's to post (it then moves the schedule past [today],
      * [RecurringTransactionEntity.nextDueDateAfter]), so the count starts there.
      */
     private fun recurring(
         templates: List<RecurringTransactionEntity>,
         today: LocalDate,
+        start: LocalDate,
         end: LocalDate,
         counts: (RecurringTransactionEntity, LocalDate) -> Boolean,
     ): List<Bill> =
@@ -211,6 +227,7 @@ object UpcomingPayments {
             .flatMap { t ->
                 val first = if (t.nextDueDate.isBefore(today)) t.nextDueDateAfter(today) else t.nextDueDate
                 generateSequence(first) { t.nextDueAfter(it) }
+                    .dropWhile { it.isBefore(start) }
                     .take(MAX_OCCURRENCES)
                     .takeWhile { !it.isAfter(end) }
                     .filter { counts(t, it) }
@@ -231,6 +248,6 @@ object UpcomingPayments {
     private fun onCard(bank: String?, last4: String?, cards: List<AccountBalanceEntity>): Boolean =
         last4 != null && cards.any { it.isCreditCard && it.accountLast4 == last4 && (bank == null || it.bankName.equals(bank, ignoreCase = true)) }
 
-    /** A guard against a corrupt schedule; a weekly bill over a long cycle is a handful. */
+    /** A guard against a corrupt schedule; a window holds a month of daily bills at most. */
     private const val MAX_OCCURRENCES = 400
 }

@@ -1,155 +1,200 @@
 package com.pennywiseai.tracker.data.repository
 
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
-import com.pennywiseai.tracker.data.database.dao.TransactionDao
+import com.pennywiseai.tracker.data.database.dao.AccountBalanceDao
+import com.pennywiseai.tracker.data.database.dao.CardDao
+import com.pennywiseai.tracker.data.database.dao.CategoryDao
+import com.pennywiseai.tracker.data.database.dao.ProfileDao
+import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.database.entity.expandWithChildren
+import com.pennywiseai.tracker.data.ledger.breakdownByCurrency
+import com.pennywiseai.tracker.data.ledger.convertedSpent
 import com.pennywiseai.tracker.data.ledger.forTotals
-import com.pennywiseai.tracker.data.model.*
-import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
+import com.pennywiseai.tracker.data.model.CategorySpend
+import com.pennywiseai.tracker.data.model.ChatScope
+import com.pennywiseai.tracker.data.model.PeriodSpending
+import com.pennywiseai.tracker.data.model.SpendingComparison
+import com.pennywiseai.tracker.data.model.TopCategories
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.domain.model.BudgetCycle
+import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
+import com.pennywiseai.tracker.domain.model.isTracked
 import kotlinx.coroutines.flow.first
 import java.math.BigDecimal
-import java.math.RoundingMode
 import java.time.LocalDate
-import java.time.YearMonth
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.temporal.WeekFields
+import java.util.Locale
 import javax.inject.Inject
 import javax.inject.Singleton
 
-/** The figures the AI chat reads: this month's totals and one category's spend. */
+/**
+ * The figures the AI chat reads, typed or one-tap. Each is worked out the way Home works out
+ * "Spent this month": the budget cycle so far, the profile Home shows without ignored accounts
+ * (#826), the credit-card setting, refunds netted and forgiven loans added (#938), per currency.
+ */
 @Singleton
 class AiContextRepository @Inject constructor(
-    private val transactionDao: TransactionDao,
-    private val transactionSplitDao: com.pennywiseai.tracker.data.database.dao.TransactionSplitDao,
-    private val userPreferencesRepository: CurrencyPreferences,
+    private val transactionSplitDao: TransactionSplitDao,
+    private val userPreferencesRepository: UserPreferencesRepository,
     private val currencyConversionService: CurrencyConversionService,
     private val loanRepository: LoanRepository,
-    private val categoryDao: com.pennywiseai.tracker.data.database.dao.CategoryDao
+    private val categoryDao: CategoryDao,
+    private val accountBalanceDao: AccountBalanceDao,
+    private val profileDao: ProfileDao,
+    private val ignoredAccountsStore: IgnoredAccountsStore,
+    private val cardDao: CardDao,
 ) {
 
-    /** This month so far, in the base currency: all the chat's prompt and summary tool need. */
-    suspend fun getMonthSummary(): MonthSummary =
-        getMonthSummary(LocalDate.now(), userPreferencesRepository.baseCurrency.first())
+    /** Home's period: this budget cycle up to the end of [today], in the profile Home shows. */
+    private class Scope(
+        val chat: ChatScope,
+        private val profileId: Long?,
+        private val ignoredKeys: Set<String>,
+        private val accountKeys: Map<Long, Set<String>>,
+    ) {
+        val start: LocalDateTime get() = chat.window.start
+        val end: LocalDateTime get() = chat.window.end
 
-    private suspend fun getMonthSummary(currentDate: LocalDate, baseCurrency: String): MonthSummary {
-        val yearMonth = YearMonth.from(currentDate)
-        val startOfMonth = yearMonth.atDay(1)
-        val endOfMonth = yearMonth.atEndOfMonth()
+        /** As Home and the Transactions list: the profile shown, no ignored account's rows (#826). */
+        fun keeps(tx: TransactionEntity) = tx.isTracked(profileId, ignoredKeys, accountKeys)
+    }
 
-        // Get all transactions for current month
-        val transactions = transactionDao.getTransactionsBetweenDatesList(
-            startOfMonth.atStartOfDay(),
-            endOfMonth.atTime(23, 59, 59)
-        ).forTotals()  // exclude one-off purchases (#451) and loan-linked transactions from AI summary
+    /**
+     * The profile Home shows ([id] null for all), read once per answer: switching profiles while
+     * an answer reads the database leaves its rows, its label and its link on the same one.
+     */
+    private class Shown(val id: Long?, val profile: ProfileEntity?)
 
-        var totalIncome = BigDecimal.ZERO
-        var totalExpense = BigDecimal.ZERO
-        val transactionCount = transactions.size
+    private suspend fun shown(): Shown {
+        val id = userPreferencesRepository.selectedProfileId.first()
+        return Shown(id, id?.let { profileDao.getById(it) })
+    }
 
-        // Process in a single pass
-        transactions.forEach { transaction ->
-            // Skip unconvertible amounts rather than counting face value (#670).
-            val convertedAmount = currencyConversionService.convertAmountOrNull(
-                amount = transaction.amount,
-                fromCurrency = transaction.currency,
-                toCurrency = baseCurrency
-            ) ?: return@forEach
-            when (transaction.transactionType) {
-                TransactionType.INCOME -> totalIncome = totalIncome.add(convertedAmount)
-                TransactionType.EXPENSE -> totalExpense = totalExpense.add(convertedAmount)
-                TransactionType.CREDIT -> totalExpense = totalExpense.add(convertedAmount) // Credit counts as expense
-                TransactionType.TRANSFER -> {} // Transfers don't affect income/expense totals
-                TransactionType.INVESTMENT -> {} // Investments are asset reallocation, not expenses
-            }
+    private suspend fun homeScope(today: LocalDate): Scope {
+        val shown = shown()
+        val (cycleStart, _) = BudgetCycle.currentCycle(today, userPreferencesRepository.budgetCycleStartDay.first())
+        return scope(SpendingComparison.Window(cycleStart.atStartOfDay(), today.atTime(LocalTime.MAX)), shown)
+    }
+
+    private suspend fun scope(window: SpendingComparison.Window, shown: Shown): Scope {
+        val balances = accountBalanceDao.getAllLatestBalancesOnce()
+        val ignored = IgnoredAccountsStore.withLinkedCards(ignoredAccountsStore.keys(), cardDao.getAllCards().first(), balances)
+        return Scope(ChatScope(window, shown.profile), shown.id, ignored, buildProfileAccountKeys(balances))
+    }
+
+    private suspend fun rows(scope: Scope): List<TransactionWithSplits> =
+        transactionSplitDao.getTransactionsWithSplitsAllCurrencies(scope.start, scope.end).first()
+            .filter { scope.keeps(it.transaction) }
+
+    /** Lent balances forgiven in [scope], per currency, in its profile: Home adds these to "Spent" (#938). */
+    private suspend fun forgiven(scope: Scope): Map<String, BigDecimal> = loanRepository.settlementLossByCurrency(
+        loanRepository.getLentLoansSettledInPeriod(scope.start, scope.end).first(),
+        scope::keeps
+    )
+
+    private suspend fun creditAsExpense() = userPreferencesRepository.countCreditCardAsExpense.first()
+
+    /** Home's "Spent this month" and income, with one converted figure only when Home shows one. */
+    suspend fun spending(today: LocalDate = LocalDate.now()): PeriodSpending {
+        val scope = homeScope(today)
+        val transactions = rows(scope).map { it.transaction }
+        val credit = creditAsExpense()
+        val breakdown = breakdownByCurrency(transactions, credit)
+        val result = PeriodSpending(
+            scope = scope.chat,
+            spent = breakdown.mapValues { it.value.expenses }.filterValues { it.signum() > 0 },
+            income = breakdown.mapValues { it.value.income }.filterValues { it.signum() > 0 },
+            forgiven = forgiven(scope),
+            // The rows the breakdown adds up: not transfers or investments, card purchases only when counted.
+            transactionCount = transactions.forTotals().count {
+                it.transactionType == TransactionType.INCOME || it.transactionType == TransactionType.EXPENSE ||
+                    (credit && it.transactionType == TransactionType.CREDIT)
+            },
+        )
+        val spent = result.spentWithForgiven
+        val display = userPreferencesRepository.displayCurrency.first()
+        if (!userPreferencesRepository.unifiedCurrencyMode.first() || spent.isEmpty() || spent.keys == setOf(display)) return result
+        val estimate = convertedSpent(result.spent, result.forgiven, display) { a, from, to ->
+            currencyConversionService.convertAmountOrNull(a, from, to)
         }
+        // Nothing converted is no estimate: "about ₹0 in all" would be a false figure.
+        return result.copy(estimate = estimate.takeIf { it.leftOut.size < spent.size })
+    }
 
-        return MonthSummary(
-            totalIncome = totalIncome,
-            totalExpense = totalExpense,
-            transactionCount = transactionCount,
-            daysInMonth = yearMonth.lengthOfMonth(),
-            currentDay = currentDate.dayOfMonth
+    /**
+     * One category's spending in Home's period, for the chat's lookup tool (#170): its
+     * subcategories and split shares in, refunds given back to it out. No currencies when
+     * nothing in the period was spent in it.
+     */
+    suspend fun categorySpending(category: String, today: LocalDate = LocalDate.now()): CategorySpend {
+        val scope = homeScope(today)
+        val rows = rows(scope)
+        val credit = creditAsExpense()
+        val names = categoriesNamed(category)
+        // A currency refunded in full is nothing spent, as spending() leaves it out.
+        val byCurrency = SpendingComparison.spend(rows, names, credit).filterValues { it.signum() > 0 }
+        return CategorySpend(
+            scope = scope.chat,
+            category = category,
+            byCurrency = byCurrency,
+            transactionCount = SpendingComparison.transactionsIn(rows, names, credit),
+            share = shareOfSpending(rows, credit, byCurrency),
         )
     }
 
-    /** This month's spend in one category, for the chat's lookup tool (#170). Null = nothing found. */
-    suspend fun getCategorySpending(category: String): CategorySpending? {
-        val baseCurrency = userPreferencesRepository.baseCurrency.first()
-        return getTopCategories(LocalDate.now(), baseCurrency, limit = Int.MAX_VALUE)
-            .firstOrNull { it.category.equals(category, ignoreCase = true) }
+    /** Each currency's biggest categories in Home's period, with forgiven loans beside them. */
+    suspend fun topCategories(today: LocalDate = LocalDate.now()): TopCategories {
+        val scope = homeScope(today)
+        val rows = rows(scope)
+        val credit = creditAsExpense()
+        val ranking = SpendingComparison.topCategories(rows, creditAsExpense = credit)
+        val top = ranking.mapValues { (_, cats) -> cats.first().second }
+        return TopCategories(scope.chat, ranking, forgiven(scope), shareOfSpending(rows, credit, top))
     }
 
-    /** [SpendingComparison] on the saved transactions, as of now. Also for one-tap questions that skip the model (M8). */
-    suspend fun compareSpending(period: SpendingComparison.Period, category: String?, creditAsExpense: Boolean): SpendingComparison.Result {
+    /**
+     * [SpendingComparison] on the saved transactions, up to the end of [today] as Home counts:
+     * months are Home's budget cycles, in the profile Home shows, which the result names. Also
+     * for one-tap questions that skip the model (M8).
+     */
+    suspend fun compareSpending(
+        period: SpendingComparison.Period,
+        category: String?,
+        creditAsExpense: Boolean,
+        today: LocalDate = LocalDate.now(),
+    ): SpendingComparison.Result {
+        val shown = shown()
         val windows = SpendingComparison.windows(
-            period, java.time.LocalDateTime.now(), java.time.temporal.WeekFields.of(java.util.Locale.getDefault()).firstDayOfWeek
+            period, today.atTime(LocalTime.MAX), WeekFields.of(Locale.getDefault()).firstDayOfWeek,
+            userPreferencesRepository.budgetCycleStartDay.first()
         )
-        val (current, previous) = windows.toList().map { transactionSplitDao.getTransactionsWithSplitsAllCurrencies(it.start, it.end).first() }
+        val (current, previous) = windows.toList().map { scope(it, shown) }
         // Forgiven loan balances count as spent, as on Home (#938); a category comparison leaves them out.
-        val (currentLoss, previousLoss) = if (category == null) settlementLoss(windows.first) to settlementLoss(windows.second) else emptyMap<String, BigDecimal>() to emptyMap()
-        // A parent counts its children, as the category filters do. The model's casing isn't the saved name's.
-        val categories = category?.let { asked ->
-            val all = categoryDao.getAllCategoriesList()
-            all.expandWithChildren(listOf(all.firstOrNull { it.name.equals(asked, ignoreCase = true) }?.name ?: asked))
+        val (currentLoss, previousLoss) = if (category == null) forgiven(current) to forgiven(previous) else emptyMap<String, BigDecimal>() to emptyMap()
+        return when (val result = SpendingComparison.compare(windows, rows(current), rows(previous), category?.let { categoriesNamed(it) }, currentLoss, previousLoss, creditAsExpense)) {
+            is SpendingComparison.Result.Rows -> result.copy(profile = shown.profile)
+            is SpendingComparison.Result.NoData -> result.copy(profile = shown.profile)
         }
-        return SpendingComparison.compare(windows, current, previous, categories, currentLoss, previousLoss, creditAsExpense)
     }
 
-    /** Lent balances forgiven in [window], per currency: Home adds these to "Spent" (#938). */
-    suspend fun settlementLoss(window: SpendingComparison.Window): Map<String, BigDecimal> =
-        loanRepository.settlementLossByCurrency(loanRepository.getLentLoansSettledInPeriod(window.start, window.end).first()) { true }
-
-    /** This month so far, every non-deleted transaction with its splits: for M8's one-tap questions. */
-    suspend fun monthSoFar(): Pair<SpendingComparison.Window, List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>> {
-        val window = SpendingComparison.windows(SpendingComparison.Period.MONTH, java.time.LocalDateTime.now(), java.time.DayOfWeek.MONDAY).first
-        return window to transactionSplitDao.getTransactionsWithSplitsAllCurrencies(window.start, window.end).first()
+    /** A parent counts its children, as the category filters do. The model's casing isn't the saved name's. */
+    private suspend fun categoriesNamed(asked: String): Set<String> {
+        val all = categoryDao.getAllCategoriesList()
+        return all.expandWithChildren(listOf(all.firstOrNull { it.name.equals(asked, ignoreCase = true) }?.name ?: asked))
     }
 
-    private suspend fun getTopCategories(currentDate: LocalDate, baseCurrency: String, limit: Int = 5): List<CategorySpending> {
-        val yearMonth = YearMonth.from(currentDate)
-        val startOfMonth = yearMonth.atDay(1)
-        val endOfMonth = yearMonth.atEndOfMonth()
-
-        // With splits, as Analytics reads them: a split row counts each share under its own category.
-        val transactions = transactionSplitDao.getTransactionsWithSplitsAllCurrencies(
-            startOfMonth.atStartOfDay(),
-            endOfMonth.atTime(23, 59, 59)
-        ).first().forTotals()  // exclude one-off purchases (#451) and loan-linked transactions from AI summary
-
-        // Group by category and calculate spending
-        val categoryMap = mutableMapOf<String, MutableList<BigDecimal>>()
-        var totalExpense = BigDecimal.ZERO
-
-        transactions
-            // Credit counts as expense, as in getMonthSummary: a category can't total less than its spends.
-            .filter { it.transaction.transactionType == TransactionType.EXPENSE || it.transaction.transactionType == TransactionType.CREDIT }
-            .forEach { row ->
-                row.getAmountByCategory().forEach { (category, amount) ->
-                    val convertedAmount = currencyConversionService.convertAmountOrNull(
-                        amount = amount,
-                        fromCurrency = row.transaction.currency,
-                        toCurrency = baseCurrency
-                    ) ?: return@forEach // skip unconvertible rather than face-value (#670)
-                    categoryMap.getOrPut(category) { mutableListOf() }.add(convertedAmount)
-                    totalExpense = totalExpense.add(convertedAmount)
-                }
-            }
-
-        return categoryMap.map { (category, amounts) ->
-            val categoryTotal = amounts.reduce { acc, amount -> acc.add(amount) }
-            val percentage = if (totalExpense > BigDecimal.ZERO) {
-                categoryTotal.divide(totalExpense, 4, RoundingMode.HALF_UP)
-                    .multiply(BigDecimal(100))
-                    .toFloat()
-            } else 0f
-
-            CategorySpending(
-                category = category,
-                amount = categoryTotal,
-                percentage = percentage,
-                transactionCount = amounts.size
-            )
-        }
-            .sortedByDescending { it.amount }
-            .take(limit)
+    /** [part]'s share of all spending, in the user's own currency when it has some, else the first. */
+    private suspend fun shareOfSpending(rows: List<TransactionWithSplits>, credit: Boolean, part: Map<String, BigDecimal>): Float? {
+        val base = userPreferencesRepository.baseCurrency.first()
+        val currency = if (base in part) base else part.keys.minOrNull() ?: return null
+        val total = SpendingComparison.spend(rows, creditAsExpense = credit)[currency]?.takeIf { it.signum() > 0 } ?: return null
+        return (part.getValue(currency).toDouble() / total.toDouble()).toFloat().coerceIn(0f, 1f)
     }
 }

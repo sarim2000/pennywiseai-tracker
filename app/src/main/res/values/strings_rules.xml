@@ -322,9 +322,21 @@
     <string name="chat_reply_closest_match">I couldn\'t find an exact match — this is the closest one.</string>
     <string name="chat_reply_not_found">I couldn\'t find a matching transaction in the last 30 days. Try the merchant name and amount.</string>
     <string name="chat_reply_amount_unclear">I couldn\'t work out the amount. Try something like \"coffee 120 at Starbucks\".</string>
-    <string name="chat_reply_month_summary">This month: %1$s spent, %2$s received, %3$d transactions.</string>
-    <string name="chat_reply_category_spend">%1$s on %2$s this month across %3$d transactions.</string>
-    <string name="chat_reply_nothing_spent">Nothing spent on %1$s this month.</string>
+    <plurals name="chat_reply_category_spend">
+        <item quantity="one">%1$s on %2$s in %3$s, across %4$d transaction.</item>
+        <item quantity="other">%1$s on %2$s in %3$s, across %4$d transactions.</item>
+    </plurals>
+    <string name="chat_reply_nothing_spent">Nothing spent on %1$s in %2$s.</string>
+    <string name="chat_reply_spent_with_forgiven">%1$s, including %2$s in forgiven loans</string>
+    <string name="chat_reply_forgiven_loans">Forgiven loans: %1$s</string>
+    <string name="chat_reply_received">Received: %1$s</string>
+    <string name="chat_reply_received_nothing">Nothing received</string>
+    <plurals name="chat_reply_transaction_count">
+        <item quantity="one">%1$d transaction</item>
+        <item quantity="other">%1$d transactions</item>
+    </plurals>
+    <string name="chat_reply_converted_estimate">About %1$s in all: a converted estimate in %2$s</string>
+    <string name="chat_reply_converted_left_out">Left out of the estimate, no exchange rate: %1$s</string>
     <string name="chat_reply_unknown_category">I don\'t have a category called %1$s.</string>
     <string name="chat_quick_month_spend">Spending this month</string>
     <string name="chat_quick_top_categories">Top categories</string>
@@ -351,7 +363,7 @@
     <string name="chat_done_added">Added %1$s (%2$s).</string>
     <string name="chat_done_deleted">Deleted %1$s.</string>
     <string name="chat_done_updated">Updated %1$s.</string>
-    <string name="chat_welcome">Hi! I\'m PennyWise AI.\n\nTell me what you spent and I\'ll add it after you confirm — e.g. \"coffee 120 at Starbucks\" or \"got 50000 salary\". Ask \"how much on groceries this month?\" for a total.\n\nThis month so far: %1$d transactions, %2$s spent.\nNothing is saved without your tap.</string>
+    <string name="chat_welcome">Hi! I\'m PennyWise AI.\n\nTell me what you spent and I\'ll add it after you confirm — e.g. \"coffee 120 at Starbucks\" or \"got 50000 salary\". Ask \"how much on groceries this month?\" for a total.\n\nSpent so far (%1$s): %2$s.\nNothing is saved without your tap.</string>
 
     <!-- Chat errors -->
     <string name="chat_error_apply_failed">Couldn\'t apply that: %1$s</string>

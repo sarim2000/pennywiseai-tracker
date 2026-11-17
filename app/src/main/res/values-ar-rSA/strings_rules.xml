@@ -351,9 +351,29 @@
     <string name="chat_reply_closest_match">لم أجد تطابقًا تامًا، وهذه أقرب معاملة.</string>
     <string name="chat_reply_not_found">لم أجد معاملة مطابقة في آخر 30 يومًا. جرّب ذكر اسم التاجر والمبلغ.</string>
     <string name="chat_reply_amount_unclear">لم أتمكن من تحديد المبلغ. جرّب مثلًا \"قهوة 120 في Starbucks\".</string>
-    <string name="chat_reply_month_summary">هذا الشهر: صرفت %1$s واستلمت %2$s، وعدد المعاملات %3$d.</string>
-    <string name="chat_reply_category_spend">صرفت %1$s على %2$s هذا الشهر (عدد المعاملات: %3$d).</string>
-    <string name="chat_reply_nothing_spent">لم تصرف شيئًا على %1$s هذا الشهر.</string>
+    <plurals name="chat_reply_category_spend">
+        <item quantity="zero">صرفت %1$s على %2$s خلال %3$s، دون أي معاملة.</item>
+        <item quantity="one">صرفت %1$s على %2$s خلال %3$s، في %4$d معاملة.</item>
+        <item quantity="two">صرفت %1$s على %2$s خلال %3$s، في معاملتين.</item>
+        <item quantity="few">صرفت %1$s على %2$s خلال %3$s، في %4$d معاملات.</item>
+        <item quantity="many">صرفت %1$s على %2$s خلال %3$s، في %4$d معاملة.</item>
+        <item quantity="other">صرفت %1$s على %2$s خلال %3$s، في %4$d معاملة.</item>
+    </plurals>
+    <string name="chat_reply_nothing_spent">لم تصرف شيئًا على %1$s خلال %2$s.</string>
+    <string name="chat_reply_spent_with_forgiven">%1$s، منها %2$s قروض متنازَل عنها</string>
+    <string name="chat_reply_forgiven_loans">قروض متنازَل عنها: %1$s</string>
+    <string name="chat_reply_received">المبالغ المستلَمة: %1$s</string>
+    <string name="chat_reply_received_nothing">لم تستلم أي مبالغ</string>
+    <plurals name="chat_reply_transaction_count">
+        <item quantity="zero">لا معاملات</item>
+        <item quantity="one">%1$d معاملة</item>
+        <item quantity="two">معاملتان</item>
+        <item quantity="few">%1$d معاملات</item>
+        <item quantity="many">%1$d معاملة</item>
+        <item quantity="other">%1$d معاملة</item>
+    </plurals>
+    <string name="chat_reply_converted_estimate">نحو %1$s إجمالًا: تقدير محوَّل إلى %2$s</string>
+    <string name="chat_reply_converted_left_out">خارج التقدير لعدم توفر سعر صرف: %1$s</string>
     <string name="chat_reply_unknown_category">لا توجد لديك فئة باسم %1$s.</string>
     <string name="chat_quick_month_spend">الإنفاق هذا الشهر</string>
     <string name="chat_quick_top_categories">الفئات الأعلى إنفاقًا</string>
@@ -380,7 +400,7 @@
     <string name="chat_done_added">تمت إضافة %1$s (%2$s).</string>
     <string name="chat_done_deleted">تم حذف %1$s.</string>
     <string name="chat_done_updated">تم تعديل %1$s.</string>
-    <string name="chat_welcome">مرحبًا! أنا PennyWise AI.\n\nأخبرني بما صرفته وسأضيفه بعد تأكيدك، مثل \"قهوة 120 في Starbucks\" أو \"استلمت راتب 50000\". واسأل \"كم صرفت على البقالة هذا الشهر؟\" لتعرف الإجمالي.\n\nهذا الشهر حتى الآن: صرفت %2$s، وعدد المعاملات %1$d.\nلا يُحفظ شيء دون ضغطة منك.</string>
+    <string name="chat_welcome">مرحبًا! أنا PennyWise AI.\n\nأخبرني بما صرفته وسأضيفه بعد تأكيدك، مثل \"قهوة 120 في Starbucks\" أو \"استلمت راتب 50000\". واسأل \"كم صرفت على البقالة هذا الشهر؟\" لتعرف الإجمالي.\n\nالإنفاق حتى الآن (%1$s): %2$s.\nلا يُحفظ شيء دون ضغطة منك.</string>
     <!-- Chat errors -->
     <string name="chat_error_apply_failed">تعذّر تطبيق ذلك: %1$s</string>
     <string name="chat_error_message_too_long">هذه الرسالة طويلة جدًا على الذكاء الاصطناعي. جرّب رسالة أقصر.</string>

@@ -470,6 +470,21 @@ class InsightRulesTest {
     }
 
     @Test
+    fun `a charge goes to the bill at its exact amount before another's new price`() {
+        // Two plans at one merchant, on one account; only the 120 one has been charged.
+        val plans = listOf(
+            subscription(1, "100", "2026-11-22", bank = "Bank A", last4 = "1111"),
+            subscription(2, "120", "2026-11-22", bank = "Bank A", last4 = "1111"),
+        )
+        val insights = evaluate(
+            rows = listOf(tx("2026-11-19", "120", merchant = "Streamer", bank = "Bank A", account = "1111")),
+            subscriptions = plans,
+        )
+        assertTrue(insights.facts<PriceChange>().isEmpty())
+        assertEquals(Money(BigDecimal("100"), "INR"), insights.facts<BillsDue>().single().total)
+    }
+
+    @Test
     fun `a new price is news only for the subscription on the charge's account`() {
         val changes = evaluate(
             rows = listOf(tx("2026-11-15", "649", merchant = "Streamer", bank = "Bank B", account = "2222")),

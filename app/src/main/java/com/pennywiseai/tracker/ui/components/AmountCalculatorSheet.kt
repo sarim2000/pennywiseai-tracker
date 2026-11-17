@@ -45,6 +45,7 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.domain.model.AmountExpression
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import com.pennywiseai.tracker.ui.theme.money
 import java.math.BigDecimal
 import java.text.DecimalFormatSymbols
@@ -212,9 +213,12 @@ private fun Key(
         onClick = onClick,
         shapes = ButtonDefaults.shapes(),
         colors = if (operator) {
+            // In light themes primaryContainer is as pale as the digit keys' fill, so
+            // operators take primary there; in dark, primaryContainer already stands out.
+            val dark = isAppInDarkTheme()
             ButtonDefaults.filledTonalButtonColors(
-                containerColor = MaterialTheme.colorScheme.primaryContainer,
-                contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                containerColor = if (dark) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.primary,
+                contentColor = if (dark) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary
             )
         } else {
             ButtonDefaults.filledTonalButtonColors()

@@ -123,4 +123,19 @@
     <string name="share_text_savings">My savings rate, from PennyWise. It tracks spending from bank SMS on the phone itself. https://%1$s</string>
     <string name="share_text_goal">My goal so far, from PennyWise. It tracks spending from bank SMS on the phone itself. https://%1$s</string>
     <string name="share_text_budget">How my budget went, from PennyWise. It tracks spending from bank SMS on the phone itself. https://%1$s</string>
+
+    <!-- Achievements card -->
+    <string name="share_kind_achievements">Achievements</string>
+    <string name="share_studio_section_achievements">Achievements on the card</string>
+    <string name="share_detail_date_earned">Date earned</string>
+    <string name="share_unavailable_achievements">You haven\'t earned an achievement yet.</string>
+    <string name="share_unavailable_achievements_none">Pick at least one achievement.</string>
+    <string name="share_card_achievement_title">Achievement unlocked</string>
+    <string name="share_card_achievements_title">My achievements</string>
+    <plurals name="share_card_achievements_hero">
+        <item quantity="one">achievement earned</item>
+        <item quantity="other">achievements earned</item>
+    </plurals>
+    <!-- %1$s = the app's website -->
+    <string name="share_text_achievements">My achievements, from PennyWise. It tracks spending from bank SMS on the phone itself. https://%1$s</string>
 </resources>

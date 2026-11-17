@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.utils
 import android.content.Context
 import android.content.res.Configuration
 import android.os.LocaleList
+import java.text.NumberFormat
 import java.util.Locale
 
 /*
@@ -29,6 +30,14 @@ fun Context.withLatinDigits(): Context {
 fun useLatinDigitsByDefault() {
     Locale.setDefault(Locale.getDefault().withLatinDigits())
 }
+
+/**
+ * A count with the language's grouping but Latin digits in every language, as amounts
+ * and percents have: an Arabic "٨" beside "52%" reads as two different number systems.
+ */
+fun formatCount(value: Int): String = NumberFormat.getIntegerInstance(
+    Locale.Builder().setLocale(Locale.getDefault()).setUnicodeLocaleKeyword("nu", "latn").build()
+).format(value)
 
 /** Any decimal digit (٠-٩, ۰-۹, ०-९…) as 0-9; everything else unchanged. */
 fun String.toLatinDigits(): String =

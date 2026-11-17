@@ -58,13 +58,16 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.share.SHARE_CARD_URL
 import com.pennywiseai.tracker.data.share.ShareCardExporter
+import com.pennywiseai.tracker.domain.achievements.Achievement
 import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.domain.review.isCalendarMonth
 import com.pennywiseai.tracker.domain.review.latestReviewOffset
+import com.pennywiseai.tracker.ui.components.AchievementBadge
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.components.PeriodSwitcher
 import com.pennywiseai.tracker.ui.components.PreferenceSwitch
+import com.pennywiseai.tracker.ui.components.achievementName
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
@@ -201,6 +204,7 @@ internal fun shareText(context: Context, kind: ShareKind): String = context.getS
         ShareKind.SAVINGS -> R.string.share_text_savings
         ShareKind.GOAL -> R.string.share_text_goal
         ShareKind.BUDGET -> R.string.share_text_budget
+        ShareKind.ACHIEVEMENTS -> R.string.share_text_achievements
     },
     SHARE_CARD_URL,
 )
@@ -283,7 +287,18 @@ private fun Controls(selection: ShareStudioSelection, data: ShareStudioData, vie
         onSelect = viewModel::selectKind,
     )
 
-    if (selection.kind == ShareKind.GOAL) {
+    if (selection.kind == ShareKind.ACHIEVEMENTS) {
+        val earned = (data as? ShareStudioData.Achievements)?.earned.orEmpty()
+        if (earned.isNotEmpty()) {
+            SectionHeaderV2(title = stringResource(R.string.share_studio_section_achievements))
+            AchievementPicker(earned, selection.achievements, viewModel)
+        }
+        // Only a card with one achievement has room for its date.
+        if (selectedAchievements(earned, selection.achievements).size == 1) {
+            SectionHeaderV2(title = stringResource(R.string.share_studio_section_details))
+            DetailSwitches(selection, viewModel)
+        }
+    } else if (selection.kind == ShareKind.GOAL) {
         val goals = (data as? ShareStudioData.Goals)?.goals.orEmpty()
         if (goals.size > 1) {
             SectionHeaderV2(title = stringResource(R.string.share_studio_section_goal))
@@ -341,8 +356,10 @@ private fun Controls(selection: ShareStudioSelection, data: ShareStudioData, vie
         }
     }
 
-    SectionHeaderV2(title = stringResource(R.string.share_studio_section_details))
-    DetailSwitches(selection, viewModel)
+    if (selection.kind != ShareKind.ACHIEVEMENTS) {
+        SectionHeaderV2(title = stringResource(R.string.share_studio_section_details))
+        DetailSwitches(selection, viewModel)
+    }
 
     SectionHeaderV2(title = stringResource(R.string.share_studio_section_style))
     ChipRow(
@@ -377,6 +394,28 @@ private fun DetailSwitches(selection: ShareStudioSelection, viewModel: ShareStud
                 checked = detail in shown,
                 onCheckedChange = { on -> if (!locked) viewModel.setDetail(detail, on) },
                 position = ListItemPosition.from(i, details.size),
+            )
+        }
+    }
+}
+
+/** Every earned achievement as a chip; the card shows the ones left on. */
+@Composable
+private fun AchievementPicker(earned: List<Achievement>, picked: Set<String>?, viewModel: ShareStudioViewModel) {
+    val keys = earned.map { it.id.key }
+    FlowRow(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        earned.forEach { a ->
+            val on = picked == null || a.id.key in picked
+            FilterChip(
+                selected = on,
+                onClick = { viewModel.setAchievement(a.id.key, !on, keys) },
+                label = { Text(achievementName(a.id), maxLines = 1) },
+                leadingIcon = { AchievementBadge(a.id, a.tier, Dimensions.Icon.medium) },
+                shapes = FilterChipDefaults.shapes(),
+                colors = FilterChipDefaults.filterChipColors(),
             )
         }
     }
@@ -429,6 +468,7 @@ private fun kindLabel(kind: ShareKind): String = stringResource(
         ShareKind.SAVINGS -> R.string.share_kind_savings
         ShareKind.GOAL -> R.string.share_kind_goal
         ShareKind.BUDGET -> R.string.share_kind_budget
+        ShareKind.ACHIEVEMENTS -> R.string.share_kind_achievements
     }
 )
 
@@ -450,6 +490,10 @@ private fun detailLabel(detail: ShareDetail, kind: ShareKind): String = stringRe
         ShareDetail.CHART -> R.string.share_detail_chart
         ShareDetail.GOAL_NAME -> R.string.share_detail_goal_name
         ShareDetail.PACE -> R.string.share_detail_pace
-        ShareDetail.PERIOD -> if (kind == ShareKind.GOAL) R.string.share_detail_due_date else R.string.share_detail_period
+        ShareDetail.PERIOD -> when (kind) {
+            ShareKind.GOAL -> R.string.share_detail_due_date
+            ShareKind.ACHIEVEMENTS -> R.string.share_detail_date_earned
+            else -> R.string.share_detail_period
+        }
     }
 )

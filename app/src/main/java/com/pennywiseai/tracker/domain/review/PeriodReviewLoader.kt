@@ -86,13 +86,23 @@ class PeriodReviewLoader @Inject constructor(
 
     /** How many transactions a period holds, by the same scope the review itself uses. */
     suspend fun rowCount(start: LocalDate, end: LocalDate): Int {
-        val keep = scopeOf(
-            ignoredKeys().first(),
-            userPreferencesRepository.selectedProfileId.first(),
-            accountBalanceRepository.getAllLatestBalances().first(),
-        )
+        val keep = currentScope()
         return rowsIn(start, end).first().count { keep(it.transaction) }
     }
+
+    /** The day of every transaction in scope, oldest first. */
+    suspend fun recordedDates(today: LocalDate = LocalDate.now()): List<LocalDate> {
+        val keep = currentScope()
+        // Asks SQL past today and cuts on the parsed date: see [dateQueryWindow].
+        return transactionRepository.getTransactionsBetweenDates(LocalDate.of(2000, 1, 1), today.plusDays(1)).first()
+            .filter(keep).map { it.dateTime.toLocalDate() }.filter { !it.isAfter(today) }.sorted()
+    }
+
+    private suspend fun currentScope(): (TransactionEntity) -> Boolean = scopeOf(
+        ignoredKeys().first(),
+        userPreferencesRepository.selectedProfileId.first(),
+        accountBalanceRepository.getAllLatestBalances().first(),
+    )
 
     /** Asks SQL for a wider window and filters to the exact dates: see [dateQueryWindow]. */
     private fun rowsIn(start: LocalDate, end: LocalDate): Flow<List<TransactionWithSplits>> {

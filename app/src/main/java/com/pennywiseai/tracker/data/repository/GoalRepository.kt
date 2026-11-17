@@ -1,11 +1,11 @@
 package com.pennywiseai.tracker.data.repository
 
-import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.GoalDao
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
 import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
 import com.pennywiseai.tracker.data.database.entity.GoalEntity
+import com.pennywiseai.tracker.data.database.withTransaction
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
@@ -39,6 +39,13 @@ class GoalRepository @Inject constructor(
         combine(goalDao.observeGoals(), goalDao.observeEffectiveContributions()) { goals, contributions ->
             val byGoal = contributions.groupBy { it.goalId }
             goals.map { GoalRules.progress(it, byGoal[it.id].orEmpty(), today) }
+        }
+
+    /** Every goal with its effective contributions, archived included, in no particular order. */
+    fun observeGoalDetails(today: LocalDate = LocalDate.now()): Flow<List<GoalDetail>> =
+        combine(goalDao.observeGoals(), goalDao.observeEffectiveContributions()) { goals, contributions ->
+            val byGoal = contributions.groupBy { it.goalId }
+            goals.map { GoalDetail(GoalRules.progress(it, byGoal[it.id].orEmpty(), today), byGoal[it.id].orEmpty()) }
         }
 
     /** Non-archived goals, soonest due first, Reached last. */

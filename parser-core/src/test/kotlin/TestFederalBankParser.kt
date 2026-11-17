@@ -24,7 +24,7 @@ class FederalBankParserTest {
             // UPI Debit Transactions
             ParserTestCase(
                 name = "UPI debit names the payee VPA, not the user's own account",
-                message = "Debited Rs 123.45 from a/c X9999 on 10Jan26 12:34 via UPI to sampleshop@o. Ref 123456789012.Bal Rs 1245.46. Not you?Call 18004251199 -Federal Bank",
+                message = "Debited Rs 123.45 from a/c X9999 on 10Jan26 12:34 via UPI to sampleshop@o. Ref 123456789012.Bal Rs 1245.46. Not you?Call 0000000000 -Federal Bank",
                 sender = "JK-FEDBNK-T",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("123.45"),
@@ -33,6 +33,18 @@ class FederalBankParserTest {
                     merchant = "sampleshop@o",
                     accountLast4 = "9999",
                     balance = BigDecimal("1245.46")
+                )
+            ),
+            ParserTestCase(
+                name = "UPI payee VPA containing \"vi\" isn't read as Vi",
+                message = "Debited Rs 99.00 from a/c X9999 on 10Jan26 12:34 via UPI to sample.services@o. Ref 123456789013.Bal Rs 1146.46. Not you?Call 0000000000 -Federal Bank",
+                sender = "JK-FEDBNK-T",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("99.00"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
+                    merchant = "sample.services@o",
+                    accountLast4 = "9999"
                 )
             ),
             ParserTestCase(

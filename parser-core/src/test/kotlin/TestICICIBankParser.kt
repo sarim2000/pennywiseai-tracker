@@ -249,7 +249,7 @@ class ICICIBankParserTest {
             ),
             ParserTestCase(
                 name = "Prepaid card debit takes the merchant from \"Info-\"",
-                message = "Dear Customer, Rs 250.00 debited from ICICI Bank Prepaid Card 1234 on 17-Nov-26. Info- SAMPLE CAFE. The Available Balance is Rs 1,000.00 . Call 022 50405238 for dispute or SMS BLOCK 1234 to 9215676766.",
+                message = "Dear Customer, Rs 250.00 debited from ICICI Bank Prepaid Card 1234 on 17-Nov-26. Info- SAMPLE CAFE. The Available Balance is Rs 1,000.00 . Call 0000000000 for dispute or SMS BLOCK 1234 to 0000000000.",
                 sender = "JD-ICICIT-S",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("250.00"),
@@ -260,7 +260,7 @@ class ICICIBankParserTest {
             ),
             ParserTestCase(
                 name = "ACH loan EMI to a housing finance lender is an EXPENSE, not INVESTMENT",
-                message = "ICICI Bank Acc XX710 debited Rs. 26,916.00 on 10-Nov-26 InfoACH*LICHousin.Avl Bal Rs. 5,35,311.86.To dispute call 18002662 or SMS BLOCK 710 to 9215676766",
+                message = "ICICI Bank Acc XX710 debited Rs. 26,916.00 on 10-Nov-26 InfoACH*LICHousin.Avl Bal Rs. 5,35,311.86.To dispute call 0000000000 or SMS BLOCK 710 to 0000000000",
                 sender = "BP-ICICIT-S",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("26916.00"),

@@ -27,7 +27,7 @@ class UnionBankParserTest {
             ),
             ParserTestCase(
                 name = "Short form \"Dr\" mobile banking debit",
-                message = "Union Bank of India A/c*1234 Dr Rs166.00 on 15-11-26 21:26 by MB 6600000000 SAMPLE STORE, Bal Rs137.57 Not U?Call 18002333/SMS BLOCK 1234 to 8800000000",
+                message = "Union Bank of India A/c*1234 Dr Rs166.00 on 15-11-26 21:26 by MB 6600000000 SAMPLE STORE, Bal Rs137.57 Not U?Call 18002333/SMS BLOCK 1234 to 0000000000",
                 sender = "JX-UNIONB-S",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("166.00"),
@@ -41,7 +41,7 @@ class UnionBankParserTest {
             ),
             ParserTestCase(
                 name = "Short form \"Cr\" credit",
-                message = "Union Bank of India A/c*1234 Cr Rs500.00 on 15-11-26 10:05 by MB 6600000001 SAMPLE SENDER, Bal Rs637.57 Not U?Call 18002333",
+                message = "Union Bank of India A/c*1234 Cr Rs500.00 on 15-11-26 10:05 by MB 6600000001 SAMPLE SENDER, Bal Rs637.57 Not U?Call 0000000000",
                 sender = "JX-UNIONB-S",
                 expected = ExpectedTransaction(
                     amount = BigDecimal("500.00"),
@@ -50,6 +50,23 @@ class UnionBankParserTest {
                     accountLast4 = "1234",
                     balance = BigDecimal("637.57")
                 )
+            ),
+            ParserTestCase(
+                name = "Short form \"Dr\" to an investment platform is INVESTMENT",
+                message = "Union Bank of India A/c*1234 Dr Rs500.00 on 15-11-26 21:26 by MB 6600000002 GROWW, Bal Rs137.57",
+                sender = "JX-UNIONB-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("500.00"),
+                    currency = "INR",
+                    type = TransactionType.INVESTMENT,
+                    accountLast4 = "1234"
+                )
+            ),
+            ParserTestCase(
+                name = "OTP quoting a \"Dr\" amount is ignored",
+                message = "OTP 123456 for A/c*1234 Dr Rs166.00. Do not share.",
+                sender = "JX-UNIONB-S",
+                shouldParse = false
             ),
             ParserTestCase(
                 name = "OTP is ignored",

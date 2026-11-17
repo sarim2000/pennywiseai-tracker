@@ -43,10 +43,13 @@ class UnionBankParser : BaseIndianBankParser() {
             "spent", "received", "transferred", "paid"
         )
 
-        if (transactionKeywords.any { lowerMessage.contains(it) } || DR_CR.containsMatchIn(message)) {
+        if (transactionKeywords.any { lowerMessage.contains(it) }) {
             // It's a transaction message, even if it contains OTP in warning text
             return true
         }
+
+        // Short form "Dr Rs166.00" has no verb; an OTP or promo quoting an amount isn't a transaction.
+        if (DR_CR.containsMatchIn(message) && !isNonTransactionMessage(message)) return true
 
         // Fall back to parent logic for non-transaction messages
         return super.isTransactionMessage(message)
@@ -82,6 +85,7 @@ class UnionBankParser : BaseIndianBankParser() {
     override fun extractTransactionType(message: String): TransactionType? {
         // Short form marks the direction with "Dr"/"Cr" before the amount.
         DR_CR.find(message)?.let {
+            if (isInvestmentTransaction(message.lowercase())) return TransactionType.INVESTMENT
             return if (it.groupValues[1].equals("Dr", ignoreCase = true)) TransactionType.EXPENSE
             else TransactionType.INCOME
         }

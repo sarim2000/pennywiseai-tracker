@@ -497,7 +497,7 @@
     },
     "Federal Bank": {
       "sender": "JK-FEDBNK-T",
-      "message": "Debited Rs 123.45 from a/c X9999 on 10Jan26 12:34 via UPI to sampleshop@o. Ref 123456789012.Bal Rs 1245.46. Not you?Call 18004251199 -Federal Bank",
+      "message": "Debited Rs 123.45 from a/c X9999 on 10Jan26 12:34 via UPI to sampleshop@o. Ref 123456789012.Bal Rs 1245.46. Not you?Call 0000000000 -Federal Bank",
       "currency": "INR",
       "amount": "123.45",
       "type": "EXPENSE",

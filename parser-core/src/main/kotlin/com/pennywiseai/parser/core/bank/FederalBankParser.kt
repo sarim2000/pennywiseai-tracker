@@ -493,7 +493,8 @@ class FederalBankParser : BaseIndianBankParser() {
             // Telecom
             cleanVPA.contains("jio") -> "Jio"
             cleanVPA.contains("airtel") -> "Airtel"
-            cleanVPA.contains("vodafone") || cleanVPA.contains("vi") -> "Vi"
+            // "vi" only as a whole segment, so "sample.services" isn't read as Vi
+            cleanVPA.contains("vodafone") || "vi" in cleanVPA.split('.', '-', '_') -> "Vi"
             cleanVPA.contains("bsnl") -> "BSNL"
 
             // Travel

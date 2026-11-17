@@ -83,6 +83,7 @@ import com.pennywiseai.tracker.ui.theme.bestInk
 import com.pennywiseai.tracker.ui.theme.spending
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.utils.CurrencyUtils
 import java.time.LocalDate
 import java.time.format.TextStyle
 
@@ -140,6 +141,7 @@ fun SpendingCalendarScreen(
                         day = day,
                         today = loaded.today,
                         content = loaded.days[day] ?: CalendarDay(),
+                        selectedCurrency = loaded.currency,
                         onDismiss = { selectedDay = null },
                         onOpenTransactions = { currency ->
                             selectedDay = null
@@ -403,6 +405,7 @@ private fun DaySheet(
     day: LocalDate,
     today: LocalDate,
     content: CalendarDay,
+    selectedCurrency: String?,
     onDismiss: () -> Unit,
     onOpenTransactions: (String) -> Unit,
     onOpenBill: (BillSource) -> Unit,
@@ -431,7 +434,10 @@ private fun DaySheet(
             }
             if (content.spent.isNotEmpty()) {
                 SectionHeaderV2(title = stringResource(R.string.calendar_day_section_spent))
-                val spent = content.spent.entries.sortedBy { it.key }
+                // The currency the month is shaded in leads, then the rest in the app's usual order.
+                val spent = CurrencyUtils.sortCurrencies(content.spent.keys.toList())
+                    .sortedByDescending { it == selectedCurrency }
+                    .map { it to content.spent.getValue(it) }
                 GroupedList {
                     spent.forEachIndexed { i, (currency, amount) ->
                         GroupedRow(

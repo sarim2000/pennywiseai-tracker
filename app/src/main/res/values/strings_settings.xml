@@ -337,14 +337,29 @@
 
     <!-- Theme style -->
     <string name="appearance_style_dynamic">Dynamic</string>
-    <string name="appearance_style_dynamic_subtitle">Wallpaper Colors</string>
     <string name="appearance_style_default">Default</string>
-    <string name="appearance_style_default_subtitle">Rose Pine Colors</string>
+
+    <!-- Fixed palettes ported from Mihon: proper names, not translated -->
+    <string name="appearance_theme_catppuccin" translatable="false">Catppuccin</string>
+    <string name="appearance_theme_green_apple" translatable="false">Green Apple</string>
+    <string name="appearance_theme_lavender" translatable="false">Lavender</string>
+    <string name="appearance_theme_midnight_dusk" translatable="false">Midnight Dusk</string>
+    <string name="appearance_theme_nord" translatable="false">Nord</string>
+    <string name="appearance_theme_strawberry_daiquiri" translatable="false">Strawberry Daiquiri</string>
+    <string name="appearance_theme_tako" translatable="false">Tako</string>
+    <string name="appearance_theme_teal_turquoise" translatable="false">Teal &amp; Turquoise</string>
+    <string name="appearance_theme_tidal_wave" translatable="false">Tidal Wave</string>
+    <string name="appearance_theme_yin_yang" translatable="false">Yin &amp; Yang</string>
+    <string name="appearance_theme_yotsuba" translatable="false">Yotsuba</string>
+    <string name="appearance_theme_tokyo_night" translatable="false">Tokyo Night</string>
+    <string name="appearance_theme_monochrome" translatable="false">Monochrome</string>
 
     <!-- Toggles -->
     <string name="appearance_amoled_title">AMOLED Black</string>
     <string name="appearance_amoled_subtitle">Use pure black background for deeper contrast</string>
     <string name="appearance_blur_title">Blur Effects</string>
+    <string name="appearance_red_spending_title">Red for spending</string>
+    <string name="appearance_red_spending_subtitle">Show money you spend in red. Turn off for plain text, with red only for problems.</string>
     <string name="appearance_blur_subtitle">Enable glassmorphism blur effects in UI components</string>
 
     <!-- Navigation -->

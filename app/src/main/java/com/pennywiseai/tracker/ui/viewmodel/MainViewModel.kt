@@ -7,7 +7,6 @@ import com.pennywiseai.tracker.BuildConfig
 import com.pennywiseai.tracker.data.contacts.ContactsResolver
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.MerchantAliasRepository
-import kotlinx.coroutines.flow.map
 import com.pennywiseai.tracker.ui.components.WhatsNewContent
 import com.pennywiseai.tracker.ui.components.WhatsNewVersion
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -16,6 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import javax.inject.Inject
@@ -25,8 +25,14 @@ class MainViewModel @Inject constructor(
     @param:ApplicationContext private val context: Context,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val merchantAliasRepository: MerchantAliasRepository,
-    internal val contactsResolver: ContactsResolver
+    internal val contactsResolver: ContactsResolver,
+    private val chatDrafts: com.pennywiseai.tracker.data.manager.ChatDraftInbox
 ) : ViewModel() {
+
+    /** A question from the quick add mic, cleared to Home: MainScreen switches to Chat for it, once. */
+    val openChat = chatDrafts.openChat
+
+    fun chatOpened() = chatDrafts.opened()
 
     private val _whatsNewVersion = MutableStateFlow<WhatsNewVersion?>(null)
     val whatsNewVersion: StateFlow<WhatsNewVersion?> = _whatsNewVersion.asStateFlow()

@@ -14,6 +14,7 @@ import androidx.compose.ui.window.Dialog
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.*
+import com.pennywiseai.tracker.ui.theme.spending
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
@@ -235,11 +236,11 @@ private fun BreakdownRow(
             style = if (isBold) PennyWiseText.amountRow else PennyWiseText.amountRow.copy(
                 fontWeight = FontWeight.Normal
             ),
-            // Spending is ink; red is kept for a negative net.
+            // Spending takes the spending colour; a negative net is always red.
             color = when {
                 isIncome -> MaterialTheme.colorScheme.income
                 isNet -> MaterialTheme.colorScheme.expense
-                else -> MaterialTheme.colorScheme.onSurface
+                else -> MaterialTheme.colorScheme.spending
             }
         )
     }

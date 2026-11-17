@@ -18,6 +18,7 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -54,6 +55,11 @@ import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.warning
+import com.pennywiseai.tracker.ui.voice.VoiceLanguageChip
+import com.pennywiseai.tracker.ui.voice.VoiceMicButton
+import com.pennywiseai.tracker.ui.voice.VoiceStatusBar
+import com.pennywiseai.tracker.ui.voice.rememberVoiceInput
 import com.pennywiseai.tracker.utils.TokenUtils
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
@@ -91,8 +97,22 @@ fun ChatScreen(
         onStopOrDispose { viewModel.onScreenHidden() }
     }
 
-    var inputText by remember { mutableStateOf("") }
+    // Saveable: a question carried in from the quick add mic must survive a rotation.
+    var inputText by rememberSaveable { mutableStateOf("") }
     val voice = rememberVoiceInput(onText = { inputText = it })
+    // A question from the quick add mic lands in the box, not sent, once the box is there:
+    // with no model it waits, shown below. READY only: LOADING is also the state Chat
+    // starts in before the model is checked, and with no model the box never comes.
+    val chatDraft by viewModel.chatDraft.collectAsStateWithLifecycle()
+    val composerShown = modelState == ModelState.READY
+    LaunchedEffect(chatDraft, composerShown) {
+        val draft = chatDraft ?: return@LaunchedEffect
+        if (!composerShown) return@LaunchedEffect
+        voice.cancel()
+        // A message already typed stays: the question goes under it.
+        inputText = if (inputText.isBlank()) draft.text else inputText.trimEnd() + "\n" + draft.text
+        viewModel.takeChatDraft(draft)
+    }
     // The mic stops with the screen; words already heard stay in the box.
     androidx.lifecycle.compose.LifecycleStartEffect(voice) {
         onStopOrDispose {
@@ -264,6 +284,16 @@ fun ChatScreen(
                             }
                         }
 
+                        chatDraft?.let { draft ->
+                            Text(
+                                text = stringResource(R.string.chat_draft_waiting, draft.text),
+                                style = MaterialTheme.typography.bodyMedium.copy(textDirection = TextDirection.Content),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = Dimensions.Padding.content, vertical = Spacing.sm)
+                            )
+                        }
                         // These need no model, so they stay usable while there's none.
                         QuickActionChips(enabled = !uiState.isLoading && !isConfirming, onClick = viewModel::runQuickAction)
                         Spacer(modifier = Modifier.height(Spacing.sm))
@@ -644,7 +674,7 @@ fun DeveloperInfoCard(
     }
     val usageColor = when (usageHint) {
         "critical" -> MaterialTheme.colorScheme.error
-        "warning" -> MaterialTheme.colorScheme.tertiary
+        "warning" -> MaterialTheme.colorScheme.warning
         else -> MaterialTheme.colorScheme.primary
     }
 

@@ -1,10 +1,9 @@
 package com.pennywiseai.tracker.presentation.accounts
 
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
-import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -13,15 +12,16 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import com.pennywiseai.tracker.domain.model.AccountType
-import com.pennywiseai.tracker.utils.CurrencyFormatter
-import com.pennywiseai.tracker.ui.theme.*
-import androidx.compose.foundation.text.KeyboardOptions
-import java.math.BigDecimal
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.domain.model.getAccountType
+import com.pennywiseai.tracker.ui.theme.*
+import com.pennywiseai.tracker.utils.CurrencyFormatter
+import java.math.BigDecimal
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -33,7 +33,7 @@ internal fun UpdateBalanceDialog(
 ) {
     var balanceText by remember { mutableStateOf("") }
     var isValid by remember { mutableStateOf(false) }
-    
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -105,14 +105,14 @@ internal fun UpdateCreditCardDialog(
     var outstandingText by remember { mutableStateOf(currentOutstanding.toString()) }
     var limitText by remember { mutableStateOf(currentLimit.toString()) }
     var isValid by remember { mutableStateOf(false) }
-    
+
     LaunchedEffect(outstandingText, limitText) {
-        isValid = outstandingText.isNotBlank() && 
-                  outstandingText.toDoubleOrNull() != null &&
-                  limitText.isNotBlank() && 
-                  limitText.toDoubleOrNull() != null
+        isValid = outstandingText.isNotBlank() &&
+            outstandingText.toDoubleOrNull() != null &&
+            limitText.isNotBlank() &&
+            limitText.toDoubleOrNull() != null
     }
-    
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -154,7 +154,7 @@ internal fun UpdateCreditCardDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
-                
+
                 TextField(
                     value = limitText,
                     onValueChange = { text ->
@@ -180,14 +180,14 @@ internal fun UpdateCreditCardDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
-                
+
                 // Show available credit
                 val outstanding = outstandingText.toBigDecimalOrNull() ?: BigDecimal.ZERO
                 val limit = limitText.toBigDecimalOrNull() ?: BigDecimal.ZERO
                 if (limit > BigDecimal.ZERO) {
                     val available = limit - outstanding
                     val utilization = ((outstanding.toDouble() / limit.toDouble()) * 100).toInt()
-                    
+
                     Card(
                         colors = CardDefaults.cardColors(
                             containerColor = MaterialTheme.colorScheme.secondaryContainer
@@ -227,11 +227,13 @@ internal fun UpdateCreditCardDialog(
                                     text = "$utilization%",
                                     style = MaterialTheme.typography.bodySmall,
                                     fontWeight = FontWeight.Medium,
+                                    // Drawn on secondaryContainer, not a neutral surface, so the
+                                    // status colour is made readable on that fill.
                                     color = when {
                                         utilization > 70 -> MaterialTheme.colorScheme.error
-                                        utilization > 30 -> MaterialTheme.colorScheme.tertiary
+                                        utilization > 30 -> MaterialTheme.colorScheme.warning
                                         else -> MaterialTheme.colorScheme.primary
-                                    }
+                                    }.readableOn(listOf(MaterialTheme.colorScheme.secondaryContainer))
                                 )
                             }
                         }
@@ -376,9 +378,9 @@ internal fun EditAccountDialog(
 
     LaunchedEffect(bankNameText, balanceText, creditLimitText, isCreditForm) {
         isValid = bankNameText.isNotBlank() &&
-                  balanceText.isNotBlank() &&
-                  balanceText.toDoubleOrNull() != null &&
-                  (if (isCreditForm) creditLimitText.isNotBlank() && creditLimitText.toDoubleOrNull() != null else true)
+            balanceText.isNotBlank() &&
+            balanceText.toDoubleOrNull() != null &&
+            (if (isCreditForm) creditLimitText.isNotBlank() && creditLimitText.toDoubleOrNull() != null else true)
     }
 
     AlertDialog(

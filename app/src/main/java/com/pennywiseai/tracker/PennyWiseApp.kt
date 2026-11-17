@@ -8,35 +8,35 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.semantics.clearAndSetSemantics
-import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.runtime.mutableStateOf
+import androidx.compose.ui.Modifier
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.core.content.ContextCompat
-import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LifecycleResumeEffect
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.rememberNavBackStack
-import androidx.compose.runtime.SideEffect
-import androidx.compose.runtime.mutableIntStateOf
-import androidx.lifecycle.compose.LifecycleResumeEffect
 import com.pennywiseai.tracker.navigation.AppLock
 import com.pennywiseai.tracker.navigation.Home
 import com.pennywiseai.tracker.navigation.OnBoarding
 import com.pennywiseai.tracker.navigation.PennyWiseNavHost
 import com.pennywiseai.tracker.navigation.navigate
-import com.pennywiseai.tracker.ui.theme.PennyWiseTheme
-import com.pennywiseai.tracker.ui.ShakeToHideAmounts
 import com.pennywiseai.tracker.presentation.applock.AppLockViewModel
+import com.pennywiseai.tracker.ui.ShakeToHideAmounts
+import com.pennywiseai.tracker.ui.theme.PennyWiseTheme
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
 import com.pennywiseai.tracker.widget.WidgetRefresher
 
@@ -51,7 +51,9 @@ fun PennyWiseApp(
     sharedText: String? = null,
     onSharedTextHandled: (() -> Unit)? = null,
     widgetDestination: NavKey? = null,
-    onWidgetDestinationHandled: (() -> Unit)? = null
+    onWidgetDestinationHandled: (() -> Unit)? = null,
+    openChat: Long? = null,
+    onOpenChatHandled: (() -> Unit)? = null
 ) {
     val owner = androidx.lifecycle.viewmodel.compose.LocalViewModelStoreOwner.current ?: error("No ViewModelStoreOwner")
     val actualThemeViewModel: ThemeViewModel = themeViewModel ?: hiltViewModel(viewModelStoreOwner = owner, key = null)
@@ -118,9 +120,10 @@ fun PennyWiseApp(
             showLockScreen()
         }
     }
-    
+
     // Every outside entry point — notification and Recent-widget transaction taps,
-    // the Add widget/shortcut, "Share to PennyWise" and goal widget taps (#914) —
+    // the Add widget/shortcut, "Share to PennyWise", goal widget taps (#914) and a
+    // question said to the quick add mic —
     // opens a screen with private data, so they all wait for onboarding and an
     // unlocked app (see NavigateWhenUnlocked).
     val currentRoute = backStack.lastOrNull()
@@ -176,6 +179,24 @@ fun PennyWiseApp(
         }
         onWidgetDestinationHandled?.invoke()
     }
+    var toldChatWaits by remember(openChat) { mutableStateOf(false) }
+    NavigateWhenUnlocked(
+        request = openChat,
+        onboarded = themeUiState.hasCompletedOnboarding,
+        lock = appLockUiState,
+        currentRoute = currentRoute,
+        refreshLock = actualAppLockViewModel::refreshLockState,
+        showLockScreen = showLockScreen,
+    ) {
+        // Chat is a tab on Home, which switches to it (MainScreen). Only from Home itself:
+        // a screen above it (an unsaved edit) stays, and this waits until the user is back.
+        if (backStack.lastOrNull() == Home) {
+            onOpenChatHandled?.invoke()
+        } else if (!toldChatWaits) {
+            toldChatWaits = true
+            android.widget.Toast.makeText(context, R.string.chat_draft_after_screen, android.widget.Toast.LENGTH_LONG).show()
+        }
+    }
 
     // Shake to hide / show amounts (opt-in in Settings), only while unlocked: a shake
     // on the lock screen, or on the old screen in the moment before a resume's lock
@@ -224,7 +245,8 @@ fun PennyWiseApp(
         accentColor = themeUiState.accentColor,
         isAmoledMode = themeUiState.isAmoledMode,
         appFont = themeUiState.appFont,
-        blurEffects = themeUiState.blurEffectsEnabled
+        blurEffects = themeUiState.blurEffectsEnabled,
+        redSpending = themeUiState.redSpending
     ) {
         Box(Modifier.fillMaxSize()) {
             PennyWiseNavHost(

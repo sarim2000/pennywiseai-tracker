@@ -1,8 +1,5 @@
 package com.pennywiseai.tracker.ui.components.cards
 
-import androidx.compose.ui.res.pluralStringResource
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -17,13 +14,17 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.repository.GroupSummary
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.income
 import com.pennywiseai.tracker.ui.theme.investment
+import com.pennywiseai.tracker.ui.theme.spending
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 
 /**
@@ -39,7 +40,7 @@ fun HomeGroupCard(
     modifier: Modifier = Modifier
 ) {
     val accentColor = MaterialTheme.colorScheme.income
-    val expenseColor = MaterialTheme.colorScheme.onSurface
+    val expenseColor = MaterialTheme.colorScheme.spending
 
     PennyWiseCardV2(
         modifier = modifier.width(210.dp),

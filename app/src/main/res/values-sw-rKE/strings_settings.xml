@@ -259,9 +259,8 @@
     <string name="appearance_mode_dark">Giza</string>
     <!-- Theme style -->
     <string name="appearance_style_dynamic">Inayobadilika</string>
-    <string name="appearance_style_dynamic_subtitle">Rangi za Picha ya Skrini</string>
     <string name="appearance_style_default">Chaguomsingi</string>
-    <string name="appearance_style_default_subtitle">Rangi za Rose Pine</string>
+    <!-- Fixed palettes ported from Mihon: proper names, not translated -->
     <!-- Toggles -->
     <string name="appearance_amoled_title">Nyeusi ya AMOLED</string>
     <string name="appearance_amoled_subtitle">Tumia mandharinyuma nyeusi tupu kwa utofautishaji zaidi</string>

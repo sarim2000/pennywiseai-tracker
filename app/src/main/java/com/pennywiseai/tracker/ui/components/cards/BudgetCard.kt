@@ -8,8 +8,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
@@ -21,6 +23,7 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.ReadOnlyComposable
@@ -352,33 +355,62 @@ fun BudgetCard(
 /**
  * How a rolled-over budget's limit is made up: "Base X + Y carried over = Z", or
  * why nothing carried. Nothing at all when rollover is off or carried exactly 0.
- * [color]: the "Spent X of Y" line's above it.
+ * [color]: the "Spent X of Y" line's above it. [onAddRate] opens Exchange Rates,
+ * offered when a missing rate stopped the carry.
  */
 @Composable
 fun RolloverLine(
     groupSpending: BudgetGroupSpending,
     currency: String,
     modifier: Modifier = Modifier,
-    color: Color = MaterialTheme.colorScheme.onSurfaceVariant
+    color: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    onAddRate: (() -> Unit)? = null
 ) {
     if (!groupSpending.group.budget.rolloverEnabled) return
-    val carry = groupSpending.carry
+    RolloverLine(
+        limit = groupSpending.totalBudget,
+        carry = groupSpending.carry,
+        gap = groupSpending.carryGap,
+        currency = currency,
+        modifier = modifier,
+        color = color,
+        onAddRate = onAddRate
+    )
+}
+
+/** [RolloverLine] for a [limit] (in [currency]) that already has [carry] in it. */
+@Composable
+fun RolloverLine(
+    limit: BigDecimal,
+    carry: BigDecimal,
+    gap: CarryGap?,
+    currency: String,
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    onAddRate: (() -> Unit)? = null
+) {
     val text = when {
-        groupSpending.carryGap != null -> stringResource(groupSpending.carryGap.message)
+        gap != null -> stringResource(gap.message)
         carry.signum() == 0 -> return
         else -> stringResource(
             if (carry.signum() > 0) R.string.budget_rollover_carried_in else R.string.budget_rollover_carried_out,
-            CurrencyFormatter.formatCurrency(groupSpending.totalBudget - carry, currency),
+            CurrencyFormatter.formatCurrency(limit - carry, currency),
             CurrencyFormatter.formatCurrency(carry.abs(), currency),
-            CurrencyFormatter.formatCurrency(groupSpending.totalBudget, currency)
+            CurrencyFormatter.formatCurrency(limit, currency)
         )
     }
-    Text(
-        text = text,
-        style = MaterialTheme.typography.bodySmall,
-        color = color,
-        modifier = modifier
-    )
+    Column(modifier = modifier) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = color
+        )
+        if (gap == CarryGap.NO_RATE && onAddRate != null) {
+            TextButton(onClick = onAddRate, contentPadding = PaddingValues(horizontal = 0.dp)) {
+                Text(stringResource(R.string.budget_rollover_add_rate))
+            }
+        }
+    }
 }
 
 /** Why nothing carried over. */

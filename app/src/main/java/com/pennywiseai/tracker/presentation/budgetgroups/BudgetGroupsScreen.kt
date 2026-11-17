@@ -86,6 +86,7 @@ fun BudgetGroupsScreen(
     onNavigateToCategory: (category: String, yearMonth: String, currency: String) -> Unit = { _, _, _ -> },
     onNavigateToGoal: (Long) -> Unit = {},
     onNavigateToGoalEdit: (Long) -> Unit = {},
+    onNavigateToExchangeRates: () -> Unit = {},
     createGoalOnOpen: Boolean = false
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -184,7 +185,8 @@ fun BudgetGroupsScreen(
                 onCategoryClick = { category ->
                     val yearMonth = "%04d-%02d".format(uiState.selectedYear, uiState.selectedMonth)
                     onNavigateToCategory(category, yearMonth, uiState.currency)
-                }
+                },
+                onAddRate = onNavigateToExchangeRates
             )
         }
     }
@@ -262,7 +264,8 @@ private fun BudgetGroupsContent(
     onMoveGroupUp: (Long) -> Unit,
     onMoveGroupDown: (Long) -> Unit,
     onNavigateToHistory: (Long) -> Unit,
-    onCategoryClick: (String) -> Unit
+    onCategoryClick: (String) -> Unit,
+    onAddRate: () -> Unit = {}
 ) {
     val summary = uiState.summary ?: return
     val isCurrentMonth = YearMonth.of(uiState.selectedYear, uiState.selectedMonth) == YearMonth.now()
@@ -320,7 +323,8 @@ private fun BudgetGroupsContent(
                     onMoveUp = { onMoveGroupUp(groupSpending.group.budget.id) },
                     onMoveDown = { onMoveGroupDown(groupSpending.group.budget.id) },
                     onViewHistory = { onNavigateToHistory(groupSpending.group.budget.id) },
-                    onCategoryClick = onCategoryClick
+                    onCategoryClick = onCategoryClick,
+                    onAddRate = onAddRate
                 )
             }
         }
@@ -427,6 +431,7 @@ private fun BudgetCard(
     onMoveDown: () -> Unit,
     onViewHistory: () -> Unit,
     onCategoryClick: (String) -> Unit,
+    onAddRate: () -> Unit = {},
     modifier: Modifier = Modifier
 ) {
     val budget = groupSpending.group.budget
@@ -710,7 +715,7 @@ private fun BudgetCard(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                RolloverLine(groupSpending, currency)
+                RolloverLine(groupSpending, currency, onAddRate = onAddRate)
             } else if (groupSpending.isTrackingAllExpenses) {
                 Spacer(modifier = Modifier.height(Spacing.sm))
                 Text(

@@ -74,6 +74,10 @@ object UpcomingPayments {
      * one's ([withoutRecorded]). Charges at a bill's exact amount are placed across every
      * bill first, and only then new prices ([RecurringCharge.isPriceChange]), each
      * occurrence taking the charge nearest its due date ([claim]).
+     *
+     * Charges are placed over every occurrence one could pay, before the window and
+     * [counts] narrow what's returned: which bill a charge paid mustn't depend on how
+     * far ahead the caller looks, or Safe to spend and Insights would disagree.
      */
     fun subscriptions(
         subscriptions: List<SubscriptionEntity>,
@@ -83,7 +87,8 @@ object UpcomingPayments {
         counts: (SubscriptionEntity, LocalDate) -> Boolean = { _, _ -> true },
     ): List<Bill> {
         val active = subscriptions.filter(::isActiveExpense)
-        val due = occurrences(active, today, end, counts)
+        // A charge up to today pays nothing due more than DUE_WINDOW_DAYS after it.
+        val due = occurrences(active, today, maxOf(end, today.plusDays(RecurringCharge.DUE_WINDOW_DAYS))) { _, _ -> true }
         val charges = posted.filter {
             !it.isDeleted && it.transactionType in RecurringCharge.SPEND_TYPES && !it.dateTime.toLocalDate().isAfter(today)
         }.sortedBy { it.dateTime }
@@ -103,7 +108,8 @@ object UpcomingPayments {
         val repriced = claim(due.filter { it !in paid }, unclaimed, { it.first }, nearestDue) { o, t ->
             payable(o, t) && RecurringCharge.isPriceChange(o.first.amount, o.second.dueDate, t.amount, t.dateTime.toLocalDate())
         }.keys
-        return due.filter { it !in paid && it !in repriced }.map { it.second }
+        return due.filter { (s, bill) -> !bill.dueDate.isAfter(end) && counts(s, bill.dueDate) }
+            .filter { it !in paid && it !in repriced }.map { it.second }
     }
 
     /** Same merchant and currency, from an account [sub] can be paid from. */

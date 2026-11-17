@@ -66,6 +66,22 @@ class UpcomingPaymentsTest {
     ) = UpcomingPayments.of(subscriptions, recurring, cardBills, listOf(card), posted, on, end, isExcluded)
 
     @Test
+    fun `a charge pays the same bill whatever the window, so Safe to spend and Insights agree`() {
+        // The cycle ends tomorrow. A names no account and is due tomorrow; B, at the same
+        // merchant and price, is due in three days on its own account, which today's charge names.
+        val a = sub("Gym", "2026-10-24")
+        val b = sub("Gym", "2026-10-26", bank = "Test Bank", last4 = "1111")
+        val posted = listOf(charge("Gym", "2026-10-23", bank = "Test Bank", last4 = "1111"))
+
+        val insights = UpcomingPayments.subscriptions(listOf(a, b), posted, today, today.plusDays(7))
+        val safeToSpend = UpcomingPayments.of(listOf(a, b), emptyList(), emptyList(), emptyList(), posted, today, today.plusDays(1))
+
+        // The charge is B's; A is still to pay, on both screens.
+        assertEquals(listOf(date("2026-10-24")), insights.map { it.dueDate })
+        assertEquals(insights, safeToSpend)
+    }
+
+    @Test
     fun `only active expense subscriptions with a date count`() {
         val bills = UpcomingPayments.subscriptions(
             listOf(

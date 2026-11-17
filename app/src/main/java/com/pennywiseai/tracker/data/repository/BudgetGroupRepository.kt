@@ -852,8 +852,9 @@ class BudgetGroupRepository @Inject constructor(
 
     /**
      * [group]'s carry in [currency] from [previous]. Without [convert] it counts only
-     * [currency], as the single-currency figures do: anything else isn't converted
-     * here, so a carry over it is left out ([CarryGap.OTHER_CURRENCY]).
+     * [currency]'s transactions, as the budget's own spend does (the same match as
+     * [TransactionSplitDao.getTransactionsWithSplitsFiltered]): other currencies
+     * aren't in its spend, so they don't change what it carries either.
      */
     private suspend fun carryIn(
         currency: String,
@@ -865,9 +866,8 @@ class BudgetGroupRepository @Inject constructor(
         budgetCarry(group, previous, currency, currency, parentOf, convert)
     } else {
         budgetCarry(
-            group, previous, currency, currency, parentOf,
-            convert = { fromCurrency, amount -> amount.takeIf { fromCurrency.equals(currency, ignoreCase = true) } },
-            gap = CarryGap.OTHER_CURRENCY
+            group, previous?.filter { it.transaction.currency == currency }, currency, currency, parentOf,
+            convert = { _, amount -> amount }
         )
     }
 

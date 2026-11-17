@@ -227,11 +227,18 @@ class BudgetRolloverRoutingTest {
     }
 
     @Test
-    fun `outside unified mode another currency last week makes the carry incomplete`() {
-        val repo = repository(budget(), listOf(spend("60", at = lastWeek), spend("20", "USD", lastWeek), spend("30")))
+    fun `outside unified mode last week counts only the budget's currency, as its spend does`() = runBlocking {
+        val group = budget()
+        val repo = repository(group, listOf(spend("60", at = lastWeek), spend("20", "USD", lastWeek), spend("30")))
         val native = summary(repo, unified = false)
-        assertFigures(native, carry = "0", limit = "100", remaining = "70")
-        assertEquals(CarryGap.OTHER_CURRENCY, native.carryGap)
+        assertFigures(native, carry = "40", limit = "140", remaining = "110")
+        assertNull(native.carryGap)
+        val thisWeek = repo.getBudgetHistoryForMonth(group.budget, today.year, today.monthValue, "JOD")
+            .single { it.window.start == today }
+        assertEquals(0, BigDecimal("40").compareTo(thisWeek.carry!!.amount.amount))
+        assertFalse(thisWeek.carry!!.incomplete)
+        val breakdown = repo.getBudgetWindowBreakdown(group.budget, resolveBudgetWindow(group.budget, today, 1), "JOD")
+        assertEquals(0, BigDecimal("140").compareTo(breakdown.totalBudget))
     }
 
     @Test

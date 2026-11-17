@@ -10,10 +10,7 @@ import java.math.BigDecimal
 /** Why a budget carried nothing: some of last period's spending couldn't be counted. */
 enum class CarryGap {
     /** Unified mode: it had no exchange rate. */
-    NO_RATE,
-
-    /** Outside unified mode, where nothing is converted: it was in another currency. */
-    OTHER_CURRENCY
+    NO_RATE
 }
 
 /**
@@ -55,8 +52,7 @@ fun BudgetWithCategories.baseLimit(): BigDecimal =
  * The one place every budget figure gets its carry from. [previous] holds the
  * transactions of the period the budget carries from (null: it carries nothing; see
  * [BudgetRollover.sourceWindow]), in every currency. [convert] puts an amount into
- * [currency] and returns null without a rate ([gap] says what that means here);
- * limits are stored in [baseCurrency].
+ * [currency] and returns null without a rate; limits are stored in [baseCurrency].
  */
 suspend fun budgetCarry(
     group: BudgetWithCategories,
@@ -64,15 +60,14 @@ suspend fun budgetCarry(
     currency: String,
     baseCurrency: String,
     parentOf: Map<String, String>,
-    convert: suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?,
-    gap: CarryGap = CarryGap.NO_RATE
+    convert: suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?
 ): BudgetCarry {
     if (previous == null) return BudgetCarry.none(currency)
-    val base = convert(baseCurrency, group.baseLimit()) ?: return BudgetCarry(Money.zero(currency), gap)
+    val base = convert(baseCurrency, group.baseLimit()) ?: return BudgetCarry(Money.zero(currency), CarryGap.NO_RATE)
     val spent = budgetSpendOrNull(group, previous, parentOf, convert)
     return BudgetCarry(
         BudgetRollover.carry(Money(base, currency), spent?.let { Money(it, currency) }),
-        gap.takeIf { spent == null }
+        CarryGap.NO_RATE.takeIf { spent == null }
     )
 }
 

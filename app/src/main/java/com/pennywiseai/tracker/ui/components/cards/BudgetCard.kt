@@ -381,12 +381,11 @@ fun RolloverLine(
     )
 }
 
-/** Why nothing carried over, in the words of the currency mode the figures are in. */
+/** Why nothing carried over. */
 @get:StringRes
 internal val CarryGap.message: Int
     get() = when (this) {
         CarryGap.NO_RATE -> R.string.budget_rollover_incomplete
-        CarryGap.OTHER_CURRENCY -> R.string.budget_rollover_other_currency
     }
 
 /**

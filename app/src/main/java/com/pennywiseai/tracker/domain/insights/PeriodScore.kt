@@ -14,7 +14,10 @@ data class PeriodScore(
     val score: Int,
     /** Share of income kept; null without income. */
     val savings: Part.Savings?,
-    /** Budgets in this currency on or under an even pace; null without any. */
+    /**
+     * Budgets in this currency on or under an even pace; null without any. One with
+     * spending it couldn't convert reads low, so it's left out rather than counted on track.
+     */
     val budgets: Part.Budgets?,
     val categorised: Part.Categorised,
 ) {
@@ -46,7 +49,7 @@ data class PeriodScore(
                 // Keeping a fifth of income is full marks; spending all of it or more is none.
                 Part.Savings(percent, (percent * 100 / FULL_SAVINGS_PERCENT).coerceIn(0, 100))
             }
-            val running = budgets.filter { it.currency == currency && it.isRunning }
+            val running = budgets.filter { it.currency == currency && it.isRunning && !it.incomplete }
             val budgetPart = running.takeIf { it.isNotEmpty() }?.let { list ->
                 val onTrack = list.count { it.isOnTrack }
                 Part.Budgets(onTrack, list.size, onTrack * 100 / list.size)

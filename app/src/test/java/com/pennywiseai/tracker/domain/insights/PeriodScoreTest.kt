@@ -20,9 +20,9 @@ class PeriodScoreTest {
         )
     }
 
-    private fun budget(spent: String, currency: String = "INR") = BudgetStatus(
+    private fun budget(spent: String, currency: String = "INR", incomplete: Boolean = false) = BudgetStatus(
         1, "Food", currency, BigDecimal(spent), BigDecimal("3000"), 10, 30,
-        LocalDate.parse("2026-11-01"), LocalDate.parse("2026-11-30"),
+        LocalDate.parse("2026-11-01"), LocalDate.parse("2026-11-30"), incomplete,
     )
 
     private fun score(
@@ -68,5 +68,13 @@ class PeriodScoreTest {
         // 2,500 in 10 of 30 days is far over pace; the dollar budget isn't this page's.
         assertEquals(PeriodScore.Part.Budgets(1, 2, 50), result.budgets)
         assertEquals(75, result.score)
+    }
+
+    @Test
+    fun `a budget with unconverted spending is left out, not counted on track`() {
+        // Its figure reads low, so "on track" would be a guess.
+        val result = score(budgets = listOf(budget("100", incomplete = true), budget("2500")))!!
+        assertEquals(PeriodScore.Part.Budgets(0, 1, 0), result.budgets)
+        assertNull(score(income = "0", budgets = listOf(budget("100", incomplete = true))))
     }
 }

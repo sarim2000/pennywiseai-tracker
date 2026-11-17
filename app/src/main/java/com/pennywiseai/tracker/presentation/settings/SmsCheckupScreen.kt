@@ -156,10 +156,12 @@ fun SmsCheckupScreen(
                     ChecklistStep(
                         title = stringResource(R.string.background_access_title),
                         done = stepsLeft == 0,
-                        why = if (stepsLeft == 0) {
-                            stringResource(R.string.sms_checkup_background_why)
-                        } else {
-                            pluralStringResource(R.plurals.sms_checkup_background_steps_left, stepsLeft, stepsLeft)
+                        why = when {
+                            stepsLeft == 0 -> stringResource(R.string.sms_checkup_background_why)
+                            // The one step that stops tracking: name it, as the Home card does.
+                            background?.backgroundRestricted == true ->
+                                stringResource(R.string.sms_checkup_background_restricted)
+                            else -> pluralStringResource(R.plurals.sms_checkup_background_steps_left, stepsLeft, stepsLeft)
                         },
                         actionLabel = stringResource(R.string.sms_checkup_review),
                         onAction = onOpenBackgroundAccess,

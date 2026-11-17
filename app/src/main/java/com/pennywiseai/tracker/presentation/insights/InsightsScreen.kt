@@ -472,15 +472,7 @@ private fun PeriodSummaryCard(state: InsightsUiState) {
                     Figure(stringResource(R.string.insights_subscriptions_monthly), it.format())
                 }
                 runway?.let {
-                    val lasts = months(it.months)
-                    Figure(
-                        stringResource(R.string.insights_runway),
-                        if (it.lowConfidence && !AmountPrivacy.hidden && it.months >= BigDecimal.ONE) {
-                            stringResource(R.string.insights_runway_about, lasts)
-                        } else {
-                            lasts
-                        },
-                    )
+                    Figure(stringResource(R.string.insights_runway), runwayLength(it.months, it.lowConfidence))
                 }
             }
         }

@@ -119,7 +119,7 @@ internal fun insightText(insight: Insight): InsightText = when (val f = insight.
         ),
     )
     is InsightFact.MoneyLasts -> InsightText(
-        title = stringResource(R.string.insights_runway_title, months(f.months)),
+        title = stringResource(R.string.insights_runway_title, runwayLength(f.months, f.lowConfidence)),
         body = stringResource(
             if (insight.severity == InsightSeverity.GOOD) R.string.insights_runway_good_body
             else R.string.insights_runway_low_body,
@@ -197,6 +197,17 @@ internal fun months(value: BigDecimal): String {
     val whole = value.stripTrailingZeros().scale() <= 0
     return if (whole) pluralStringResource(R.plurals.insights_months, value.toInt(), number)
     else stringResource(R.string.insights_months_decimal, number)
+}
+
+/** [months], as "about 6.5 months" when some balances were left out of it ([lowConfidence]). */
+@Composable
+internal fun runwayLength(value: BigDecimal, lowConfidence: Boolean): String {
+    val lasts = months(value)
+    return if (lowConfidence && !AmountPrivacy.hidden && value >= BigDecimal.ONE) {
+        stringResource(R.string.insights_runway_about, lasts)
+    } else {
+        lasts
+    }
 }
 
 /**

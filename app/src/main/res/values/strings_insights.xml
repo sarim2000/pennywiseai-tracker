@@ -161,7 +161,7 @@
     <!-- Card utilisation. %1$s = percentage, %2$s = card name -->
     <string name="insights_card_title">%1$s of your %2$s limit used</string>
 
-    <!-- Runway. %1$s = how long, e.g. "2.4 months" or "under a month" -->
+    <!-- Runway. %1$s = how long, e.g. "2.4 months", "about 2.4 months" (some balances unknown) or "under a month" -->
     <string name="insights_runway_title">Your money would last %1$s</string>
     <!-- %1$s = money in savings, current and cash accounts, %2$s = a usual month's spending, %3$d = months many aim for -->
     <string name="insights_runway_low_body">That\'s %1$s in your accounts against %2$s spent in a usual month. Many people aim for %3$d months.</string>

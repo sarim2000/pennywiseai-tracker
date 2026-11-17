@@ -323,6 +323,7 @@
     <string name="card_bill_add">Add the due day and statement amount, and Safe to spend will set this bill aside.</string>
     <string name="card_bill_due_day_label">Due day</string>
     <string name="card_bill_due_day_description">Day of the month the bill is due</string>
+    <string name="card_bill_due_day_not_set">Not set. Type the day of the month the bill is due.</string>
     <string name="card_bill_due_day_error">Enter a day from 1 to 31</string>
     <string name="card_bill_amount_label">Statement amount (%1$s)</string>
     <string name="card_bill_amount_hint">The total on your latest statement</string>

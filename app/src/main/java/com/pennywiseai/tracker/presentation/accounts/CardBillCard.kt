@@ -177,7 +177,12 @@ private fun CardBillDialog(
                     supportingText = {
                         Text(
                             stringResource(
-                                if (dayValid) R.string.card_bill_due_day_description else R.string.card_bill_due_day_error
+                                when {
+                                    !dayValid -> R.string.card_bill_due_day_error
+                                    // Empty is a real state: no due day, so nothing is set aside yet.
+                                    dayText.isBlank() -> R.string.card_bill_due_day_not_set
+                                    else -> R.string.card_bill_due_day_description
+                                }
                             )
                         )
                     },

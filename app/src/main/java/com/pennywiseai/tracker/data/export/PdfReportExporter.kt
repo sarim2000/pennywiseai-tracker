@@ -20,9 +20,11 @@ import com.pennywiseai.tracker.domain.review.CurrencyReview
 import com.pennywiseai.tracker.domain.review.PeriodReview
 import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.domain.review.ReviewRange
+import com.pennywiseai.tracker.domain.review.percentChange
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.Money
+import com.pennywiseai.tracker.utils.changeText
 import com.pennywiseai.tracker.utils.inAppLanguage
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -106,7 +108,7 @@ class PdfReportExporter @Inject constructor(
     /**
      * Writes the report to a new file in the `exports/` cache and returns a shareable
      * URI. [title] and [profileName] are as the screen shows them, and [comparedWith] names
-     * the period the categories' changes are measured from ("September"); [categoryLabel]
+     * the period each section's spending and its categories' changes are measured from ("September"); [categoryLabel]
      * turns a stored category name into the one the user reads.
      */
     suspend fun export(
@@ -201,6 +203,10 @@ class PdfReportExporter @Inject constructor(
                     )
                 ),
             )
+            // The screen's one-line takeaway, "12% more than September"; printed even while the app hides amounts.
+            percentChange(review.spent, review.previousSpent)?.let { change ->
+                blocks += text(changeText(context, change, comparedWith), body, before = 6f)
+            }
             if (review.months.isNotEmpty()) {
                 blocks += text(context.getString(R.string.review_by_month), bodyBold, before = 12f, after = 4f, keepWithNext = true)
                 blocks += monthBars(review)

@@ -496,15 +496,15 @@
       "balance": null
     },
     "Federal Bank": {
-      "sender": "AD-FEDBNK-T",
-      "message": "Debited Rs 6000 from a/c XX3343 on 24JUN2026 21:35 via NEFT to Jerry.Ref FDRLM4175007432.Bal Rs 76.82.Not you?Call 18004251199 -Federal Bank",
+      "sender": "JK-FEDBNK-T",
+      "message": "Debited Rs 123.45 from a/c X9999 on 10Jan26 12:34 via UPI to sampleshop@o. Ref 123456789012.Bal Rs 1245.46. Not you?Call 18004251199 -Federal Bank",
       "currency": "INR",
-      "amount": "6000",
+      "amount": "123.45",
       "type": "EXPENSE",
-      "merchant": "Jerry",
-      "accountLast4": "3343",
-      "reference": "FDRLM4175007432",
-      "balance": "76.82"
+      "merchant": "sampleshop@o",
+      "accountLast4": "9999",
+      "reference": "123456789012",
+      "balance": "1245.46"
     },
     "First Abu Dhabi Bank": {
       "sender": "FAB",
@@ -1242,6 +1242,17 @@
       "accountLast4": null,
       "reference": "3",
       "balance": "22400.00"
+    },
+    "Union Bank of India": {
+      "sender": "VM-UNIONB-S",
+      "message": "A/c *1234 Debited for Rs:100.00 on 11-08-2025 18:28:02 by Mob Bk ref no 123456789000 Avl Bal Rs:12345.67",
+      "currency": "INR",
+      "amount": "100.00",
+      "type": "EXPENSE",
+      "merchant": "Mobile Banking Transfer",
+      "accountLast4": "1234",
+      "reference": "123456789000",
+      "balance": "12345.67"
     },
     "Yes Bank": {
       "sender": "JX-YESBNK-S",

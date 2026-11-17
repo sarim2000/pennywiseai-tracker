@@ -1,5 +1,6 @@
 package com.pennywiseai.parser.core.bank
 
+import com.pennywiseai.parser.core.TransactionType
 import java.math.BigDecimal
 
 /**
@@ -7,6 +8,7 @@ import java.math.BigDecimal
  *
  * Supported formats:
  * - Debit: "A/c *1234 Debited for Rs:100.00 on 11-08-2025 18:28:02 by Mob Bk ref no 123456789000 Avl Bal Rs:12345.67"
+ * - Short form: "Union Bank of India A/c*1234 Dr Rs166.00 on 15-11-26 21:26 by MB 6685456898 PAYEE, Bal Rs137.57"
  * - Credit transactions
  * - ATM withdrawals
  * - UPI transactions
@@ -20,15 +22,15 @@ class UnionBankParser : BaseIndianBankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("UNIONB") ||
-                normalizedSender.contains("UNIONBANK") ||
-                normalizedSender.contains("UBOI") ||
-                // DLT patterns for transactions (-S, -T suffix)
-                normalizedSender.matches(Regex("^[A-Z]{2}-UNIONB-[ST]$")) ||
-                // Other DLT patterns
-                normalizedSender.matches(Regex("^[A-Z]{2}-UNIONB-[TPG]$")) ||
-                // Legacy patterns
-                normalizedSender.matches(Regex("^[A-Z]{2}-UNIONB$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-UNIONBANK$"))
+            normalizedSender.contains("UNIONBANK") ||
+            normalizedSender.contains("UBOI") ||
+            // DLT patterns for transactions (-S, -T suffix)
+            normalizedSender.matches(Regex("^[A-Z]{2}-UNIONB-[ST]$")) ||
+            // Other DLT patterns
+            normalizedSender.matches(Regex("^[A-Z]{2}-UNIONB-[TPG]$")) ||
+            // Legacy patterns
+            normalizedSender.matches(Regex("^[A-Z]{2}-UNIONB$")) ||
+            normalizedSender.matches(Regex("^[A-Z]{2}-UNIONBANK$"))
     }
 
     override fun isTransactionMessage(message: String): Boolean {
@@ -41,7 +43,7 @@ class UnionBankParser : BaseIndianBankParser() {
             "spent", "received", "transferred", "paid"
         )
 
-        if (transactionKeywords.any { lowerMessage.contains(it) }) {
+        if (transactionKeywords.any { lowerMessage.contains(it) } || DR_CR.containsMatchIn(message)) {
             // It's a transaction message, even if it contains OTP in warning text
             return true
         }
@@ -77,7 +79,23 @@ class UnionBankParser : BaseIndianBankParser() {
         return super.extractAmount(message)
     }
 
+    override fun extractTransactionType(message: String): TransactionType? {
+        // Short form marks the direction with "Dr"/"Cr" before the amount.
+        DR_CR.find(message)?.let {
+            return if (it.groupValues[1].equals("Dr", ignoreCase = true)) TransactionType.EXPENSE
+            else TransactionType.INCOME
+        }
+        return super.extractTransactionType(message)
+    }
+
     override fun extractMerchant(message: String, sender: String): String? {
+        // Short form: "by MB 6685456898 PAYEE, Bal" (MB = mobile banking, then its ref)
+        Regex("""\bby\s+MB\s+\d+\s+([^,]+?)\s*,\s*Bal\b""", RegexOption.IGNORE_CASE).find(message)?.let { match ->
+            val merchant = cleanMerchantName(match.groupValues[1].trim())
+            if (isValidMerchantName(merchant)) return merchant
+        }
+        if (Regex("""\bby\s+MB\b""").containsMatchIn(message)) return "Mobile Banking Transfer"
+
         // Pattern 1: Mobile Banking - "by Mob Bk"
         if (message.contains("Mob Bk", ignoreCase = true)) {
             return "Mobile Banking Transfer"
@@ -136,6 +154,7 @@ class UnionBankParser : BaseIndianBankParser() {
     override fun extractReference(message: String): String? {
         // Union Bank format: "ref no 123456789000"
         val refPatterns = listOf(
+            Regex("""\bby\s+MB\s+(\d+)""", RegexOption.IGNORE_CASE),
             Regex("""ref\s+no\s+([\w]+)""", RegexOption.IGNORE_CASE),
             Regex("""ref[:#]?\s*([\w]+)""", RegexOption.IGNORE_CASE),
             Regex("""reference[:#]?\s*([\w]+)""", RegexOption.IGNORE_CASE),
@@ -194,6 +213,11 @@ class UnionBankParser : BaseIndianBankParser() {
         }
 
         return super.extractBalance(message)
+    }
+
+    private companion object {
+        /** "A/c*1234 Dr Rs166.00" / "A/c*1234 Cr Rs500.00" */
+        val DR_CR = Regex("""\b(Dr|Cr)\.?\s+(?:Rs|INR)""", RegexOption.IGNORE_CASE)
     }
 
     private fun parseUPIMerchant(vpa: String): String {

@@ -248,6 +248,29 @@ class ICICIBankParserTest {
                 )
             ),
             ParserTestCase(
+                name = "Prepaid card debit takes the merchant from \"Info-\"",
+                message = "Dear Customer, Rs 250.00 debited from ICICI Bank Prepaid Card 1234 on 17-Nov-26. Info- SAMPLE CAFE. The Available Balance is Rs 1,000.00 . Call 022 50405238 for dispute or SMS BLOCK 1234 to 9215676766.",
+                sender = "JD-ICICIT-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("250.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    merchant = "SAMPLE CAFE"
+                )
+            ),
+            ParserTestCase(
+                name = "ACH loan EMI to a housing finance lender is an EXPENSE, not INVESTMENT",
+                message = "ICICI Bank Acc XX710 debited Rs. 26,916.00 on 10-Nov-26 InfoACH*LICHousin.Avl Bal Rs. 5,35,311.86.To dispute call 18002662 or SMS BLOCK 710 to 9215676766",
+                sender = "BP-ICICIT-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("26916.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    accountLast4 = "710",
+                    balance = BigDecimal("535311.86")
+                )
+            ),
+            ParserTestCase(
                 name = "ACH debit via ICICI is INVESTMENT",
                 message = "ICICI Bank Account XX123 debited Rs. 5,000.00 on 19-May-26 InfoACH*BD-ACHKFL.Avl Bal Rs. 3,25,000.04.To dispute call 1800 blah blah",
                 sender = "AX-ICICIT",
@@ -255,7 +278,7 @@ class ICICIBankParserTest {
                     amount = BigDecimal("5000.00"),
                     currency = "INR",
                     type = TransactionType.INVESTMENT,
-                    //merchant = "", - can't detect merchant
+                    // merchant = "", - can't detect merchant
                     accountLast4 = "123",
                     balance = BigDecimal("325000.04")
                 )

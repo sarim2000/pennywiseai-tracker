@@ -50,7 +50,7 @@ Your bank already texts you every transaction — PennyWise turns those SMS into
 
 **Key Differentiators**
 
-- **🔒 Private by Design** — All AI processing and transaction storage happen on your phone; no accounts, no analytics, no servers collecting your data
+- **🔒 Private by Design** — AI and transaction storage run on your phone; no accounts, no analytics, and your data leaves the phone only through opt-in features you start ([see Privacy](#privacy-first))
 - **⚡ Zero Setup** — Just grant SMS permission, no accounts to create, works instantly
 - **🆓 Free & Open Source** — AGPL v3 licensed, no ads, no trackers; an optional **[PennyWise Pro](#pennywise-pro)** upgrade supports the solo developer
 - **🌐 Your Language** — Translated via Crowdin, with full Arabic (RTL) support; pick your language and currency on first launch
@@ -209,7 +209,7 @@ More banks being added regularly! [Request your bank →](https://github.com/sar
 
 ## Privacy First
 
-All AI processing happens on your device, powered by Google AI Edge LiteRT-LM running Qwen 2.5. Your SMS and transactions are parsed, stored, and analyzed **locally** — there are no accounts, **no analytics, crash-reporting, or telemetry SDKs** (no Firebase / Crashlytics / Sentry / Google Analytics — verify in `app/build.gradle.kts`), and no PennyWise server ever receives your financial data. The whole codebase is open source (AGPL v3) so every claim below is checkable.
+All AI processing happens on your device, powered by Google AI Edge LiteRT-LM running Qwen 2.5. Your SMS and transactions are parsed, stored, and analyzed **locally** — there are no accounts, **no analytics, crash-reporting, or telemetry SDKs** (no Firebase / Crashlytics / Sentry / Google Analytics — verify in `app/build.gradle.kts`), and no PennyWise server receives your financial data unless you start one of the opt-in features below (reporting a parsing problem, or AI access). The whole codebase is open source (AGPL v3) so every claim below is checkable.
 
 ### Network access — every outbound call the app can make
 
@@ -218,7 +218,7 @@ All AI processing happens on your device, powered by Google AI Edge LiteRT-LM ru
 3. **On-device AI model** — a one-time ~1.5 GB download from Cloudflare R2, **only if you open the AI chat and choose to download it**. The bytes are SHA-256 pinned; after that the AI runs 100% offline. (`Constants.MODEL_URL`)
 4. **Report a parsing problem** — when you use this flow it opens `pennywise.zynth.dev` with the SMS text, its sender, and an RSA-encrypted device identifier (your Android ID plus a timestamp) pre-filled, and parses them server-side to show a preview. Nothing is sent unless you start this yourself. (`SmsReportUrlBuilder.kt`, `DeviceEncryption.kt`)
 5. **Online voice in chat** *(optional, off until you agree)* — dictation runs on your phone's speech service, on-device by default. A language your phone can't recognize offline (e.g. Arabic) can be used online after a one-time prompt that names the service; your speech then goes to that service, not to PennyWise. No audio is recorded or kept. (`VoiceInput.kt`)
-6. **AI access** *(Pro, off until you connect an app)* — while an AI session you started is on, questions from Claude, ChatGPT or the PennyWise dashboard reach your phone through the PennyWise relay (`ai.pennywise.zynth.dev`, or your own self-hosted relay); your phone answers from its database. The relay doesn't store or log them, and SMS text, full account numbers and notes never leave. See [docs/ai-access.md](docs/ai-access.md).
+6. **AI access** *(Pro, off until you connect an app)* — while an AI session you started is on, questions from Claude, ChatGPT or the PennyWise dashboard reach your phone through the PennyWise relay (`ai.pennywise.zynth.dev`, or your own self-hosted relay); your phone answers from its database. The relay terminates TLS, so it could read those answers; it is built never to store or log them, and you can run your own instead, and SMS text, full account numbers and notes never leave. See [docs/ai-access.md](docs/ai-access.md).
 7. **Webhook sync** *(Pro, off unless you add one)* — sends the data you choose (summary, transactions, budgets, accounts, subscriptions) to a URL you enter. (`WebhookDeliveryService.kt`)
 8. **Links** (Discord, GitHub, Play Store, user guide, backup docs) open your browser — no background data.
 
@@ -336,8 +336,9 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before participating.
 
 ```bash
-./init.sh            # Format, compile and test — the same gate CI runs
-./init.sh parser     # Just parser-core, when you only touched a bank parser
+./init.sh                          # Format, compile and test (CI also assembles the APK and runs lint)
+./init.sh parser                   # Just parser-core, when you only touched a bank parser
+./gradlew :app:lintStandardDebug   # Android Lint, as CI runs it
 ```
 
 ## Security

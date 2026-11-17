@@ -211,6 +211,17 @@ class BudgetRolloverRoutingTest {
     }
 
     @Test
+    fun `a stored rollover on a budget that isn't a spending limit carries nothing`() {
+        for (type in listOf(BudgetGroupType.TARGET, BudgetGroupType.EXPECTED)) {
+            val group = budget().let { it.copy(budget = it.budget.copy(groupType = type)) }
+            val repo = repository(group, listOf(spend("60", at = lastWeek), spend("30")))
+            assertFigures(summary(repo, unified = false), carry = "0", limit = "100", remaining = "70")
+            assertFigures(summary(repo, unified = true), carry = "0", limit = "100", remaining = "70")
+            assertFigures(home(repo), carry = "0", limit = "100", remaining = "70")
+        }
+    }
+
+    @Test
     fun `unified mode converts last week's other currencies at today's rate`() {
         val repo = repository(budget(), listOf(spend("60", at = lastWeek), spend("20", "USD", lastWeek), spend("30")))
         assertFigures(summary(repo, unified = true), carry = "30", limit = "130", remaining = "100")

@@ -355,7 +355,7 @@ fun BudgetGroupEditScreen(
                             }
                         }
 
-                        if (uiState.periodType != BudgetPeriodType.CUSTOM) {
+                        if (uiState.rolloverAvailable) {
                             HorizontalDivider(
                                 color = MaterialTheme.colorScheme.outlineVariant.copy(
                                     alpha = Dimensions.Alpha.divider

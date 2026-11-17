@@ -30,6 +30,14 @@ class AmountExpressionTest {
     }
 
     @Test
+    fun `division stays exact until the final rounding`() {
+        // 1÷3×3 is exactly 1, so this is 0.105 and rounds up; a 34-digit quotient gave 0.10.
+        assertEquals("0.11", eval("1÷3×3−0.895"))
+        assertEquals("1.00", eval("1÷3+1÷3+1÷3"))
+        assertEquals("33.33", eval("100÷3"))
+    }
+
+    @Test
     fun `halves round up`() {
         assertEquals("0.13", eval("0.125"))
         assertEquals("3", eval("2.5", digits = 0))
@@ -68,6 +76,8 @@ class AmountExpressionTest {
         assertEquals("999999999999999.00", eval("999999999999999"))
         assertNull(eval("1+".repeat(40) + "1"))
         assertNull(eval("(".repeat(40) + "1" + ")".repeat(40)))
+        // Over-long is rejected whole, never read as a shorter (different) number.
+        assertNull(eval("0".repeat(63) + "12"))
     }
 
     @Test

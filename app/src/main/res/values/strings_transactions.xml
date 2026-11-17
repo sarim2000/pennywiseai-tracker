@@ -446,6 +446,17 @@
     <string name="quick_add_from">From: %1$s</string>
     <!-- %1$s amount with currency, %2$s category -->
     <string name="quick_add_saved">Saved %1$s · %2$s</string>
+    <!-- The sheet filled from the voice mic (Home, the cash widget) -->
+    <string name="quick_add_title_income">Cash received</string>
+    <string name="quick_add_spent">Spent</string>
+    <string name="quick_add_received">Received</string>
+    <!-- Clears a day said out loud ("yesterday") back to today -->
+    <string name="quick_add_date_today">Use today</string>
+    <string name="quick_add_voice_title">Add by voice</string>
+    <string name="quick_add_voice_hint">Say a cash spend like “200 lunch”, or ask a question.</string>
+    <string name="quick_add_voice_unclear">Couldn\'t find one amount in that. Try again, or type it.</string>
+    <string name="quick_add_voice_chat_hidden">Questions go to Chat, which is hidden. Show it in Appearance settings, or say a spend.</string>
+    <string name="quick_add_voice_type">Type instead</string>
     <!-- Amount calculator: a keypad sheet opened from the amount field -->
     <string name="calculator_open">Calculator</string>
     <string name="calculator_title">Work out the amount</string>

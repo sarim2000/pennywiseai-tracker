@@ -15,6 +15,16 @@ object BalanceCalculator {
     fun preservedAccountType(existing: AccountBalanceEntity?): String? = existing?.accountType
 
     /**
+     * Credit still available on a card. A card row stores the TOTAL limit (an SMS's
+     * "avl limit" is saved as available + outstanding, #486) and the outstanding
+     * as its balance, both in the row's currency, so available = limit − balance.
+     * On the row an SMS reported a limit, this is exactly the bank's own figure.
+     * Negative when the card is over its limit.
+     */
+    fun availableCredit(creditLimit: BigDecimal, outstanding: BigDecimal): BigDecimal =
+        creditLimit - outstanding
+
+    /**
      * `is_credit_card` for a balance row rebuilt from an SMS. An account with no
      * type yet (or typed CREDIT) is marked by a card SMS and an existing card stays
      * one. An account with a non-card type (set on Add Account, or changed in Edit

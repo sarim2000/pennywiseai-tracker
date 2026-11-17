@@ -78,8 +78,9 @@ class AccountDetailViewModel @Inject constructor(
         val (billAmount, asOf) = CardBills.toSave(_uiState.value.cardBill, dueDay, amount, LocalDateTime.now())
         viewModelScope.launch {
             // A rebuild still waiting to put the old bill back mustn't undo this edit.
-            rebuildAccountFields.forgetCardBill(bankName, accountLast4)
-            accountBalanceRepository.setCardBill(bankName, accountLast4, dueDay, billAmount, asOf)
+            rebuildAccountFields.editCardBill(bankName, accountLast4) {
+                accountBalanceRepository.setCardBill(bankName, accountLast4, dueDay, billAmount, asOf)
+            }
         }
     }
 

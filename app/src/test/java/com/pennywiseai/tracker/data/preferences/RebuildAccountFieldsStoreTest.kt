@@ -5,6 +5,11 @@ import android.content.SharedPreferences
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.CompletableDeferred
+import kotlinx.coroutines.joinAll
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.runCurrent
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -48,14 +53,14 @@ class RebuildAccountFieldsStoreTest {
     }
 
     @Test
-    fun `a bill cleared after an interrupted rebuild stays cleared at the next scan`() {
+    fun `a bill cleared after an interrupted rebuild stays cleared at the next scan`() = runTest {
         val store = RebuildAccountFieldsStore(contextOverOneFile())
         // The rebuild saved the card, then stopped before any scan put it back.
-        store.save(listOf(card, card.copy(accountLast4 = "2222")))
+        store.saveBeforeRebuild { listOf(card, card.copy(accountLast4 = "2222")) }
 
         // The user clears the recreated card's bill, then sets its statement day afresh.
-        store.forgetCardBill("Test Bank", "0000")
-        store.forgetStatementDay("Test Bank", "0000")
+        store.editCardBill("Test Bank", "0000") {}
+        store.editStatementDay("Test Bank", "0000") {}
 
         // What the next scan would put back: only the anchor, and the other card untouched.
         val pending = store.pending().associateBy { it.accountLast4 }
@@ -69,12 +74,41 @@ class RebuildAccountFieldsStoreTest {
     }
 
     @Test
-    fun `an account with nothing left to put back is dropped`() {
+    fun `an account with nothing left to put back is dropped`() = runTest {
         val store = RebuildAccountFieldsStore(contextOverOneFile())
-        store.save(listOf(card.copy(anchorAmount = null, anchorAt = null, anchorSource = null, statementDay = null)))
+        store.saveBeforeRebuild { listOf(card.copy(anchorAmount = null, anchorAt = null, anchorSource = null, statementDay = null)) }
 
-        store.forgetCardBill("Test Bank", "0000")
+        store.editCardBill("Test Bank", "0000") {}
 
+        assertTrue(store.pending().isEmpty())
+    }
+
+    @Test
+    fun `an edit that lands while a scan puts the bill back stays as the user set it`() = runTest {
+        val store = RebuildAccountFieldsStore(contextOverOneFile())
+        store.saveBeforeRebuild { listOf(card) }
+        // The card's rows, recreated by the scan without the bill.
+        var rowBill: BigDecimal? = null
+        val restoring = CompletableDeferred<Unit>()
+        val finish = CompletableDeferred<Unit>()
+
+        val scan = launch {
+            store.restore { saved ->
+                // The scan has read the saved bill and is about to write it back.
+                restoring.complete(Unit)
+                finish.await()
+                if (rowBill == null) rowBill = saved.cardBillAmount
+                1
+            }
+        }
+        restoring.await()
+        // The user clears the bill in the middle of that.
+        val edit = launch { store.editCardBill("Test Bank", "0000") { rowBill = null } }
+        runCurrent()
+        finish.complete(Unit)
+        joinAll(scan, edit)
+
+        assertNull(rowBill)
         assertTrue(store.pending().isEmpty())
     }
 

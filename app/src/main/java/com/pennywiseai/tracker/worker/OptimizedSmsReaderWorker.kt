@@ -189,14 +189,15 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                     // never regenerate them (hash collision short-circuits
                     // processBalanceUpdate), leaving gaps in the balance
                     // time-series.
-                    val latestBeforeRebuild = accountBalanceRepository.getAllLatestBalancesOnce()
-                    accountsBeforeRebuild = latestBeforeRebuild
-                        .filter { it.accountType != null }
-                        .associateBy { it.bankName to it.accountLast4 }
                     // On disk before any row goes, so a scan that stops part-way can't lose
                     // the bill or anchor the user set. Today's rows come first: put back
                     // first, they win over an older interrupted rebuild's.
-                    rebuildAccountFields.save(latestBeforeRebuild + rebuildAccountFields.pending())
+                    val latestBeforeRebuild = rebuildAccountFields.saveBeforeRebuild {
+                        accountBalanceRepository.getAllLatestBalancesOnce()
+                    }
+                    accountsBeforeRebuild = latestBeforeRebuild
+                        .filter { it.accountType != null }
+                        .associateBy { it.bankName to it.accountLast4 }
                     transactionRepository.deleteRebuildableSmsTransactions(
                         java.time.LocalDateTime.ofInstant(
                             java.time.Instant.ofEpochMilli(scanStartTime), java.time.ZoneId.systemDefault()
@@ -282,13 +283,10 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             // so put each typed account's type back on the rows that lost it (#792).
             for (row in accountsBeforeRebuild.values) accountBalanceRepository.restoreAccountType(row)
             // Likewise the statement and due day, card bill and balance anchor the user set,
-            // saved by this rebuild or one that never finished. Read now, not when the scan
-            // began: a field the user edited since is no longer in it, and stays as they set it.
-            // An account with no rows yet keeps its fields saved for a later scan.
-            val accountFieldsToKeep = rebuildAccountFields.pending()
-            if (accountFieldsToKeep.isNotEmpty()) {
-                rebuildAccountFields.save(accountFieldsToKeep.filter { accountBalanceRepository.keepAccountFields(it) == 0 })
-            }
+            // saved by this rebuild or one that never finished. Read now, under the store's
+            // lock: a field the user edited since is no longer in it, and an edit can't land
+            // between the read and the write. An account with no rows yet stays saved.
+            rebuildAccountFields.restore { accountBalanceRepository.keepAccountFields(it) }
             // A rebuild drops ATM transfers into Cash wallets (#1062) and may not route
             // them again (setting since turned off), so re-derive every Cash wallet.
             if (rebuildStartedAt != null) {

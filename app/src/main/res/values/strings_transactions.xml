@@ -306,6 +306,7 @@
     <string name="add_receipt_no_app">No app on this phone can do this. Try another option.</string>
     <string name="add_receipt_save_failed">Couldn\'t attach this receipt. Try another file.</string>
     <string name="txn_detail_receipt_no_pdf_app">No app on this phone can open PDFs</string>
+    <string name="txn_detail_receipt_no_pdf_viewer">No app on this phone can open PDFs. Install a PDF viewer to see the whole bill.</string>
     <string name="add_sub_direction_expense">Expense</string>
     <string name="add_sub_direction_income">Income</string>
     <string name="add_sub_info_income">Track recurring income (wallet top-ups, allowance). A transaction is auto-created on each scheduled date.</string>

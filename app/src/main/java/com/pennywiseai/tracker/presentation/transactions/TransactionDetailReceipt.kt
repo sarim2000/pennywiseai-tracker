@@ -522,18 +522,20 @@ internal fun TransactionReceipt(
         val receiptUri by viewModel.receiptUri.collectAsStateWithLifecycle()
         receiptUri?.let { uri ->
             val context = LocalContext.current
+            // A PDF opens in the phone's PDF viewer; a photo opens full screen here. With no
+            // PDF viewer installed there's nothing to tap through to, so the card says so.
+            val pdfIntent = remember(uri) { viewModel.pdfReceiptViewIntent() }
+            val canOpen = remember(pdfIntent) { pdfIntent == null || pdfIntent.resolveActivity(context.packageManager) != null }
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(RoundedCornerShape(12.dp))
-                    .clickable {
-                        // A PDF opens in the phone's PDF viewer; a photo opens full screen here.
-                        val pdf = viewModel.pdfReceiptViewIntent()
-                        if (pdf == null) {
+                    .clickable(enabled = canOpen) {
+                        if (pdfIntent == null) {
                             viewModel.showFullScreenReceipt()
                         } else {
                             try {
-                                context.startActivity(pdf)
+                                context.startActivity(pdfIntent)
                             } catch (_: ActivityNotFoundException) {
                                 Toast.makeText(context, R.string.txn_detail_receipt_no_pdf_app, Toast.LENGTH_SHORT).show()
                             }
@@ -559,11 +561,13 @@ internal fun TransactionReceipt(
                             fontWeight = FontWeight.SemiBold
                         )
                         Spacer(modifier = Modifier.weight(1f))
-                        Text(
-                            text = stringResource(R.string.txn_detail_receipt_tap_to_view),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        if (canOpen) {
+                            Text(
+                                text = stringResource(R.string.txn_detail_receipt_tap_to_view),
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                     Spacer(modifier = Modifier.height(Spacing.sm))
                     ReceiptPreview(
@@ -574,6 +578,14 @@ internal fun TransactionReceipt(
                             .heightIn(max = 200.dp)
                             .clip(RoundedCornerShape(8.dp))
                     )
+                    if (!canOpen) {
+                        Spacer(modifier = Modifier.height(Spacing.sm))
+                        Text(
+                            text = stringResource(R.string.txn_detail_receipt_no_pdf_viewer),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
         }

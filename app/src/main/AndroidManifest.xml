@@ -51,6 +51,11 @@
         <intent>
             <action android:name="android.view.InputMethod" />
         </intent>
+        <!-- PDF receipts: whether any app can open one, before offering "Tap to view". -->
+        <intent>
+            <action android:name="android.intent.action.VIEW" />
+            <data android:scheme="content" android:mimeType="application/pdf" />
+        </intent>
     </queries>
 
     <application

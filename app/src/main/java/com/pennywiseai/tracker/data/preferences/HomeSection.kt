@@ -51,14 +51,15 @@ object HomeSectionLayout {
     }
 
     /**
-     * [section] swapped with the section [delta] places away. Unchanged when [section]
-     * isn't in [layout] or the move would pass either end.
+     * [section] moved [delta] places, the sections in between shifting over to fill
+     * the gap (a drag-and-drop move; for ±1 it's a swap with the neighbour). Unchanged
+     * when [section] isn't in [layout] or the move would pass either end.
      */
     fun move(layout: List<Pair<HomeSection, Boolean>>, section: HomeSection, delta: Int): List<Pair<HomeSection, Boolean>> {
         val from = layout.indexOfFirst { it.first == section }
         val to = from + delta
         return if (from < 0 || to !in layout.indices) layout
-        else layout.toMutableList().also { java.util.Collections.swap(it, from, to) }
+        else layout.toMutableList().also { it.add(to, it.removeAt(from)) }
     }
 
     /** [section] shown or hidden in place. */

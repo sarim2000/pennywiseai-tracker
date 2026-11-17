@@ -94,6 +94,18 @@ class HomeSectionLayoutTest {
     }
 
     @Test
+    fun `dragging a section several places shifts the ones in between`() {
+        assertEquals(
+            listOf(HomeSection.ACTIVITY to true, HomeSection.SAFE_TO_SPEND to true, HomeSection.BUDGETS to false),
+            HomeSectionLayout.move(threeSections, HomeSection.ACTIVITY, -2),
+        )
+        assertEquals(
+            listOf(HomeSection.BUDGETS to false, HomeSection.ACTIVITY to true, HomeSection.SAFE_TO_SPEND to true),
+            HomeSectionLayout.move(threeSections, HomeSection.SAFE_TO_SPEND, 2),
+        )
+    }
+
+    @Test
     fun `moving past either end or moving a missing section changes nothing`() {
         assertEquals(threeSections, HomeSectionLayout.move(threeSections, HomeSection.SAFE_TO_SPEND, -1))
         assertEquals(threeSections, HomeSectionLayout.move(threeSections, HomeSection.ACTIVITY, 1))

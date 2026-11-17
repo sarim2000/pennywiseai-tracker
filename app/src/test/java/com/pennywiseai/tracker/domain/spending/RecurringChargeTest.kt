@@ -93,8 +93,41 @@ class RecurringChargeTest {
     @Test
     fun `the next payment shown keeps today and moves past dates on a month at a time`() {
         val today = LocalDate.of(2026, 11, 16)
-        assertEquals(today, RecurringCharge.nextPaymentShown(today, today))
-        assertEquals(LocalDate.of(2026, 12, 10), RecurringCharge.nextPaymentShown(LocalDate.of(2026, 10, 10), today))
-        assertEquals(LocalDate.of(2026, 11, 20), RecurringCharge.nextPaymentShown(LocalDate.of(2026, 11, 20), today))
+        assertEquals(today, RecurringCharge.nextPaymentShown(today, "Monthly", today))
+        assertEquals(LocalDate.of(2026, 12, 10), RecurringCharge.nextPaymentShown(LocalDate.of(2026, 10, 10), "Monthly", today))
+        assertEquals(LocalDate.of(2026, 11, 20), RecurringCharge.nextPaymentShown(LocalDate.of(2026, 11, 20), "Monthly", today))
+    }
+
+    @Test
+    fun `the next payment shown moves on by the subscription's own cycle`() {
+        val today = LocalDate.of(2026, 11, 17)
+        // Weekly: Nov 13 is next due Nov 20, not Dec 13.
+        assertEquals(LocalDate.of(2026, 11, 20), RecurringCharge.nextPaymentShown(LocalDate.of(2026, 11, 13), "Weekly", today))
+        // Annual: a missed March date is next due next March, with no monthly dates between.
+        assertEquals(LocalDate.of(2027, 3, 5), RecurringCharge.nextPaymentShown(LocalDate.of(2026, 3, 5), "Annual", today))
+        assertEquals(LocalDate.of(2027, 2, 1), RecurringCharge.nextPaymentShown(LocalDate.of(2026, 11, 1), "Quarterly", today))
+        // Due today stays today, whatever the cycle.
+        assertEquals(today, RecurringCharge.nextPaymentShown(today, "Weekly", today))
+    }
+
+    @Test
+    fun `a month-end payment lands on February's last day and comes back to the 31st`() {
+        val jan31 = LocalDate.of(2027, 1, 31)
+        assertEquals(LocalDate.of(2027, 2, 28), RecurringCharge.nextPaymentShown(jan31, "Monthly", LocalDate.of(2027, 2, 10)))
+        assertEquals(
+            LocalDate.of(2028, 2, 29),
+            RecurringCharge.nextPaymentShown(LocalDate.of(2028, 1, 31), "Monthly", LocalDate.of(2028, 2, 10)),
+        )
+        assertEquals(LocalDate.of(2027, 3, 31), RecurringCharge.nextPaymentShown(jan31, "Monthly", LocalDate.of(2027, 3, 1)))
+    }
+
+    @Test
+    fun `advance moves by the cycle, either way`() {
+        val date = LocalDate.of(2026, 11, 13)
+        assertEquals(LocalDate.of(2026, 11, 20), RecurringCharge.advance(date, "Weekly"))
+        assertEquals(LocalDate.of(2026, 11, 6), RecurringCharge.advance(date, "WEEKLY", -1))
+        assertEquals(LocalDate.of(2027, 5, 13), RecurringCharge.advance(date, "Semi-Annual"))
+        assertEquals(LocalDate.of(2027, 11, 13), RecurringCharge.advance(date, "Yearly"))
+        assertEquals(LocalDate.of(2026, 12, 13), RecurringCharge.advance(date, "Fortnightly"))
     }
 }

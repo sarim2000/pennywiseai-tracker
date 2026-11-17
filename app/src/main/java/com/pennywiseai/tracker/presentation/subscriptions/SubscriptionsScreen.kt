@@ -674,7 +674,7 @@ private fun SwipeableSubscriptionItem(
                                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                                     )
                                 } else {
-                                    val nextPaymentDate = RecurringCharge.nextPaymentShown(subscriptionDate, today)
+                                    val nextPaymentDate = RecurringCharge.nextPaymentShown(subscriptionDate, subscription.billingCycle, today)
                                     val daysUntilNext = ChronoUnit.DAYS.between(today, nextPaymentDate)
 
                                     Icon(

@@ -81,15 +81,33 @@ object RecurringCharge {
             (today.isBefore(scheduled.minusDays(EARLY_PAY_DAYS)) || today.isBefore(lastPaid.plusDays(EARLY_PAY_DAYS)))
 
     /**
+     * [date] moved [times] billing cycles on (back, when negative). Months and years
+     * use calendar arithmetic, so "Monthly" lands on the same day of the month, not
+     * 30 days on. An unknown cycle moves monthly, so a hand-made row never stays put.
+     */
+    fun advance(date: LocalDate, billingCycle: String, times: Long = 1): LocalDate =
+        when (billingCycle.uppercase()) {
+            "WEEKLY" -> date.plusWeeks(times)
+            "MONTHLY" -> date.plusMonths(times)
+            "QUARTERLY" -> date.plusMonths(3L * times)
+            "SEMI-ANNUAL", "SEMI ANNUAL", "SEMIANNUAL" -> date.plusMonths(6L * times)
+            "ANNUAL", "YEARLY" -> date.plusYears(times)
+            else -> date.plusMonths(times)
+        }
+
+    /**
      * The next payment as the Subscriptions screen shows it: [scheduled], moved on a
-     * month at a time while it's in the past. A payment due today stays today: a paid
-     * bill has already moved on ([com.pennywiseai.tracker.data.repository.SubscriptionRepository.recordCharge]),
+     * [billingCycle] at a time while it's in the past. Each step counts from
+     * [scheduled], so a bill due on the 31st comes back to the 31st after February.
+     * A payment due today stays today: a paid bill has already moved on
+     * ([com.pennywiseai.tracker.data.repository.SubscriptionRepository.recordCharge]),
      * so one still on today hasn't been seen paid. Anything else that names a
      * subscription's next date reads this, so the two never disagree.
      */
-    fun nextPaymentShown(scheduled: LocalDate, today: LocalDate): LocalDate {
+    fun nextPaymentShown(scheduled: LocalDate, billingCycle: String, today: LocalDate): LocalDate {
+        var cycles = 0L
         var next = scheduled
-        while (next.isBefore(today)) next = next.plusMonths(1)
+        while (next.isBefore(today)) next = advance(scheduled, billingCycle, ++cycles)
         return next
     }
 

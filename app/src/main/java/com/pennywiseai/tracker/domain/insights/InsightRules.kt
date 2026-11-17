@@ -173,7 +173,7 @@ object InsightRules {
     ): List<Insight> {
         val charges = review.detail?.spendRows.orEmpty().map { it.transaction }
         val bills = subscriptions.mapNotNull { sub ->
-            val due = RecurringCharge.nextPaymentShown(sub.nextPaymentDate ?: return@mapNotNull null, today)
+            val due = RecurringCharge.nextPaymentShown(sub.nextPaymentDate ?: return@mapNotNull null, sub.billingCycle, today)
             val paid = charges.any {
                 val date = it.dateTime.toLocalDate()
                 it.currency == sub.currency &&

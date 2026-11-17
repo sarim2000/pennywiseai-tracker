@@ -124,8 +124,11 @@
 
     <!-- Large transaction. %1$s = amount, %2$s = merchant, %3$s = how many times, e.g. "4×" -->
     <string name="insights_large_title">%1$s at %2$s, %3$s your usual</string>
-    <!-- %1$d = how many times the usual amount -->
-    <string name="insights_times">%1$d×</string>
+    <!-- %1$d = how many times the usual amount (3 or more) -->
+    <plurals name="insights_times">
+        <item quantity="one">%1$d×</item>
+        <item quantity="other">%1$d×</item>
+    </plurals>
     <!-- %1$s = category, %2$s = date -->
     <string name="insights_large_body">Usual is a typical %1$s spend. This one was on %2$s.</string>
 

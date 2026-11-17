@@ -144,10 +144,13 @@ internal fun actionLabel(action: InsightAction): String = stringResource(
 internal fun percent(value: Int): String =
     if (AmountPrivacy.hidden) AmountPrivacy.MASK else stringResource(R.string.insights_percent, value)
 
-/** "4×" says how two amounts relate, so it hides with them too. */
+/**
+ * "4×" says how two amounts relate, so it hides with them too. A plural, since
+ * Arabic's noun changes with the number (3–10, 11–99, 100 and up).
+ */
 @Composable
 private fun times(value: Int): String =
-    if (AmountPrivacy.hidden) AmountPrivacy.MASK else stringResource(R.string.insights_times, value)
+    if (AmountPrivacy.hidden) AmountPrivacy.MASK else pluralStringResource(R.plurals.insights_times, value, value)
 
 @Composable
 private fun savingsMetrics(f: InsightFact.SavingsRate) = listOf(

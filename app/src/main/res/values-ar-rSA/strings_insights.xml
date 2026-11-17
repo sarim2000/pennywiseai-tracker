@@ -140,8 +140,15 @@
 
     <!-- Large transaction. %1$s = amount, %2$s = merchant, %3$s = how many times, e.g. "4×" -->
     <string name="insights_large_title">دفعت %1$s لدى %2$s، %3$s معتادك</string>
-    <!-- %1$d = how many times the usual amount (3 or more) -->
-    <string name="insights_times">%1$d أضعاف</string>
+    <!-- %1$d = how many times the usual amount (3 or more): 3–10 أضعاف, 11–99 ضعفًا, 100 and up ضعف -->
+    <plurals name="insights_times">
+        <item quantity="zero">%1$d ضعف</item>
+        <item quantity="one">%1$d ضعف</item>
+        <item quantity="two">%1$d ضعف</item>
+        <item quantity="few">%1$d أضعاف</item>
+        <item quantity="many">%1$d ضعفًا</item>
+        <item quantity="other">%1$d ضعف</item>
+    </plurals>
     <!-- %1$s = category, %2$s = date -->
     <string name="insights_large_body">المعتاد هو مصروف نموذجي في %1$s. كان هذا في %2$s.</string>
 

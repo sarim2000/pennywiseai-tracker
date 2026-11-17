@@ -80,6 +80,7 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.bestInk
+import com.pennywiseai.tracker.ui.theme.isDark
 import com.pennywiseai.tracker.ui.theme.spending
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -333,8 +334,16 @@ private val TODAY_RING_INSET = Dimensions.Component.dividerThicknessEmphasis + S
 @ReadOnlyComposable
 private fun dayFill(level: Int): Color {
     val colors = MaterialTheme.colorScheme
-    return if (level == 0) colors.surfaceContainerLow else colors.primary.copy(alpha = level.toFloat() / SpendingCalendar.LEVELS)
+    if (level == 0) return colors.surfaceContainerLow
+    // A faint tint of primary all but vanishes on a dark page, so dark starts the scale
+    // stronger; light keeps its even quarters. Both end at full primary.
+    val first = if (colors.isDark) DARK_FIRST_SHADE else 1f / SpendingCalendar.LEVELS
+    val alpha = first + (1f - first) * (level - 1) / (SpendingCalendar.LEVELS - 1)
+    return colors.primary.copy(alpha = alpha)
 }
+
+/** The lightest shade's opacity in a dark theme, enough to tell from an empty day. */
+private const val DARK_FIRST_SHADE = 0.4f
 
 /** What a screen reader says for a day: the date, what was spent, how many payments are due. */
 @Composable

@@ -26,7 +26,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.Today
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -35,6 +35,7 @@ import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.ReadOnlyComposable
@@ -112,8 +113,9 @@ fun SpendingCalendarScreen(
         },
         actions = {
             if (state?.isThisMonth == false) {
-                IconButton(onClick = viewModel::showThisMonth, shapes = IconButtonDefaults.shapes()) {
-                    Icon(Icons.Default.Today, contentDescription = stringResource(R.string.calendar_this_month))
+                // Words rather than an icon: a calendar glyph alone doesn't say where it goes.
+                TextButton(onClick = viewModel::showThisMonth, shapes = ButtonDefaults.shapes()) {
+                    Text(stringResource(R.string.calendar_this_month))
                 }
             }
         },

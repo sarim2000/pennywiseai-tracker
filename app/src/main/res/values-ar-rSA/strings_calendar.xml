@@ -7,7 +7,7 @@
     <string name="calendar_back">رجوع</string>
     <string name="calendar_previous_month">الشهر السابق</string>
     <string name="calendar_next_month">الشهر التالي</string>
-    <string name="calendar_this_month">العودة إلى هذا الشهر</string>
+    <string name="calendar_this_month">هذا الشهر</string>
     <string name="calendar_legend_due">دفعة مستحقة</string>
     <!-- The ends of the shading scale under the calendar: less spent on a day, more spent -->
     <string name="calendar_legend_less">إنفاق أقل</string>

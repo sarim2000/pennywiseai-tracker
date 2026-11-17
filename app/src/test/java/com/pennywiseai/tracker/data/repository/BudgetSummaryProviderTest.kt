@@ -49,7 +49,8 @@ class BudgetSummaryProviderTest {
     private fun provider(
         unified: Boolean,
         budgets: List<BudgetWithCategories>,
-        transactions: List<TransactionWithSplits>
+        transactions: List<TransactionWithSplits>,
+        parentOf: Map<String, String> = emptyMap()
     ): BudgetSummaryProvider {
         val prefs = mockk<CurrencyPreferences> {
             every { baseCurrency } returns flowOf("JOD")
@@ -85,6 +86,7 @@ class BudgetSummaryProviderTest {
         val repo = mockk<BudgetGroupRepository> {
             every { getGroupSpendingAllCurrencies(any(), any()) } returns flowOf(raw)
             every { getGroupSpending(any(), any(), "JOD") } returns flowOf(baseSummary)
+            coEvery { parentOf() } returns parentOf
         }
         // USD converts 1:1; XYZ has never had a rate.
         val conversion = mockk<CurrencyConversionService> {
@@ -133,6 +135,20 @@ class BudgetSummaryProviderTest {
                 unified = false,
                 budgets = listOf(budget(1, "Food", "Food"), budget(2, "Fun", "Fun")),
                 transactions = listOf(tx(1, "10", "Food", "USD"), tx(2, "20", "Fun", "JOD"))
+            )
+        )
+        assertEquals(mapOf("Food" to true, "Fun" to false), flags)
+    }
+
+    @Test
+    fun `base currency only - a parent-only budget is incomplete for its sub-category's other currency`() {
+        // The base-currency total counts Groceries under Food, so leaving out its USD reads low.
+        val flags = flags(
+            provider(
+                unified = false,
+                budgets = listOf(budget(1, "Food", "Food"), budget(2, "Fun", "Fun")),
+                transactions = listOf(tx(1, "10", "Groceries", "USD")),
+                parentOf = mapOf("Groceries" to "Food")
             )
         )
         assertEquals(mapOf("Food" to true, "Fun" to false), flags)

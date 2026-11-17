@@ -57,6 +57,8 @@ class BudgetSummaryProvider @Inject constructor(
                     budgetGroupRepository.getGroupSpendingAllCurrencies(yearMonth.year, yearMonth.monthValue)
                 ) { summary, raw ->
                     val windowedByBudget = raw.windowedSpend.groupBy { it.budgetId }
+                    // The base-currency figures credit a sub-category's spend to its parent too.
+                    val parentOf = budgetGroupRepository.parentOf()
                     summary.copy(
                         groups = summary.groups.map { g ->
                             val txs = transactionsInWindow(
@@ -66,7 +68,7 @@ class BudgetSummaryProvider @Inject constructor(
                             )
                             // Same match as the base-currency query: anything else isn't counted.
                             g.copy(
-                                hasUnconvertedSpend = hasUncountedSpend(g.group, txs) { fromCurrency, amount ->
+                                hasUnconvertedSpend = hasUncountedSpend(g.group, txs, parentOf) { fromCurrency, amount ->
                                     amount.takeIf { fromCurrency == baseCurrency }
                                 }
                             )
@@ -245,10 +247,14 @@ class BudgetSummaryProvider @Inject constructor(
      * rate for, so its total reads low and its remaining high (#670). Matches as
      * [getBudgetWindowFilteredSpend] does: every expense and investment for a
      * budget with no categories, else only its own categories and type buckets.
+     * [parentOf] must be the one the matching total used, so a parent row is
+     * marked for its sub-categories' left-out spending exactly when the total
+     * counts their spending under it.
      */
     private suspend fun hasUncountedSpend(
         group: BudgetWithCategories,
         transactions: List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>,
+        parentOf: Map<String, String>,
         convert: suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?
     ): Boolean {
         if (group.categories.isEmpty()) {
@@ -258,7 +264,7 @@ class BudgetSummaryProvider @Inject constructor(
                     convert(tx.currency, tx.amount) == null
             }
         }
-        val aggregation = aggregateBudgetCategorySpending(transactions, convertSplit = convert, convertIncome = { null })
+        val aggregation = aggregateBudgetCategorySpending(transactions, convertSplit = convert, convertIncome = { null }, parentOf = parentOf)
         return group.categories.any { cat ->
             if (cat.matchType != null) cat.matchType in aggregation.skippedTypes
             else cat.categoryName in aggregation.skippedCategories
@@ -328,8 +334,9 @@ class BudgetSummaryProvider @Inject constructor(
         // [start, end] range fully contains displayedWindow.
         val txsInDisplay = transactionsInWindow(group.budget.id, windowedSpend, displayedWindow)
         val convertedTotalActual = getBudgetWindowFilteredSpend(group, txsInDisplay, displayCurrency, baseCurrency)
-        // Spending with no rate is skipped above, not counted at face value.
-        val hasUnconvertedSpend = hasUncountedSpend(group, txsInDisplay) { fromCurrency, amount ->
+        // Spending with no rate is skipped above, not counted at face value. This
+        // path's totals don't roll sub-categories into parents, so neither does the flag.
+        val hasUnconvertedSpend = hasUncountedSpend(group, txsInDisplay, parentOf = emptyMap()) { fromCurrency, amount ->
             currencyConversionService.convertAmountOrNull(amount, fromCurrency, displayCurrency)
         }
 

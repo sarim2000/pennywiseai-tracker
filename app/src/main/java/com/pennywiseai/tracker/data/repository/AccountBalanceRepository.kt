@@ -14,6 +14,7 @@ import com.pennywiseai.tracker.data.ledger.ledgerType
 import com.pennywiseai.tracker.data.preferences.NotificationPreferences
 import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.domain.model.toDatabaseString
+import com.pennywiseai.tracker.domain.spending.BalanceEffect
 import com.pennywiseai.tracker.domain.spending.BalanceEvidence
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import kotlinx.coroutines.flow.Flow
@@ -821,29 +822,31 @@ open class AccountBalanceRepository @Inject constructor(
 
     /**
      * What each of a manual account's transactions moved its balance by, signed as in
-     * [signedTransactionSum], with when it happened: the account's past, which its one
-     * refreshed MANUAL row doesn't keep.
+     * [signedTransactionSum], with when it happened and in which currency: the account's
+     * past, which its one refreshed MANUAL row doesn't keep.
      */
-    suspend fun manualBalanceEffects(bankName: String, accountLast4: String): List<Pair<LocalDateTime, BigDecimal>> {
+    suspend fun manualBalanceEffects(bankName: String, accountLast4: String): List<BalanceEffect> {
         val effects = transactionDao.getTransactionsForAccountStrict(bankName, accountLast4)
             .filter { it.transactionType != TransactionType.TRANSFER }
             .mapTo(mutableListOf()) { tx ->
-                tx.dateTime to if (tx.transactionType == TransactionType.INCOME) tx.amount else tx.amount.negate()
+                BalanceEffect(tx.dateTime, if (tx.transactionType == TransactionType.INCOME) tx.amount else tx.amount.negate(), tx.currency)
             }
         for (tx in transactionDao.getTransfersForAccount(accountLast4)) {
             if (tx.isPairedTransferLeg) {
                 if (tx.bankName == bankName && tx.accountNumber == accountLast4) {
                     when (tx.ledgerType()) {
-                        TransactionType.INCOME -> effects += tx.dateTime to tx.amount
-                        TransactionType.EXPENSE -> effects += tx.dateTime to tx.amount.negate()
+                        TransactionType.INCOME -> effects += BalanceEffect(tx.dateTime, tx.amount, tx.currency)
+                        TransactionType.EXPENSE -> effects += BalanceEffect(tx.dateTime, tx.amount.negate(), tx.currency)
                         else -> Unit
                     }
                 }
                 continue
             }
-            if (tx.toAccount == accountLast4 && (tx.toBankName == null || tx.toBankName == bankName)) effects += tx.dateTime to tx.amount
+            if (tx.toAccount == accountLast4 && (tx.toBankName == null || tx.toBankName == bankName)) {
+                effects += BalanceEffect(tx.dateTime, tx.amount, tx.currency)
+            }
             if (tx.fromAccount == accountLast4 && (tx.fromBankName == null || tx.fromBankName == bankName)) {
-                effects += tx.dateTime to tx.amount.negate()
+                effects += BalanceEffect(tx.dateTime, tx.amount.negate(), tx.currency)
             }
         }
         return effects

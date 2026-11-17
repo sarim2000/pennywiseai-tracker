@@ -80,14 +80,10 @@ class NetWorthLoader @Inject constructor(
         val keys = accounts.map { it.bankName to it.accountLast4 }.toSet()
         val derived = accounts.filter { accountBalanceRepository.isManualAccount(it.bankName, it.accountLast4) }
             .associate { account ->
-                val effects = accountBalanceRepository.manualBalanceEffects(account.bankName, account.accountLast4)
-                val firstRow = accountBalanceRepository.getEarliestBalanceTimestamp(account.bankName, account.accountLast4)
-                (account.bankName to account.accountLast4) to DerivedHistory(
-                    currency = account.currency,
-                    current = account.balance,
-                    anchored = account.anchorAt != null,
-                    effects = effects,
-                    existsFrom = listOfNotNull(firstRow, effects.minOfOrNull { it.first }).minOrNull(),
+                (account.bankName to account.accountLast4) to NetWorth.derivedHistory(
+                    account,
+                    accountBalanceRepository.manualBalanceEffects(account.bankName, account.accountLast4),
+                    accountBalanceRepository.getEarliestBalanceTimestamp(account.bankName, account.accountLast4),
                 )
             }
         NetWorth.trend(rows.filter { (it.bankName to it.accountLast4) in keys }, derived, start, end)

@@ -114,6 +114,42 @@ class NetWorthTrendTest {
         assertEquals(listOf(end), fresh.getValue("INR").map { it.date })
     }
 
+    private fun cash(currency: String, balance: String, anchorAt: LocalDateTime) = AccountBalanceEntity(
+        bankName = "Cash", accountLast4 = "0000", balance = d(balance), timestamp = anchorAt,
+        accountType = "SAVINGS", currency = currency, anchorAmount = d(balance), anchorAt = anchorAt,
+    )
+
+    @Test
+    fun `a manual account's past doesn't cross a change of its currency`() {
+        // USD cash since October, spent USD 20 on Nov 2, then moved to EUR on Nov 3 at
+        // EUR 100 and spent EUR 10 on Nov 4. The USD spending must never count as EUR.
+        val history = NetWorth.derivedHistory(
+            cash("EUR", "90", anchorAt = day(3, hour = 12)),
+            listOf(
+                BalanceEffect(day(2), d("-20"), "USD"),
+                BalanceEffect(day(4), d("-10"), "EUR"),
+            ),
+            firstRow = LocalDateTime.of(2026, 10, 1, 9, 0),
+        )
+        val trend = NetWorth.trend(emptyList(), mapOf(("Cash" to "0000") to history), start, end)
+
+        assertEquals(listOf(day(3), day(4), day(5)).map { it.toLocalDate() }, trend.getValue("EUR").map { it.date })
+        assertEquals(listOf("100", "90", "90"), values(trend["EUR"]))
+        assertTrue("USD" !in trend)
+    }
+
+    @Test
+    fun `a manual account in one currency throughout keeps its whole past`() {
+        val history = NetWorth.derivedHistory(
+            cash("INR", "700", anchorAt = day(4)),
+            listOf(BalanceEffect(day(3), d("-200"), "INR")),
+            firstRow = LocalDateTime.of(2026, 10, 1, 9, 0),
+        )
+        val trend = NetWorth.trend(emptyList(), mapOf(("Cash" to "0000") to history), start, end)
+
+        assertEquals(listOf("900", "900", "700", "700", "700"), values(trend["INR"]))
+    }
+
     @Test
     fun `a manual account never given a balance leaves its currency with no line`() {
         val cash = DerivedHistory("INR", d("700"), anchored = false, effects = emptyList())

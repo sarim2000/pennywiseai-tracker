@@ -97,6 +97,9 @@ data class DerivedHistory(
     val existsFrom: LocalDateTime? = null,
 )
 
+/** What one transaction moved an account's balance by, in the transaction's currency. */
+data class BalanceEffect(val at: LocalDateTime, val amount: BigDecimal, val currency: String)
+
 /** Person-to-person IOUs in one currency. Shown beside net worth, not counted in it. */
 data class PeopleOwed(val currency: String, val owedToYou: BigDecimal, val youOwe: BigDecimal)
 
@@ -143,6 +146,28 @@ object NetWorth {
             return BalanceSource.Reported(reportedAt)
         }
         return if (unanchored) BalanceSource.Estimated else null
+    }
+
+    /**
+     * [account]'s past as a manual account, from its [effects] and its [firstRow].
+     *
+     * Its past is in its currency today, so it can't reach back over a currency change:
+     * the old currency's amounts would be relabelled as the new one's. A transaction in
+     * another currency shows there was one; the change re-anchored the account, so its
+     * past then starts at the later of its anchor and that transaction, and before that
+     * it adds nothing to any line. (A change before any transaction leaves no trace, and
+     * its figure carries back.)
+     */
+    fun derivedHistory(account: AccountBalanceEntity, effects: List<BalanceEffect>, firstRow: LocalDateTime?): DerivedHistory {
+        val existsFrom = listOfNotNull(firstRow, effects.minOfOrNull { it.at }).minOrNull()
+        val lastForeign = effects.filter { it.currency != account.currency }.maxOfOrNull { it.at }
+        return DerivedHistory(
+            currency = account.currency,
+            current = account.balance,
+            anchored = account.anchorAt != null,
+            effects = effects.map { it.at to it.amount },
+            existsFrom = if (lastForeign == null) existsFrom else listOfNotNull(existsFrom, lastForeign, account.anchorAt).max(),
+        )
     }
 
     /**

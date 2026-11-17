@@ -808,8 +808,14 @@ class ManageAccountsViewModel @Inject constructor(
                     bankName = newBankName
                 )
 
-                // Only a changed balance is one the user just gave; a rename leaves the anchor alone.
-                val balanceChanged = latestBalance == null || latestBalance.balance.compareTo(newBalance) != 0
+                val balanceChanged = restatesBalance(
+                    oldBalance = latestBalance?.balance,
+                    oldCurrency = latestBalance?.let {
+                        CurrencyFormatter.resolveAccountCurrency(it.sourceType, it.currency, oldBankName)
+                    },
+                    newBalance = newBalance,
+                    newCurrency = resolvedCurrency,
+                )
                 if (latestBalance?.isLiability != true && accountBalanceRepository.isManualAccount(newBankName, accountLast4)) {
                     // Manual/cash account: balance is derived. Atomically update the
                     // currency on its anchor rows and back-solve the opening from the
@@ -870,3 +876,15 @@ class ManageAccountsViewModel @Inject constructor(
         return same(this.balance, balance) && same(this.creditLimit, creditLimit) && this.currency == currency
     }
 }
+
+/**
+ * Whether an edit gives the account's balance afresh, so the anchor moves to it: a
+ * changed figure, or the same figure in another currency (the old anchor's amount was
+ * in the old one). A rename or a type change alone leaves the anchor alone.
+ */
+internal fun restatesBalance(
+    oldBalance: BigDecimal?,
+    oldCurrency: String?,
+    newBalance: BigDecimal,
+    newCurrency: String,
+): Boolean = oldBalance == null || oldBalance.compareTo(newBalance) != 0 || oldCurrency != newCurrency

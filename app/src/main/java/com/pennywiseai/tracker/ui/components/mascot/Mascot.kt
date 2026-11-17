@@ -2,6 +2,8 @@ package com.pennywiseai.tracker.ui.components.mascot
 
 import androidx.compose.animation.core.Animatable
 import androidx.compose.animation.core.FiniteAnimationSpec
+import androidx.compose.animation.core.LinearEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.gestures.awaitEachGesture
 import androidx.compose.foundation.gestures.awaitFirstDown
 import androidx.compose.foundation.layout.Spacer
@@ -31,8 +33,10 @@ import androidx.compose.ui.graphics.CompositingStrategy
 import androidx.compose.ui.graphics.Paint
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
@@ -57,6 +61,7 @@ import kotlinx.coroutines.launch
 import kotlin.math.max
 import kotlin.math.min
 import kotlin.random.Random
+import androidx.compose.ui.graphics.lerp as lerpColor
 
 /**
  * The PennyWise mascot: a [shape] with eyes that blink and look around, showing a [mood].
@@ -77,8 +82,10 @@ import kotlin.random.Random
  * is composed, its lifecycle is STARTED and animations are on; otherwise it holds a
  * static pose. Time is read in the draw phase only, so it never recomposes per frame.
  *
- * A new [shape] crossfades in on the theme's effects spec; a new [mood] blends from the
- * pose on screen.
+ * A new [shape] is one body bending into the next on the theme's spatial spring, never two
+ * bodies faded over each other, so the glyph keeps its [tint] whole the whole way (see
+ * MascotMorph.kt); then it plays the shape's arrival (MascotArrival.kt). A new [mood]
+ * blends from the pose on screen.
  *
  * [value] is the shape's figure: a [MascotShape.Pie]'s slice share, how full a
  * [MascotShape.Jar] is or how much of a [MascotShape.Gauge] is used (0..1), or which way a
@@ -118,11 +125,14 @@ fun Mascot(
     }
     val motionScheme = MaterialTheme.motionScheme
     val blendSpec = motionScheme.defaultEffectsSpec<Float>()
-    val swapSpec = motionScheme.slowEffectsSpec<Float>()
+    // A shape change is spatial, so a spring. The whole figure becomes another, so it takes
+    // the panel's spring rather than a small part's (fast is over in a frame or two at 24dp),
+    // and the hero the full-screen one, as it travels farther.
+    val morphSpec = if (detailed) motionScheme.slowSpatialSpec<Float>() else motionScheme.defaultSpatialSpec()
     // A change plays out with the motion in effect when it arrives, not the one at the last change.
     val currentMotion by rememberUpdatedState(motion)
     LaunchedEffect(mood) { state.changeMood(mood, currentMotion, blendSpec, lifecycle) }
-    LaunchedEffect(shape) { state.changeShape(shape, currentMotion, swapSpec) }
+    LaunchedEffect(shape) { state.changeShape(shape, currentMotion, morphSpec) }
 
     val colors = if (detailed) mascotColors(tint) else null
     // The artwork is symmetric and never mirrored; only where it looks and leans is.
@@ -137,21 +147,29 @@ fun Mascot(
             .then(if (detailed) Modifier else Modifier.graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen })
             .drawWithCache {
                 val current = state.shape
-                val currentGeometry = current.geometry(state.value)
-                val previous = state.previousShape
-                val previousGeometry = previous?.geometry(state.value)
+                val geometry = current.geometry(state.value)
+                val from = state.morphFrom
+                // Only a running morph needs the outlines as profiles.
+                val morph = from?.let {
+                    MorphDrawing(
+                        from = it,
+                        fromGeometry = it.shape.geometry(state.value),
+                        target = state.profileOf(current, state.value),
+                    )
+                }
                 val scratch = Path()
+                val outline = Path()
                 val layer = Paint()
                 val k = this.size.minDimension / BOX
                 onDrawBehind {
                     val pose = state.pose(motion).let { it.copy(gazeX = it.gazeX * direction, roll = it.roll * direction) }
                     if (colors != null) scale(k, k, pivot = Offset.Zero) { drawShadow(pose, colors.shadow) }
-                    // Each body fades in a layer of its own, so one's eye cut-outs never punch the other.
-                    val fade = if (previousGeometry == null) 1f else state.swapProgress
-                    if (previous != null && previousGeometry != null) {
-                        withAlpha(1f - fade, layer) { drawShape(previous, previousGeometry, pose, k, colors, tint, scratch) }
+                    val decor = Decor(state.arrivedShape, state.arrivalProgress, tint, colors, scratch, layer)
+                    if (morph == null) {
+                        drawShape(current, geometry, pose, k, decor)
+                    } else {
+                        drawMorph(morph, current, geometry, state.morphProgress, pose, k, decor, outline)
                     }
-                    withAlpha(fade, layer) { drawShape(current, currentGeometry, pose, k, colors, tint, scratch) }
                 }
             }
     )
@@ -199,6 +217,9 @@ private const val BOX = 100f
 /** Pill eyes are drawn this much larger in the two-tone glyph, so they still read at 24dp. */
 private const val TWO_TONE_EYE_SCALE = 1.5f
 
+/** A pie's profile follows its share; past this many cached, they're rebuilt as needed. */
+private const val MAX_PROFILES = 32
+
 /** Below this contrast against the body, the face mask falls back to a neutral container. */
 private const val MASK_MIN_CONTRAST = 1.6f
 
@@ -209,13 +230,30 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
     var shape by mutableStateOf(initialShape)
         private set
 
-    /** The shape fading out while [shape] fades in, or null. */
-    var previousShape by mutableStateOf<MascotShape?>(null)
+    /** Where the running morph into [shape] began, or null once it has landed. */
+    var morphFrom by mutableStateOf<MorphFrom?>(null)
         private set
-    private val swap = Animatable(1f)
+    private val morph = Animatable(1f)
 
-    /** How far [shape] has faded in over [previousShape], 0..1. Read it in the draw phase. */
-    val swapProgress: Float get() = swap.value
+    /** How far the outline has bent from [morphFrom] into [shape]; a spring passes 1 and comes back. Read it in the draw phase. */
+    val morphProgress: Float get() = morph.value
+
+    /** The shape whose arrival last played (see MascotArrival.kt), or null. */
+    var arrivedShape by mutableStateOf<MascotShape?>(null)
+        private set
+    private val arrival = Animatable(1f)
+
+    /** How far that arrival has played, 0..1. Read it in the draw phase. */
+    val arrivalProgress: Float get() = arrival.value
+
+    private val profiles = HashMap<Pair<MascotShape, Float>, MascotProfile>()
+
+    /** [shape]'s outline as a profile, built once. Only a pie's outline depends on its figure. */
+    fun profileOf(shape: MascotShape, value: Float): MascotProfile {
+        // A dragged pie slider would otherwise keep every share it passed through.
+        if (profiles.size > MAX_PROFILES) profiles.clear()
+        return profiles.getOrPut(shape to if (shape == MascotShape.Pie) value else 0f) { shape.geometry(value).profile() }
+    }
     private var moodStart = Long.MIN_VALUE / 4
     private var from: MascotPose? = null
     private val blend = Animatable(1f)
@@ -268,6 +306,10 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
         var pose = moodPose(mood, t, t - moodStart, seed, motion, sweep = isSweeping(shape, mood))
         if (motion == MascotMotion.Quiet) pose = pose.copy(blink = max(pose.blink, quietBlink.floatValue))
         if (shape == MascotShape.Bars && value != 0f) pose = lookAt(pose, trendGaze(value), 1f)
+        val arrivedAt = arrivedShape
+        if (arrivedAt == shape && morphFrom == null && arrival.value < 1f) {
+            pose = arrived(pose, shape, (arrival.value * ARRIVAL_MS).toLong())
+        }
         val w = blend.value
         from?.let { if (w < 1f) pose = blendPose(it, pose, w) }
         val target = dragLook ?: look
@@ -362,18 +404,42 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
         }
     }
 
-    /** Crossfades from the shape on screen to [target], on the theme's effects spec. */
+    /**
+     * Bends the outline on screen into [target] on [spec], then plays [target]'s arrival.
+     * A change that lands mid-morph starts from the outline as it is, so nothing jumps.
+     */
     suspend fun changeShape(target: MascotShape, motion: MascotMotion, spec: FiniteAnimationSpec<Float>) {
         if (target == shape) return
-        previousShape = shape
-        shape = target
-        if (motion != MascotMotion.Still) {
-            swap.snapTo(0f)
-            swap.animateTo(1f, spec)
-        } else {
-            swap.snapTo(1f)
+        arrival.snapTo(1f)
+        if (motion == MascotMotion.Still) {
+            morphFrom = null
+            arrivedShape = null
+            shape = target
+            morph.snapTo(1f)
+            return
         }
-        previousShape = null
+        morphFrom = outlineOnScreen()
+        shape = target
+        morph.snapTo(0f)
+        morph.animateTo(1f, spec)
+        morphFrom = null
+        arrivedShape = target
+        arrival.snapTo(0f)
+        arrival.animateTo(1f, tween(ARRIVAL_MS.toInt(), easing = LinearEasing))
+    }
+
+    /** The outline drawn right now: the shape, or the morph where it has got to. */
+    private fun outlineOnScreen(): MorphFrom {
+        val g = shape.geometry(value)
+        val here = profileOf(shape, value)
+        val from = morphFrom ?: return MorphFrom(here, g.eyes, g.pivot, shape)
+        val p = morph.value
+        return MorphFrom(
+            profile = blendProfiles(from.profile, here, p),
+            eyes = lerpEyes(from.eyes, g.eyes, p),
+            pivot = lerp(from.pivot, g.pivot, p),
+            shape = if (p < 0.5f) from.shape else shape,
+        )
     }
 
     /** Blends from the pose on screen to [target]'s, on the theme's effects spec. */
@@ -481,41 +547,122 @@ private fun DrawScope.drawCurve(
     drawPath(path, color, style = Stroke(width, cap = StrokeCap.Round), blendMode = blendMode)
 }
 
-/** Draws [content] at [alpha] in a layer of its own: nothing at 0, directly at 1. */
+/** Past the 0..100 box on every side, so a layer in box units holds a tilted, hopping pose. */
+private val LAYER_BOUNDS = Rect(-BOX, -BOX, 2 * BOX, 2 * BOX)
+
+/** Draws [content] at [alpha] in a layer of its own, in box units: nothing at 0, directly at 1. */
 private inline fun DrawScope.withAlpha(alpha: Float, paint: Paint, content: DrawScope.() -> Unit) {
     when {
         alpha >= 1f -> content()
         alpha > 0f -> {
             paint.alpha = alpha
-            drawContext.canvas.saveLayer(Rect(Offset.Zero, size), paint)
+            drawContext.canvas.saveLayer(LAYER_BOUNDS, paint)
             content()
             drawContext.canvas.restore()
         }
     }
 }
 
-/** One shape in the pose, scaled from the 0..100 box: two-tone without [colors], detailed with. */
-private fun DrawScope.drawShape(
-    shape: MascotShape,
-    g: MascotGeometry,
-    pose: MascotPose,
-    k: Float,
-    colors: MascotColors?,
-    tint: Color,
-    scratch: Path,
-) {
+/** What the drawing needs besides the shape and pose: the arrival under way, and how to paint. */
+private class Decor(
+    /** The shape whose arrival last played, and how far it has got (0..1). */
+    val arrived: MascotShape?,
+    val t: Float,
+    val tint: Color,
+    /** Null for the two-tone glyph. */
+    val colors: MascotColors?,
+    val scratch: Path,
+    val layer: Paint,
+)
+
+/** A morph under way: where it began, that shape's geometry (for its fading face), and where it's headed. */
+private class MorphDrawing(val from: MorphFrom, val fromGeometry: MascotGeometry, val target: MascotProfile)
+
+/** Draws [content] in the 0..100 box, scaled by [k], hopped and tilted about [pivot] as [pose] says. */
+private inline fun DrawScope.posed(pose: MascotPose, pivot: Offset, k: Float, crossinline content: DrawScope.() -> Unit) {
     scale(k, k, pivot = Offset.Zero) {
         translate(top = pose.lift) {
-            rotate(pose.roll, pivot = g.pivot) {
-                when {
-                    colors == null -> drawTwoTone(g, pose, tint, scratch)
-                    shape == MascotShape.Owl -> drawDetailedOwl(g, pose, colors, scratch)
-                    else -> drawDetailedObject(g, pose, colors, scratch)
-                }
+            rotate(pose.roll, pivot = pivot) { content() }
+        }
+    }
+}
+
+/** One shape at rest in the pose: two-tone without colours, detailed with, and its arrival over it. */
+private fun DrawScope.drawShape(shape: MascotShape, g: MascotGeometry, pose: MascotPose, k: Float, d: Decor) {
+    posed(pose, g.pivot, k) {
+        val c = d.colors
+        when {
+            c == null -> drawTwoTone(g, pose, d.tint, d.scratch)
+            shape == MascotShape.Owl -> {
+                drawPath(g.body, c.body)
+                drawFace(shape, g, pose, c, d.scratch)
+            }
+            else -> {
+                drawPath(g.body, c.objectBody)
+                drawFace(shape, g, pose, c, d.scratch)
+                drawPillEyes(g.eyes, 1f, pose, c.objectInk, d.scratch, DrawScope.DefaultBlendMode)
+            }
+        }
+        if (d.arrived == shape) drawArrival(shape, g, d)
+    }
+}
+
+/**
+ * The outline [progress] of the way from where the morph began to [shape]: one body, in
+ * one colour, so the glyph never thins into two half-faded bodies. The eyes slide to
+ * their new place, narrowing on the way. At the detailed size the old face fades out
+ * early and the new one in late, inside the body, and the colour follows the body.
+ */
+private fun DrawScope.drawMorph(
+    m: MorphDrawing,
+    shape: MascotShape,
+    g: MascotGeometry,
+    progress: Float,
+    pose: MascotPose,
+    k: Float,
+    d: Decor,
+    outline: Path,
+) {
+    val w = progress.coerceIn(0f, 1f)
+    val squinting = pose.copy(blink = max(pose.blink, morphSquint(progress)))
+    val eyes = lerpEyes(m.from.eyes, g.eyes, progress)
+    val from = m.from.shape
+    posed(pose, lerp(m.from.pivot, g.pivot, progress), k) {
+        val body = blendProfiles(m.from.profile, m.target, progress).toPath(outline)
+        val c = d.colors
+        if (c == null) {
+            drawPath(body, d.tint)
+            drawPillEyes(eyes, TWO_TONE_EYE_SCALE, squinting, d.tint, d.scratch, BlendMode.DstOut)
+            if (from == MascotShape.Receipt && d.arrived == from) {
+                drawStamp(1f - fadeAt(0f, FACE_FADE, w), d.tint, TWO_TONE_STAMP, BlendMode.DstOut, d.scratch)
+            }
+        } else {
+            drawPath(body, lerpColor(bodyColor(from, c), bodyColor(shape, c), w))
+            clipPath(body) {
+                withAlpha(1f - fadeAt(0f, FACE_FADE, w), d.layer) { drawFace(from, m.fromGeometry, pose, c, d.scratch) }
+                withAlpha(fadeAt(1f - FACE_FADE, 1f, w), d.layer) { drawFace(shape, g, pose, c, d.scratch) }
+            }
+            // The owl looks out of its disc eyes; while it's mid-morph, pill eyes stand in.
+            val eyesIn = if (from == MascotShape.Owl) fadeAt(0f, FACE_FADE, w) else 1f
+            val eyesOut = if (shape == MascotShape.Owl) 1f - fadeAt(1f - FACE_FADE, 1f, w) else 1f
+            withAlpha(min(eyesIn, eyesOut), d.layer) {
+                drawPillEyes(eyes, 1f, squinting, lerpColor(inkOf(from, c), inkOf(shape, c), w), d.scratch, DrawScope.DefaultBlendMode)
             }
         }
     }
 }
+
+/** The part of a morph over which a face fades, at each end. */
+private const val FACE_FADE = 0.3f
+
+private fun fadeAt(from: Float, to: Float, x: Float): Float {
+    val c = ((x - from) / (to - from)).coerceIn(0f, 1f)
+    return c * c * (3 - 2 * c)
+}
+
+private fun bodyColor(shape: MascotShape, c: MascotColors) = if (shape == MascotShape.Owl) c.body else c.objectBody
+
+private fun inkOf(shape: MascotShape, c: MascotColors) = if (shape == MascotShape.Owl) c.pupil else c.objectInk
 
 /**
  * The 24/32dp glyph: the silhouette in [tint] and two pill eyes cut out of it. DstOut
@@ -527,11 +674,76 @@ private fun DrawScope.drawTwoTone(g: MascotGeometry, pose: MascotPose, tint: Col
     drawPillEyes(g.eyes, TWO_TONE_EYE_SCALE, pose, tint, scratch, BlendMode.DstOut)
 }
 
-/** A shape other than the owl, at the detailed size: container body, faint markings, ink eyes. */
-private fun DrawScope.drawDetailedObject(g: MascotGeometry, pose: MascotPose, c: MascotColors, scratch: Path) {
-    drawPath(g.body, c.objectBody)
-    g.details?.let { drawPath(it, c.objectInk, alpha = g.detailAlpha) }
-    drawPillEyes(g.eyes, 1f, pose, c.objectInk, scratch, DrawScope.DefaultBlendMode)
+/** What sits on a body at the detailed size: the owl's whole face, or an object's faint markings. Not an object's eyes. */
+private fun DrawScope.drawFace(shape: MascotShape, g: MascotGeometry, pose: MascotPose, c: MascotColors, scratch: Path) {
+    if (shape == MascotShape.Owl) drawOwlFace(g, pose, c, scratch)
+    else g.details?.let { drawPath(it, c.objectInk, alpha = g.detailAlpha) }
+}
+
+/** A shape's arrival (MascotArrival.kt), over its body: in its ink when detailed, cut out or in the tint as a glyph. */
+private fun DrawScope.drawArrival(shape: MascotShape, g: MascotGeometry, d: Decor) {
+    val c = d.colors
+    val cut = if (c == null) BlendMode.DstOut else DrawScope.DefaultBlendMode
+    when (shape) {
+        MascotShape.Receipt -> drawStamp(stampAlpha(d.t), c?.objectInk ?: d.tint, if (c == null) TWO_TONE_STAMP else 1f, cut, d.scratch)
+        MascotShape.Coin -> if (d.t < 1f) {
+            coinShineX(d.t)?.let { x ->
+                clipPath(g.body) {
+                    rotate(SHINE_TILT, pivot = Offset(x, 52f)) {
+                        drawRect(
+                            color = c?.disc ?: d.tint,
+                            topLeft = Offset(x - SHINE_WIDTH / 2, -BOX / 2),
+                            size = Size(SHINE_WIDTH, BOX * 2),
+                            alpha = SHINE_ALPHA,
+                            blendMode = cut,
+                        )
+                    }
+                }
+            }
+            // Outside the coin: drawn in the tint, never cut.
+            for (s in COIN_SPARKLES) {
+                val a = sparkleAlpha(s, d.t)
+                if (a > 0f) drawSparkle(s.at, s.radius, c?.iris ?: d.tint, a, d.scratch)
+            }
+        }
+        MascotShape.Jar -> if (d.t < 1f) {
+            jarCoin(d.t)?.let { drawCircle(c?.iris ?: d.tint, JAR_COIN_R, it, alpha = jarCoinAlpha(d.t)) }
+        }
+        else -> Unit
+    }
+}
+
+/** The receipt's check: a ring with a tick in its lower corner, [enlarge]d for the glyph. */
+private fun DrawScope.drawStamp(alpha: Float, color: Color, enlarge: Float, blendMode: BlendMode, scratch: Path) {
+    if (alpha <= 0f) return
+    val line = STAMP_LINE * enlarge
+    val center = Offset(64f, 65f)
+    val r = STAMP_R + (enlarge - 1f) * 1.5f
+    drawCircle(color, r, center, alpha = alpha, style = Stroke(line), blendMode = blendMode)
+    scratch.reset()
+    scratch.moveTo(center.x - r * 0.5f, center.y + r * 0.02f)
+    scratch.lineTo(center.x - r * 0.12f, center.y + r * 0.38f)
+    scratch.lineTo(center.x + r * 0.5f, center.y - r * 0.38f)
+    drawPath(scratch, color, alpha = alpha, style = Stroke(line, cap = StrokeCap.Round, join = StrokeJoin.Round), blendMode = blendMode)
+}
+
+private const val STAMP_R = 7.5f
+private const val STAMP_LINE = 2.2f
+private const val TWO_TONE_STAMP = 1.5f
+private const val SHINE_TILT = 20f
+private const val SHINE_WIDTH = 9f
+private const val SHINE_ALPHA = 0.55f
+
+/** A four-pointed sparkle at [at], [r] to each point. */
+private fun DrawScope.drawSparkle(at: Offset, r: Float, color: Color, alpha: Float, scratch: Path) {
+    scratch.reset()
+    scratch.moveTo(at.x, at.y - r)
+    scratch.quadraticTo(at.x, at.y, at.x + r, at.y)
+    scratch.quadraticTo(at.x, at.y, at.x, at.y + r)
+    scratch.quadraticTo(at.x, at.y, at.x - r, at.y)
+    scratch.quadraticTo(at.x, at.y, at.x, at.y - r)
+    scratch.close()
+    drawPath(scratch, color, alpha = alpha)
 }
 
 /** Two pill eyes at [e], [enlarge]d for small sizes, with `^` arcs, closed lids and brows. */
@@ -578,9 +790,8 @@ private fun DrawScope.drawPillEyes(
     }
 }
 
-/** The 96dp owl: body, face mask, eye discs with iris and pupil, beak and the logo's coin. */
-private fun DrawScope.drawDetailedOwl(g: MascotGeometry, pose: MascotPose, c: MascotColors, scratch: Path) {
-    drawPath(g.body, c.body)
+/** The 96dp owl's face: mask, eye discs with iris and pupil, beak and the logo's coin. */
+private fun DrawScope.drawOwlFace(g: MascotGeometry, pose: MascotPose, c: MascotColors, scratch: Path) {
     g.mask?.let { drawPath(it, c.mask) }
     val ox = pose.gazeX * OwlEye.GAZE_TRAVEL
     val oy = pose.gazeY * OwlEye.GAZE_TRAVEL

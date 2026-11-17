@@ -205,8 +205,14 @@ fun BudgetCard(
                             .fillMaxWidth(fraction = barFraction)
                             .fillMaxHeight()
                             .clip(barShape)
-                            // A pale budget colour (preset yellow) vanished on the track.
-                            .background(barColor.readableOn(listOf(MaterialTheme.colorScheme.surfaceVariant), GRAPHIC_CONTRAST))
+                            // A pale budget colour (preset yellow) vanished on the track. The fill
+                            // also meets the card along its edges, so it must clear both.
+                            .background(
+                                barColor.readableOn(
+                                    listOf(MaterialTheme.colorScheme.surfaceVariant, budgetColor.tintedSurface()),
+                                    GRAPHIC_CONTRAST
+                                )
+                            )
                     )
                 }
             }

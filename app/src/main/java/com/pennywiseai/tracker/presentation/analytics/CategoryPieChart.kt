@@ -122,6 +122,7 @@ fun CategoryPieChart(
                     CategoryIcon(
                         category = label,
                         size = 32.dp,
+                        tint = MaterialTheme.colorScheme.inkOnWash(pie.color, 0.2f, GRAPHIC_CONTRAST),
                         modifier = Modifier
                             .size(56.dp)
                             .clip(CircleShape)

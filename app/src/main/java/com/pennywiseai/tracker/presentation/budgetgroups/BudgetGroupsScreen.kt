@@ -595,8 +595,13 @@ private fun BudgetCard(
                             .fillMaxWidth(fraction = animatedProgressState)
                             .fillMaxHeight()
                             .clip(barShape)
-                            // A pale budget colour (preset yellow) vanished on its own track.
-                            .background(barColor.readableOn(listOf(barColor.copy(alpha = 0.15f).compositeOver(budgetColor.tintedSurface())), GRAPHIC_CONTRAST))
+                            // A pale budget colour (preset yellow) vanished on its own track. The fill
+                            // also meets the card along its edges, so it must clear both.
+                            .background(
+                                budgetColor.tintedSurface().let { card ->
+                                    barColor.readableOn(listOf(barColor.copy(alpha = 0.15f).compositeOver(card), card), GRAPHIC_CONTRAST)
+                                }
+                            )
                     )
                 }
 
@@ -785,10 +790,15 @@ private fun BudgetCard(
                                         .background(CategoryMapping.colorFor(catSpending.categoryName).copy(alpha = 0.12f)),
                                     contentAlignment = Alignment.Center
                                 ) {
+                                    // The wash sits on the budget's tinted card, not a neutral surface.
+                                    val hue = CategoryMapping.colorFor(catSpending.categoryName)
                                     CategoryIcon(
                                         category = catSpending.categoryName,
                                         size = 18.dp,
-                                        washAlpha = 0.12f
+                                        tint = hue.readableOn(
+                                            listOf(hue.copy(alpha = 0.12f).compositeOver(budgetColor.tintedSurface())),
+                                            GRAPHIC_CONTRAST
+                                        )
                                     )
                                 }
 

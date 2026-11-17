@@ -42,11 +42,13 @@ class InsightRulesTest {
         category: String = "Food",
         merchant: String = "Shop",
         recurring: Boolean = false,
+        bank: String? = null,
+        account: String? = null,
     ) = TransactionWithSplits(
         TransactionEntity(
             id = nextId, amount = BigDecimal(amount), merchantName = merchant, category = category,
             transactionType = type, dateTime = LocalDate.parse(date).atTime(12, 0), currency = currency,
-            transactionHash = "h${nextId++}", isRecurring = recurring,
+            transactionHash = "h${nextId++}", isRecurring = recurring, bankName = bank, accountNumber = account,
         ),
         emptyList()
     )
@@ -93,9 +95,12 @@ class InsightRulesTest {
         currency: String = "INR",
         merchant: String = "Streamer",
         cycle: String = "Monthly",
+        bank: String? = null,
+        last4: String? = null,
     ) = SubscriptionEntity(
         id = id, merchantName = merchant, amount = BigDecimal(amount),
         nextPaymentDate = due?.let(LocalDate::parse), currency = currency, billingCycle = cycle,
+        bankName = bank, accountLast4 = last4,
     )
 
     private fun card(balance: String, limit: String?, currency: String = "INR", last4: String = "1111") =
@@ -423,6 +428,42 @@ class InsightRulesTest {
         )
         assertTrue(insights.none { it.fact is BillsDue })
         assertEquals(Money(BigDecimal("649"), "INR"), insights.facts<PriceChange>().single().charged)
+    }
+
+    @Test
+    fun `a charge pays one bill, on an account it could be from`() {
+        val onA = subscription(1, "100", "2026-11-20", bank = "Bank A", last4 = "1111")
+        val onB = subscription(2, "100", "2026-11-21", bank = "Bank B", last4 = "2222")
+        fun dueAfter(vararg rows: TransactionWithSplits) =
+            evaluate(rows = rows.toList(), subscriptions = listOf(onB, onA)).facts<BillsDue>().singleOrNull()?.firstDue
+
+        // Paid from Bank A: Bank B's bill is still due.
+        assertEquals(LocalDate.parse("2026-11-21"), dueAfter(tx("2026-11-19", "100", merchant = "Streamer", bank = "Bank A", account = "1111")))
+        // A known bank that conflicts rules it out, even without an account number.
+        assertEquals(LocalDate.parse("2026-11-21"), dueAfter(tx("2026-11-19", "100", merchant = "Streamer", bank = "Bank A")))
+        // A charge whose account isn't known pays one of them, not both.
+        assertEquals(1, evaluate(rows = listOf(tx("2026-11-19", "100", merchant = "Streamer")), subscriptions = listOf(onA, onB)).facts<BillsDue>().single().count)
+        // One for each pays both.
+        assertEquals(
+            null,
+            dueAfter(
+                tx("2026-11-19", "100", merchant = "Streamer", bank = "Bank B", account = "2222"),
+                tx("2026-11-19", "100", merchant = "Streamer", bank = "Bank A", account = "1111"),
+            ),
+        )
+    }
+
+    @Test
+    fun `a new price is news only for the subscription on the charge's account`() {
+        val changes = evaluate(
+            rows = listOf(tx("2026-11-15", "649", merchant = "Streamer", bank = "Bank B", account = "2222")),
+            subscriptions = listOf(
+                subscription(1, "499", "2026-11-15", bank = "Bank A", last4 = "1111"),
+                subscription(2, "499", "2026-11-15", bank = "Bank B", last4 = "2222"),
+                subscription(3, "499", "2026-11-15"),
+            ),
+        ).filter { it.fact is PriceChange }
+        assertEquals("price_change:v1:2026-11-01:INR:2", changes.single().id)
     }
 
     @Test

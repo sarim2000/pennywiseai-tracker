@@ -287,19 +287,20 @@ private fun DayCell(
                 if (isToday) stateDescription = todayLabel
             }
             .padding(horizontal = Spacing.xxs / 2)
-            .background(fill, MaterialTheme.shapes.small)
+            // Today's ring sits on the page with a gap before the fill, so it never has to
+            // stand out against a shade of its own colour, in any theme or at any level.
             .then(
                 if (isToday) {
-                    Modifier.border(
-                        Dimensions.Component.dividerThicknessEmphasis,
-                        if (level >= SpendingCalendar.LEVELS - 1) ink else colors.primary,
-                        MaterialTheme.shapes.small,
-                    )
+                    Modifier
+                        .border(Dimensions.Component.dividerThicknessEmphasis, colors.primary, MaterialTheme.shapes.small)
+                        .padding(TODAY_RING_INSET)
                 } else {
                     Modifier
                 }
             )
-            .padding(vertical = Spacing.xs),
+            .background(fill, MaterialTheme.shapes.small)
+            // The ring's inset comes out of the padding, so today is no taller than its week.
+            .padding(vertical = if (isToday) Spacing.xs - TODAY_RING_INSET else Spacing.xs),
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.xxs, Alignment.CenterVertically),
     ) {
@@ -318,6 +319,9 @@ private fun DayCell(
         )
     }
 }
+
+/** The border is drawn inside the cell, so the inset is its width plus a visible gap of page. */
+private val TODAY_RING_INSET = Dimensions.Component.dividerThicknessEmphasis + Spacing.xxs
 
 /** A day's shade for a [level] of spend; the legend draws its scale from this too. */
 @Composable

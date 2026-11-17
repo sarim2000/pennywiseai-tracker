@@ -31,6 +31,7 @@ import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.icons.isValidCategoryOverride
 import com.pennywiseai.tracker.ui.theme.GRAPHIC_CONTRAST
 import com.pennywiseai.tracker.ui.theme.bestInk
+import com.pennywiseai.tracker.ui.theme.inkOnWash
 import com.pennywiseai.tracker.ui.theme.neutralSurfaces
 import com.pennywiseai.tracker.ui.theme.readableOn
 
@@ -144,7 +145,9 @@ fun CategoryIcon(
     category: String,
     modifier: Modifier = Modifier,
     size: Dp = 24.dp,
-    tint: Color? = null
+    tint: Color? = null,
+    // Set when the icon sits on an [washAlpha] wash of its own category colour.
+    washAlpha: Float? = null
 ) {
     CategoryMapping.emojiFor(category)?.let { emoji ->
         Box(modifier = modifier.size(size), contentAlignment = Alignment.Center) {
@@ -158,9 +161,15 @@ fun CategoryIcon(
     Icon(
         imageVector = categoryInfo.icon,
         contentDescription = categoryLabel(category),
-        // A caller's tint owns its fill; the bare category hue must read on any surface.
-        tint = tint ?: CategoryMapping.colorFor(category)
-            .readableOn(MaterialTheme.colorScheme.neutralSurfaces, GRAPHIC_CONTRAST),
+        // A caller's tint owns its fill; otherwise the category hue must read at 3:1 on its
+        // own wash, or bare on any surface.
+        tint = tint ?: CategoryMapping.colorFor(category).let { hue ->
+            if (washAlpha != null) {
+                MaterialTheme.colorScheme.inkOnWash(hue, washAlpha, GRAPHIC_CONTRAST)
+            } else {
+                hue.readableOn(MaterialTheme.colorScheme.neutralSurfaces, GRAPHIC_CONTRAST)
+            }
+        },
         modifier = modifier.size(size)
     )
 }

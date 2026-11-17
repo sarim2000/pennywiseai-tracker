@@ -12,6 +12,7 @@ import com.pennywiseai.tracker.ui.theme.contrastRatio
 import com.pennywiseai.tracker.ui.theme.fixedColorScheme
 import com.pennywiseai.tracker.ui.theme.getCustomDarkColorScheme
 import com.pennywiseai.tracker.ui.theme.getCustomLightColorScheme
+import com.pennywiseai.tracker.ui.theme.isDark
 import com.pennywiseai.tracker.ui.theme.withAmoledSurfaces
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -61,5 +62,24 @@ class CoverContrastTest {
         // Ocean's deep navy already reads under white text on the default dark scheme.
         val raw = getCoverGradientColors(CoverStyle.OCEAN, isDark = true).first()
         assertEquals(raw, DarkColorScheme.readableCoverStops(CoverStyle.OCEAN).first())
+    }
+
+    @Test
+    fun aGradientThatAlreadyPasses_rendersExactlyAsBefore() {
+        // Inserting a stop at the sRGB midpoint is a no-op for a linear brush, so wherever no
+        // stop needed nudging, the drawn gradient must be the original one.
+        var checked = 0
+        schemes.forEach { (name, scheme) ->
+            CoverStyle.entries.filter { it != CoverStyle.NONE }.forEach { cover ->
+                val raw = getCoverGradientColors(cover, scheme.isDark)
+                val asDrawn = raw.zipWithNext { a, b -> listOf(a, srgbMidpoint(a, b)) }.flatten() + raw.last()
+                val result = scheme.readableCoverStops(cover)
+                val passedUntouched = result.zip(asDrawn).count { (r, d) -> r == d }
+                if (passedUntouched == asDrawn.size) checked++
+                // Any stop that changed must have been one that failed: unchanged ones match exactly.
+                assertEquals("$name/$cover", asDrawn.size, result.size)
+            }
+        }
+        assertTrue("some theme x cover should pass untouched", checked > 0)
     }
 }

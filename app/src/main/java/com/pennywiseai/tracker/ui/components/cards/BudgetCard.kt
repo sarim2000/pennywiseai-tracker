@@ -56,9 +56,11 @@ import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.ui.animations.pwExpand
 import com.pennywiseai.tracker.ui.components.toColorOr
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.GRAPHIC_CONTRAST
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.bestInk
 import com.pennywiseai.tracker.ui.theme.money
+import com.pennywiseai.tracker.ui.theme.readableOn
 import com.pennywiseai.tracker.ui.theme.warning
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -203,7 +205,8 @@ fun BudgetCard(
                             .fillMaxWidth(fraction = barFraction)
                             .fillMaxHeight()
                             .clip(barShape)
-                            .background(barColor)
+                            // A pale budget colour (preset yellow) vanished on the track.
+                            .background(barColor.readableOn(listOf(MaterialTheme.colorScheme.surfaceVariant), GRAPHIC_CONTRAST))
                     )
                 }
             }

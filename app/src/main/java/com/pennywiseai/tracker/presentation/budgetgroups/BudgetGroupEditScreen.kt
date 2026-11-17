@@ -456,7 +456,7 @@ fun BudgetGroupEditScreen(
                                                         .background(CategoryMapping.colorFor(categoryName).copy(alpha = 0.15f)),
                                                     contentAlignment = Alignment.Center
                                                 ) {
-                                                    CategoryIcon(category = categoryName, size = 18.dp)
+                                                    CategoryIcon(category = categoryName, size = 18.dp, washAlpha = 0.15f)
                                                 }
                                                 Text(categoryLabel(categoryName))
                                             }
@@ -485,7 +485,7 @@ fun BudgetGroupEditScreen(
                                                         .background(CategoryMapping.colorFor(option.displayName).copy(alpha = 0.15f)),
                                                     contentAlignment = Alignment.Center
                                                 ) {
-                                                    CategoryIcon(category = option.displayName, size = 18.dp)
+                                                    CategoryIcon(category = option.displayName, size = 18.dp, washAlpha = 0.15f)
                                                 }
                                                 Text(stringResource(R.string.budget_edit_type_bucket_all, categoryLabel(option.displayName)))
                                             }
@@ -774,7 +774,7 @@ private fun CategoryBudgetRow(
                 .background(CategoryMapping.colorFor(categoryName).copy(alpha = 0.15f)),
             contentAlignment = Alignment.Center
         ) {
-            CategoryIcon(category = categoryName, size = 22.dp)
+            CategoryIcon(category = categoryName, size = 22.dp, washAlpha = 0.15f)
         }
 
         Column(modifier = Modifier.weight(1f)) {

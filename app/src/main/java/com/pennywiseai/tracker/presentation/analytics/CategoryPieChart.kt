@@ -24,7 +24,9 @@ import com.pennywiseai.tracker.ui.effects.BlurredAnimatedVisibility
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.GRAPHIC_CONTRAST
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.inkOnWash
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import ir.ehsannarmani.compose_charts.PieChart
 import ir.ehsannarmani.compose_charts.models.LabelHelperProperties
@@ -202,7 +204,7 @@ private fun PieLegendItem(
             CategoryIcon(
                 category = label,
                 size = Dimensions.Icon.small,
-                tint = color
+                tint = MaterialTheme.colorScheme.inkOnWash(color, 0.18f, GRAPHIC_CONTRAST)
             )
         }
         Spacer(modifier = Modifier.width(8.dp))

@@ -1084,7 +1084,7 @@ private fun CategoryListItem(
                 CategoryIcon(
                     category = category.name,
                     size = Dimensions.Icon.medium,
-                    tint = CategoryMapping.colorFor(category.name)
+                    washAlpha = 0.1f
                 )
             }
         },

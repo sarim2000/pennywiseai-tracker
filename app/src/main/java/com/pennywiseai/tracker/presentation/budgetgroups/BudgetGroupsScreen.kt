@@ -595,7 +595,8 @@ private fun BudgetCard(
                             .fillMaxWidth(fraction = animatedProgressState)
                             .fillMaxHeight()
                             .clip(barShape)
-                            .background(barColor)
+                            // A pale budget colour (preset yellow) vanished on its own track.
+                            .background(barColor.readableOn(listOf(barColor.copy(alpha = 0.15f).compositeOver(budgetColor.tintedSurface())), GRAPHIC_CONTRAST))
                     )
                 }
 
@@ -787,7 +788,7 @@ private fun BudgetCard(
                                     CategoryIcon(
                                         category = catSpending.categoryName,
                                         size = 18.dp,
-                                        tint = CategoryMapping.colorFor(catSpending.categoryName)
+                                        washAlpha = 0.12f
                                     )
                                 }
 

@@ -35,7 +35,8 @@ private const val COVER_TEXT_TARGET = TEXT_CONTRAST + 0.1f
  * [style]'s gradient stops for Home, each moved toward black or white (in Oklab, so the
  * hue holds) just far enough that the header's inks read on it at 4.5:1 once drawn at
  * [COVER_ALPHA] over [ColorScheme.background]. Stops that already pass keep their exact
- * colour. Midpoints become stops too, since a blend of two stops can dip under either.
+ * colour. Midpoints become stops too, since a blend of two stops can dip under either;
+ * they're taken in sRGB, as the brush draws, so a gradient that passes renders unchanged.
  *
  * The banner adapts rather than the inks: a pale stop on a dark theme (Lavender Mist,
  * Rose Gold) is too light for even pure white, but darkening the stop always works.
@@ -49,7 +50,7 @@ fun ColorScheme.readableCoverStops(style: CoverStyle): List<Color> {
     val end = if (inks.minOf { it.luminance() } > background.luminance()) Color.Black else Color.White
     fun drawn(c: Color) = c.copy(alpha = COVER_ALPHA).compositeOver(background)
     fun reads(c: Color) = inks.minOf { contrastRatio(it, drawn(c)) } >= COVER_TEXT_TARGET
-    val withMids = raw.zipWithNext { a, b -> listOf(a, lerp(a, b, 0.5f)) }.flatten() + raw.last()
+    val withMids = raw.zipWithNext { a, b -> listOf(a, srgbMidpoint(a, b)) }.flatten() + raw.last()
     return withMids.map { stop ->
         if (reads(stop)) return@map stop
         var lo = 0f
@@ -61,6 +62,10 @@ fun ColorScheme.readableCoverStops(style: CoverStyle): List<Color> {
         lerp(stop, end, hi)
     }
 }
+
+/** Halfway between two colours as a linear-gradient brush blends them (per sRGB channel). */
+internal fun srgbMidpoint(a: Color, b: Color): Color =
+    Color((a.red + b.red) / 2, (a.green + b.green) / 2, (a.blue + b.blue) / 2, (a.alpha + b.alpha) / 2)
 
 @Composable
 fun CoverGradientBanner(

@@ -51,6 +51,8 @@ fun BalanceChart(
     height: Int = 200,
     /** The legend's name for the line. */
     seriesLabel: String = stringResource(R.string.balance_chart_label),
+    /** False joins the points with straight lines, so the line claims no values between them. */
+    curved: Boolean = true,
 ) {
     if (balanceHistory.isEmpty()) return
 
@@ -110,7 +112,7 @@ fun BalanceChart(
                     gradientAnimationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
                     gradientAnimationDelay = 750,
                     drawStyle = DrawStyle.Stroke(width = 2.dp),
-                    curvedEdges = true,
+                    curvedEdges = curved,
                     dotProperties = DotProperties(
                         enabled = true,
                         color = SolidColor(themeColors.primary),

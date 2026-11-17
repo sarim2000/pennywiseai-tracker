@@ -254,6 +254,8 @@ private fun TrendCard(state: NetWorthUiState, currency: String, onSelectRange: (
                         balanceHistory = points,
                         height = 200,
                         seriesLabel = stringResource(R.string.net_worth_title),
+                        // Days are sampled; a curve between them would show net worths that never were.
+                        curved = false,
                     )
                 }
             }

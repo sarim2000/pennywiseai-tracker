@@ -136,13 +136,13 @@ class ReceiptManager @Inject constructor(
         false
     }
 
+    /**
+     * Deletes a stored receipt. A path that doesn't resolve directly into `receipts/`
+     * (a restored backup's path is untrusted) is left alone, so a crafted
+     * `../databases/...` can't delete anything else in the app's storage.
+     */
     fun deleteReceipt(receiptPath: String) {
-        val file = File(context.filesDir, receiptPath)
-        if (file.exists()) file.delete()
-    }
-
-    fun getReceiptFile(receiptPath: String): File {
-        return File(context.filesDir, receiptPath)
+        storedReceiptFile(receiptPath)?.delete()
     }
 
     fun createCameraUri(): Uri {

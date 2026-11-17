@@ -34,6 +34,7 @@ import java.time.LocalDate
 import java.time.YearMonth
 import javax.inject.Inject
 import javax.inject.Singleton
+import kotlin.io.path.createTempDirectory
 
 /** A piece of the report that is never split across pages. */
 internal class ReportBlock(
@@ -75,12 +76,8 @@ internal fun reportSlug(range: ReviewRange): String = when {
     else -> range.start.toString()
 }
 
-/**
- * The file's name: the period it covers, then " (2)", " (3)"… for another copy made while
- * the first is still kept, as a download folder names them.
- */
-internal fun reportFileName(range: ReviewRange, copy: Int): String =
-    "pennywise-report-${reportSlug(range)}${if (copy > 1) " ($copy)" else ""}.pdf"
+/** The file's name, as a recipient sees it: the period it covers and nothing else. */
+internal fun reportFileName(range: ReviewRange): String = "pennywise-report-${reportSlug(range)}.pdf"
 
 /** The share sheet for a report [PdfReportExporter.export] wrote. */
 fun pdfShareIntent(uri: Uri): Intent {
@@ -119,21 +116,21 @@ class PdfReportExporter @Inject constructor(
         comparedWith: String,
         categoryLabel: (String) -> String,
     ): Uri = withContext(Dispatchers.IO) {
-        val dir = File(appContext.cacheDir, DIR).apply { mkdirs() }
+        val reports = File(appContext.cacheDir, DIR).apply { mkdirs() }
         val now = System.currentTimeMillis()
         // Bounded by age, not by overwriting: a file just shared may still be read (see ShareCardExporter).
-        dir.listFiles()?.filter { it.name.endsWith(".pdf") && now - it.lastModified() > MAX_AGE_MS }?.forEach { it.delete() }
+        reports.listFiles()?.filter { now - it.lastModified() > MAX_AGE_MS }?.forEach { it.deleteRecursively() }
 
-        // A fresh file, never one just shared, under a name a recipient can read.
-        val file = generateSequence(1) { it + 1 }
-            .map { File(dir, reportFileName(review.range, it)) }
-            .first { it.createNewFile() }
+        // A fresh folder for each export, so the file never replaces one just shared and
+        // its name stays clean: a second copy of October is still "pennywise-report-2026-10.pdf".
+        val folder = createTempDirectory(reports.toPath(), "").toFile()
+        val file = File(folder, reportFileName(review.range))
         val document = PdfDocument()
         try {
             Renderer(appContext.inAppLanguage(), categoryLabel).render(document, review, title, profileName, comparedWith)
             FileOutputStream(file).use { document.writeTo(it) }
         } catch (e: Exception) {
-            file.delete()
+            folder.deleteRecursively()
             throw e
         } finally {
             document.close()
@@ -399,8 +396,8 @@ class PdfReportExporter @Inject constructor(
     }
 
     private companion object {
-        /** The FileProvider's `exports/` cache path, shared with CSV export. */
-        const val DIR = "exports"
+        /** Under the FileProvider's `exports/` cache path, apart from CSV export's files. */
+        const val DIR = "exports/reports"
         const val MAX_AGE_MS = 24L * 60 * 60 * 1000
 
         // A4 in PostScript points.

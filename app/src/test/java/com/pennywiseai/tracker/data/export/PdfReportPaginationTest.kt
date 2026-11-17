@@ -61,7 +61,6 @@ class PdfReportPaginationTest {
         assertEquals("2026-10", reportSlug(range(ReviewKind.MONTH, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31))))
         assertEquals("2026-10-25", reportSlug(range(ReviewKind.MONTH, LocalDate.of(2026, 10, 25), LocalDate.of(2026, 11, 24))))
         val october = range(ReviewKind.MONTH, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31))
-        assertEquals("pennywise-report-2026-10.pdf", reportFileName(october, copy = 1))
-        assertEquals("pennywise-report-2026-10 (2).pdf", reportFileName(october, copy = 2))
+        assertEquals("pennywise-report-2026-10.pdf", reportFileName(october))
     }
 }

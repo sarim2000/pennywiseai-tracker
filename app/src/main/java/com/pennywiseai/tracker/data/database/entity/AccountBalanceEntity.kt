@@ -135,17 +135,20 @@ data class AccountBalanceEntity(
      * This row carrying the account-level fields the user set (statement and due day,
      * card bill, balance anchor) from [from], an earlier row of the same account.
      * Every path that builds a fresh row for an existing account goes through this,
-     * so a new SMS or a manual edit can't drop them.
+     * so a new SMS or a manual edit can't drop them. A bill amount is in the old
+     * row's currency, so a row in another currency drops it (the due day stays):
+     * INR 4000 isn't USD 4000, and the card asks for the bill again.
      */
     fun withAccountFieldsOf(from: AccountBalanceEntity?): AccountBalanceEntity =
         if (from == null) {
             this
         } else {
+            val sameCurrency = from.currency == currency
             copy(
                 statementDay = from.statementDay,
                 cardDueDay = from.cardDueDay,
-                cardBillAmount = from.cardBillAmount,
-                cardBillAsOf = from.cardBillAsOf,
+                cardBillAmount = from.cardBillAmount.takeIf { sameCurrency },
+                cardBillAsOf = from.cardBillAsOf.takeIf { sameCurrency },
                 anchorAmount = from.anchorAmount,
                 anchorAt = from.anchorAt,
                 anchorSource = from.anchorSource,

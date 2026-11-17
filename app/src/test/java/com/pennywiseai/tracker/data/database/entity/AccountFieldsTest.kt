@@ -34,6 +34,16 @@ class AccountFieldsTest {
     }
 
     @Test
+    fun `a new currency drops the bill amount but keeps the due day`() {
+        val next = row(BigDecimal("950")).copy(currency = "USD").withAccountFieldsOf(set)
+
+        assertEquals(2, next.cardDueDay)
+        assertEquals(null, next.cardBillAmount)
+        assertEquals(null, next.cardBillAsOf)
+        assertEquals(12, next.statementDay)
+    }
+
+    @Test
     fun `a first row has nothing to carry`() {
         val first = row(BigDecimal("10"))
 

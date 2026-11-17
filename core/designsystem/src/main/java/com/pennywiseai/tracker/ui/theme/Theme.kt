@@ -170,9 +170,9 @@ fun pennyWiseColorScheme(
     accentColor: AccentColor = AccentColor.SURFACE,
     isAmoledMode: Boolean = false,
 ): ColorScheme {
-    val palette = themeStyle.palette()
+    val fixed = fixedColorScheme(themeStyle, darkTheme)
     val colorScheme = when {
-        palette != null -> if (darkTheme) palette.darkScheme else palette.lightScheme
+        fixed != null -> fixed
         themeStyle == ThemeStyle.DYNAMIC && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S -> {
             val context = LocalContext.current
             if (darkTheme) dynamicDarkColorScheme(context) else dynamicLightColorScheme(context)
@@ -190,6 +190,10 @@ fun pennyWiseColorScheme(
     }
     return if (darkTheme && isAmoledMode) colorScheme.withAmoledSurfaces() else colorScheme
 }
+
+/** A fixed palette's scheme, or null for the accent-driven (BRANDED) and wallpaper (DYNAMIC) styles. */
+fun fixedColorScheme(style: ThemeStyle, dark: Boolean): ColorScheme? =
+    style.palette()?.let { if (dark) it.darkScheme else it.lightScheme }
 
 /** The fixed palette behind a style, or null for the accent-driven (BRANDED) and wallpaper (DYNAMIC) styles. */
 internal fun ThemeStyle.palette(): BaseColorScheme? = when (this) {
@@ -258,7 +262,7 @@ fun PennyWiseTheme(
     }
 }
 
-internal fun ColorScheme.withAmoledSurfaces(): ColorScheme = copy(
+fun ColorScheme.withAmoledSurfaces(): ColorScheme = copy(
     background = amoled_background,
     surface = amoled_surface,
     surfaceVariant = amoled_surfaceVariant,

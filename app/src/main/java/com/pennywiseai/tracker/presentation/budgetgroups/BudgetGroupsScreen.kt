@@ -744,7 +744,8 @@ private fun BudgetCard(
                         SpendingPaceChart(
                             cumulativeSpending = groupSpending.dailyCumulativeSpending,
                             budgetPace = groupSpending.dailyBudgetPace,
-                            currency = currency
+                            currency = currency,
+                            containerColor = budgetColor.tintedSurface()
                         )
                     }
 
@@ -864,6 +865,8 @@ private fun SpendingPaceChart(
     cumulativeSpending: List<Double>,
     budgetPace: List<Double>,
     currency: String,
+    // The fill the chart is drawn on (the budget's tinted card), for the pace line's contrast.
+    containerColor: Color,
     modifier: Modifier = Modifier
 ) {
     val themeColors = MaterialTheme.colorScheme
@@ -872,13 +875,10 @@ private fun SpendingPaceChart(
     } ?: false
     val spendingColor = if (isOverPace) themeColors.error else themeColors.primary
     // The pace line stays muted but visible: 3:1 on the card and on the spending wash it crosses.
-    val paceColor = themeColors.run {
-        val card = surfaceContainerLow
-        onSurfaceVariant.copy(alpha = 0.4f).compositeOver(card).readableOn(
-            neutralSurfaces + spendingColor.copy(alpha = 0.2f).compositeOver(card),
-            GRAPHIC_CONTRAST
-        )
-    }
+    val paceColor = themeColors.onSurfaceVariant.copy(alpha = 0.4f).compositeOver(containerColor).readableOn(
+        listOf(containerColor, spendingColor.copy(alpha = 0.2f).compositeOver(containerColor)),
+        GRAPHIC_CONTRAST
+    )
     var showPaceInfo by rememberSaveable { mutableStateOf(false) }
 
     Column(modifier = modifier.fillMaxWidth()) {

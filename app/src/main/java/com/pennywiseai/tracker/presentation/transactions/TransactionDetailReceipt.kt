@@ -165,6 +165,8 @@ internal fun TransactionReceipt(
                     TransactionType.TRANSFER -> Icons.Default.SwapHoriz
                     TransactionType.INVESTMENT -> Icons.AutoMirrored.Filled.ShowChart
                 }
+                // Ink nudged for the 12% wash of itself it sits on; the wash keeps the raw hue.
+                val typeInk = MaterialTheme.colorScheme.inkOnWash(typeColor, 0.12f)
                 SuggestionChip(
                     onClick = {},
                     label = {
@@ -179,19 +181,20 @@ internal fun TransactionReceipt(
                             typeIcon,
                             contentDescription = null,
                             modifier = Modifier.size(Dimensions.Icon.small),
-                            tint = typeColor
+                            tint = typeInk
                         )
                     },
                     colors = SuggestionChipDefaults.suggestionChipColors(
                         containerColor = typeColor.copy(alpha = 0.12f),
-                        labelColor = typeColor,
-                        iconContentColor = typeColor
+                        labelColor = typeInk,
+                        iconContentColor = typeInk
                     ),
                     border = null as androidx.compose.foundation.BorderStroke?
                 )
 
                 // Loan chip
                 val loanColor = MaterialTheme.colorScheme.loan
+                val loanInk = MaterialTheme.colorScheme.inkOnWash(loanColor, 0.12f)
                 Spacer(modifier = Modifier.height(Spacing.xs))
                 if (loan != null) {
                     Row(
@@ -222,13 +225,13 @@ internal fun TransactionReceipt(
                                     Icons.Default.SwapHoriz,
                                     contentDescription = null,
                                     modifier = Modifier.size(Dimensions.Icon.small),
-                                    tint = loanColor
+                                    tint = loanInk
                                 )
                             },
                             colors = SuggestionChipDefaults.suggestionChipColors(
                                 containerColor = loanColor.copy(alpha = 0.12f),
-                                labelColor = loanColor,
-                                iconContentColor = loanColor
+                                labelColor = loanInk,
+                                iconContentColor = loanInk
                             ),
                             border = null
                         )

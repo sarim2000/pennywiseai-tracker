@@ -61,13 +61,16 @@ import com.pennywiseai.tracker.domain.spending.SpendForecast
 import com.pennywiseai.tracker.ui.components.AnimatedCurrencyText
 import com.pennywiseai.tracker.ui.effects.frostedBlur
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.GRAPHIC_CONTRAST
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.expense
 import com.pennywiseai.tracker.ui.theme.income
 import com.pennywiseai.tracker.ui.theme.loan
 import com.pennywiseai.tracker.ui.theme.money
+import com.pennywiseai.tracker.ui.theme.neutralSurfaces
 import com.pennywiseai.tracker.ui.theme.orBestInkOn
+import com.pennywiseai.tracker.ui.theme.readableOn
 import com.pennywiseai.tracker.ui.theme.spending
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -251,6 +254,15 @@ fun BalanceCard(
                         if (spendingHistory.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(Spacing.md))
                             val expenseColor = MaterialTheme.colorScheme.expense
+                            // Last month stays a muted dash, but one you can see: 3:1 on the card and
+                            // on the spending wash it crosses, instead of a fixed 30% that fell under.
+                            val comparisonInk = MaterialTheme.colorScheme.run {
+                                val card = surfaceContainerLow
+                                onSurface.copy(alpha = 0.3f).compositeOver(card).readableOn(
+                                    neutralSurfaces + expenseColor.copy(alpha = 0.25f).compositeOver(card),
+                                    GRAPHIC_CONTRAST
+                                )
+                            }
                             BalanceSparkline(
                                 data = spendingHistory,
                                 lineColor = expenseColor,
@@ -260,7 +272,7 @@ fun BalanceCard(
                                 currency = currency,
                                 isBalanceHidden = isBalanceHidden,
                                 comparisonData = lastMonthSpendingHistory.ifEmpty { null },
-                                comparisonLineColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f)
+                                comparisonLineColor = comparisonInk
                             )
                             // Legend
                             if (lastMonthSpendingHistory.isNotEmpty()) {
@@ -286,10 +298,7 @@ fun BalanceCard(
                                         modifier = Modifier
                                             .width(Spacing.smd)
                                             .height(Spacing.xxs)
-                                            .background(
-                                                MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f),
-                                                CircleShape
-                                            )
+                                            .background(comparisonInk, CircleShape)
                                     )
                                     Spacer(modifier = Modifier.width(Spacing.xs))
                                     Text(

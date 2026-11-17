@@ -110,6 +110,7 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.income
+import com.pennywiseai.tracker.ui.theme.inkOnWash
 import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.text.Collator
@@ -656,10 +657,11 @@ private fun PermissionsStep(
         Spacer(modifier = Modifier.height(Spacing.xl))
 
         if (uiState.smsPermissionGranted) {
-            val incomeColor = MaterialTheme.colorScheme.income
+            val washAlpha = if (isAppInDarkTheme()) 0.15f else 0.12f
+            val incomeColor = MaterialTheme.colorScheme.run { inkOnWash(income, washAlpha) }
             Card(
                 colors = CardDefaults.cardColors(
-                    containerColor = incomeColor.copy(alpha = if (isAppInDarkTheme()) 0.15f else 0.12f)
+                    containerColor = MaterialTheme.colorScheme.income.copy(alpha = washAlpha)
                 ),
                 shape = MaterialTheme.shapes.large,
                 modifier = Modifier.fillMaxWidth()

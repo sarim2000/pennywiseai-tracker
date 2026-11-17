@@ -29,7 +29,10 @@ import com.pennywiseai.tracker.ui.icons.IconProvider
 import com.pennywiseai.tracker.ui.icons.IconResource
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.icons.isValidCategoryOverride
+import com.pennywiseai.tracker.ui.theme.GRAPHIC_CONTRAST
 import com.pennywiseai.tracker.ui.theme.bestInk
+import com.pennywiseai.tracker.ui.theme.neutralSurfaces
+import com.pennywiseai.tracker.ui.theme.readableOn
 
 /**
  * Displays a brand icon with intelligent fallback
@@ -88,7 +91,12 @@ fun BrandIcon(
                 Icon(
                     imageVector = iconResource.icon,
                     contentDescription = merchantName,
-                    tint = if (showBackground) backgroundColor.bestInk() else iconResource.tint,
+                    // Bare, the category hue is the glyph's only ink: keep the hue, reach 3:1.
+                    tint = if (showBackground) {
+                        backgroundColor.bestInk()
+                    } else {
+                        iconResource.tint.readableOn(MaterialTheme.colorScheme.neutralSurfaces, GRAPHIC_CONTRAST)
+                    },
                     modifier = Modifier.fillMaxSize()
                 )
             }
@@ -150,7 +158,9 @@ fun CategoryIcon(
     Icon(
         imageVector = categoryInfo.icon,
         contentDescription = categoryLabel(category),
-        tint = tint ?: CategoryMapping.colorFor(category),
+        // A caller's tint owns its fill; the bare category hue must read on any surface.
+        tint = tint ?: CategoryMapping.colorFor(category)
+            .readableOn(MaterialTheme.colorScheme.neutralSurfaces, GRAPHIC_CONTRAST),
         modifier = modifier.size(size)
     )
 }

@@ -1,21 +1,52 @@
 package com.pennywiseai.tracker.ui.components
 
 import androidx.compose.foundation.background
-import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.material3.ColorScheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.data.preferences.CoverStyle
 import com.pennywiseai.tracker.ui.effects.bottomFade
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
+import com.pennywiseai.tracker.ui.theme.isDark
+import com.pennywiseai.tracker.ui.theme.neutralSurfaces
+import com.pennywiseai.tracker.ui.theme.readableOn
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
+
+/** How strongly the banner shows through behind the Home header. */
+private const val COVER_ALPHA = 0.45f
+
+/**
+ * This scheme with the header's inks (onBackground, onSurface, onSurfaceVariant) nudged
+ * to read on [style]'s banner as Home draws it, and still on every neutral surface, so a
+ * menu opened from the header reads too. Unchanged for [CoverStyle.NONE] or a banner the
+ * inks already clear.
+ *
+ * ponytail: best effort. A mid-tone stop (Forest's lime in dark) can sit where even pure
+ * white misses 4.5:1; the ink then ends at white. Fix by dimming that style's stops.
+ */
+fun ColorScheme.withInkOverCover(style: CoverStyle): ColorScheme {
+    if (style == CoverStyle.NONE) return this
+    val stops = getCoverGradientColors(style, isDark)
+    // Midpoints too: a blend of two stops can be lighter or darker than either end.
+    val behind = (stops.zipWithNext { a, b -> listOf(a, lerp(a, b, 0.5f)) }.flatten() + stops.last())
+        .map { it.copy(alpha = COVER_ALPHA).compositeOver(background) } + neutralSurfaces
+    return copy(
+        onBackground = onBackground.readableOn(behind),
+        onSurface = onSurface.readableOn(behind),
+        onSurfaceVariant = onSurfaceVariant.readableOn(behind),
+    )
+}
 
 @Composable
 fun CoverGradientBanner(
@@ -31,7 +62,7 @@ fun CoverGradientBanner(
         modifier = modifier
             .fillMaxWidth()
             .height(300.dp)
-            .alpha(0.45f)
+            .alpha(COVER_ALPHA)
             .bottomFade(0.5f)
     ) {
         Box(

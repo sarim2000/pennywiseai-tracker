@@ -53,6 +53,7 @@ import com.pennywiseai.tracker.ui.components.cards.CashFlowCard
 import com.pennywiseai.tracker.ui.components.rememberSmsAccess
 import com.pennywiseai.tracker.ui.components.skeleton.BalanceCardSkeleton
 import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
+import com.pennywiseai.tracker.ui.components.withInkOverCover
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.*
@@ -261,49 +262,54 @@ fun HomeScreen(
             )
         },
         customTopBar = {
-            CustomTitleTopAppBar(
-                scrollBehaviorSmall = scrollBehaviorSmall,
-                scrollBehaviorLarge = scrollBehaviorLarge,
-                title = "PennyWise",
-                isHomeScreen = true,
-                userName = uiState.userName,
-                profileImageUri = uiState.profileImageUri,
-                profileBackgroundColor = uiState.profileBackgroundColor,
-                hazeState = hazeState,
-                blurEffects = blurEffects,
-                actionContent = {
-                    HomeTopBarActions(
-                        isProEntitled = isProEntitled,
-                        blurEffects = blurEffects,
-                        profiles = uiState.profiles,
-                        selectedProfileId = uiState.selectedProfileId,
-                        showProfileFilterMenu = showProfileFilterMenu,
-                        showAddAction = navDock != null,
-                        onUpgradeClick = { showUpgradeSheet = true },
-                        onOpenProfileFilter = { showProfileFilterMenu = true },
-                        onProfileSelected = { viewModel.updateSelectedProfile(it) },
-                        onDismissProfileFilter = { showProfileFilterMenu = false },
-                        onNavigateToAddScreen = onNavigateToAddScreen,
-                        onMoreClick = { showMenuSheet = true }
-                    )
-                },
-                extraInfoCard = {
-                    GreetingCard(
-                        userName = uiState.userName,
-                        profileImageUri = uiState.profileImageUri,
-                        profileBackgroundColor = uiState.profileBackgroundColor,
-                        onAvatarClick = onNavigateToSettings,
-                        onMenuClick = { showMenuSheet = true },
-                        onAddClick = onNavigateToAddScreen.takeIf { navDock != null },
-                        profiles = uiState.profiles,
-                        selectedProfileId = uiState.selectedProfileId,
-                        onProfileSelected = { viewModel.updateSelectedProfile(it) },
-                        isProEntitled = isProEntitled,
-                        onUpgradeClick = { showUpgradeSheet = true },
-                        cycleEnd = currentCycleWindow.second
-                    )
-                }
-            )
+            // The header sits on the cover banner, so its inks must read on that, not just the surface.
+            val scheme = MaterialTheme.colorScheme
+            val headerScheme = remember(scheme, coverStyle) { scheme.withInkOverCover(coverStyle) }
+            MaterialTheme(colorScheme = headerScheme) {
+                CustomTitleTopAppBar(
+                    scrollBehaviorSmall = scrollBehaviorSmall,
+                    scrollBehaviorLarge = scrollBehaviorLarge,
+                    title = "PennyWise",
+                    isHomeScreen = true,
+                    userName = uiState.userName,
+                    profileImageUri = uiState.profileImageUri,
+                    profileBackgroundColor = uiState.profileBackgroundColor,
+                    hazeState = hazeState,
+                    blurEffects = blurEffects,
+                    actionContent = {
+                        HomeTopBarActions(
+                            isProEntitled = isProEntitled,
+                            blurEffects = blurEffects,
+                            profiles = uiState.profiles,
+                            selectedProfileId = uiState.selectedProfileId,
+                            showProfileFilterMenu = showProfileFilterMenu,
+                            showAddAction = navDock != null,
+                            onUpgradeClick = { showUpgradeSheet = true },
+                            onOpenProfileFilter = { showProfileFilterMenu = true },
+                            onProfileSelected = { viewModel.updateSelectedProfile(it) },
+                            onDismissProfileFilter = { showProfileFilterMenu = false },
+                            onNavigateToAddScreen = onNavigateToAddScreen,
+                            onMoreClick = { showMenuSheet = true }
+                        )
+                    },
+                    extraInfoCard = {
+                        GreetingCard(
+                            userName = uiState.userName,
+                            profileImageUri = uiState.profileImageUri,
+                            profileBackgroundColor = uiState.profileBackgroundColor,
+                            onAvatarClick = onNavigateToSettings,
+                            onMenuClick = { showMenuSheet = true },
+                            onAddClick = onNavigateToAddScreen.takeIf { navDock != null },
+                            profiles = uiState.profiles,
+                            selectedProfileId = uiState.selectedProfileId,
+                            onProfileSelected = { viewModel.updateSelectedProfile(it) },
+                            isProEntitled = isProEntitled,
+                            onUpgradeClick = { showUpgradeSheet = true },
+                            cycleEnd = currentCycleWindow.second
+                        )
+                    }
+                )
+            }
         }
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {

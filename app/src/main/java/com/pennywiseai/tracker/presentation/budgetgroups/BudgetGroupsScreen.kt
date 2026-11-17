@@ -26,6 +26,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.pluralStringResource
@@ -870,6 +871,14 @@ private fun SpendingPaceChart(
         budgetPace.lastOrNull()?.let { pace -> actual > pace }
     } ?: false
     val spendingColor = if (isOverPace) themeColors.error else themeColors.primary
+    // The pace line stays muted but visible: 3:1 on the card and on the spending wash it crosses.
+    val paceColor = themeColors.run {
+        val card = surfaceContainerLow
+        onSurfaceVariant.copy(alpha = 0.4f).compositeOver(card).readableOn(
+            neutralSurfaces + spendingColor.copy(alpha = 0.2f).compositeOver(card),
+            GRAPHIC_CONTRAST
+        )
+    }
     var showPaceInfo by rememberSaveable { mutableStateOf(false) }
 
     Column(modifier = modifier.fillMaxWidth()) {
@@ -895,7 +904,7 @@ private fun SpendingPaceChart(
                 Line(
                     label = stringResource(R.string.budgets_chart_pace),
                     values = budgetPace,
-                    color = SolidColor(themeColors.onSurfaceVariant.copy(alpha = 0.4f)),
+                    color = SolidColor(paceColor),
                     drawStyle = DrawStyle.Stroke(width = 1.5.dp),
                     strokeAnimationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
                     curvedEdges = false,
@@ -956,7 +965,7 @@ private fun SpendingPaceChart(
                     modifier = Modifier
                         .size(8.dp)
                         .clip(CircleShape)
-                        .background(themeColors.onSurfaceVariant.copy(alpha = 0.4f))
+                        .background(paceColor)
                 )
                 Spacer(modifier = Modifier.width(Spacing.xs))
                 Text(

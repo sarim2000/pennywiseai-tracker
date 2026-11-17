@@ -180,8 +180,9 @@ internal class MorphFrom(
      * size: body and eye ink alike, as every object shares one pair of roles.
      */
     val owl: Float = owlness(shape),
-    /** How much of the receipt's check showed. */
+    /** How much of a cue's check showed, and where it sat. */
     val stamp: Float = 0f,
+    val stampAt: Offset = Offset.Zero,
     /** How shut the eyes were, 0..1. */
     val squint: Float = 0f,
 )

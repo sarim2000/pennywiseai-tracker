@@ -5,56 +5,153 @@ import kotlin.math.PI
 import kotlin.math.sin
 
 /*
- * What a shape does once a morph lands on it: one short move that says what it stands
- * for. It plays only when the mascot turns into the shape, never when a screen first
- * shows it, and never with animations off.
+ * What the mascot does once a morph lands, or in place when it is asked to: one short
+ * move that says what happened (a [MascotCue]). A shape plays its own cue when it lands
+ * unless the caller names another; it never plays when a screen first shows it, and never
+ * with animations off.
  *
- * - Coin (income): a shine sweeps across it and a few sparkles twinkle round it.
- * - Receipt (expense): a check is stamped in its corner, and stays while it's a receipt.
- * - Wallet (transfer): it looks, leaning, from line start to line end, as the money moved.
- * - Jar (investment): a coin drops in through the lid, and the jar settles under it.
- * - Bell: it rings, as it does when poked.
+ * - Shine (coin, income): a shine sweeps across it and a few sparkles twinkle round it.
+ * - Stamp (receipt, expense): a check is stamped in its corner, and stays while it's a receipt.
+ * - Glance (wallet, transfer): it looks, leaning, from line start to line end, as the money moved.
+ * - CoinDrop (jar, investment or a goal saved into): a coin drops in through the lid, and the jar settles.
+ * - Ring (bell): it rings, as it does when poked.
+ * - The moments' own (MascotCues*.kt): a goal reached, a debt paid off, a message learned,
+ *   rules applied, a statement read in, a backup kept safe, a bill paid, amounts hidden or
+ *   shown again.
+ *
+ * A cue that ends in a check keeps it for as long as the shape stays, and a morph away
+ * fades it with the old face.
  */
 
-/** How long a shape's arrival plays; the bell's ring is the longest part. */
+/** A one-shot move the mascot plays once its shape lands, or in place. */
+enum class MascotCue {
+    Shine,
+    Stamp,
+    Glance,
+    CoinDrop,
+    Ring,
+
+    /** A goal reached: the jar fills to the brim and glints. */
+    Brim,
+
+    /** A debt paid off: the wallet closes on a check. */
+    PaidOff,
+
+    /** An unrecognised message taught: the bubble reads it, then checks it. */
+    Learned,
+
+    /** Rules applied to past rows: the receipt's lines fall into place, then a check. */
+    Sorted,
+
+    /** A statement imported: the receipt is read top to bottom, then checked. */
+    Read,
+
+    /** A backup kept safe or restored: the shield takes a check. */
+    Secured,
+
+    /** A bill marked paid: the bell gives a short ring and takes a check. */
+    Paid,
+
+    /** Amounts hidden: the owl covers its eyes. */
+    CoverEyes,
+
+    /** Amounts shown again: the owl peeks out. */
+    Peek,
+}
+
+/** The cue [shape] plays when it lands and no other is asked for, or null for none. */
+internal fun defaultCue(shape: MascotShape): MascotCue? = when (shape) {
+    MascotShape.Coin -> MascotCue.Shine
+    MascotShape.Receipt -> MascotCue.Stamp
+    MascotShape.Wallet -> MascotCue.Glance
+    MascotShape.Jar -> MascotCue.CoinDrop
+    MascotShape.Bell -> MascotCue.Ring
+    MascotShape.Shield -> MascotCue.Secured
+    else -> null
+}
+
+/** How long a cue plays at most; the bell's ring is the longest part. */
 internal const val ARRIVAL_MS = RING_MS
 
-private fun smoothstep(from: Float, to: Float, x: Float): Float {
+internal fun smoothstep(from: Float, to: Float, x: Float): Float {
     val c = ((x - from) / (to - from)).coerceIn(0f, 1f)
     return c * c * (3 - 2 * c)
 }
 
 /**
- * Where [shape]'s arrival has nothing left to move, as a share of [ARRIVAL_MS]: its clock
- * stops there, so a settled shape draws no frames. 0 for a shape without an arrival.
+ * Where [cue] has nothing left to move, as a share of [ARRIVAL_MS]: its clock stops there,
+ * so a settled shape draws no frames. 0 for no cue.
  */
-internal fun arrivalEnd(shape: MascotShape): Float = when (shape) {
-    MascotShape.Coin -> COIN_SPARKLES.maxOf { it.delay } + SPARKLE_LIFE
-    MascotShape.Receipt -> STAMP_IN
-    MascotShape.Wallet -> GLANCE_DONE
-    MascotShape.Jar -> JAR_DROP_END + JAR_SETTLE
-    MascotShape.Bell -> 1f
-    else -> 0f
+internal fun arrivalEnd(cue: MascotCue?): Float = when (cue) {
+    null -> 0f
+    MascotCue.Shine -> COIN_SPARKLES.maxOf { it.delay } + SPARKLE_LIFE
+    MascotCue.Stamp -> STAMP_IN
+    MascotCue.Glance -> GLANCE_DONE
+    MascotCue.CoinDrop -> JAR_DROP_END + JAR_SETTLE
+    MascotCue.Ring -> 1f
+    MascotCue.Brim -> BRIM_END
+    MascotCue.PaidOff -> PAID_OFF_END
+    MascotCue.Learned -> LEARNED_END
+    MascotCue.Sorted -> SORTED_END
+    MascotCue.Read -> READ_END
+    MascotCue.Secured -> SECURED_END
+    MascotCue.Paid -> PAID_END
+    MascotCue.CoverEyes -> COVER_END
+    MascotCue.Peek -> PEEK_END
 }
 
-/** Where the arrival is, 0..1, [sinceMs] after it began. */
+/** Where a cue is, 0..1, [sinceMs] after it began. */
 internal fun arrivalAt(sinceMs: Long): Float = (sinceMs / ARRIVAL_MS.toFloat()).coerceIn(0f, 1f)
 
-/** [pose] [sinceMs] after [shape] arrived: the moves that are the face's own. */
-internal fun arrived(pose: MascotPose, shape: MascotShape, sinceMs: Long): MascotPose {
+/** [pose] [sinceMs] into [cue]: the moves that are the face's own. */
+internal fun arrived(pose: MascotPose, cue: MascotCue, sinceMs: Long): MascotPose {
     if (sinceMs !in 0 until ARRIVAL_MS) return pose
     val t = arrivalAt(sinceMs)
-    return when (shape) {
-        MascotShape.Wallet -> {
+    return when (cue) {
+        MascotCue.Glance -> {
             val glance = walletGlance(t)
             val attention = walletAttention(t)
             // It leans the way it looks, so the glance reads at 24dp too.
             lookAt(pose, glance, attention).let { it.copy(roll = it.roll + GLANCE_LEAN * glance.x * attention) }
         }
-        MascotShape.Bell -> rung(pose, sinceMs)
-        MascotShape.Jar -> pose.copy(lift = pose.lift + jarSettle(t))
-        else -> pose
+        MascotCue.Ring -> rung(pose, sinceMs)
+        MascotCue.CoinDrop -> pose.copy(lift = pose.lift + jarSettle(t))
+        MascotCue.Brim -> brimPose(pose, t)
+        MascotCue.PaidOff -> paidOffPose(pose, t)
+        MascotCue.Learned -> learnedPose(pose, t)
+        MascotCue.Sorted -> sortedPose(pose, t)
+        MascotCue.Read -> readPose(pose, t)
+        MascotCue.Secured -> securedPose(pose, t)
+        MascotCue.Paid -> paidPose(pose, t, sinceMs)
+        MascotCue.CoverEyes -> coverEyesPose(pose, t)
+        MascotCue.Peek -> peekPose(pose, t)
+        MascotCue.Shine, MascotCue.Stamp -> pose
     }
+}
+
+/**
+ * How much of [cue]'s check shows at [t]: none for a cue without one, and once a check is
+ * in it stays.
+ */
+internal fun checkAlpha(cue: MascotCue?, t: Float): Float = when (cue) {
+    MascotCue.Stamp -> stampAlpha(t)
+    MascotCue.PaidOff -> paidOffCheck(t)
+    MascotCue.Learned -> learnedCheck(t)
+    MascotCue.Sorted -> sortedCheck(t)
+    MascotCue.Read -> readCheck(t)
+    MascotCue.Secured -> securedCheck(t)
+    MascotCue.Paid -> paidCheck(t)
+    else -> 0f
+}
+
+/** Where a check sits on [shape], in box units: clear of its eyes, inside its body. */
+internal fun checkSpot(shape: MascotShape): Offset = when (shape) {
+    MascotShape.Receipt -> Offset(64f, 65f)
+    MascotShape.Wallet -> Offset(62f, 69f)
+    MascotShape.Bubble -> Offset(67f, 57f)
+    MascotShape.Bell -> Offset(62f, 66f)
+    MascotShape.Shield -> Offset(50f, 66f)
+    else -> Offset(64f, 66f)
 }
 
 /** A transfer's glance: from line start across to line end, a little low, at [t] 0..1. */
@@ -119,9 +216,9 @@ internal fun sparkleAlpha(sparkle: Sparkle, t: Float): Float {
     return if (s in 0f..1f) sin(PI * s).toFloat() else 0f
 }
 
-private const val SPARKLE_LIFE = 0.45f
+internal const val SPARKLE_LIFE = 0.45f
 
 /** How much of the receipt's check shows at [t]; once stamped it stays. */
 internal fun stampAlpha(t: Float): Float = smoothstep(0.05f, STAMP_IN, t)
 
-private const val STAMP_IN = 0.22f
+internal const val STAMP_IN = 0.22f

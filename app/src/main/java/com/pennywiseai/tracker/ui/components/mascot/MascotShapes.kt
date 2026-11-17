@@ -17,9 +17,10 @@ import kotlin.math.sin
  * wallet for a transfer, a jar for an investment, a message bubble for an SMS scan. A
  * chat reply takes its topic's: a pie for categories, bars for a month comparison. An
  * empty screen takes its subject's: a jar for goals, a bell for bills and subscriptions, a
- * wallet for accounts, a gauge for budgets, a bubble for messages.
+ * wallet for accounts, a gauge for budgets, a bubble for messages. A shield is a backup
+ * kept safe.
  */
-enum class MascotShape { Owl, Coin, Receipt, Wallet, Jar, Bubble, Pie, Bars, Bell, Gauge }
+enum class MascotShape { Owl, Coin, Receipt, Wallet, Jar, Bubble, Pie, Bars, Bell, Gauge, Shield }
 
 /**
  * Where a shape's pill eyes sit in the 0..100 box: the centre between them, the gap
@@ -155,6 +156,25 @@ internal fun MascotShape.geometry(value: Float = 0f): MascotGeometry = when (thi
         pivot = STANDING,
         details = needle(gaugeNeedleTip(value)),
         detailAlpha = NEEDLE_ALPHA,
+    )
+    // A heater shield: a gently peaked top, straight shoulders, curving to a rounded point.
+    MascotShape.Shield -> MascotGeometry(
+        body = svgPath(
+            "M50 9 C59 15 70 18 81 18 Q85 18 85 22 V44 C85 66 70 82 52 91 Q50 92 48 91 " +
+                "C30 82 15 66 15 44 V22 Q15 18 19 18 C30 18 41 15 50 9 Z"
+        ),
+        eyes = EyeSpec(x = 50f, y = 42f, spacing = 18f, scale = 1f),
+        pivot = STANDING,
+        // An inner rim, one band in from the edge.
+        details = Path.combine(
+            PathOperation.Difference,
+            svgPath(
+                "M50 16 C58 21 68 24 78 24 V44 C78 62 66 76 50 84 C34 76 22 62 22 44 V24 C32 24 42 21 50 16 Z"
+            ),
+            svgPath(
+                "M50 20 C57 24 66 27 74 27 V44 C74 60 64 72 50 79 C36 72 26 60 26 44 V27 C34 27 43 24 50 20 Z"
+            ),
+        ),
     )
 }
 

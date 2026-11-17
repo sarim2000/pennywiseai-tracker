@@ -100,10 +100,10 @@ class MascotMorphTest {
         assertEquals(0f, walletAttention(0f), 1e-6f)
         assertEquals(1f, walletAttention(0.4f), 1e-6f)
         assertEquals(0f, walletAttention(1f), 1e-6f)
-        val pose = arrived(MascotPose(), MascotShape.Wallet, (0.4f * ARRIVAL_MS).toLong())
+        val pose = arrived(MascotPose(), MascotCue.Glance, (0.4f * ARRIVAL_MS).toLong())
         assertTrue(pose.gazeX != 0f)
         // Over, it changes nothing.
-        assertEquals(MascotPose(), arrived(MascotPose(), MascotShape.Wallet, ARRIVAL_MS))
+        assertEquals(MascotPose(), arrived(MascotPose(), MascotCue.Glance, ARRIVAL_MS))
     }
 
     @Test
@@ -133,7 +133,7 @@ class MascotMorphTest {
 
     @Test
     fun `a bell rings as it arrives`() {
-        val ringing = arrived(MascotPose(), MascotShape.Bell, 100)
+        val ringing = arrived(MascotPose(), MascotCue.Ring, 100)
         assertTrue(ringing.roll != 0f)
     }
 
@@ -160,20 +160,36 @@ class MascotMorphTest {
     }
 
     @Test
-    fun `each arrival's clock stops once it has nothing left to move`() {
-        for (shape in MascotShape.entries) {
-            val end = arrivalEnd(shape)
-            assertTrue(end in 0f..1f)
-            if (end == 0f) continue
+    fun `each cue's clock stops once it has nothing left to move`() {
+        for (cue in MascotCue.entries) {
+            val end = arrivalEnd(cue)
+            assertTrue("$cue", end > 0f && end <= 1f)
             val at = (end * ARRIVAL_MS).toLong()
-            val still = arrived(MascotPose(), shape, at)
-            assertEquals(0f, still.roll, 0.05f)
-            assertEquals(0f, still.lift, 1e-4f)
-            assertEquals(0f, still.gazeX, 1e-4f)
+            val still = arrived(MascotPose(), cue, at)
+            assertEquals("$cue", 0f, still.roll, 0.05f)
+            assertEquals("$cue", 0f, still.lift, 1e-4f)
+            assertEquals("$cue", 0f, still.gazeX, 1e-4f)
+            assertEquals("$cue", 0f, still.gazeY, 1e-4f)
+            assertEquals("$cue", 0f, still.blink, 1e-4f)
+            // A check, once in, is all the way in by the end, and stays.
+            val check = checkAlpha(cue, end)
+            assertTrue("$cue", check == 0f || check == 1f)
+            assertEquals("$cue", check, checkAlpha(cue, 1f), 0f)
         }
-        assertEquals(0f, arrivalEnd(MascotShape.Owl), 0f)
-        assertEquals(1f, stampAlpha(arrivalEnd(MascotShape.Receipt)), 0f)
-        COIN_SPARKLES.forEach { assertEquals(0f, sparkleAlpha(it, arrivalEnd(MascotShape.Coin)), 1e-4f) }
-        assertNull(jarCoin(arrivalEnd(MascotShape.Jar)))
+        assertEquals(0f, arrivalEnd(null), 0f)
+        assertEquals(1f, stampAlpha(arrivalEnd(MascotCue.Stamp)), 0f)
+        COIN_SPARKLES.forEach { assertEquals(0f, sparkleAlpha(it, arrivalEnd(MascotCue.Shine)), 1e-4f) }
+        COIN_SPARKLES.forEach { assertEquals(0f, sparkleAlpha(it, arrivalEnd(MascotCue.Brim)), 1e-4f) }
+        assertNull(jarCoin(arrivalEnd(MascotCue.CoinDrop)))
+        assertEquals(0f, coverAmount(arrivalEnd(MascotCue.CoverEyes)), 0f)
+    }
+
+    @Test
+    fun `every shape that plays a cue of its own names one with an end`() {
+        for (shape in MascotShape.entries) {
+            val cue = defaultCue(shape) ?: continue
+            assertTrue("$shape", arrivalEnd(cue) > 0f)
+        }
+        assertNull(defaultCue(MascotShape.Owl))
     }
 }

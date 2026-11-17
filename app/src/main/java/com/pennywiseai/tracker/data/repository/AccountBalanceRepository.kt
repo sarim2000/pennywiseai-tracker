@@ -178,6 +178,8 @@ open class AccountBalanceRepository @Inject constructor(
                 creditLimit = creditLimit,
                 isCreditCard = isCreditCard,
                 accountType = BalanceCalculator.preservedAccountType(existing),
+                // Nothing here says the currency: the account keeps its own.
+                currency = existing?.currency ?: "INR",
                 profileId = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
                 alias = existing?.alias,
                 lowBalanceThreshold = existing?.lowBalanceThreshold
@@ -188,7 +190,9 @@ open class AccountBalanceRepository @Inject constructor(
 
     /**
      * Inserts a balance update from a balance notification SMS.
-     * Preserves the existing account's profileId if one exists.
+     * Preserves the existing account's profileId if one exists. Without a
+     * [currency] (a card link), the account keeps its own: a row in another
+     * currency would read as a change of currency and drop the card's bill.
      */
     suspend fun insertBalanceUpdate(
         bankName: String,
@@ -197,7 +201,7 @@ open class AccountBalanceRepository @Inject constructor(
         timestamp: LocalDateTime,
         smsSource: String? = null,
         sourceType: String? = null,
-        currency: String = "INR"
+        currency: String? = null
     ): Long {
         val existing = getLatestBalance(bankName, accountLast4)
         val balanceEntity = AccountBalanceEntity(
@@ -214,7 +218,7 @@ open class AccountBalanceRepository @Inject constructor(
             isCreditCard = existing?.isCreditCard ?: false,
             creditLimit = existing?.creditLimit,
             accountType = BalanceCalculator.preservedAccountType(existing),
-            currency = currency,
+            currency = currency ?: existing?.currency ?: "INR",
             profileId = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
             alias = existing?.alias,
             lowBalanceThreshold = existing?.lowBalanceThreshold

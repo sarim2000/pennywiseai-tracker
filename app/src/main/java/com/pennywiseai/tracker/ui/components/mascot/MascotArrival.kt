@@ -158,13 +158,13 @@ internal fun checkAlpha(cue: MascotCue?, t: Float): Float = when (cue) {
     else -> 0f
 }
 
-/** Where a check sits on [shape], in box units: clear of its eyes, inside its body. */
+/** Where a check sits on [shape], in box units: in a lower corner, clear of its eyes (the glyph draws it half again as big), so it reads as a badge, never a mouth. */
 internal fun checkSpot(shape: MascotShape): Offset = when (shape) {
     MascotShape.Receipt -> Offset(64f, 65f)
     MascotShape.Wallet -> Offset(62f, 69f)
-    MascotShape.Bubble -> Offset(67f, 57f)
-    MascotShape.Bell -> Offset(62f, 66f)
-    MascotShape.Shield -> Offset(50f, 66f)
+    MascotShape.Bubble -> Offset(73f, 58f)
+    MascotShape.Bell -> Offset(63f, 69f)
+    MascotShape.Shield -> Offset(60f, 63f)
     else -> Offset(64f, 66f)
 }
 

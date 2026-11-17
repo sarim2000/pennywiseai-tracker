@@ -18,10 +18,13 @@ import com.pennywiseai.tracker.utils.bidiIsolate
 import com.pennywiseai.tracker.utils.Money
 import java.time.LocalDate
 
-/** An insight in words: the number first, then why, then the figures behind it. */
+/**
+ * An insight in words: the number first, then why, then the figures behind it.
+ * [body] never repeats a figure [metrics] already shows; null when they say it all.
+ */
 internal data class InsightText(
     val title: String,
-    val body: String,
+    val body: String?,
     val metrics: List<Pair<String, String>>,
     val note: String? = null,
 )
@@ -38,7 +41,7 @@ internal fun insightText(insight: Insight): InsightText = when (val f = insight.
         } else {
             stringResource(R.string.insights_budget_used_up_title, name(f.name))
         },
-        body = stringResource(R.string.insights_budget_over_body, f.spent.format(), f.limit.format()),
+        body = null,
         metrics = listOf(
             stringResource(R.string.insights_metric_spent) to f.spent.format(),
             stringResource(R.string.insights_metric_budget) to f.limit.format(),
@@ -47,14 +50,12 @@ internal fun insightText(insight: Insight): InsightText = when (val f = insight.
     )
     is InsightFact.BudgetPace -> InsightText(
         title = stringResource(R.string.insights_budget_pace_title, f.perDayLeft.format(), name(f.name)),
-        body = stringResource(
-            R.string.insights_budget_pace_body, f.projected.format(), date(f.windowEnd), f.limit.format(),
-        ),
+        body = stringResource(R.string.insights_budget_pace_body, date(f.windowEnd)),
+        // The title already says what's left a day.
         metrics = listOf(
             stringResource(R.string.insights_metric_spent) to f.spent.format(),
             stringResource(R.string.insights_metric_budget) to f.limit.format(),
             stringResource(R.string.insights_metric_projected) to f.projected.format(),
-            stringResource(R.string.insights_metric_per_day) to f.perDayLeft.format(),
         ),
         note = stringResource(R.string.insights_budget_incomplete).takeIf { f.incomplete },
     )
@@ -67,7 +68,7 @@ internal fun insightText(insight: Insight): InsightText = when (val f = insight.
         title = stringResource(
             R.string.insights_spike_title, f.spent.format(), name(categoryLabel(f.category)), percent(f.percentAbove),
         ),
-        body = stringResource(R.string.insights_spike_body, f.usual.format()),
+        body = stringResource(R.string.insights_spike_body),
         metrics = listOf(
             stringResource(R.string.insights_metric_this_cycle) to f.spent.format(),
             stringResource(R.string.insights_metric_usual) to f.usual.format(),
@@ -79,19 +80,19 @@ internal fun insightText(insight: Insight): InsightText = when (val f = insight.
                 R.string.insights_savings_negative_title,
                 Money(f.saved.amount.negate(), f.saved.currency).format(),
             ),
-            body = stringResource(R.string.insights_savings_negative_body, f.income.format()),
+            body = stringResource(R.string.insights_savings_body),
             metrics = savingsMetrics(f),
         )
     } else {
         InsightText(
             title = stringResource(R.string.insights_savings_good_title, percent(f.percent)),
-            body = stringResource(R.string.insights_savings_good_body, f.saved.format(), f.income.format()),
+            body = stringResource(R.string.insights_savings_body),
             metrics = savingsMetrics(f),
         )
     }
     is InsightFact.LargeTransaction -> InsightText(
         title = stringResource(R.string.insights_large_title, f.amount.format(), merchant(f.merchant), times(f.times)),
-        body = stringResource(R.string.insights_large_body, name(categoryLabel(f.category)), f.usual.format(), date(f.date)),
+        body = stringResource(R.string.insights_large_body, name(categoryLabel(f.category)), date(f.date)),
         metrics = listOf(
             stringResource(R.string.insights_metric_amount) to f.amount.format(),
             stringResource(R.string.insights_metric_usual) to f.usual.format(),
@@ -99,7 +100,7 @@ internal fun insightText(insight: Insight): InsightText = when (val f = insight.
     )
     is InsightFact.PriceChange -> InsightText(
         title = stringResource(R.string.insights_price_title, merchant(f.name), f.charged.format()),
-        body = stringResource(R.string.insights_price_body, f.tracked.format()),
+        body = stringResource(R.string.insights_price_body),
         metrics = listOf(
             stringResource(R.string.insights_metric_tracked) to f.tracked.format(),
             stringResource(R.string.insights_metric_charged) to f.charged.format(),
@@ -107,7 +108,7 @@ internal fun insightText(insight: Insight): InsightText = when (val f = insight.
     )
     is InsightFact.CardUtilisation -> InsightText(
         title = stringResource(R.string.insights_card_title, percent(f.percent), name(f.label)),
-        body = stringResource(R.string.insights_card_body, f.used.format(), f.limit.format()),
+        body = null,
         metrics = listOf(
             stringResource(R.string.insights_metric_used) to f.used.format(),
             stringResource(R.string.insights_metric_limit) to f.limit.format(),

@@ -591,12 +591,14 @@ internal fun InsightCard(
             )
         }
         if (expanded) {
-            Text(
-                text = text.body,
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(top = Spacing.sm),
-            )
+            text.body?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.padding(top = Spacing.sm),
+                )
+            }
             if (text.metrics.isNotEmpty()) {
                 FlowRow(
                     modifier = Modifier.fillMaxWidth().padding(top = Spacing.smd),

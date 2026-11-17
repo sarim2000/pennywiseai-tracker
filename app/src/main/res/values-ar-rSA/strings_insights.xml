@@ -86,7 +86,6 @@
     <string name="insights_metric_spent">المصروف</string>
     <string name="insights_metric_budget">الميزانية</string>
     <string name="insights_metric_projected">المتوقع</string>
-    <string name="insights_metric_per_day">المتاح يوميًا</string>
     <string name="insights_metric_usual">المعتاد</string>
     <string name="insights_metric_this_cycle">هذه الدورة</string>
     <string name="insights_metric_amount">المبلغ</string>
@@ -108,12 +107,10 @@
     <string name="insights_budget_over_title">تجاوزت %2$s بمقدار %1$s</string>
     <!-- Budget limit reached with days still to go. %1$s = budget name -->
     <string name="insights_budget_used_up_title">لم يتبقَّ شيء في %1$s</string>
-    <!-- %1$s = spent, %2$s = budget limit -->
-    <string name="insights_budget_over_body">أنفقت %1$s من %2$s.</string>
     <!-- Budget pace. %1$s = amount per day, %2$s = budget name -->
     <string name="insights_budget_pace_title">يبقيك %1$s يوميًا ضمن %2$s</string>
-    <!-- %1$s = projected spend, %2$s = end date, %3$s = budget limit -->
-    <string name="insights_budget_pace_body">بهذه الوتيرة ستنفق %1$s بحلول %2$s، مقابل ميزانية قدرها %3$s.</string>
+    <!-- %1$s = the budget period's end date -->
+    <string name="insights_budget_pace_body">بهذه الوتيرة ستتجاوزها قبل %1$s.</string>
     <string name="insights_budget_incomplete">بعض الإنفاق بعملات أخرى لا سعر صرف له بعد، لذا قد يكون الرقم الفعلي أعلى.</string>
     <plurals name="insights_budgets_on_track_title">
         <item quantity="zero">كل الميزانيات ضمن المسار</item>
@@ -127,34 +124,29 @@
 
     <!-- Category spike. %1$s = amount, %2$s = category, %3$s = percentage -->
     <string name="insights_spike_title">أنفقت %1$s على %2$s، أكثر من المعتاد بنسبة %3$s</string>
-    <!-- %1$s = usual amount for a whole cycle -->
-    <string name="insights_spike_body">تنفق عادةً نحو %1$s عليها في دورة كاملة، وهذه الدورة لم تنتهِ بعد.</string>
+    <!-- Under a category spike: the usual figure is for a whole cycle -->
+    <string name="insights_spike_body">المعتاد لدورة كاملة، وهذه الدورة لم تنتهِ بعد.</string>
 
     <!-- Savings rate. %1$s = percentage -->
     <string name="insights_savings_good_title">احتفظت بـ %1$s من دخلك</string>
-    <!-- %1$s = amount saved, %2$s = income -->
-    <string name="insights_savings_good_body">%1$s من %2$s حتى الآن في هذه الدورة.</string>
+    <!-- Under either savings insight -->
+    <string name="insights_savings_body">حتى الآن في هذه الدورة.</string>
     <!-- %1$s = amount -->
     <string name="insights_savings_negative_title">أنفقت %1$s أكثر مما كسبت</string>
-    <!-- %1$s = income -->
-    <string name="insights_savings_negative_body">الدخل المسجّل حتى الآن في هذه الدورة %1$s.</string>
 
     <!-- Large transaction. %1$s = amount, %2$s = merchant, %3$s = how many times, e.g. "4×" -->
     <string name="insights_large_title">دفعت %1$s لدى %2$s، %3$s معتادك</string>
     <!-- %1$d = how many times the usual amount (3 or more) -->
     <string name="insights_times">%1$d أضعاف</string>
-    <!-- %1$s = category, %2$s = typical amount, %3$s = date -->
-    <string name="insights_large_body">المصروف المعتاد في %1$s نحو %2$s. كان هذا في %3$s.</string>
+    <!-- %1$s = category, %2$s = date -->
+    <string name="insights_large_body">المعتاد هو مصروف نموذجي في %1$s. كان هذا في %2$s.</string>
 
     <!-- Price change. %1$s = subscription name, %2$s = new amount -->
     <string name="insights_price_title">خصم %1$s مبلغ %2$s</string>
-    <!-- %1$s = tracked amount -->
-    <string name="insights_price_body">سجّلته بمبلغ %1$s. حدّثه لتبقى الفواتير القادمة صحيحة.</string>
+    <string name="insights_price_body">حدّثه لتبقى الفواتير القادمة صحيحة.</string>
 
     <!-- Card utilisation. %1$s = percentage, %2$s = card name -->
     <string name="insights_card_title">استُخدم %1$s من حد %2$s</string>
-    <!-- %1$s = used, %2$s = limit -->
-    <string name="insights_card_body">%1$s من %2$s.</string>
 
     <!-- Bills due. %1$s = total, %2$d = days -->
     <plurals name="insights_bills_title">

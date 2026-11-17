@@ -74,7 +74,6 @@
     <string name="insights_metric_spent">Spent</string>
     <string name="insights_metric_budget">Budget</string>
     <string name="insights_metric_projected">Projected</string>
-    <string name="insights_metric_per_day">Per day left</string>
     <string name="insights_metric_usual">Usual</string>
     <string name="insights_metric_this_cycle">This cycle</string>
     <string name="insights_metric_amount">Amount</string>
@@ -96,12 +95,10 @@
     <string name="insights_budget_over_title">%1$s over on %2$s</string>
     <!-- Budget limit reached with days still to go. %1$s = budget name -->
     <string name="insights_budget_used_up_title">Nothing left in %1$s</string>
-    <!-- %1$s = spent, %2$s = budget limit -->
-    <string name="insights_budget_over_body">You\'ve spent %1$s of %2$s.</string>
     <!-- Budget pace. %1$s = amount per day, %2$s = budget name -->
     <string name="insights_budget_pace_title">%1$s a day keeps %2$s on track</string>
-    <!-- %1$s = projected spend, %2$s = end date, %3$s = budget limit -->
-    <string name="insights_budget_pace_body">At this pace you\'d spend %1$s by %2$s, against a budget of %3$s.</string>
+    <!-- %1$s = the budget period's end date -->
+    <string name="insights_budget_pace_body">At this pace you\'d go over it before %1$s.</string>
     <string name="insights_budget_incomplete">Some spending in other currencies has no exchange rate yet, so the real figure may be higher.</string>
     <plurals name="insights_budgets_on_track_title">
         <item quantity="one">%1$d budget is on track</item>
@@ -111,34 +108,29 @@
 
     <!-- Category spike. %1$s = amount, %2$s = category, %3$s = percentage -->
     <string name="insights_spike_title">%1$s on %2$s, %3$s more than usual</string>
-    <!-- %1$s = usual amount for a whole cycle -->
-    <string name="insights_spike_body">You usually spend about %1$s on it in a whole cycle, and this one isn\'t over yet.</string>
+    <!-- Under a category spike: the usual figure is for a whole cycle -->
+    <string name="insights_spike_body">Usual is for a whole cycle, and this one isn\'t over yet.</string>
 
     <!-- Savings rate. %1$s = percentage -->
     <string name="insights_savings_good_title">You\'ve kept %1$s of your income</string>
-    <!-- %1$s = amount saved, %2$s = income -->
-    <string name="insights_savings_good_body">%1$s of %2$s so far this cycle.</string>
+    <!-- Under either savings insight -->
+    <string name="insights_savings_body">So far this cycle.</string>
     <!-- %1$s = amount -->
     <string name="insights_savings_negative_title">%1$s more spent than earned</string>
-    <!-- %1$s = income -->
-    <string name="insights_savings_negative_body">Income recorded so far this cycle is %1$s.</string>
 
     <!-- Large transaction. %1$s = amount, %2$s = merchant, %3$s = how many times, e.g. "4×" -->
     <string name="insights_large_title">%1$s at %2$s, %3$s your usual</string>
     <!-- %1$d = how many times the usual amount -->
     <string name="insights_times">%1$d×</string>
-    <!-- %1$s = category, %2$s = typical amount, %3$s = date -->
-    <string name="insights_large_body">A typical %1$s spend is about %2$s. This one was on %3$s.</string>
+    <!-- %1$s = category, %2$s = date -->
+    <string name="insights_large_body">Usual is a typical %1$s spend. This one was on %2$s.</string>
 
     <!-- Price change. %1$s = subscription name, %2$s = new amount -->
     <string name="insights_price_title">%1$s charged %2$s</string>
-    <!-- %1$s = tracked amount -->
-    <string name="insights_price_body">You track it at %1$s. Update it so upcoming bills stay right.</string>
+    <string name="insights_price_body">Update it so upcoming bills stay right.</string>
 
     <!-- Card utilisation. %1$s = percentage, %2$s = card name -->
     <string name="insights_card_title">%1$s of your %2$s limit used</string>
-    <!-- %1$s = used, %2$s = limit -->
-    <string name="insights_card_body">%1$s of %2$s.</string>
 
     <!-- Bills due. %1$s = total, %2$d = days -->
     <plurals name="insights_bills_title">

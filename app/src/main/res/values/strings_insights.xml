@@ -33,6 +33,12 @@
     <!-- %1$d = how many insights were dismissed this cycle -->
     <string name="insights_show_dismissed">Show dismissed (%1$d)</string>
     <string name="insights_hide_dismissed">Hide dismissed</string>
+    <!-- Under the first few heads-ups. %1$d = how many more there are -->
+    <plurals name="insights_show_more">
+        <item quantity="one">Show %1$d more</item>
+        <item quantity="other">Show %1$d more</item>
+    </plurals>
+    <string name="insights_show_fewer">Show fewer</string>
     <string name="insights_expand">Show details</string>
     <string name="insights_collapse">Hide details</string>
     <!-- %1$d = a whole percentage -->

@@ -177,6 +177,7 @@ private fun InsightsContent(
     var expanded by rememberSaveable { mutableStateOf<String?>(null) }
     var showDismissed by rememberSaveable { mutableStateOf(false) }
     var showScore by rememberSaveable { mutableStateOf(false) }
+    var showAllHeadsUp by rememberSaveable { mutableStateOf(false) }
     val sections = InsightSeverity.entries.mapNotNull { severity ->
         state.insights.filter { it.severity == severity }.takeIf { it.isNotEmpty() }?.let { severity to it }
     }
@@ -218,8 +219,12 @@ private fun InsightsContent(
             }
         }
         sections.forEach { (severity, insights) ->
+            // Heads-ups can pile up (several spikes, large spends, bills): the first few, in
+            // the rules' order of importance, and the rest a tap away.
+            val hidden = if (severity == InsightSeverity.WARNING) insights.size - HEADS_UP_SHOWN else 0
+            val shown = if (hidden > 0 && !showAllHeadsUp) insights.take(HEADS_UP_SHOWN) else insights
             item(key = "header_${severity.name}") { SeverityHeader(severity) }
-            items(insights, key = { it.id }) { insight ->
+            items(shown, key = { it.id }) { insight ->
                 InsightCard(
                     insight = insight,
                     expanded = expanded == insight.id,
@@ -229,6 +234,20 @@ private fun InsightsContent(
                     onSecondary = { onDismiss(insight.id) },
                     modifier = Modifier.animateItem(),
                 )
+            }
+            if (hidden > 0) {
+                item(key = "more_${severity.name}") {
+                    TextButton(
+                        onClick = { showAllHeadsUp = !showAllHeadsUp },
+                        shapes = ButtonDefaults.shapes(),
+                        modifier = Modifier.fillMaxWidth().animateItem(),
+                    ) {
+                        Text(
+                            if (showAllHeadsUp) stringResource(R.string.insights_show_fewer)
+                            else pluralStringResource(R.plurals.insights_show_more, hidden, hidden)
+                        )
+                    }
+                }
             }
         }
 
@@ -630,6 +649,9 @@ private fun MetricChip(label: String, value: String) {
 private fun periodLabel(range: ReviewRange): String =
     if (isCalendarMonth(range.start, range.end)) range.start.format(AppDates.pattern("MMMM"))
     else DateRangeUtils.formatDateRange(range.start, range.end)
+
+/** Heads-ups shown before "Show more". */
+private const val HEADS_UP_SHOWN = 3
 
 /** A cycle with almost nothing still shows a sliver, so it doesn't read as missing data. */
 private const val MIN_BAR_FRACTION = 0.02f

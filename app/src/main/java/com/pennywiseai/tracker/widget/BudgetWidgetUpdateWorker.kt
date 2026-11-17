@@ -10,9 +10,11 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.data.repository.BudgetSummaryProvider
+import com.pennywiseai.tracker.data.repository.budgetPercentUsed
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -103,14 +105,15 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
  * screen's summary) together, and how savings moved since [previous].
  */
 internal fun budgetWidgetData(current: BudgetOverallSummary, previous: BudgetOverallSummary): BudgetWidgetData {
-    val pctUsed = if (current.totalLimitBudget > BigDecimal.ZERO) {
-        (current.totalLimitSpent.toFloat() / current.totalLimitBudget.toFloat() * 100f).coerceAtLeast(0f)
-    } else 0f
+    // Rollover can carry every limit down to 0: that's used up, not "no budget".
+    val carry = current.groups.filter { it.group.budget.groupType == BudgetGroupType.LIMIT }
+        .fold(BigDecimal.ZERO) { acc, g -> acc + g.carry }
     return BudgetWidgetData(
         totalSpent = current.totalLimitSpent,
         totalLimit = current.totalLimitBudget,
+        hasLimit = current.totalLimitBudget.signum() > 0 || carry.signum() < 0,
         remaining = current.totalLimitBudget - current.totalLimitSpent,
-        percentageUsed = pctUsed,
+        percentageUsed = budgetPercentUsed(current.totalLimitSpent, current.totalLimitBudget, carry),
         dailyAllowance = current.dailyAllowance,
         totalIncome = current.totalIncome,
         netSavings = current.netSavings,

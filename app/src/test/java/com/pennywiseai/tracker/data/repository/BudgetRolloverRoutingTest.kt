@@ -181,6 +181,10 @@ class BudgetRolloverRoutingTest {
                 DailySummaryWorker.budgetsLeft(overall, today)
             )
             assertTrue(InsightRules.budgets(budgetStatuses(overall, today), "p").single().fact is InsightFact.BudgetOver)
+            // The widget shows it used up, not its "create a budget" empty state.
+            val widget = budgetWidgetData(overall, overall)
+            assertTrue(widget.hasLimit)
+            assertEquals(100f, widget.percentageUsed)
         }
     }
 

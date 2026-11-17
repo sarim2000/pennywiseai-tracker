@@ -171,9 +171,6 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
             var rebuildStartedAt: LocalDateTime? = null
             var accountsBeforeRebuild: Map<Pair<String, String>, AccountBalanceEntity> = emptyMap()
-            // The account fields a rebuild saved before deleting their rows. One that never
-            // finished left them on disk, and whichever scan finishes next puts them back.
-            var accountFieldsToKeep = rebuildAccountFields.pending()
             if (forceResync) {
                 rebuildStartedAt = LocalDateTime.now()
                 Trace.beginSection("clearDatabase")
@@ -199,8 +196,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                     // On disk before any row goes, so a scan that stops part-way can't lose
                     // the bill or anchor the user set. Today's rows come first: put back
                     // first, they win over an older interrupted rebuild's.
-                    accountFieldsToKeep = latestBeforeRebuild + accountFieldsToKeep
-                    rebuildAccountFields.save(accountFieldsToKeep)
+                    rebuildAccountFields.save(latestBeforeRebuild + rebuildAccountFields.pending())
                     transactionRepository.deleteRebuildableSmsTransactions(
                         java.time.LocalDateTime.ofInstant(
                             java.time.Instant.ofEpochMilli(scanStartTime), java.time.ZoneId.systemDefault()
@@ -285,8 +281,11 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             // Rows rebuilt from balance-only SMS don't pass through processBalanceUpdate,
             // so put each typed account's type back on the rows that lost it (#792).
             for (row in accountsBeforeRebuild.values) accountBalanceRepository.restoreAccountType(row)
-            // Likewise the statement and due day, card bill and balance anchor the user set.
+            // Likewise the statement and due day, card bill and balance anchor the user set,
+            // saved by this rebuild or one that never finished. Read now, not when the scan
+            // began: a field the user edited since is no longer in it, and stays as they set it.
             // An account with no rows yet keeps its fields saved for a later scan.
+            val accountFieldsToKeep = rebuildAccountFields.pending()
             if (accountFieldsToKeep.isNotEmpty()) {
                 rebuildAccountFields.save(accountFieldsToKeep.filter { accountBalanceRepository.keepAccountFields(it) == 0 })
             }

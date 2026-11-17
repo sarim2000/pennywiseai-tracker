@@ -10,6 +10,7 @@ import com.pennywiseai.tracker.data.database.entity.CardType
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
+import com.pennywiseai.tracker.data.preferences.RebuildAccountFieldsStore
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CardRepository
 import com.pennywiseai.tracker.domain.model.AccountType
@@ -73,6 +74,7 @@ class ManageAccountsViewModel @Inject constructor(
     private val ignoredAccountsStore: com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore,
 ) : ViewModel() {
     private val bankAccountMerges = BankAccountMergeStore(context)
+    private val rebuildAccountFields = RebuildAccountFieldsStore(context)
 
     /**
      * Drives the Merge-accounts action — Pro-only gate. Free users still
@@ -297,6 +299,8 @@ class ManageAccountsViewModel @Inject constructor(
 
     fun setStatementDay(bankName: String, accountLast4: String, day: Int?) {
         viewModelScope.launch {
+            // A rebuild still waiting to put the old day back mustn't undo this edit.
+            rebuildAccountFields.forgetStatementDay(bankName, accountLast4)
             accountBalanceRepository.updateStatementDay(bankName, accountLast4, day)
         }
     }

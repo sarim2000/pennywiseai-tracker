@@ -12,14 +12,20 @@ import com.pennywiseai.tracker.domain.spending.NetWorthTotal
 import com.pennywiseai.tracker.domain.spending.PeopleOwed
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
+import java.time.Duration
 import java.time.LocalDate
+import java.time.LocalDateTime
 import javax.inject.Inject
 
 /** How far back the trend reaches. */
@@ -65,6 +71,19 @@ internal fun List<NetWorthPoint>.sampled(max: Int = MAX_TREND_POINTS): List<NetW
     return indices.reversed().step(every).map { this[it] }.reversed()
 }
 
+/**
+ * Today, and the new day each midnight, so a page left open overnight doesn't end its
+ * trend on yesterday. Coming back to the page re-reads it too: the screen stops
+ * collecting while it's away, and the state restarts on return.
+ */
+internal fun currentDay(clock: () -> LocalDateTime = LocalDateTime::now): Flow<LocalDate> = flow {
+    while (true) {
+        val now = clock()
+        emit(now.toLocalDate())
+        delay(Duration.between(now, now.toLocalDate().plusDays(1).atStartOfDay()).toMillis() + 1)
+    }
+}.distinctUntilChanged()
+
 internal fun netWorthUiState(
     snapshot: NetWorthSnapshot,
     trends: Map<String, List<NetWorthPoint>>?,
@@ -97,8 +116,7 @@ class NetWorthViewModel @Inject constructor(
     private val range = savedStateHandle.getStateFlow(KEY_RANGE, NetWorthRange.QUARTER.name)
         .map { name -> NetWorthRange.entries.firstOrNull { it.name == name } ?: NetWorthRange.QUARTER }
 
-    private val trends = range.flatMapLatest { selected ->
-        val today = LocalDate.now()
+    private val trends = combine(range, currentDay(), ::Pair).flatMapLatest { (selected, today) ->
         loader.observeTrend(today.minusMonths(selected.months), today)
             .map<Map<String, List<NetWorthPoint>>, Map<String, List<NetWorthPoint>>?> { it }
             .onStart { emit(null) }

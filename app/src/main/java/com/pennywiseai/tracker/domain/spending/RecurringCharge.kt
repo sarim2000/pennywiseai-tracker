@@ -82,12 +82,14 @@ object RecurringCharge {
 
     /**
      * The next payment as the Subscriptions screen shows it: [scheduled], moved on a
-     * month at a time until it's after [today]. Anything else that names a
+     * month at a time while it's in the past. A payment due today stays today: a paid
+     * bill has already moved on ([com.pennywiseai.tracker.data.repository.SubscriptionRepository.recordCharge]),
+     * so one still on today hasn't been seen paid. Anything else that names a
      * subscription's next date reads this, so the two never disagree.
      */
     fun nextPaymentShown(scheduled: LocalDate, today: LocalDate): LocalDate {
         var next = scheduled
-        while (!next.isAfter(today)) next = next.plusMonths(1)
+        while (next.isBefore(today)) next = next.plusMonths(1)
         return next
     }
 

@@ -89,4 +89,12 @@ class RecurringChargeTest {
         assertTrue(RecurringCharge.isRetap(nov23, LocalDate.of(2026, 11, 30), nov26, nov23))
         assertFalse(RecurringCharge.isRetap(nov23, LocalDate.of(2026, 11, 30), nov26, nov26))
     }
+
+    @Test
+    fun `the next payment shown keeps today and moves past dates on a month at a time`() {
+        val today = LocalDate.of(2026, 11, 16)
+        assertEquals(today, RecurringCharge.nextPaymentShown(today, today))
+        assertEquals(LocalDate.of(2026, 12, 10), RecurringCharge.nextPaymentShown(LocalDate.of(2026, 10, 10), today))
+        assertEquals(LocalDate.of(2026, 11, 20), RecurringCharge.nextPaymentShown(LocalDate.of(2026, 11, 20), today))
+    }
 }

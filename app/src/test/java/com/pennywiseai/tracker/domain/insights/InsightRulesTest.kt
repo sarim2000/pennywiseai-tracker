@@ -376,10 +376,10 @@ class InsightRulesTest {
                 subscription(2, "50", "2026-10-22", merchant = "Gym"),
             ),
         )
-        // The screen moves today's date on to Dec 20, out of the week, and last month's on to Nov 22.
+        // Due today stays today; last month's unpaid date moves on to Nov 22, as on the screen.
         val bills = insights.single { it.fact is BillsDue }.fact as BillsDue
-        assertEquals(LocalDate.parse("2026-11-22"), bills.firstDue)
-        assertEquals(listOf("Gym"), bills.names)
+        assertEquals(LocalDate.parse("2026-11-20"), bills.firstDue)
+        assertEquals(listOf("Streamer", "Gym"), bills.names)
     }
 
     @Test

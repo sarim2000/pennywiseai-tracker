@@ -115,6 +115,17 @@ class BudgetRolloverTest {
     }
 
     @Test
+    fun `the period rollover was turned on in is its first, and only that one`() {
+        val b = budget(since = LocalDate.of(2026, 11, 4))
+        val firstWeek = week("2026-11-02")
+        val nextWeek = week("2026-11-09")
+        assertTrue(BudgetRollover.isFirstPeriod(b, firstWeek.start, firstWeek.end))
+        assertFalse(BudgetRollover.isFirstPeriod(b, nextWeek.start, nextWeek.end))
+        assertFalse(BudgetRollover.isFirstPeriod(budget(enabled = false), firstWeek.start, firstWeek.end))
+        assertFalse(BudgetRollover.isFirstPeriod(budget(groupType = BudgetGroupType.TARGET), firstWeek.start, firstWeek.end))
+    }
+
+    @Test
     fun `weeks without opening the app still carry from last week only`() {
         val b = budget(since = LocalDate.of(2026, 1, 7))
         assertEquals(week("2026-11-09"), BudgetRollover.sourceWindow(b, week("2026-11-16"), 1))

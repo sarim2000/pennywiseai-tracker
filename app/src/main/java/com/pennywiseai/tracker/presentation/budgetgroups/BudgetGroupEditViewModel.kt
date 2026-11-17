@@ -5,6 +5,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.database.entity.BudgetEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
@@ -80,12 +81,33 @@ data class BudgetGroupEditUiState(
     val rolloverEnabled: Boolean = false,
     /** The budget's type as stored; a new one is a spending limit. */
     val groupType: BudgetGroupType = BudgetGroupType.LIMIT,
+    /** The budget as stored; null for a new one. */
+    val saved: BudgetEntity? = null,
     val isLoading: Boolean = true,
     val isSaving: Boolean = false,
     val saveComplete: Boolean = false
 ) {
     /** Only a weekly or monthly spending limit offers rollover. */
     val rolloverAvailable: Boolean get() = BudgetRollover.isAvailable(groupType, periodType)
+
+    /**
+     * Saved as it stands, rollover starts (or restarts) in the current period, which
+     * carries nothing in: it begins with the next one. Mirrors what
+     * [BudgetGroupRepository.updateGroup] stores, via [BudgetRollover.sinceAfterEdit].
+     */
+    fun rolloverStartsNextPeriod(today: LocalDate = LocalDate.now()): Boolean {
+        if (!rolloverEnabled || !rolloverAvailable) return false
+        val before = saved ?: return true
+        val after = before.copy(
+            currency = currency,
+            periodType = periodType,
+            weekStartDay = weekStartDay.coerceIn(1, 7).takeIf { periodType == BudgetPeriodType.WEEKLY },
+            monthStartDay = BudgetCycle.clampStartDay(monthStartDay).takeIf { periodType == BudgetPeriodType.MONTHLY },
+            rolloverEnabled = true
+        )
+        val since = BudgetRollover.sinceAfterEdit(before, after, today) ?: return false
+        return !since.isBefore(startDate)
+    }
 }
 
 @HiltViewModel
@@ -186,6 +208,7 @@ class BudgetGroupEditViewModel @Inject constructor(
                         endDate = currentWindowEnd(b, today, userPreferencesRepository.getBudgetCycleStartDay()),
                         rolloverEnabled = b.rolloverEnabled,
                         groupType = b.groupType,
+                        saved = b,
                         isLoading = false
                     )
                 }

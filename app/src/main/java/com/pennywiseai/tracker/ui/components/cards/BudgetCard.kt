@@ -56,6 +56,7 @@ import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.data.repository.CarryGap
+import com.pennywiseai.tracker.domain.spending.BudgetRollover
 import com.pennywiseai.tracker.domain.spending.budgetPace
 import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.ui.animations.pwExpand
@@ -354,9 +355,10 @@ fun BudgetCard(
 
 /**
  * How a rolled-over budget's limit is made up: "Base X + Y carried over = Z", or
- * why nothing carried. Nothing at all when rollover is off or carried exactly 0.
- * [color]: the "Spent X of Y" line's above it. [onAddRate] opens Exchange Rates,
- * offered when a missing rate stopped the carry.
+ * why nothing carried, or, in the period rollover was turned on in, when it starts.
+ * Nothing at all when rollover is off, or carried exactly 0 after its first period.
+ * [color]: the "Spent X of Y" line's above it. [onAddRate] opens Exchange Rates, offered when a missing
+ * rate stopped the carry.
  */
 @Composable
 fun RolloverLine(
@@ -366,38 +368,48 @@ fun RolloverLine(
     color: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     onAddRate: (() -> Unit)? = null
 ) {
-    if (!groupSpending.group.budget.rolloverEnabled) return
+    val budget = groupSpending.group.budget
+    if (!budget.rolloverEnabled) return
     RolloverLine(
         limit = groupSpending.totalBudget,
         carry = groupSpending.carry,
         gap = groupSpending.carryGap,
         currency = currency,
+        startsNext = budget.periodType.takeIf {
+            BudgetRollover.isFirstPeriod(budget, groupSpending.windowStart, groupSpending.windowEnd)
+        },
         modifier = modifier,
         color = color,
         onAddRate = onAddRate
     )
 }
 
-/** [RolloverLine] for a [limit] (in [currency]) that already has [carry] in it. */
+/**
+ * [RolloverLine] for a [limit] (in [currency]) that already has [carry] in it.
+ * [startsNext]: this is rollover's first period, of that cadence.
+ */
 @Composable
 fun RolloverLine(
     limit: BigDecimal,
     carry: BigDecimal,
     gap: CarryGap?,
     currency: String,
+    startsNext: BudgetPeriodType? = null,
     modifier: Modifier = Modifier,
     color: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     onAddRate: (() -> Unit)? = null
 ) {
     val text = when {
         gap != null -> stringResource(gap.message)
-        carry.signum() == 0 -> return
-        else -> stringResource(
+        carry.signum() != 0 -> stringResource(
             if (carry.signum() > 0) R.string.budget_rollover_carried_in else R.string.budget_rollover_carried_out,
             CurrencyFormatter.formatCurrency(limit - carry, currency),
             CurrencyFormatter.formatCurrency(carry.abs(), currency),
             CurrencyFormatter.formatCurrency(limit, currency)
         )
+        startsNext == BudgetPeriodType.WEEKLY -> stringResource(R.string.budget_rollover_starts_next_week)
+        startsNext == BudgetPeriodType.MONTHLY -> stringResource(R.string.budget_rollover_starts_next_month)
+        else -> return
     }
     Column(modifier = modifier) {
         Text(

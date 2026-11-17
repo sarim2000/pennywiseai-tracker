@@ -49,6 +49,16 @@ object BudgetRollover {
     }
 
     /**
+     * Rollover is on for [budget], but the period [windowStart]..[windowEnd] holds
+     * [BudgetEntity.rolloverSince]: it's the first, so nothing carries until the next.
+     */
+    fun isFirstPeriod(budget: BudgetEntity, windowStart: LocalDate, windowEnd: LocalDate): Boolean {
+        if (!budget.rolloverEnabled || !isAvailable(budget.groupType, budget.periodType)) return false
+        val since = budget.rolloverSince ?: return false
+        return !since.isBefore(windowStart) && !since.isAfter(windowEnd)
+    }
+
+    /**
      * [BudgetEntity.rolloverSince] for [after], the budget as it's being saved on
      * [today] ([before]: as it was, null for a new one). Rollover turned on, or a
      * change of currency or period, starts it again today, since last period no

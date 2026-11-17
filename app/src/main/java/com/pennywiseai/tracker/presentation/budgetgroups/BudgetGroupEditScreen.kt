@@ -363,7 +363,13 @@ fun BudgetGroupEditScreen(
                             )
                             RolloverRow(
                                 checked = uiState.rolloverEnabled,
-                                onCheckedChange = viewModel::updateRollover
+                                onCheckedChange = viewModel::updateRollover,
+                                startsNext = when {
+                                    !uiState.rolloverStartsNextPeriod() -> null
+                                    uiState.periodType == BudgetPeriodType.WEEKLY ->
+                                        stringResource(R.string.budget_rollover_starts_next_week)
+                                    else -> stringResource(R.string.budget_rollover_starts_next_month)
+                                }
                             )
                         }
                     }
@@ -987,9 +993,12 @@ private fun MonthAnchorRow(
     }
 }
 
-/** Rollover on or off; the whole row is the switch's touch target. */
+/**
+ * Rollover on or off; the whole row is the switch's touch target. [startsNext]:
+ * when it begins, while this period carries nothing in.
+ */
 @Composable
-private fun RolloverRow(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
+private fun RolloverRow(checked: Boolean, onCheckedChange: (Boolean) -> Unit, startsNext: String? = null) {
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -1007,6 +1016,13 @@ private fun RolloverRow(checked: Boolean, onCheckedChange: (Boolean) -> Unit) {
                 style = MaterialTheme.typography.bodySmall,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
+            if (startsNext != null) {
+                Text(
+                    text = startsNext,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
         }
         Spacer(modifier = Modifier.width(Spacing.sm))
         Switch(checked = checked, onCheckedChange = null)

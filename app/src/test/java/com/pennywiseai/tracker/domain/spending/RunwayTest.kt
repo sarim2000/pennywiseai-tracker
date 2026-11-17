@@ -102,7 +102,7 @@ class RunwayTest {
     fun `insight warns under three months and cheers from six`() {
         fun severityFor(balance: String) = InsightRules.runway(
             listOf(Runway("INR", d(balance), d("1000"), lowConfidence = false)),
-            "2026-11-01",
+            "2026-11-01:all",
         ).singleOrNull()?.severity
 
         assertEquals(InsightSeverity.WARNING, severityFor("2400"))
@@ -110,8 +110,8 @@ class RunwayTest {
         assertEquals(null, severityFor("4000"))
         assertEquals(InsightSeverity.GOOD, severityFor("6000"))
 
-        val insight = InsightRules.runway(listOf(Runway("INR", d("2400"), d("1000"), false)), "2026-11-01").single()
-        assertEquals("runway:v1:2026-11-01:INR:held", insight.id)
+        val insight = InsightRules.runway(listOf(Runway("INR", d("2400"), d("1000"), false)), "2026-11-01:all").single()
+        assertEquals("runway:v2:2026-11-01:all:INR:held", insight.id)
         val fact = insight.fact as MoneyLasts
         assertEquals(d("2.4"), fact.months)
         assertEquals("INR", fact.balance.currency)
@@ -127,7 +127,7 @@ class RunwayTest {
         assertTrue((good.fact as MoneyLasts).lowConfidence)
         // Its note says to set those balances in Accounts, so it opens them.
         assertEquals(InsightAction.OpenAccounts, good.action)
-        val known = InsightRules.runway(listOf(Runway("INR", d("7000"), d("1000"), false)), "2026-11-01").single()
+        val known = InsightRules.runway(listOf(Runway("INR", d("7000"), d("1000"), false)), "2026-11-01:all").single()
         assertNull(known.action)
     }
 }

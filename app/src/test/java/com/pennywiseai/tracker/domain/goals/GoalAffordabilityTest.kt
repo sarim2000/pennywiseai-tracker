@@ -166,11 +166,11 @@ class GoalAffordabilityTest {
         val fits = GoalAffordability("INR", d("3000"), 2, d("10000"))
         val short = GoalAffordability("USD", d("300"), 1, d("-50"))
         val noData = GoalAffordability("EUR", d("100"), 1, null)
-        val insights = InsightRules.goalsFit(listOf(fits, short, noData), "2026-11-01")
+        val insights = InsightRules.goalsFit(listOf(fits, short, noData), "2026-11-01:all")
         assertEquals(listOf("INR", "USD"), insights.map { it.currency })
         assertEquals(listOf(InsightSeverity.GOOD, InsightSeverity.WARNING), insights.map { it.severity })
         assertTrue(insights.all { it.action == InsightAction.OpenGoals })
-        assertEquals("goals_fit:v1:2026-11-01:USD:all", insights[1].id)
+        assertEquals("goals_fit:v2:2026-11-01:all:USD:all", insights[1].id)
         val fact = insights[1].fact as GoalsFit
         assertEquals("USD", fact.needed.currency)
         assertEquals(d("-50"), fact.surplus.amount)

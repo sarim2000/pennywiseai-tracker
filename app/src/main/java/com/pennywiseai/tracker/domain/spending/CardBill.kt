@@ -113,9 +113,10 @@ object CardBills {
     /**
      * Where [card]'s bill stands on [today]. The bill the user entered belongs to the
      * statement closed by the time they entered it (or, without a statement day, to
-     * that day). It needs a bill when the card owes something and its due day or
-     * amount is missing, or a newer statement has closed since: an unknown bill sets
-     * nothing aside, it's never guessed from the card's purchases.
+     * that day, and the next statement is a month on). It needs a bill when the card
+     * owes something and its due day or amount is missing, or a newer statement has
+     * closed since: an unknown bill sets nothing aside, it's never guessed from the
+     * card's purchases.
      */
     fun status(card: AccountBalanceEntity, transactions: List<TransactionEntity>, today: LocalDate): CardBillStatus {
         val owes = card.balance.signum() > 0
@@ -157,8 +158,14 @@ object CardBills {
         return !paidOff || dueDay != card.cardDueDay
     }
 
+    /**
+     * Whether a statement after [statement] has closed by [today]. Without a statement
+     * day the bill's own date stands in for it, monthly: otherwise a paid bill would
+     * stay the card's latest forever, and what's charged to the card since would
+     * never be set aside.
+     */
     private fun newerStatement(card: AccountBalanceEntity, statement: LocalDate, today: LocalDate): Boolean =
-        card.statementDay?.let { statementDate(it, today).isAfter(statement) } == true
+        statementDate(card.statementDay ?: statement.dayOfMonth, today).isAfter(statement)
 
     private fun YearMonth.dayClamped(day: Int): LocalDate = atDay(day.coerceIn(1, lengthOfMonth()))
 }

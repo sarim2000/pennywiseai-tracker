@@ -191,6 +191,25 @@ class CardBillTest {
     }
 
     @Test
+    fun `without a statement day a paid bill stops being the card's latest a month on`() {
+        val card = card(statementDay = null, dueDay = 25)
+        val paid = listOf(tx("2026-03-20", "4000", TransactionType.INCOME))
+
+        // Paid off, and the month isn't up: what's charged since is in the next bill.
+        val sameMonth = CardBills.status(card, paid, date("2026-04-13"))
+        assertNull(sameMonth.bill)
+        assertTrue(sameMonth.isKnown)
+        assertFalse(sameMonth.needsBill)
+
+        // A month on, the card owes a new statement nobody has entered.
+        val nextMonth = CardBills.status(card, paid, date("2026-04-14"))
+        assertNull(nextMonth.bill)
+        assertFalse(nextMonth.isKnown)
+        assertTrue(nextMonth.needsBill)
+        assertFalse(CardBills.keepsStatement(nextMonth, 25, d("4000"), date("2026-04-14")))
+    }
+
+    @Test
     fun `changing only the due day keeps the bill on its statement`() {
         val status = CardBills.status(card(), emptyList(), date("2026-03-20"))
 

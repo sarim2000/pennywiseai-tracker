@@ -20,13 +20,12 @@ import com.pennywiseai.tracker.domain.insights.InsightFact.MoneyLasts
 import com.pennywiseai.tracker.domain.insights.InsightFact.PriceChange
 import com.pennywiseai.tracker.domain.insights.InsightFact.SavingsRate
 import com.pennywiseai.tracker.domain.review.PeriodReview
-import com.pennywiseai.tracker.domain.spending.Bill
 import com.pennywiseai.tracker.domain.spending.CardBill
 import com.pennywiseai.tracker.domain.spending.RecurringCharge
 import com.pennywiseai.tracker.domain.spending.Runway
-import com.pennywiseai.tracker.domain.spending.SafeToSpend
 import com.pennywiseai.tracker.domain.spending.SpendForecast
 import com.pennywiseai.tracker.domain.spending.SubscriptionCost
+import com.pennywiseai.tracker.domain.spending.UpcomingPayments
 import com.pennywiseai.tracker.domain.spending.budgetPace
 import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.sumByCurrency
@@ -203,44 +202,23 @@ object InsightRules {
             }
 
     /**
-     * Subscription payments due in the next [BILLS_DAYS] days, one line per currency,
-     * on the dates the Subscriptions screen shows. One already charged is paid, even when
-     * the charge wasn't linked to it (a new price, or the subscription added after it),
-     * and whether or not card spending counts as expense: settled from the cycle's
-     * payment rows, not its spending rows.
-     * A charge pays at most one bill, and only one it [RecurringCharge.couldBePaidFrom];
-     * charges at a bill's exact amount are placed before new prices, and one already
-     * recorded against a subscription stays that one's ([withoutRecorded]).
-     * Keyed on the first due date, so a dismissal lasts until that payment has gone.
+     * Every subscription payment due in the next [BILLS_DAYS] days that no charge has
+     * paid, one line per currency. Paid is decided as Safe to spend decides it
+     * ([UpcomingPayments.subscriptions]), so the two never disagree: a charge from an
+     * account the bill [RecurringCharge.couldBePaidFrom], at its exact amount before
+     * any new price, one charge to a bill, and one already recorded against a
+     * subscription staying that one's. Charges come from the cycle's payment rows, not
+     * its spending rows, so a card charge pays its bill whether or not card spending
+     * counts as expense. Keyed on the first due date, so a dismissal lasts until that
+     * payment has gone.
      */
     internal fun billsDue(
         subscriptions: List<SubscriptionEntity>,
         review: PeriodReview,
         today: LocalDate,
         period: String,
-    ): List<Insight> {
-        val dues = subscriptions.mapNotNull { sub ->
-            sub.nextPaymentDate?.let { sub to RecurringCharge.nextPaymentShown(it, sub.billingCycle, today) }
-        }.toMap()
-        fun inWindow(sub: SubscriptionEntity, charge: TransactionEntity): Boolean {
-            val date = charge.dateTime.toLocalDate()
-            return !date.isBefore(dues.getValue(sub).minusDays(RecurringCharge.DUE_WINDOW_DAYS)) && !date.isAfter(today)
-        }
-        val closestToDue = { sub: SubscriptionEntity ->
-            compareBy<TransactionEntity> { Math.abs(ChronoUnit.DAYS.between(dues.getValue(sub), it.dateTime.toLocalDate())) }
-        }
-        // Exact amounts first, across every bill, and only then new prices.
-        val unclaimed = withoutRecorded(subscriptions, review.detail?.paymentRows.orEmpty())
-        val paid = claim(dues.keys, unclaimed, closestToDue) { sub, charge ->
-            canPay(sub, charge) && inWindow(sub, charge) && RecurringCharge.sameAmount(sub.amount, charge.amount)
-        }.keys
-        val repriced = claim(dues.keys.filter { it.id !in paid }, unclaimed, closestToDue) { sub, charge ->
-            canPay(sub, charge) && inWindow(sub, charge) &&
-                RecurringCharge.isPriceChange(sub.amount, dues.getValue(sub), charge.amount, charge.dateTime.toLocalDate())
-        }.keys
-        val bills = dues.filterKeys { it.id !in paid && it.id !in repriced }
-            .map { (sub, due) -> Bill(sub.merchantName, Money(sub.amount, sub.currency), due) }
-        return SafeToSpend.billsInWindow(bills, today, today.plusDays(BILLS_DAYS))
+    ): List<Insight> =
+        UpcomingPayments.subscriptions(subscriptions, review.detail?.paymentRows.orEmpty(), today, today.plusDays(BILLS_DAYS))
             .groupBy { it.amount.currency }
             .map { (currency, due) ->
                 val firstDue = due.minOf { it.dueDate }
@@ -256,13 +234,14 @@ object InsightRules {
                     InsightAction.OpenSubscriptions,
                 )
             }
-    }
 
     /**
      * A charge this cycle that looks like a subscription at a new price, by the same
      * test the SMS matcher uses: until the user updates the subscription, it stays news.
-     * As with bills due, a charge counts for one subscription that it [RecurringCharge.couldBePaidFrom],
-     * and one at another subscription's exact amount is that one's, not a new price.
+     * As with bills due ([UpcomingPayments.subscriptions]), a charge counts for one
+     * subscription that it [RecurringCharge.couldBePaidFrom], one already recorded
+     * against a subscription stays that one's, and one at another subscription's exact
+     * amount is that one's, not a new price.
      */
     internal fun priceChanges(
         review: PeriodReview,
@@ -272,16 +251,16 @@ object InsightRules {
         val charges = review.detail?.paymentRows.orEmpty()
             .filter { it.dateTime.toLocalDate() in review.range.start..review.range.end }
         // A charge at some subscription's exact amount is that one's payment, not another's new price.
-        val unclaimed = withoutRecorded(subscriptions, charges).filterNot { charge ->
-            subscriptions.any { canPay(it, charge) && RecurringCharge.sameAmount(it.amount, charge.amount) }
+        val unclaimed = UpcomingPayments.withoutRecorded(subscriptions, charges).filterNot { charge ->
+            subscriptions.any { UpcomingPayments.canPay(it, charge) && RecurringCharge.sameAmount(it.amount, charge.amount) }
         }.toMutableList()
         val latestFirst = { _: SubscriptionEntity -> compareByDescending<TransactionEntity> { it.dateTime } }
-        val repriced = claim(subscriptions, unclaimed, latestFirst) { sub, charge ->
-            canPay(sub, charge) &&
+        val repriced = UpcomingPayments.claim(subscriptions, unclaimed, { it }, latestFirst) { sub, charge ->
+            UpcomingPayments.canPay(sub, charge) &&
                 RecurringCharge.isPriceChange(sub.amount, sub.nextPaymentDate, charge.amount, charge.dateTime.toLocalDate())
         }
         return subscriptions.mapNotNull { sub ->
-            val charge = repriced[sub.id] ?: return@mapNotNull null
+            val charge = repriced[sub] ?: return@mapNotNull null
             Insight(
                 id("price_change", period, sub.currency, sub.id), InsightSeverity.WARNING, sub.currency,
                 PriceChange(
@@ -431,58 +410,6 @@ object InsightRules {
     fun subscriptionsMonthly(subscriptions: List<SubscriptionEntity>): Map<String, Money> =
         subscriptions.filter(::isActiveExpense)
             .sumByCurrency({ it.currency }) { SubscriptionCost.monthlyEquivalent(it.amount, it.billingCycle) }
-
-    /** Same merchant and currency, from an account [sub] can be paid from. */
-    private fun canPay(sub: SubscriptionEntity, charge: TransactionEntity) =
-        charge.currency == sub.currency &&
-            RecurringCharge.sameMerchant(charge.merchantName, sub.merchantName) &&
-            RecurringCharge.couldBePaidFrom(sub, charge)
-
-    /**
-     * [charges] less those already recorded against one of [subscriptions]. Ingestion
-     * (and marking a bill paid) keeps no link to the row: it stamps the charge's date as
-     * the bill's lastPaidAt and moves the bill on a cycle, so that's the trace matched
-     * here. Such a charge is that bill's, so it can't settle or reprice a second one
-     * after the first has moved on. One per subscription, a row marked recurring first.
-     */
-    private fun withoutRecorded(
-        subscriptions: Collection<SubscriptionEntity>,
-        charges: List<TransactionEntity>,
-    ): MutableList<TransactionEntity> {
-        val unclaimed = charges.toMutableList()
-        val recurringFirst = { _: SubscriptionEntity -> compareByDescending<TransactionEntity> { it.isRecurring } }
-        // By the matcher's own test, which doesn't look at the account.
-        claim(subscriptions.filter { it.lastPaidAt != null }, unclaimed, recurringFirst) { sub, charge ->
-            charge.currency == sub.currency &&
-                RecurringCharge.sameMerchant(charge.merchantName, sub.merchantName) &&
-                charge.dateTime.toLocalDate() == sub.lastPaidAt &&
-                RecurringCharge.sameAmount(sub.amount, charge.amount)
-        }
-        return unclaimed
-    }
-
-    /**
-     * Gives each of [subscriptions] at most one of [unclaimed] that [matches] it,
-     * removing it so no other subscription gets it. Subscriptions that name
-     * their account choose first, so a charge goes to the bill on its own account before
-     * one that could be paid from any; each takes the charge [preferred] puts first.
-     */
-    private fun claim(
-        subscriptions: Collection<SubscriptionEntity>,
-        unclaimed: MutableList<TransactionEntity>,
-        preferred: (SubscriptionEntity) -> Comparator<TransactionEntity>,
-        matches: (SubscriptionEntity, TransactionEntity) -> Boolean,
-    ): Map<Long, TransactionEntity> {
-        val claimed = mutableMapOf<Long, TransactionEntity>()
-        subscriptions.sortedByDescending { listOf(it.bankName, it.accountLast4).count { s -> !s.isNullOrBlank() } }
-            .forEach { sub ->
-                val charge = unclaimed.filter { matches(sub, it) }.minWithOrNull(preferred(sub))
-                    ?: return@forEach
-                unclaimed.remove(charge)
-                claimed[sub.id] = charge
-            }
-        return claimed
-    }
 
     private fun isActiveExpense(sub: SubscriptionEntity) =
         sub.state == SubscriptionState.ACTIVE && sub.direction == SubscriptionDirection.EXPENSE

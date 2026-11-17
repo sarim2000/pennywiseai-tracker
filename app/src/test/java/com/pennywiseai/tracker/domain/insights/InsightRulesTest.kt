@@ -24,7 +24,9 @@ import com.pennywiseai.tracker.domain.review.buildPeriodDetail
 import com.pennywiseai.tracker.domain.review.buildPeriodReview
 import com.pennywiseai.tracker.domain.review.cyclesEndingWith
 import com.pennywiseai.tracker.domain.review.reviewRange
+import com.pennywiseai.tracker.domain.spending.UpcomingPayments
 import com.pennywiseai.tracker.utils.Money
+import com.pennywiseai.tracker.utils.sumByCurrency
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
@@ -554,6 +556,39 @@ class InsightRulesTest {
         )
         val bills = insights.single { it.fact is BillsDue }.fact as BillsDue
         assertEquals(listOf("Streamer", "Cleaner"), bills.names)
+    }
+
+    @Test
+    fun `Safe to spend sets aside the bills Insights lists as due, settled the same way`() {
+        fun assertAgree(rows: List<TransactionWithSplits>, subscriptions: List<SubscriptionEntity>, expected: Money) {
+            val listed = evaluate(rows = rows, subscriptions = subscriptions).facts<BillsDue>().single()
+            val reserved = UpcomingPayments.of(
+                subscriptions, emptyList(), emptyList(), emptyList(), rows.map { it.transaction }, today, today.plusDays(7),
+            )
+            assertEquals(expected, listed.total)
+            assertEquals(listed.names, reserved.map { it.name })
+            assertEquals(mapOf("INR" to listed.total), reserved.sumByCurrency({ it.amount.currency }, { it.amount.amount }))
+        }
+
+        // Two plans at one merchant on one account: the 120 charge is the 120 plan's,
+        // not a new price for the 100 one, so the 100 one is still due in both.
+        assertAgree(
+            rows = listOf(tx("2026-11-19", "120", merchant = "Streamer", bank = "Bank A", account = "1111")),
+            subscriptions = listOf(
+                subscription(1, "100", "2026-11-22", bank = "Bank A", last4 = "1111"),
+                subscription(2, "120", "2026-11-22", bank = "Bank A", last4 = "1111"),
+            ),
+            expected = Money(BigDecimal("100"), "INR"),
+        )
+        // A charge recorded against one bill (which has moved on) doesn't settle another.
+        assertAgree(
+            rows = listOf(tx("2026-11-19", "100", merchant = "Streamer", bank = "Bank A", account = "1111", recurring = true)),
+            subscriptions = listOf(
+                subscription(1, "100", "2026-12-19", bank = "Bank A", last4 = "1111", lastPaid = "2026-11-19"),
+                subscription(2, "110", "2026-11-22"),
+            ),
+            expected = Money(BigDecimal("110"), "INR"),
+        )
     }
 
     @Test

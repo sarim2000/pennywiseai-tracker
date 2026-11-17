@@ -21,6 +21,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -51,6 +52,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.TextUnit
@@ -175,8 +177,22 @@ private fun Modifier.cardBackground(p: SharePalette): Modifier = this
         }
     }
 
+/**
+ * The card's text ignores the phone's font size: the card is a fixed 360×450 image, and a
+ * larger setting would only push figures past the room it has, and send a different
+ * picture from every phone. The export is recorded from this same node, so the preview
+ * and the shared image both get it.
+ */
 @Composable
 fun ShareCard(content: ShareCardContent, theme: ShareTheme, modifier: Modifier = Modifier) {
+    val density = LocalDensity.current
+    CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = 1f)) {
+        ShareCardLayout(content, theme, modifier)
+    }
+}
+
+@Composable
+private fun ShareCardLayout(content: ShareCardContent, theme: ShareTheme, modifier: Modifier) {
     val p = theme.palette()
     val ringHero = content.chart?.type == ShareChartType.RING && content.hero != null
     Column(

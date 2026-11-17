@@ -1357,8 +1357,9 @@ class TransactionDetailViewModel @Inject constructor(
     /** Opens a PDF receipt in another app, which may read it until it closes. Null when there's none. */
     fun pdfReceiptViewIntent(): Intent? {
         val path = _transaction.value?.receiptPath?.takeIf { ReceiptFiles.isPdfPath(it) } ?: return null
+        val uri = receiptManager.shareableUri(path) ?: return null
         return Intent(Intent.ACTION_VIEW)
-            .setDataAndType(receiptManager.shareableUri(path), ReceiptManager.PDF_MIME)
+            .setDataAndType(uri, ReceiptManager.PDF_MIME)
             .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
 
@@ -1374,8 +1375,9 @@ class TransactionDetailViewModel @Inject constructor(
         _receiptUri.value = null
         _receiptMissing.value = false
         transaction.receiptPath?.let { path ->
-            val file = receiptManager.getReceiptFile(path)
-            if (file.exists()) {
+            // A restored backup's path is untrusted: only a file directly in receipts/ is shown.
+            val file = receiptManager.storedReceiptFile(path)
+            if (file != null && file.exists()) {
                 _receiptUri.value = file.toUri()
             } else {
                 _receiptMissing.value = true

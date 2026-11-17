@@ -7,6 +7,7 @@ import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import android.os.ParcelFileDescriptor
 import androidx.core.content.FileProvider
+import com.pennywiseai.tracker.data.backup.BackupReceipts
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -157,12 +158,22 @@ class ReceiptManager @Inject constructor(
         if (receiptsDir.exists()) receiptsDir.deleteRecursively()
     }
 
-    /** A FileProvider link to a stored receipt, for handing it to another app with a read grant. */
-    fun shareableUri(receiptPath: String): Uri = FileProvider.getUriForFile(
-        context,
-        "${context.packageName}.fileprovider",
-        getReceiptFile(receiptPath)
-    )
+    /** A stored receipt's file, or null when [receiptPath] points anywhere but directly into `receipts/`. */
+    fun storedReceiptFile(receiptPath: String): File? = BackupReceipts.safeReceiptFile(context.filesDir, receiptPath)
+
+    /**
+     * A FileProvider link to a stored receipt, for handing it to another app with a read
+     * grant. Null for a path outside `receipts/` (a restored backup's path is untrusted),
+     * which FileProvider would refuse with an exception.
+     */
+    fun shareableUri(receiptPath: String): Uri? {
+        val file = storedReceiptFile(receiptPath) ?: return null
+        return try {
+            FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", file)
+        } catch (_: IllegalArgumentException) {
+            null
+        }
+    }
 
     private fun calculateSampleSize(width: Int, height: Int, maxDimension: Int): Int {
         var sampleSize = 1

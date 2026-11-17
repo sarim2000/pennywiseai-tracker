@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.insights
 
+import android.icu.text.ListFormatter
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -57,6 +58,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -325,8 +327,17 @@ private fun ScoreCard(score: PeriodScore, onOpen: () -> Unit) {
             trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
             drawStopIndicator = {},
         )
+        // Only the parts this score is built from: one without data is left out.
+        val parts = listOfNotNull(
+            score.savings?.let { stringResource(R.string.insights_score_hint_savings) },
+            score.budgets?.let { stringResource(R.string.insights_score_hint_budgets) },
+            stringResource(R.string.insights_score_hint_categorised),
+        )
         Text(
-            text = stringResource(R.string.insights_score_hint),
+            text = stringResource(
+                R.string.insights_score_hint,
+                ListFormatter.getInstance(LocalConfiguration.current.locales[0]).format(parts),
+            ),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant,
         )

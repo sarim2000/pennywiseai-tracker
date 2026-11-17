@@ -47,7 +47,12 @@
     <!-- Tracking health: a 0-100 indicator of how the cycle is going and being tracked -->
     <string name="insights_score_title">Tracking health</string>
     <string name="insights_score_out_of">out of 100</string>
-    <string name="insights_score_hint">From your savings, budgets and how much is categorised. Tap to see how.</string>
+    <!-- %1$s = the parts the score is built from this cycle, as a list, e.g. "your savings and how much is categorised" -->
+    <string name="insights_score_hint">From %1$s. Tap to see how.</string>
+    <!-- The parts listed in insights_score_hint -->
+    <string name="insights_score_hint_savings">your savings</string>
+    <string name="insights_score_hint_budgets">your budgets</string>
+    <string name="insights_score_hint_categorised">how much is categorised</string>
     <string name="insights_score_breakdown_title">How tracking health is worked out</string>
     <string name="insights_score_savings">Savings</string>
     <!-- %1$s = percentage of income kept -->

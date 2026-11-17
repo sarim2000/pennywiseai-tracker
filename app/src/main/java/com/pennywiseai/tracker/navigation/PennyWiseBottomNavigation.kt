@@ -12,6 +12,7 @@ import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -42,14 +43,23 @@ import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableFloatStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.onGloballyPositioned
+import androidx.compose.ui.layout.positionInRoot
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -58,7 +68,9 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
+import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.preferences.NavBarStyle
+import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
 import com.pennywiseai.tracker.ui.components.DockedActionButton
 import com.pennywiseai.tracker.ui.components.NavDockAction
 import com.pennywiseai.tracker.ui.components.NavDockState
@@ -66,11 +78,18 @@ import com.pennywiseai.tracker.ui.components.mascot.Mascot
 import com.pennywiseai.tracker.ui.components.mascot.MascotMood
 import com.pennywiseai.tracker.ui.components.mascot.MascotReaction
 import com.pennywiseai.tracker.ui.components.mascot.MascotShape
+import com.pennywiseai.tracker.ui.components.mascot.ReactionAmount
 import com.pennywiseai.tracker.ui.effects.BlurredAnimatedVisibility
 import com.pennywiseai.tracker.ui.effects.frostedBlur
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.income
+import com.pennywiseai.tracker.ui.theme.spending
+import com.pennywiseai.tracker.ui.theme.tabular
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
+import kotlinx.coroutines.delay
+import kotlin.math.roundToInt
 
 @OptIn(
     ExperimentalMaterial3Api::class
@@ -97,6 +116,21 @@ fun PennyWiseBottomNavigation(
     // A leaving bar still draws (and hit-tests) through its exit. Ignore its taps,
     // or a tab tap would strand a push and the docked Sync would scan behind it.
     val selectTab: (BottomNavItem) -> Unit = { if (visible) onTabSelected(it) }
+    // Each style places its own Chat slot; both draw while the style switches.
+    val normalChatAnchor = remember { ChatSlotAnchor() }
+    val floatingChatAnchor = remember { ChatSlotAnchor() }
+    // The bar comes back from under a pushed screen (Add) already holding the save's
+    // reaction. The owl shows a beat first, then turns, so the change is seen, not missed.
+    val animate = rememberAnimationsEnabled()
+    // Set while the bar is away, so its first frame back is already the owl.
+    var arriving by remember { mutableStateOf(animate) }
+    LaunchedEffect(visible, animate) {
+        arriving = animate
+        if (!visible) return@LaunchedEffect
+        if (animate) delay(CHAT_TAB_ENTRANCE_MS)
+        arriving = false
+    }
+    val shownReaction = if (arriving) null else chatReaction
 
     // TalkBack skips a leaving bar too, rather than announce tabs that do nothing.
     Box(modifier = if (visible) modifier else modifier.clearAndSetSemantics {}) {
@@ -107,7 +141,9 @@ fun PennyWiseBottomNavigation(
             exit = navBarExit(),
         ) {
             Column(
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .anchorsBarTop(normalChatAnchor)
             ) {
                 HorizontalDivider(
                     thickness = Dimensions.Component.dividerThickness,
@@ -139,7 +175,8 @@ fun PennyWiseBottomNavigation(
                                         selected = selected,
                                         mutedWhenUnselected = hidePill && hideLabels,
                                         size = iconSize,
-                                        reaction = chatReaction
+                                        reaction = shownReaction,
+                                        modifier = Modifier.anchorsChatSlot(normalChatAnchor)
                                     )
                                 } else {
                                     Icon(
@@ -210,12 +247,15 @@ fun PennyWiseBottomNavigation(
                 ) {
                     FloatingNavPill(
                         items = navigationItems,
-                        chatReaction = chatReaction,
+                        chatReaction = shownReaction,
                         selectedIndex = navigationItems.indexOfFirst { it.route == selectedRoute },
                         onSelect = selectTab,
                         blurEffects = blurEffects,
                         hazeState = hazeState,
-                        modifier = Modifier.weight(1f)
+                        modifier = Modifier
+                            .weight(1f)
+                            .anchorsBarTop(floatingChatAnchor),
+                        chatSlotModifier = Modifier.anchorsChatSlot(floatingChatAnchor)
                     )
                     AnimatedVisibility(
                         visible = dockAction != null,
@@ -241,6 +281,15 @@ fun PennyWiseBottomNavigation(
                 }
             }
         }
+
+        // Last, so it draws over both bars. Outside them, so neither the floating pill's
+        // clip nor the bars' blur layer cuts it off above the bar.
+        ChatAmountChip(
+            amount = shownReaction?.amount,
+            visible = visible && BottomNavItem.Chat in navigationItems,
+            anchor = if (navBarStyle == NavBarStyle.FLOATING) floatingChatAnchor else normalChatAnchor,
+            modifier = Modifier.matchParentSize()
+        )
     }
 }
 
@@ -254,6 +303,7 @@ private fun FloatingNavPill(
     blurEffects: Boolean,
     hazeState: HazeState,
     modifier: Modifier = Modifier,
+    chatSlotModifier: Modifier = Modifier,
 ) {
     val containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
     BoxWithConstraints(
@@ -342,7 +392,8 @@ private fun FloatingNavPill(
                                     selected = selected,
                                     mutedWhenUnselected = false,
                                     size = Dimensions.Icon.medium,
-                                    reaction = chatReaction
+                                    reaction = chatReaction,
+                                    modifier = chatSlotModifier
                                 )
                             } else {
                                 Icon(
@@ -374,8 +425,9 @@ private fun ChatTabMascot(
     mutedWhenUnselected: Boolean,
     size: Dp,
     reaction: MascotReaction?,
+    modifier: Modifier = Modifier,
 ) {
-    Box(modifier = Modifier.semantics { contentDescription = label }) {
+    Box(modifier = modifier.semantics { contentDescription = label }) {
         Mascot(
             size = size,
             shape = reaction?.shape ?: MascotShape.Owl,
@@ -384,6 +436,107 @@ private fun ChatTabMascot(
             else MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
+}
+
+/** Where the Chat slot sits on screen, in root pixels, for the amount chip above it. */
+@Stable
+private class ChatSlotAnchor {
+    /** The Chat slot's horizontal centre. */
+    var centerX by mutableFloatStateOf(Float.NaN)
+
+    /** The top edge of the bar the slot sits in. */
+    var barTop by mutableFloatStateOf(Float.NaN)
+}
+
+private fun Modifier.anchorsChatSlot(anchor: ChatSlotAnchor) = onGloballyPositioned {
+    anchor.centerX = it.positionInRoot().x + it.size.width / 2f
+}
+
+private fun Modifier.anchorsBarTop(anchor: ChatSlotAnchor) = onGloballyPositioned {
+    anchor.barTop = it.positionInRoot().y
+}
+
+/**
+ * The amount a single save moved, in a small pill just above the Chat slot while its
+ * reaction holds: it rises in as the shape appears and sinks out as the owl comes back. It
+ * echoes the save, so TalkBack skips it, and it takes no touches. Centred on the slot (the
+ * slot's measured centre, so RTL and the docked action need no special case), but kept a
+ * gap inside the screen's edges.
+ */
+@Composable
+private fun ChatAmountChip(
+    amount: ReactionAmount?,
+    visible: Boolean,
+    anchor: ChatSlotAnchor,
+    modifier: Modifier = Modifier,
+) {
+    // Keep drawing the last amount while it leaves.
+    val lastAmount = remember { arrayOfNulls<ReactionAmount>(1) }
+    if (amount != null) lastAmount[0] = amount
+    val shownAmount = amount ?: lastAmount[0]
+    val motion = MaterialTheme.motionScheme
+    val animate = rememberAnimationsEnabled()
+    val travel = with(LocalDensity.current) { Spacing.sm.roundToPx() }
+
+    Layout(
+        content = {
+            AnimatedVisibility(
+                visible = visible && amount != null,
+                enter = if (animate) {
+                    fadeIn(motion.fastEffectsSpec()) + slideInVertically(motion.fastSpatialSpec()) { travel }
+                } else EnterTransition.None,
+                exit = if (animate) {
+                    fadeOut(motion.fastEffectsSpec()) + slideOutVertically(motion.fastSpatialSpec()) { travel }
+                } else ExitTransition.None
+            ) {
+                shownAmount?.let { AmountPill(it) }
+            }
+        },
+        modifier = modifier
+    ) { measurables, constraints ->
+        val chip = measurables.firstOrNull()?.measure(constraints.copy(minWidth = 0, minHeight = 0))
+        layout(constraints.maxWidth, constraints.maxHeight) {
+            val origin = coordinates?.positionInRoot()
+            if (chip == null || origin == null || anchor.centerX.isNaN() || anchor.barTop.isNaN()) return@layout
+            val gap = Spacing.sm.roundToPx()
+            val centred = (anchor.centerX - origin.x - chip.width / 2f).roundToInt()
+            val maxX = constraints.maxWidth - gap - chip.width
+            val x = if (maxX >= gap) centred.coerceIn(gap, maxX) else (constraints.maxWidth - chip.width) / 2
+            val y = (anchor.barTop - origin.y).roundToInt() - gap - chip.height
+            // Absolute: the anchor is already in screen terms, mirrored or not.
+            chip.place(x, y)
+        }
+    }
+}
+
+/**
+ * [amount] signed and coloured as the transaction lists do: income "+" in [income],
+ * spending "-" in [spending], and money only moved (a transfer or an investment) plain.
+ * Masked while the user hides amounts.
+ */
+@Composable
+private fun AmountPill(amount: ReactionAmount) {
+    val colorScheme = MaterialTheme.colorScheme
+    val (sign, color) = when (amount.type) {
+        TransactionType.INCOME -> "+" to colorScheme.income
+        TransactionType.EXPENSE, TransactionType.CREDIT -> "-" to colorScheme.spending
+        TransactionType.TRANSFER, TransactionType.INVESTMENT -> "" to colorScheme.onSurface
+    }
+    Text(
+        text = CurrencyFormatter.signed(
+            sign,
+            CurrencyFormatter.formatCurrency(amount.money.amount, amount.money.currency)
+        ),
+        style = MaterialTheme.typography.labelLarge.tabular(),
+        color = color,
+        maxLines = 1,
+        modifier = Modifier
+            .clearAndSetSemantics {}
+            .shadow(elevation = Dimensions.Elevation.bottomBar, shape = CircleShape)
+            .background(colorScheme.surfaceContainerHigh, CircleShape)
+            .border(Dimensions.Component.hairline, colorScheme.outlineVariant, CircleShape)
+            .padding(horizontal = Spacing.smd, vertical = Spacing.xs)
+    )
 }
 
 // Nav show/hide is chrome: a quick fade with a short slide (a quarter of the bar), not a
@@ -399,3 +552,6 @@ private fun navBarExit(): ExitTransition {
     val motion = MaterialTheme.motionScheme
     return fadeOut(motion.fastEffectsSpec()) + slideOutVertically(motion.fastSpatialSpec()) { it / 4 }
 }
+
+/** How long the owl shows as the bar comes back before it turns into a held reaction: past the bar's own entrance. */
+private const val CHAT_TAB_ENTRANCE_MS = 350L

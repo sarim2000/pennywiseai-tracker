@@ -13,6 +13,7 @@ import com.pennywiseai.tracker.data.repository.LlmRepository
 import com.pennywiseai.tracker.data.repository.ModelRepository
 import com.pennywiseai.tracker.data.repository.ModelState
 import com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase
+import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.worker.MoneyAlertWorker
 import io.mockk.Runs
 import io.mockk.coEvery
@@ -165,7 +166,25 @@ class ChatViewModelSettleTest {
         main.scheduler.advanceUntilIdle()
         listening.cancel()
 
+        // Two rows have no one amount to show.
         assertEquals(listOf(TransactionEvent(TransactionType.INCOME, 2, TransactionOrigin.CHAT)), heard)
+    }
+
+    @Test
+    fun `a saved one-row card announces its amount`() {
+        val heard = mutableListOf<TransactionEvent>()
+        val listening = CoroutineScope(main).launch { events.saved.collect { heard += it } }
+        val viewModel = viewModel().apply { animationsEnabled = { false } }
+        pending.value = PendingChatAction.Add(listOf(ReviewRow(id = 0, draft = draft)))
+
+        viewModel.confirmPendingAction()
+        main.scheduler.advanceUntilIdle()
+        listening.cancel()
+
+        assertEquals(
+            listOf(TransactionEvent(TransactionType.EXPENSE, 1, TransactionOrigin.CHAT, Money(BigDecimal.TEN, "INR"))),
+            heard,
+        )
     }
 
     @Test

@@ -45,7 +45,8 @@ Agreed with Codex (`gpt-6.1-sol`, high) over two rounds. Its objections that we 
 | `Asleep` | Eyes closed, static | Model `NOT_DOWNLOADED` / `DOWNLOADING` / `ERROR` |
 
 - Mood changes blend from the pose currently on screen (420ms smoothstep in the reference; we use `MaterialTheme.motionScheme` effects specs).
-- **A body change is an effects crossfade, not hidden inside a blink (Codex).** A blink may still play during it, as in the preview.
+- **A body change is a morph, not a crossfade (2026-11-17).** One silhouette bends from the old outline into the new one (`MascotMorph.kt`: each outline as a polar profile, eased ray by ray) on a spatial spring: `defaultSpatialSpec` for the 24/32dp glyph, `slowSpatialSpec` for the 96dp hero. It is shape, not scale: nothing grows. The glyph keeps its tint whole the whole way, where a crossfade thinned it into two half-faded bodies. The eyes slide to the new shape's place and narrow to dots through the middle. At 96dp the old face fades out early and the new one in late, inside the body, and the body colour follows.
+- **Arrivals (`MascotArrival.kt`).** Once a morph lands, the shape plays one short move: the coin's shine and sparkles (income), the receipt's check stamp, which stays while it's a receipt (expense), the wallet's lean and glance from line start to line end (transfer), a coin dropping into the jar (investment), the bell's ring. Only on a change, never when a screen first shows a shape; none with animations off.
 
 ### Chat tab
 - `BottomNavItem.icon: ImageVector` stays as it is, because Appearance settings uses it too. The two icon slots in `PennyWiseBottomNavigation.kt` branch on `BottomNavItem.Chat` and draw `Mascot`. No registry, no navigation redesign **(Codex)**.
@@ -56,7 +57,9 @@ Agreed with Codex (`gpt-6.1-sol`, high) over two rounds. Its objections that we 
   - **Default plan:** the body uses the theme accent in both states, and the pill marks selection.
   - **When pill and labels are both hidden:** fall back to the muted tint when unselected, because colour would then be the only selection cue.
   - The preview has a "Muted tab" toggle for comparing the two.
-- **At 24/32dp:** a two-tone silhouette only, with the eyes cut in the colour behind it. No mask, iris, coin, receipt lines or badge **(Codex)**.
+- **At 24/32dp:** a two-tone silhouette only, with the eyes cut in the colour behind it. No mask, iris, coin or receipt lines **(Codex)**. The one mark is an arrival's: the receipt's check, cut out like the eyes.
+- **Coming back to the bar:** the bar returns from under a pushed screen (Add) already holding the save's reaction. The owl shows for a beat (350ms) and then turns, so the change is seen rather than already done.
+- **Amount chip (2026-11-17):** while a single save's reaction holds, a small pill above the Chat slot shows what was saved: `+` in the income colour, `-` in the spending colour, transfers and investments unsigned. It formats with `CurrencyFormatter` (so it shows `••••` while amounts are hidden), takes no touches and is silent to TalkBack. A batch (a chat card of several rows, a scan) shows none.
 - **Behaviour:** no poke, drag, haptic or separate focus target on the tab. The click goes to the parent. The accessible name stays the localized "Chat", and the drawing is decorative.
 - **Hidden tab:** if the user hid the Chat tab, the mascot runs no animation and queues nothing.
 - **RTL:** the artwork is symmetric and is not mirrored. Directional gaze is mirrored.
@@ -189,7 +192,7 @@ The smallest visible win: the Chat tab becomes the owl that blinks.
   - [x] ~3s hold, then the owl
   - [x] Bursts coalesce, nothing queues, the hold never extends
   - [x] Cleared on background or when Chat is hidden
-- [x] Body swap is an effects crossfade. `Happy` hop is translation only.
+- [x] Body swap is a morph (was an effects crossfade until 2026-11-17). `Happy` hop is translation only.
 - [x] SMS bubble while a user-started foreground scan runs (`WorkInfo`). One neutral beat afterwards if new rows were saved.
 - [x] Tests:
   - [x] Type → shape mapping
@@ -240,7 +243,7 @@ The smallest visible win: the Chat tab becomes the owl that blinks.
 
 ### M6 — Developer playground
 - [x] A screen behind Developer mode showing every shape × mood with poke and drag, for on-device QA screenshots in both themes. Skip it if the HTML preview plus emulator checks prove enough.
-  - Settings → Developer → **Mascot playground**, a row that shows only while Developer mode is on. A fixed stage on top shows the pose at the sizes the app draws: the 96dp hero to poke and drag, the chat's 32dp glyph and the tab's 24dp glyph in its pill. A value slider shows for the shapes that draw a figure (pie slice, jar fill, gauge needle up to 125% to see it pin, bars -100..100%). Below it, every shape × mood at 40dp; a tap puts it on the stage, so a mood change blends and a shape change crossfades as it would in the app.
+  - Settings → Developer → **Mascot playground**, a row that shows only while Developer mode is on. A fixed stage on top shows the pose at the sizes the app draws: the 96dp hero to poke and drag, the chat's 32dp glyph and the tab's 24dp glyph in its pill. A value slider shows for the shapes that draw a figure (pie slice, jar fill, gauge needle up to 125% to see it pin, bars -100..100%). Below it, every shape × mood at 40dp; a tap puts it on the stage, so a mood change blends and a shape change morphs as it would in the app.
   - Reaction buttons, one per `TransactionType`, announce a save through `TransactionEvents` as a manual add does (nothing is written). The bottom bar stays up on this screen, so each plays on the real Chat tab, and a second tap inside a reaction shows the coalescing.
 - [ ] On device: every cell in light and dark, with "Remove animations", and each reaction on both bar styles
 

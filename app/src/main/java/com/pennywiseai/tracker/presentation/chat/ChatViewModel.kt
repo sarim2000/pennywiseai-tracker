@@ -16,6 +16,7 @@ import com.pennywiseai.tracker.data.repository.ModelRepository
 import com.pennywiseai.tracker.data.repository.ModelState
 import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.ui.components.SETTLED_HOLD_MILLIS
+import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.TokenUtils
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -275,7 +276,8 @@ class ChatViewModel @Inject constructor(
                             transactionEvents.onSaved(
                                 type = drafts.map { it.type }.distinct().singleOrNull() ?: TransactionType.EXPENSE,
                                 origin = TransactionOrigin.CHAT,
-                                count = drafts.size
+                                count = drafts.size,
+                                money = drafts.singleOrNull()?.let { Money(it.amount, it.currency) }
                             )
                             com.pennywiseai.tracker.worker.MoneyAlertWorker.enqueue(context)
                             // Saved: the card stays drawn with its check for a beat. Its line is

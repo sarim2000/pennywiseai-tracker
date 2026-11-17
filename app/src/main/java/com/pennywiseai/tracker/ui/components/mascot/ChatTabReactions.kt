@@ -8,6 +8,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.repeatOnLifecycle
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.events.TransactionEvent
+import com.pennywiseai.tracker.utils.Money
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.delay
@@ -17,8 +18,14 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
-/** What the Chat tab's owl turns into for a moment. */
-data class MascotReaction(val shape: MascotShape, val mood: MascotMood)
+/**
+ * What the Chat tab's owl turns into for a moment, and the [amount] a single save moved,
+ * shown in a chip above the tab while the reaction holds.
+ */
+data class MascotReaction(val shape: MascotShape, val mood: MascotMood, val amount: ReactionAmount? = null)
+
+/** The [money] a save of [type] moved; the type signs and colours it. */
+data class ReactionAmount(val money: Money, val type: TransactionType)
 
 /** The inbox scan, as the Chat tab sees it. */
 sealed interface SmsScanStatus {
@@ -51,8 +58,9 @@ internal fun reactionFor(type: TransactionType): MascotReaction = when (type) {
 
 /**
  * The Chat tab's reactions: one shape for [holdMillis] per save, the bubble while an inbox
- * scan runs, then the owl again. A burst folds into the reaction already showing: nothing
- * queues behind it and its hold never extends. A scan takes over from a reaction.
+ * scan runs, then the owl again. A burst folds into the reaction already showing, which
+ * keeps its first amount: nothing queues behind it and its hold never extends. A scan
+ * takes over from a reaction, and the scan's bubble carries no amount.
  *
  * Saves come in through [onSave] while the Chat tab is visible, for as long as [scope]
  * lives (the Chat tab's ViewModel), so one made on a screen pushed over the tabs (Add) is
@@ -73,7 +81,9 @@ internal class ChatTabReactions(
 
     /** A save just committed in the foreground (gated at the source). */
     fun onSave(event: TransactionEvent) {
-        if (!scanning) react(reactionFor(event.type))
+        if (scanning) return
+        val amount = event.money?.let { ReactionAmount(it, event.type) }
+        react(reactionFor(event.type).copy(amount = amount))
     }
 
     /**

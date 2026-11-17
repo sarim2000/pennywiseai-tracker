@@ -10,10 +10,12 @@ import kotlin.math.hypot
 
 class MascotCuesGoalsTest {
     private val brimEnd = arrivalEnd(MascotCue.Brim)
+    private val paidOffEnd = arrivalEnd(MascotCue.PaidOff)
 
     @Test
     fun `a goal reached plays calmly and short`() {
         assertTrue(brimEnd <= 0.75f)
+        assertTrue(paidOffEnd <= 0.75f)
     }
 
     @Test
@@ -73,5 +75,32 @@ class MascotCuesGoalsTest {
         val body = hypot(c.x - nearX, c.y - nearY) > 17f + r
         val lid = c.x + r < 33f || c.x - r > 67f || c.y + r < 9f
         return body && lid
+    }
+
+    @Test
+    fun `a debt paid off rises with a lean, nods as the check lands, and is at rest`() {
+        assertTrue(paidOffLift(0.15f) < 0f)
+        assertTrue(paidOffLean(0.15f) < 0f)
+        assertTrue(paidOffLift(0.38f) > 0f)
+        assertEquals(0f, paidOffCheck(0.25f), 0f)
+        assertEquals(1f, paidOffCheck(0.38f), 0f)
+        assertEquals(0f, paidOffLift(paidOffEnd), 0f)
+        assertEquals(0f, paidOffLean(paidOffEnd), 0f)
+        assertEquals(0f, paidOffSnap(paidOffEnd), 0f)
+        assertEquals(MascotPose(), paidOffPose(MascotPose(), paidOffEnd))
+        assertEquals(1f, checkAlpha(MascotCue.PaidOff, paidOffEnd), 0f)
+    }
+
+    @Test
+    fun `the clasp snaps as the check lands`() {
+        assertEquals(0f, paidOffSnap(0.2f), 0f)
+        assertTrue(paidOffSnap(0.37f) > 0.9f)
+    }
+
+    @Test
+    fun `paid off moves one way and down, unlike a transfer's glance from side to side`() {
+        val leans = (0..48).map { paidOffLean(it / 100f) }
+        assertTrue(leans.all { it <= 0f })
+        assertEquals(0f, arrived(MascotPose(), MascotCue.PaidOff, 300L).gazeX, 0f)
     }
 }

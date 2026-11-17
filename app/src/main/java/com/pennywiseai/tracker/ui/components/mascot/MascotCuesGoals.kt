@@ -8,6 +8,7 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
 import androidx.compose.ui.graphics.drawscope.rotate
 import kotlin.math.PI
+import kotlin.math.cos
 import kotlin.math.sin
 
 /*
@@ -114,18 +115,60 @@ private const val BRIM_GLINT_WIDTH = 10f
 private const val BRIM_GLINT_ALPHA = 0.6f
 private const val BRIM_SPARKLE_LIFE = 0.24f
 
-/** A debt paid off: the wallet gives a small nod as a check closes it. */
-internal const val PAID_OFF_END = 0.4f
+/*
+ * A debt paid off, on the wallet: it rises a little, lighter, leaning back with relief,
+ * then gives one nod as a check lands on it and its clasp snaps shut. One way and down, so
+ * it never reads as a transfer's look from side to side.
+ */
 
-internal fun paidOffPose(pose: MascotPose, t: Float): MascotPose {
-    val s = t / PAID_OFF_END
-    val nod = if (s in 0f..1f) PAID_OFF_NOD * sin(PI * s).toFloat() else 0f
-    return pose.copy(lift = pose.lift + nod)
+/** Where the wallet stands at [t]: up, lighter, then a nod down; translation only, in box units. */
+internal fun paidOffLift(t: Float): Float = -PAID_OFF_RISE * swell(0.02f, 0.3f, t) + PAID_OFF_NOD * swell(0.28f, 0.46f, t)
+
+/** Its lean at [t], in degrees: back toward line start while it rises, upright for the nod. */
+internal fun paidOffLean(t: Float): Float = -PAID_OFF_LEAN * swell(0.02f, 0.34f, t)
+
+internal fun paidOffPose(pose: MascotPose, t: Float): MascotPose =
+    pose.copy(lift = pose.lift + paidOffLift(t), roll = pose.roll + paidOffLean(t))
+
+/** The check lands with the nod, and stays. */
+internal fun paidOffCheck(t: Float): Float = smoothstep(0.26f, 0.38f, t)
+
+/** How much the clasp's snap shows at [t]: a flick of marks as the check lands. */
+internal fun paidOffSnap(t: Float): Float = swell(0.28f, 0.46f, t)
+
+/** Once the nod is done and the snap gone. */
+internal const val PAID_OFF_END = 0.48f
+
+/** Three short marks flicking out from the clasp, off the body, as it snaps shut. */
+internal fun DrawScope.drawPaidOff(t: Float, ink: CueInk) {
+    val a = paidOffSnap(t)
+    if (a <= 0f) return
+    val out = smoothstep(0.28f, 0.46f, t)
+    val from = PAID_OFF_SNAP_FROM + out
+    val width = if (ink.glyph) 4f else 3f
+    for (deg in PAID_OFF_SNAP_ANGLES) {
+        val r = Math.toRadians(deg.toDouble())
+        val dir = Offset(cos(r).toFloat(), sin(r).toFloat())
+        drawLine(
+            color = ink.accent,
+            start = PAID_OFF_CLASP + dir * from,
+            end = PAID_OFF_CLASP + dir * (from + PAID_OFF_SNAP_LENGTH),
+            strokeWidth = width,
+            cap = StrokeCap.Round,
+            alpha = a,
+        )
+    }
 }
 
-internal fun paidOffCheck(t: Float): Float = smoothstep(0.08f, 0.28f, t)
+private const val PAID_OFF_RISE = 3f
+private const val PAID_OFF_NOD = 2.5f
+private const val PAID_OFF_LEAN = 5f
 
-private const val PAID_OFF_NOD = 3f
+/** The clasp's middle, and how far out from it its marks start: just clear of the tab's edge. */
+private val PAID_OFF_CLASP = Offset(75f, 55f)
+private const val PAID_OFF_SNAP_FROM = 18f
+private const val PAID_OFF_SNAP_LENGTH = 4.5f
+private val PAID_OFF_SNAP_ANGLES = floatArrayOf(-40f, 0f, 40f)
 
 /** Up from 0 to 1 and back between [from] and [to], 0 outside. */
 private fun swell(from: Float, to: Float, t: Float): Float =

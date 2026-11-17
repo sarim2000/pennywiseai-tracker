@@ -434,7 +434,8 @@ private fun DaySheet(
                             position = ListItemPosition.from(i, spent.size),
                             onClick = { onOpenTransactions(currency) },
                         ) {
-                            RowLabels(title = stringResource(R.string.calendar_day_transactions))
+                            // Named by currency, so rows differ even while amounts are hidden.
+                            RowLabels(title = stringResource(R.string.calendar_day_transactions, currency), titleMaxLines = 2)
                             Text(
                                 text = CurrencyFormatter.formatCurrency(amount, currency),
                                 style = PennyWiseText.amountRow,

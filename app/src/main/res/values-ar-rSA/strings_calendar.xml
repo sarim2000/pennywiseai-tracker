@@ -31,7 +31,8 @@
     <!-- The sheet for one day -->
     <string name="calendar_day_section_spent">المصروف</string>
     <string name="calendar_day_section_due">المستحق</string>
-    <string name="calendar_day_transactions">عرض معاملات هذا اليوم</string>
+    <!-- %1$s = a currency code, e.g. "INR" -->
+    <string name="calendar_day_transactions">معاملات %1$s</string>
     <string name="calendar_day_empty">لا إنفاق ولا مستحقات في هذا اليوم.</string>
     <string name="calendar_kind_subscription">اشتراك</string>
     <string name="calendar_kind_recurring">دفعة متكررة</string>

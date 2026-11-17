@@ -417,6 +417,7 @@
     <string name="safe_to_spend_done">Done</string>
     <string name="safe_to_spend_footnote">Bills are your subscriptions, recurring payments and the card bills you entered. Card spending is already in a card\'s bill. Credit cards and loans don\'t count as spendable money.</string>
     <string name="safe_to_spend_overdue">Overdue, was due %1$s</string>
+    <string name="safe_to_spend_card_bill">Card bill · %1$s</string>
     <string name="safe_to_spend_goals_set_aside">%1$s set aside for goals</string>
     <string name="safe_to_spend_goals_header">Goal savings</string>
     <string name="safe_to_spend_goals_toggle">Reserve goal savings</string>

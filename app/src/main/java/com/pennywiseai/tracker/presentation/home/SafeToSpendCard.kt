@@ -284,10 +284,12 @@ fun SafeToSpendSheet(
                     state.bills.sortedBy { it.dueDate }.forEachIndexed { i, bill ->
                         GroupedRow(position = ListItemPosition.from(i, state.bills.size)) {
                             val overdue = bill.isCardBill && bill.dueDate.isBefore(today)
+                            val due = if (overdue) stringResource(R.string.safe_to_spend_overdue, bill.dueDate.format(SHORT_DATE))
+                            else bill.dueDate.format(SHORT_DATE)
                             SheetRowLabels(
                                 title = bill.name,
-                                subtitle = if (overdue) stringResource(R.string.safe_to_spend_overdue, bill.dueDate.format(SHORT_DATE))
-                                else bill.dueDate.format(SHORT_DATE),
+                                // A card bill's name is the card's, so say what it is.
+                                subtitle = if (bill.isCardBill) stringResource(R.string.safe_to_spend_card_bill, due) else due,
                                 subtitleColor = if (overdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.weight(1f)
                             )

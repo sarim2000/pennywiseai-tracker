@@ -13,6 +13,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -502,47 +503,58 @@ internal fun WarrantyField(
 ) {
     var showDatePicker by remember { mutableStateOf(false) }
 
+    // Only the date part opens the picker, so the clear button stays a separate element
+    // for TalkBack instead of being folded into one row-wide button.
     Surface(
-        onClick = { showDatePicker = true },
         modifier = Modifier
             .fillMaxWidth()
             .heightIn(min = 56.dp),
         shape = editFullShape,
         color = MaterialTheme.colorScheme.surfaceContainerLow
     ) {
-        Row(
-            modifier = Modifier.padding(start = Spacing.md, end = Spacing.xs, top = Spacing.sm, bottom = Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-        ) {
-            Icon(
-                // An outline until a date is set, so an empty row doesn't look already covered.
-                if (warrantyUntil != null) Icons.Default.VerifiedUser else Icons.Outlined.Shield,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = stringResource(R.string.warranty_field_label),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                modifier = Modifier
+                    .weight(1f)
+                    .heightIn(min = 56.dp)
+                    .clickable(role = Role.Button) { showDatePicker = true }
+                    .padding(start = Spacing.md, end = Spacing.sm, top = Spacing.sm, bottom = Spacing.sm),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+            ) {
+                Icon(
+                    // An outline until a date is set, so an empty row doesn't look already covered.
+                    if (warrantyUntil != null) Icons.Default.VerifiedUser else Icons.Outlined.Shield,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                if (warrantyUntil != null) {
+                Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = warrantyUntil.format(AppDates.dateFormatter()),
-                        style = MaterialTheme.typography.bodyLarge,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                } else {
-                    Text(
-                        text = stringResource(R.string.warranty_field_empty),
-                        style = MaterialTheme.typography.bodyMedium,
+                        text = stringResource(R.string.warranty_field_label),
+                        style = MaterialTheme.typography.labelMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
+                    if (warrantyUntil != null) {
+                        Text(
+                            text = warrantyUntil.format(AppDates.dateFormatter()),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.onSurface
+                        )
+                    } else {
+                        Text(
+                            text = stringResource(R.string.warranty_field_empty),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
             if (warrantyUntil != null) {
-                IconButton(onClick = { onWarrantyChange(null) }, shapes = IconButtonDefaults.shapes()) {
+                IconButton(
+                    onClick = { onWarrantyChange(null) },
+                    modifier = Modifier.padding(end = Spacing.xs),
+                    shapes = IconButtonDefaults.shapes()
+                ) {
                     Icon(Icons.Default.Close, contentDescription = stringResource(R.string.warranty_field_clear))
                 }
             }

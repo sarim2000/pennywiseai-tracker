@@ -238,6 +238,7 @@ internal fun EditHomeSectionsSheet(
     homeSectionLayout: List<Pair<HomeSection, Boolean>>,
     onDismiss: () -> Unit,
     onMoveSection: (HomeSection, Int) -> Unit,
+    onReorderSections: (List<HomeSection>) -> Unit,
     onSetSectionVisible: (HomeSection, Boolean) -> Unit
 ) {
     // One state object for the sheet's lifetime: the handles' pointerInput lambdas
@@ -248,8 +249,7 @@ internal fun EditHomeSectionsSheet(
     // can't move rows out from under the finger; the next emission catches up.
     LaunchedEffect(homeSectionLayout) { if (dragged == null) items = homeSectionLayout }
     val savedLayout by rememberUpdatedState(homeSectionLayout)
-    val moveSection by rememberUpdatedState(onMoveSection)
-    var dragStartIndex by remember { mutableIntStateOf(0) }
+    val reorderSections by rememberUpdatedState(onReorderSections)
     var dragOffset by remember { mutableFloatStateOf(0f) }
     val rowHeights = remember { mutableStateMapOf<HomeSection, Int>() }
     val gapPx = with(LocalDensity.current) { Spacing.Layout.groupedListGap.toPx() }
@@ -320,14 +320,17 @@ internal fun EditHomeSectionsSheet(
                                         onDragStart = start@{
                                             if (dragged != null) return@start
                                             dragged = section
-                                            dragStartIndex = items.indexOfFirst { it.first == section }
                                             dragOffset = 0f
                                             haptics.performHapticFeedback(HapticFeedbackType.LongPress)
                                         },
                                         onDragEnd = end@{
                                             if (dragged != section) return@end
-                                            val delta = items.indexOfFirst { it.first == section } - dragStartIndex
-                                            if (delta != 0) moveSection(section, delta)
+                                            // Saves the order on screen, not a delta, so it can't drift
+                                            // from what the user sees. A drop back in place resyncs
+                                            // instead, picking up anything skipped mid-drag.
+                                            val order = items.map { it.first }
+                                            if (order != savedLayout.map { it.first }) reorderSections(order)
+                                            else items = savedLayout
                                             dragged = null
                                             dragOffset = 0f
                                         },
@@ -341,12 +344,14 @@ internal fun EditHomeSectionsSheet(
                                         if (dragged != section) return@detectDragGestures
                                         change.consume()
                                         dragOffset += amount.y
-                                        val at = items.indexOfFirst { it.first == section }
-                                        // Swap with a neighbour once the row is past its midpoint.
-                                        val neighbour = if (dragOffset > 0) at + 1 else at - 1
-                                        val step = items.getOrNull(neighbour)
-                                            ?.let { (rowHeights[it.first] ?: 0) + gapPx } ?: return@detectDragGestures
-                                        if (kotlin.math.abs(dragOffset) > step / 2) {
+                                        // Swap with a neighbour once the row is past its midpoint; a
+                                        // fast flick can cross several rows in one event, so loop.
+                                        while (true) {
+                                            val at = items.indexOfFirst { it.first == section }
+                                            val neighbour = if (dragOffset > 0) at + 1 else at - 1
+                                            val step = items.getOrNull(neighbour)
+                                                ?.let { (rowHeights[it.first] ?: 0) + gapPx } ?: break
+                                            if (step <= 0f || kotlin.math.abs(dragOffset) <= step / 2) break
                                             items = HomeSectionLayout.move(items, section, neighbour - at)
                                             dragOffset -= if (neighbour > at) step else -step
                                             haptics.performHapticFeedback(HapticFeedbackType.TextHandleMove)

@@ -51,16 +51,22 @@ object HomeSectionLayout {
     }
 
     /**
-     * [section] moved [delta] places, the sections in between shifting over to fill
-     * the gap (a drag-and-drop move; for ±1 it's a swap with the neighbour). Unchanged
-     * when [section] isn't in [layout] or the move would pass either end.
+     * [section] swapped with the section [delta] places away. Unchanged when [section]
+     * isn't in [layout] or the move would pass either end.
      */
     fun move(layout: List<Pair<HomeSection, Boolean>>, section: HomeSection, delta: Int): List<Pair<HomeSection, Boolean>> {
         val from = layout.indexOfFirst { it.first == section }
         val to = from + delta
         return if (from < 0 || to !in layout.indices) layout
-        else layout.toMutableList().also { it.add(to, it.removeAt(from)) }
+        else layout.toMutableList().also { java.util.Collections.swap(it, from, to) }
     }
+
+    /**
+     * [layout] put in [order] (a drag-and-drop result), each section keeping its own
+     * visibility. Sections missing from [order] keep their relative order at the end.
+     */
+    fun reorder(layout: List<Pair<HomeSection, Boolean>>, order: List<HomeSection>): List<Pair<HomeSection, Boolean>> =
+        layout.sortedBy { order.indexOf(it.first).takeIf { i -> i >= 0 } ?: Int.MAX_VALUE }
 
     /** [section] shown or hidden in place. */
     fun withVisibility(layout: List<Pair<HomeSection, Boolean>>, section: HomeSection, visible: Boolean): List<Pair<HomeSection, Boolean>> =

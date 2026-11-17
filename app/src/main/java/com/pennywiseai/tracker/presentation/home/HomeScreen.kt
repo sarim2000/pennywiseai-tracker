@@ -793,6 +793,7 @@ fun HomeScreen(
             homeSectionLayout = homeSectionLayout,
             onDismiss = { showEditWidgetsSheet = false },
             onMoveSection = viewModel::moveHomeSection,
+            onReorderSections = viewModel::reorderHomeSections,
             onSetSectionVisible = viewModel::setHomeSectionVisible
         )
     }

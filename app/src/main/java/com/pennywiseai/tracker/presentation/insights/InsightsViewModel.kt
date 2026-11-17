@@ -56,9 +56,11 @@ data class InsightsUiState(
 /** [chosen] when it still has something to show, else the busiest currency. */
 internal fun insightsUiState(snapshot: InsightsSnapshot, chosen: String?): InsightsUiState {
     val reviewed = snapshot.review.currencies.filter { it.hasActivity }
-    // A currency with only a subscription in it (an annual bill, say) still gets a page for its monthly cost.
+    // A currency with only a subscription in it (an annual bill, say) still gets a page for its monthly cost,
+    // and a runway stands on earlier months, so a quiet cycle still has it to show.
     val currencies = (
-        reviewed.map { it.currency } + snapshot.insights.map { it.currency } + snapshot.subscriptionsMonthly.keys
+        reviewed.map { it.currency } + snapshot.insights.map { it.currency } +
+            snapshot.subscriptionsMonthly.keys + snapshot.runways.keys
         ).distinct()
     val currency = chosen?.takeIf { it in currencies } ?: currencies.firstOrNull()
     val inCurrency = snapshot.insights.filter { it.currency == currency }

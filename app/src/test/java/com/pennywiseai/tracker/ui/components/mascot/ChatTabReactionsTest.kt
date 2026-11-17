@@ -278,4 +278,39 @@ class ChatTabReactionsTest {
         assertEquals(SCANNING, shown)
         job.cancel()
     }
+
+    @Test
+    fun `a moment made while the bar is away waits for it, then holds in full`() {
+        val job = start()
+        reactions.onBarShown(false)
+        reactions.onMoment(MascotMoment.BackupSaved)
+        runCurrent()
+        advanceTimeBy(REACTION_HOLD_MS * 5)
+        runCurrent()
+        assertEquals(reactionFor(MascotMoment.BackupSaved), shown)
+        reactions.onBarShown(true)
+        advanceTimeBy(REACTION_HOLD_MS - 1)
+        runCurrent()
+        assertEquals(reactionFor(MascotMoment.BackupSaved), shown)
+        // Hiding the bar again doesn't stop a hold that started.
+        reactions.onBarShown(false)
+        advanceTimeBy(2)
+        runCurrent()
+        assertNull(shown)
+        job.cancel()
+    }
+
+    @Test
+    fun `a reaction waits for the bar only so long`() {
+        val job = start()
+        reactions.onBarShown(false)
+        reactions.onMoment(MascotMoment.GoalReached)
+        advanceTimeBy(REACTION_WAIT_MS + 1)
+        runCurrent()
+        assertNull(shown)
+        reactions.onBarShown(true)
+        runCurrent()
+        assertNull(shown)
+        job.cancel()
+    }
 }

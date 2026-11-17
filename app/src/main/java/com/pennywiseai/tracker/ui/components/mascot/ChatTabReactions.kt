@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.ui.components.mascot
 import androidx.annotation.PluralsRes
 import androidx.annotation.StringRes
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.compose.LocalLifecycleOwner
@@ -76,6 +77,12 @@ sealed interface SmsScanStatus {
 
 /** How long a reaction holds before the owl comes back. */
 internal const val REACTION_HOLD_MS = 3000L
+
+/**
+ * How long a reaction made while the bar is away (a goal reached on its own screen, a
+ * backup in Settings) waits for the bar to come back before it's dropped as stale.
+ */
+internal const val REACTION_WAIT_MS = 90_000L
 
 /** A scan is running: a message bubble, reading. */
 internal val SCANNING = MascotReaction(MascotShape.Bubble, MascotMood.Thinking)
@@ -161,18 +168,27 @@ private const val GOAL_FILL = 0.55f
  * an earlier one). A scan takes over from a
  * reaction, and the scan's bubble carries no chip.
  *
- * Saves come in through [onSave] while the Chat tab is visible, for as long as [scope]
- * lives (the Chat tab's ViewModel), so one made on a screen pushed over the tabs (Add) is
- * still inside its hold when the bar comes back. The hold runs on [scope], so it ends on
- * time whether or not anyone watches; [clear] drops it early.
+ * Saves and moments come in through [onSave] and [onMoment] while the Chat tab is
+ * visible, for as long as [scope] lives (the Chat tab's ViewModel), so one made on a screen
+ * pushed over the tabs still shows when the bar comes back. Its hold starts once the bar
+ * is up ([onBarShown]): made while the bar is away, it waits up to [waitMillis] for it,
+ * then goes unseen. The timers run on [scope], so they end on time whether or not anyone
+ * watches; [clear] drops the reaction early.
  */
 internal class ChatTabReactions(
     private val scope: CoroutineScope,
     private val holdMillis: Long = REACTION_HOLD_MS,
+    private val waitMillis: Long = REACTION_WAIT_MS,
 ) {
     private var flash: MascotReaction? = null
     private var scanning = false
     private var hold: Job? = null
+
+    /** Whether the bar is up, so a hold can start. */
+    private var barShown = true
+
+    /** Whether [flash]'s hold has started; until then it waits for the bar. */
+    private var holding = false
     private val _shown = MutableStateFlow<MascotReaction?>(null)
 
     /** What the tab shows in place of the owl, or null for the owl. */
@@ -189,6 +205,15 @@ internal class ChatTabReactions(
     fun onMoment(moment: MascotMoment) {
         if (scanning) return
         react(reactionFor(moment))
+    }
+
+    /**
+     * The bar came up or went away. A reaction waiting for it starts its hold now; one
+     * already holding runs out on time.
+     */
+    fun onBarShown(shown: Boolean) {
+        barShown = shown
+        if (shown && flash != null && !holding) startHold()
     }
 
     /**
@@ -229,12 +254,28 @@ internal class ChatTabReactions(
         val takesOver = showing == null || reaction.rank > showing.rank ||
             (reaction.rank == RANK_TOGGLE && showing.rank == RANK_TOGGLE)
         if (!takesOver) return
-        hold?.cancel()
         flash = reaction
         publish()
+        if (barShown) {
+            startHold()
+        } else {
+            holding = false
+            endAfter(waitMillis)
+        }
+    }
+
+    private fun startHold() {
+        holding = true
+        endAfter(flash?.holdMillis ?: holdMillis)
+    }
+
+    /** The owl comes back after [millis], whatever timer ran before. */
+    private fun endAfter(millis: Long) {
+        hold?.cancel()
         hold = scope.launch {
-            delay(reaction.holdMillis ?: holdMillis)
+            delay(millis)
             flash = null
+            holding = false
             publish()
         }
     }
@@ -243,6 +284,7 @@ internal class ChatTabReactions(
         hold?.cancel()
         hold = null
         flash = null
+        holding = false
     }
 
     private fun publish() {
@@ -252,11 +294,17 @@ internal class ChatTabReactions(
 
 /**
  * Follows the scan while the screen is STARTED and returns what the tab shows. Call it
- * only while the Chat tab is shown. Leaving composition or going to the background clears
- * the reaction; a save made while a pushed screen covers the tabs still shows on return.
+ * only while the Chat tab is shown, with whether the bar is up ([barShown]); leaving
+ * composition counts as the bar going away. Going to the background clears the reaction;
+ * one made while a screen covers the tabs waits for them and shows on return.
  */
 @Composable
-internal fun rememberChatTabReaction(reactions: ChatTabReactions, scan: Flow<SmsScanStatus>): MascotReaction? {
+internal fun rememberChatTabReaction(reactions: ChatTabReactions, scan: Flow<SmsScanStatus>, barShown: Boolean): MascotReaction? {
+    // A root screen (a goal, Settings) covers the tabs, bar and all: gone counts as hidden.
+    DisposableEffect(reactions, barShown) {
+        reactions.onBarShown(barShown)
+        onDispose { reactions.onBarShown(false) }
+    }
     val lifecycle = LocalLifecycleOwner.current.lifecycle
     LaunchedEffect(reactions, lifecycle, scan) {
         lifecycle.repeatOnLifecycle(Lifecycle.State.STARTED) { reactions.watchScan(scan) }

@@ -179,7 +179,7 @@ class MascotMorphTest {
         assertEquals(0f, arrivalEnd(null), 0f)
         assertEquals(1f, stampAlpha(arrivalEnd(MascotCue.Stamp)), 0f)
         COIN_SPARKLES.forEach { assertEquals(0f, sparkleAlpha(it, arrivalEnd(MascotCue.Shine)), 1e-4f) }
-        COIN_SPARKLES.forEach { assertEquals(0f, sparkleAlpha(it, arrivalEnd(MascotCue.Brim)), 1e-4f) }
+        BRIM_SPARKLES.forEach { assertEquals(0f, brimSparkleAlpha(it, arrivalEnd(MascotCue.Brim)), 1e-4f) }
         assertNull(jarCoin(arrivalEnd(MascotCue.CoinDrop)))
         assertEquals(0f, coverAmount(arrivalEnd(MascotCue.CoverEyes)), 0f)
     }

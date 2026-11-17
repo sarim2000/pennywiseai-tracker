@@ -103,7 +103,8 @@ class WarrantyReminderWorker @AssistedInject constructor(
             )
             .setContentIntent(SmsBroadcastReceiver.openTransactionIntent(context, txn.id))
             .setAutoCancel(true)
-            .setOnlyAlertOnce(true)
+            // No setOnlyAlertOnce: the 1-day reminder replaces a 30-day one still in the
+            // shade (same tag and id), and it must still make a sound.
             // Figures stay off the lock screen, like the other alerts (#734).
             .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
             .build()

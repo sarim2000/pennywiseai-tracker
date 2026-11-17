@@ -18,6 +18,8 @@ import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.nameForBuiltin
+import com.pennywiseai.tracker.data.events.MascotMoment
+import com.pennywiseai.tracker.data.events.MascotMoments
 import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.manager.InAppReviewManager
 import com.pennywiseai.tracker.data.manager.InAppUpdateManager
@@ -111,6 +113,7 @@ class HomeViewModel @Inject constructor(
     entitlementGate: com.pennywiseai.tracker.billing.EntitlementGate,
     private val categoryRepository: CategoryRepository,
     private val recurringSuggestionsUseCase: com.pennywiseai.tracker.domain.usecase.RecurringSuggestionsUseCase,
+    private val mascotMoments: MascotMoments,
 ) : ViewModel() {
 
     /**
@@ -414,9 +417,12 @@ class HomeViewModel @Inject constructor(
             .launchIn(viewModelScope)
     }
 
-    /** Hides or shows amounts app-wide; remembered across launches. */
+    /** Hides or shows amounts app-wide; remembered across launches. The Chat tab's owl covers or uncovers its eyes. */
     fun toggleBalanceVisibility() {
-        viewModelScope.launch { userPreferencesRepository.toggleBalanceHidden() }
+        viewModelScope.launch {
+            val hidden = userPreferencesRepository.toggleBalanceHidden()
+            mascotMoments.announce(if (hidden) MascotMoment.AmountsHidden else MascotMoment.AmountsShown)
+        }
     }
 
     private fun loadUserName() {

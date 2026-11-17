@@ -170,6 +170,8 @@ class CardBillTest {
 
         assertTrue(status.needsBill)
         assertEquals(date("2026-04-02"), status.bill!!.dueDate)
+        // The bill still owed isn't the latest statement's: nothing since is inside it.
+        assertNull(status.enteredStatement)
     }
 
     @Test
@@ -180,6 +182,7 @@ class CardBillTest {
         assertEquals(date("2026-05-02"), status.bill!!.dueDate)
         assertEquals(d("2200"), status.bill!!.remaining)
         assertFalse(status.needsBill)
+        assertEquals(date("2026-04-12"), status.enteredStatement)
     }
 
     @Test

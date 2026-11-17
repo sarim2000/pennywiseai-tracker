@@ -21,10 +21,11 @@ object UpcomingPayments {
      * @param cardBills the visible cards' bills. One with something left counts even
      *   when overdue: it's still owed.
      * @param cards every credit card, hidden ones included. A subscription or template
-     *   charged to one whose latest bill is entered ([CardBillStatus.isKnown]) is
-     *   already inside that bill, so it isn't counted again; on a card with no bill
-     *   entered it still counts, or nothing would be set aside for it. Nothing
-     *   charged to a hidden card counts.
+     *   payment charged to a card by the close of its entered statement
+     *   ([CardBillStatus.enteredStatement]) is already inside that bill, so it isn't
+     *   counted again; one charged after it, or to a card with no bill entered, still
+     *   counts, or nothing would be set aside for it. Nothing charged to a hidden
+     *   card counts.
      * @param posted transactions from just before today on; one that pays a
      *   subscription's occurrence settles it, each at most one. Only a charge in
      *   scope can, and only from the subscription's own account when both are known.
@@ -41,23 +42,24 @@ object UpcomingPayments {
         end: LocalDate,
         isExcluded: (bankName: String?, accountLast4: String?) -> Boolean = { _, _ -> false },
     ): List<Bill> {
-        // Cards whose charges are already counted, or never count.
-        val covered = cards.filter { c ->
-            isExcluded(c.bankName, c.accountLast4) ||
-                cardBills.any { it.isKnown && it.card.accountLast4 == c.accountLast4 && it.card.bankName.equals(c.bankName, ignoreCase = true) }
-        }
-        fun counts(bank: String?, last4: String?) = !onCard(bank, last4, covered) && !isExcluded(bank, last4)
+        // Cards whose charges never count, and each card's entered statement.
+        val hidden = cards.filter { isExcluded(it.bankName, it.accountLast4) }
+        val entered = cardBills.mapNotNull { s -> s.enteredStatement?.let { s.card to it } }
+        fun counts(bank: String?, last4: String?, on: LocalDate) =
+            !isExcluded(bank, last4) && !onCard(bank, last4, hidden) &&
+                entered.none { (card, closed) -> !on.isAfter(closed) && onCard(bank, last4, listOf(card)) }
         // A charge on an ignored account, or another profile's, pays nothing in this scope.
         val charges = posted.filter {
             !it.isDeleted && it.transactionType in RecurringCharge.SPEND_TYPES && !it.dateTime.toLocalDate().isAfter(today) &&
                 !isExcluded(it.bankName, it.accountNumber)
         }.sortedBy { it.dateTime }.toMutableList()
-        val subs = activeExpense(subscriptions).filter { counts(it.bankName, it.accountLast4) }.flatMap { s ->
-            occurrences(s, today, end).map { s to Bill(s.merchantName, Money(s.amount, s.currency), it) }
+        val subs = activeExpense(subscriptions).flatMap { s ->
+            occurrences(s, today, end).filter { counts(s.bankName, s.accountLast4, it) }
+                .map { s to Bill(s.merchantName, Money(s.amount, s.currency), it) }
         }
         // Matched against every subscription occurrence, settled or not: a template for a
         // payment that's already posted is paid too.
-        val templates = recurring(recurring.filter { counts(it.bankName, it.accountLast4) }, today, end)
+        val templates = recurring(recurring, today, end) { t, on -> counts(t.bankName, t.accountLast4, on) }
             .filter { t -> subs.none { (_, bill) -> bill.sameOccurrence(t) } }
         val unpaid = subs.filter { (s, bill) -> !settled(s, bill.dueDate, charges) }.map { it.second }
         val bills = cardBills.mapNotNull { it.bill }.filter { !it.isRetired && !it.dueDate.isAfter(end) }
@@ -86,7 +88,12 @@ object UpcomingPayments {
      * due is the daily worker's to post (it then moves the schedule past today,
      * [RecurringTransactionEntity.nextDueDateAfter]), so the count starts there.
      */
-    private fun recurring(templates: List<RecurringTransactionEntity>, today: LocalDate, end: LocalDate): List<Bill> =
+    private fun recurring(
+        templates: List<RecurringTransactionEntity>,
+        today: LocalDate,
+        end: LocalDate,
+        counts: (RecurringTransactionEntity, LocalDate) -> Boolean,
+    ): List<Bill> =
         templates
             .filter { it.isActive && it.transactionType == TransactionType.EXPENSE }
             .flatMap { t ->
@@ -94,6 +101,7 @@ object UpcomingPayments {
                 generateSequence(first) { t.nextDueAfter(it) }
                     .take(MAX_OCCURRENCES)
                     .takeWhile { !it.isAfter(end) }
+                    .filter { counts(t, it) }
                     .map { Bill(t.merchantName, Money(t.amount, t.currency), it) }
                     .toList()
             }

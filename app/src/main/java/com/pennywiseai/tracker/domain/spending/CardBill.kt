@@ -44,11 +44,15 @@ data class CardBillStatus(
     val bill: CardBill?,
     val needsBill: Boolean,
     /**
-     * The latest statement's bill is entered, paid off or not: what's charged to
-     * the card is counted through its bills, not one payment at a time.
+     * When the latest statement closed, if its bill is entered (paid off or not):
+     * what was charged to the card by then is counted through that bill, not one
+     * payment at a time. Null when no bill is entered or a newer statement has closed.
      */
-    val isKnown: Boolean = bill != null,
+    val enteredStatement: LocalDate? = bill?.statementDate,
 ) {
+    /** The latest statement's bill is entered, paid off or not. */
+    val isKnown: Boolean get() = enteredStatement != null
+
     /**
      * The bill the user entered is behind the card: paid off, or a newer statement
      * has closed since. Its amount is no longer the one to edit; the next amount
@@ -132,7 +136,7 @@ object CardBills {
         val dueDay = card.cardDueDay
         val amount = card.cardBillAmount
         val asOf = card.cardBillAsOf?.toLocalDate()
-        if (dueDay == null || amount == null || asOf == null) return CardBillStatus(card, null, needsBill = owes, isKnown = false)
+        if (dueDay == null || amount == null || asOf == null) return CardBillStatus(card, null, needsBill = owes)
 
         val statement = card.statementDay?.let { statementDate(it, asOf) } ?: asOf
         val bill = CardBill(
@@ -147,7 +151,8 @@ object CardBills {
         )
         val newerStatement = newerStatement(card, statement, today)
         return CardBillStatus(
-            card, bill.takeIf { !it.isRetired }, needsBill = owes && newerStatement, isKnown = !newerStatement,
+            card, bill.takeIf { !it.isRetired }, needsBill = owes && newerStatement,
+            enteredStatement = statement.takeIf { !newerStatement },
         )
     }
 

@@ -55,11 +55,11 @@ class UpcomingPaymentsTest {
         timestamp = today.atStartOfDay(), isCreditCard = true,
     )
 
-    /** The card's latest bill is entered and paid off, unless [cardBills] says otherwise. */
+    /** The card's latest bill (closed 12 October) is entered and paid off, unless [cardBills] says otherwise. */
     private fun upcoming(
         subscriptions: List<SubscriptionEntity> = emptyList(),
         recurring: List<RecurringTransactionEntity> = emptyList(),
-        cardBills: List<CardBillStatus> = listOf(CardBillStatus(card, null, needsBill = false, isKnown = true)),
+        cardBills: List<CardBillStatus> = listOf(CardBillStatus(card, null, needsBill = false, enteredStatement = date("2026-10-12"))),
         posted: List<TransactionEntity> = emptyList(),
         on: LocalDate = today,
         isExcluded: (String?, String?) -> Boolean = { _, _ -> false },
@@ -203,17 +203,33 @@ class UpcomingPaymentsTest {
     }
 
     @Test
-    fun `a subscription charged to a card is inside the card's bill`() {
+    fun `a card payment by the entered statement's close is inside that bill`() {
+        // Entered on the statement day: what's charged that day is in it, what's charged after isn't.
         val bills = upcoming(
             subscriptions = listOf(
-                sub("Spotify", "2026-10-28", bank = "Test Bank", last4 = "4444"),
-                sub("Spotify", "2026-10-29", last4 = "4444"),
-                sub("Rent", "2026-11-01", bank = "Test Bank", last4 = "1111"),
+                sub("Spotify", "2026-10-23", bank = "Test Bank", last4 = "4444"),
+                sub("Music", "2026-10-23", last4 = "4444"),
+                sub("Cloud", "2026-10-24", bank = "Test Bank", last4 = "4444"),
             ),
-            recurring = listOf(template("Fuel", "2026-10-30", last4 = "4444")),
+            recurring = listOf(template("Fuel", "2026-10-23", last4 = "4444")),
+            cardBills = listOf(CardBillStatus(card, null, needsBill = false, enteredStatement = today)),
         )
 
-        assertEquals(listOf("Rent"), bills.map { it.name })
+        assertEquals(listOf("Cloud"), bills.map { it.name })
+    }
+
+    @Test
+    fun `a card payment after the entered statement is still set aside, even with that bill paid`() {
+        // 4 November: October's statement (closed 5 October, due the 10th) is entered and
+        // paid; November's closes tomorrow, so today's charge isn't in any bill entered yet.
+        val bills = upcoming(
+            subscriptions = listOf(sub("Spotify", "2026-11-04", bank = "Test Bank", last4 = "4444")),
+            recurring = listOf(template("Fuel", "2026-11-06", last4 = "4444")),
+            cardBills = listOf(CardBillStatus(card, null, needsBill = false, enteredStatement = date("2026-10-05"))),
+            on = date("2026-11-04"),
+        )
+
+        assertEquals(listOf("Spotify", "Fuel"), bills.map { it.name })
     }
 
     @Test
@@ -221,7 +237,7 @@ class UpcomingPaymentsTest {
         val bills = upcoming(
             subscriptions = listOf(sub("Spotify", "2026-10-28", bank = "Test Bank", last4 = "4444")),
             recurring = listOf(template("Fuel", "2026-10-30", last4 = "4444")),
-            cardBills = listOf(CardBillStatus(card, null, needsBill = true, isKnown = false)),
+            cardBills = listOf(CardBillStatus(card, null, needsBill = true)),
         )
 
         assertEquals(listOf("Spotify", "Fuel"), bills.map { it.name })

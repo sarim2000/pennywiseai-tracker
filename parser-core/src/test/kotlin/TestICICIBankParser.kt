@@ -283,6 +283,30 @@ class ICICIBankParserTest {
                 )
             ),
             ParserTestCase(
+                name = "NACH loan EMI to Edelweiss is an EXPENSE, not INVESTMENT",
+                message = "ICICI Bank Acc XX710 debited Rs. 5,000.00 on 10-Nov-26 InfoNACH*EDELWEISS FINANCE LOAN EMI.Avl Bal Rs. 45,000.00.To dispute call 0000000000",
+                sender = "BP-ICICIT-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("5000.00"),
+                    currency = "INR",
+                    type = TransactionType.EXPENSE,
+                    accountLast4 = "710",
+                    balance = BigDecimal("45000.00")
+                )
+            ),
+            ParserTestCase(
+                name = "NACH SIP to Edelweiss Financial Services stays INVESTMENT",
+                message = "ICICI Bank Acc XX710 debited Rs. 2,000.00 on 10-Nov-26 InfoNACH*EDELWEISS FINANCIAL SERVICES.Avl Bal Rs. 43,000.00.To dispute call 0000000000",
+                sender = "BP-ICICIT-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("2000.00"),
+                    currency = "INR",
+                    type = TransactionType.INVESTMENT,
+                    accountLast4 = "710",
+                    balance = BigDecimal("43000.00")
+                )
+            ),
+            ParserTestCase(
                 name = "ACH debit via ICICI is INVESTMENT",
                 message = "ICICI Bank Account XX123 debited Rs. 5,000.00 on 19-May-26 InfoACH*BD-ACHKFL.Avl Bal Rs. 3,25,000.04.To dispute call 1800 blah blah",
                 sender = "AX-ICICIT",

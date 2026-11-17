@@ -37,6 +37,9 @@ abstract class BankParser {
 
         /** A loan lender as the auto-pay payee (names are often truncated: "LICHousin"). */
         private val LOAN_PAYEE = Regex("""housin|home\s*loan|\bloans?\b|\bemi\b|financ""")
+
+        /** Words that only a loan repayment uses; they beat an investment keyword ("Edelweiss"). */
+        private val LOAN_REPAYMENT = Regex("""\bloans?\b|\bemi\b""")
     }
 
     /**
@@ -324,6 +327,9 @@ abstract class BankParser {
      * Can be overridden by specific bank parsers for custom logic.
      */
     protected open fun isInvestmentTransaction(lowerMessage: String): Boolean {
+        // Edelweiss and similar names are both brokers and lenders; a loan EMI is a spend.
+        if (LOAN_REPAYMENT.containsMatchIn(lowerMessage)) return false
+
         val investmentKeywords = listOf(
             // Clearing corporations
             "iccl",                         // Indian Clearing Corporation Limited

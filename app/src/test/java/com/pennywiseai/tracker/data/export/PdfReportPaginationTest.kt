@@ -1,9 +1,11 @@
 package com.pennywiseai.tracker.data.export
 
+import com.pennywiseai.tracker.domain.review.CategoryLine
 import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.domain.review.ReviewRange
 import org.junit.Assert.assertEquals
 import org.junit.Test
+import java.math.BigDecimal
 import java.time.LocalDate
 
 class PdfReportPaginationTest {
@@ -62,5 +64,13 @@ class PdfReportPaginationTest {
         assertEquals("2026-10-25", reportSlug(range(ReviewKind.MONTH, LocalDate.of(2026, 10, 25), LocalDate.of(2026, 11, 24))))
         val october = range(ReviewKind.MONTH, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31))
         assertEquals("pennywise-report-2026-10.pdf", reportFileName(october))
+    }
+
+    @Test
+    fun `a category that didn't change prints a dash, not a blank cell`() {
+        fun line(amount: Int, previous: Int) = CategoryLine("Food", BigDecimal(amount), BigDecimal(previous))
+        assertEquals("—", categoryChange(line(500, 500), "USD"))
+        assertEquals("+", categoryChange(line(700, 500), "USD").take(1))
+        assertEquals("−", categoryChange(line(300, 500), "USD").take(1))
     }
 }

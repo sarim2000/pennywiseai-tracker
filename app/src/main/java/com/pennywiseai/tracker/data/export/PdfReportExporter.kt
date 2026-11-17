@@ -16,6 +16,7 @@ import android.text.TextUtils
 import android.view.View
 import androidx.core.content.FileProvider
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.domain.review.CategoryLine
 import com.pennywiseai.tracker.domain.review.CurrencyReview
 import com.pennywiseai.tracker.domain.review.PeriodReview
 import com.pennywiseai.tracker.domain.review.ReviewKind
@@ -80,6 +81,16 @@ internal fun reportSlug(range: ReviewRange): String = when {
 
 /** The file's name, as a recipient sees it: the period it covers and nothing else. */
 internal fun reportFileName(range: ReviewRange): String = "pennywise-report-${reportSlug(range)}.pdf"
+
+/**
+ * A category's change cell: "+₹1,200" / "−₹300", or a dash when it didn't move, so an
+ * unchanged category doesn't read as a missing figure.
+ */
+internal fun categoryChange(line: CategoryLine, currency: String): String {
+    val delta = line.amount - (line.previous ?: line.amount)
+    if (delta.signum() == 0) return "—"
+    return Money(delta.abs(), currency).format(if (delta.signum() > 0) "+" else "−", maskIfHidden = false)
+}
 
 /** The share sheet for a report [PdfReportExporter.export] wrote. */
 fun pdfShareIntent(uri: Uri): Intent {
@@ -242,15 +253,12 @@ class PdfReportExporter @Inject constructor(
                 )
                 blocks += header
                 review.categories.forEach { line ->
-                    val delta = line.amount - (line.previous ?: line.amount)
                     blocks += row(
                         columns,
                         listOfNotNull(
                             categoryLabel(line.name),
                             money(line.amount, currency),
-                            if (!compared) null
-                            else if (delta.signum() == 0) ""
-                            else Money(delta.abs(), currency).format(if (delta.signum() > 0) "+" else "−", maskIfHidden = false),
+                            categoryChange(line, currency).takeIf { compared },
                         ),
                         body,
                         header = header,

@@ -61,6 +61,7 @@ import androidx.compose.ui.layout.Layout
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.layout.positionInRoot
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
@@ -80,6 +81,9 @@ import com.pennywiseai.tracker.ui.components.mascot.MascotMood
 import com.pennywiseai.tracker.ui.components.mascot.MascotReaction
 import com.pennywiseai.tracker.ui.components.mascot.MascotShape
 import com.pennywiseai.tracker.ui.components.mascot.ReactionAmount
+import com.pennywiseai.tracker.ui.components.mascot.ReactionChip
+import com.pennywiseai.tracker.ui.components.mascot.ReactionCount
+import com.pennywiseai.tracker.ui.components.mascot.ReactionLabel
 import com.pennywiseai.tracker.ui.effects.BlurredAnimatedVisibility
 import com.pennywiseai.tracker.ui.effects.frostedBlur
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -286,8 +290,8 @@ fun PennyWiseBottomNavigation(
 
         // Last, so it draws over both bars. Outside them, so neither the floating pill's
         // clip nor the bars' blur layer cuts it off above the bar.
-        ChatAmountChip(
-            amount = shownReaction?.amount,
+        ChatReactionChip(
+            chip = shownReaction?.chip,
             visible = visible && BottomNavItem.Chat in navigationItems,
             anchor = if (navBarStyle == NavBarStyle.FLOATING) floatingChatAnchor else normalChatAnchor,
             modifier = Modifier.matchParentSize()
@@ -434,13 +438,15 @@ private fun ChatTabMascot(
             size = size,
             shape = reaction?.shape ?: MascotShape.Owl,
             mood = reaction?.mood ?: MascotMood.Calm,
+            value = reaction?.value ?: 0f,
+            cue = reaction?.cue,
             tint = if (selected || !mutedWhenUnselected) MaterialTheme.colorScheme.primary
             else MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
 }
 
-/** Where the Chat slot sits on screen, in root pixels, for the amount chip above it. */
+/** Where the Chat slot sits on screen, in root pixels, for the chip above it. */
 @Stable
 private class ChatSlotAnchor {
     /** The Chat slot's horizontal centre. */
@@ -459,23 +465,24 @@ private fun Modifier.anchorsBarTop(anchor: ChatSlotAnchor) = onGloballyPositione
 }
 
 /**
- * The amount a single save moved, in a small pill just above the Chat slot while its
- * reaction holds: it rises in as the shape appears and sinks out as the owl comes back. It
- * echoes the save, so TalkBack skips it, and it takes no touches. Centred on the slot (the
+ * What a reaction says, in a small pill just above the Chat slot while it holds: the
+ * amount a single save moved, or a word or a count for a moment. It rises in as the shape
+ * appears and sinks out as the owl comes back. It echoes what the user just did, which
+ * the screen they did it on already says, so TalkBack skips it, and it takes no touches. Centred on the slot (the
  * slot's measured centre, so RTL and the docked action need no special case), but kept a
  * gap inside the screen's edges.
  */
 @Composable
-private fun ChatAmountChip(
-    amount: ReactionAmount?,
+private fun ChatReactionChip(
+    chip: ReactionChip?,
     visible: Boolean,
     anchor: ChatSlotAnchor,
     modifier: Modifier = Modifier,
 ) {
-    // Keep drawing the last amount while it leaves.
-    val lastAmount = remember { arrayOfNulls<ReactionAmount>(1) }
-    if (amount != null) lastAmount[0] = amount
-    val shownAmount = amount ?: lastAmount[0]
+    // Keep drawing the last chip while it leaves.
+    val lastChip = remember { arrayOfNulls<ReactionChip>(1) }
+    if (chip != null) lastChip[0] = chip
+    val shownChip = chip ?: lastChip[0]
     val motion = MaterialTheme.motionScheme
     val animate = rememberAnimationsEnabled()
     val travel = with(LocalDensity.current) { Spacing.sm.roundToPx() }
@@ -483,7 +490,7 @@ private fun ChatAmountChip(
     Layout(
         content = {
             AnimatedVisibility(
-                visible = visible && amount != null,
+                visible = visible && chip != null,
                 enter = if (animate) {
                     fadeIn(motion.fastEffectsSpec()) + slideInVertically(motion.fastSpatialSpec()) { travel }
                 } else EnterTransition.None,
@@ -491,7 +498,15 @@ private fun ChatAmountChip(
                     fadeOut(motion.fastEffectsSpec()) + slideOutVertically(motion.fastSpatialSpec()) { travel }
                 } else ExitTransition.None
             ) {
-                shownAmount?.let { AmountPill(it) }
+                when (shownChip) {
+                    is ReactionAmount -> AmountPill(shownChip)
+                    is ReactionLabel -> ChipPill(stringResource(shownChip.text), MaterialTheme.colorScheme.onSurface)
+                    is ReactionCount -> ChipPill(
+                        pluralStringResource(shownChip.text, shownChip.count, shownChip.count),
+                        MaterialTheme.colorScheme.onSurface
+                    )
+                    null -> Unit
+                }
             }
         },
         modifier = modifier
@@ -527,15 +542,25 @@ private fun AmountPill(amount: ReactionAmount) {
         TransactionType.EXPENSE, TransactionType.CREDIT -> "-" to colorScheme.spending
         TransactionType.TRANSFER, TransactionType.INVESTMENT -> "" to colorScheme.onSurface
     }
-    Text(
+    ChipPill(
         text = CurrencyFormatter.signed(
             sign,
             CurrencyFormatter.formatCurrency(amount.money.amount, amount.money.currency)
         ),
+        color = color,
+    )
+}
+
+/** The chip's pill: one line of [text] in [color] that steps down to fit rather than cut off. */
+@Composable
+private fun ChipPill(text: String, color: Color) {
+    val colorScheme = MaterialTheme.colorScheme
+    Text(
+        text = text,
         style = MaterialTheme.typography.labelLarge.tabular(),
         color = color,
         maxLines = 1,
-        // A figure is never cut short: a long one steps down to the money-text floor.
+        // Never cut short: a long one steps down to the money-text floor.
         autoSize = TextAutoSize.StepBased(
             minFontSize = PennyWiseText.autoSizeFloor,
             maxFontSize = MaterialTheme.typography.labelLarge.fontSize

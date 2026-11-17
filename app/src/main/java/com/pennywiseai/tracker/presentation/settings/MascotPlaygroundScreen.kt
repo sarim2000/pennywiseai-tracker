@@ -50,6 +50,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.events.MascotMoment
+import com.pennywiseai.tracker.data.events.MascotMoments
 import com.pennywiseai.tracker.data.events.TransactionEvents
 import com.pennywiseai.tracker.data.events.TransactionOrigin
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
@@ -72,11 +74,12 @@ import java.math.BigDecimal
 import javax.inject.Inject
 import kotlin.math.roundToInt
 
-/** Announces saves for the playground's reaction buttons, through the app's own event source. */
+/** Announces saves and moments for the playground's reaction buttons, through the app's own event sources. */
 @HiltViewModel
 class MascotPlaygroundViewModel @Inject constructor(
     private val transactionEvents: TransactionEvents,
     private val currencyPreferences: CurrencyPreferences,
+    private val mascotMoments: MascotMoments,
 ) : ViewModel() {
     /**
      * What a manual add of [type] announces once it commits, with a sample amount in the
@@ -89,10 +92,43 @@ class MascotPlaygroundViewModel @Inject constructor(
         }
     }
 
+    /** Announces the moment named [name] (see [PLAYGROUND_MOMENTS]), with sample figures. Nothing changes. */
+    fun fireMoment(name: String) {
+        viewModelScope.launch {
+            val money = Money(SAMPLE_AMOUNT, currencyPreferences.baseCurrency.first())
+            sampleMoment(name, money)?.let(mascotMoments::announce)
+        }
+    }
+
     private companion object {
         val SAMPLE_AMOUNT = BigDecimal("12.50")
     }
 }
+
+/** Every moment, by the code's own name, in the order the playground shows them. */
+internal val PLAYGROUND_MOMENTS = listOf(
+    "GoalContributed", "GoalReached", "DebtPaidOff", "MessageTaught", "RulesApplied", "StatementImported",
+    "BackupSaved", "BackupRestored", "BillTracked", "BillPaid", "AmountsHidden", "AmountsShown",
+)
+
+/** The moment named [name], with [money] and a sample count where it carries one. */
+internal fun sampleMoment(name: String, money: Money): MascotMoment? = when (name) {
+    "GoalContributed" -> MascotMoment.GoalContributed(money)
+    "GoalReached" -> MascotMoment.GoalReached
+    "DebtPaidOff" -> MascotMoment.DebtPaidOff
+    "MessageTaught" -> MascotMoment.MessageTaught
+    "RulesApplied" -> MascotMoment.RulesApplied(SAMPLE_COUNT)
+    "StatementImported" -> MascotMoment.StatementImported(SAMPLE_COUNT)
+    "BackupSaved" -> MascotMoment.BackupSaved
+    "BackupRestored" -> MascotMoment.BackupRestored
+    "BillTracked" -> MascotMoment.BillTracked
+    "BillPaid" -> MascotMoment.BillPaid(money)
+    "AmountsHidden" -> MascotMoment.AmountsHidden
+    "AmountsShown" -> MascotMoment.AmountsShown
+    else -> null
+}
+
+private const val SAMPLE_COUNT = 12
 
 /**
  * Developer mode's mascot playground, for checking it on a device: a large mascot to poke
@@ -197,6 +233,23 @@ fun MascotPlaygroundScreen(
                         TransactionType.entries.forEach { type ->
                             OutlinedButton(onClick = { viewModel.fire(type) }, shapes = ButtonDefaults.shapes()) {
                                 Text(stringResource(type.label()))
+                            }
+                        }
+                    }
+                }
+                item {
+                    SectionHeaderV2(
+                        title = stringResource(R.string.mascot_playground_moments_title),
+                        subtitle = stringResource(R.string.mascot_playground_moments_body),
+                        topSpacing = Spacing.Layout.sectionGap,
+                    )
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        modifier = Modifier.padding(top = Spacing.Layout.headerToContent),
+                    ) {
+                        PLAYGROUND_MOMENTS.forEach { name ->
+                            OutlinedButton(onClick = { viewModel.fireMoment(name) }, shapes = ButtonDefaults.shapes()) {
+                                Text(name)
                             }
                         }
                     }

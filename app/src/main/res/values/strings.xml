@@ -51,6 +51,8 @@
     <string name="mascot_playground_value">Value: %1$d%%</string>
     <string name="mascot_playground_reactions_title">Chat tab reactions</string>
     <string name="mascot_playground_reactions_body">Each button announces a save the way a real one does, so the Chat tab below reacts. Nothing is saved. A tap during a reaction folds into it.</string>
+    <string name="mascot_playground_moments_title">Moments</string>
+    <string name="mascot_playground_moments_body">Each button announces a moment the way the real action does: a goal reached, a debt paid off, a backup saved. Nothing changes. A bigger moment takes over from a smaller one.</string>
     <string name="mascot_playground_grid_title">Every shape and mood</string>
     <string name="mascot_playground_grid_body">Tap one to show it above.</string>
 </resources>

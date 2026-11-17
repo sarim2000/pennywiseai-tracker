@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.work.WorkManager
 import com.pennywiseai.tracker.core.AppForegroundState
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.events.MascotMoments
 import com.pennywiseai.tracker.data.events.TransactionEvents
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.preferences.UserPreferences
@@ -41,15 +42,18 @@ class MascotPlaygroundViewModelTest {
                 every { getWorkInfosForUniqueWorkFlow(any()) } returns flowOf(emptyList())
             }
             val events = TransactionEvents(AppForegroundState { true })
+            val moments = MascotMoments(AppForegroundState { true })
             val playground = MascotPlaygroundViewModel(
                 events,
                 mockk<CurrencyPreferences> { every { baseCurrency } returns flowOf("EUR") },
+                moments,
             )
             val tab = ChatTabViewModel(
                 mockk<Context>(),
                 events,
                 AppForegroundState { true },
                 mockk<UserPreferencesRepository> { every { userPreferences } returns flowOf(UserPreferences()) },
+                moments,
             )
             runTest(dispatcher) {
                 runCurrent() // the tab is listening
@@ -57,8 +61,48 @@ class MascotPlaygroundViewModelTest {
                     playground.fire(type)
                     runCurrent()
                     val sample = ReactionAmount(Money(BigDecimal("12.50"), "EUR"), type)
-                    assertEquals(reactionFor(type).copy(amount = sample), tab.reactions.shown.value)
+                    assertEquals(reactionFor(type).copy(chip = sample), tab.reactions.shown.value)
                     advanceUntilIdle() // the hold ends and the owl is back
+                    assertNull(tab.reactions.shown.value)
+                }
+            }
+        } finally {
+            unmockkObject(WorkManager.Companion)
+            Dispatchers.resetMain()
+        }
+    }
+
+    @Test
+    fun `each moment button gives the Chat tab that moment's reaction`() {
+        val dispatcher = StandardTestDispatcher()
+        Dispatchers.setMain(dispatcher)
+        mockkObject(WorkManager.Companion)
+        try {
+            every { WorkManager.getInstance(any()) } returns mockk {
+                every { getWorkInfosForUniqueWorkFlow(any()) } returns flowOf(emptyList())
+            }
+            val events = TransactionEvents(AppForegroundState { true })
+            val moments = MascotMoments(AppForegroundState { true })
+            val playground = MascotPlaygroundViewModel(
+                events,
+                mockk<CurrencyPreferences> { every { baseCurrency } returns flowOf("EUR") },
+                moments,
+            )
+            val tab = ChatTabViewModel(
+                mockk<Context>(),
+                events,
+                AppForegroundState { true },
+                mockk<UserPreferencesRepository> { every { userPreferences } returns flowOf(UserPreferences()) },
+                moments,
+            )
+            val money = Money(BigDecimal("12.50"), "EUR")
+            runTest(dispatcher) {
+                runCurrent() // the tab is listening
+                for (name in PLAYGROUND_MOMENTS) {
+                    playground.fireMoment(name)
+                    runCurrent()
+                    assertEquals(name, reactionFor(sampleMoment(name, money)!!), tab.reactions.shown.value)
+                    advanceUntilIdle()
                     assertNull(tab.reactions.shown.value)
                 }
             }

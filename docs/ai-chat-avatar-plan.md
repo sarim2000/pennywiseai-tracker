@@ -80,6 +80,26 @@ Agreed with Codex (`gpt-6.1-sol`, high) over two rounds. Its objections that we 
 - **SMS scans:** show the SMS bubble only during a foreground scan the user started, with the existing progress UI kept. At most one neutral beat afterwards, and only if new rows were saved. No reaction to rebuilds.
 - **Not on the tab:** budget, bill-due and subscription triggers stay on their own screens.
 
+### Moment reactions on the tab (2026-11-17)
+
+Besides plain saves, the tab answers a few things the user just finished: progress, closure, learning and care for their records. Each comes through `MascotMoments` (`data/events/MascotMoments.kt`), announced once, after the action committed, from the user's own action in the foreground. Never from a worker, a restore replaying rows, or a screen first observing a state.
+
+| Moment | Shape · mood | Cue | Chip |
+|---|---|---|---|
+| Money put into a goal by hand | Jar · Calm | CoinDrop | the amount, unsigned |
+| A goal reached | Jar (full) · Happy | Brim | "Goal reached" |
+| A debt paid off | Wallet · Happy | PaidOff | "Paid off" |
+| An unrecognised message taught | Bubble · Calm | Learned | "Learned" |
+| Rules applied to past rows | Receipt · Calm | Sorted | "N updated" |
+| A statement imported | Receipt · Calm | Read | "N imported" |
+| A backup saved / restored | Shield · Calm | Secured | "Backup saved" / "Restored" |
+| A bill tracked / marked paid | Bell · Calm | Ring / Paid | "Now tracking" / the amount, "-" |
+| Amounts hidden / shown | Owl · Calm | CoverEyes / Peek | none |
+
+- **Rank:** a save < an action < a milestone < a toggle. A higher rank takes over from what's showing, with a hold of its own; anything else folds in. The latest toggle answers for the switch as it is now, and holds only ~1.4s.
+- **Cues** are apart from shapes: a new one on the same shape plays in place (the owl covering its eyes, a jar saved into brimming). A cue's check sits on any shape and carries across a morph.
+- **Left out:** creating a goal, a rule, a split or an account (setup, already confirmed on screen); a subscription ended (it isn't cancelled); renewal reminders, automatic detection and scheduled backups (background); first transaction, streaks and months closed (no reliable commit); budget thresholds (computed in a worker, and `Worried` stays off the tab).
+
 ### Event source **(Codex)**
 - **No "newest Room row" observer and no universal repository hook.** Many paths insert rows (imports, backups, recurring, autopay, loans), and most of them must not react.
 - **One app-scoped `TransactionEvents`:** a `MutableSharedFlow(replay = 0)` carrying `type`, `count` and `origin` only. No amounts, no merchants, no mascot enums. It is not persisted, so the backup format is untouched (constraint 3).

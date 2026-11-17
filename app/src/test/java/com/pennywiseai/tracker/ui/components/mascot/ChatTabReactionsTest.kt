@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.ui.components.mascot
 
 import com.pennywiseai.tracker.core.AppForegroundState
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.events.MascotMoment
 import com.pennywiseai.tracker.data.events.TransactionEvent
 import com.pennywiseai.tracker.data.events.TransactionEvents
 import com.pennywiseai.tracker.data.events.TransactionOrigin
@@ -92,7 +93,7 @@ class ChatTabReactionsTest {
         val spent = Money(BigDecimal("12.50"), "EUR")
         save(TransactionType.EXPENSE, spent)
         runCurrent()
-        val expected = reactionFor(TransactionType.EXPENSE).copy(amount = ReactionAmount(spent, TransactionType.EXPENSE))
+        val expected = reactionFor(TransactionType.EXPENSE).copy(chip = ReactionAmount(spent, TransactionType.EXPENSE))
         assertEquals(expected, shown)
 
         save(TransactionType.INCOME, Money(BigDecimal.TEN, "EUR"))
@@ -109,7 +110,7 @@ class ChatTabReactionsTest {
         val job = start(scan)
         save(TransactionType.INCOME)
         runCurrent()
-        assertNull(shown?.amount)
+        assertNull(shown?.chip)
         advanceTimeBy(REACTION_HOLD_MS + 1)
 
         scan.value = SmsScanStatus.Running
@@ -117,11 +118,11 @@ class ChatTabReactionsTest {
         save(TransactionType.INCOME, Money(BigDecimal.TEN, "EUR"))
         runCurrent()
         assertEquals(SCANNING, shown)
-        assertNull(shown?.amount)
+        assertNull(shown?.chip)
         scan.value = SmsScanStatus.Finished(newRows = 1)
         runCurrent()
         assertEquals(SCANNED, shown)
-        assertNull(shown?.amount)
+        assertNull(shown?.chip)
         job.cancel()
     }
 
@@ -205,6 +206,76 @@ class ChatTabReactionsTest {
         scan.value = SmsScanStatus.Finished(newRows = 0)
         runCurrent()
         assertNull(shown)
+        job.cancel()
+    }
+
+    @Test
+    fun `a bigger moment takes over from a save, and a smaller one folds into it`() {
+        val job = start()
+        save(TransactionType.EXPENSE)
+        runCurrent()
+        reactions.onMoment(MascotMoment.GoalReached)
+        runCurrent()
+        assertEquals(reactionFor(MascotMoment.GoalReached), shown)
+        // Its own hold, from when it took over.
+        advanceTimeBy(REACTION_HOLD_MS - 1)
+        save(TransactionType.INCOME)
+        reactions.onMoment(MascotMoment.MessageTaught)
+        runCurrent()
+        assertEquals(reactionFor(MascotMoment.GoalReached), shown)
+        advanceTimeBy(2)
+        runCurrent()
+        assertNull(shown)
+        job.cancel()
+    }
+
+    @Test
+    fun `a toggle answers at once over anything, for its own short hold, and the latest toggle wins`() {
+        val job = start()
+        reactions.onMoment(MascotMoment.DebtPaidOff)
+        runCurrent()
+        reactions.onMoment(MascotMoment.AmountsHidden)
+        runCurrent()
+        assertEquals(reactionFor(MascotMoment.AmountsHidden), shown)
+        reactions.onMoment(MascotMoment.AmountsShown)
+        runCurrent()
+        assertEquals(reactionFor(MascotMoment.AmountsShown), shown)
+        advanceTimeBy(TOGGLE_HOLD_MS + 1)
+        runCurrent()
+        assertNull(shown)
+        job.cancel()
+    }
+
+    @Test
+    fun `moments are calm unless they are milestones, and their chips never carry free text`() {
+        val money = Money(BigDecimal("12.50"), "EUR")
+        val all = listOf(
+            MascotMoment.GoalContributed(money), MascotMoment.GoalReached, MascotMoment.DebtPaidOff,
+            MascotMoment.MessageTaught, MascotMoment.RulesApplied(3), MascotMoment.StatementImported(3),
+            MascotMoment.BackupSaved, MascotMoment.BackupRestored, MascotMoment.BillTracked,
+            MascotMoment.BillPaid(money), MascotMoment.AmountsHidden, MascotMoment.AmountsShown,
+        )
+        for (moment in all) {
+            val reaction = reactionFor(moment)
+            assertEquals("$moment", reaction.rank == RANK_MILESTONE, reaction.mood == MascotMood.Happy)
+            when (val chip = reaction.chip) {
+                null, is ReactionLabel -> Unit
+                is ReactionCount -> assertEquals(3, chip.count)
+                is ReactionAmount -> assertEquals(money, chip.money)
+            }
+        }
+        // A bill paid is spent, so it signs like an expense; a goal saved into is only moved.
+        assertEquals(TransactionType.EXPENSE, (reactionFor(MascotMoment.BillPaid(money)).chip as ReactionAmount).type)
+        assertEquals(TransactionType.INVESTMENT, (reactionFor(MascotMoment.GoalContributed(money)).chip as ReactionAmount).type)
+    }
+
+    @Test
+    fun `a scan swallows moments as it does saves`() {
+        val scan = MutableStateFlow<SmsScanStatus>(SmsScanStatus.Running)
+        val job = start(scan)
+        reactions.onMoment(MascotMoment.GoalReached)
+        runCurrent()
+        assertEquals(SCANNING, shown)
         job.cancel()
     }
 }

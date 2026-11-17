@@ -1,9 +1,11 @@
 package com.pennywiseai.tracker.domain.review
 
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
+import com.pennywiseai.tracker.domain.spending.RecurringCharge
 import com.pennywiseai.tracker.domain.spending.analyticsRowsFor
 import com.pennywiseai.tracker.domain.spending.defaultTypeFilter
 import com.pennywiseai.tracker.domain.spending.netOf
@@ -140,6 +142,12 @@ data class PeriodDetail(
     val cycles: Map<String, List<CycleTotal>>,
     /** Rows that count as spending across those cycles, every currency: for medians and merchants. */
     val spendRows: List<TransactionWithSplits>,
+    /**
+     * Every charge across those cycles that could pay a bill ([RecurringCharge.SPEND_TYPES]),
+     * at its full amount and whatever counts as spending: a card charge pays its
+     * subscription even with card spending left out of expenses.
+     */
+    val paymentRows: List<TransactionEntity> = emptyList(),
 )
 
 /** The [count] cycles ending with [range]'s, oldest first. */
@@ -178,7 +186,11 @@ internal suspend fun buildPeriodDetail(
             )
         }
     }
-    return PeriodDetail(cycles = totals, spendRows = analyticsRowsFor(rows, filter))
+    return PeriodDetail(
+        cycles = totals,
+        spendRows = analyticsRowsFor(rows, filter),
+        paymentRows = rows.map { it.transaction }.filter { it.transactionType in RecurringCharge.SPEND_TYPES },
+    )
 }
 
 /** Whole-percent change, or null when there is nothing to compare against. */

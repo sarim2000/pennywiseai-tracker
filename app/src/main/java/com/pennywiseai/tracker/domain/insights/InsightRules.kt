@@ -162,7 +162,9 @@ object InsightRules {
     /**
      * Subscription payments due in the next [BILLS_DAYS] days, one line per currency,
      * on the dates the Subscriptions screen shows. One already charged is paid, even when
-     * the charge wasn't linked to it (a new price, or the subscription added after it).
+     * the charge wasn't linked to it (a new price, or the subscription added after it),
+     * and whether or not card spending counts as expense: settled from the cycle's
+     * payment rows, not its spending rows.
      * Keyed on the first due date, so a dismissal lasts until that payment has gone.
      */
     internal fun billsDue(
@@ -171,7 +173,7 @@ object InsightRules {
         today: LocalDate,
         period: String,
     ): List<Insight> {
-        val charges = review.detail?.spendRows.orEmpty().map { it.transaction }
+        val charges = review.detail?.paymentRows.orEmpty()
         val bills = subscriptions.mapNotNull { sub ->
             val due = RecurringCharge.nextPaymentShown(sub.nextPaymentDate ?: return@mapNotNull null, sub.billingCycle, today)
             val paid = charges.any {
@@ -213,8 +215,7 @@ object InsightRules {
         subscriptions: List<SubscriptionEntity>,
         period: String,
     ): List<Insight> {
-        val charges = review.detail?.spendRows.orEmpty()
-            .map { it.transaction }
+        val charges = review.detail?.paymentRows.orEmpty()
             .filter { it.dateTime.toLocalDate() in review.range.start..review.range.end }
         return subscriptions.mapNotNull { sub ->
             val charge = charges.filter {

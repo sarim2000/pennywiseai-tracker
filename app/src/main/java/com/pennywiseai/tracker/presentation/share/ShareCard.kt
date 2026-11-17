@@ -625,7 +625,7 @@ private fun LineChart(chart: ShareChart, p: SharePalette, modifier: Modifier) {
             val lowest = points.minOf { it.value }
             val highest = points.maxOf { it.value }
             val low = if (lowest < 0) lowest else lowest - max(highest - lowest, 0.1) * 0.8
-            val high = highest
+            val high = max(highest, 0.0) // all-negative rates still keep the zero line inside the plot
             val span = (high - low).takeIf { it > 0 } ?: 1.0
             val cell = size.width / points.size
             fun x(i: Int) = if (rtl) size.width - cell * (i + 0.5f) else cell * (i + 0.5f)

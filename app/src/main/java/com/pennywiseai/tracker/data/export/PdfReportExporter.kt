@@ -205,8 +205,9 @@ class PdfReportExporter @Inject constructor(
                 ReportBlock(SECTION_GAP),
                 text(currency, heading, after = 6f, keepWithNext = true),
                 figures(
-                    listOf(
-                        context.getString(R.string.review_income) to money(review.income, currency),
+                    // No income is left out, as on the screen, rather than printed as a zero.
+                    listOfNotNull(
+                        (context.getString(R.string.review_income) to money(review.income, currency)).takeIf { review.income.signum() > 0 },
                         context.getString(R.string.review_spent) to money(review.spent, currency),
                         context.getString(R.string.review_pdf_net) to
                             Money(net.abs(), currency).format(if (net.signum() < 0) "−" else "", maskIfHidden = false),

@@ -770,7 +770,9 @@ private fun DrawScope.drawArrival(cue: MascotCue, shape: MascotShape, g: MascotG
             jarCoin(d.t)?.let { drawCircle(ink.accent, JAR_COIN_R, it, alpha = jarCoinAlpha(d.t)) }
         }
         MascotCue.Brim -> drawBrim(g, d.t, ink)
-        MascotCue.CoverEyes -> drawCoverEyes(d.t, ink)
+        MascotCue.CoverEyes -> drawCoverEyes(g, d.t, ink)
+        MascotCue.Peek -> drawPeek(g, d.t, ink)
+        MascotCue.Learned -> drawLearned(d.t, ink)
         else -> Unit
     }
 }

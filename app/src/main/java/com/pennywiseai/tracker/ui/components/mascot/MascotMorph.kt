@@ -162,7 +162,7 @@ internal fun lerpEyes(a: EyeSpec, b: EyeSpec, w: Float) = EyeSpec(
 
 internal fun lerp(a: Offset, b: Offset, w: Float) = Offset(lerp(a.x, b.x, w), lerp(a.y, b.y, w))
 
-private fun lerp(a: Float, b: Float, w: Float) = a + (b - a) * w
+internal fun lerp(a: Float, b: Float, w: Float) = a + (b - a) * w
 
 /**
  * Where a morph began: what was on screen then, so a morph that cuts into another one
@@ -175,10 +175,16 @@ internal class MorphFrom(
     /** The shape whose face showed, and how much of it showed (at the detailed size). */
     val shape: MascotShape,
     val faceAlpha: Float = 1f,
-    /** The body's colour: [colorFrom]'s, [colorWeight] of the way to [colorTo]'s. */
-    val colorFrom: MascotShape = shape,
-    val colorTo: MascotShape = shape,
-    val colorWeight: Float = 0f,
+    /**
+     * How far the colours were the owl's (1) rather than an object's (0), at the detailed
+     * size: body and eye ink alike, as every object shares one pair of roles.
+     */
+    val owl: Float = owlness(shape),
+    /** How much of the receipt's check showed. */
+    val stamp: Float = 0f,
     /** How shut the eyes were, 0..1. */
     val squint: Float = 0f,
 )
+
+/** The owl's colours are 1, every object's 0. */
+internal fun owlness(shape: MascotShape): Float = if (shape == MascotShape.Owl) 1f else 0f

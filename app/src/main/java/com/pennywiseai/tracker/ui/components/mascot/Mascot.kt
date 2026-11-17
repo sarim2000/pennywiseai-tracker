@@ -410,15 +410,17 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
      */
     suspend fun changeShape(target: MascotShape, motion: MascotMotion, spec: FiniteAnimationSpec<Float>) {
         if (target == shape) return
-        arrival.snapTo(1f)
         if (motion == MascotMotion.Still) {
+            arrival.snapTo(1f)
             morphFrom = null
             arrivedShape = null
             shape = target
             morph.snapTo(1f)
             return
         }
+        // Before the arrival stops: a check half stamped is caught half stamped.
         morphFrom = outlineOnScreen()
+        arrival.snapTo(1f)
         shape = target
         morph.snapTo(0f)
         morph.animateTo(1f, spec)
@@ -436,7 +438,8 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
     private fun outlineOnScreen(): MorphFrom {
         val g = shape.geometry(value)
         val here = profileOf(shape, value)
-        val from = morphFrom ?: return MorphFrom(here, g.eyes, g.pivot, shape)
+        val stamped = if (arrivedShape == MascotShape.Receipt && shape == MascotShape.Receipt) stampAlpha(arrival.value) else 0f
+        val from = morphFrom ?: return MorphFrom(here, g.eyes, g.pivot, shape, stamp = stamped)
         val p = morph.value
         val w = p.coerceIn(0f, 1f)
         val early = w < 0.5f
@@ -447,9 +450,8 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
             // The face that shows most, and how much of it, as drawMorph draws them.
             shape = if (early) from.shape else shape,
             faceAlpha = if (early) fromFaceAlpha(from, w) else fadeAt(1f - FACE_FADE, 1f, w),
-            colorFrom = if (from.colorWeight < 0.5f) from.colorFrom else from.colorTo,
-            colorTo = shape,
-            colorWeight = w,
+            owl = lerp(from.owl, owlness(shape), w),
+            stamp = fromStampAlpha(from, w),
             squint = morphEyes(from, p),
         )
     }
@@ -645,12 +647,11 @@ private fun DrawScope.drawMorph(
         if (c == null) {
             drawPath(body, d.tint)
             drawPillEyes(eyes, TWO_TONE_EYE_SCALE, squinting, d.tint, d.scratch, BlendMode.DstOut)
-            if (from == MascotShape.Receipt && d.arrived == from) {
-                drawStamp(1f - fadeAt(0f, FACE_FADE, w), d.tint, TWO_TONE_STAMP, BlendMode.DstOut, d.scratch)
-            }
+            drawStamp(fromStampAlpha(m.from, w), d.tint, TWO_TONE_STAMP, BlendMode.DstOut, d.scratch)
         } else {
-            val fromColor = lerpColor(bodyColor(m.from.colorFrom, c), bodyColor(m.from.colorTo, c), m.from.colorWeight)
-            drawPath(body, lerpColor(fromColor, bodyColor(shape, c), w))
+            // Owl-ness on screen: from where the morph began to the new shape's.
+            val owl = lerp(m.from.owl, owlness(shape), w)
+            drawPath(body, lerpColor(c.objectBody, c.body, owl))
             val fromFace = fromFaceAlpha(m.from, w)
             clipPath(body) {
                 withAlpha(fromFace, d.layer) { drawFace(from, m.fromGeometry, pose, c, d.scratch) }
@@ -660,8 +661,9 @@ private fun DrawScope.drawMorph(
             val eyesIn = if (from == MascotShape.Owl) 1f - fromFace else 1f
             val eyesOut = if (shape == MascotShape.Owl) 1f - fadeAt(1f - FACE_FADE, 1f, w) else 1f
             withAlpha(min(eyesIn, eyesOut), d.layer) {
-                drawPillEyes(eyes, 1f, squinting, lerpColor(inkOf(from, c), inkOf(shape, c), w), d.scratch, DrawScope.DefaultBlendMode)
+                drawPillEyes(eyes, 1f, squinting, lerpColor(c.objectInk, c.pupil, owl), d.scratch, DrawScope.DefaultBlendMode)
             }
+            clipPath(body) { drawStamp(fromStampAlpha(m.from, w), c.objectInk, 1f, DrawScope.DefaultBlendMode, d.scratch) }
         }
     }
 }
@@ -681,9 +683,8 @@ private fun fadeAt(from: Float, to: Float, x: Float): Float {
     return c * c * (3 - 2 * c)
 }
 
-private fun bodyColor(shape: MascotShape, c: MascotColors) = if (shape == MascotShape.Owl) c.body else c.objectBody
-
-private fun inkOf(shape: MascotShape, c: MascotColors) = if (shape == MascotShape.Owl) c.pupil else c.objectInk
+/** How much of the receipt's check shows [w] into a morph away from it: what showed, fading early. */
+private fun fromStampAlpha(from: MorphFrom, w: Float) = from.stamp * (1f - fadeAt(0f, FACE_FADE, w))
 
 /**
  * The 24/32dp glyph: the silhouette in [tint] and two pill eyes cut out of it. DstOut

@@ -33,10 +33,10 @@ internal fun insightText(insight: Insight): InsightText = when (val f = insight.
             stringResource(
                 R.string.insights_budget_over_title,
                 Money(f.spent.amount - f.limit.amount, f.spent.currency).format(),
-                f.name,
+                name(f.name),
             )
         } else {
-            stringResource(R.string.insights_budget_used_up_title, f.name)
+            stringResource(R.string.insights_budget_used_up_title, name(f.name))
         },
         body = stringResource(R.string.insights_budget_over_body, f.spent.format(), f.limit.format()),
         metrics = listOf(
@@ -46,7 +46,7 @@ internal fun insightText(insight: Insight): InsightText = when (val f = insight.
         note = stringResource(R.string.insights_budget_incomplete).takeIf { f.incomplete },
     )
     is InsightFact.BudgetPace -> InsightText(
-        title = stringResource(R.string.insights_budget_pace_title, f.perDayLeft.format(), f.name),
+        title = stringResource(R.string.insights_budget_pace_title, f.perDayLeft.format(), name(f.name)),
         body = stringResource(
             R.string.insights_budget_pace_body, f.projected.format(), date(f.windowEnd), f.limit.format(),
         ),
@@ -65,7 +65,7 @@ internal fun insightText(insight: Insight): InsightText = when (val f = insight.
     )
     is InsightFact.CategorySpike -> InsightText(
         title = stringResource(
-            R.string.insights_spike_title, f.spent.format(), categoryLabel(f.category), percent(f.percentAbove),
+            R.string.insights_spike_title, f.spent.format(), name(categoryLabel(f.category)), percent(f.percentAbove),
         ),
         body = stringResource(R.string.insights_spike_body, f.usual.format()),
         metrics = listOf(
@@ -91,7 +91,7 @@ internal fun insightText(insight: Insight): InsightText = when (val f = insight.
     }
     is InsightFact.LargeTransaction -> InsightText(
         title = stringResource(R.string.insights_large_title, f.amount.format(), merchant(f.merchant), times(f.times)),
-        body = stringResource(R.string.insights_large_body, categoryLabel(f.category), f.usual.format(), date(f.date)),
+        body = stringResource(R.string.insights_large_body, name(categoryLabel(f.category)), f.usual.format(), date(f.date)),
         metrics = listOf(
             stringResource(R.string.insights_metric_amount) to f.amount.format(),
             stringResource(R.string.insights_metric_usual) to f.usual.format(),
@@ -106,7 +106,7 @@ internal fun insightText(insight: Insight): InsightText = when (val f = insight.
         ),
     )
     is InsightFact.CardUtilisation -> InsightText(
-        title = stringResource(R.string.insights_card_title, percent(f.percent), f.label),
+        title = stringResource(R.string.insights_card_title, percent(f.percent), name(f.label)),
         body = stringResource(R.string.insights_card_body, f.used.format(), f.limit.format()),
         metrics = listOf(
             stringResource(R.string.insights_metric_used) to f.used.format(),
@@ -152,11 +152,15 @@ private fun savingsMetrics(f: InsightFact.SavingsRate) = listOf(
     stringResource(R.string.insights_metric_saved) to f.saved.format(),
 )
 
+@Composable
+private fun merchant(raw: String): String = name(LocalMerchantDisplay.current(raw) ?: raw)
+
 /**
- * Isolated so a Latin name in an Arabic sentence keeps its place: without it,
- * "Amazon، 3 أضعاف" ran left to right and the multiplier landed before the name.
+ * Any name put into a sentence (merchant, budget, category, card), isolated as amounts
+ * are, so a Latin name in an Arabic sentence keeps its place: without it, "A/c XX1234،
+ * 4 أضعاف" ran left to right and the multiplier was pulled into the name's run.
  */
 @Composable
-private fun merchant(raw: String): String = LocalContext.current.bidiIsolate(LocalMerchantDisplay.current(raw) ?: raw)
+private fun name(raw: String): String = LocalContext.current.bidiIsolate(raw)
 
 private fun date(date: LocalDate): String = date.format(AppDates.dayMonthFormatter())

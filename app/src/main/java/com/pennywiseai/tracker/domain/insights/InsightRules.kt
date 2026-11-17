@@ -53,7 +53,7 @@ data class BudgetStatus(
 
 /**
  * Everything the rules read. [review] is the current cycle with its detail, already
- * scoped to the profile and without ignored accounts; so are [creditCards].
+ * scoped to the profile and without ignored accounts; so are [subscriptions] and [creditCards].
  */
 data class InsightInputs(
     val today: LocalDate,
@@ -158,11 +158,14 @@ object InsightRules {
         }.sortedByDescending { (it.fact as CardUtilisation).percent }
 
     /**
-     * Subscription payments due in the next [BILLS_DAYS] days, one line per currency.
-     * Keyed on the first due date, so a dismissal lasts until that payment has gone.
+     * Subscription payments due in the next [BILLS_DAYS] days, one line per currency,
+     * on the dates the Subscriptions screen shows. Keyed on the first due date, so a
+     * dismissal lasts until that payment has gone.
      */
     internal fun billsDue(subscriptions: List<SubscriptionEntity>, today: LocalDate, period: String): List<Insight> =
-        SafeToSpend.billsInWindow(SafeToSpend.billsFrom(subscriptions), today, today.plusDays(BILLS_DAYS))
+        SafeToSpend.billsFrom(subscriptions)
+            .map { it.copy(dueDate = RecurringCharge.nextPaymentShown(it.dueDate, today)) }
+            .let { SafeToSpend.billsInWindow(it, today, today.plusDays(BILLS_DAYS)) }
             .groupBy { it.amount.currency }
             .map { (currency, bills) ->
                 val firstDue = bills.minOf { it.dueDate }

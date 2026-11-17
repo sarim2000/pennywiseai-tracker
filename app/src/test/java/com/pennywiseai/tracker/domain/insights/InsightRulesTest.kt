@@ -369,6 +369,20 @@ class InsightRulesTest {
     }
 
     @Test
+    fun `bills due are on the dates the Subscriptions screen shows`() {
+        val insights = evaluate(
+            subscriptions = listOf(
+                subscription(1, "100", "2026-11-20"),
+                subscription(2, "50", "2026-10-22", merchant = "Gym"),
+            ),
+        )
+        // The screen moves today's date on to Dec 20, out of the week, and last month's on to Nov 22.
+        val bills = insights.single { it.fact is BillsDue }.fact as BillsDue
+        assertEquals(LocalDate.parse("2026-11-22"), bills.firstDue)
+        assertEquals(listOf("Gym"), bills.names)
+    }
+
+    @Test
     fun `bills due move to a new insight once the first one has gone`() {
         val subscriptions = listOf(subscription(1, "100", "2026-11-22"), subscription(2, "50", "2026-11-26"))
         val before = evaluate(subscriptions = subscriptions).single { it.fact is BillsDue }

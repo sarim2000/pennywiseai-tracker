@@ -80,6 +80,17 @@ object RecurringCharge {
         today.isBefore(cycleAfterLastPaid) &&
             (today.isBefore(scheduled.minusDays(EARLY_PAY_DAYS)) || today.isBefore(lastPaid.plusDays(EARLY_PAY_DAYS)))
 
+    /**
+     * The next payment as the Subscriptions screen shows it: [scheduled], moved on a
+     * month at a time until it's after [today]. Anything else that names a
+     * subscription's next date reads this, so the two never disagree.
+     */
+    fun nextPaymentShown(scheduled: LocalDate, today: LocalDate): LocalDate {
+        var next = scheduled
+        while (!next.isAfter(today)) next = next.plusMonths(1)
+        return next
+    }
+
     const val EARLY_PAY_DAYS = 3L
     const val DUE_WINDOW_DAYS = 5L
 }

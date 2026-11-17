@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.presentation.insights
 import android.icu.text.ListFormatter
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import com.pennywiseai.tracker.R
@@ -13,6 +14,7 @@ import com.pennywiseai.tracker.domain.insights.InsightFact
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.AppDates
+import com.pennywiseai.tracker.utils.bidiIsolate
 import com.pennywiseai.tracker.utils.Money
 import java.time.LocalDate
 
@@ -150,7 +152,11 @@ private fun savingsMetrics(f: InsightFact.SavingsRate) = listOf(
     stringResource(R.string.insights_metric_saved) to f.saved.format(),
 )
 
+/**
+ * Isolated so a Latin name in an Arabic sentence keeps its place: without it,
+ * "Amazon، 3 أضعاف" ran left to right and the multiplier landed before the name.
+ */
 @Composable
-private fun merchant(raw: String): String = LocalMerchantDisplay.current(raw) ?: raw
+private fun merchant(raw: String): String = LocalContext.current.bidiIsolate(LocalMerchantDisplay.current(raw) ?: raw)
 
 private fun date(date: LocalDate): String = date.format(AppDates.dayMonthFormatter())

@@ -2,6 +2,8 @@ package com.pennywiseai.tracker.domain.insights
 
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
+import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.InsightPreferences
@@ -10,6 +12,7 @@ import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.data.repository.BudgetSummaryProvider
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
+import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
 import com.pennywiseai.tracker.domain.review.PeriodReview
 import com.pennywiseai.tracker.domain.review.PeriodReviewLoader
 import com.pennywiseai.tracker.domain.review.ReviewKind
@@ -44,7 +47,8 @@ data class InsightsSnapshot(
 /**
  * Gathers [InsightInputs] from the sources the rest of the app already trusts: the
  * Period Review rows (profile and ignored accounts applied), the Budgets screen's
- * summary, subscriptions and card balances. Nothing leaves the device.
+ * summary, and subscriptions and card balances scoped as those rows are. Nothing
+ * leaves the device.
  */
 @OptIn(ExperimentalCoroutinesApi::class)
 class InsightsLoader @Inject constructor(
@@ -59,7 +63,7 @@ class InsightsLoader @Inject constructor(
     fun observe(today: LocalDate = LocalDate.now()): Flow<InsightsSnapshot> = combine(
         periodReviewLoader.observe(ReviewKind.MONTH, 0, today, detail = true),
         budgets(today),
-        subscriptionRepository.getActiveSubscriptions(),
+        subscriptions(),
         creditCards(),
         insightPreferences.dismissedInsights,
     ) { review, budgets, subscriptions, cards, dismissed ->
@@ -98,6 +102,14 @@ class InsightsLoader @Inject constructor(
             }
         }
 
+    private fun subscriptions(): Flow<List<SubscriptionEntity>> = combine(
+        subscriptionRepository.getActiveSubscriptions(),
+        ignoredAccountsStore.keysFlow,
+        userPreferencesRepository.selectedProfileId,
+        accountBalanceRepository.getAllLatestBalances(),
+        ::scopedSubscriptions,
+    )
+
     private fun creditCards(): Flow<List<AccountBalanceEntity>> = combine(
         accountBalanceRepository.getAllLatestBalances(),
         ignoredAccountsStore.keysFlow,
@@ -108,6 +120,27 @@ class InsightsLoader @Inject constructor(
                 !IgnoredAccountsStore.isIgnored(ignored, it.bankName, it.accountLast4) &&
                 (profileId == null || it.profileId == profileId)
         }
+    }
+}
+
+/**
+ * [subscriptions] as Insights sees spending: none paid from an ignored account, and
+ * with a profile selected only those paid from one of its accounts. One whose
+ * account isn't known counts as Personal, as a transaction without one does
+ * ([com.pennywiseai.tracker.domain.model.effectiveProfileId]).
+ */
+internal fun scopedSubscriptions(
+    subscriptions: List<SubscriptionEntity>,
+    ignored: Set<String>,
+    profileId: Long?,
+    balances: List<AccountBalanceEntity>,
+): List<SubscriptionEntity> {
+    val profileKeys = buildProfileAccountKeys(balances)
+    return subscriptions.filter { sub ->
+        val key = "${sub.bankName}_${sub.accountLast4}"
+        val profile = profileKeys.entries.firstOrNull { (_, keys) -> key in keys }?.key ?: ProfileEntity.PERSONAL_ID
+        !IgnoredAccountsStore.isIgnored(ignored, sub.bankName, sub.accountLast4) &&
+            (profileId == null || profile == profileId)
     }
 }
 

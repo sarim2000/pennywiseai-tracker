@@ -25,6 +25,7 @@ import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
+import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.data.repository.BudgetSummaryProvider
 import com.pennywiseai.tracker.data.repository.LoanRepository
@@ -256,17 +257,32 @@ class DailySummaryWorker @AssistedInject constructor(
          * budget's figures already come resolved and converted per budget (one
          * entry each), so its allowance is never repeated per spending currency.
          * A budget whose window isn't today's (a one-time budget that ended) or
-         * with no limit is left out. Tightest first: the least left for its limit.
+         * with no limit is left out. A limit set to zero with spending is over by
+         * all of it, so it stays. Tightest first: the least left for its limit,
+         * a zero limit before any other.
          */
         internal fun budgetsLeft(summary: BudgetOverallSummary, today: LocalDate): List<BudgetLeft> =
             summary.groups
                 .filter {
                     it.group.budget.groupType == BudgetGroupType.LIMIT &&
-                        it.totalBudget.signum() > 0 &&
+                        (it.totalBudget.signum() > 0 || (it.hasZeroLimit() && it.remaining.signum() < 0)) &&
                         !today.isBefore(it.windowStart) && !today.isAfter(it.windowEnd)
                 }
-                .sortedBy { it.remaining.divide(it.totalBudget, MathContext.DECIMAL64) }
+                .sortedWith(
+                    compareBy(nullsFirst()) {
+                        it.remaining.takeIf { _ -> it.totalBudget.signum() != 0 }
+                            ?.divide(it.totalBudget, MathContext.DECIMAL64)
+                    }
+                )
                 .map { BudgetLeft(it.group.budget.name, it.remaining, it.hasUnconvertedSpend) }
+
+        /**
+         * The user set this limit to zero: the stored limit and every category's
+         * amount are zero. A zero [BudgetGroupSpending.totalBudget] alone isn't
+         * enough, as the unified figures turn a limit with no rate into zero too.
+         */
+        private fun BudgetGroupSpending.hasZeroLimit(): Boolean =
+            group.budget.limitAmount.signum() == 0 && group.categories.all { it.budgetAmount.signum() == 0 }
 
         /**
          * The recap's budget segments: only the tightest [MAX_BUDGET_LINES] budgets,

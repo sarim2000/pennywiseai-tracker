@@ -121,6 +121,8 @@ class DailySummaryWorkerTest {
         remaining: String,
         type: BudgetGroupType = BudgetGroupType.LIMIT,
         limit: String = "500",
+        // What the summary shows as the limit; unified mode turns a limit with no rate into 0.
+        total: String = limit,
         start: LocalDate = LocalDate.of(2026, 11, 1),
         end: LocalDate = LocalDate.of(2026, 11, 30),
         unconverted: Boolean = false
@@ -133,7 +135,7 @@ class DailySummaryWorkerTest {
             emptyList()
         ),
         categorySpending = emptyList(),
-        totalBudget = BigDecimal(limit), totalActual = BigDecimal(limit) - BigDecimal(remaining),
+        totalBudget = BigDecimal(total), totalActual = BigDecimal(total) - BigDecimal(remaining),
         remaining = BigDecimal(remaining), percentageUsed = 0f, dailyAllowance = BigDecimal.ZERO,
         daysRemaining = 14, daysElapsed = 16, windowStart = start, windowEnd = end,
         hasUnconvertedSpend = unconverted
@@ -181,6 +183,21 @@ class DailySummaryWorkerTest {
             ),
             left
         )
+    }
+
+    @Test
+    fun `a zero limit with spending is over by all of it, tightest of all`() {
+        val left = DailySummaryWorker.budgetsLeft(
+            summary(
+                spending(1, "Fun", "-30"),
+                spending(2, "Nothing", "-500", limit = "0"),
+                // A 1000 limit with no rate reads 0 in unified mode: not a zero limit.
+                spending(3, "Abroad", "-200", limit = "1000", total = "0")
+            ),
+            today
+        )
+        assertEquals(listOf("Nothing", "Fun"), left.map { it.name })
+        assertEquals(BigDecimal("-500"), left.first().left)
     }
 
     @Test

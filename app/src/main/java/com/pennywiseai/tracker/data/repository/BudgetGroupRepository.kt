@@ -862,14 +862,29 @@ class BudgetGroupRepository @Inject constructor(
         previous: List<TransactionWithSplits>?,
         parentOf: Map<String, String>,
         convert: (suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?)? = null
-    ): BudgetCarry = if (convert != null) {
-        budgetCarry(group, previous, currency, currency, parentOf, convert)
+    ): BudgetCarry = budgetCarry(group, previous?.countedIn(currency, convert), currency, currency, parentOf, convert.orAsIs())
+
+    /**
+     * Budget History's transactions in [window]: every currency in unified mode
+     * ([convert] set, as the Budgets card counts them), else only [currency]'s.
+     */
+    private suspend fun historyTransactions(
+        window: BudgetWindow,
+        end: LocalDate,
+        currency: String,
+        convert: (suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?)?
+    ): List<TransactionWithSplits> = if (convert != null) {
+        transactionSplitDao.getTransactionsWithSplitsAllCurrencies(window.start.atStartOfDay(), end.atTime(23, 59, 59))
     } else {
-        budgetCarry(
-            group, previous?.filter { it.transaction.currency == currency }, currency, currency, parentOf,
-            convert = { _, amount -> amount }
-        )
-    }
+        transactionSplitDao.getTransactionsWithSplitsFiltered(window.start.atStartOfDay(), end.atTime(23, 59, 59), currency)
+    }.first().forTotals()
+
+    private fun List<TransactionWithSplits>.countedIn(
+        currency: String,
+        convert: (suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?)?
+    ) = if (convert != null) this else filter { it.transaction.currency == currency }
+
+    private fun (suspend(fromCurrency: String, amount: BigDecimal) -> BigDecimal?)?.orAsIs(): suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal? = this ?: { _, amount -> amount }
 
     /**
      * Per-window history for a single budget at the selected (year, month).
@@ -881,15 +896,15 @@ class BudgetGroupRepository @Inject constructor(
      * today); every other week is frozen at the month end. For a
      * historical month, every week is frozen at the month end.
      *
-     * [convertCarry]: how the carry converts last period's other currencies into
-     * [currency] (unified mode); null counts [currency] only, as the spend does.
+     * [convert]: unified mode, how every currency's spending (and the carry's) converts
+     * into [currency], as on the Budgets card; null counts [currency] only.
      */
     suspend fun getBudgetHistoryForMonth(
         budget: BudgetEntity,
         year: Int,
         month: Int,
         currency: String,
-        convertCarry: (suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?)? = null
+        convert: (suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?)? = null
     ): List<PastWindowSpending> {
         val today = LocalDate.now()
         val startDay = userPreferencesRepository.getBudgetCycleStartDay()
@@ -905,24 +920,16 @@ class BudgetGroupRepository @Inject constructor(
             val isLive = isCurrentWeekInCurrentMonth(w, today, isCurrentMonth)
             val cap = if (isLive) today else monthEnd
             val effectiveEnd = if (cap.isBefore(w.end)) cap else w.end
-            val txs = transactionSplitDao.getTransactionsWithSplitsFiltered(
-                w.start.atStartOfDay(),
-                effectiveEnd.atTime(23, 59, 59),
-                currency
-            ).first().forTotals()
-            // Use the per-category-filtered total so the per-row spend
-            // matches the per-category breakdown shown in the
-            // "View breakdown" bottom sheet (the previous shape used
-            // sumExpensesForWindow which counted every EXPENSE in
-            // the date range, including ones outside the budget's
-            // categories — a 43k row vs 8k breakdown mismatch).
-            val spent = getBudgetWindowFilteredSpend(group, txs)
+            val txs = historyTransactions(w, effectiveEnd, currency, convert)
+            // The budget's own spend, counted as its card and its carry count it, so
+            // the row matches the "View breakdown" sheet and the Budgets card.
+            val spent = budgetSpend(group, txs, parentOf, convert.orAsIs()).amount
             PastWindowSpending(
                 window = w,
                 spent = spent,
                 capDate = cap,
                 isLive = isLive,
-                carry = carrySource(budget, w, startDay)?.let { carryIn(currency, group, it, parentOf, convertCarry) }
+                carry = carrySource(budget, w, startDay)?.let { carryIn(currency, group, it, parentOf, convert) }
             )
         }
     }
@@ -932,24 +939,22 @@ class BudgetGroupRepository @Inject constructor(
      * Budget History "View breakdown" bottom sheet — same shape as the
      * Budget Groups page's per-card category list, but scoped to one
      * window (one week for Weekly, one cycle for Monthly, the literal
-     * range for One-time). [convertCarry]: as in [getBudgetHistoryForMonth].
+     * range for One-time). [convert]: as in [getBudgetHistoryForMonth].
      */
     suspend fun getBudgetWindowBreakdown(
         budget: BudgetEntity,
         window: BudgetWindow,
         currency: String,
-        convertCarry: (suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?)? = null
+        convert: (suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?)? = null
     ): WindowBreakdown {
-        val txs = transactionSplitDao.getTransactionsWithSplitsFiltered(
-            window.start.atStartOfDay(),
-            window.end.atTime(23, 59, 59),
-            currency
-        ).first().forTotals()
+        val txs = historyTransactions(window, window.end, currency, convert)
+        val converter = convert.orAsIs()
+        val parentOf = parentOf()
         val (categoryAmounts, categoryLimitBoosts, typeAmounts) = aggregateBudgetCategorySpending(
-            parentOf = parentOf(),
+            parentOf = parentOf,
             transactions = txs,
-            convertSplit = { _, amount -> amount },
-            convertIncome = { tx -> tx.amount }
+            convertSplit = converter,
+            convertIncome = { tx -> converter(tx.currency, tx.amount) }
         )
         val groups = budgetDao.getActiveBudgetsWithCategories().first()
         val group = groups.firstOrNull { it.budget.id == budget.id }
@@ -987,8 +992,9 @@ class BudgetGroupRepository @Inject constructor(
             // card's behaviour for isTrackingAllExpenses = true.
             emptyList()
         }
+        val counted = group ?: BudgetWithCategories(budget, emptyList())
         val carry = carrySource(budget, window, userPreferencesRepository.getBudgetCycleStartDay())?.let {
-            carryIn(currency, group ?: BudgetWithCategories(budget, emptyList()), it, parentOf(), convertCarry)
+            carryIn(currency, counted, it, parentOf, convert)
         }
         val totalBudget = (group?.budget?.limitAmount ?: BigDecimal.ZERO).let { gLimit ->
             (carry ?: BudgetCarry.none(currency)).appliedTo(
@@ -996,18 +1002,9 @@ class BudgetGroupRepository @Inject constructor(
                 else categorySpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
             )
         }
-        val totalActual = if (categorySpending.isNotEmpty()) {
-            categorySpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
-        } else {
-            // No per-cat breakdown → report the window total. For
-            // tracking-all budgets the helper falls back to the
-            // unfiltered sumExpensesForWindow; for budgets that simply
-            // have no spend in this window it returns zero.
-            getBudgetWindowFilteredSpend(
-                group ?: BudgetWithCategories(budget = budget, categories = emptyList()),
-                txs
-            )
-        }
+        // Counted as the history row, the card and the carry count it: a child row
+        // listed with its parent isn't added twice.
+        val totalActual = budgetSpend(counted, txs, parentOf, converter).amount
         return WindowBreakdown(
             window = window,
             categorySpending = categorySpending,

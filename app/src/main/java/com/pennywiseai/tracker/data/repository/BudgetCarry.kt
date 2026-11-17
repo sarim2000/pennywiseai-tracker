@@ -64,7 +64,7 @@ suspend fun budgetCarry(
 ): BudgetCarry {
     if (previous == null) return BudgetCarry.none(currency)
     val base = convert(baseCurrency, group.baseLimit()) ?: return BudgetCarry(Money.zero(currency), CarryGap.NO_RATE)
-    val spent = budgetSpendOrNull(group, previous, parentOf, convert)
+    val spent = budgetSpend(group, previous, parentOf, convert).takeUnless { it.incomplete }?.amount
     return BudgetCarry(
         BudgetRollover.carry(Money(base, currency), spent?.let { Money(it, currency) }),
         CarryGap.NO_RATE.takeIf { spent == null }
@@ -72,24 +72,36 @@ suspend fun budgetCarry(
 }
 
 /**
- * What [group] spent in [transactions], as its card adds it up: every expense for a
- * budget with no categories, else its own categories and type buckets, refunds
- * taken off. Null when some of it had no rate in [convert].
+ * What a budget spent, in [convert]'s currency. [incomplete]: some of it had no
+ * rate, so [amount] leaves it out.
  */
-internal suspend fun budgetSpendOrNull(
+data class BudgetSpend(val amount: BigDecimal, val incomplete: Boolean = false)
+
+/**
+ * The one place a budget's spending is added up, so its carry and every live
+ * figure (the Budgets card in both currency modes, Home, the widget, Budget
+ * History) agree: every expense for a budget with no categories, else its own
+ * categories (a parent covering its sub-categories, #374) and type buckets,
+ * refunds taken off. Spending [convert] has no rate for is left out and marked
+ * [BudgetSpend.incomplete]. Outside unified mode, pass only the budget's own
+ * currency's [transactions] and a [convert] that keeps amounts as they are.
+ */
+internal suspend fun budgetSpend(
     group: BudgetWithCategories,
     transactions: List<TransactionWithSplits>,
     parentOf: Map<String, String>,
     convert: suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?
-): BigDecimal? {
+): BudgetSpend {
     val counted = transactions.forTotals()
     if (group.categories.isEmpty()) {
         // Parents aren't credited here: every row is summed once.
         val all = aggregateBudgetCategorySpending(
             counted, convertSplit = convert, convertIncome = { convert(it.currency, it.amount) }
         )
-        if (all.skippedCategories.isNotEmpty() || all.skippedTypes.isNotEmpty()) return null
-        return (all.categoryAmounts.values + all.typeAmounts.values).fold(BigDecimal.ZERO, BigDecimal::add)
+        return BudgetSpend(
+            (all.categoryAmounts.values + all.typeAmounts.values).fold(BigDecimal.ZERO, BigDecimal::add),
+            all.skippedCategories.isNotEmpty() || all.skippedTypes.isNotEmpty()
+        )
     }
     val agg = aggregateBudgetCategorySpending(
         counted, convertSplit = convert, convertIncome = { convert(it.currency, it.amount) }, parentOf = parentOf
@@ -97,11 +109,11 @@ internal suspend fun budgetSpendOrNull(
     val names = group.categories.map { it.categoryName }.toSet()
     // A child listed with its parent is already inside the parent's total.
     val rows = group.categories.filter { it.matchType != null || parentOf[it.categoryName] !in names }
-    if (rows.any { if (it.matchType != null) it.matchType in agg.skippedTypes else it.categoryName in agg.skippedCategories }) {
-        return null
-    }
-    return rows.fold(BigDecimal.ZERO) { sum, row ->
-        val amount = if (row.matchType != null) agg.typeAmounts[row.matchType] else agg.categoryAmounts[row.categoryName]
-        sum + (amount ?: BigDecimal.ZERO)
-    }
+    val categories = rows.filter { it.matchType == null }.map { it.categoryName }.toSet()
+    val types = rows.mapNotNull { it.matchType }.toSet()
+    return BudgetSpend(
+        categories.fold(BigDecimal.ZERO) { sum, name -> sum + (agg.categoryAmounts[name] ?: BigDecimal.ZERO) } +
+            types.fold(BigDecimal.ZERO) { sum, type -> sum + (agg.typeAmounts[type] ?: BigDecimal.ZERO) },
+        categories.any { it in agg.skippedCategories } || types.any { it in agg.skippedTypes }
+    )
 }

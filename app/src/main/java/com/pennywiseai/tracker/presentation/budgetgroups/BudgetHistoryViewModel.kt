@@ -76,9 +76,9 @@ class BudgetHistoryViewModel @Inject constructor(
     )
     val uiState: StateFlow<BudgetHistoryUiState> = _uiState.asStateFlow()
 
-    // Unified mode converts last period's other currencies for the carry, as the
-    // Budgets card does; otherwise it counts the history's own currency only.
-    private var convertCarry: (suspend (String, BigDecimal) -> BigDecimal?)? = null
+    // Unified mode converts every currency's spending, and last period's for the
+    // carry, as the Budgets card does; otherwise it counts the history's own currency only.
+    private var convert: (suspend (String, BigDecimal) -> BigDecimal?)? = null
 
     init {
         loadHistory()
@@ -90,7 +90,7 @@ class BudgetHistoryViewModel @Inject constructor(
             val startDay = userPreferencesRepository.getBudgetCycleStartDay()
             val baseCurrency = userPreferencesRepository.baseCurrency.first()
             val displayCurrency = baseCurrency
-            convertCarry = if (userPreferencesRepository.unifiedCurrencyMode.first()) {
+            convert = if (userPreferencesRepository.unifiedCurrencyMode.first()) {
                 { fromCurrency, amount -> currencyConversionService.convertAmountOrNull(amount, fromCurrency, displayCurrency) }
             } else null
             val budget = budgetGroupRepository.getGroupById(groupId) ?: run {
@@ -102,7 +102,7 @@ class BudgetHistoryViewModel @Inject constructor(
                 year = yearMonth.year,
                 month = yearMonth.monthValue,
                 currency = displayCurrency,
-                convertCarry = convertCarry
+                convert = convert
             )
             val totalSpent = history.fold(BigDecimal.ZERO) { acc, w -> acc + w.spent }
             val isCurrentMonth = yearMonth == YearMonth.now()
@@ -160,7 +160,7 @@ class BudgetHistoryViewModel @Inject constructor(
                 budget = budget,
                 window = window,
                 currency = currency,
-                convertCarry = convertCarry
+                convert = convert
             )
             _uiState.value = _uiState.value.copy(
                 breakdown = breakdown,

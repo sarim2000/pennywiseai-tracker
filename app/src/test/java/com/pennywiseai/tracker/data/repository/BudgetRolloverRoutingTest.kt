@@ -296,6 +296,28 @@ class BudgetRolloverRoutingTest {
     }
 
     @Test
+    fun `in unified mode budget history counts this week's other currencies like the card`() = runBlocking {
+        val group = budget()
+        val repo = repository(group, listOf(spend("60", at = lastWeek), spend("30"), spend("20", "USD")))
+        val convert: suspend (String, BigDecimal) -> BigDecimal? = { from, amount -> conversion.convertAmountOrNull(amount, from, "JOD") }
+        val card = summary(repo, unified = true)
+        assertFigures(card, carry = "40", limit = "140", remaining = "100")
+        val thisWeek = repo.getBudgetHistoryForMonth(group.budget, today.year, today.monthValue, "JOD", convert)
+            .single { it.window.start == today }
+        assertEquals(0, card.totalActual.compareTo(thisWeek.spent))
+        val breakdown = repo.getBudgetWindowBreakdown(group.budget, resolveBudgetWindow(group.budget, today, 1), "JOD", convert)
+        assertEquals(0, card.totalActual.compareTo(breakdown.totalActual))
+        assertEquals(0, card.totalActual.compareTo(breakdown.categorySpending.single().actualAmount))
+        assertEquals(0, card.remaining.compareTo(breakdown.totalBudget - breakdown.totalActual))
+        // Outside unified mode the USD purchase is in neither the card nor the history.
+        val native = summary(repo, unified = false)
+        val nativeWeek = repo.getBudgetHistoryForMonth(group.budget, today.year, today.monthValue, "JOD")
+            .single { it.window.start == today }
+        assertEquals(0, BigDecimal("30").compareTo(native.totalActual))
+        assertEquals(0, native.totalActual.compareTo(nativeWeek.spent))
+    }
+
+    @Test
     fun `budget history carries nothing into weeks that haven't started`() = runBlocking {
         val group = budget()
         val repo = repository(group, listOf(spend("60", at = lastWeek), spend("30")))

@@ -461,6 +461,29 @@ fun PennyWiseNavHost(
                         )
                     }
 
+                    // Also in a tab; here for the runway's "Open accounts", to set a balance.
+                    entry<ManageAccounts> { key ->
+                        com.pennywiseai.tracker.presentation.accounts.ManageAccountsScreen(
+                            onNavigateBack = { backStack.pop(key) },
+                            onNavigateToAddAccount = { backStack.navigate(AddAccount) },
+                            onNavigateToBalanceHistory = { bankName, accountLast4 ->
+                                backStack.navigate(BalanceHistory(bankName, accountLast4))
+                            },
+                        )
+                    }
+
+                    entry<AddAccount> { key ->
+                        com.pennywiseai.tracker.presentation.accounts.AddAccountScreen(
+                            onNavigateBack = { backStack.pop(key) },
+                        )
+                    }
+
+                    entry<BalanceHistory> { key ->
+                        com.pennywiseai.tracker.presentation.accounts.BalanceHistoryScreen(
+                            onNavigateBack = { backStack.pop(key) },
+                        )
+                    }
+
                     entry<TransactionsWithFilter> { args ->
                         com.pennywiseai.tracker.presentation.transactions.TransactionsScreen(
                             initialCategory = args.category,
@@ -500,4 +523,5 @@ private fun insightDestination(action: InsightAction): NavKey = when (action) {
     InsightAction.OpenSubscriptions -> Subscriptions
     // Goals live at the top of the Budgets screen.
     InsightAction.OpenGoals -> BudgetGroups()
+    InsightAction.OpenAccounts -> ManageAccounts
 }

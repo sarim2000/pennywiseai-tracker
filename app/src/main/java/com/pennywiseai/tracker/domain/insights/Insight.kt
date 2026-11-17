@@ -19,6 +19,7 @@ sealed interface InsightAction {
     data class OpenAccount(val bankName: String, val accountLast4: String) : InsightAction
     data object OpenSubscriptions : InsightAction
     data object OpenGoals : InsightAction
+    data object OpenAccounts : InsightAction
 }
 
 /**

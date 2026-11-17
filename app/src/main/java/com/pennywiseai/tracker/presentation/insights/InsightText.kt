@@ -175,6 +175,7 @@ internal fun actionLabel(action: InsightAction): String = stringResource(
         is InsightAction.OpenAccount -> R.string.insights_action_account
         InsightAction.OpenSubscriptions -> R.string.insights_action_subscriptions
         InsightAction.OpenGoals -> R.string.insights_action_goals
+        InsightAction.OpenAccounts -> R.string.insights_action_accounts
     }
 )
 

@@ -132,6 +132,7 @@
     <string name="insights_action_subscriptions">فتح الاشتراكات</string>
     <string name="insights_action_account">فتح الحساب</string>
     <string name="insights_action_goals">فتح الأهداف</string>
+    <string name="insights_action_accounts">فتح الحسابات</string>
 
     <!-- Budget over. %1$s = amount over, %2$s = budget name (often already ends in "Budget", so don't add the word) -->
     <string name="insights_budget_over_title">تجاوزت %2$s بمقدار %1$s</string>

@@ -1,11 +1,13 @@
 package com.pennywiseai.tracker.domain.spending
 
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.domain.insights.InsightAction
 import com.pennywiseai.tracker.domain.insights.InsightFact.MoneyLasts
 import com.pennywiseai.tracker.domain.insights.InsightRules
 import com.pennywiseai.tracker.domain.insights.InsightSeverity
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
@@ -123,5 +125,9 @@ class RunwayTest {
         val good = InsightRules.runway(listOf(partial("7000")), "2026-11-01").single()
         assertEquals(InsightSeverity.GOOD, good.severity)
         assertTrue((good.fact as MoneyLasts).lowConfidence)
+        // Its note says to set those balances in Accounts, so it opens them.
+        assertEquals(InsightAction.OpenAccounts, good.action)
+        val known = InsightRules.runway(listOf(Runway("INR", d("7000"), d("1000"), false)), "2026-11-01").single()
+        assertNull(known.action)
     }
 }

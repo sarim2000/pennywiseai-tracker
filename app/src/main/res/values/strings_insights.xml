@@ -116,6 +116,7 @@
     <string name="insights_action_subscriptions">Open subscriptions</string>
     <string name="insights_action_account">Open account</string>
     <string name="insights_action_goals">Open goals</string>
+    <string name="insights_action_accounts">Open accounts</string>
 
     <!-- Budget over. %1$s = amount over, %2$s = budget name (often already ends in "Budget", so don't add the word) -->
     <string name="insights_budget_over_title">%1$s over on %2$s</string>

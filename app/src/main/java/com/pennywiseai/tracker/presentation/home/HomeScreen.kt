@@ -811,6 +811,10 @@ fun HomeScreen(
             state = state,
             onSetIncluded = viewModel::setSafeToSpendAccountIncluded,
             onSetReserveGoals = viewModel::setReserveGoalSavings,
+            onOpenCard = { card ->
+                showSafeToSpendSheet = false
+                onAccountClick(card.bankName, card.accountLast4)
+            },
             onDismiss = { showSafeToSpendSheet = false }
         )
     }

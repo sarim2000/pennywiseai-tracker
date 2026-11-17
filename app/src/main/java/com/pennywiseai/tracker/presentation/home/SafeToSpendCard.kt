@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.home
 
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,6 +14,7 @@ import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -34,6 +36,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
@@ -138,6 +141,27 @@ fun SafeToSpendCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+        IncompleteLine(state.cardsNeedingBill.size)
+    }
+}
+
+/** "Incomplete: 1 card bill isn't set aside", when a card's bill is missing; the sheet says which. */
+@Composable
+private fun IncompleteLine(cards: Int) {
+    if (cards == 0) return
+    Spacer(Modifier.height(Spacing.xxs))
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
+        Icon(
+            imageVector = Icons.Outlined.Info,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.size(Dimensions.Icon.inline)
+        )
+        Text(
+            text = pluralStringResource(R.plurals.safe_to_spend_incomplete, cards, cards),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
@@ -191,6 +215,7 @@ fun SafeToSpendSheet(
     state: SafeToSpendUi,
     onSetIncluded: (AccountBalanceEntity, Boolean) -> Unit,
     onSetReserveGoals: (Boolean) -> Unit,
+    onOpenCard: (AccountBalanceEntity) -> Unit,
     onDismiss: () -> Unit
 ) {
     var choosing by rememberSaveable { mutableStateOf(false) }
@@ -305,14 +330,30 @@ fun SafeToSpendSheet(
 
             if (state.cardsNeedingBill.isNotEmpty()) {
                 Spacer(Modifier.height(Spacing.sm))
-                Text(
-                    text = stringResource(
-                        R.string.safe_to_spend_cards_incomplete,
-                        state.cardsNeedingBill.joinToString { it.displayLabel }
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                // One line per card, each opening that card's page to add its bill.
+                state.cardsNeedingBill.forEach { card ->
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clip(MaterialTheme.shapes.small)
+                            .clickable(role = Role.Button) { onOpenCard(card) }
+                            .padding(vertical = Spacing.xs)
+                    ) {
+                        Text(
+                            text = stringResource(R.string.safe_to_spend_cards_incomplete, card.displayLabel),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f)
+                        )
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.size(Dimensions.Icon.inline)
+                        )
+                    }
+                }
             }
 
             if (state.goals.available) {

@@ -423,6 +423,10 @@
     <string name="safe_to_spend_goals_toggle">Reserve goal savings</string>
     <string name="safe_to_spend_goals_off">Set aside what your goals need until %1$s</string>
     <string name="safe_to_spend_goals_on">%1$s set aside until %2$s</string>
-    <string name="safe_to_spend_cards_incomplete">Not set aside yet: %1$s. Add the due day and statement amount on the card\'s page.</string>
+    <string name="safe_to_spend_cards_incomplete">Not set aside yet: %1$s. Tap to add its due day and statement amount.</string>
+    <plurals name="safe_to_spend_incomplete">
+        <item quantity="one">Incomplete: %1$d card bill isn\'t set aside</item>
+        <item quantity="other">Incomplete: %1$d card bills aren\'t set aside</item>
+    </plurals>
 
 </resources>

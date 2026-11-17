@@ -10,6 +10,7 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.export.PdfReportExporter
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.ProfileRepository
+import com.pennywiseai.tracker.domain.model.seededNameRes
 import com.pennywiseai.tracker.domain.review.PeriodReview
 import com.pennywiseai.tracker.domain.review.PeriodReviewLoader
 import com.pennywiseai.tracker.domain.review.ReviewKind
@@ -17,7 +18,6 @@ import com.pennywiseai.tracker.domain.review.defaultReviewOffset
 import com.pennywiseai.tracker.domain.review.latestReviewOffset
 import com.pennywiseai.tracker.domain.review.localFirstDayOfWeek
 import com.pennywiseai.tracker.domain.review.weekOffsetOf
-import com.pennywiseai.tracker.ui.components.seededNameRes
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.utils.inAppLanguage
 import dagger.hilt.android.lifecycle.HiltViewModel

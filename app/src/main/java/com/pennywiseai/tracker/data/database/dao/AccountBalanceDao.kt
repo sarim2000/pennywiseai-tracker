@@ -288,14 +288,15 @@ interface AccountBalanceDao {
     /**
      * Puts the given account-level fields back on the rows of an account that lost
      * them, leaving any a row already has. Used after a rebuild or merge rewrote
-     * the account's rows.
+     * the account's rows. The bill amount is in [billCurrency], so only a row in that
+     * currency takes it (and its date): INR 4000 isn't USD 4000.
      */
     @Query("""
         UPDATE account_balances SET
             statement_day = COALESCE(statement_day, :statementDay),
             card_due_day = COALESCE(card_due_day, :dueDay),
-            card_bill_amount = COALESCE(card_bill_amount, :billAmount),
-            card_bill_as_of = COALESCE(card_bill_as_of, :billAsOf),
+            card_bill_amount = COALESCE(card_bill_amount, CASE WHEN currency = :billCurrency THEN :billAmount END),
+            card_bill_as_of = COALESCE(card_bill_as_of, CASE WHEN currency = :billCurrency THEN :billAsOf END),
             anchor_amount = COALESCE(anchor_amount, :anchorAmount),
             anchor_at = COALESCE(anchor_at, :anchorAt),
             anchor_source = COALESCE(anchor_source, :anchorSource)
@@ -308,6 +309,7 @@ interface AccountBalanceDao {
         dueDay: Int?,
         billAmount: BigDecimal?,
         billAsOf: LocalDateTime?,
+        billCurrency: String,
         anchorAmount: BigDecimal?,
         anchorAt: LocalDateTime?,
         anchorSource: String?,

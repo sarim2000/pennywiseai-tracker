@@ -10,6 +10,7 @@ import com.pennywiseai.tracker.data.notification.BankNotificationConfig
 import kotlinx.coroutines.runBlocking
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.math.BigDecimal
@@ -69,7 +70,7 @@ class RebuildDeleteTest {
 
         dao.fillMissingAccountFields(
             before.bankName, before.accountLast4, before.statementDay, before.cardDueDay,
-            before.cardBillAmount, before.cardBillAsOf, null, null, null,
+            before.cardBillAmount, before.cardBillAsOf, before.currency, null, null, null,
         )
 
         val rebuilt = dao.getLatestBalance("Example Bank", "0000")!!
@@ -78,5 +79,26 @@ class RebuildDeleteTest {
         assertEquals(2, rebuilt.cardDueDay)
         assertEquals(0, BigDecimal("450").compareTo(rebuilt.cardBillAmount))
         assertEquals(before.cardBillAsOf, rebuilt.cardBillAsOf)
+    }
+
+    @Test fun aBillDoesNotCrossToAnotherCurrency() = runBlocking {
+        val dao = db.accountBalanceDao()
+        val target = AccountBalanceEntity(
+            bankName = "Example Bank", accountLast4 = "1111", balance = BigDecimal("500"),
+            timestamp = LocalDateTime.of(2026, 10, 1, 12, 0), isCreditCard = true, currency = "USD",
+        )
+        dao.insertBalance(target)
+
+        // A merged INR card's bill: the due and statement day carry over, the amount doesn't.
+        dao.fillMissingAccountFields(
+            target.bankName, target.accountLast4, 12, 2,
+            BigDecimal("4000"), LocalDateTime.of(2026, 10, 13, 9, 0), "INR", null, null, null,
+        )
+
+        val merged = dao.getLatestBalance("Example Bank", "1111")!!
+        assertEquals(12, merged.statementDay)
+        assertEquals(2, merged.cardDueDay)
+        assertNull(merged.cardBillAmount)
+        assertNull(merged.cardBillAsOf)
     }
 }

@@ -352,6 +352,7 @@ open class AccountBalanceRepository @Inject constructor(
      * unless [withAnchor] is false, the balance anchor) back on the rows of
      * [bankName]/[accountLast4] that don't have them. A force resync rebuilds an
      * account's rows and a merge moves it, and neither may lose what the user set.
+     * The bill amount goes only onto rows in [snapshot]'s currency.
      */
     suspend fun keepAccountFields(
         snapshot: AccountBalanceEntity,
@@ -365,6 +366,7 @@ open class AccountBalanceRepository @Inject constructor(
         dueDay = snapshot.cardDueDay,
         billAmount = snapshot.cardBillAmount,
         billAsOf = snapshot.cardBillAsOf,
+        billCurrency = snapshot.currency,
         anchorAmount = snapshot.anchorAmount.takeIf { withAnchor },
         anchorAt = snapshot.anchorAt.takeIf { withAnchor },
         anchorSource = snapshot.anchorSource.takeIf { withAnchor },

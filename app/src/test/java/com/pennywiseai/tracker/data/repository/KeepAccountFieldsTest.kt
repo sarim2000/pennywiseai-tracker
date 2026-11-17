@@ -10,7 +10,7 @@ import org.junit.Test
 import java.math.BigDecimal
 import java.time.LocalDateTime
 
-/** A merged account's bill moves to the target; its balance anchor doesn't. */
+/** A merged account's bill moves to the target, in its own currency; its balance anchor doesn't. */
 class KeepAccountFieldsTest {
 
     private val dao = mockk<AccountBalanceDao>()
@@ -26,27 +26,40 @@ class KeepAccountFieldsTest {
 
     @Test
     fun `a merge keeps the source's bill on the target, not its anchor`() = runTest {
-        coEvery { dao.fillMissingAccountFields(any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns 1
+        coEvery { dao.fillMissingAccountFields(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns 1
 
         repository.keepAccountFields(source, "Other Bank", "1111", withAnchor = false)
 
         coVerify {
             dao.fillMissingAccountFields(
-                "Other Bank", "1111", 12, 2, BigDecimal("650.25"), source.cardBillAsOf, null, null, null,
+                "Other Bank", "1111", 12, 2, BigDecimal("650.25"), source.cardBillAsOf, "INR", null, null, null,
             )
         }
     }
 
     @Test
     fun `a rescan keeps the anchor too`() = runTest {
-        coEvery { dao.fillMissingAccountFields(any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns 1
+        coEvery { dao.fillMissingAccountFields(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns 1
 
         repository.keepAccountFields(source)
 
         coVerify {
             dao.fillMissingAccountFields(
-                "Test Bank", "0000", 12, 2, BigDecimal("650.25"), source.cardBillAsOf,
+                "Test Bank", "0000", 12, 2, BigDecimal("650.25"), source.cardBillAsOf, "INR",
                 BigDecimal("1000"), source.anchorAt, "MANUAL",
+            )
+        }
+    }
+
+    @Test
+    fun `the bill goes only where its currency is the row's`() = runTest {
+        coEvery { dao.fillMissingAccountFields(any(), any(), any(), any(), any(), any(), any(), any(), any(), any()) } returns 1
+
+        repository.keepAccountFields(source.copy(currency = "USD"), "Other Bank", "1111", withAnchor = false)
+
+        coVerify {
+            dao.fillMissingAccountFields(
+                "Other Bank", "1111", 12, 2, BigDecimal("650.25"), source.cardBillAsOf, "USD", null, null, null,
             )
         }
     }

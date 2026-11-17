@@ -364,7 +364,8 @@ fun PennyWiseNavHost(
 
                     entry<BudgetHistory> { key ->
                         com.pennywiseai.tracker.presentation.budgetgroups.BudgetHistoryScreen(
-                            onNavigateBack = { backStack.pop(key) }
+                            onNavigateBack = { backStack.pop(key) },
+                            onNavigateToExchangeRates = { backStack.navigate(ExchangeRates) }
                         )
                     }
 

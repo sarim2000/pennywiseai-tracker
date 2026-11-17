@@ -42,9 +42,11 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.repository.PastWindowSpending
+import com.pennywiseai.tracker.data.repository.budgetPercentUsed
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.components.cards.CadencePill
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.RolloverLine
 import com.pennywiseai.tracker.ui.components.cards.message
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -72,6 +74,7 @@ import java.util.Locale
 @Composable
 fun BudgetHistoryScreen(
     onNavigateBack: () -> Unit,
+    onNavigateToExchangeRates: () -> Unit = {},
     viewModel: BudgetHistoryViewModel = hiltViewModel()
 ) {
     val state by viewModel.uiState.collectAsStateWithLifecycle()
@@ -192,7 +195,8 @@ fun BudgetHistoryScreen(
                 breakdown = state.breakdown,
                 isLoading = state.isLoadingBreakdown,
                 currency = state.currency,
-                onDismiss = { viewModel.dismissBreakdown() }
+                onDismiss = { viewModel.dismissBreakdown() },
+                onAddRate = onNavigateToExchangeRates
             )
         }
     }
@@ -327,7 +331,8 @@ private fun BreakdownSheet(
     breakdown: com.pennywiseai.tracker.data.repository.WindowBreakdown?,
     isLoading: Boolean,
     currency: String,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    onAddRate: () -> Unit = {}
 ) {
     val sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))
     val longFormatter = AppDates.dateFormatter()
@@ -360,9 +365,7 @@ private fun BreakdownSheet(
             val window = breakdown.window
             val totalActual = breakdown.totalActual
             val totalBudget = breakdown.totalBudget
-            val pctUsed = if (totalBudget > BigDecimal.ZERO) {
-                (totalActual.toFloat() / totalBudget.toFloat() * 100f).coerceAtLeast(0f)
-            } else 0f
+            val pctUsed = budgetPercentUsed(totalActual, totalBudget, breakdown.carry?.amount?.amount ?: BigDecimal.ZERO)
             val remaining = totalBudget - totalActual
             val isOver = totalActual > totalBudget
 
@@ -374,16 +377,34 @@ private fun BreakdownSheet(
                 ),
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
             )
-            Text(
-                text = if (breakdown.isTrackingAll) stringResource(R.string.budgets_tracking_all)
-                else stringResource(
-                    R.string.budgets_amount_of,
-                    CurrencyFormatter.formatCurrency(totalActual, currency),
-                    CurrencyFormatter.formatCurrency(totalBudget, currency)
-                ),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+            // The limit, and how rollover made it up, so "X remaining" below has context.
+            if (breakdown.hasLimit) {
+                Text(
+                    text = stringResource(
+                        R.string.budgets_amount_of,
+                        CurrencyFormatter.formatCurrency(totalActual, currency),
+                        CurrencyFormatter.formatCurrency(totalBudget, currency)
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            breakdown.carry?.let { carry ->
+                RolloverLine(
+                    limit = totalBudget,
+                    carry = carry.amount.amount,
+                    gap = carry.gap,
+                    currency = currency,
+                    onAddRate = onAddRate
+                )
+            }
+            if (breakdown.isTrackingAll) {
+                Text(
+                    text = stringResource(R.string.budgets_tracking_all),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
 
             // Per-category list. For Tracking-All budgets the list is
             // empty (no per-cat allocations); we show the total instead
@@ -440,7 +461,7 @@ private fun BreakdownSheet(
                 color = if (isOver) MaterialTheme.colorScheme.error
                 else MaterialTheme.colorScheme.onSurface
             )
-            if (totalBudget > BigDecimal.ZERO) {
+            if (breakdown.hasLimit) {
                 Text(
                     text = stringResource(R.string.budget_history_percent_used, pctUsed.toInt()),
                     style = MaterialTheme.typography.bodySmall,

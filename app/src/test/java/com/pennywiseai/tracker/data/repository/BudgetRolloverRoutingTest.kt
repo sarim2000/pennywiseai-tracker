@@ -266,6 +266,19 @@ class BudgetRolloverRoutingTest {
         assertFalse(thisWeek.carry!!.incomplete)
         val breakdown = repo.getBudgetWindowBreakdown(group.budget, resolveBudgetWindow(group.budget, today, 1), "JOD")
         assertEquals(0, BigDecimal("140").compareTo(breakdown.totalBudget))
+        // The sheet shows the base and the carry behind that figure.
+        assertEquals(0, BigDecimal("40").compareTo(breakdown.carry!!.amount.amount))
+        assertTrue(breakdown.hasLimit)
+    }
+
+    @Test
+    fun `budget history's breakdown keeps a limit carried down to 0 as a limit`() = runBlocking {
+        val group = budget()
+        val repo = repository(group, listOf(spend("250", at = lastWeek), spend("30")))
+        val breakdown = repo.getBudgetWindowBreakdown(group.budget, resolveBudgetWindow(group.budget, today, 1), "JOD")
+        assertEquals(0, BigDecimal.ZERO.compareTo(breakdown.totalBudget))
+        assertEquals(0, BigDecimal("-100").compareTo(breakdown.carry!!.amount.amount))
+        assertTrue(breakdown.hasLimit)
     }
 
     @Test
@@ -292,6 +305,7 @@ class BudgetRolloverRoutingTest {
         history.forEach { assertNull(it.carry) }
         val breakdown = repo.getBudgetWindowBreakdown(group.budget, history.first().window, "JOD")
         assertEquals(0, BigDecimal("100").compareTo(breakdown.totalBudget))
+        assertNull(breakdown.carry)
     }
 
     @Test

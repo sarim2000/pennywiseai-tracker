@@ -989,9 +989,9 @@ class BudgetGroupRepository @Inject constructor(
         }
         val carry = carrySource(budget, window, userPreferencesRepository.getBudgetCycleStartDay())?.let {
             carryIn(currency, group ?: BudgetWithCategories(budget, emptyList()), it, parentOf(), convertCarry)
-        } ?: BudgetCarry.none(currency)
+        }
         val totalBudget = (group?.budget?.limitAmount ?: BigDecimal.ZERO).let { gLimit ->
-            carry.appliedTo(
+            (carry ?: BudgetCarry.none(currency)).appliedTo(
                 if (gLimit > BigDecimal.ZERO) gLimit
                 else categorySpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
             )
@@ -1013,7 +1013,8 @@ class BudgetGroupRepository @Inject constructor(
             categorySpending = categorySpending,
             totalBudget = totalBudget,
             totalActual = totalActual,
-            isTrackingAll = group?.categories?.isEmpty() == true
+            isTrackingAll = group?.categories?.isEmpty() == true,
+            carry = carry
         )
     }
 

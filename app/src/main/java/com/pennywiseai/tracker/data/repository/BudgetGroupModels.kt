@@ -67,8 +67,13 @@ data class WindowBreakdown(
     val categorySpending: List<BudgetCategorySpending>,
     val totalBudget: BigDecimal,
     val totalActual: BigDecimal,
-    val isTrackingAll: Boolean = false
-)
+    val isTrackingAll: Boolean = false,
+    /** Rollover: what this window carried in, already in [totalBudget]; null when it carries nothing. */
+    val carry: BudgetCarry? = null
+) {
+    /** A limit is set, even if rollover carried [totalBudget] down to 0. */
+    val hasLimit: Boolean get() = (totalBudget - (carry?.amount?.amount ?: BigDecimal.ZERO)).signum() > 0
+}
 
 data class BudgetGroupSpending(
     val group: BudgetWithCategories,

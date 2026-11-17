@@ -351,11 +351,13 @@ private fun ScoreBreakdownSheet(score: PeriodScore, onDismiss: () -> Unit) {
             score.savings?.let {
                 ScorePartRow(
                     stringResource(R.string.insights_score_savings),
-                    if (it.percent < 0) {
-                        stringResource(R.string.insights_score_savings_detail_negative, percent(-it.percent))
-                    } else {
-                        stringResource(R.string.insights_score_savings_detail, percent(it.percent))
+                    when {
+                        // Hidden amounts hide the savings rate, and whether it's below zero too.
+                        AmountPrivacy.hidden -> stringResource(R.string.insights_score_savings_detail_hidden)
+                        it.percent < 0 -> stringResource(R.string.insights_score_savings_detail_negative, percent(-it.percent))
+                        else -> stringResource(R.string.insights_score_savings_detail, percent(it.percent))
                     },
+                    score.shareOf(it),
                     // Its points are the savings rate scaled, so they hide with it.
                     if (AmountPrivacy.hidden) AmountPrivacy.MASK else stringResource(R.string.insights_score_points, it.points),
                 )
@@ -364,6 +366,7 @@ private fun ScoreBreakdownSheet(score: PeriodScore, onDismiss: () -> Unit) {
                 ScorePartRow(
                     stringResource(R.string.insights_score_budgets),
                     pluralStringResource(R.plurals.insights_score_budgets_detail, it.total, it.onTrack, it.total),
+                    score.shareOf(it),
                     stringResource(R.string.insights_score_points, it.points),
                 )
             }
@@ -371,6 +374,7 @@ private fun ScoreBreakdownSheet(score: PeriodScore, onDismiss: () -> Unit) {
                 ScorePartRow(
                     stringResource(R.string.insights_score_categorised),
                     pluralStringResource(R.plurals.insights_score_categorised_detail, it.total, it.categorised, it.total),
+                    score.shareOf(it),
                     stringResource(R.string.insights_score_points, it.points),
                 )
             }
@@ -383,8 +387,9 @@ private fun ScoreBreakdownSheet(score: PeriodScore, onDismiss: () -> Unit) {
     }
 }
 
+/** One part: what it measures, how much it counts toward the score ([share] percent), and its points. */
 @Composable
-private fun ScorePartRow(title: String, detail: String, points: String) {
+private fun ScorePartRow(title: String, detail: String, share: Int, points: String) {
     Row(
         modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
         verticalAlignment = Alignment.CenterVertically,
@@ -393,6 +398,12 @@ private fun ScorePartRow(title: String, detail: String, points: String) {
         Column(Modifier.weight(1f)) {
             Text(text = title, style = PennyWiseText.rowTitle)
             Text(text = detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            // A weight, not an amount: it shows with amounts hidden.
+            Text(
+                text = stringResource(R.string.insights_score_share, stringResource(R.string.insights_percent, share)),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
         }
         Text(text = points, style = PennyWiseText.amountRow)
     }

@@ -29,7 +29,22 @@ data class PeriodScore(
         data class Categorised(val categorised: Int, val total: Int, override val points: Int) : Part
     }
 
+    /**
+     * How much [part] counts toward [score], in percent: its weight shared with the
+     * other parts present, so together they make 100.
+     */
+    fun shareOf(part: Part): Int {
+        val total = listOfNotNull(savings, budgets, categorised).sumOf { weightOf(it) }
+        return BigDecimal(weightOf(part) * 100).divide(BigDecimal(total), 0, RoundingMode.HALF_UP).toInt()
+    }
+
     companion object {
+        private fun weightOf(part: Part): Int = when (part) {
+            is Part.Savings -> SAVINGS_WEIGHT
+            is Part.Budgets -> BUDGETS_WEIGHT
+            is Part.Categorised -> CATEGORISED_WEIGHT
+        }
+
         /**
          * [spends] are the cycle's spending rows in [currency]; [isUncategorised] tells
          * which have no real category. Null with fewer than [MIN_ROWS] spends, or with

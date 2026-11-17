@@ -68,7 +68,11 @@
     </plurals>
     <!-- %1$d = points for one part -->
     <string name="insights_score_points">%1$d/100</string>
-    <string name="insights_score_footnote">The score blends these parts, with savings counting most. Parts without data are left out. Dismissing an insight doesn\'t change it.</string>
+    <!-- Under a score part. %1$s = how much it counts toward the score, as a percentage -->
+    <string name="insights_score_share">Counts for %1$s of the score</string>
+    <!-- The savings part while amounts are hidden: no rate, and no hint whether it's below zero -->
+    <string name="insights_score_savings_detail_hidden">Share of income kept. A fifth or more gets full marks.</string>
+    <string name="insights_score_footnote">The score adds up each part\'s points by how much it counts. A part without data is left out and the others count for more. Dismissing an insight doesn\'t change it.</string>
 
     <!-- Metric labels on an expanded insight -->
     <string name="insights_metric_spent">Spent</string>

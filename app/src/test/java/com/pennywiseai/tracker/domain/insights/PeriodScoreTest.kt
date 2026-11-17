@@ -77,4 +77,13 @@ class PeriodScoreTest {
         assertEquals(PeriodScore.Part.Budgets(0, 1, 0), result.budgets)
         assertNull(score(income = "0", budgets = listOf(budget("100", incomplete = true))))
     }
+
+    @Test
+    fun `each part's share of the score adds up to 100`() {
+        val all = score(budgets = listOf(budget("500")))!!
+        assertEquals(listOf(40, 30, 30), listOf(all.savings!!, all.budgets!!, all.categorised).map(all::shareOf))
+        // Without budgets, savings and categorising share their weight.
+        val two = score()!!
+        assertEquals(listOf(57, 43), listOf(two.savings!!, two.categorised).map(two::shareOf))
+    }
 }

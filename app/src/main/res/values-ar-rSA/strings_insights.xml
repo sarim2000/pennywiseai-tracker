@@ -80,7 +80,11 @@
     </plurals>
     <!-- %1$d = points for one part -->
     <string name="insights_score_points">%1$d/100</string>
-    <string name="insights_score_footnote">تجمع الدرجة هذه الأجزاء، وللادخار الوزن الأكبر. تُستبعد الأجزاء التي لا بيانات لها. تجاهل رؤية لا يغيّرها.</string>
+    <!-- Under a score part. %1$s = how much it counts toward the score, as a percentage -->
+    <string name="insights_score_share">يمثّل %1$s من الدرجة</string>
+    <!-- The savings part while amounts are hidden: no rate, and no hint whether it's below zero -->
+    <string name="insights_score_savings_detail_hidden">نسبة الدخل التي احتفظت بها. الخُمس أو أكثر يحصل على الدرجة الكاملة.</string>
+    <string name="insights_score_footnote">تجمع الدرجة نقاط كل جزء بحسب وزنه. يُستبعد الجزء الذي لا بيانات له ويزيد وزن الأجزاء الأخرى. تجاهل رؤية لا يغيّرها.</string>
 
     <!-- Metric labels on an expanded insight -->
     <string name="insights_metric_spent">المصروف</string>

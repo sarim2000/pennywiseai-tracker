@@ -123,8 +123,6 @@ internal fun insightText(insight: Insight): InsightText = when (val f = insight.
         body = stringResource(
             if (insight.severity == InsightSeverity.GOOD) R.string.insights_runway_good_body
             else R.string.insights_runway_low_body,
-            f.balance.format(),
-            f.monthlySpend.format(),
             Runway.TARGET_MONTHS,
         ),
         metrics = listOf(
@@ -142,10 +140,9 @@ internal fun insightText(insight: Insight): InsightText = when (val f = insight.
             else -> stringResource(R.string.insights_goals_short_title, f.shortBy.format())
         },
         body = when {
-            f.shortBy == null -> stringResource(R.string.insights_goals_fit_body, f.surplus.format())
-            f.surplus.amount.signum() > 0 ->
-                stringResource(R.string.insights_goals_short_body, f.needed.format(), f.surplus.format())
-            else -> stringResource(R.string.insights_goals_no_surplus_body, f.needed.format())
+            f.shortBy == null -> stringResource(R.string.insights_goals_fit_body)
+            f.surplus.amount.signum() > 0 -> stringResource(R.string.insights_goals_short_body)
+            else -> stringResource(R.string.insights_goals_no_surplus_body)
         },
         metrics = listOf(
             stringResource(R.string.insights_metric_goals_need) to f.needed.format(),

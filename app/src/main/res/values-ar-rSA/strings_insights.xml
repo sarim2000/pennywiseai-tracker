@@ -188,22 +188,22 @@
 
     <!-- Runway. %1$s = how long, e.g. "2.4 months" or "under a month" -->
     <string name="insights_runway_title">تكفي أموالك %1$s</string>
-    <!-- %1$s = money in savings, current and cash accounts, %2$s = a usual month's spending, %3$d = months many aim for -->
-    <string name="insights_runway_low_body">في حساباتك %1$s مقابل إنفاق %2$s في شهر معتاد. يسعى كثيرون إلى ما يكفي %3$d أشهر.</string>
-    <!-- %1$s = money in savings, current and cash accounts, %2$s = a usual month's spending, %3$d = months many aim for -->
-    <string name="insights_runway_good_body">في حساباتك %1$s مقابل إنفاق %2$s في شهر معتاد، أي أكثر من %3$d أشهر يسعى إليها كثيرون.</string>
+    <!-- Under the runway's Held and Usual month figures. %1$d = months many aim for -->
+    <string name="insights_runway_low_body">يسعى كثيرون إلى ما يكفي %1$d أشهر.</string>
+    <!-- Under the runway's Held and Usual month figures. %1$d = months many aim for -->
+    <string name="insights_runway_good_body">أي أكثر من %1$d أشهر يسعى إليها كثيرون.</string>
     <string name="insights_runway_estimate">بعض الحسابات غير محسوبة لأن رصيدها غير معروف بعد. حدّثها من الحسابات لرقم أدق.</string>
 
     <!-- Goals fit what a usual month leaves over. %1$s = what all goals in progress need a month -->
     <string name="insights_goals_fit_title">%1$s شهريًا يحقق كل أهدافك</string>
-    <!-- %1$s = what a usual month leaves over -->
-    <string name="insights_goals_fit_body">يتبقى لك في الشهر المعتاد نحو %1$s، فهي في متناولك.</string>
+    <!-- Under the Goals need and Left over figures -->
+    <string name="insights_goals_fit_body">يتبقى لك في الشهر المعتاد ما يكفي، فهي في متناولك.</string>
     <!-- Goals need more than a usual month leaves. %1$s = the gap a month -->
     <string name="insights_goals_short_title">تحتاج أهدافك %1$s إضافية شهريًا</string>
-    <!-- %1$s = what all goals in progress need a month, %2$s = what a usual month leaves over -->
-    <string name="insights_goals_short_body">تحتاج معًا %1$s شهريًا، بينما يتبقى في الشهر المعتاد نحو %2$s.</string>
-    <!-- A usual month spends all its income or more. %1$s = what all goals in progress need a month -->
-    <string name="insights_goals_no_surplus_body">تحتاج معًا %1$s شهريًا، لكن الشهر المعتاد يُنفق كل ما يدخل.</string>
+    <!-- Under the Goals need and Left over figures -->
+    <string name="insights_goals_short_body">تحتاج معًا أكثر مما يتبقى في الشهر المعتاد.</string>
+    <!-- A usual month spends all its income or more -->
+    <string name="insights_goals_no_surplus_body">الشهر المعتاد يُنفق كل ما يدخل.</string>
 
     <!-- Bills due. %1$s = total, %2$d = days -->
     <plurals name="insights_bills_title">

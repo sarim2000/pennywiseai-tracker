@@ -266,4 +266,76 @@ class CardBillTest {
         // On the current bill, a blank amount clears it.
         assertEquals(null to null, CardBills.toSave(current, 2, null, now))
     }
+
+    // Safe to spend's reserve. The bill below is for the statement closed on 12 March,
+    // so its purchases run from 13 February to 12 March.
+    private val today = date("2026-03-20")
+    private val purchases = listOf(
+        tx("2026-02-20", "1500", TransactionType.CREDIT, merchant = "Shop"),
+        tx("2026-03-05", "2500", TransactionType.CREDIT, merchant = "Shop"),
+    )
+
+    private fun reserve(
+        transactions: List<TransactionEntity>,
+        periodStart: String,
+        counted: Boolean = true,
+        card: AccountBalanceEntity = card(),
+    ): BigDecimal? {
+        val bill = CardBills.status(card, transactions, today).bill ?: return null
+        return CardBills.reserve(card, bill, transactions, date(periodStart), counted)
+    }
+
+    @Test
+    fun `a bill whose purchases all fall in this period is already counted`() {
+        assertEquals(d("0"), reserve(purchases, periodStart = "2026-02-13"))
+    }
+
+    @Test
+    fun `only the purchases inside this period come off the bill`() {
+        // The 20 February purchase is last period's: nothing has counted it yet.
+        assertEquals(d("1500"), reserve(purchases, periodStart = "2026-03-01"))
+        // A bill older than the period: none of it is counted, so all of it is set aside.
+        assertEquals(d("4000"), reserve(purchases, periodStart = "2026-03-13"))
+    }
+
+    @Test
+    fun `purchases on the next statement, another card or currency don't come off`() {
+        val others = purchases + listOf(
+            tx("2026-03-14", "700", TransactionType.CREDIT, merchant = "Shop"),
+            tx("2026-03-06", "300", TransactionType.CREDIT, account = "9999", merchant = "Shop"),
+            tx("2026-03-07", "20", TransactionType.CREDIT, currency = "USD", merchant = "Shop"),
+        )
+        assertEquals(d("1500"), reserve(others, periodStart = "2026-03-01"))
+    }
+
+    @Test
+    fun `a paid bill sets nothing aside, a part-paid one only what's left`() {
+        val paid = purchases + tx("2026-03-15", "4000", TransactionType.INCOME)
+        assertNull(reserve(paid, periodStart = "2026-03-01"))
+
+        // 1,000 paid: 3,000 left, of which this period's 2,500 purchase is counted.
+        val partly = purchases + tx("2026-03-15", "1000", TransactionType.INCOME)
+        assertEquals(d("500"), reserve(partly, periodStart = "2026-03-01"))
+    }
+
+    @Test
+    fun `purchases beyond the bill floor the reserve at zero`() {
+        val more = purchases + tx("2026-03-10", "900", TransactionType.CREDIT, merchant = "Shop")
+        assertEquals(d("0"), reserve(more, periodStart = "2026-02-13"))
+    }
+
+    @Test
+    fun `with card spending not counted as an expense the whole bill is set aside`() {
+        assertEquals(d("4000"), reserve(purchases, periodStart = "2026-02-13", counted = false))
+        val partly = purchases + tx("2026-03-15", "1000", TransactionType.INCOME)
+        assertEquals(d("3000"), reserve(partly, periodStart = "2026-02-13", counted = false))
+    }
+
+    @Test
+    fun `without a statement day the bill's purchases are the month before it was entered`() {
+        // Entered on 14 March: purchases from 15 February on are this bill's.
+        val noDay = card(statementDay = null)
+        assertEquals(d("1500"), reserve(purchases, periodStart = "2026-03-01", card = noDay))
+        assertEquals(d("0"), reserve(purchases, periodStart = "2026-02-15", card = noDay))
+    }
 }

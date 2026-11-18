@@ -294,4 +294,6 @@
         <item quantity="one">सबै %1$d खाता हेर्नुहोस्</item>
         <item quantity="other">सबै %1$d खाता हेर्नुहोस्</item>
     </plurals>
+    <!-- Card bill on a credit card's page (Safe to spend sets it aside) -->
+    <!-- Net worth: what you own minus what you owe, per currency -->
 </resources>

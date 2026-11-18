@@ -16,14 +16,17 @@ import com.pennywiseai.tracker.domain.review.PeriodReview
 import com.pennywiseai.tracker.domain.review.PeriodReviewLoader
 import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.utils.Money
+import android.util.Log
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.retryWhen
 import java.time.LocalDate
 import java.time.YearMonth
 import javax.inject.Inject
@@ -87,8 +90,7 @@ class InsightsLoader @Inject constructor(
         } else {
             budgetSummaryProvider.summary(YearMonth.from(today), flagUncounted = true)
                 .map { budgetStatuses(it, today) }
-                // Budget figures that can't load mustn't cost the user every other insight.
-                .catch { emit(emptyList()) }
+                .emptyOnFailure()
         }
 
     /** Ignored keys as the review rows use them: a card linked to an ignored account is ignored too. */
@@ -108,6 +110,18 @@ class InsightsLoader @Inject constructor(
                 (profileId == null || it.profileId == profileId)
         }
     }
+}
+
+/**
+ * A failure shows nothing rather than ending the flow: budget figures that can't load
+ * mustn't cost the user every other insight, and they come back once a reload works.
+ */
+internal fun <T> Flow<List<T>>.emptyOnFailure(): Flow<List<T>> = retryWhen { cause, attempt ->
+    if (cause is CancellationException) return@retryWhen false
+    Log.w("InsightsLoader", "Budget insights failed to load", cause)
+    emit(emptyList())
+    delay(minOf(1_000L shl attempt.toInt().coerceAtMost(5), 30_000L))
+    true
 }
 
 /**

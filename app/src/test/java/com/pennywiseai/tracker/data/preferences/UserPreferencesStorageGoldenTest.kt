@@ -592,6 +592,14 @@ class UserPreferencesStorageGoldenTest {
         repository.dismissInsight("budget_over:v1:2026-11-01:INR:1")
         assertEquals(setOf("budget_over:v1:2026-11-01:INR:1"), stored()[dismissed])
 
+        // A last-cycle card still on screen across the boundary doesn't drop this cycle's.
+        repository.dismissInsight("savings_rate:v1:2026-10-01:INR:cycle")
+        assertEquals(
+            setOf("budget_over:v1:2026-11-01:INR:1", "savings_rate:v1:2026-10-01:INR:cycle"),
+            stored()[dismissed],
+        )
+        repository.restoreInsight("savings_rate:v1:2026-10-01:INR:cycle")
+
         repository.restoreInsight("budget_over:v1:2026-11-01:INR:1")
         assertEquals(emptySet<String>(), stored()[dismissed])
     }

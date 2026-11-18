@@ -872,7 +872,12 @@ open class UserPreferencesRepository internal constructor(
     override suspend fun dismissInsight(id: String) {
         val cycle = insightCycleOf(id)
         dataStore.edit {
-            val kept = (it[PreferencesKeys.DISMISSED_INSIGHTS] ?: emptySet()).filter { old -> insightCycleOf(old) == cycle }
+            // Older cycles go; a newer one stays, in case a card from the cycle just ended
+            // was still on screen when dismissed. Cycles are ISO dates, so they sort as text.
+            val kept = (it[PreferencesKeys.DISMISSED_INSIGHTS] ?: emptySet()).filter { old ->
+                val oldCycle = insightCycleOf(old)
+                oldCycle != null && cycle != null && oldCycle >= cycle
+            }
             it[PreferencesKeys.DISMISSED_INSIGHTS] = kept.toSet() + id
         }
     }

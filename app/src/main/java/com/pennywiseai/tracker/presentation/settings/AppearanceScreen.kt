@@ -741,7 +741,15 @@ private fun CoverStyleSelector(
                         Icons.Default.Check,
                         contentDescription = stringResource(R.string.appearance_cover_selected),
                         tint = behind.bestInk(),
-                        modifier = Modifier.size(Dimensions.Icon.medium)
+                        // "None" keeps its label in the centre, so its check sits in the corner.
+                        modifier = if (style == CoverStyle.NONE) {
+                            Modifier
+                                .align(Alignment.TopEnd)
+                                .padding(Spacing.sm)
+                                .size(Dimensions.Icon.small)
+                        } else {
+                            Modifier.size(Dimensions.Icon.medium)
+                        }
                     )
                 }
             }

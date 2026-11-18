@@ -1,6 +1,5 @@
 package com.pennywiseai.tracker.presentation.home
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -13,7 +12,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.BottomSheetDefaults
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -32,11 +30,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
@@ -54,7 +48,6 @@ import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.spending
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.Money
-import java.time.LocalDate
 
 private const val MASK = "••••••"
 
@@ -137,27 +130,6 @@ fun SafeToSpendCard(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
-        IncompleteLine(state.cardsNeedingBill.size)
-    }
-}
-
-/** "Incomplete: 1 card bill isn't set aside", when a card's bill is missing; the sheet says which. */
-@Composable
-private fun IncompleteLine(cards: Int) {
-    if (cards == 0) return
-    Spacer(Modifier.height(Spacing.xxs))
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
-        Icon(
-            imageVector = Icons.Outlined.Info,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.size(Dimensions.Icon.inline)
-        )
-        Text(
-            text = pluralStringResource(R.plurals.safe_to_spend_incomplete, cards, cards),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
 }
 
@@ -199,14 +171,12 @@ private fun PerDayLine(s: SafeToSpend, until: String, dueBefore: String) {
 fun SafeToSpendSheet(
     state: SafeToSpendUi,
     onSetIncluded: (AccountBalanceEntity, Boolean) -> Unit,
-    onOpenCard: (AccountBalanceEntity) -> Unit,
     onDismiss: () -> Unit
 ) {
     var choosing by rememberSaveable { mutableStateOf(false) }
     val primary = state.primary
     val until = state.periodEnd.format(SHORT_DATE)
     val dueBefore = state.periodEnd.plusDays(1).format(SHORT_DATE)
-    val today = LocalDate.now()
     ModalBottomSheet(
         onDismissRequest = onDismiss,
         sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded)),
@@ -292,17 +262,9 @@ fun SafeToSpendSheet(
                 GroupedList {
                     state.bills.sortedBy { it.dueDate }.forEachIndexed { i, bill ->
                         GroupedRow(position = ListItemPosition.from(i, state.bills.size)) {
-                            val overdue = bill.isCardBill && bill.dueDate.isBefore(today)
-                            val due = if (overdue) {
-                                stringResource(R.string.safe_to_spend_overdue, bill.dueDate.format(SHORT_DATE))
-                            } else {
-                                bill.dueDate.format(SHORT_DATE)
-                            }
                             SheetRowLabels(
                                 title = bill.name,
-                                // A card bill's name is the card's, so say what it is.
-                                subtitle = if (bill.isCardBill) stringResource(R.string.safe_to_spend_card_bill, due) else due,
-                                subtitleColor = if (overdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                                subtitle = bill.dueDate.format(SHORT_DATE),
                                 modifier = Modifier.weight(1f)
                             )
                             Text(
@@ -311,34 +273,6 @@ fun SafeToSpendSheet(
                                 color = MaterialTheme.colorScheme.spending
                             )
                         }
-                    }
-                }
-            }
-
-            if (state.cardsNeedingBill.isNotEmpty()) {
-                Spacer(Modifier.height(Spacing.sm))
-                // One line per card, each opening that card's page to add its bill.
-                state.cardsNeedingBill.forEach { card ->
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clip(MaterialTheme.shapes.small)
-                            .clickable(role = Role.Button) { onOpenCard(card) }
-                            .padding(vertical = Spacing.xs)
-                    ) {
-                        Text(
-                            text = stringResource(R.string.safe_to_spend_cards_incomplete, card.displayLabel),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.weight(1f)
-                        )
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(Dimensions.Icon.inline)
-                        )
                     }
                 }
             }
@@ -374,16 +308,11 @@ fun SafeToSpendSheet(
 }
 
 @Composable
-private fun SheetRowLabels(
-    title: String,
-    subtitle: String?,
-    modifier: Modifier = Modifier,
-    subtitleColor: Color = MaterialTheme.colorScheme.onSurfaceVariant
-) {
+private fun SheetRowLabels(title: String, subtitle: String?, modifier: Modifier = Modifier) {
     Column(modifier) {
         Text(text = title, style = MaterialTheme.typography.bodyLarge, color = MaterialTheme.colorScheme.onSurface)
         subtitle?.let {
-            Text(text = it, style = MaterialTheme.typography.bodyMedium, color = subtitleColor)
+            Text(text = it, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }
     }
 }

@@ -420,7 +420,7 @@ internal class ScanTransactionWriter(
                 profileId     = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
                 alias         = existing?.alias,
                 lowBalanceThreshold = existing?.lowBalanceThreshold
-            ).withAccountFieldsOf(existing)
+            )
         }
 
         val logMsg = if (parsed.creditLimit != null) {
@@ -463,7 +463,7 @@ internal class ScanTransactionWriter(
             profileId     = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
             alias         = existing?.alias,
             lowBalanceThreshold = existing?.lowBalanceThreshold
-        ).withAccountFieldsOf(existing)
+        )
         accountBalanceRepository.insertBalance(balanceEntity)
         Log.i(TAG, "Saved wallet balance for ${parsed.bankName}")
     }

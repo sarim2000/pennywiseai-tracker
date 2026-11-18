@@ -104,30 +104,8 @@ class FullUpgradeTest {
         } finally { db.close() }
     }
 
-    @Test fun upgradeFrom68LeavesCardBillsUnknown() = runBlocking {
+    @Test fun upgradeFrom68LeavesRolloverOff() = runBlocking {
         helper.createDatabase(68).apply {
-            execSQL("""INSERT INTO account_balances (id, bank_name, account_last4, balance, timestamp, created_at,
-                is_credit_card, statement_day) VALUES
-                (1, 'Example Bank', '0000', '4200.00', '2026-01-01T10:00:00', '2026-01-01T10:00:00', 1, 12)""")
-            close()
-        }
-
-        val db = Room.databaseBuilder(instrumentation.targetContext, PennyWiseDatabase::class.java, NAME)
-            .addMigrations(*PennyWiseMigrations.ALL_MIGRATIONS)
-            .setDriver(AndroidSQLiteDriver())
-            .build()
-        try {
-            val card = db.accountBalanceDao().getLatestBalance("Example Bank", "0000")!!
-            assertEquals(0, BigDecimal("4200.00").compareTo(card.balance))
-            assertEquals(12, card.statementDay)
-            assertNull(card.cardDueDay)
-            assertNull(card.cardBillAmount)
-            assertNull(card.cardBillAsOf)
-        } finally { db.close() }
-    }
-
-    @Test fun upgradeFrom69LeavesRolloverOff() = runBlocking {
-        helper.createDatabase(69).apply {
             execSQL("""INSERT INTO budgets (id, name, limit_amount, period_type, start_date, end_date,
                 created_at, updated_at) VALUES
                 (1, 'Groceries', '500', 'WEEKLY', '2026-01-05', '2026-01-11', '2026-01-01T10:00:00', '2026-01-01T10:00:00')""")

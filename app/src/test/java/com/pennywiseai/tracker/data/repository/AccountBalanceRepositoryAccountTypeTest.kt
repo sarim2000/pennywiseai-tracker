@@ -4,8 +4,8 @@ import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.*
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.domain.model.getAccountType
+import com.pennywiseai.tracker.domain.model.AccountType
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -280,37 +280,6 @@ class AccountBalanceRepositoryAccountTypeTest {
         val latest = repository.getLatestBalance("Test Bank", "7777")!!
         assertTrue(latest.isCreditCard)
         assertEquals(BigDecimal("50000"), latest.creditLimit)
-    }
-
-    @Test
-    fun `linking a card to a non-INR account keeps its currency and bill`() = runBlocking {
-        repository.insertBalance(
-            smsAccountRow("3000.00", hoursAgo = 2).copy(
-                accountType = "CREDIT", isCreditCard = true, currency = "USD",
-                cardDueDay = 10, cardBillAmount = BigDecimal("400"), cardBillAsOf = LocalDateTime.now().minusDays(3),
-            )
-        )
-        // The card-link path names no currency.
-        repository.insertBalanceUpdate(
-            bankName = "Test Bank",
-            accountLast4 = "7777",
-            balance = BigDecimal("3500.00"),
-            timestamp = LocalDateTime.now().minusHours(1),
-            sourceType = "CARD_LINK"
-        )
-        repository.insertBalanceFromTransaction(
-            bankName = "Test Bank",
-            accountLast4 = "7777",
-            balance = BigDecimal("3600.00"),
-            timestamp = LocalDateTime.now(),
-            transactionId = 7L,
-            isCreditCard = true
-        )
-
-        val latest = repository.getLatestBalance("Test Bank", "7777")!!
-        assertEquals(BigDecimal("3600.00"), latest.balance)
-        assertEquals("USD", latest.currency)
-        assertEquals(BigDecimal("400"), latest.cardBillAmount)
     }
 
     @Test

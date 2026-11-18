@@ -15,7 +15,6 @@ import com.pennywiseai.tracker.data.manager.SmsScanParamsCalculator
 import com.pennywiseai.tracker.data.manager.SmsScanParamsInput
 import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
-import com.pennywiseai.tracker.data.preferences.RebuildAccountFieldsStore
 import com.pennywiseai.tracker.data.preferences.ScanPreferences
 import com.pennywiseai.tracker.data.repository.*
 import com.pennywiseai.tracker.domain.repository.RuleRepository
@@ -72,7 +71,6 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
     taughtTemplatesStore: com.pennywiseai.tracker.data.preferences.TaughtTemplatesStore
 ) : CoroutineWorker(appContext, workerParams) {
     private val bankAccountMerges = BankAccountMergeStore(appContext)
-    private val rebuildAccountFields = RebuildAccountFieldsStore(appContext)
     private val taughtTemplates = lazy {
         taughtTemplatesStore.all().groupBy { it.senderKey }
     }
@@ -189,24 +187,15 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                     // never regenerate them (hash collision short-circuits
                     // processBalanceUpdate), leaving gaps in the balance
                     // time-series.
-                    // On disk before any row goes, so a scan that stops part-way can't lose
-                    // the bill the user set. Today's rows come first: put back
-                    // first, they win over an older interrupted rebuild's. The deletes run
-                    // under the same lock, so a bill edited in between can't go with them.
-                    val latestBeforeRebuild = rebuildAccountFields.saveBeforeRebuild(
-                        read = { accountBalanceRepository.getAllLatestBalancesOnce() },
-                        deleteRows = {
-                            transactionRepository.deleteRebuildableSmsTransactions(
-                                java.time.LocalDateTime.ofInstant(
-                                    java.time.Instant.ofEpochMilli(scanStartTime), java.time.ZoneId.systemDefault()
-                                )
-                            )
-                            accountBalanceRepository.deleteRebuildableBalances()
-                        },
-                    )
-                    accountsBeforeRebuild = latestBeforeRebuild
+                    accountsBeforeRebuild = accountBalanceRepository.getAllLatestBalancesOnce()
                         .filter { it.accountType != null }
                         .associateBy { it.bankName to it.accountLast4 }
+                    transactionRepository.deleteRebuildableSmsTransactions(
+                        java.time.LocalDateTime.ofInstant(
+                            java.time.Instant.ofEpochMilli(scanStartTime), java.time.ZoneId.systemDefault()
+                        )
+                    )
+                    accountBalanceRepository.deleteRebuildableBalances()
                 } finally {
                     Trace.endSection()
                 }
@@ -285,11 +274,6 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             // Rows rebuilt from balance-only SMS don't pass through processBalanceUpdate,
             // so put each typed account's type back on the rows that lost it (#792).
             for (row in accountsBeforeRebuild.values) accountBalanceRepository.restoreAccountType(row)
-            // Likewise the statement and due day and card bill the user set,
-            // saved by this rebuild or one that never finished. Read now, under the store's
-            // lock: a field the user edited since is no longer in it, and an edit can't land
-            // between the read and the write. An account with no rows yet stays saved.
-            rebuildAccountFields.restore { accountBalanceRepository.keepAccountFields(it) }
             // A rebuild drops ATM transfers into Cash wallets (#1062) and may not route
             // them again (setting since turned off), so re-derive every Cash wallet.
             if (rebuildStartedAt != null) {

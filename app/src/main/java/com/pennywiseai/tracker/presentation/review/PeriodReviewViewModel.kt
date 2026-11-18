@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.domain.review.PeriodReview
 import com.pennywiseai.tracker.domain.review.PeriodReviewLoader
 import com.pennywiseai.tracker.domain.review.ReviewKind
+import com.pennywiseai.tracker.domain.review.ReviewSelection
 import com.pennywiseai.tracker.domain.review.defaultReviewOffset
 import com.pennywiseai.tracker.domain.review.latestReviewOffset
 import com.pennywiseai.tracker.domain.review.localFirstDayOfWeek
@@ -21,9 +22,6 @@ import kotlinx.coroutines.flow.onStart
 import kotlinx.coroutines.flow.stateIn
 import java.time.LocalDate
 import javax.inject.Inject
-
-/** [offset] counts back from [today], the day it was chosen: a period can't turn into another while the screen waits. */
-data class ReviewSelection(val kind: ReviewKind, val offset: Int, val today: LocalDate)
 
 @HiltViewModel
 class PeriodReviewViewModel @Inject constructor(

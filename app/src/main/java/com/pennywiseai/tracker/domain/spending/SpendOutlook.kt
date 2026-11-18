@@ -72,11 +72,8 @@ data class SpendForecast(
     }
 }
 
-/**
- * A payment due on [dueDate], in its own currency. A card bill ([isCardBill]) past
- * its due date is still owed, so it stays in the window ([SafeToSpend.billsInWindow]).
- */
-data class Bill(val name: String, val amount: Money, val dueDate: LocalDate, val isCardBill: Boolean = false)
+/** A payment due on [dueDate], in its own currency. */
+data class Bill(val name: String, val amount: Money, val dueDate: LocalDate)
 
 /**
  * Money free to spend in one currency until the period ends: spendable balance
@@ -104,9 +101,8 @@ data class SafeToSpend(
     companion object {
         /**
          * One result per currency: amounts are only ever netted within a currency.
-         * Bills outside today..[periodEnd] are ignored, except overdue card bills
-         * ([billsInWindow]). [budgetLeft] caps only the result in its own currency;
-         * a negative one caps at 0.
+         * Bills outside today..[periodEnd] are ignored. [budgetLeft] caps only the
+         * result in its own currency; a negative one caps at 0.
          */
         fun calculate(
             balances: List<Money>,
@@ -129,9 +125,8 @@ data class SafeToSpend(
             }
         }
 
-        /** Bills due today..[periodEnd], and overdue card bills: those are still owed. */
         fun billsInWindow(bills: List<Bill>, today: LocalDate, periodEnd: LocalDate): List<Bill> =
-            bills.filter { (it.isCardBill || !it.dueDate.isBefore(today)) && !it.dueDate.isAfter(periodEnd) }
+            bills.filter { !it.dueDate.isBefore(today) && !it.dueDate.isAfter(periodEnd) }
 
         /**
          * Bills from active expense subscriptions (EMIs tracked as subscriptions

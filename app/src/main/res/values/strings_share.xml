@@ -1,0 +1,127 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Share studio: the screen -->
+    <string name="share_studio_title">Share</string>
+    <string name="share_studio_back">Back</string>
+    <string name="share_studio_share">Share image</string>
+    <string name="share_studio_failed">Couldn\'t share the image. Try again.</string>
+    <string name="share_studio_section_card">Card</string>
+    <string name="share_studio_section_period">Period</string>
+    <string name="share_studio_section_goal">Goal</string>
+    <string name="share_studio_section_currency">Currency</string>
+    <string name="share_studio_section_details">On the card</string>
+    <string name="share_studio_section_style">Style</string>
+    <string name="share_studio_footnote">The image is made on your phone. Only what the preview shows is shared, and only with the app you pick.</string>
+    <string name="share_studio_preview_description">Preview of the card to share</string>
+    <string name="share_studio_hidden">Amounts are hidden. The card shows what you choose below.</string>
+    <string name="share_studio_hidden_reveal">Show preview</string>
+
+    <string name="share_kind_recap">Recap</string>
+    <string name="share_kind_spending">Spending change</string>
+    <string name="share_kind_savings">Savings rate</string>
+    <string name="share_kind_goal">Goal</string>
+    <string name="share_kind_budget">Budget</string>
+
+    <string name="share_detail_amounts">Amounts</string>
+    <string name="share_detail_amounts_hint">Exact money figures</string>
+    <string name="share_detail_percentages">Percentages</string>
+    <string name="share_detail_categories">Categories</string>
+    <string name="share_detail_categories_hint">Category names and their chart</string>
+    <string name="share_detail_chart">Chart</string>
+    <string name="share_detail_goal_name">Goal name</string>
+    <string name="share_detail_pace">Pace</string>
+    <string name="share_detail_period">Period</string>
+    <string name="share_detail_due_date">Due date</string>
+    <string name="share_detail_need_figure">This card needs amounts or percentages</string>
+
+    <string name="share_theme_midnight">Midnight</string>
+    <string name="share_theme_aurora">Aurora</string>
+    <string name="share_theme_paper">Paper</string>
+
+    <string name="share_unavailable_empty">Nothing was recorded in this period.</string>
+    <string name="share_unavailable_compare">There\'s no earlier period with enough records to compare with.</string>
+    <string name="share_unavailable_income">No income was recorded in this currency for this period.</string>
+    <string name="share_unavailable_overspent">Spending was more than 100 times income in this currency, so a savings rate wouldn\'t mean much.</string>
+    <string name="share_unavailable_goals">You don\'t have any goals yet.</string>
+    <string name="share_unavailable_budget">No spending limits were set for this month.</string>
+
+    <!-- Share studio: text drawn on the card -->
+    <string name="share_card_tagline">Tracked privately on my phone</string>
+    <!-- %1$d = a whole percent -->
+    <string name="share_percent">%1$d%%</string>
+    <!-- Percentage points. %1$s = a signed whole number, e.g. "+6" -->
+    <string name="share_card_points">%1$s pts</string>
+    <!-- Joins two category names -->
+    <string name="share_list_separator">", "</string>
+
+    <string name="share_card_stat_spent">Spent</string>
+    <string name="share_card_stat_income">Income</string>
+    <string name="share_card_stat_change">Change</string>
+    <string name="share_card_stat_before">Before</string>
+    <string name="share_card_stat_saved">Saved</string>
+    <string name="share_card_stat_pace">Pace</string>
+    <string name="share_card_stat_left">Left</string>
+    <string name="share_card_stat_over">Over by</string>
+    <string name="share_card_stat_kept">Limits kept</string>
+    <!-- %1$d = limits kept, %2$d = all limits -->
+    <string name="share_card_kept">%1$d of %2$d</string>
+
+    <string name="share_card_recap_title_week">My week, tracked</string>
+    <string name="share_card_recap_title_month">My month, tracked</string>
+    <string name="share_card_recap_title_year">My year, tracked</string>
+    <plurals name="share_card_recap_hero">
+        <item quantity="one">transaction tracked</item>
+        <item quantity="other">transactions tracked</item>
+    </plurals>
+
+    <string name="share_card_spending_title">My spending</string>
+    <!-- %1$s = what it is compared with: "September", "the week before" -->
+    <string name="share_card_spending_more">more than %1$s</string>
+    <string name="share_card_spending_less">less than %1$s</string>
+    <string name="share_card_spending_same">the same as %1$s</string>
+    <!-- %1$s = one or two category names -->
+    <string name="share_card_spending_drivers">Biggest changes: %1$s</string>
+    <!-- A category with nothing in the previous period -->
+    <string name="share_card_category_new">New</string>
+
+    <string name="share_card_savings_title">My savings rate</string>
+    <string name="share_card_savings_hero">of income saved</string>
+    <string name="share_card_savings_hero_amount">saved from income</string>
+    <string name="share_card_savings_negative">spent beyond income</string>
+    <!-- %1$s = the previous period: "September", "the week before", "2025" -->
+    <string name="share_card_savings_up">Up from %1$s</string>
+    <string name="share_card_savings_down">Down from %1$s</string>
+    <string name="share_card_savings_same">The same as %1$s</string>
+
+    <string name="share_card_goal_title">My savings goal</string>
+    <string name="share_card_goal_saved">saved</string>
+    <!-- %1$s = the goal's target amount -->
+    <string name="share_card_goal_of">of %1$s</string>
+    <!-- %1$s = month and year, e.g. "Mar 2027" -->
+    <string name="share_card_goal_due">By %1$s</string>
+    <string name="share_card_pace_reached">Reached</string>
+    <string name="share_card_pace_missed">Past its date</string>
+    <string name="share_card_pace_behind">Behind pace</string>
+    <string name="share_card_pace_on_track">On track</string>
+    <!-- %1$s = amount -->
+    <string name="share_card_pace_behind_by">Behind by %1$s</string>
+    <!-- %1$s = amount -->
+    <string name="share_card_pace_per_month">%1$s a month</string>
+
+    <string name="share_card_budget_title">My budget</string>
+    <string name="share_card_budget_under">Within the total limit</string>
+    <string name="share_card_budget_over">Over the total limit</string>
+    <string name="share_card_budget_used">of the limit used</string>
+    <!-- %1$s = the limit amount -->
+    <string name="share_card_budget_used_of">of %1$s used</string>
+    <!-- %1$s = the limit amount -->
+    <string name="share_card_budget_spent_of">spent of %1$s</string>
+
+    <!-- The message sent with the image, in the sharer's voice. It never carries a figure:
+         those stay on the image, where the user chose them. %1$s = the app's website -->
+    <string name="share_text_recap">My recap, from PennyWise. It tracks spending from bank SMS on the phone itself. https://%1$s</string>
+    <string name="share_text_spending">How my spending changed, from PennyWise. It tracks spending from bank SMS on the phone itself. https://%1$s</string>
+    <string name="share_text_savings">My savings rate, from PennyWise. It tracks spending from bank SMS on the phone itself. https://%1$s</string>
+    <string name="share_text_goal">My goal so far, from PennyWise. It tracks spending from bank SMS on the phone itself. https://%1$s</string>
+    <string name="share_text_budget">How my budget went, from PennyWise. It tracks spending from bank SMS on the phone itself. https://%1$s</string>
+</resources>

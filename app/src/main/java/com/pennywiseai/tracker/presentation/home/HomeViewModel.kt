@@ -46,7 +46,6 @@ import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.domain.review.ReviewPrompt
 import com.pennywiseai.tracker.domain.review.reviewPromptFor
 import com.pennywiseai.tracker.domain.spending.Bill
-import com.pennywiseai.tracker.domain.spending.CardBillsLoader
 import com.pennywiseai.tracker.domain.spending.SafeToSpend
 import com.pennywiseai.tracker.domain.spending.SpendForecast
 import com.pennywiseai.tracker.domain.spending.SubscriptionCost
@@ -118,7 +117,6 @@ class HomeViewModel @Inject constructor(
     private val recurringSuggestionsUseCase: com.pennywiseai.tracker.domain.usecase.RecurringSuggestionsUseCase,
     private val ignoredAccountsStore: IgnoredAccountsStore,
     private val cardRepository: CardRepository,
-    private val cardBillsLoader: CardBillsLoader,
 ) : ViewModel() {
 
     /**
@@ -169,6 +167,12 @@ class HomeViewModel @Inject constructor(
     fun moveHomeSection(section: HomeSection, delta: Int) {
         viewModelScope.launch {
             userPreferencesRepository.updateHomeSectionLayout { HomeSectionLayout.move(it, section, delta) }
+        }
+    }
+
+    fun reorderHomeSections(order: List<HomeSection>) {
+        viewModelScope.launch {
+            userPreferencesRepository.updateHomeSectionLayout { HomeSectionLayout.reorder(it, order) }
         }
     }
 
@@ -238,9 +242,6 @@ class HomeViewModel @Inject constructor(
 
     // Visible spendable accounts in their own currency (not pre-converted), for Safe to spend.
     private val spendableRaw = MutableStateFlow<List<AccountBalanceEntity>>(emptyList())
-
-    /** The credit cards Home shows, in their own currencies: Safe to spend sets their bills aside. */
-    private val cardsRaw = MutableStateFlow<List<AccountBalanceEntity>>(emptyList())
 
     // Today's date as a flow, so day-based figures move on when Home is resumed on a new day.
     private val today = MutableStateFlow(LocalDate.now())
@@ -325,30 +326,15 @@ class HomeViewModel @Inject constructor(
     }
 
     /**
-     * Where each card Home shows stands with its bill, and what to set aside for it in
-     * this cycle ([com.pennywiseai.tracker.domain.spending.CardBills.reserve]).
-     */
-    private val cardBills = combine(
-        cardsRaw,
-        _currentCycleWindow,
-        today,
-        userPreferencesRepository.countCreditCardAsExpense,
-        ::Quad,
-    ).distinctUntilChanged()
-        .flatMapLatest { (cards, window, day, counted) -> cardBillsLoader.observeReserves(cards, day, window.first, counted) }
-
-    /**
      * Home's "Safe to spend": visible spendable accounts (minus the ones the user left
-     * out) less active subscriptions due before the cycle ends and the card bills
-     * still to pay by then (overdue ones too, less the purchases this cycle's
-     * spending already counts), capped at what's left in the overall budget
-     * ([safeToSpendCap]). Netted per currency;
+     * out) less active subscriptions due before the cycle ends, capped at what's left
+     * in the overall budget ([safeToSpendCap]). Netted per currency;
      * in unified mode each figure is converted to the display currency first, and one
      * with no rate stays in its own currency as a separate line. Null hides the card.
      */
     val safeToSpend: StateFlow<SafeToSpendUi?> = combine(
         spendableRaw,
-        combine(subscriptionRepository.getActiveSubscriptions(), cardBills, ::Pair),
+        subscriptionRepository.getActiveSubscriptions(),
         userPreferencesRepository.safeToSpendExcludedAccounts,
         combine(
             _currentCycleWindow,
@@ -361,17 +347,13 @@ class HomeViewModel @Inject constructor(
             _uiState.map { it.selectedCurrency }.distinctUntilChanged(),
             currencyConversionService.getAllRatesFlow(),
         ) { unified, display, selected, _ -> if (unified) display to true else selected to false },
-    ) { accounts, (subscriptions, cards), excluded, (periodEnd, today, budgetLeft), (primaryCurrency, unified) ->
+    ) { accounts, subscriptions, excluded, (periodEnd, today, budgetLeft), (primaryCurrency, unified) ->
         if (accounts.isEmpty()) return@combine null
         suspend fun Money.forTotal(): Money =
             if (!unified || currency == primaryCurrency) this
             else currencyConversionService.convertAmountOrNull(amount, currency, primaryCurrency)
                 ?.let { Money(it, primaryCurrency) } ?: this // no rate: keep it apart (#670)
-        // A bill this cycle's spending already covers in full has nothing left to set aside.
-        val cardBills = cards.filter { it.amount.signum() > 0 }.mapNotNull { (status, amount) ->
-            status.bill?.let { Bill(it.label, Money(amount, it.currency), it.dueDate, isCardBill = true) }
-        }
-        val bills = SafeToSpend.billsInWindow(SafeToSpend.billsFrom(subscriptions) + cardBills, today, periodEnd)
+        val bills = SafeToSpend.billsInWindow(SafeToSpend.billsFrom(subscriptions), today, periodEnd)
         val results = SafeToSpend.calculate(
             balances = countedInSafeToSpend(accounts, excluded).map { Money(it.balance, it.currency).forTotal() },
             bills = bills.map { it.copy(amount = it.amount.forTotal()) },
@@ -381,10 +363,7 @@ class HomeViewModel @Inject constructor(
         )
         val primary = results.firstOrNull { it.currency == primaryCurrency }
             ?: SafeToSpend.calculate(listOf(Money.zero(primaryCurrency)), emptyList(), today, periodEnd).single()
-        SafeToSpendUi(
-            primary, results - primary, periodEnd, accounts, excluded, bills,
-            cardsNeedingBill = cards.map { it.status }.filter { it.needsBill }.map { it.card },
-        )
+        SafeToSpendUi(primary, results - primary, periodEnd, accounts, excluded, bills)
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 
     /**
@@ -619,7 +598,6 @@ class HomeViewModel @Inject constructor(
                 val rawRegularAccounts = spendableAccounts(balances)
                 spendableRaw.value = rawRegularAccounts
                 val rawCreditCards = balances.filter { it.isCreditCard }
-                cardsRaw.value = rawCreditCards
 
                 // Check if we have multiple currencies and refresh exchange rates if needed
                 val accountCurrencies = rawRegularAccounts.map { it.currency }.distinct()
@@ -1090,7 +1068,6 @@ class HomeViewModel @Inject constructor(
             val rawRegularAccounts = spendableAccounts(visibleBalances)
             spendableRaw.value = rawRegularAccounts
             val rawCreditCards = visibleBalances.filter { it.isCreditCard }
-            cardsRaw.value = rawCreditCards
 
             val selectedCurrency = _uiState.value.selectedCurrency
             val isUnified = _uiState.value.isUnifiedMode
@@ -1263,7 +1240,6 @@ class HomeViewModel @Inject constructor(
             val rawRegularAccounts = spendableAccounts(balances)
             spendableRaw.value = rawRegularAccounts
             val rawCreditCards = balances.filter { it.isCreditCard }
-            cardsRaw.value = rawCreditCards
 
             val accountCurrencies = rawRegularAccounts.map { it.currency }.distinct()
             val creditCardCurrencies = rawCreditCards.map { it.currency }.distinct()
@@ -1792,10 +1768,8 @@ data class SafeToSpendUi(
     /** Every visible spendable account, each in its own currency. */
     val accounts: List<AccountBalanceEntity>,
     val excludedKeys: Set<String>,
-    /** Bills due today..[periodEnd] and overdue card bills, each in its own currency. */
+    /** Bills due today..[periodEnd], each in its own currency. */
     val bills: List<Bill>,
-    /** Cards whose bill Safe to spend can't set aside yet: their due day or amount is missing. */
-    val cardsNeedingBill: List<AccountBalanceEntity> = emptyList(),
 )
 
 data class LoanSummary(

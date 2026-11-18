@@ -23,7 +23,7 @@ class InsightsUiStateTest {
     private val range = reviewRange(ReviewKind.MONTH, 0, LocalDate.parse("2026-11-20"), 1, DayOfWeek.MONDAY)
 
     private fun currency(code: String, count: Int) =
-        CurrencyReview(code, BigDecimal.TEN, null, BigDecimal.ZERO, count, emptyList(), emptyList())
+        CurrencyReview(code, BigDecimal.TEN, null, BigDecimal.ZERO, count, emptyList(), months = emptyList())
 
     private fun insight(id: String, currency: String) =
         Insight(id, InsightSeverity.GOOD, currency, InsightFact.BudgetsOnTrack(1), null)

@@ -285,7 +285,9 @@ class BudgetSummaryProvider @Inject constructor(
             daysRemaining = 0
         }
 
-        val categorySpending = if (group.categories.isEmpty()) emptyList() else {
+        // Every category row, so the fallback limit counts each one, spent in or not
+        // (as native mode and the carry do); the card lists only those with spending.
+        val allCategorySpending = if (group.categories.isEmpty()) emptyList() else {
             val (categoryAmounts, categoryLimitBoosts, typeAmounts) = com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending(
                 transactions = txsInDisplay,
                 convertSplit = convert,
@@ -319,8 +321,9 @@ class BudgetSummaryProvider @Inject constructor(
                     percentageUsed = pctUsed,
                     dailySpend = dailySpend
                 )
-            }.filter { it.actualAmount > BigDecimal.ZERO }.sortedByDescending { it.actualAmount }
+            }
         }
+        val categorySpending = allCategorySpending.filter { it.actualAmount > BigDecimal.ZERO }.sortedByDescending { it.actualAmount }
 
         val convertedTotalBudget = carry.appliedTo(
             if (group.budget.limitAmount > BigDecimal.ZERO) {
@@ -328,7 +331,7 @@ class BudgetSummaryProvider @Inject constructor(
                     group.budget.limitAmount, baseCurrency, displayCurrency
                 ) ?: BigDecimal.ZERO
             } else {
-                categorySpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
+                allCategorySpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
             }
         )
 

@@ -171,6 +171,23 @@ class BudgetRolloverRoutingTest {
     }
 
     @Test
+    fun `a budget made of category limits counts every one, spent in this week or not`() {
+        // No overall limit: Food 100 + Fuel 100. Last week 500 on Food carries the limit
+        // down to 0; nothing spent yet this week mustn't drop Fuel's 100 from the base.
+        val categoryOnly = budget().let { g ->
+            g.copy(
+                budget = g.budget.copy(limitAmount = BigDecimal.ZERO),
+                categories = g.categories + BudgetCategoryEntity(budgetId = 1, categoryName = "Fuel", budgetAmount = BigDecimal("100"))
+            )
+        }
+        val repo = repository(categoryOnly, listOf(spend("500", at = lastWeek)))
+        for (g in listOf(summary(repo, unified = false), summary(repo, unified = true), home(repo))) {
+            assertFigures(g, carry = "-200", limit = "0", remaining = "0")
+            assertTrue(g.hasLimit)
+        }
+    }
+
+    @Test
     fun `an overspend lowers this week's limit everywhere`() {
         val repo = repository(budget(), listOf(spend("130", at = lastWeek), spend("30")))
         assertFigures(summary(repo, unified = false), carry = "-30", limit = "70", remaining = "40")

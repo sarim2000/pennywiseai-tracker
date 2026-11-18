@@ -1,40 +1,38 @@
 package com.pennywiseai.tracker.data.database
 
 import androidx.room3.AutoMigration
+import androidx.room3.ColumnTypeConverters
 import androidx.room3.Database
 import androidx.room3.RoomDatabase
-import androidx.room3.ColumnTypeConverters
 import androidx.sqlite.driver.AndroidSQLiteDriver
 import com.pennywiseai.tracker.data.database.converter.Converters
 import com.pennywiseai.tracker.data.database.dao.AccountBalanceDao
-import com.pennywiseai.tracker.data.database.dao.ProfileDao
-import com.pennywiseai.tracker.data.database.dao.TagDao
 import com.pennywiseai.tracker.data.database.dao.BankNotificationDao
 import com.pennywiseai.tracker.data.database.dao.BudgetDao
+import com.pennywiseai.tracker.data.database.dao.BudgetSnapshotDao
 import com.pennywiseai.tracker.data.database.dao.CardDao
 import com.pennywiseai.tracker.data.database.dao.CategoryDao
 import com.pennywiseai.tracker.data.database.dao.ChatDao
 import com.pennywiseai.tracker.data.database.dao.ExchangeRateDao
+import com.pennywiseai.tracker.data.database.dao.GoalDao
 import com.pennywiseai.tracker.data.database.dao.LoanDao
-import com.pennywiseai.tracker.data.database.dao.MerchantMappingDao
 import com.pennywiseai.tracker.data.database.dao.MerchantAliasDao
-import com.pennywiseai.tracker.data.database.dao.BudgetSnapshotDao
-import com.pennywiseai.tracker.data.database.dao.TransactionGroupDao
-import com.pennywiseai.tracker.data.database.dao.RuleApplicationDao
+import com.pennywiseai.tracker.data.database.dao.MerchantMappingDao
+import com.pennywiseai.tracker.data.database.dao.ProfileDao
 import com.pennywiseai.tracker.data.database.dao.RecurringTransactionDao
+import com.pennywiseai.tracker.data.database.dao.RuleApplicationDao
 import com.pennywiseai.tracker.data.database.dao.RuleDao
 import com.pennywiseai.tracker.data.database.dao.SubscriptionDao
+import com.pennywiseai.tracker.data.database.dao.TagDao
 import com.pennywiseai.tracker.data.database.dao.TransactionDao
+import com.pennywiseai.tracker.data.database.dao.TransactionGroupDao
 import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.dao.UnrecognizedSmsDao
-import com.pennywiseai.tracker.data.database.dao.GoalDao
-import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
-import com.pennywiseai.tracker.data.database.entity.GoalEntity
-import com.pennywiseai.tracker.data.database.entity.LoanShareEntity
+import com.pennywiseai.tracker.data.database.dao.WebhookCursorDao
+import com.pennywiseai.tracker.data.database.dao.WebhookDeliveredTransactionDao
+import com.pennywiseai.tracker.data.database.dao.WebhookLogDao
+import com.pennywiseai.tracker.data.database.dao.WebhookProfileDao
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
-import com.pennywiseai.tracker.data.database.entity.ProfileEntity
-import com.pennywiseai.tracker.data.database.entity.TagEntity
-import com.pennywiseai.tracker.data.database.entity.TransactionTagCrossRef
 import com.pennywiseai.tracker.data.database.entity.BankNotificationEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetCategoryEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetCategoryMonthSnapshotEntity
@@ -44,25 +42,27 @@ import com.pennywiseai.tracker.data.database.entity.CardEntity
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.ChatMessage
 import com.pennywiseai.tracker.data.database.entity.ExchangeRateEntity
+import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
+import com.pennywiseai.tracker.data.database.entity.GoalEntity
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
-import com.pennywiseai.tracker.data.database.entity.MerchantMappingEntity
+import com.pennywiseai.tracker.data.database.entity.LoanShareEntity
 import com.pennywiseai.tracker.data.database.entity.MerchantAliasEntity
-import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
+import com.pennywiseai.tracker.data.database.entity.MerchantMappingEntity
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.RecurringTransactionEntity
-import com.pennywiseai.tracker.data.database.entity.WebhookProfileEntity
-import com.pennywiseai.tracker.data.database.entity.WebhookLogEntity
-import com.pennywiseai.tracker.data.database.entity.WebhookDeliveredTransactionEntity
-import com.pennywiseai.tracker.data.database.entity.WebhookCursorEntity
-import com.pennywiseai.tracker.data.database.dao.WebhookProfileDao
-import com.pennywiseai.tracker.data.database.dao.WebhookLogDao
-import com.pennywiseai.tracker.data.database.dao.WebhookDeliveredTransactionDao
-import com.pennywiseai.tracker.data.database.dao.WebhookCursorDao
 import com.pennywiseai.tracker.data.database.entity.RuleApplicationEntity
 import com.pennywiseai.tracker.data.database.entity.RuleEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
+import com.pennywiseai.tracker.data.database.entity.TagEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionTagCrossRef
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
+import com.pennywiseai.tracker.data.database.entity.WebhookCursorEntity
+import com.pennywiseai.tracker.data.database.entity.WebhookDeliveredTransactionEntity
+import com.pennywiseai.tracker.data.database.entity.WebhookLogEntity
+import com.pennywiseai.tracker.data.database.entity.WebhookProfileEntity
 
 /**
  * Current Room schema version for [PennyWiseDatabase]. Lives at top-level so
@@ -75,9 +75,9 @@ const val SCHEMA_VERSION = 69
 
 /**
  * The PennyWise Room database.
- * 
+ *
  * This database stores all financial transaction data locally on the device.
- * 
+ *
  * @property version Current database version. Increment this when making schema changes.
  * @property entities List of all entities (tables) in the database.
  * @property exportSchema Set to true in production to export schema for version control.

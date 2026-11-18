@@ -2,8 +2,8 @@ package com.pennywiseai.tracker.data.backup
 
 import com.pennywiseai.tracker.data.database.SCHEMA_VERSION
 import com.pennywiseai.tracker.data.database.entity.*
-import kotlinx.serialization.decodeFromString
 import com.pennywiseai.tracker.data.database.entity.builtinKey
+import kotlinx.serialization.decodeFromString
 import kotlinx.serialization.encodeToString
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -48,7 +48,6 @@ class BackupModelsTest {
         val restored = backupJson.decodeFromString<TransactionEntity>(backupJson.encodeToString(leg))
         assertEquals("synthetic-pair", restored.transferPairId)
     }
-
 
     @Test
     fun backupSerializationRoundtripWithAllFields() {

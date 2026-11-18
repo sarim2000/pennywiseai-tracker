@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.ui.components
 
 import androidx.compose.material3.ColorScheme
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import com.pennywiseai.tracker.data.preferences.AccentColor
 import com.pennywiseai.tracker.data.preferences.CoverStyle
@@ -67,19 +68,29 @@ class CoverContrastTest {
     @Test
     fun aGradientThatAlreadyPasses_rendersExactlyAsBefore() {
         // Inserting a stop at the sRGB midpoint is a no-op for a linear brush, so wherever no
-        // stop needed nudging, the drawn gradient must be the original one.
-        var checked = 0
+        // stop needed nudging, the drawn gradient must be the original one, byte for byte.
+        // Which stops pass is decided from the input, independently of readableCoverStops.
+        var untouchedGradients = 0
         schemes.forEach { (name, scheme) ->
+            val inks = listOf(scheme.onBackground, scheme.onSurface, scheme.onSurfaceVariant)
+            fun reads(stop: Color): Boolean {
+                val drawn = stop.copy(alpha = COVER_ALPHA).compositeOver(scheme.background)
+                return inks.all { contrastRatio(it, drawn) >= COVER_TEXT_TARGET }
+            }
             CoverStyle.entries.filter { it != CoverStyle.NONE }.forEach { cover ->
                 val raw = getCoverGradientColors(cover, scheme.isDark)
                 val asDrawn = raw.zipWithNext { a, b -> listOf(a, srgbMidpoint(a, b)) }.flatten() + raw.last()
                 val result = scheme.readableCoverStops(cover)
-                val passedUntouched = result.zip(asDrawn).count { (r, d) -> r == d }
-                if (passedUntouched == asDrawn.size) checked++
-                // Any stop that changed must have been one that failed: unchanged ones match exactly.
                 assertEquals("$name/$cover", asDrawn.size, result.size)
+                asDrawn.zip(result).forEachIndexed { i, (before, after) ->
+                    if (reads(before)) assertEquals("$name/$cover stop $i already passed", before, after)
+                }
+                if (asDrawn.all(::reads)) {
+                    assertEquals("$name/$cover already passed", asDrawn, result)
+                    untouchedGradients++
+                }
             }
         }
-        assertTrue("some theme x cover should pass untouched", checked > 0)
+        assertTrue("some theme x cover should pass untouched", untouchedGradients > 0)
     }
 }

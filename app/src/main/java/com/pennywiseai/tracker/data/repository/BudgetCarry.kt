@@ -100,12 +100,15 @@ internal suspend fun budgetSpend(
 ): BudgetSpend {
     val counted = transactions.forTotals()
     if (group.categories.isEmpty()) {
-        // Parents aren't credited here: every row is summed once.
+        // Credited to parents so a refund filed under a parent comes off its
+        // sub-categories' spending; only top-level categories are summed, so each
+        // row counts once.
         val all = aggregateBudgetCategorySpending(
-            counted, convertSplit = convert, convertIncome = { convert(it.currency, it.amount) }
+            counted, convertSplit = convert, convertIncome = { convert(it.currency, it.amount) }, parentOf = parentOf
         )
+        val topLevel = all.categoryAmounts.filterKeys { it !in parentOf }.values
         return BudgetSpend(
-            (all.categoryAmounts.values + all.typeAmounts.values).fold(BigDecimal.ZERO, BigDecimal::add),
+            (topLevel + all.typeAmounts.values).fold(BigDecimal.ZERO, BigDecimal::add),
             all.skippedCategories.isNotEmpty() || all.skippedTypes.isNotEmpty()
         )
     }

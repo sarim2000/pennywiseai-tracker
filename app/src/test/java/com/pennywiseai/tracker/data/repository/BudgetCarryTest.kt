@@ -70,6 +70,14 @@ class BudgetCarryTest {
     }
 
     @Test
+    fun `a refund filed under a parent comes off a track-all budget's spend once`() {
+        // 80 on Groceries, a 30 refund filed under its parent Food: 50 spent of 100.
+        val previous = listOf(tx("80", category = "Groceries"), tx("30", category = "Food", type = TransactionType.INCOME, refundOf = "Food"))
+        val c = carry(group("100"), previous, parentOf = mapOf("Groceries" to "Food"))
+        assertEquals(Money(BigDecimal("50"), "JOD"), c.amount)
+    }
+
+    @Test
     fun `no source period carries nothing`() {
         assertEquals(BudgetCarry.none("JOD"), carry(group("100"), null))
     }

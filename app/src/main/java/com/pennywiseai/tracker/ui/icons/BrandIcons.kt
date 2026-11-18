@@ -128,6 +128,8 @@ object BrandIcons {
         "rbl bank" to R.drawable.ic_brand_rbl_bank,
         "redbus" to R.drawable.ic_brand_redbus,
         "sbi" to R.drawable.ic_brand_sbi,
+        // Full names: the longest-key match otherwise picks "bank of india" (BOI).
+        "state bank of india" to R.drawable.ic_brand_sbi,
         "sbi life" to R.drawable.ic_brand_sbi_life,
         "shopclues" to R.drawable.ic_brand_shopclues,
         "simpl" to R.drawable.ic_brand_simpl,
@@ -156,6 +158,7 @@ object BrandIcons {
         "udemy" to R.drawable.ic_brand_udemy,
         "unacademy" to R.drawable.ic_brand_unacademy,
         "union bank" to R.drawable.ic_brand_union_bank,
+        "union bank of india" to R.drawable.ic_brand_union_bank,
         "upgrad" to R.drawable.ic_brand_upgrad,
         "upstox" to R.drawable.ic_brand_upstox,
         "urban company" to R.drawable.ic_brand_urban_company,
@@ -251,7 +254,7 @@ object BrandIcons {
         "glomark" to R.drawable.ic_brand_glomark,
         "keells" to R.drawable.ic_brand_keells,
     )
-    
+
     // Both lookups scan every brand key and depend only on the name, and a list runs them
     // for each row it composes. Sentinels stand for "no match": LruCache holds no nulls.
     private val iconCache = android.util.LruCache<String, Int>(512)
@@ -303,7 +306,7 @@ object BrandIcons {
         }
         return false
     }
-    
+
     private fun findBrandColor(merchantName: String): String? = when {
         // Entertainment
         merchantName.contains("netflix", ignoreCase = true) -> "#E50914"
@@ -313,7 +316,7 @@ object BrandIcons {
         merchantName.contains("sony", ignoreCase = true) -> "#000000"
         merchantName.contains("zee", ignoreCase = true) -> "#6C2E91"
         merchantName.contains("voot", ignoreCase = true) -> "#E5007E"
-        
+
         // Food
         merchantName.contains("swiggy", ignoreCase = true) -> "#FC8019"
         merchantName.contains("zomato", ignoreCase = true) -> "#E23744"
@@ -323,7 +326,7 @@ object BrandIcons {
         merchantName.contains("mcdonalds", ignoreCase = true) -> "#FFC600"
         merchantName.contains("kfc", ignoreCase = true) -> "#F40027"
         merchantName.contains("starbucks", ignoreCase = true) -> "#00704A"
-        
+
         // Banks
         merchantName.contains("hdfc", ignoreCase = true) -> "#004C8F"
         merchantName.contains("icici", ignoreCase = true) -> "#F37021"
@@ -334,21 +337,21 @@ object BrandIcons {
         merchantName.contains("idfc", ignoreCase = true) -> "#8B0000"
         merchantName.contains("indusind", ignoreCase = true) -> "#98272B"
         merchantName.contains("pnb", ignoreCase = true) -> "#0E2B5C"
-        
+
         // Payments
         merchantName.contains("paytm", ignoreCase = true) -> "#00B9F1"
         merchantName.contains("phonepe", ignoreCase = true) -> "#5F259F"
         merchantName.contains("google pay", ignoreCase = true) -> "#4285F4"
         merchantName.contains("cred", ignoreCase = true) -> "#000000"
         merchantName.contains("amazon pay", ignoreCase = true) -> "#FF9900"
-        
+
         // Telecom
         merchantName.contains("airtel", ignoreCase = true) -> "#E52E2D"
         merchantName.contains("jio", ignoreCase = true) -> "#2A3890"
         merchantName.contains("vodafone", ignoreCase = true) -> "#E60000"
         merchantName.contains("idea", ignoreCase = true) -> "#FDD922"
         merchantName.contains("bsnl", ignoreCase = true) -> "#0078BF"
-        
+
         // Shopping
         merchantName.contains("amazon", ignoreCase = true) -> "#FF9900"
         merchantName.contains("flipkart", ignoreCase = true) -> "#027CD5"
@@ -356,26 +359,26 @@ object BrandIcons {
         merchantName.contains("ajio", ignoreCase = true) -> "#2C4152"
         merchantName.contains("nykaa", ignoreCase = true) -> "#FC2779"
         merchantName.contains("meesho", ignoreCase = true) -> "#F43397"
-        
+
         // Transportation
         merchantName.contains("uber", ignoreCase = true) -> "#000000"
         merchantName.contains("ola", ignoreCase = true) -> "#93CE25"
         merchantName.contains("rapido", ignoreCase = true) -> "#FFC800"
         merchantName.contains("irctc", ignoreCase = true) -> "#FB792B"
-        
+
         // Investment
         merchantName.contains("groww", ignoreCase = true) -> "#00D09C"
         merchantName.contains("zerodha", ignoreCase = true) -> "#387ED1"
         merchantName.contains("upstox", ignoreCase = true) -> "#5E72E4"
         merchantName.contains("angel", ignoreCase = true) -> "#5B2D90"
-        
+
         // Healthcare
         merchantName.contains("1mg", ignoreCase = true) -> "#FC574E"
         merchantName.contains("pharmeasy", ignoreCase = true) -> "#10847E"
         merchantName.contains("netmeds", ignoreCase = true) -> "#24AEB1"
         merchantName.contains("apollo", ignoreCase = true) -> "#0066B3"
         merchantName.contains("practo", ignoreCase = true) -> "#1EBEA5"
-        
+
         // Fitness
         merchantName.contains("cult", ignoreCase = true) -> "#FF3278"
         merchantName.contains("gym", ignoreCase = true) -> "#F15B2A"

@@ -495,6 +495,22 @@ class AiContextRepositoryTest {
     }
 
     @Test
+    fun `two accounts with the same name rank apart, told apart by bank and digits`() = runBlocking {
+        for (digits in listOf("1234", "5678")) {
+            accounts += AccountBalanceEntity(bankName = "Bank", accountLast4 = digits, balance = BigDecimal.ZERO, timestamp = today.atStartOfDay(), alias = "Daily")
+        }
+        accounts += AccountBalanceEntity(bankName = "Bank", accountLast4 = "9999", balance = BigDecimal.ZERO, timestamp = today.atStartOfDay(), alias = "Card")
+        tx("300", account = "1234")
+        tx("200", account = "5678")
+        tx("100", account = "9999")
+        val byAccount = repository.topCategories(today, by = SpendingQuery.GroupBy.ACCOUNT)
+        assertEquals(
+            listOf("Bank ••1234" to "300", "Bank ••5678" to "200", "Card" to "100"),
+            byAccount.ranking.getValue("INR").map { it.first to it.second.toPlainString() }
+        )
+    }
+
+    @Test
     fun `merchants and accounts rank per currency, refunds off their own, named as the user knows them`() = runBlocking {
         forgiven = mapOf("INR" to BigDecimal("400"))
         aliases["AMZN MKTP IN"] = "Amazon"

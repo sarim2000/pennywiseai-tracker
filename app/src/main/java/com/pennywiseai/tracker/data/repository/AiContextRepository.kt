@@ -206,16 +206,33 @@ class AiContextRepository @Inject constructor(
         val credit = creditAsExpense(filter, byAccount = by == SpendingQuery.GroupBy.ACCOUNT)
         val key: ((TransactionEntity) -> String)? = when (by) {
             SpendingQuery.GroupBy.MERCHANT -> aliases().let { aliases -> { tx: TransactionEntity -> aliases[tx.merchantName] ?: tx.merchantName } }
-            SpendingQuery.GroupBy.ACCOUNT -> accountBalanceDao.getAllLatestBalancesOnce().associateBy { SpendingFilter.accountKey(it) }.let { accounts ->
-                { tx: TransactionEntity -> accounts[SpendingFilter.accountKey(tx)]?.displayLabel ?: tx.bankName?.let { AccountBalanceEntity.accountLabel(it, tx.accountNumber) } ?: NO_ACCOUNT }
-            }
+            // By the account itself: two accounts aliased alike are still two (see [accountLabels]).
+            SpendingQuery.GroupBy.ACCOUNT -> { tx: TransactionEntity -> if (tx.bankName == null) NO_ACCOUNT else SpendingFilter.accountKey(tx) }
             else -> null
         }
         val names = category?.let { categoriesNamed(it) }
         val ranking = SpendingComparison.ranking(rows, key, names, creditAsExpense = credit)
+            .let { if (by == SpendingQuery.GroupBy.ACCOUNT) accountLabels(it, rows) else it }
         val top = ranking.mapValues { (_, cats) -> cats.first().second }
         val forgiven = if (key == null && category == null && !filter.narrowed) forgiven(scope) else emptyMap()
         return TopCategories(scope.chat, ranking, forgiven, shareOfSpending(rows, credit, top))
+    }
+
+    /**
+     * A ranking by account key, named as the user knows each account: its alias, or bank and
+     * digits. Two accounts ranked under the same name are told apart by bank and digits.
+     */
+    private suspend fun accountLabels(
+        ranking: Map<String, List<Pair<String, BigDecimal>>>,
+        rows: List<TransactionWithSplits>,
+    ): Map<String, List<Pair<String, BigDecimal>>> {
+        val accounts = accountBalanceDao.getAllLatestBalancesOnce().associateBy { SpendingFilter.accountKey(it) }
+        val plain = rows.map { it.transaction }.mapNotNull { tx -> tx.bankName?.let { SpendingFilter.accountKey(tx) to AccountBalanceEntity.accountLabel(it, tx.accountNumber) } }.toMap()
+        val label = plain.mapValues { (key, bankAndDigits) -> accounts[key]?.displayLabel ?: bankAndDigits }
+        val ranked = ranking.values.flatten().map { it.first }.toSet()
+        val shared = ranked.mapNotNull { label[it] }.groupingBy { it }.eachCount().filterValues { it > 1 }.keys
+        fun name(key: String) = label[key]?.let { if (it in shared) plain.getValue(key) else it } ?: key
+        return ranking.mapValues { (_, list) -> list.map { (key, amount) -> name(key) to amount } }
     }
 
     /**

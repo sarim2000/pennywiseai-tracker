@@ -41,10 +41,12 @@ class UpcomingPaymentsLoader @Inject constructor(
     ) { accounts, keys, linkedCards, profileId ->
         Triple(accounts, IgnoredAccountsStore.withLinkedCards(keys, linkedCards, accounts), profileId)
     }.flatMapLatest { (accounts, ignored, profileId) ->
-        val byKey = accounts.associateBy { it.bankName.lowercase() to it.accountLast4 }
+        // Matched exactly, as a transaction's profile and ignored keys are, so a subscription
+        // is never hidden from the profile it's counted in.
+        val byKey = accounts.associateBy { it.bankName to it.accountLast4 }
         fun excluded(bank: String?, last4: String?): Boolean {
             if (IgnoredAccountsStore.isIgnored(ignored, bank, last4)) return true
-            val account = if (bank == null || last4 == null) null else byKey[bank.lowercase() to last4]
+            val account = if (bank == null || last4 == null) null else byKey[bank to last4]
             return profileId != null && account != null && account.profileId != profileId
         }
         val profileKeys = buildProfileAccountKeys(accounts)

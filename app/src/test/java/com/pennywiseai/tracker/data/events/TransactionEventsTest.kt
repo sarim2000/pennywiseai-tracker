@@ -3,14 +3,12 @@ package com.pennywiseai.tracker.data.events
 import com.lemonappdev.konsist.api.Konsist
 import com.pennywiseai.tracker.core.AppForegroundState
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.utils.Money
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.launch
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
-import java.math.BigDecimal
 
 class TransactionEventsTest {
     private var foreground = true
@@ -28,22 +26,6 @@ class TransactionEventsTest {
         events.onSaved(TransactionType.INCOME, TransactionOrigin.MANUAL)
         stop()
         assertEquals(listOf(TransactionEvent(TransactionType.INCOME, 1, TransactionOrigin.MANUAL)), heard)
-    }
-
-    @Test
-    fun `a single save carries its amount, a batch none`() {
-        val money = Money(BigDecimal("12.50"), "EUR")
-        val (heard, stop) = listen()
-        events.onSaved(TransactionType.EXPENSE, TransactionOrigin.MANUAL, money = money)
-        events.onSaved(TransactionType.EXPENSE, TransactionOrigin.CHAT, count = 3, money = money)
-        stop()
-        assertEquals(
-            listOf(
-                TransactionEvent(TransactionType.EXPENSE, 1, TransactionOrigin.MANUAL, money),
-                TransactionEvent(TransactionType.EXPENSE, 3, TransactionOrigin.CHAT),
-            ),
-            heard,
-        )
     }
 
     @Test

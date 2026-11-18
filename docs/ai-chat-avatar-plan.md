@@ -59,7 +59,6 @@ Agreed with Codex (`gpt-6.1-sol`, high) over two rounds. Its objections that we 
   - The preview has a "Muted tab" toggle for comparing the two.
 - **At 24/32dp:** a two-tone silhouette only, with the eyes cut in the colour behind it. No mask, iris, coin or receipt lines **(Codex)**. The one mark is an arrival's: the receipt's check, cut out like the eyes.
 - **Coming back to the bar:** the bar returns from under a pushed screen (Add) already holding the save's reaction. The owl shows for a beat (350ms) and then turns, so the change is seen rather than already done.
-- **Amount chip (2026-11-17):** while a single save's reaction holds, a small pill above the Chat slot shows what was saved: `+` in the income colour, `-` in the spending colour, transfers and investments unsigned. It formats with `CurrencyFormatter` (so it shows `••••` while amounts are hidden), takes no touches and is silent to TalkBack. A batch (a chat card of several rows, a scan) shows none.
 - **Behaviour:** no poke, drag, haptic or separate focus target on the tab. The click goes to the parent. The accessible name stays the localized "Chat", and the drawing is decorative.
 - **Hidden tab:** if the user hid the Chat tab, the mascot runs no animation and queues nothing.
 - **RTL:** the artwork is symmetric and is not mirrored. Directional gaze is mirrored.

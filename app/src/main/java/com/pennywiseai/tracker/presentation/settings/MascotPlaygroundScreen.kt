@@ -47,12 +47,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
-import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.events.TransactionEvents
 import com.pennywiseai.tracker.data.events.TransactionOrigin
-import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.ui.animations.pwExpand
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
@@ -64,11 +62,7 @@ import com.pennywiseai.tracker.ui.components.mascot.MascotShape
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.tabular
-import com.pennywiseai.tracker.utils.Money
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.launch
-import java.math.BigDecimal
 import javax.inject.Inject
 import kotlin.math.roundToInt
 
@@ -76,22 +70,9 @@ import kotlin.math.roundToInt
 @HiltViewModel
 class MascotPlaygroundViewModel @Inject constructor(
     private val transactionEvents: TransactionEvents,
-    private val currencyPreferences: CurrencyPreferences,
 ) : ViewModel() {
-    /**
-     * What a manual add of [type] announces once it commits, with a sample amount in the
-     * base currency for the tab's chip. Nothing is written.
-     */
-    fun fire(type: TransactionType) {
-        viewModelScope.launch {
-            val money = Money(SAMPLE_AMOUNT, currencyPreferences.baseCurrency.first())
-            transactionEvents.onSaved(type, TransactionOrigin.MANUAL, money = money)
-        }
-    }
-
-    private companion object {
-        val SAMPLE_AMOUNT = BigDecimal("12.50")
-    }
+    /** What a manual add of [type] announces once it commits. Nothing is written. */
+    fun fire(type: TransactionType) = transactionEvents.onSaved(type, TransactionOrigin.MANUAL)
 }
 
 /**

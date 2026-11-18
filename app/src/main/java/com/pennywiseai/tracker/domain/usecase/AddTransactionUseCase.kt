@@ -14,7 +14,6 @@ import com.pennywiseai.tracker.data.model.TransactionDraft
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
-import com.pennywiseai.tracker.utils.Money
 import java.math.BigDecimal
 import java.security.MessageDigest
 import java.time.LocalDateTime
@@ -60,7 +59,7 @@ class AddTransactionUseCase @Inject constructor(
         receiptPath = receiptPath,
         budgetCategory = budgetCategory,
         budgetImpactType = budgetImpactType
-    ).also { if (it != -1L) transactionEvents.onSaved(type, TransactionOrigin.MANUAL, money = Money(amount, currency)) }
+    ).also { if (it != -1L) transactionEvents.onSaved(type, TransactionOrigin.MANUAL) }
 
     /** [execute] without the announcement, for [executeAll], whose caller announces the card once it commits. */
     private suspend fun insert(
@@ -252,9 +251,7 @@ class AddTransactionUseCase @Inject constructor(
             }
             transactionId
         }
-        if (transactionId != -1L) {
-            transactionEvents.onSaved(TransactionType.TRANSFER, TransactionOrigin.MANUAL, money = Money(amount, currency))
-        }
+        if (transactionId != -1L) transactionEvents.onSaved(TransactionType.TRANSFER, TransactionOrigin.MANUAL)
         return transactionId
     }
 

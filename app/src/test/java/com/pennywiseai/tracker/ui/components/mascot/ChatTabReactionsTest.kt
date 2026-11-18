@@ -5,7 +5,6 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.events.TransactionEvent
 import com.pennywiseai.tracker.data.events.TransactionEvents
 import com.pennywiseai.tracker.data.events.TransactionOrigin
-import com.pennywiseai.tracker.utils.Money
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.Flow
@@ -15,7 +14,6 @@ import kotlinx.coroutines.test.StandardTestDispatcher
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Test
-import java.math.BigDecimal
 
 /** Driven on a test dispatcher's clock rather than runTest, like the ViewModel tests. */
 @OptIn(ExperimentalCoroutinesApi::class)
@@ -25,8 +23,8 @@ class ChatTabReactionsTest {
     private val reactions = ChatTabReactions(scope)
     private val shown get() = reactions.shown.value
 
-    private fun save(type: TransactionType, money: Money? = null) {
-        reactions.onSave(TransactionEvent(type, 1, TransactionOrigin.MANUAL, money))
+    private fun save(type: TransactionType) {
+        reactions.onSave(TransactionEvent(type, 1, TransactionOrigin.MANUAL))
     }
 
     private fun runCurrent() = dispatcher.scheduler.runCurrent()
@@ -83,45 +81,6 @@ class ChatTabReactionsTest {
         advanceTimeBy(REACTION_HOLD_MS * 3)
         seen += shown
         assertEquals(listOf(reactionFor(TransactionType.EXPENSE), reactionFor(TransactionType.EXPENSE), null, null), seen)
-        job.cancel()
-    }
-
-    @Test
-    fun `a save's amount rides its reaction, and a burst keeps the first`() {
-        val job = start()
-        val spent = Money(BigDecimal("12.50"), "EUR")
-        save(TransactionType.EXPENSE, spent)
-        runCurrent()
-        val expected = reactionFor(TransactionType.EXPENSE).copy(amount = ReactionAmount(spent, TransactionType.EXPENSE))
-        assertEquals(expected, shown)
-
-        save(TransactionType.INCOME, Money(BigDecimal.TEN, "EUR"))
-        runCurrent()
-        assertEquals(expected, shown)
-        advanceTimeBy(REACTION_HOLD_MS + 1)
-        assertNull(shown)
-        job.cancel()
-    }
-
-    @Test
-    fun `a save with no amount, or a scan, shows no amount`() {
-        val scan = MutableStateFlow<SmsScanStatus>(SmsScanStatus.Idle)
-        val job = start(scan)
-        save(TransactionType.INCOME)
-        runCurrent()
-        assertNull(shown?.amount)
-        advanceTimeBy(REACTION_HOLD_MS + 1)
-
-        scan.value = SmsScanStatus.Running
-        runCurrent()
-        save(TransactionType.INCOME, Money(BigDecimal.TEN, "EUR"))
-        runCurrent()
-        assertEquals(SCANNING, shown)
-        assertNull(shown?.amount)
-        scan.value = SmsScanStatus.Finished(newRows = 1)
-        runCurrent()
-        assertEquals(SCANNED, shown)
-        assertNull(shown?.amount)
         job.cancel()
     }
 

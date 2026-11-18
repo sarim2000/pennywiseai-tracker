@@ -2,7 +2,6 @@ package com.pennywiseai.tracker.data.events
 
 import com.pennywiseai.tracker.core.AppForegroundState
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.utils.Money
 import kotlinx.coroutines.channels.BufferOverflow
 import kotlinx.coroutines.flow.MutableSharedFlow
 import kotlinx.coroutines.flow.SharedFlow
@@ -18,17 +17,8 @@ enum class TransactionOrigin {
     CHAT,
 }
 
-/**
- * [count] rows of [type] were just saved from [origin], and for a single row the [money] it
- * moved, which the Chat tab echoes on screen. Nothing else: no merchant, no description.
- * The amount is never logged or persisted.
- */
-data class TransactionEvent(
-    val type: TransactionType,
-    val count: Int,
-    val origin: TransactionOrigin,
-    val money: Money? = null,
-)
+/** [count] rows of [type] were just saved from [origin]. Nothing else: no amount, no merchant. */
+data class TransactionEvent(val type: TransactionType, val count: Int, val origin: TransactionOrigin)
 
 /**
  * Saves the user just made while the app is in the foreground, for the Chat tab's mascot
@@ -51,13 +41,8 @@ class TransactionEvents @Inject constructor(private val appForeground: AppForegr
     )
     val saved: SharedFlow<TransactionEvent> = events.asSharedFlow()
 
-    /**
-     * Call once the insert committed (its row id isn't -1). Never suspends. [money] is the
-     * saved row's amount; it is dropped for a batch, which has no one amount to show.
-     */
-    fun onSaved(type: TransactionType, origin: TransactionOrigin, count: Int = 1, money: Money? = null) {
-        if (appForeground.isInForeground()) {
-            events.tryEmit(TransactionEvent(type, count, origin, money.takeIf { count == 1 }))
-        }
+    /** Call once the insert committed (its row id isn't -1). Never suspends. */
+    fun onSaved(type: TransactionType, origin: TransactionOrigin, count: Int = 1) {
+        if (appForeground.isInForeground()) events.tryEmit(TransactionEvent(type, count, origin))
     }
 }

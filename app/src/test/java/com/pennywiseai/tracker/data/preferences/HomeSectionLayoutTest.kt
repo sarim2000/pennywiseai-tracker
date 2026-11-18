@@ -104,6 +104,19 @@ class HomeSectionLayoutTest {
     }
 
     @Test
+    fun `reordering applies the dragged order and keeps each section's visibility`() {
+        assertEquals(
+            listOf(HomeSection.ACTIVITY to true, HomeSection.SAFE_TO_SPEND to true, HomeSection.BUDGETS to false),
+            HomeSectionLayout.reorder(threeSections, listOf(HomeSection.ACTIVITY, HomeSection.SAFE_TO_SPEND, HomeSection.BUDGETS)),
+        )
+        // Sections the order doesn't mention stay at the end in their old order.
+        assertEquals(
+            listOf(HomeSection.BUDGETS to false, HomeSection.SAFE_TO_SPEND to true, HomeSection.ACTIVITY to true),
+            HomeSectionLayout.reorder(threeSections, listOf(HomeSection.BUDGETS)),
+        )
+    }
+
+    @Test
     fun `moving past either end or moving a missing section changes nothing`() {
         assertEquals(threeSections, HomeSectionLayout.move(threeSections, HomeSection.SAFE_TO_SPEND, -1))
         assertEquals(threeSections, HomeSectionLayout.move(threeSections, HomeSection.ACTIVITY, 1))

@@ -126,7 +126,7 @@ class ShareStudioViewModel @Inject constructor(
 
     fun selectPeriodKind(kind: ReviewKind) = _selection.update { it.withPeriodKind(kind, LocalDate.now()) }
 
-    fun older() = _selection.update { it.copy(period = it.period.copy(offset = it.period.offset - 1)) }
+    fun older() = _selection.update { it.older() }
 
     fun newer() = _selection.update {
         val latest = latestReviewOffset(it.period.kind)
@@ -149,8 +149,19 @@ class ShareStudioViewModel @Inject constructor(
  * default month as of [today], not as of the day the review was opened.
  */
 internal fun ShareStudioSelection.withKind(kind: ShareKind, today: LocalDate): ShareStudioSelection {
-    val period = if (kind == ShareKind.BUDGET && period.kind != ReviewKind.MONTH) defaultSelection(ReviewKind.MONTH, today) else period
+    val period = when {
+        kind != ShareKind.BUDGET -> period
+        period.kind != ReviewKind.MONTH -> defaultSelection(ReviewKind.MONTH, today)
+        // A review can be further back than the budget card reaches.
+        else -> period.copy(offset = period.offset.coerceAtLeast(-BUDGET_MONTHS_BACK))
+    }
     return copy(kind = kind, period = period)
+}
+
+/** One period back; the budget card stops at [BUDGET_MONTHS_BACK]. Other periods stop where the history does (the screen disables the button there). */
+internal fun ShareStudioSelection.older(): ShareStudioSelection {
+    val offset = period.offset - 1
+    return copy(period = period.copy(offset = if (kind == ShareKind.BUDGET) offset.coerceAtLeast(-BUDGET_MONTHS_BACK) else offset))
 }
 
 /** A new kind of period starts at its default as of [today]; the review's own day only fixes the period it opened on. */

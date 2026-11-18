@@ -303,6 +303,7 @@
     <string name="add_receipt_pdf_too_large">This PDF is over 5 MB. Try a smaller file.</string>
     <string name="add_receipt_pdf_unreadable">This PDF can\'t be opened. It may be damaged or password-protected.</string>
     <string name="add_receipt_checking">Checking the file…</string>
+    <string name="add_receipt_check_cancel">Cancel</string>
     <string name="add_receipt_no_app">No app on this phone can do this. Try another option.</string>
     <string name="add_receipt_save_failed">Couldn\'t attach this receipt. Try another file.</string>
     <string name="txn_detail_receipt_no_pdf_app">No app on this phone can open PDFs</string>

@@ -1322,7 +1322,8 @@ class TransactionDetailViewModel @Inject constructor(
     // The check of the receipt last picked; a newer pick or a removal cancels it.
     private var receiptCheck: Job? = null
 
-    private fun cancelReceiptCheck() {
+    /** Stops checking the file just picked (a provider can stall); the receipt already chosen stays. */
+    fun cancelReceiptCheck() {
         receiptCheck?.cancel()
         _checkingReceipt.value = false
     }

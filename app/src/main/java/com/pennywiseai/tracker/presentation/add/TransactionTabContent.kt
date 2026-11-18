@@ -684,7 +684,8 @@ fun TransactionTabContent(
                 onReceiptRemoved = { viewModel.updateReceiptUri(null) },
                 onCreateCameraUri = { viewModel.createCameraUri() },
                 receiptError = uiState.receiptError?.asString(),
-                checking = uiState.checkingReceipt
+                checking = uiState.checkingReceipt,
+                onCancelCheck = viewModel::cancelReceiptCheck
             )
 
             // Bottom padding for save button overlay
@@ -796,7 +797,8 @@ fun ReceiptPickerSection(
     onReceiptRemoved: () -> Unit,
     onCreateCameraUri: () -> android.net.Uri,
     receiptError: String? = null,
-    checking: Boolean = false
+    checking: Boolean = false,
+    onCancelCheck: () -> Unit = {}
 ) {
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
@@ -862,8 +864,13 @@ fun ReceiptPickerSection(
                 Text(
                     text = stringResource(R.string.add_receipt_checking),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f, fill = false)
                 )
+                // A provider that never answers would otherwise hold Save off for good.
+                TextButton(onClick = onCancelCheck) {
+                    Text(stringResource(R.string.add_receipt_check_cancel))
+                }
             }
         }
 

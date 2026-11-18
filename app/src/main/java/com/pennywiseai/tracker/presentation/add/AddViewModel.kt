@@ -488,6 +488,12 @@ class AddViewModel @Inject constructor(
         }
     }
 
+    /** Stops checking the file just picked (a provider can stall); a receipt already accepted stays. */
+    fun cancelReceiptCheck() {
+        receiptCheck?.cancel()
+        _transactionUiState.update { it.copy(checkingReceipt = false) }
+    }
+
     fun createCameraUri(): Uri = receiptManager.createCameraUri()
 
     fun updateBudgetImpactType(type: BudgetImpactType?) {

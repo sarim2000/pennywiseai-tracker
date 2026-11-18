@@ -39,6 +39,7 @@ internal class ProcessingStats(val total: Int) {
     val discarded    = AtomicInteger(0)
     val special      = AtomicInteger(0)
     val failed       = AtomicInteger(0)
+    val notRead      = AtomicInteger(0)
 
     val startTime = System.currentTimeMillis()
 
@@ -50,6 +51,7 @@ internal class ProcessingStats(val total: Int) {
         discarded = discarded.get(),
         special = special.get(),
         failed = failed.get(),
+        notRead = notRead.get(),
     )
 
     /**

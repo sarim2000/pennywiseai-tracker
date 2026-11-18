@@ -44,7 +44,10 @@ internal class SmsScanPipeline(
         val feedError = AtomicReference<Exception?>(null)
         launch(Dispatchers.IO) {
             try {
-                source.streamTo(feed, scanStartTime)
+                source.streamTo(feed, scanStartTime) {
+                    stats.notRead.incrementAndGet()
+                    stats.processed.incrementAndGet()
+                }
             } catch (e: Exception) {
                 if (e is CancellationException) throw e
                 feedError.set(e)

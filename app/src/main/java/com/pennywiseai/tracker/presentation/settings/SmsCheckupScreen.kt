@@ -313,6 +313,7 @@ private fun CountDetails(counts: SmsScanCounts) {
         R.string.sms_checkup_count_discarded to counts.discarded,
         // Rare, so only shown when it happened.
         (R.string.sms_checkup_count_failed to counts.failed).takeIf { counts.failed > 0 },
+        (R.string.sms_checkup_count_not_read to counts.notRead).takeIf { counts.notRead > 0 },
     )
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
         rows.forEach { (label, value) ->

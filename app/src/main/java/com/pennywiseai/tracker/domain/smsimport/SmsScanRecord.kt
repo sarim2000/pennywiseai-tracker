@@ -26,8 +26,10 @@ data class SmsScanCounts(
     val special: Int = 0,
     /** Read, but storing it threw: a transaction, a balance or mandate, or an unrecognised message. */
     val failed: Int = 0,
+    /** In the inbox, but its row couldn't be read, so the scan skipped it. */
+    val notRead: Int = 0,
 ) {
-    val examined: Int get() = saved + duplicates + excluded + unrecognised + discarded + special + failed
+    val examined: Int get() = saved + duplicates + excluded + unrecognised + discarded + special + failed + notRead
 }
 
 @Serializable

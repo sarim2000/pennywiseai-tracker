@@ -191,7 +191,7 @@ class SmsScanPipelineTest {
         // Inside the first scan's window, but older than the retry's 3-day overlap.
         val old = hdfcDebit(1).copy(timestamp = lastScan + day)
         val inbox = object : SmsMessageSource {
-            override suspend fun streamTo(feed: SendChannel<ScannedSms>, scanStartMillis: Long) {
+            override suspend fun streamTo(feed: SendChannel<ScannedSms>, scanStartMillis: Long, onUnreadable: () -> Unit) {
                 if (old.timestamp >= scanStartMillis) feed.send(old)
             }
         }
@@ -226,7 +226,7 @@ class SmsScanPipelineTest {
     @Test
     fun `losing SMS access fails the scan instead of finishing it empty`() = scanTest {
         val noAccess = object : SmsMessageSource {
-            override suspend fun streamTo(feed: SendChannel<ScannedSms>, scanStartMillis: Long) {
+            override suspend fun streamTo(feed: SendChannel<ScannedSms>, scanStartMillis: Long, onUnreadable: () -> Unit) {
                 throw SecurityException("READ_SMS not granted")
             }
         }
@@ -240,7 +240,7 @@ class SmsScanPipelineTest {
     fun `an SMS read that breaks off saves what it read, then fails the scan`() = scanTest {
         val read = (1..5).map(::hdfcDebit)
         val brokenRead = object : SmsMessageSource {
-            override suspend fun streamTo(feed: SendChannel<ScannedSms>, scanStartMillis: Long) {
+            override suspend fun streamTo(feed: SendChannel<ScannedSms>, scanStartMillis: Long, onUnreadable: () -> Unit) {
                 read.forEach { feed.send(it) }
                 throw IllegalStateException("cursor window broke")
             }
@@ -252,6 +252,25 @@ class SmsScanPipelineTest {
         assertTrue("the scan must not pass for a finished one", failure is IllegalStateException)
         assertEquals(5, stats.processed.get())
         assertEquals("every message read before the break is saved", 5, h.store.all.size)
+    }
+
+    @Test
+    fun `an unreadable row counts as not read and doesn't hold the cursor`() = scanTest {
+        val inbox = object : SmsMessageSource {
+            override suspend fun streamTo(feed: SendChannel<ScannedSms>, scanStartMillis: Long, onUnreadable: () -> Unit) {
+                feed.send(hdfcDebit(1))
+                onUnreadable()
+                feed.send(hdfcDebit(2))
+            }
+        }
+        val stats = ProcessingStats(total = 3)
+
+        h.pipeline(inbox).run(0L, stats)
+
+        assertEquals(1, stats.notRead.get())
+        assertEquals(3, stats.counts().examined)
+        assertEquals(2, h.store.all.size)
+        assertTrue("the scan moves on past it, so the next one doesn't stop there again", stats.mayAdvanceCursor())
     }
 
     @Test

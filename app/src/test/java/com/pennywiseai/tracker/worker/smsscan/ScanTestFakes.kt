@@ -111,7 +111,7 @@ internal class FakeTransactionStore {
 internal class ListSmsSource(private val messages: List<ScannedSms>) : SmsMessageSource {
     val sent = AtomicInteger(0)
 
-    override suspend fun streamTo(feed: SendChannel<ScannedSms>, scanStartMillis: Long) {
+    override suspend fun streamTo(feed: SendChannel<ScannedSms>, scanStartMillis: Long, onUnreadable: () -> Unit) {
         for (sms in messages) {
             feed.send(sms)
             sent.incrementAndGet()

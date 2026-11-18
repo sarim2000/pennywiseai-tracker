@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.worker.smsscan
 
 import android.content.Context
+import android.database.Cursor
 import android.provider.Telephony
 import android.util.Log
 import androidx.core.net.toUri
@@ -20,8 +21,11 @@ internal data class ScannedSms(
 
 /** Where a scan's messages come from. A separate seam so the pipeline can be tested without a device inbox. */
 internal interface SmsMessageSource {
-    /** Sends every message since [scanStartMillis] into [feed]; the pipeline closes [feed] afterwards. */
-    suspend fun streamTo(feed: SendChannel<ScannedSms>, scanStartMillis: Long)
+    /**
+     * Sends every message since [scanStartMillis] into [feed]; the pipeline closes [feed]
+     * afterwards. A row that can't be read is skipped and reported to [onUnreadable].
+     */
+    suspend fun streamTo(feed: SendChannel<ScannedSms>, scanStartMillis: Long, onUnreadable: () -> Unit)
 }
 
 /** The device inbox: SMS first, then RCS (stored as MMS with a `proto:` transaction id). */
@@ -31,8 +35,8 @@ internal class DeviceSmsMessageSource(private val context: Context) : SmsMessage
     suspend fun count(scanStartMillis: Long): Int =
         countSmsMessages(scanStartMillis) + countRcsMessages(scanStartMillis / 1000)
 
-    override suspend fun streamTo(feed: SendChannel<ScannedSms>, scanStartMillis: Long) {
-        streamSmsToChannel(feed, scanStartMillis)
+    override suspend fun streamTo(feed: SendChannel<ScannedSms>, scanStartMillis: Long, onUnreadable: () -> Unit) {
+        streamSmsToChannel(feed, scanStartMillis, onUnreadable)
         streamRcsToChannel(feed, scanStartMillis / 1000)
     }
 
@@ -119,7 +123,8 @@ internal class DeviceSmsMessageSource(private val context: Context) : SmsMessage
      */
     private suspend fun streamSmsToChannel(
         feed: SendChannel<ScannedSms>,
-        scanStartTime: Long
+        scanStartTime: Long,
+        onUnreadable: () -> Unit,
     ) {
         var count = 0
         try {
@@ -132,25 +137,9 @@ internal class DeviceSmsMessageSource(private val context: Context) : SmsMessage
                 arrayOf(Telephony.Sms.MESSAGE_TYPE_INBOX.toString(), scanStartTime.toString()),
                 "${Telephony.Sms.DATE} ASC"
             ) ?: throw IllegalStateException("SMS query returned no cursor")
-            cursor.use { c ->
-                val idIdx      = c.getColumnIndexOrThrow(Telephony.Sms._ID)
-                val addressIdx = c.getColumnIndexOrThrow(Telephony.Sms.ADDRESS)
-                val dateIdx    = c.getColumnIndexOrThrow(Telephony.Sms.DATE)
-                val bodyIdx    = c.getColumnIndexOrThrow(Telephony.Sms.BODY)
-                val typeIdx    = c.getColumnIndexOrThrow(Telephony.Sms.TYPE)
-                while (c.moveToNext()) {
-                    feed.send(ScannedSms(
-                        id        = c.getLong(idIdx),
-                        sender    = c.getString(addressIdx) ?: "",
-                        timestamp = c.getLong(dateIdx),
-                        body      = c.getString(bodyIdx) ?: "",
-                        type      = c.getInt(typeIdx)
-                    ))
-                    count++
-                }
-            }
+            count = cursor.use { streamSmsRows(it, feed, onUnreadable) }
         } catch (e: Exception) {
-            if (e !is CancellationException) Log.e(TAG, "SMS read broke off after $count messages", e)
+            if (e !is CancellationException) Log.e(TAG, "SMS read broke off", e)
             throw e
         }
         Log.i(TAG, "Streamed $count SMS messages to pipeline")
@@ -261,4 +250,38 @@ internal class DeviceSmsMessageSource(private val context: Context) : SmsMessage
                 texts.distinct().joinToString(" | ").takeIf { it.isNotEmpty() }
             }
     } catch (_: Exception) { json }
+}
+
+/**
+ * Sends each SMS row of [c] into [feed] and returns how many it sent. A row that can't be
+ * read (one too big for the cursor window) is skipped and reported to [onUnreadable]:
+ * failing the scan there would make every later scan fail at the same row, and new
+ * messages would never be imported. A cursor that breaks off as a whole still throws.
+ */
+internal suspend fun streamSmsRows(c: Cursor, feed: SendChannel<ScannedSms>, onUnreadable: () -> Unit): Int {
+    val idIdx = c.getColumnIndexOrThrow(Telephony.Sms._ID)
+    val addressIdx = c.getColumnIndexOrThrow(Telephony.Sms.ADDRESS)
+    val dateIdx = c.getColumnIndexOrThrow(Telephony.Sms.DATE)
+    val bodyIdx = c.getColumnIndexOrThrow(Telephony.Sms.BODY)
+    val typeIdx = c.getColumnIndexOrThrow(Telephony.Sms.TYPE)
+    var count = 0
+    while (c.moveToNext()) {
+        val sms = try {
+            ScannedSms(
+                id = c.getLong(idIdx),
+                sender = c.getString(addressIdx) ?: "",
+                timestamp = c.getLong(dateIdx),
+                body = c.getString(bodyIdx) ?: "",
+                type = c.getInt(typeIdx),
+            )
+        } catch (e: Exception) {
+            if (e is SecurityException) throw e
+            Log.w(TAG, "Skipped an SMS row that couldn't be read: ${e.javaClass.simpleName}")
+            onUnreadable()
+            continue
+        }
+        feed.send(sms)
+        count++
+    }
+    return count
 }

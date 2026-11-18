@@ -643,10 +643,7 @@ class ManageAccountsViewModel @Inject constructor(
                         // without a historical balance trace.
                         accountBalanceRepository.deleteAccount(source.bankName, source.accountLast4)
                         // The card's bill and statement day carry over when the target has none.
-                        // Not the balance anchor: the source's balance is dropped with it.
-                        accountBalanceRepository.keepAccountFields(
-                            source, target.bankName, target.accountLast4, withAnchor = false
-                        )
+                        accountBalanceRepository.keepAccountFields(source, target.bankName, target.accountLast4)
                         rows
                     }
 

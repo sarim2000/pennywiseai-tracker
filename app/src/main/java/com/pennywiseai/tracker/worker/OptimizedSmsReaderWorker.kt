@@ -190,7 +190,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                     // processBalanceUpdate), leaving gaps in the balance
                     // time-series.
                     // On disk before any row goes, so a scan that stops part-way can't lose
-                    // the bill or anchor the user set. Today's rows come first: put back
+                    // the bill the user set. Today's rows come first: put back
                     // first, they win over an older interrupted rebuild's.
                     val latestBeforeRebuild = rebuildAccountFields.saveBeforeRebuild {
                         accountBalanceRepository.getAllLatestBalancesOnce()
@@ -282,7 +282,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             // Rows rebuilt from balance-only SMS don't pass through processBalanceUpdate,
             // so put each typed account's type back on the rows that lost it (#792).
             for (row in accountsBeforeRebuild.values) accountBalanceRepository.restoreAccountType(row)
-            // Likewise the statement and due day, card bill and balance anchor the user set,
+            // Likewise the statement and due day and card bill the user set,
             // saved by this rebuild or one that never finished. Read now, under the store's
             // lock: a field the user edited since is no longer in it, and an edit can't land
             // between the read and the write. An account with no rows yet stays saved.

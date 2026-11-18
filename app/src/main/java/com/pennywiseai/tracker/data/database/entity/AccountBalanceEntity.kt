@@ -94,20 +94,7 @@ data class AccountBalanceEntity(
     /** When [cardBillAmount] was entered: it belongs to the statement closed by then. */
     @ColumnInfo(name = "card_bill_as_of", defaultValue = "NULL")
     @Contextual
-    val cardBillAsOf: LocalDateTime? = null,
-
-    // Where the account's balance was last pinned to a real figure. A MANUAL row's
-    // timestamp can't say: those rows are refreshed, so it isn't when the user typed it.
-    @ColumnInfo(name = "anchor_amount", defaultValue = "NULL")
-    @Contextual
-    val anchorAmount: BigDecimal? = null,
-
-    @ColumnInfo(name = "anchor_at", defaultValue = "NULL")
-    @Contextual
-    val anchorAt: LocalDateTime? = null,
-
-    @ColumnInfo(name = "anchor_source", defaultValue = "NULL")
-    val anchorSource: String? = null
+    val cardBillAsOf: LocalDateTime? = null
 ) {
     /**
      * Label to show wherever the user picks or reads this account: the user-set
@@ -133,7 +120,7 @@ data class AccountBalanceEntity(
 
     /**
      * This row carrying the account-level fields the user set (statement and due day,
-     * card bill, balance anchor) from [from], an earlier row of the same account.
+     * card bill) from [from], an earlier row of the same account.
      * Every path that builds a fresh row for an existing account goes through this,
      * so a new SMS or a manual edit can't drop them. A bill amount is in the old
      * row's currency, so a row in another currency drops it (the due day stays):
@@ -149,9 +136,6 @@ data class AccountBalanceEntity(
                 cardDueDay = from.cardDueDay,
                 cardBillAmount = from.cardBillAmount.takeIf { sameCurrency },
                 cardBillAsOf = from.cardBillAsOf.takeIf { sameCurrency },
-                anchorAmount = from.anchorAmount,
-                anchorAt = from.anchorAt,
-                anchorSource = from.anchorSource,
             )
         }
 

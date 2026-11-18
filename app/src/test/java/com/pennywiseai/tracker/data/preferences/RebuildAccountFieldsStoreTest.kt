@@ -26,15 +26,14 @@ class RebuildAccountFieldsStoreTest {
         timestamp = LocalDateTime.of(2026, 3, 20, 10, 0), isCreditCard = true, smsSource = "Sample message",
         statementDay = 12, cardDueDay = 2, cardBillAmount = BigDecimal("650.25"),
         cardBillAsOf = LocalDateTime.of(2026, 3, 14, 9, 0),
-        anchorAmount = BigDecimal("1000"), anchorAt = LocalDateTime.of(2026, 1, 1, 8, 0), anchorSource = "MANUAL",
     )
     private val plain = card.copy(
         accountLast4 = "1111", isCreditCard = false, statementDay = null, cardDueDay = null, cardBillAmount = null,
-        cardBillAsOf = null, anchorAmount = null, anchorAt = null, anchorSource = null,
+        cardBillAsOf = null,
     )
 
     @Test
-    fun `a card's bill and anchor survive the trip to disk`() {
+    fun `a card's bill survives the trip to disk`() {
         val back = RebuildAccountFieldsStore.decode(RebuildAccountFieldsStore.encode(listOf(card))).single()
 
         assertEquals(card.copy(smsSource = null), back)
@@ -62,21 +61,16 @@ class RebuildAccountFieldsStoreTest {
         store.editCardBill("Test Bank", "0000") {}
         store.editStatementDay("Test Bank", "0000") {}
 
-        // What the next scan would put back: only the anchor, and the other card untouched.
+        // What the next scan would put back: nothing for this card, the other one untouched.
         val pending = store.pending().associateBy { it.accountLast4 }
-        val kept = pending.getValue("0000")
-        assertNull(kept.cardDueDay)
-        assertNull(kept.cardBillAmount)
-        assertNull(kept.cardBillAsOf)
-        assertNull(kept.statementDay)
-        assertEquals(card.anchorAmount, kept.anchorAmount)
+        assertEquals(setOf("2222"), pending.keys)
         assertEquals(card.cardBillAmount, pending.getValue("2222").cardBillAmount)
     }
 
     @Test
     fun `an account with nothing left to put back is dropped`() = runTest {
         val store = RebuildAccountFieldsStore(contextOverOneFile())
-        store.saveBeforeRebuild { listOf(card.copy(anchorAmount = null, anchorAt = null, anchorSource = null, statementDay = null)) }
+        store.saveBeforeRebuild { listOf(card.copy(statementDay = null)) }
 
         store.editCardBill("Test Bank", "0000") {}
 

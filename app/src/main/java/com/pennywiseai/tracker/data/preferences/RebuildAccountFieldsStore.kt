@@ -10,8 +10,8 @@ import kotlinx.serialization.builtins.ListSerializer
 import javax.inject.Inject
 
 /**
- * What the user set on each account (statement and due day, card bill, balance
- * anchor), kept on disk while a force resync rebuilds the rows that carry it. Those
+ * What the user set on each account (statement and due day, card bill), kept on
+ * disk while a force resync rebuilds the rows that carry it. Those
  * rows are deleted before the inbox is read again, so a scan that stops in between
  * would otherwise lose it for good; the next scan to finish puts it back.
  *
@@ -101,6 +101,6 @@ class RebuildAccountFieldsStore @Inject constructor(@ApplicationContext context:
             json?.let { runCatching { backupJson.decodeFromString(serializer, it) }.getOrNull() }.orEmpty()
 
         private fun AccountBalanceEntity.hasAccountFields(): Boolean =
-            listOfNotNull(statementDay, cardDueDay, cardBillAmount, cardBillAsOf, anchorAmount, anchorAt, anchorSource).isNotEmpty()
+            listOfNotNull(statementDay, cardDueDay, cardBillAmount, cardBillAsOf).isNotEmpty()
     }
 }

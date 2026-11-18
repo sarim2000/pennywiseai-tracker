@@ -520,6 +520,58 @@ class InsightRulesTest {
     }
 
     @Test
+    fun `a bill that could take either charge leaves the one only another bill can use`() {
+        // One bill names only the bank, the other only the account: Bank A/1111 suits both.
+        val bills = listOf(
+            subscription(1, "100", "2026-11-20", bank = "Bank A"),
+            subscription(2, "100", "2026-11-21", last4 = "1111"),
+        )
+        val insights = evaluate(
+            rows = listOf(
+                tx("2026-11-19", "100", merchant = "Streamer", bank = "Bank A", account = "1111"),
+                tx("2026-11-17", "100", merchant = "Streamer", bank = "Bank A", account = "2222"),
+            ),
+            subscriptions = bills,
+        )
+        assertTrue(insights.facts<BillsDue>().isEmpty())
+    }
+
+    @Test
+    fun `a recorded payment stays its bill's after the bill's price is edited`() {
+        // Bill 1 was paid 100 on the 19th and moved on; then its price was edited to 150.
+        val edited = subscription(1, "150", "2026-12-19").copy(lastPaidAt = LocalDate.parse("2026-11-19"))
+        val other = subscription(2, "100", "2026-11-22")
+        val insights = evaluate(
+            rows = listOf(tx("2026-11-19", "100", merchant = "Streamer", recurring = true)),
+            subscriptions = listOf(edited, other),
+        )
+        assertEquals(LocalDate.parse("2026-11-22"), insights.facts<BillsDue>().single().firstDue)
+    }
+
+    @Test
+    fun `a plan due months away does not keep another's new price from showing`() {
+        // An annual plan at 649 isn't due till June: a 649 charge now is the monthly plan's new price.
+        val insights = evaluate(
+            rows = listOf(tx("2026-11-15", "649", merchant = "Streamer")),
+            subscriptions = listOf(
+                subscription(1, "499", "2026-11-15"),
+                subscription(2, "649", "2027-06-10", cycle = "Annual"),
+            ),
+        )
+        val change = insights.facts<PriceChange>().single()
+        assertEquals(Money(BigDecimal("499"), "INR"), change.tracked)
+        // Due around the charge, the same plan would claim it as its own payment.
+        val dueNow = evaluate(
+            rows = listOf(tx("2026-11-15", "649", merchant = "Streamer")),
+            subscriptions = listOf(
+                subscription(1, "499", "2026-11-15"),
+                subscription(2, "649", "2026-11-14", cycle = "Annual"),
+            ),
+        )
+        assertTrue(dueNow.facts<PriceChange>().isEmpty())
+    }
+
+    @Test
     fun `a new price is news only for the subscription on the charge's account`() {
         val changes = evaluate(
             rows = listOf(tx("2026-11-15", "649", merchant = "Streamer", bank = "Bank B", account = "2222")),

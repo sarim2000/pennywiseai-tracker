@@ -367,13 +367,13 @@ class PeriodReviewTest {
     @Test
     fun `a year's changes include a category that fell to nothing`() {
         val year = range(ReviewKind.YEAR, -1, "2026-11-04")
-        // Travel was the biggest move but is gone this year, so a list by amount drops it.
+        // Travel was the biggest move but is gone this year, so the screen's list by amount drops it.
         val current = listOf("Rent", "Food", "Fuel", "Gifts", "Health", "Books").mapIndexed { i, c ->
             tx("2025-06-10", (900 - i * 100).toString(), category = c)
         }
         val previous = listOf("Rent" to "900", "Food" to "800", "Travel" to "5000").map { (c, a) -> tx("2024-01-05", a, category = c) }
         val jod = review(year, current, previous).currencies.single()
-        assertTrue(jod.categories.none { it.name == "Travel" })
+        assertTrue(jod.categories.take(REVIEW_CATEGORY_LINES).none { it.name == "Travel" })
         assertEquals("Travel", jod.changes.first().name)
     }
 }

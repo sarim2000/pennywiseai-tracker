@@ -868,7 +868,7 @@ fun ReceiptPickerSection(
                     modifier = Modifier.weight(1f, fill = false)
                 )
                 // A provider that never answers would otherwise hold Save off for good.
-                TextButton(onClick = onCancelCheck) {
+                TextButton(onClick = onCancelCheck, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.add_receipt_check_cancel))
                 }
             }

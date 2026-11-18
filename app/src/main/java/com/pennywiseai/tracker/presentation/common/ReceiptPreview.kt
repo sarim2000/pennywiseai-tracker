@@ -68,7 +68,7 @@ fun ReceiptPreview(
     if (isPdf == null) {
         Box(
             modifier = modifier
-                .heightIn(min = 96.dp)
+                .heightIn(min = PLACEHOLDER_MIN_HEIGHT)
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh)
         )
         return
@@ -127,7 +127,7 @@ fun ReceiptPreview(
     } else {
         Column(
             modifier = modifier
-                .heightIn(min = 96.dp)
+                .heightIn(min = PLACEHOLDER_MIN_HEIGHT)
                 .background(MaterialTheme.colorScheme.surfaceContainerHigh)
                 .semantics { contentDescription?.let { this.contentDescription = it } },
             horizontalAlignment = Alignment.CenterHorizontally,
@@ -149,6 +149,9 @@ fun ReceiptPreview(
 }
 
 private const val THUMBNAIL_WIDTH_PX = 720
+
+// The blank tile while a file's type is read, and the plain PDF tile, at one height.
+private val PLACEHOLDER_MIN_HEIGHT = 96.dp
 
 /**
  * The first page drawn at [THUMBNAIL_WIDTH_PX] wide (and at most twice as tall), or null

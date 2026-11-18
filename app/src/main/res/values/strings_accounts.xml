@@ -311,4 +311,14 @@
         <item quantity="one">View All %1$d Account</item>
         <item quantity="other">View All %1$d Accounts</item>
     </plurals>
+
+    <!-- Net worth: what you own minus what you owe, per currency -->
+    <string name="net_worth_title">Net worth</string>
+    <string name="net_worth_back">Back</string>
+    <string name="net_worth_empty_headline">No accounts yet</string>
+    <string name="net_worth_empty_body">Add an account, or let PennyWise read your bank SMS, to see what you own minus what you owe.</string>
+    <string name="net_worth_summary_hint">What you own minus what you owe</string>
+    <string name="net_worth_assets">Accounts</string>
+    <string name="net_worth_cards">Credit cards</string>
+    <string name="net_worth_loans">Loans</string>
 </resources>

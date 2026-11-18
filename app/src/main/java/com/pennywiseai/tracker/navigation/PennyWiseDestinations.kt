@@ -196,6 +196,10 @@ data class Review(val kind: String = "MONTH", val weekStart: String? = null) : N
 @Serializable
 data object Achievements : NavKey
 
+/** What you own minus what you owe; opened from Home (on its currency) and Manage Accounts. */
+@Serializable
+data class NetWorth(val currency: String? = null) : NavKey
+
 /**
  * The share studio. [kind] is a ShareKind name, the card it opens on. A review passes
  * the period it shows as [reviewKind] (a ReviewKind name), [offset] and the epoch day

@@ -315,6 +315,9 @@ fun MainScreen(
                 onNavigateToReview = { kind ->
                     openRoot(com.pennywiseai.tracker.navigation.Review(kind.name))
                 },
+                onNavigateToNetWorth = { currency ->
+                    openRoot(NetWorth(currency))
+                },
                 onNavigateToShareStudio = {
                     openRoot(ShareStudio())
                 },
@@ -519,6 +522,9 @@ fun MainScreen(
                 },
                 onNavigateToBalanceHistory = { bankName, accountLast4 ->
                     open(tab, BalanceHistory(bankName, accountLast4))
+                },
+                onNavigateToNetWorth = {
+                    openRoot(NetWorth())
                 }
             )
         }

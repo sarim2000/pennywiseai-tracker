@@ -459,6 +459,15 @@ fun PennyWiseNavHost(
                         )
                     }
 
+                    entry<NetWorth> { key ->
+                        com.pennywiseai.tracker.presentation.accounts.NetWorthScreen(
+                            onNavigateBack = { backStack.pop(key) },
+                            onAccountClick = { bankName, accountLast4 ->
+                                backStack.navigate(AccountDetail(bankName, accountLast4))
+                            },
+                        )
+                    }
+
                     entry<ShareStudio> { key ->
                         com.pennywiseai.tracker.presentation.share.ShareStudioScreen(
                             onNavigateBack = { backStack.pop(key) }

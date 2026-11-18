@@ -1,0 +1,21 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Share studio: the screen -->
+    <!-- Share studio: text drawn on the card -->
+    <!-- %1$d = a whole percent -->
+    <!-- Percentage points. %1$s = a signed whole number, e.g. "+6" -->
+    <!-- Joins two category names -->
+    <!-- %1$d = limits kept, %2$d = all limits -->
+    <!-- %1$s = what it is compared with: "September", "the week before" -->
+    <!-- %1$s = one or two category names -->
+    <!-- A category with nothing in the previous period -->
+    <!-- %1$s = the previous period: "September", "the week before", "2025" -->
+    <!-- %1$s = the goal's target amount -->
+    <!-- %1$s = month and year, e.g. "Mar 2027" -->
+    <!-- %1$s = amount -->
+    <!-- %1$s = amount -->
+    <!-- %1$s = the limit amount -->
+    <!-- %1$s = the limit amount -->
+    <!-- The message sent with the image, in the sharer's voice. It never carries a figure:
+         those stay on the image, where the user chose them. %1$s = the app's website -->
+</resources>

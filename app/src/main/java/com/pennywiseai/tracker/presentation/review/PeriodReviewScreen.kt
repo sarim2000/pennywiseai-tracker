@@ -1,5 +1,8 @@
 package com.pennywiseai.tracker.presentation.review
 
+import android.widget.Toast
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.fadeIn
@@ -22,6 +25,8 @@ import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.outlined.PictureAsPdf
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -29,7 +34,12 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
+import androidx.compose.material3.TooltipAnchorPosition
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -50,13 +60,16 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.export.pdfShareIntent
 import com.pennywiseai.tracker.domain.review.CategoryLine
 import com.pennywiseai.tracker.domain.review.CurrencyReview
 import com.pennywiseai.tracker.domain.review.PeriodReview
+import com.pennywiseai.tracker.domain.review.REVIEW_CATEGORY_LINES
 import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.domain.review.ReviewRange
 import com.pennywiseai.tracker.domain.review.latestReviewOffset
 import com.pennywiseai.tracker.domain.review.percentChange
+import com.pennywiseai.tracker.presentation.paywall.UpgradeSheet
 import com.pennywiseai.tracker.ui.components.CategoryIcon
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
@@ -93,6 +106,29 @@ fun PeriodReviewScreen(
     val review by viewModel.review.collectAsStateWithLifecycle()
     var hasAnimated by rememberSaveable { mutableStateOf(false) }
     val loaded = review
+    val exportingPdf by viewModel.exportingPdf.collectAsStateWithLifecycle()
+    val isProEntitled by viewModel.isProEntitled.collectAsStateWithLifecycle()
+    var showUpgradeSheet by remember { mutableStateOf(false) }
+    val context = LocalContext.current
+
+    // For its result alone: it says when the share sheet has closed.
+    val sharePdf = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) {
+        viewModel.pdfShareClosed()
+    }
+
+    LaunchedEffect(viewModel) {
+        viewModel.pdfReady.collect { uri ->
+            when {
+                uri == null -> Toast.makeText(context, R.string.review_export_pdf_failed, Toast.LENGTH_SHORT).show()
+                // Amounts were hidden while the file was written: it prints them, so it stays here.
+                AmountPrivacy.hidden -> {
+                    viewModel.pdfShareClosed()
+                    Toast.makeText(context, R.string.review_export_pdf_amounts_hidden, Toast.LENGTH_LONG).show()
+                }
+                else -> sharePdf.launch(pdfShareIntent(uri))
+            }
+        }
+    }
 
     PennyWiseScaffold(
         title = stringResource(R.string.review_title),
@@ -102,13 +138,39 @@ fun PeriodReviewScreen(
             }
         },
         actions = {
+            // A report is for a month or a year; a week has the share card.
+            if (loaded != null && loaded.currencies.isNotEmpty() && loaded.range.kind != ReviewKind.WEEK) {
+                val title = periodLabel(loaded.range)
+                val label = stringResource(R.string.review_export_pdf)
+                NamedAction(label) {
+                    IconButton(
+                        onClick = {
+                            when {
+                                // Data going out is Pro, as CSV export is.
+                                !isProEntitled -> showUpgradeSheet = true
+                                // A report prints every amount, so it isn't made while the app hides them.
+                                AmountPrivacy.hidden ->
+                                    Toast.makeText(context, R.string.review_export_pdf_amounts_hidden, Toast.LENGTH_LONG).show()
+                                else -> viewModel.exportPdf(title)
+                            }
+                        },
+                        enabled = !exportingPdf,
+                        shapes = IconButtonDefaults.shapes(),
+                    ) {
+                        Icon(Icons.Outlined.PictureAsPdf, contentDescription = label)
+                    }
+                }
+            }
             if (loaded != null && loaded.firstRecorded != null) {
-                IconButton(
-                    // The studio opens on the period shown here, built from the same review.
-                    onClick = { onShare(selection.kind, selection.offset, selection.today) },
-                    shapes = IconButtonDefaults.shapes(),
-                ) {
-                    Icon(Icons.Default.Share, contentDescription = stringResource(R.string.review_share))
+                val label = stringResource(R.string.review_share)
+                NamedAction(label) {
+                    IconButton(
+                        // The studio opens on the period shown here, built from the same review.
+                        onClick = { onShare(selection.kind, selection.offset, selection.today) },
+                        shapes = IconButtonDefaults.shapes(),
+                    ) {
+                        Icon(Icons.Default.Share, contentDescription = label)
+                    }
                 }
             }
         },
@@ -155,6 +217,22 @@ fun PeriodReviewScreen(
                 }
             }
         }
+    }
+    if (showUpgradeSheet) {
+        UpgradeSheet(onDismiss = { showUpgradeSheet = false })
+    }
+}
+
+/** Two icon-only actions sit side by side here, so a long-press says which is which. */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun NamedAction(label: String, content: @Composable () -> Unit) {
+    TooltipBox(
+        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Below),
+        tooltip = { PlainTooltip { Text(label) } },
+        state = rememberTooltipState(),
+    ) {
+        content()
     }
 }
 
@@ -251,13 +329,13 @@ private fun CurrencyReviewCard(
 
         if (review.categories.isNotEmpty()) {
             HorizontalDivider(Modifier.padding(vertical = Spacing.md))
-            val showsChange = range.kind != ReviewKind.YEAR && review.previousSpent != null
+            val showsChange = review.showsCategoryChange(range.kind)
             Text(
                 text = stringResource(if (showsChange) R.string.review_categories_changed else R.string.review_categories_top),
                 style = MaterialTheme.typography.titleSmall,
                 modifier = Modifier.semantics { heading() },
             )
-            review.categories.forEach { line ->
+            review.categories.take(REVIEW_CATEGORY_LINES).forEach { line ->
                 CategoryRow(line, review.currency, showsChange) { onOpenCategory(line.name) }
             }
         }

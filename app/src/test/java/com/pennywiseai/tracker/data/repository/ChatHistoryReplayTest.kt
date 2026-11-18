@@ -52,7 +52,8 @@ class ChatHistoryReplayTest {
             categoryRepository = mockk(relaxed = true) { every { getVisibleCategories() } returns flowOf(emptyList()) },
             accountBalanceRepository = mockk(relaxed = true),
             transactionRepository = mockk(relaxed = true),
-            ignoredAccountsStore = mockk(relaxed = true)
+            ignoredAccountsStore = mockk(relaxed = true),
+            planningRepository = mockk(relaxed = true)
         )
 
         repository.sendMessageStream("how much on food?").collect()
@@ -78,7 +79,8 @@ class ChatHistoryReplayTest {
             categoryRepository = mockk(relaxed = true),
             accountBalanceRepository = mockk(relaxed = true),
             transactionRepository = mockk(relaxed = true),
-            ignoredAccountsStore = mockk(relaxed = true)
+            ignoredAccountsStore = mockk(relaxed = true),
+            planningRepository = mockk(relaxed = true)
         )
 
         repository.warmUp()

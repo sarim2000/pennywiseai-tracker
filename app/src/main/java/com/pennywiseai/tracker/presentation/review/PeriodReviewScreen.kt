@@ -125,14 +125,14 @@ fun PeriodReviewScreen(
 
     LaunchedEffect(viewModel) {
         viewModel.pdfReady.collect { uri ->
-            if (uri != null) {
-                // The file leaves the screen, so it carries the amounts the screen hides.
-                if (AmountPrivacy.hidden) {
-                    Toast.makeText(context, R.string.review_export_pdf_shows_amounts, Toast.LENGTH_LONG).show()
+            when {
+                uri == null -> Toast.makeText(context, R.string.review_export_pdf_failed, Toast.LENGTH_SHORT).show()
+                // Amounts were hidden while the file was written: it prints them, so it stays here.
+                AmountPrivacy.hidden -> {
+                    viewModel.pdfShareClosed()
+                    Toast.makeText(context, R.string.review_export_pdf_amounts_hidden, Toast.LENGTH_LONG).show()
                 }
-                sharePdf.launch(pdfShareIntent(uri))
-            } else {
-                Toast.makeText(context, R.string.review_export_pdf_failed, Toast.LENGTH_SHORT).show()
+                else -> sharePdf.launch(pdfShareIntent(uri))
             }
         }
     }
@@ -152,8 +152,14 @@ fun PeriodReviewScreen(
                 NamedAction(label) {
                     IconButton(
                         onClick = {
-                            // Data going out is Pro, as CSV export is.
-                            if (isProEntitled) viewModel.exportPdf(title) else showUpgradeSheet = true
+                            when {
+                                // Data going out is Pro, as CSV export is.
+                                !isProEntitled -> showUpgradeSheet = true
+                                // A report prints every amount, so it isn't made while the app hides them.
+                                AmountPrivacy.hidden ->
+                                    Toast.makeText(context, R.string.review_export_pdf_amounts_hidden, Toast.LENGTH_LONG).show()
+                                else -> viewModel.exportPdf(title)
+                            }
                         },
                         enabled = !exportingPdf,
                         shapes = IconButtonDefaults.shapes(),

@@ -8,8 +8,8 @@
     <!-- Paywall list of what Pro includes -->
     <string name="upgrade_feature_pdf_reports">Monthly and yearly PDF reports</string>
     <string name="review_export_pdf_failed">Couldn\'t create the PDF. Try again.</string>
-    <!-- Shown as a PDF is shared while the user hides amounts in the app -->
-    <string name="review_export_pdf_shows_amounts">The PDF shows amounts, even while they\'re hidden in the app.</string>
+    <!-- Shown instead of a PDF while the user hides amounts in the app: the report prints them -->
+    <string name="review_export_pdf_amounts_hidden">Show amounts to export a PDF report.</string>
     <string name="review_kind_week">Week</string>
     <string name="review_kind_month">Month</string>
     <string name="review_kind_year">Year</string>

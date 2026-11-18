@@ -105,7 +105,8 @@ fun pdfShareIntent(uri: Uri): Intent {
 /**
  * A month's or year's review as a PDF, drawn on-device with [PdfDocument]: the same
  * [PeriodReview] the Review screen shows, so the totals match it. Amounts are always
- * printed (the file leaves the screen), and nothing carries an SMS body, an account
+ * printed (the file leaves the screen; the screen doesn't export one while the app hides
+ * them), and nothing carries an SMS body, an account
  * number or a receipt: a review's merchants already leave out names built from
  * account digits.
  *
@@ -215,7 +216,7 @@ class PdfReportExporter @Inject constructor(
                     )
                 ),
             )
-            // The screen's one-line takeaway, "12% more than September"; printed even while the app hides amounts.
+            // The screen's one-line takeaway, "12% more than September".
             percentChange(review.spent, review.previousSpent)?.let { change ->
                 blocks += text(changeText(context, change, comparedWith), body, before = 6f)
             }

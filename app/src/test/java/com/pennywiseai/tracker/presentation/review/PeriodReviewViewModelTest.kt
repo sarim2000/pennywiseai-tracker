@@ -10,6 +10,7 @@ import com.pennywiseai.tracker.domain.review.PeriodReview
 import com.pennywiseai.tracker.domain.review.PeriodReviewLoader
 import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.domain.review.ReviewRange
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.inAppLanguage
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -88,6 +89,18 @@ class PeriodReviewViewModelTest {
     @Test
     fun `without Pro no report is written`() = withExportReady(pro = false) { viewModel ->
         viewModel.exportPdf("2026")
+        coVerify(exactly = 0) { exporter.export(any(), any(), any(), any(), any()) }
+        assertEquals(false, viewModel.exportingPdf.value)
+    }
+
+    @Test
+    fun `no report is written while the app hides amounts`() = withExportReady(pro = true) { viewModel ->
+        AmountPrivacy.hidden = true
+        try {
+            viewModel.exportPdf("2026")
+        } finally {
+            AmountPrivacy.hidden = false
+        }
         coVerify(exactly = 0) { exporter.export(any(), any(), any(), any(), any()) }
         assertEquals(false, viewModel.exportingPdf.value)
     }

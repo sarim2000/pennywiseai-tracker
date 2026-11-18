@@ -20,6 +20,7 @@ import com.pennywiseai.tracker.domain.review.latestReviewOffset
 import com.pennywiseai.tracker.domain.review.localFirstDayOfWeek
 import com.pennywiseai.tracker.domain.review.weekOffsetOf
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.inAppLanguage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -92,7 +93,8 @@ class PeriodReviewViewModel @Inject constructor(
      */
     fun exportPdf(title: String) {
         val shown = review.value ?: return
-        if (_exportingPdf.value || !isProEntitled.value) return
+        // The file prints every amount, so it's never written while the app hides them.
+        if (_exportingPdf.value || !isProEntitled.value || AmountPrivacy.hidden) return
         _exportingPdf.value = true
         viewModelScope.launch {
             val uri = try {

@@ -21,7 +21,7 @@
     <plurals name="calendar_day_due">
         <item quantity="zero">%d دفعة مستحقة</item>
         <item quantity="one">%d دفعة مستحقة</item>
-        <item quantity="two">%d دفعة مستحقة</item>
+        <item quantity="two">دفعتان مستحقتان</item>
         <item quantity="few">%d دفعات مستحقة</item>
         <item quantity="many">%d دفعة مستحقة</item>
         <item quantity="other">%d دفعة مستحقة</item>

@@ -4,8 +4,6 @@ import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
-import com.pennywiseai.tracker.presentation.share.merchantsPaid
-import com.pennywiseai.tracker.presentation.share.trackedFromBankTexts
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -353,29 +351,29 @@ class PeriodReviewTest {
         assertEquals(ReviewKind.MONTH, p.kind)
     }
 
-    // --- Share card counts
+    // --- Top categories
 
     @Test
-    fun `the card only claims rows that came from a bank text`() {
-        val rows = listOf(
-            tx("2026-10-02").transaction.copy(smsSender = "BANK", smsBody = "x"),
-            tx("2026-10-03").transaction,
-            tx("2026-10-04").transaction.copy(smsBody = "statement block"),
-        ) + listOf("STATEMENT", "GPay PDF", "PhonePe PDF", "Paytm PDF", "Slice PDF", "ICICI PDF").map {
-            tx("2026-10-05").transaction.copy(smsSender = it, smsBody = "statement block")
-        }
-        assertEquals(1, trackedFromBankTexts(rows))
+    fun `top categories rank by amount even when the list ranks by change`() {
+        val cycle = range(ReviewKind.MONTH, -1, "2026-11-04")
+        // Rent is the biggest and never moves, so "what changed" leaves it out of first place.
+        val current = listOf("Rent" to "900", "Food" to "300", "Fuel" to "50").map { (c, a) -> tx("2026-10-10", a, category = c) }
+        val previous = listOf("Rent" to "900", "Food" to "100", "Fuel" to "200").map { (c, a) -> tx("2026-09-02", a, category = c) }
+        val jod = review(cycle, current, previous).currencies.single()
+        assertEquals("Food", jod.categories.first().name)
+        assertEquals(listOf("Rent", "Food", "Fuel"), jod.topCategories.map { it.name })
     }
 
     @Test
-    fun `merchants are distinct places actually paid`() {
-        val rows = listOf(
-            tx("2026-10-02").transaction.copy(merchantName = "Cafe"),
-            tx("2026-10-03").transaction.copy(merchantName = " cafe "),
-            tx("2026-10-04", type = TransactionType.CREDIT).transaction.copy(merchantName = "Books"),
-            tx("2026-10-05", type = TransactionType.INCOME).transaction.copy(merchantName = "Employer"),
-            tx("2026-10-06", excluded = true).transaction.copy(merchantName = "Hidden"),
-        )
-        assertEquals(2, merchantsPaid(rows))
+    fun `a year's changes include a category that fell to nothing`() {
+        val year = range(ReviewKind.YEAR, -1, "2026-11-04")
+        // Travel was the biggest move but is gone this year, so a list by amount drops it.
+        val current = listOf("Rent", "Food", "Fuel", "Gifts", "Health", "Books").mapIndexed { i, c ->
+            tx("2025-06-10", (900 - i * 100).toString(), category = c)
+        }
+        val previous = listOf("Rent" to "900", "Food" to "800", "Travel" to "5000").map { (c, a) -> tx("2024-01-05", a, category = c) }
+        val jod = review(year, current, previous).currencies.single()
+        assertTrue(jod.categories.none { it.name == "Travel" })
+        assertEquals("Travel", jod.changes.first().name)
     }
 }

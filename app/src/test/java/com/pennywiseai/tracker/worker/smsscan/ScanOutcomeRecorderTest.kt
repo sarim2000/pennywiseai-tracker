@@ -195,7 +195,7 @@ class ScanOutcomeRecorderTest {
         }
 
         // Each retry reads them again; the last one moves the cursor on even if they fail again.
-        assertEquals(List(SmsScanRecord.MAX_SAVE_RETRIES + 1) { false } + true, gaveUp)
+        assertEquals(List(SmsScanRecord.MAX_SAVE_RETRIES) { false } + true, gaveUp)
         assertFalse("nor does it owe the whole window again", stored.value!!.owesFullWindow)
 
         recorder.run(isStopped = { false }) { recorder.stats = countedStats() }

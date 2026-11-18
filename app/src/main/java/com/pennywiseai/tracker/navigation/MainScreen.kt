@@ -40,11 +40,13 @@ import androidx.navigation3.ui.NavDisplay
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
 import com.pennywiseai.tracker.data.contacts.displayMerchantName
+import com.pennywiseai.tracker.data.model.ChatLink
 import com.pennywiseai.tracker.data.preferences.NavBarStyle
 import com.pennywiseai.tracker.presentation.accounts.AddAccountScreen
 import com.pennywiseai.tracker.presentation.accounts.ManageAccountsScreen
 import com.pennywiseai.tracker.presentation.accounts.ManageAccountsViewModel
 import com.pennywiseai.tracker.presentation.chat.ChatTabViewModel
+import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.home.HomeScreen
 import com.pennywiseai.tracker.presentation.settings.AppearanceScreen
 import com.pennywiseai.tracker.presentation.settings.FAQScreen
@@ -86,6 +88,18 @@ private fun rootOf(tab: BottomNavItem): NavKey = when (tab) {
     BottomNavItem.Analytics -> Analytics
     BottomNavItem.Chat -> Chat
 }
+
+/** The list behind a chat figure: its days, its category, its profile, and only its currency. */
+internal fun transactionsFor(link: ChatLink) = Transactions(
+    category = link.category,
+    period = TimePeriod.CUSTOM.name,
+    currency = link.currency,
+    startDate = link.start.toEpochDay(),
+    endDate = link.end.toEpochDay(),
+    currencyOnly = true,
+    profilePinned = true,
+    profileId = link.profileId,
+)
 
 /** Pops this stack back to its first screen, which becomes [root]. */
 private fun NavBackStack<NavKey>.resetTo(root: NavKey) {
@@ -301,6 +315,9 @@ fun MainScreen(
                 onNavigateToReview = { kind ->
                     openRoot(com.pennywiseai.tracker.navigation.Review(kind.name))
                 },
+                onNavigateToShareStudio = {
+                    openRoot(ShareStudio())
+                },
                 onNavigateToSubscriptions = {
                     open(tab, Subscriptions)
                 },
@@ -354,6 +371,9 @@ fun MainScreen(
                 initialCustomEndEpochDay = key.endDate,
                 initialAccount = key.account,
                 initialTag = key.tag,
+                currencyOnly = key.currencyOnly,
+                profilePinned = key.profilePinned,
+                initialProfileId = key.profileId,
                 focusSearch = key.focusSearch,
                 initialTransactionType = key.type,
                 // No back arrow for a plain tab tap; show it for a filtered
@@ -424,6 +444,9 @@ fun MainScreen(
                     modifier = Modifier.imePadding(),
                     onNavigateToSettings = {
                         open(tab, SettingsPage(SettingsSection.AI))
+                    },
+                    onOpenTransactions = { link ->
+                        open(tab, transactionsFor(link))
                     }
                 )
             }

@@ -336,6 +336,7 @@ fun PennyWiseNavHost(
                         com.pennywiseai.tracker.presentation.goals.GoalDetailScreen(
                             onNavigateBack = { backStack.pop(key) },
                             onEdit = { goalId -> backStack.navigate(GoalEdit(goalId)) },
+                            onShare = { goalId -> backStack.navigate(ShareStudio(kind = "GOAL", goalId = goalId)) },
                             onOpenTransaction = { transactionId ->
                                 backStack.navigate(TransactionDetail(transactionId))
                             },
@@ -429,6 +430,11 @@ fun PennyWiseNavHost(
                     entry<Review> { key ->
                         com.pennywiseai.tracker.presentation.review.PeriodReviewScreen(
                             onNavigateBack = { backStack.pop(key) },
+                            onShare = { kind, offset, today ->
+                                backStack.navigate(
+                                    ShareStudio(kind = "RECAP", reviewKind = kind.name, offset = offset, today = today.toEpochDay())
+                                )
+                            },
                             onOpenCategory = { category, currency, start, end ->
                                 backStack.navigate(
                                     TransactionsWithFilter(
@@ -468,6 +474,12 @@ fun PennyWiseNavHost(
                             onNavigateBack = { backStack.pop(key) },
                             onAddSubscriptionClick = { backStack.navigate(AddTransaction()) },
                             showBack = true,
+                        )
+                    }
+
+                    entry<ShareStudio> { key ->
+                        com.pennywiseai.tracker.presentation.share.ShareStudioScreen(
+                            onNavigateBack = { backStack.pop(key) }
                         )
                     }
 

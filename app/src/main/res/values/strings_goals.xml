@@ -29,6 +29,7 @@
     <string name="goal_edit_title_new">New goal</string>
     <string name="goal_edit_title_edit">Edit goal</string>
     <string name="goal_back">Back</string>
+    <string name="goal_share">Share progress</string>
     <string name="goal_edit_name">Name</string>
     <string name="goal_edit_name_hint">For example, car insurance</string>
     <string name="goal_edit_target">Target amount</string>

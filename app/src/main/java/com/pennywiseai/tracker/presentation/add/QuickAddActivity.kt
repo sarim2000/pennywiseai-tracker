@@ -20,6 +20,7 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
+import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.Button
@@ -30,6 +31,8 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.InputChip
 import androidx.compose.material3.InputChipDefaults
 import androidx.compose.material3.MaterialTheme
@@ -77,6 +80,7 @@ import com.pennywiseai.tracker.data.repository.ModelRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase
 import com.pennywiseai.tracker.navigation.BottomNavItem
+import com.pennywiseai.tracker.ui.components.AmountCalculatorSheet
 import com.pennywiseai.tracker.ui.components.CategoryChip
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
@@ -389,6 +393,7 @@ class QuickAddActivity : FragmentActivity() {
             ofType.sortedBy { it.name != heardCategory }
         }
         val type = if (income) TransactionType.INCOME else TransactionType.EXPENSE
+        var showCalculator by rememberSaveable { mutableStateOf(false) }
         val amount = amountText.toBigDecimalOrNull()?.takeIf { it.signum() > 0 }
         val focus = remember { FocusRequester() }
         val focusManager = LocalFocusManager.current
@@ -464,8 +469,31 @@ class QuickAddActivity : FragmentActivity() {
                 textStyle = MaterialTheme.typography.headlineSmall.money(),
                 singleLine = true,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+                trailingIcon = {
+                    IconButton(
+                        onClick = {
+                            // The sheet has its own keypad; the keyboard would cover it.
+                            focusManager.clearFocus()
+                            showCalculator = true
+                        },
+                        shapes = IconButtonDefaults.shapes()
+                    ) {
+                        Icon(Icons.Default.Calculate, contentDescription = stringResource(R.string.calculator_open))
+                    }
+                },
                 modifier = Modifier.fillMaxWidth().focusRequester(focus)
             )
+            if (showCalculator) {
+                AmountCalculatorSheet(
+                    initialAmount = amountText,
+                    currency = currency,
+                    onApply = { result ->
+                        normalizeAmount(result.toPlainString(), decimalComma)?.let { amountText = it }
+                        showCalculator = false
+                    },
+                    onDismiss = { showCalculator = false }
+                )
+            }
             OutlinedTextField(
                 value = where,
                 onValueChange = { where = it },

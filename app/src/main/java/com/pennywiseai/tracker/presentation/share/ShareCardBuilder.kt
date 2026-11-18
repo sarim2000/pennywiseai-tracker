@@ -188,14 +188,15 @@ private fun recapCard(review: PeriodReview, c: CurrencyReview, details: Set<Shar
 @Composable
 private fun spendingCard(review: PeriodReview, c: CurrencyReview, details: Set<ShareDetail>): ShareCardState {
     val previous = c.previousSpent
-    val change = percentChange(c.spent, previous)
-    if (previous == null || change == null) {
-        return ShareCardState.Unavailable(stringResource(R.string.share_unavailable_compare))
-    }
     val amounts = ShareDetail.AMOUNTS in details
     val percents = ShareDetail.PERCENTAGES in details
+    // Nothing spent before has no percent change, but still a difference in money.
+    val change = percentChange(c.spent, previous)?.takeIf { percents }
+    if (previous == null || (percents && change == null)) {
+        return ShareCardState.Unavailable(stringResource(R.string.share_unavailable_compare))
+    }
     val delta = c.spent - previous
-    val direction = if (percents) Integer.signum(change) else delta.signum()
+    val direction = change?.let(Integer::signum) ?: delta.signum()
     val target = comparisonTarget(review.range)
     val drivers = if (ShareDetail.CATEGORIES in details) spendingDrivers(c, limit = chartRows(amounts)) else emptyList()
     val separator = stringResource(R.string.share_list_separator)
@@ -237,7 +238,7 @@ private fun spendingCard(review: PeriodReview, c: CurrencyReview, details: Set<S
                     },
                     target,
                 ),
-                value = if (percents) signedPercent(change) else signedMoney(delta, c.currency),
+                value = change?.let { signedPercent(it) } ?: signedMoney(delta, c.currency),
                 delta = if (percents && amounts && delta.signum() != 0) signedMoney(delta, c.currency) else null,
                 sentiment = if (direction < 0) Sentiment.GOOD else Sentiment.NEUTRAL,
             ),

@@ -336,7 +336,7 @@ See [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines.
 Please read our [Code of Conduct](CODE_OF_CONDUCT.md) before participating.
 
 ```bash
-./init.sh                          # Format, compile and test (CI also assembles the APK and runs lint)
+./init.sh                          # Format check, compile and test (CI also assembles the APK and runs lint)
 ./init.sh parser                   # Just parser-core, when you only touched a bank parser
 ./gradlew :app:lintStandardDebug   # Android Lint, as CI runs it
 ```

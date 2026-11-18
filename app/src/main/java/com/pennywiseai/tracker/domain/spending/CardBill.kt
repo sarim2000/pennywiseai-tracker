@@ -7,6 +7,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
+import java.time.LocalTime
 import java.time.YearMonth
 
 /**
@@ -114,11 +115,11 @@ object CardBills {
 
     private val PURCHASE_CREDIT = Regex("""refund|revers|cash\s?back|charge\s?back""", RegexOption.IGNORE_CASE)
 
-    /** What was paid toward [card] after [statementDate], up to and including [today]. */
-    fun paymentsTo(card: AccountBalanceEntity, transactions: List<TransactionEntity>, statementDate: LocalDate, today: LocalDate): BigDecimal =
+    /** What was paid toward [card] after [after], up to and including [today]. */
+    fun paymentsTo(card: AccountBalanceEntity, transactions: List<TransactionEntity>, after: LocalDateTime, today: LocalDate): BigDecimal =
         transactions.asSequence()
             .filter { !it.isDeleted && isPayment(card, it) }
-            .filter { it.dateTime.toLocalDate().let { d -> d.isAfter(statementDate) && !d.isAfter(today) } }
+            .filter { it.dateTime.isAfter(after) && !it.dateTime.toLocalDate().isAfter(today) }
             // Both legs of a marked transfer can name the card; the pair is one payment.
             .distinctBy { it.transferPairId ?: "id:${it.id}" }
             .fold(BigDecimal.ZERO) { sum, t -> sum + t.amount }
@@ -171,17 +172,21 @@ object CardBills {
         val owes = card.balance.signum() > 0
         val dueDay = card.cardDueDay
         val amount = card.cardBillAmount
-        val asOf = card.cardBillAsOf?.toLocalDate()
-        if (dueDay == null || amount == null || asOf == null) return CardBillStatus(card, null, needsBill = owes)
+        val enteredAt = card.cardBillAsOf
+        if (dueDay == null || amount == null || enteredAt == null) return CardBillStatus(card, null, needsBill = owes)
 
+        val asOf = enteredAt.toLocalDate()
         val statement = card.statementDay?.let { statementDate(it, asOf) } ?: asOf
+        // Payments after the statement's day; without a statement day, after the moment
+        // the bill was entered, so one made later that same day still counts.
+        val paidAfter = if (card.statementDay != null) statement.atTime(LocalTime.MAX) else enteredAt
         val bill = CardBill(
             bankName = card.bankName,
             accountLast4 = card.accountLast4,
             label = card.displayLabel,
             currency = card.currency,
             amount = amount,
-            paid = paymentsTo(card, transactions, statement, today),
+            paid = paymentsTo(card, transactions, paidAfter, today),
             statementDate = statement,
             dueDate = if (card.statementDay != null) dueDate(statement, dueDay) else YearMonth.from(asOf).dayClamped(dueDay),
         )

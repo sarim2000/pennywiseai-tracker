@@ -215,6 +215,18 @@ class CardBillTest {
     }
 
     @Test
+    fun `without a statement day a payment later on the day the bill was entered counts`() {
+        // Entered at 09:00 on 14 March; paid at 12:00 the same day.
+        val card = card(statementDay = null, dueDay = 25)
+        val paid = CardBills.status(card, listOf(tx("2026-03-14", "4000", TransactionType.INCOME)), date("2026-03-15"))
+        assertNull(paid.bill)
+
+        // With a statement day, a payment on the statement's own day is the old bill's.
+        val onStatement = CardBills.status(card(), listOf(tx("2026-03-12", "4000", TransactionType.INCOME)), date("2026-03-15"))
+        assertEquals(d("4000"), onStatement.bill!!.remaining)
+    }
+
+    @Test
     fun `without a statement day a paid bill stops being the card's latest a month on`() {
         val card = card(statementDay = null, dueDay = 25)
         val paid = listOf(tx("2026-03-20", "4000", TransactionType.INCOME))

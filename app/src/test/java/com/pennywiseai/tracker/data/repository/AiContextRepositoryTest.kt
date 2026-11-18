@@ -308,6 +308,7 @@ class AiContextRepositoryTest {
         tx("50", category = "Travel", account = "9999", profileId = ProfileEntity.BUSINESS_ID) // an ignored account's
         tx("30", category = "Travel") // Personal's
         tx("7", category = "Travel", currency = "USD", account = "1111")
+        tx("15", category = "travel", account = "1111") // an import's spelling: Home counts it as Travel
         val travel = repository.categorySpending("Travel", today)
 
         // What the Transactions list shows behind those links: the category, the profile's
@@ -321,7 +322,7 @@ class AiContextRepositoryTest {
             buildProfileAccountKeys(accounts),
         )
         val totals = calculateCurrencyGroupedTotals(listed.mapNotNull(CategorySplitShares(setOf("Travel"), splits)::forTotals))
-        assertEquals(mapOf("INR" to "120", "USD" to "7"), amounts(travel.byCurrency))
+        assertEquals(mapOf("INR" to "135", "USD" to "7"), amounts(travel.byCurrency))
         assertEquals(amounts(travel.byCurrency), amounts(totals.totalsByCurrency.mapValues { it.value.expenses }))
         assertEquals(travel.transactionCount, listed.size)
     }

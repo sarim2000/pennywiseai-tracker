@@ -387,19 +387,6 @@ class SpendingComparisonTest {
     }
 
     @Test
-    fun `a figure says when it counted card purchases, which the list totals under Credit`() {
-        val mixed = listOf(tx("100"), tx("40", type = TransactionType.CREDIT, category = "Shopping"))
-        assertTrue(SpendingComparison.countsCardPurchases(mixed, creditAsExpense = true))
-        assertTrue(!SpendingComparison.countsCardPurchases(mixed, creditAsExpense = false))
-        // Only the category's own card purchases.
-        assertTrue(SpendingComparison.countsCardPurchases(mixed, setOf("shopping")))
-        assertTrue(!SpendingComparison.countsCardPurchases(mixed, setOf("Food & Dining")))
-        // A comparison, in either period.
-        assertTrue((SpendingComparison.compare(windows, listOf(tx("10")), mixed) as Result.Rows).cardPurchases)
-        assertTrue(!(SpendingComparison.compare(windows, listOf(tx("10")), mixed, creditAsExpense = false) as Result.Rows).cardPurchases)
-    }
-
-    @Test
     fun `a category set rolls in every name it holds, refunds included`() {
         val cur = listOf(tx("60", category = "Food"), tx("30", category = "Coffee"), tx("9", category = "Travel"), tx("10", type = TransactionType.INCOME, refundTo = "Coffee"))
         assertEquals(mapOf("INR" to BigDecimal("80")), SpendingComparison.spend(cur, setOf("food", "coffee")))

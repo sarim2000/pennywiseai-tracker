@@ -104,5 +104,27 @@ class FullUpgradeTest {
         } finally { db.close() }
     }
 
+    @Test fun upgradeFrom68LeavesCardBillsUnknown() = runBlocking {
+        helper.createDatabase(68).apply {
+            execSQL("""INSERT INTO account_balances (id, bank_name, account_last4, balance, timestamp, created_at,
+                is_credit_card, statement_day) VALUES
+                (1, 'Example Bank', '0000', '4200.00', '2026-01-01T10:00:00', '2026-01-01T10:00:00', 1, 12)""")
+            close()
+        }
+
+        val db = Room.databaseBuilder(instrumentation.targetContext, PennyWiseDatabase::class.java, NAME)
+            .addMigrations(*PennyWiseMigrations.ALL_MIGRATIONS)
+            .setDriver(AndroidSQLiteDriver())
+            .build()
+        try {
+            val card = db.accountBalanceDao().getLatestBalance("Example Bank", "0000")!!
+            assertEquals(0, BigDecimal("4200.00").compareTo(card.balance))
+            assertEquals(12, card.statementDay)
+            assertNull(card.cardDueDay)
+            assertNull(card.cardBillAmount)
+            assertNull(card.cardBillAsOf)
+        } finally { db.close() }
+    }
+
     private companion object { const val NAME = "full-upgrade-test" }
 }

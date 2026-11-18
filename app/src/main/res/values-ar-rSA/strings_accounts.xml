@@ -323,4 +323,14 @@
         <item quantity="many">عرض كل الحسابات (%1$d)</item>
         <item quantity="other">عرض كل الحسابات (%1$d)</item>
     </plurals>
+
+    <!-- Net worth: what you own minus what you owe, per currency -->
+    <string name="net_worth_title">صافي الثروة</string>
+    <string name="net_worth_back">رجوع</string>
+    <string name="net_worth_empty_headline">لا توجد حسابات بعد</string>
+    <string name="net_worth_empty_body">أضف حسابًا، أو دع PennyWise يقرأ رسائل البنك، لترى ما تملكه مطروحًا منه ما عليك.</string>
+    <string name="net_worth_summary_hint">ما تملكه مطروحًا منه ما عليك</string>
+    <string name="net_worth_assets">الحسابات</string>
+    <string name="net_worth_cards">البطاقات الائتمانية</string>
+    <string name="net_worth_loans">القروض</string>
 </resources>

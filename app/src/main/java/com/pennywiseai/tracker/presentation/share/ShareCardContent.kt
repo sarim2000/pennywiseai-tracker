@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.presentation.share
 
 import androidx.compose.runtime.Immutable
+import java.time.LocalDate
 
 /**
  * Exactly what a share card renders, already formatted and translated.
@@ -19,6 +20,22 @@ data class ShareCardContent(
     val hero: ShareCardHero? = null,
     val stats: List<ShareCardStat> = emptyList(),
     val chart: ShareChart? = null,
+    /** An achievements card's badges, in the order drawn. */
+    val achievements: List<ShareAchievement> = emptyList(),
+)
+
+/**
+ * One earned achievement on the card. [id] is the contract's stable key, which also
+ * picks the badge art; [tier] counts the tiers earned.
+ */
+@Immutable
+data class ShareAchievement(
+    val id: String,
+    val title: String,
+    val description: String,
+    val tier: Int,
+    /** Null when the user left dates off. */
+    val unlockedOn: LocalDate? = null,
 )
 
 /** Card types. Names are the share contract's `kind`, lowercased. */
@@ -27,7 +44,8 @@ enum class ShareKind {
     SPENDING,
     SAVINGS,
     GOAL,
-    BUDGET;
+    BUDGET,
+    ACHIEVEMENTS;
 
     companion object {
         fun fromName(value: String?): ShareKind? = entries.firstOrNull { it.name == value }
@@ -101,6 +119,8 @@ val ShareKind.details: List<ShareDetail>
             ShareDetail.AMOUNTS, ShareDetail.PERCENTAGES, ShareDetail.CHART,
             ShareDetail.GOAL_NAME, ShareDetail.PACE, ShareDetail.PERIOD,
         )
+        // The date it was earned; drawn only on a card with one achievement.
+        ShareKind.ACHIEVEMENTS -> listOf(ShareDetail.PERIOD)
     }
 
 /**
@@ -109,8 +129,8 @@ val ShareKind.details: List<ShareDetail>
  */
 val DEFAULT_SHARE_DETAILS: Set<ShareDetail> = ShareDetail.entries.toSet() - ShareDetail.AMOUNTS
 
-/** A recap leads with a count; every other card is about a figure, and needs one. */
-val ShareKind.needsFigure: Boolean get() = this != ShareKind.RECAP
+/** A recap leads with a count and achievements with badges; every other card is about a figure, and needs one. */
+val ShareKind.needsFigure: Boolean get() = this != ShareKind.RECAP && this != ShareKind.ACHIEVEMENTS
 
 /**
  * The details actually drawn. A card that needs a figure keeps percentages when the

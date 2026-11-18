@@ -4,6 +4,12 @@
     <string name="review_title">المراجعات</string>
     <string name="review_back">رجوع</string>
     <string name="review_share">مشاركة</string>
+    <string name="review_export_pdf">تصدير PDF</string>
+    <!-- Paywall list of what Pro includes -->
+    <string name="upgrade_feature_pdf_reports">تقارير PDF شهرية وسنوية</string>
+    <string name="review_export_pdf_failed">تعذّر إنشاء ملف PDF. حاول مرة أخرى.</string>
+    <!-- Shown instead of a PDF while the user hides amounts in the app: the report prints them -->
+    <string name="review_export_pdf_amounts_hidden">أظهِر المبالغ لتصدير تقرير PDF.</string>
     <string name="review_kind_week">أسبوع</string>
     <string name="review_kind_month">شهر</string>
     <string name="review_kind_year">سنة</string>
@@ -30,6 +36,23 @@
     <string name="review_coverage">مبني على المعاملات المسجّلة، ولا يشمل الدفع النقدي الذي لم تضفه.</string>
     <!-- %1$s, %2$s = first and last recorded dates -->
     <string name="review_coverage_span">مبني على المعاملات المسجّلة من %1$s إلى %2$s، ولا يشمل الدفع النقدي الذي لم تضفه.</string>
+
+    <!-- PDF report -->
+    <string name="review_pdf_title">تقرير PennyWise</string>
+    <!-- %1$s = profile name, or "All profiles" -->
+    <string name="review_pdf_profile">الملف الشخصي: %1$s</string>
+    <!-- %1$s = date the report was made -->
+    <string name="review_pdf_created">أُنشئ في %1$s</string>
+    <string name="review_pdf_net">الصافي</string>
+    <string name="review_pdf_category">الفئة</string>
+    <string name="review_pdf_amount">المبلغ</string>
+    <!-- Column heading. %1$s = what it is compared with, e.g. "September" or "the previous cycle" -->
+    <string name="review_pdf_change">التغيّر عن %1$s</string>
+    <string name="review_pdf_merchants">أعلى التجار</string>
+    <string name="review_pdf_merchant">التاجر</string>
+    <string name="review_pdf_month">الشهر</string>
+    <!-- %1$d = this page, %2$d = number of pages -->
+    <string name="review_pdf_page">صفحة %1$d من %2$d</string>
     <!-- Home -->
     <string name="home_menu_share_card">بطاقة مشاركة</string>
     <!-- %1$s = year -->

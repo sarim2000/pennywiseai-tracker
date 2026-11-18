@@ -38,8 +38,6 @@ import com.pennywiseai.tracker.data.repository.ProfileRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
-import com.pennywiseai.tracker.domain.goals.GoalReserve
-import com.pennywiseai.tracker.domain.goals.GoalReserveLoader
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
 import com.pennywiseai.tracker.domain.model.filterTransactionsByProfile
@@ -48,11 +46,10 @@ import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.domain.review.ReviewPrompt
 import com.pennywiseai.tracker.domain.review.reviewPromptFor
 import com.pennywiseai.tracker.domain.spending.Bill
+import com.pennywiseai.tracker.domain.spending.CardBillsLoader
 import com.pennywiseai.tracker.domain.spending.SafeToSpend
 import com.pennywiseai.tracker.domain.spending.SpendForecast
 import com.pennywiseai.tracker.domain.spending.SubscriptionCost
-import com.pennywiseai.tracker.domain.spending.UpcomingPayments
-import com.pennywiseai.tracker.domain.spending.UpcomingPaymentsLoader
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.RestoreTransactionUseCase
 import com.pennywiseai.tracker.presentation.common.filterAccountsByProfile
@@ -121,8 +118,7 @@ class HomeViewModel @Inject constructor(
     private val recurringSuggestionsUseCase: com.pennywiseai.tracker.domain.usecase.RecurringSuggestionsUseCase,
     private val ignoredAccountsStore: IgnoredAccountsStore,
     private val cardRepository: CardRepository,
-    private val upcomingPaymentsLoader: UpcomingPaymentsLoader,
-    private val goalReserveLoader: GoalReserveLoader,
+    private val cardBillsLoader: CardBillsLoader,
 ) : ViewModel() {
 
     /**
@@ -243,6 +239,9 @@ class HomeViewModel @Inject constructor(
     // Visible spendable accounts in their own currency (not pre-converted), for Safe to spend.
     private val spendableRaw = MutableStateFlow<List<AccountBalanceEntity>>(emptyList())
 
+    /** The credit cards Home shows, in their own currencies: Safe to spend sets their bills aside. */
+    private val cardsRaw = MutableStateFlow<List<AccountBalanceEntity>>(emptyList())
+
     // Today's date as a flow, so day-based figures move on when Home is resumed on a new day.
     private val today = MutableStateFlow(LocalDate.now())
 
@@ -325,39 +324,21 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /** Today and the current budget cycle, for the day-based figures. */
-    private val cycleToday = combine(_currentCycleWindow, today, ::Pair).distinctUntilChanged()
-
-    /** What's committed before the cycle ends: bills, recurring payments and card bills. */
-    private val upcoming = cycleToday.flatMapLatest { (window, day) -> upcomingPaymentsLoader.observe(day, window.second) }
-
-    /**
-     * The goal savings Safe to spend sets aside, when the user opted in. Goals span every
-     * profile, so there's nothing to set aside, and no switch, while one profile is selected.
-     */
-    private val goalReserve = cycleToday.flatMapLatest { (window, day) ->
-        combine(goalReserveLoader.observe(day), userPreferencesRepository.reserveGoalSavings) { goals, on ->
-            GoalReserveState(
-                available = goals != null,
-                on = on,
-                amounts = if (on && goals != null) GoalReserve.of(goals.goals, goals.contributions, day, window.first, window.second) else emptyList(),
-            )
-        }
-    }
+    /** Where each card Home shows stands with its bill: what's left to pay, or that it's missing. */
+    private val cardBills = combine(cardsRaw, today, ::Pair).distinctUntilChanged()
+        .flatMapLatest { (cards, day) -> cardBillsLoader.observe(cards, day) }
 
     /**
      * Home's "Safe to spend": visible spendable accounts (minus the ones the user left
-     * out) less every payment due before the cycle ends ([UpcomingPayments]: each
-     * subscription and recurring occurrence, and card bills, overdue ones included)
-     * and, if the user asked, the goal savings for the rest of the cycle; capped at
-     * what's left in the overall budget ([safeToSpendCap]). Card purchases aren't
-     * subtracted: they're inside the card's bill. Netted per currency; in unified
-     * mode each figure is converted to the display currency first, and one with no
-     * rate stays in its own currency as a separate line. Null hides the card.
+     * out) less active subscriptions due before the cycle ends and the card bills
+     * still to pay by then (overdue ones too), capped at what's left in the overall
+     * budget ([safeToSpendCap]). Netted per currency;
+     * in unified mode each figure is converted to the display currency first, and one
+     * with no rate stays in its own currency as a separate line. Null hides the card.
      */
     val safeToSpend: StateFlow<SafeToSpendUi?> = combine(
         spendableRaw,
-        combine(upcoming, goalReserve, ::Pair),
+        combine(subscriptionRepository.getActiveSubscriptions(), cardBills, ::Pair),
         userPreferencesRepository.safeToSpendExcludedAccounts,
         combine(
             _currentCycleWindow,
@@ -370,31 +351,29 @@ class HomeViewModel @Inject constructor(
             _uiState.map { it.selectedCurrency }.distinctUntilChanged(),
             currencyConversionService.getAllRatesFlow(),
         ) { unified, display, selected, _ -> if (unified) display to true else selected to false },
-    ) { accounts, (upcoming, goals), excluded, (periodEnd, today, budgetLeft), (primaryCurrency, unified) ->
+    ) { accounts, (subscriptions, cards), excluded, (periodEnd, today, budgetLeft), (primaryCurrency, unified) ->
         if (accounts.isEmpty()) return@combine null
         suspend fun Money.forTotal(): Money =
-            if (!unified) this
-            else SafeToSpend.inDisplay(this, primaryCurrency) { a, from, to -> currencyConversionService.convertAmountOrNull(a, from, to) }
-        val bills = SafeToSpend.billsInWindow(upcoming.bills, today, periodEnd)
+            if (!unified || currency == primaryCurrency) this
+            else currencyConversionService.convertAmountOrNull(amount, currency, primaryCurrency)
+                ?.let { Money(it, primaryCurrency) } ?: this // no rate: keep it apart (#670)
+        val cardBills = cards.mapNotNull { it.bill }
+            .map { Bill(it.label, Money(it.remaining, it.currency), it.dueDate, isCardBill = true) }
+        val bills = SafeToSpend.billsInWindow(SafeToSpend.billsFrom(subscriptions) + cardBills, today, periodEnd)
         val results = SafeToSpend.calculate(
             balances = countedInSafeToSpend(accounts, excluded).map { Money(it.balance, it.currency).forTotal() },
             bills = bills.map { it.copy(amount = it.amount.forTotal()) },
             today = today,
             periodEnd = periodEnd,
             budgetLeft = budgetLeft,
-            goalReserves = goals.amounts.map { it.forTotal() },
         )
         val primary = results.firstOrNull { it.currency == primaryCurrency }
             ?: SafeToSpend.calculate(listOf(Money.zero(primaryCurrency)), emptyList(), today, periodEnd).single()
         SafeToSpendUi(
             primary, results - primary, periodEnd, accounts, excluded, bills,
-            goals = goals, cardsNeedingBill = upcoming.cardsNeedingBill,
+            cardsNeedingBill = cards.filter { it.needsBill }.map { it.card },
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
-
-    fun setReserveGoalSavings(on: Boolean) {
-        viewModelScope.launch { userPreferencesRepository.setReserveGoalSavings(on) }
-    }
 
     /**
      * Called when Home resumes. On a new day, move the cycle window (if it rolled over)
@@ -628,6 +607,7 @@ class HomeViewModel @Inject constructor(
                 val rawRegularAccounts = spendableAccounts(balances)
                 spendableRaw.value = rawRegularAccounts
                 val rawCreditCards = balances.filter { it.isCreditCard }
+                cardsRaw.value = rawCreditCards
 
                 // Check if we have multiple currencies and refresh exchange rates if needed
                 val accountCurrencies = rawRegularAccounts.map { it.currency }.distinct()
@@ -1098,6 +1078,7 @@ class HomeViewModel @Inject constructor(
             val rawRegularAccounts = spendableAccounts(visibleBalances)
             spendableRaw.value = rawRegularAccounts
             val rawCreditCards = visibleBalances.filter { it.isCreditCard }
+            cardsRaw.value = rawCreditCards
 
             val selectedCurrency = _uiState.value.selectedCurrency
             val isUnified = _uiState.value.isUnifiedMode
@@ -1270,6 +1251,7 @@ class HomeViewModel @Inject constructor(
             val rawRegularAccounts = spendableAccounts(balances)
             spendableRaw.value = rawRegularAccounts
             val rawCreditCards = balances.filter { it.isCreditCard }
+            cardsRaw.value = rawCreditCards
 
             val accountCurrencies = rawRegularAccounts.map { it.currency }.distinct()
             val creditCardCurrencies = rawCreditCards.map { it.currency }.distinct()
@@ -1800,19 +1782,8 @@ data class SafeToSpendUi(
     val excludedKeys: Set<String>,
     /** Bills due today..[periodEnd] and overdue card bills, each in its own currency. */
     val bills: List<Bill>,
-    val goals: GoalReserveState = GoalReserveState(),
     /** Cards whose bill Safe to spend can't set aside yet: their due day or amount is missing. */
     val cardsNeedingBill: List<AccountBalanceEntity> = emptyList(),
-)
-
-/**
- * The opt-in goal reserve: [available] when there are goals in progress to set
- * aside for in this scope; [amounts] per goal currency, empty while [on] is off.
- */
-data class GoalReserveState(
-    val available: Boolean = false,
-    val on: Boolean = false,
-    val amounts: List<Money> = emptyList(),
 )
 
 data class LoanSummary(

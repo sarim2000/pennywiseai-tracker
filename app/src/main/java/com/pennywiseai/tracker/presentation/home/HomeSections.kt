@@ -20,7 +20,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.zIndex
@@ -628,71 +627,5 @@ internal fun HomeActivitySection(
             blurEffects = blurEffects,
             hazeState = hazeStateBanner
         )
-    }
-}
-
-/** The two insights that matter most; the card opens the Insights page. */
-@Composable
-internal fun HomeInsightsSection(
-    insights: List<com.pennywiseai.tracker.domain.insights.Insight>,
-    onNavigateToInsights: () -> Unit
-) {
-    Column(
-        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
-    ) {
-        SectionHeaderV2(
-            title = stringResource(R.string.home_section_insights),
-            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-            action = {
-                TextButton(onClick = onNavigateToInsights, shapes = ButtonDefaults.shapes()) {
-                    Text(stringResource(R.string.home_view_all))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        modifier = Modifier.size(Dimensions.Icon.small)
-                    )
-                }
-            }
-        )
-        PennyWiseCardV2(
-            onClick = onNavigateToInsights,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Dimensions.Padding.content)
-        ) {
-            // Titles like "Your money would last 4 months" don't name a currency, so say
-            // which each is once there's more than one.
-            val showCurrency = insights.distinctBy { it.currency }.size > 1
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.smd)) {
-                insights.forEach { insight ->
-                    val (icon, color) = com.pennywiseai.tracker.presentation.insights.severityStyle(insight.severity)
-                    // Without section headers here, the icon says how much it matters: "Needs attention, …".
-                    Row(
-                        modifier = Modifier.semantics(mergeDescendants = true) {},
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.smd)
-                    ) {
-                        Icon(
-                            icon,
-                            contentDescription = com.pennywiseai.tracker.presentation.insights.severityLabel(insight.severity),
-                            tint = color,
-                            modifier = Modifier.size(Dimensions.Icon.medium)
-                        )
-                        Text(
-                            text = com.pennywiseai.tracker.presentation.insights.insightText(insight).title,
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.weight(1f)
-                        )
-                        if (showCurrency) {
-                            Text(
-                                text = insight.currency,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-            }
-        }
     }
 }

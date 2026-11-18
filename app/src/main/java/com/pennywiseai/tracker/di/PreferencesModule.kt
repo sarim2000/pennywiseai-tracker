@@ -4,7 +4,6 @@ import com.pennywiseai.tracker.data.preferences.BackupPreferences
 import com.pennywiseai.tracker.data.preferences.BillingPreferences
 import com.pennywiseai.tracker.data.preferences.BudgetPreferences
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
-import com.pennywiseai.tracker.data.preferences.InsightPreferences
 import com.pennywiseai.tracker.data.preferences.NotificationPreferences
 import com.pennywiseai.tracker.data.preferences.PrivacyPreferences
 import com.pennywiseai.tracker.data.preferences.RecurringSuggestionPreferences
@@ -52,8 +51,4 @@ abstract class PreferencesModule {
     @Binds
     @Singleton
     abstract fun bindRecurringSuggestionPreferences(impl: UserPreferencesRepository): RecurringSuggestionPreferences
-
-    @Binds
-    @Singleton
-    abstract fun bindInsightPreferences(impl: UserPreferencesRepository): InsightPreferences
 }

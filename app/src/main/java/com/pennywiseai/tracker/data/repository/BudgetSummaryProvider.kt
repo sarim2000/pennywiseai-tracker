@@ -34,13 +34,7 @@ class BudgetSummaryProvider @Inject constructor(
     private val userPreferencesRepository: CurrencyPreferences,
     private val currencyConversionService: CurrencyConversionService
 ) {
-    /**
-     * [flagUncounted]: outside unified mode, also set
-     * [BudgetGroupSpending.hasUnconvertedSpend] for spending in other currencies,
-     * which the base-currency figures leave out. It costs a second, all-currency
-     * query, so only a caller that shows the flag asks for it.
-     */
-    fun summary(yearMonth: YearMonth, flagUncounted: Boolean = false): Flow<BudgetOverallSummary> =
+    fun summary(yearMonth: YearMonth): Flow<BudgetOverallSummary> =
         combine(
             userPreferencesRepository.baseCurrency,
             userPreferencesRepository.unifiedCurrencyMode,
@@ -51,26 +45,6 @@ class BudgetSummaryProvider @Inject constructor(
             if (unifiedMode) {
                 budgetGroupRepository.getGroupSpendingAllCurrencies(yearMonth.year, yearMonth.monthValue)
                     .map { raw -> convertRawToSummary(raw, displayCurrency, baseCurrency) }
-            } else if (flagUncounted) {
-                combine(
-                    budgetGroupRepository.getGroupSpending(yearMonth.year, yearMonth.monthValue, baseCurrency),
-                    budgetGroupRepository.getGroupSpendingAllCurrencies(yearMonth.year, yearMonth.monthValue)
-                ) { summary, raw ->
-                    val windowedByBudget = raw.windowedSpend.groupBy { it.budgetId }
-                    // The base-currency figures credit a sub-category's spend to its parent too.
-                    val parentOf = budgetGroupRepository.parentOf()
-                    summary.copy(
-                        groups = summary.groups.map { g ->
-                            val txs = transactionsInWindow(
-                                g.group.budget.id,
-                                windowedByBudget[g.group.budget.id].orEmpty(),
-                                BudgetWindow(g.windowStart, g.windowEnd, g.windowDays)
-                            )
-                            // Same match as the base-currency query: anything else isn't counted.
-                            g.copy(hasUnconvertedSpend = hasUncountedSpend(g.group, txs, parentOf, baseCurrency))
-                        }
-                    )
-                }
             } else {
                 budgetGroupRepository.getGroupSpending(yearMonth.year, yearMonth.monthValue, baseCurrency)
             }
@@ -199,28 +173,30 @@ class BudgetSummaryProvider @Inject constructor(
      * per-week breakdown.
      */
     /**
-     * What [group] spent in [transactions], in [displayCurrency], and whether spending
-     * it counts was left out for want of a rate (#670), so the total reads low. Both
-     * come from the one conversion pass, so a rate that turns up between two passes
-     * can't leave a row out of the total yet clear the flag.
+     * Fallback: when the repo's windowedSpend list doesn't contain a
+     * window that matches the displayed window's exact bounds (e.g. a
+     * Monthly budget with monthStartDay=25 — the displayed window is
+     * the full 30-day cycle but the repo clips to calendar months), sum
+     * the spend of every windowed entry whose [start, end] range
+     * overlaps the displayed window. Each per-month window's spend is
+     * already in the page's currency, so no further conversion needed.
      */
-    private suspend fun getBudgetWindowFilteredSpendFlagged(
+    private suspend fun getBudgetWindowFilteredSpend(
         group: com.pennywiseai.tracker.data.database.entity.BudgetWithCategories,
         transactions: List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>,
-        displayCurrency: String
-    ): Pair<BigDecimal, Boolean> {
+        displayCurrency: String,
+        baseCurrency: String
+    ): BigDecimal {
         if (group.categories.isEmpty()) {
-            var skipped = false
-            val total = transactions.fold(BigDecimal.ZERO) { acc, txWithSplits ->
+            return transactions.fold(BigDecimal.ZERO) { acc, txWithSplits ->
                 val tx = txWithSplits.transaction.forTotals() ?: return@fold acc
                 if (tx.transactionType != com.pennywiseai.tracker.data.database.entity.TransactionType.EXPENSE && tx.transactionType != com.pennywiseai.tracker.data.database.entity.TransactionType.INVESTMENT) return@fold acc
                 // Skip unconvertible amounts rather than counting them at face value (#670).
                 currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
-                    ?.let { acc + it } ?: run { skipped = true; acc }
+                    ?.let { acc + it } ?: acc
             }
-            return total to skipped
         }
-        val aggregation = com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending(
+        val (categoryAmounts, _, typeAmounts) = com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending(
             transactions = transactions,
             convertSplit = { fromCurrency, amount ->
                 currencyConversionService.convertAmountOrNull(amount, fromCurrency, displayCurrency)
@@ -231,78 +207,11 @@ class BudgetSummaryProvider @Inject constructor(
         )
         val catNames = group.categories.filter { it.matchType == null }.map { it.categoryName }.toSet()
         val matchTypes = group.categories.mapNotNull { it.matchType }.toSet()
-        val catTotal = aggregation.categoryAmounts.filterKeys { it in catNames }.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
-        val typeTotal = aggregation.typeAmounts.filterKeys { it in matchTypes }.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
-        return (catTotal + typeTotal) to leftOut(group, aggregation)
+        val catTotal = categoryAmounts.filterKeys { it in catNames }.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
+        val typeTotal = typeAmounts.filterKeys { it in matchTypes }.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
+        return catTotal + typeTotal
     }
 
-    private suspend fun getBudgetWindowFilteredSpend(
-        group: com.pennywiseai.tracker.data.database.entity.BudgetWithCategories,
-        transactions: List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>,
-        displayCurrency: String
-    ): BigDecimal = getBudgetWindowFilteredSpendFlagged(group, transactions, displayCurrency).first
-
-    /**
-     * For the base-currency figures ([summary] with flagUncounted): whether
-     * [transactions] hold spending [group] counts that isn't in [baseCurrency], so its
-     * total reads low and its remaining high. Matches as that total does
-     * ([aggregateBudgetCategorySpending]): every non-income, non-transfer row for a
-     * budget with no categories, else only its own categories and type buckets, with
-     * [parentOf] crediting a sub-category's spend to its parent as the total did.
-     */
-    private suspend fun hasUncountedSpend(
-        group: BudgetWithCategories,
-        transactions: List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>,
-        parentOf: Map<String, String>,
-        baseCurrency: String
-    ): Boolean {
-        val aggregation = aggregateBudgetCategorySpending(
-            transactions,
-            convertSplit = { fromCurrency, amount -> amount.takeIf { fromCurrency == baseCurrency } },
-            convertIncome = { null },
-            parentOf = parentOf
-        )
-        if (group.categories.isEmpty()) {
-            return aggregation.skippedCategories.isNotEmpty() || aggregation.skippedTypes.isNotEmpty()
-        }
-        return leftOut(group, aggregation)
-    }
-
-    /** One of [group]'s own categories or type buckets had spending [aggregation] left out. */
-    private fun leftOut(group: BudgetWithCategories, aggregation: CategoryAggregation): Boolean =
-        group.categories.any { cat ->
-            if (cat.matchType != null) cat.matchType in aggregation.skippedTypes
-            else cat.categoryName in aggregation.skippedCategories
-        }
-
-    private fun transactionsInWindow(
-        budgetId: Long,
-        windowedSpend: List<WindowSpending>,
-        displayedWindow: com.pennywiseai.tracker.data.repository.BudgetWindow
-    ): List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits> {
-        val matchedWindow = windowedSpend.firstOrNull { ws ->
-            !ws.window.start.isAfter(displayedWindow.start) &&
-                !ws.window.end.isBefore(displayedWindow.end)
-        } ?: windowedSpend.firstOrNull { ws ->
-            // Fallback: pick the window with the largest overlap.
-            val overlapStart = maxOf(ws.window.start, displayedWindow.start)
-            val overlapEnd = minOf(ws.window.end, displayedWindow.end)
-            !overlapStart.isAfter(overlapEnd)
-        }
-        return matchedWindow?.transactions
-            ?: getTransactionsForOverlappingWindows(budgetId, windowedSpend, displayedWindow)
-            ?: emptyList()
-    }
-
-    /**
-     * Fallback: when the repo's windowedSpend list doesn't contain a
-     * window that matches the displayed window's exact bounds (e.g. a
-     * Monthly budget with monthStartDay=25 — the displayed window is
-     * the full 30-day cycle but the repo clips to calendar months), sum
-     * the spend of every windowed entry whose [start, end] range
-     * overlaps the displayed window. Each per-month window's spend is
-     * already in the page's currency, so no further conversion needed.
-     */
     private fun getTransactionsForOverlappingWindows(
         budgetId: Long,
         windowedSpend: List<WindowSpending>,
@@ -345,10 +254,19 @@ class BudgetSummaryProvider @Inject constructor(
         // (Sep 25, Oct 24) but windowedSpend keys are (Sep 1, Sep 30)
         // clipped per month. Match by containment: pick the window whose
         // [start, end] range fully contains displayedWindow.
-        val txsInDisplay = transactionsInWindow(group.budget.id, windowedSpend, displayedWindow)
-        // Spending with no rate is skipped, not counted at face value, and flagged.
-        val (convertedTotalActual, hasUnconvertedSpend) =
-            getBudgetWindowFilteredSpendFlagged(group, txsInDisplay, displayCurrency)
+        val matchedWindow = windowedSpend.firstOrNull { ws ->
+            !ws.window.start.isAfter(displayedWindow.start) &&
+                !ws.window.end.isBefore(displayedWindow.end)
+        } ?: windowedSpend.firstOrNull { ws ->
+            // Fallback: pick the window with the largest overlap.
+            val overlapStart = maxOf(ws.window.start, displayedWindow.start)
+            val overlapEnd = minOf(ws.window.end, displayedWindow.end)
+            !overlapStart.isAfter(overlapEnd)
+        }
+        val txsInDisplay = matchedWindow?.transactions
+            ?: getTransactionsForOverlappingWindows(group.budget.id, windowedSpend, displayedWindow)
+            ?: emptyList()
+        val convertedTotalActual = getBudgetWindowFilteredSpend(group, txsInDisplay, displayCurrency, baseCurrency)
 
         // previousWindows: Weekly historical only. The displayed window
         // is the budget's own current window; older per-week windows
@@ -359,7 +277,7 @@ class BudgetSummaryProvider @Inject constructor(
                 .map {
                     PastWindowSpending(
                         window = it.window,
-                        spent = getBudgetWindowFilteredSpend(group, it.transactions, displayCurrency),
+                        spent = getBudgetWindowFilteredSpend(group, it.transactions, displayCurrency, baseCurrency),
                         capDate = it.window.end,
                         isLive = false
                     )
@@ -539,8 +457,7 @@ class BudgetSummaryProvider @Inject constructor(
             displayedCapDate = today,
             displayedIsLive = isCurrentMonth,
             periodType = budget.periodType,
-            previousWindows = previous,
-            hasUnconvertedSpend = hasUnconvertedSpend
+            previousWindows = previous
         )
     }
 }

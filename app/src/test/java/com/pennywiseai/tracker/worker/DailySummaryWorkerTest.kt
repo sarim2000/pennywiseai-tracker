@@ -7,27 +7,17 @@ import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.LoanStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.data.preferences.DAILY_SUMMARY_DEFAULT
 import com.pennywiseai.tracker.data.repository.LoanRepository
-import com.pennywiseai.tracker.domain.insights.Insight
-import com.pennywiseai.tracker.domain.insights.InsightFact
-import com.pennywiseai.tracker.domain.insights.InsightSeverity
-import com.pennywiseai.tracker.domain.insights.InsightsSnapshot
-import com.pennywiseai.tracker.domain.review.PeriodReview
-import com.pennywiseai.tracker.domain.review.ReviewKind
-import com.pennywiseai.tracker.domain.review.reviewRange
 import com.pennywiseai.tracker.utils.Money
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
+import com.pennywiseai.tracker.data.preferences.DAILY_SUMMARY_DEFAULT
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
-import java.time.DayOfWeek
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.ZoneId
 import java.time.ZonedDateTime
@@ -113,26 +103,5 @@ class DailySummaryWorkerTest {
         val loss = repo.settlementLossByCurrency(listOf(loan(1), loan(2), loan(3))) { it.accountNumber == "1111" }
 
         assertEquals(mapOf("JOD" to BigDecimal("10")), loss)
-    }
-
-    private val today = LocalDate.of(2026, 11, 16)
-
-    private fun insight(id: String, severity: InsightSeverity) =
-        Insight(id, severity, "JOD", InsightFact.BudgetsOnTrack(1), null)
-
-    private fun insights(vararg items: Insight, dismissed: Set<String> = emptySet()) = InsightsSnapshot(
-        PeriodReview(reviewRange(ReviewKind.MONTH, 0, today, 1, DayOfWeek.MONDAY), emptyList(), null, null, false),
-        items.toList(),
-        dismissed,
-    )
-
-    @Test
-    fun `a tap opens Insights only while an alert there is undismissed`() {
-        assertFalse(DailySummaryWorker.opensInsights(null))
-        assertFalse(DailySummaryWorker.opensInsights(insights(insight("a", InsightSeverity.WARNING))))
-        assertTrue(DailySummaryWorker.opensInsights(insights(insight("a", InsightSeverity.ALERT))))
-        assertFalse(
-            DailySummaryWorker.opensInsights(insights(insight("a", InsightSeverity.ALERT), dismissed = setOf("a")))
-        )
     }
 }

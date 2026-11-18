@@ -30,6 +30,10 @@
          Opt-in via Settings; the app degrades gracefully if denied. -->
     <uses-permission android:name="android.permission.READ_CONTACTS" />
 
+    <!-- Chat voice input: on-device recognition only, asked on the first mic tap. -->
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-feature android:name="android.hardware.microphone" android:required="false" />
+
     <!-- Explicitly remove AD_ID permission to ensure privacy -->
     <uses-permission android:name="com.google.android.gms.permission.AD_ID" tools:node="remove" />
 
@@ -38,6 +42,14 @@
         <intent>
             <action android:name="android.intent.action.MAIN" />
             <category android:name="android.intent.category.LAUNCHER" />
+        </intent>
+        <!-- Chat voice input: find the system speech recognizer. -->
+        <intent>
+            <action android:name="android.speech.RecognitionService" />
+        </intent>
+        <!-- Chat voice input: keyboard languages count as the user's languages. -->
+        <intent>
+            <action android:name="android.view.InputMethod" />
         </intent>
     </queries>
 

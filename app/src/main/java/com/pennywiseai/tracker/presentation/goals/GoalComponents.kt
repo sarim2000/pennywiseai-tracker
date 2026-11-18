@@ -64,6 +64,8 @@ import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.cards.tintedSurface
+import com.pennywiseai.tracker.ui.components.mascot.Mascot
+import com.pennywiseai.tracker.ui.components.mascot.MascotShape
 import com.pennywiseai.tracker.ui.components.statusLine
 import com.pennywiseai.tracker.ui.components.toColorOr
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -209,6 +211,8 @@ fun GoalCard(progress: GoalProgress, onClick: () -> Unit, modifier: Modifier = M
 /**
  * The Goals section at the top of the Budgets screen. Owns the Pro gate for
  * "New goal" (#914): free users get [com.pennywiseai.tracker.core.entitlement.FreeTierLimits.MAX_ACTIVE_GOALS].
+ * With no goals, its empty card shows the jar [mascot], or a plain icon where another
+ * mascot already has the screen.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -217,6 +221,7 @@ fun GoalsSection(
     onCreateGoal: () -> Unit,
     modifier: Modifier = Modifier,
     createOnOpen: Boolean = false,
+    mascot: Boolean = true,
     viewModel: GoalsViewModel = hiltViewModel(),
 ) {
     val goals by viewModel.activeGoals.collectAsStateWithLifecycle()
@@ -245,7 +250,7 @@ fun GoalsSection(
             } else null,
         )
         if (active.isEmpty()) {
-            GoalsEmptyCard(onCreate = create)
+            GoalsEmptyCard(onCreate = create, mascot = mascot)
         } else {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 active.forEach { GoalCard(it, onClick = { onOpenGoal(it.goal.id) }) }
@@ -310,16 +315,21 @@ fun GoalsSection(
 }
 
 @Composable
-private fun GoalsEmptyCard(onCreate: () -> Unit) {
+private fun GoalsEmptyCard(onCreate: () -> Unit, mascot: Boolean) {
     PennyWiseCardV2(modifier = Modifier.fillMaxWidth(), contentPadding = Dimensions.Padding.card) {
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
-            Box(
-                Modifier
-                    .size(Dimensions.Icon.avatarLarge)
-                    .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(Icons.Default.Savings, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
+            if (mascot) {
+                // An empty jar: nothing is saved toward a goal yet.
+                Mascot(size = Dimensions.Icon.extraLarge, shape = MascotShape.Jar, interactive = true)
+            } else {
+                Box(
+                    Modifier
+                        .size(Dimensions.Icon.avatarLarge)
+                        .background(MaterialTheme.colorScheme.primaryContainer, CircleShape),
+                    contentAlignment = Alignment.Center,
+                ) {
+                    Icon(Icons.Default.Savings, contentDescription = null, tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                }
             }
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
                 Text(stringResource(R.string.goals_empty_title), style = MaterialTheme.typography.titleMedium)

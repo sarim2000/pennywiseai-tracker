@@ -1,11 +1,5 @@
 package com.pennywiseai.tracker.presentation.add
 
-import com.pennywiseai.tracker.utils.AppDates
-
-import com.pennywiseai.tracker.presentation.transactions.transactionTypeLabel
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.res.stringResource
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -23,40 +17,47 @@ import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.presentation.categories.CategoryEditDialog
-import com.pennywiseai.tracker.ui.components.CategoryMenuItems
-import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
-import com.pennywiseai.tracker.ui.components.SelectedCategoryIcon
-import com.pennywiseai.tracker.ui.components.CategoryChip
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.pennywiseai.tracker.presentation.accounts.displayName
-import com.pennywiseai.tracker.domain.model.getAccountType
-import com.pennywiseai.tracker.presentation.accounts.icon
 import com.pennywiseai.tracker.domain.model.AccountType
+import com.pennywiseai.tracker.domain.model.getAccountType
+import com.pennywiseai.tracker.presentation.accounts.displayName
+import com.pennywiseai.tracker.presentation.accounts.icon
+import com.pennywiseai.tracker.presentation.categories.CategoryEditDialog
+import com.pennywiseai.tracker.presentation.transactions.transactionTypeLabel
+import com.pennywiseai.tracker.ui.components.AmountCalculatorSheet
+import com.pennywiseai.tracker.ui.components.CategoryChip
+import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
+import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
+import com.pennywiseai.tracker.ui.components.SelectedCategoryIcon
 import com.pennywiseai.tracker.ui.components.TagInputField
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.*
-import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.money
+import com.pennywiseai.tracker.utils.AppDates
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.time.format.DateTimeFormatter
 import java.util.Locale
-import com.pennywiseai.tracker.ui.icons.categoryLabel
-import androidx.compose.ui.platform.LocalDensity
-import com.pennywiseai.tracker.ui.theme.money
 
 // Reusable filled text field colors with no indicator
 @Composable
@@ -168,7 +169,9 @@ fun TransactionTabContent(
 ) {
     val uiState by viewModel.transactionUiState.collectAsStateWithLifecycle()
     val categories by viewModel.transactionCategories.collectAsStateWithLifecycle()
-    var showAddCategoryDialog by remember { mutableStateOf(false) }
+    val mostUsedCategories by viewModel.mostUsedCategories.collectAsStateWithLifecycle()
+    // Non-null while the create dialog is open: its pre-filled name (#1058).
+    var addCategoryName by remember { mutableStateOf<String?>(null) }
     val accounts by viewModel.accounts.collectAsStateWithLifecycle()
 
     var showDatePicker by remember { mutableStateOf(false) }
@@ -180,6 +183,7 @@ fun TransactionTabContent(
     // chosen account to either the FROM or TO card; for other types only FROM is used.
     var accountPickerTarget by remember { mutableStateOf<AccountPickerTarget?>(null) }
     var showCurrencyMenu by remember { mutableStateOf(false) }
+    var showCalculator by rememberSaveable { mutableStateOf(false) }
 
     val isTransfer = uiState.transactionType == TransactionType.TRANSFER
 
@@ -237,10 +241,34 @@ fun TransactionTabContent(
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     isError = uiState.amountError != null,
                     supportingText = uiState.amountError?.let { { Text(it.asString()) } },
+                    trailingIcon = {
+                        IconButton(
+                            onClick = {
+                                // The sheet has its own keypad; the keyboard would cover it.
+                                focusManager.clearFocus()
+                                showCalculator = true
+                            },
+                            enabled = uiState.draftLoaded,
+                            shapes = IconButtonDefaults.shapes()
+                        ) {
+                            Icon(Icons.Default.Calculate, contentDescription = stringResource(R.string.calculator_open))
+                        }
+                    },
                     modifier = Modifier.weight(1f),
                     singleLine = true,
                     shape = fullShape,
                     colors = filledFieldColors()
+                )
+            }
+            if (showCalculator) {
+                AmountCalculatorSheet(
+                    initialAmount = uiState.amount,
+                    currency = uiState.entryCurrency,
+                    onApply = {
+                        viewModel.updateTransactionAmount(it.toPlainString())
+                        showCalculator = false
+                    },
+                    onDismiss = { showCalculator = false }
                 )
             }
 
@@ -507,38 +535,39 @@ fun TransactionTabContent(
                             supportingText = uiState.categoryError?.let { { Text(it.asString()) } },
                             colors = filledFieldColors()
                         )
-
-                        ExposedDropdownMenu(
-                            expanded = showCategoryMenu,
-                            onDismissRequest = { showCategoryMenu = false }
-                        ) {
-                            CategoryMenuItems(
-                                categories = categories,
-                                isIncome = uiState.transactionType == TransactionType.INCOME,
-                                onSelected = {
-                                    viewModel.updateTransactionCategory(it.name)
-                                    showCategoryMenu = false
-                                },
-                                onAddCategory = {
-                                    showCategoryMenu = false
-                                    showAddCategoryDialog = true
-                                }
-                            )
-                        }
                     }
                 }
             }
 
-            if (showAddCategoryDialog) {
+            // A sheet, not the dropdown menu, so its search field can get the keyboard (#1058).
+            if (showCategoryMenu) {
+                QuickCategoryPickerSheet(
+                    currentCategory = uiState.category,
+                    categories = categories,
+                    onCategorySelected = {
+                        viewModel.updateTransactionCategory(it)
+                        showCategoryMenu = false
+                    },
+                    onDismiss = { showCategoryMenu = false },
+                    mostUsed = mostUsedCategories,
+                    onAddCategory = {
+                        showCategoryMenu = false
+                        addCategoryName = it
+                    }
+                )
+            }
+
+            addCategoryName?.let { initialName ->
                 CategoryEditDialog(
                     defaultIsIncome = uiState.transactionType == TransactionType.INCOME,
                     lockType = true,
+                    initialName = initialName,
                     parentOptions = categories,
-                    onDismiss = { showAddCategoryDialog = false },
+                    onDismiss = { addCategoryName = null },
                     onSave = { name, color, _, icon, parentId ->
                         // Close only once the category is created and selected, so the
                         // modal dialog blocks Save / type changes until it lands.
-                        viewModel.createAndSelectCategory(name, color, icon, parentId) { showAddCategoryDialog = false }
+                        viewModel.createAndSelectCategory(name, color, icon, parentId) { addCategoryName = null }
                     }
                 )
             }

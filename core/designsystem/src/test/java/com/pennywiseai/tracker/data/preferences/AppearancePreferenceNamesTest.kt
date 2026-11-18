@@ -30,7 +30,11 @@ class AppearancePreferenceNamesTest {
 
     @Test
     fun themeStyleNamesAreStable() = assertEquals(
-        setOf("BRANDED", "DYNAMIC"),
+        setOf(
+            "BRANDED", "DYNAMIC", "CATPPUCCIN", "GREEN_APPLE", "LAVENDER", "MIDNIGHT_DUSK",
+            "NORD", "STRAWBERRY_DAIQUIRI", "TAKO", "TEAL_TURQUOISE", "TIDAL_WAVE",
+            "YIN_YANG", "YOTSUBA", "TOKYO_NIGHT", "MONOCHROME",
+        ),
         ThemeStyle.entries.map { it.name }.toSet(),
     )
 }

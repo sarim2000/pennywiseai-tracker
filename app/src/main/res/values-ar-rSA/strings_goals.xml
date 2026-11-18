@@ -12,10 +12,10 @@
     <string name="goals_archived_title">الأهداف المؤرشفة</string>
     <string name="goals_unarchive">إلغاء الأرشفة</string>
     <string name="goals_amount_of">%1$s من %2$s</string>
-    <string name="goals_per_month">%1$s/شهر</string>
+    <string name="goals_per_month">%1$s شهريًا</string>
     <string name="goals_behind">متأخر بـ %1$s</string>
     <string name="goals_reached">تم بلوغه</string>
-    <string name="goals_missed_by">فاته بفارق %1$s</string>
+    <string name="goals_missed_by">لم يتحقق بفارق %1$s</string>
     <string name="goals_archived">مؤرشف</string>
     <string name="goals_due_on">يستحق في %1$s</string>
     <string name="goals_ring_description">تم ادّخار %1$d%%</string>
@@ -31,6 +31,7 @@
     <string name="goal_edit_title_new">هدف جديد</string>
     <string name="goal_edit_title_edit">تعديل الهدف</string>
     <string name="goal_back">رجوع</string>
+    <string name="goal_share">مشاركة التقدّم</string>
     <string name="goal_edit_name">الاسم</string>
     <string name="goal_edit_name_hint">مثلًا: تأمين السيارة</string>
     <string name="goal_edit_target">المبلغ المستهدف</string>
@@ -53,7 +54,7 @@
     <!-- Detail -->
     <string name="goal_detail_left">المتبقي</string>
     <string name="goal_detail_per_month">شهريًا</string>
-    <string name="goal_detail_over">زيادة %1$s</string>
+    <string name="goal_detail_over">تجاوزت الهدف بـ %1$s</string>
     <string name="goal_detail_history">الأموال المضافة والمسحوبة</string>
     <string name="goal_detail_history_empty">لم تُضف أي أموال بعد. استخدم \"إضافة أموال\" عندما تدّخر مبلغًا.</string>
     <string name="goal_add_money">إضافة أموال</string>

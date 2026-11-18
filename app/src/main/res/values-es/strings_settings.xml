@@ -256,9 +256,8 @@
     <string name="appearance_mode_dark">Oscuro</string>
     <!-- Theme style -->
     <string name="appearance_style_dynamic">Dinámico</string>
-    <string name="appearance_style_dynamic_subtitle">Colores del fondo de pantalla</string>
     <string name="appearance_style_default">Predeterminado</string>
-    <string name="appearance_style_default_subtitle">Colores Rose Pine</string>
+    <!-- Fixed palettes ported from Mihon: proper names, not translated -->
     <!-- Toggles -->
     <string name="appearance_amoled_title">Negro AMOLED</string>
     <string name="appearance_amoled_subtitle">Usa un fondo negro puro para más contraste</string>

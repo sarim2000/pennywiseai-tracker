@@ -1,8 +1,23 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Transaction alert: offer to track a charge that repeats an earlier one as a bill -->
+    <string name="recurring_alert_track_weekly">تتبّع كفاتورة أسبوعية</string>
+    <string name="recurring_alert_track_monthly">تتبّع كفاتورة شهرية</string>
+    <string name="recurring_alert_track_quarterly">تتبّع كفاتورة ربع سنوية</string>
+    <string name="recurring_alert_track_semi_annual">تتبّع كفاتورة نصف سنوية</string>
+    <string name="recurring_alert_track_annual">تتبّع كفاتورة سنوية</string>
     <!-- Billing cycle as it reads inside recurring_alert_tracking -->
+    <string name="recurring_alert_cycle_weekly">أسبوعيًا</string>
+    <string name="recurring_alert_cycle_monthly">شهريًا</string>
+    <string name="recurring_alert_cycle_quarterly">كل 3 أشهر</string>
+    <string name="recurring_alert_cycle_semi_annual">كل 6 أشهر</string>
+    <string name="recurring_alert_cycle_annual">سنويًا</string>
     <!-- Confirmation after tapping "Track as … bill". %1$s merchant, %2$s billing cycle (recurring_alert_cycle_*), %3$s next due date, e.g. "24 Nov" -->
+    <string name="recurring_alert_tracking">بدأ تتبّع %1$s · %2$s · الموعد القادم: %3$s</string>
     <!-- Transaction alert line when a charge may be a subscription at a new price; nothing changes until "Update price". %1$s subscription, %2$s old amount, %3$s new amount -->
+    <string name="recurring_alert_price_up">هل ارتفع سعر %1$s؟ من %2$s إلى %3$s</string>
+    <string name="recurring_alert_price_down">هل انخفض سعر %1$s؟ من %2$s إلى %3$s</string>
+    <string name="recurring_alert_update_price">حدّث السعر</string>
     <!-- Confirmation after tapping "Update price". %1$s subscription, %2$s new amount, %3$s next due date, e.g. "24 Nov" -->
+    <string name="recurring_alert_price_updated">%1$s الآن %2$s · الموعد القادم: %3$s</string>
 </resources>

@@ -20,3 +20,15 @@ private fun Context.appLanguageContext(): Context {
     if (appLocales == null || appLocales.isEmpty || resources.configuration.locales == appLocales) return this
     return createConfigurationContext(Configuration(resources.configuration).apply { setLocales(appLocales) })
 }
+
+/** The app's own language as BCP 47 tags, "" when it follows the device; null before Android 13. */
+fun Context.appLanguageTags(): String? {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return null
+    return getSystemService(LocaleManager::class.java)?.applicationLocales?.toLanguageTags()
+}
+
+/** Sets the app's language from [appLanguageTags]' output; a no-op before Android 13. */
+fun Context.setAppLanguageTags(tags: String) {
+    if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+    getSystemService(LocaleManager::class.java)?.applicationLocales = android.os.LocaleList.forLanguageTags(tags)
+}

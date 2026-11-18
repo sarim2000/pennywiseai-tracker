@@ -22,6 +22,7 @@ import androidx.navigation3.runtime.NavKey
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.navigation.AiAccess
+import com.pennywiseai.tracker.navigation.MascotPlayground
 import com.pennywiseai.tracker.navigation.Webhooks
 import com.pennywiseai.tracker.presentation.paywall.UpgradeSheet
 import com.pennywiseai.tracker.ui.animations.pwCollapse
@@ -261,8 +262,19 @@ internal fun DeveloperPage(
             subtitle = stringResource(R.string.settings_developer_mode_subtitle),
             checked = isDeveloperModeEnabled,
             onCheckedChange = { settingsViewModel.toggleDeveloperMode(it) },
-            position = ListItemPosition.Bottom
+            position = if (isDeveloperModeEnabled) ListItemPosition.Middle else ListItemPosition.Bottom
         )
+        if (isDeveloperModeEnabled) {
+            SettingsNavItem(
+                icon = Icons.Default.EmojiEmotions,
+                iconBgColor = indigo_light,
+                iconTint = indigo_dark,
+                title = stringResource(R.string.mascot_playground_title),
+                subtitle = stringResource(R.string.mascot_playground_subtitle),
+                onClick = { onNavigate(MascotPlayground) },
+                position = ListItemPosition.Bottom
+            )
+        }
     }
 
     if (showUpgradeSheet) {

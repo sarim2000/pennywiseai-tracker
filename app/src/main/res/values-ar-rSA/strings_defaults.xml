@@ -5,10 +5,10 @@
          written in the app's language when created and are the user's after. -->
     <!-- ══ Seeded profiles ══ -->
     <string name="profile_default_personal">شخصي</string>
-    <string name="profile_default_business">العمل</string>
+    <string name="profile_default_business">عمل</string>
     <!-- ══ Starter rule (stored in the app's language when seeded) ══ -->
-    <string name="rule_template_small_payments_name">المدفوعات الصغيرة إلى الطعام</string>
-    <string name="rule_template_small_payments_description">تصنيف المصروفات الصغيرة (أقل من 200) ضمن الطعام والمطاعم</string>
+    <string name="rule_template_small_payments_name">المدفوعات الصغيرة ضمن الطعام</string>
+    <string name="rule_template_small_payments_description">تصنيف المصروفات الصغيرة (أقل من 200) ضمن فئة طعام ومطاعم</string>
     <!-- ══ Budget group defaults (stored in the app's language when created) ══ -->
     <string name="budget_group_default_spending">الإنفاق</string>
     <string name="budget_group_default_fixed_costs">التكاليف الثابتة</string>

@@ -64,7 +64,9 @@ import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.expense
 import com.pennywiseai.tracker.ui.theme.income
+import com.pennywiseai.tracker.ui.theme.loan
 import com.pennywiseai.tracker.ui.theme.money
+import com.pennywiseai.tracker.ui.theme.spending
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
@@ -338,15 +340,15 @@ fun BalanceCard(
                             SummaryItem(
                                 label = stringResource(R.string.balance_card_summary_expenses),
                                 value = if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(currentMonthExpenses, currency),
-                                // The bar matches the sparkline's expense series; the figure itself is ink.
+                                // The bar matches the sparkline's expense series.
                                 accentColor = expenseColor,
-                                valueColor = MaterialTheme.colorScheme.onSurface
+                                valueColor = MaterialTheme.colorScheme.spending
                             )
                             if (currentMonthLent > BigDecimal.ZERO) {
                                 SummaryItem(
                                     label = stringResource(R.string.balance_card_summary_lent),
                                     value = if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(currentMonthLent, currency),
-                                    accentColor = MaterialTheme.colorScheme.tertiary
+                                    accentColor = MaterialTheme.colorScheme.loan
                                 )
                             }
                             SummaryItem(

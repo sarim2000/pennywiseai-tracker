@@ -1,7 +1,5 @@
 package com.pennywiseai.tracker.presentation.accounts
 
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -9,11 +7,13 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import com.pennywiseai.tracker.utils.CurrencyFormatter
-import com.pennywiseai.tracker.ui.theme.*
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.ui.theme.*
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
 
 @Composable
@@ -35,13 +35,13 @@ internal fun CreditCardItem(
     } else {
         0
     }
-    
+
     val utilizationColor = when {
         utilization > 70 -> MaterialTheme.colorScheme.error
-        utilization > 30 -> MaterialTheme.colorScheme.tertiary
+        utilization > 30 -> MaterialTheme.colorScheme.warning
         else -> MaterialTheme.colorScheme.primary
     }
-    
+
     Card(
         modifier = Modifier.fillMaxWidth(),
         colors = CardDefaults.cardColors(
@@ -136,7 +136,7 @@ internal fun CreditCardItem(
                         }
                     )
                 }
-                
+
                 // Available Credit
                 Row(
                     modifier = Modifier.fillMaxWidth(),
@@ -154,7 +154,7 @@ internal fun CreditCardItem(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                 }
-                
+
                 // Credit Limit with Utilization
                 Row(
                     modifier = Modifier.fillMaxWidth(),

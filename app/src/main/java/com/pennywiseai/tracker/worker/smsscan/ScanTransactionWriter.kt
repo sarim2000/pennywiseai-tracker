@@ -11,6 +11,8 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity
 import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.ledger.BalanceCalculator
+import com.pennywiseai.tracker.data.ledger.routeAtmToCashWallet
+import com.pennywiseai.tracker.data.ledger.walletLeg
 import com.pennywiseai.tracker.data.manager.TransactionDeduplication
 import com.pennywiseai.tracker.data.mapper.DeferredBalanceInput
 import com.pennywiseai.tracker.data.mapper.atEnqueuedAccount
@@ -75,6 +77,9 @@ internal class ScanRunContext(
      * back; rows created after it (an expense added mid-rebuild) don't (#982).
      */
     val rebuildStartedAt: LocalDateTime?,
+
+    /** Cash wallets an ATM withdrawal is booked into (#1062); empty when that setting is off. */
+    val atmCashWallets: List<AccountBalanceEntity> = emptyList(),
 )
 
 internal enum class SaveOutcome {
@@ -170,7 +175,9 @@ internal class ScanTransactionWriter(
 
                 val customCategory = scanContext.merchantCategories[entity.merchantName]
                     ?.takeIf { mappingFits(scanContext.categoryIsIncome[it], entity.transactionType) }
-                val mapped = if (customCategory != null) entity.copy(category = customCategory) else entity
+                val unrouted = if (customCategory != null) entity.copy(category = customCategory) else entity
+                // Before the rules, so a user rule still has the last word.
+                val mapped = unrouted.routeAtmToCashWallet(scanContext.atmCashWallets, linkedAccountLast4 ?: unrouted.accountNumber)
 
                 val activeRules = scanContext.rulesByType[mapped.transactionType] ?: emptyList()
                 val isBlocked = ruleEngine.shouldBlockTransaction(mapped, sms.body, activeRules) != null
@@ -220,6 +227,12 @@ internal class ScanTransactionWriter(
                 // The schedule advances only once the row commits (below) — a skipped
                 // duplicate or failed insert must leave next_payment_date alone.
                 val finalEntity = if (matchedSub != null) withRules.copy(isRecurring = true) else withRules
+                // A routed ATM withdrawal still debits the bank as the SMS's own type;
+                // the Cash wallet is a manual account, re-derived from its rows after
+                // the write, with its opening pinned before so it can't absorb this row.
+                val walletLeg = if (mapped !== unrouted) finalEntity.walletLeg() else null
+                val bankView = if (walletLeg != null) finalEntity.copy(transactionType = unrouted.transactionType) else finalEntity
+                walletLeg?.let { (bank, account) -> accountBalanceRepository.ensureManualOpening(bank, account) }
 
                 val duplicate = transactionRepository.findPotentialDuplicates(finalEntity).firstOrNull()
                 if (duplicate != null) {
@@ -237,7 +250,9 @@ internal class ScanTransactionWriter(
                         transactionRepository.updateTransaction(replacement)
                         accountBalanceRepository.removeSmsTransactionBalances(duplicate.id, scanContext.rebuildStartedAt)
                         replaceRuleApplications(duplicate.id, ruleApps)
-                        pendingBalance = parsedInput.atEnqueuedAccount(parsed, replacement)?.let {
+                        walletLeg?.let { (bank, account) -> accountBalanceRepository.recomputeManualBalance(bank, account) }
+                        val replacementView = replacement.copy(transactionType = bankView.transactionType)
+                        pendingBalance = parsedInput.atEnqueuedAccount(parsed, replacementView)?.let {
                             DeferredBalanceUpdate(it, duplicate.id)
                         }
                         return@coroutineScope SaveOutcome.UPDATED_DUPLICATE
@@ -254,8 +269,9 @@ internal class ScanTransactionWriter(
                 }
                 if (rowId == -1L) return@coroutineScope SaveOutcome.SKIPPED
 
+                walletLeg?.let { (bank, account) -> accountBalanceRepository.recomputeManualBalance(bank, account) }
                 saveRuleApplications(rowId, ruleApps)
-                pendingBalance = parsedInput.atEnqueuedAccount(parsed, finalEntity)?.let {
+                pendingBalance = parsedInput.atEnqueuedAccount(parsed, bankView)?.let {
                     DeferredBalanceUpdate(it, rowId)
                 }
                 SaveOutcome.SAVED

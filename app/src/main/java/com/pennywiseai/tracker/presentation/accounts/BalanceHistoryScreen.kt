@@ -1,16 +1,13 @@
 package com.pennywiseai.tracker.presentation.accounts
 
-import com.pennywiseai.tracker.utils.AppDates
-
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.foundation.clickable
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -18,23 +15,26 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
-import androidx.compose.foundation.text.KeyboardOptions
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.*
+import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
@@ -57,7 +57,7 @@ fun BalanceHistoryScreen(
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
-    
+
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         containerColor = Color.Transparent,
@@ -81,95 +81,95 @@ fun BalanceHistoryScreen(
                 .padding(innerPadding)
                 .padding(horizontal = Dimensions.Padding.content)
         ) {
-                Text(
-                    text = AccountBalanceEntity.accountLabel(bankName, accountLast4),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                
-                Spacer(modifier = Modifier.height(Spacing.md))
-                
-                if (balanceHistory.isEmpty()) {
-                    PennyWiseEmptyState(
-                        icon = Icons.Default.History,
-                        headline = stringResource(R.string.balance_history_empty_title),
-                        description = stringResource(R.string.balance_history_empty_description),
-                        modifier = Modifier.weight(1f)
-                    )
-                } else {
-                    // Balance History List
-                    LazyColumn(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-                    ) {
-                        items(balanceHistory, key = { it.id }) { balance ->
-                            val isLatest = balance == balanceHistory.first()
-                            val isOnlyRecord = balanceHistory.size == 1
-                            val isExpanded = expandedSources.contains(balance.id)
-                            // Resolve the row's currency the same way the rest of the
-                            // account UI does: a MANUAL account keeps its stored currency
-                            // (e.g. MXN); SMS-tracked rows fall back to the bank base. (#631)
-                            val rowCurrency = CurrencyFormatter.resolveAccountCurrency(
-                                sourceType = balance.sourceType,
-                                storedCurrency = balance.currency,
-                                bankName = bankName
-                            )
+            Text(
+                text = AccountBalanceEntity.accountLabel(bankName, accountLast4),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
 
-                            BalanceHistoryItem(
-                                balance = balance,
-                                isLatest = isLatest,
-                                isOnlyRecord = isOnlyRecord,
-                                isExpanded = isExpanded,
-                                editingId = editingId,
-                                editingValue = editingValue,
-                                accountPrimaryCurrency = rowCurrency,
-                                onEditClick = {
-                                    editingId = balance.id
-                                    editingValue = balance.balance.toPlainString()
-                                },
-                                onDeleteClick = {
-                                    showDeleteConfirmation = balance.id
-                                },
-                                onEditValueChange = { value ->
-                                    if (value.isEmpty() || value.matches(Regex("^\\d*\\.?\\d*$"))) {
-                                        editingValue = value
-                                    }
-                                },
-                                onSaveEdit = {
-                                    editingValue.toBigDecimalOrNull()?.let { newBalance ->
-                                        viewModel.updateBalance(balance.id, newBalance)
-                                        editingId = null
-                                        editingValue = ""
-                                    }
-                                },
-                                onCancelEdit = {
+            Spacer(modifier = Modifier.height(Spacing.md))
+
+            if (balanceHistory.isEmpty()) {
+                PennyWiseEmptyState(
+                    icon = Icons.Default.History,
+                    headline = stringResource(R.string.balance_history_empty_title),
+                    description = stringResource(R.string.balance_history_empty_description),
+                    modifier = Modifier.weight(1f)
+                )
+            } else {
+                // Balance History List
+                LazyColumn(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                ) {
+                    items(balanceHistory, key = { it.id }) { balance ->
+                        val isLatest = balance == balanceHistory.first()
+                        val isOnlyRecord = balanceHistory.size == 1
+                        val isExpanded = expandedSources.contains(balance.id)
+                        // Resolve the row's currency the same way the rest of the
+                        // account UI does: a MANUAL account keeps its stored currency
+                        // (e.g. MXN); SMS-tracked rows fall back to the bank base. (#631)
+                        val rowCurrency = CurrencyFormatter.resolveAccountCurrency(
+                            sourceType = balance.sourceType,
+                            storedCurrency = balance.currency,
+                            bankName = bankName
+                        )
+
+                        BalanceHistoryItem(
+                            balance = balance,
+                            isLatest = isLatest,
+                            isOnlyRecord = isOnlyRecord,
+                            isExpanded = isExpanded,
+                            editingId = editingId,
+                            editingValue = editingValue,
+                            accountPrimaryCurrency = rowCurrency,
+                            onEditClick = {
+                                editingId = balance.id
+                                editingValue = balance.balance.toPlainString()
+                            },
+                            onDeleteClick = {
+                                showDeleteConfirmation = balance.id
+                            },
+                            onEditValueChange = { value ->
+                                if (value.isEmpty() || value.matches(Regex("^\\d*\\.?\\d*$"))) {
+                                    editingValue = value
+                                }
+                            },
+                            onSaveEdit = {
+                                editingValue.toBigDecimalOrNull()?.let { newBalance ->
+                                    viewModel.updateBalance(balance.id, newBalance)
                                     editingId = null
                                     editingValue = ""
-                                },
-                                onToggleExpand = {
-                                    expandedSources = if (isExpanded) {
-                                        expandedSources - balance.id
-                                    } else {
-                                        expandedSources + balance.id
-                                    }
-                                },
-                                clipboard = clipboard,
-                                modifier = Modifier.animateItem()
-                            )
-                        }
+                                }
+                            },
+                            onCancelEdit = {
+                                editingId = null
+                                editingValue = ""
+                            },
+                            onToggleExpand = {
+                                expandedSources = if (isExpanded) {
+                                    expandedSources - balance.id
+                                } else {
+                                    expandedSources + balance.id
+                                }
+                            },
+                            clipboard = clipboard,
+                            modifier = Modifier.animateItem()
+                        )
                     }
                 }
-                
-                // Info text
-                Text(
-                    text = pluralStringResource(R.plurals.balance_history_record_count, balanceHistory.size, balanceHistory.size),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.padding(top = Spacing.sm)
-                )
+            }
+
+            // Info text
+            Text(
+                text = pluralStringResource(R.plurals.balance_history_record_count, balanceHistory.size, balanceHistory.size),
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.padding(top = Spacing.sm)
+            )
         }
     }
-    
+
     // Delete confirmation dialog
     showDeleteConfirmation?.let { balanceId ->
         AlertDialog(
@@ -261,7 +261,7 @@ private fun BalanceHistoryItem(
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                    
+
                     // Badges row
                     FlowRow(
                         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
@@ -281,7 +281,7 @@ private fun BalanceHistoryItem(
                                 )
                             }
                         }
-                        
+
                         // Source type badge
                         val sourceInfo: Triple<androidx.compose.ui.graphics.vector.ImageVector?, String, androidx.compose.ui.graphics.Color> = when (balance.sourceType) {
                             "TRANSACTION" -> Triple(Icons.Default.SwapHoriz, stringResource(R.string.balance_history_source_transaction), MaterialTheme.colorScheme.tertiary)
@@ -293,11 +293,16 @@ private fun BalanceHistoryItem(
                             else
                                 Triple(null, "", MaterialTheme.colorScheme.onSurfaceVariant)
                         }
-                        val (sourceIcon, sourceText, sourceColor) = sourceInfo
+                        val (sourceIcon, sourceText, sourceTint) = sourceInfo
+                        // Secondary/tertiary are fills, not ink: check the label against
+                        // the tinted chip as it composites over each neutral surface.
+                        val sourceColor = sourceTint.readableOn(
+                            MaterialTheme.colorScheme.neutralSurfaces.map { sourceTint.copy(alpha = 0.12f).compositeOver(it) }
+                        )
 
                         if (sourceText.isNotEmpty()) {
                             Surface(
-                                color = sourceColor.copy(alpha = 0.12f),
+                                color = sourceTint.copy(alpha = 0.12f),
                                 shape = MaterialTheme.shapes.small
                             ) {
                                 Row(
@@ -323,7 +328,7 @@ private fun BalanceHistoryItem(
                         }
                     }
                 }
-                
+
                 // Action buttons
                 if (editingId != balance.id && !isOnlyRecord) {
                     Row {
@@ -346,13 +351,13 @@ private fun BalanceHistoryItem(
                     }
                 }
             }
-            
+
             // Divider
             HorizontalDivider(
                 color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f),
                 thickness = 0.5.dp
             )
-            
+
             // Balance display or edit field
             if (editingId == balance.id) {
                 // Edit mode
@@ -383,7 +388,7 @@ private fun BalanceHistoryItem(
                             unfocusedIndicatorColor = androidx.compose.ui.graphics.Color.Transparent
                         )
                     )
-                    
+
                     FlowRow(
                         modifier = Modifier.fillMaxWidth(),
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -434,7 +439,7 @@ private fun BalanceHistoryItem(
                     )
                 }
             }
-            
+
             // SMS Source (if available)
             balance.smsSource?.let { smsSource ->
                 Surface(

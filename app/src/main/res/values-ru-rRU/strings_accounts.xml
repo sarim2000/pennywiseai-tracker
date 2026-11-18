@@ -275,6 +275,11 @@
     <string name="loan_detail_settle_message">Пометить этот кредит как оплаченный? Любой остаток будет забыт.</string>
     <string name="loan_detail_expected_return_title">Ожидаемый возврат</string>
     <string name="loan_detail_expected_return_label">Ожидаемая сумма</string>
+    <!-- A repayment larger than what's left on the loan. %1$s = formatted extra amount -->
+    <!-- %1$s = person name, %2$s = formatted extra amount -->
+    <!-- %1$s = person name, %2$s = formatted extra amount -->
+    <!-- %1$s = person name -->
+    <!-- %1$s = person name -->
     <string name="loan_detail_delete_title">Удалить кредит</string>
     <string name="loan_detail_delete_message">Удалить этот займ? Связанные транзакции будут отсоединены, но не удалены.</string>
     <string name="loan_detail_original_chip">Оригинал</string>

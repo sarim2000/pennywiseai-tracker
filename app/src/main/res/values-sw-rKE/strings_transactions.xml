@@ -74,10 +74,18 @@
     <string name="txn_detail_unmark_loan_title">Ondoa alama ya mkopo?</string>
     <string name="txn_detail_unmark_loan_message">Hii inaondoa kiungo cha mkopo kwenye muamala huu. Ikiwa hakuna miamala mingine iliyounganishwa, mkopo nao utafutwa.</string>
     <string name="txn_detail_unmark_loan_confirm">Ondoa alama</string>
+    <!-- Unmarking leaves the loan's other transactions running the other way (e.g. undoing an overpayment that turned the loan around) -->
+    <!-- %1$s = person name, %2$s = formatted amount -->
+    <!-- %1$s = person name, %2$s = formatted amount -->
     <string name="txn_detail_unmark_loan">Ondoa alama ya mkopo</string>
     <string name="txn_detail_mark_as_loan">Weka alama kama mkopo</string>
     <string name="txn_detail_loan_lent_to">Umemkopesha %1$s</string>
     <string name="txn_detail_loan_borrowed_from">Umekopa kwa %1$s</string>
+    <!-- A repayment row on a loan. %1$s = person name -->
+    <!-- A repayment row on a loan. %1$s = person name -->
+    <!-- Part of a loan-linked transaction that is on the loan. %1$s = formatted amount -->
+    <!-- Part of a loan-linked transaction that counts as the user's own spending. %1$s = formatted amount -->
+    <!-- Part of a loan-linked transaction that counts as the user's own income. %1$s = formatted amount -->
     <string name="txn_detail_receipt_full_screen">Risiti skrini nzima</string>
     <string name="txn_detail_close">Funga</string>
     <string name="txn_detail_exclude_analytics_title">Usijumuishe kwenye takwimu</string>
@@ -372,26 +380,6 @@
     <string name="recurring_day_of_week_any">Yoyote</string>
     <string name="recurring_field_note">Kumbuka (si lazima)</string>
     <string name="recurring_field_active">Inatumika</string>
-    <!-- Share card, sheet and banner -->
-    <string name="share_card_caption_transactions">SMS za benki zimefuatiliwa. 0 zimeandikwa.</string>
-    <plurals name="share_card_caption_subscriptions">
-        <item quantity="one">usajili niliousahau</item>
-        <item quantity="other">usajili niliousahau</item>
-    </plurals>
-    <string name="share_card_period_all_time">MUDA WOTE</string>
-    <string name="share_card_tagline">Imesomwa kutoka SMS za benki yangu. Hakuna kilichotoka kwenye simu yangu.</string>
-    <string name="share_sheet_no_amounts">Hakuna kiasi kilichojumuishwa.</string>
-    <string name="share_sheet_share">Shiriki</string>
-    <string name="share_sheet_done">Imekamilika</string>
-    <string name="share_sheet_customise">Badilisha</string>
-    <string name="share_sheet_show">Onyesha</string>
-    <string name="share_sheet_transactions">Miamala</string>
-    <string name="share_sheet_subscriptions">Usajili</string>
-    <string name="share_sheet_no_subscriptions">Bado hakuna usajili uliogunduliwa — PennyWise huupata kutoka kwa malipo yanayojirudia kwenye SMS zako.</string>
-    <string name="share_sheet_period">Kipindi</string>
-    <string name="share_sheet_this_month">Mwezi huu</string>
-    <string name="share_sheet_last_month">Mwezi uliopita</string>
-    <string name="share_sheet_all_time">Muda wote</string>
     <!-- %1$s = month name -->
     <string name="share_banner_title">Muhtasari wa %1$s</string>
     <string name="share_banner_subtitle">Ona kile PennyWise imekufuatilia</string>
@@ -411,6 +399,10 @@
     <string name="quick_add_from">Kutoka: %1$s</string>
     <!-- %1$s amount with currency, %2$s category -->
     <string name="quick_add_saved">Imehifadhiwa %1$s · %2$s</string>
+    <!-- The sheet filled from the voice mic (Home, the cash widget) -->
+    <!-- Clears a day said out loud ("yesterday") back to today -->
+    <!-- Amount calculator: a keypad sheet opened from the amount field -->
+    <!-- The sum is unfinished or doesn't make sense yet, e.g. "12+" or "1..2" -->
     <string name="date_range_title">Chagua Kipindi</string>
     <string name="date_range_ok">Sawa</string>
     <string name="date_range_cancel">Ghairi</string>

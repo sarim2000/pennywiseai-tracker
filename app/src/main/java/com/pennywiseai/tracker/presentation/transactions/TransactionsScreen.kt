@@ -68,6 +68,9 @@ fun TransactionsScreen(
     initialCustomStartEpochDay: Long? = null,
     initialCustomEndEpochDay: Long? = null,
     currencyOnly: Boolean = false,
+    // Only initialProfileId's rows (null for all), leaving the selected profile as it is
+    profilePinned: Boolean = false,
+    initialProfileId: Long? = null,
     // Account key / tag carried by an analytics group drill-down (#422)
     initialAccount: String? = null,
     initialTag: String? = null,
@@ -97,6 +100,7 @@ fun TransactionsScreen(
     val transactionTypeFilter by viewModel.transactionTypeFilter.collectAsStateWithLifecycle()
     val deletedTransaction by viewModel.deletedTransaction.collectAsStateWithLifecycle()
     val categoriesMap by viewModel.categories.collectAsStateWithLifecycle()
+    val mostUsedCategories by viewModel.mostUsedCategories.collectAsStateWithLifecycle()
     val filteredTotals by viewModel.filteredTotals.collectAsStateWithLifecycle()
     val availableCurrencies by viewModel.availableCurrencies.collectAsStateWithLifecycle()
     val selectedCurrency by viewModel.selectedCurrency.collectAsStateWithLifecycle()
@@ -201,6 +205,7 @@ fun TransactionsScreen(
             initialTransactionType
         )
         if (currencyOnly) initialCurrency?.let(viewModel::pinCurrency)
+        if (profilePinned) viewModel.pinProfile(initialProfileId)
     }
 
     // Track if we've already processed these specific nav params
@@ -758,7 +763,8 @@ fun TransactionsScreen(
                     viewModel.updateCategory(transaction, name)
                     pendingCategoryEditId = null
                 },
-                onDismiss = { pendingCategoryEditId = null }
+                onDismiss = { pendingCategoryEditId = null },
+                mostUsed = mostUsedCategories
             )
         }
     }
@@ -776,7 +782,8 @@ fun TransactionsScreen(
                 viewModel.bulkUpdateCategory(name)
                 showBulkCategorySheet = false
             },
-            onDismiss = { showBulkCategorySheet = false }
+            onDismiss = { showBulkCategorySheet = false },
+            mostUsed = mostUsedCategories
         )
     }
 

@@ -30,6 +30,12 @@
 # disabled R8 on ~70% of classes (all of material-icons-extended) — Play Console
 # flagged it as 34% DEX optimisation. Only add a keep with a concrete crash.
 
+# Glance stores each widget receiver's GlanceAppWidget by class name and
+# updateAll() finds a widget's instances by that name. Obfuscated names move
+# between releases, so after an update one widget drew into another's slots
+# (budget and transaction widgets turned into "No goals yet").
+-keepnames class * extends androidx.glance.appwidget.GlanceAppWidget
+
 # Keep enum classes
 -keepclassmembers enum * {
     public static **[] values();

@@ -1,2 +1,8 @@
 <?xml version="1.0" encoding="utf-8"?>
-<resources></resources>
+<resources>
+    <string name="learned_categories_title">الفئات المتعلَّمة</string>
+    <string name="learned_categories_subtitle">فئات يتذكرها PennyWise من تعديلاتك</string>
+    <string name="learned_categories_intro">عندما تغيّر فئة معاملة، يتذكرها PennyWise لهذا التاجر ويستخدمها للمعاملات الجديدة. احذف أيًّا منها لإيقاف ذلك. تحتفظ المعاملات السابقة بفئاتها.</string>
+    <string name="learned_categories_empty">لم يتعلّم PennyWise شيئًا بعد. ستظهر هنا الفئات التي تختارها لأي تاجر.</string>
+    <string name="learned_categories_remove">إزالة الفئة المتعلَّمة للتاجر %1$s</string>
+</resources>

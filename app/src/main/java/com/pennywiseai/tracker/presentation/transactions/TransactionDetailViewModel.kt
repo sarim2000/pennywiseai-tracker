@@ -32,6 +32,9 @@ import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.data.repository.mappingFits
 import com.pennywiseai.tracker.domain.loan.LoanCurrencyRules
+import com.pennywiseai.tracker.domain.loan.LoanOverflow
+import com.pennywiseai.tracker.domain.loan.LoanOverflowPrompt
+import com.pennywiseai.tracker.domain.model.effectiveProfileId
 import com.pennywiseai.tracker.domain.model.rule.ActionType
 import com.pennywiseai.tracker.domain.model.rule.ConditionOperator
 import com.pennywiseai.tracker.domain.model.rule.RuleAction
@@ -272,6 +275,10 @@ class TransactionDetailViewModel @Inject constructor(
 
     private val _hasSplits = MutableStateFlow(false)
     val hasSplits: StateFlow<Boolean> = _hasSplits.asStateFlow()
+
+    // Category names by recent use, most first — the picker's "Most used" (#1058).
+    val mostUsedCategories: StateFlow<List<String>> = transactionRepository.observeRecentCategoryUsage()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
     // Categories should be based on transaction type
     val categories: StateFlow<List<CategoryEntity>> = combine(
@@ -611,6 +618,7 @@ class TransactionDetailViewModel @Inject constructor(
             _budgetCategory.value = null
             _editableTransaction.update { current ->
                 current?.copy(transactionType = type, budgetImpactType = null, budgetCategory = null)
+                    ?.withKnownTransferLeg(current?.let { it.copy(bankName = resolvedBankName(it)) })
             }
         } else {
             _editableTransaction.update { current ->
@@ -922,6 +930,13 @@ class TransactionDetailViewModel @Inject constructor(
             return
         }
 
+        // A row turned into a transfer with neither leg would undo its old effect
+        // on the account and apply nothing in its place.
+        if (original != null && transferWithoutLegs(original, toSave)) {
+            _errorMessage.value = UiText.Res(R.string.txn_detail_error_transfer_accounts)
+            return
+        }
+
         // Validate self-transfer for TRANSFER transactions
         if (toSave.transactionType == TransactionType.TRANSFER &&
             toSave.fromAccount != null &&
@@ -984,11 +999,7 @@ class TransactionDetailViewModel @Inject constructor(
                 // novel/unknown number. Clearing (accountNumber == null) keeps
                 // the existing bank untouched. Belt-and-braces with the picker's
                 // selectAccount so no edit path can desync (#566, #570).
-                val resolvedBankName = toSave.accountNumber
-                    ?.let { last4 -> availableAccounts.value.filter { it.accountLast4 == last4 } }
-                    ?.singleOrNull()
-                    ?.bankName
-                    ?: toSave.bankName
+                val resolvedBankName = resolvedBankName(toSave)
 
                 // Loan linkage (loanId / loanContribution) is owned by mark-as-loan
                 // and unmark, never the edit form. The editable copy was snapshotted
@@ -1122,6 +1133,99 @@ class TransactionDetailViewModel @Inject constructor(
         exitEditMode()
     }
 
+    /** [txn]'s bank, or the one known account with its typed number when exactly one matches. */
+    private fun resolvedBankName(txn: TransactionEntity): String? = txn.accountNumber
+        ?.let { last4 -> availableAccounts.value.filter { it.accountLast4 == last4 } }
+        ?.singleOrNull()
+        ?.bankName
+        ?: txn.bankName
+
+    /**
+     * "Between my accounts" (#1050). If the other leg already arrived (same amount the
+     * other way, on another account, within the hour) the two are paired, so the money
+     * isn't counted twice. Otherwise the editor opens as a transfer with this row's leg
+     * filled in, for the user to pick the other account and save.
+     * The match is shown for the user to confirm before both rows change.
+     */
+    fun answerOwnTransfer() {
+        val txn = _transaction.value ?: return
+        viewModelScope.launch {
+            try {
+                findOwnTransferPartner(txn)
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _errorMessage.value = UiText.Res(R.string.txn_detail_error_save, listOf(e.message.toString()))
+            }
+        }
+    }
+
+    /** The other leg found for "Between my accounts", waiting for the user to confirm it. */
+    private val _proposedTransferPartner = MutableStateFlow<TransactionEntity?>(null)
+    val proposedTransferPartner: StateFlow<TransactionEntity?> = _proposedTransferPartner.asStateFlow()
+
+    // A same-amount row nearby may be unrelated income, so it's shown before both rows change.
+    private suspend fun findOwnTransferPartner(txn: TransactionEntity) {
+        val partner = lookUpTransferPartner(txn)
+        if (partner == null) editAsTransfer() else _proposedTransferPartner.value = partner
+    }
+
+    private suspend fun lookUpTransferPartner(txn: TransactionEntity): TransactionEntity? {
+        val window = java.time.Duration.ofMinutes(60)
+        return ownTransferPartner(
+            txn,
+            transactionRepository.getTransactionsBetweenDatesList(txn.dateTime.minus(window), txn.dateTime.plus(window)),
+            com.pennywiseai.tracker.domain.model.buildProfileAccountKeys(accountBalanceRepository.getAllLatestBalancesOnce()),
+            transactionRepository.observeSplitsForActiveTransactions().first().mapTo(HashSet()) { it.transactionId }
+        )
+    }
+
+    private fun editAsTransfer() {
+        enterEditMode()
+        updateTransactionType(TransactionType.TRANSFER)
+    }
+
+    /** No: it isn't the other leg. Open the editor to pick the accounts instead. */
+    fun declineTransferPartner() {
+        _proposedTransferPartner.value = null
+        editAsTransfer()
+    }
+
+    fun dismissTransferPartner() {
+        _proposedTransferPartner.value = null
+    }
+
+    fun confirmTransferPartner() {
+        val txnId = _transaction.value?.id ?: return
+        val proposed = _proposedTransferPartner.value ?: return
+        _proposedTransferPartner.value = null
+        viewModelScope.launch {
+            try {
+                // Both rows as they are now: a scan may have corrected either while the
+                // dialog was open. Pair only if the same row still matches; else ask again.
+                val txn = transactionRepository.getTransactionById(txnId) ?: return@launch
+                val partner = lookUpTransferPartner(txn)
+                when {
+                    partner?.id == proposed.id -> pairAsTransfer(txn, partner)
+                    partner != null -> _proposedTransferPartner.value = partner
+                    else -> editAsTransfer()
+                }
+            } catch (e: kotlinx.coroutines.CancellationException) {
+                throw e
+            } catch (e: Exception) {
+                _errorMessage.value = UiText.Res(R.string.txn_detail_error_save, listOf(e.message.toString()))
+            }
+        }
+    }
+
+    private suspend fun pairAsTransfer(txn: TransactionEntity, partner: TransactionEntity) {
+        val (expense, income) = if (txn.transactionType == TransactionType.EXPENSE) txn to partner else partner to txn
+        transactionRepository.markAsTransferPair(expense, income)
+        loadTransaction(txn.id)
+        com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
+        _saveSuccess.value = true
+    }
+
     fun clearSaveSuccess() {
         _saveSuccess.value = false
     }
@@ -1228,6 +1332,41 @@ class TransactionDetailViewModel @Inject constructor(
     val recentPersonNames: StateFlow<List<String>> = loanRepository.getRecentPersonNames()
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
 
+    private val _loanOverflowPrompt = MutableStateFlow<LoanOverflowPrompt?>(null)
+
+    /** Set while a repayment that overshoots its loan waits for the user to say what the extra is. */
+    val loanOverflowPrompt: StateFlow<LoanOverflowPrompt?> = _loanOverflowPrompt.asStateFlow()
+
+    private data class PendingRepayment(val loanId: Long, val transactionId: Long, val contribution: BigDecimal, val note: String?)
+
+    private var pendingOverflowRepayment: PendingRepayment? = null
+
+    /** Records the waiting repayment with the user's answer for its extra. */
+    fun resolveLoanOverflow(overflow: LoanOverflow) {
+        val pending = pendingOverflowRepayment ?: return
+        pendingOverflowRepayment = null
+        _loanOverflowPrompt.value = null
+        viewModelScope.launch {
+            try {
+                recordRepaymentOn(pending.loanId, pending.transactionId, pending.contribution, pending.note, overflow)
+            } catch (e: Exception) {
+                _errorMessage.value = UiText.Res(R.string.txn_detail_error_create_loan, listOf(e.message.toString()))
+            }
+        }
+    }
+
+    /** Drops the waiting repayment: nothing is recorded. */
+    fun dismissLoanOverflow() {
+        pendingOverflowRepayment = null
+        _loanOverflowPrompt.value = null
+    }
+
+    private suspend fun recordRepaymentOn(loanId: Long, transactionId: Long, contribution: BigDecimal, note: String?, overflow: LoanOverflow) {
+        loanRepository.recordRepayment(loanId, transactionId, contribution, note, overflow)
+        _transaction.value = transactionRepository.getTransactionById(transactionId)
+        _loan.value = loanRepository.getLoanById(loanId)
+    }
+
     fun showMarkAsLoanSheet() { _showMarkAsLoanSheet.value = true }
     fun hideMarkAsLoanSheet() { _showMarkAsLoanSheet.value = false }
 
@@ -1266,11 +1405,16 @@ class TransactionDetailViewModel @Inject constructor(
                 if (oppositeLoan != null) {
                     // Record as repayment on the opposite loan, threading the
                     // user-chosen partial amount so only that portion counts
-                    // toward the loan's remaining balance.
-                    loanRepository.recordRepayment(oppositeLoan.id, txn.id, contribution, note)
-                    _transaction.value = transactionRepository.getTransactionById(txn.id)
-                    _loan.value = loanRepository.getLoanById(oppositeLoan.id)
+                    // toward the loan's remaining balance. Paying more than is
+                    // owed first asks what the extra is.
+                    val extra = loanRepository.flippableOverflow(oppositeLoan.id, txn.id, contribution)
                     _showMarkAsLoanSheet.value = false
+                    if (extra != null) {
+                        pendingOverflowRepayment = PendingRepayment(oppositeLoan.id, txn.id, contribution, note)
+                        _loanOverflowPrompt.value = LoanOverflowPrompt(oppositeLoan.personName, oppositeLoan.direction, extra, oppositeLoan.currency)
+                        return@launch
+                    }
+                    recordRepaymentOn(oppositeLoan.id, txn.id, contribution, note, LoanOverflow.COUNT_AS_OWN)
                     return@launch
                 }
 
@@ -1300,12 +1444,33 @@ class TransactionDetailViewModel @Inject constructor(
         }
     }
 
-    fun unlinkLoan() {
+    private val _unlinkReversal = MutableStateFlow<BigDecimal?>(null)
+
+    /**
+     * What would be owed the other way once this row comes off its loan, e.g.
+     * the advance's debt again after unmarking the bill that turned it around.
+     * Null when unmarking leaves nothing running the other way.
+     */
+    val unlinkReversal: StateFlow<BigDecimal?> = _unlinkReversal.asStateFlow()
+
+    /** Loads [unlinkReversal] for the unmark confirmation. */
+    fun loadUnlinkReversal() {
         val txn = _transaction.value ?: return
         val loanId = txn.loanId ?: return
+        _unlinkReversal.value = null
+        viewModelScope.launch {
+            _unlinkReversal.value = loanRepository.unlinkReversal(txn.id, loanId)
+        }
+    }
+
+    /** Unmarks the loan; [keepReversal] keeps [unlinkReversal] as a loan the other way. */
+    fun unlinkLoan(keepReversal: Boolean = false) {
+        val txn = _transaction.value ?: return
+        val loanId = txn.loanId ?: return
+        _unlinkReversal.value = null
         viewModelScope.launch {
             try {
-                loanRepository.unlinkTransaction(txn.id, loanId)
+                loanRepository.unlinkTransaction(txn.id, loanId, keepReversal)
                 _transaction.value = transactionRepository.getTransactionById(txn.id)
                 _loan.value = null
             } catch (e: Exception) {
@@ -1403,4 +1568,71 @@ internal fun balanceAdjustment(
         transactionHash = "manual_balance_adjustment_${tx.id}",
         currency = d.currency
     )
+}
+
+/**
+ * Switching a row to TRANSFER with no legs yet: the leg it already has is its own
+ * account, as the source if money left it, the destination if money came in. Read
+ * from the row as edited just [before] the switch, so an account picked in the editor wins.
+ */
+internal fun TransactionEntity.withKnownTransferLeg(before: TransactionEntity?): TransactionEntity {
+    if (transactionType != TransactionType.TRANSFER || fromAccount != null || toAccount != null) return this
+    if (before == null || before.transactionType == TransactionType.TRANSFER) return this
+    val account = before.accountNumber ?: return this
+    return if (before.transactionType == TransactionType.INCOME) {
+        copy(toAccount = account, toBankName = before.bankName)
+    } else {
+        copy(fromAccount = account, fromBankName = before.bankName)
+    }
+}
+
+/** [updated] turned [original] into a standalone transfer that moves no account. */
+internal fun transferWithoutLegs(original: TransactionEntity, updated: TransactionEntity): Boolean =
+    original.transactionType != TransactionType.TRANSFER &&
+        updated.transactionType == TransactionType.TRANSFER &&
+        updated.transferPairId == null &&
+        updated.fromAccount == null && updated.toAccount == null
+
+/**
+ * The other leg of [txn] among [nearby] rows, if it arrived: the self-transfer match on
+ * the same profile (a Business income an hour later isn't a Personal transfer's other
+ * leg), not already answered.
+ */
+internal fun ownTransferPartner(
+    txn: TransactionEntity,
+    nearby: List<TransactionEntity>,
+    profileAccountKeys: Map<Long, Set<String>>,
+    categorySplitIds: Set<Long> = emptySet()
+): TransactionEntity? {
+    // Rows already answered (a loan, a split bill, a refund, a split across categories) are
+    // dropped before matching, so a nearer one can't take the match or be turned into a transfer.
+    val candidates = com.pennywiseai.tracker.domain.model.filterTransactionsByProfile(
+        nearby.filter {
+            it.id == txn.id || (
+                it.loanId == null && it.lentSharesTotal == null &&
+                    it.budgetImpactType == null && it.id !in categorySplitIds
+                )
+        },
+        txn.effectiveProfileId(profileAccountKeys),
+        profileAccountKeys
+    )
+    // Matched against this row directly: in a list-wide pairing another equal expense
+    // could claim this row's credit first, leaving the real leg unoffered.
+    val wanted = when (txn.transactionType) {
+        TransactionType.EXPENSE -> TransactionType.INCOME
+        TransactionType.INCOME -> TransactionType.EXPENSE
+        else -> return null
+    }
+    val acct = txn.accountNumber?.takeIf { it.isNotBlank() }?.let { "${txn.bankName.orEmpty()}|$it" }
+    return candidates
+        .filter { it.id != txn.id && it.transactionType == wanted && it.transferPairId == null }
+        .filter { it.currency == txn.currency && it.amount.compareTo(txn.amount) == 0 }
+        .filter { other ->
+            val otherAcct = other.accountNumber?.takeIf { it.isNotBlank() }?.let { "${other.bankName.orEmpty()}|$it" }
+            acct == null || otherAcct == null || acct != otherAcct
+        }
+        .map { it to kotlin.math.abs(java.time.Duration.between(txn.dateTime, it.dateTime).toMinutes()) }
+        .filter { (_, minutes) -> minutes <= 60 }
+        .minByOrNull { (_, minutes) -> minutes }
+        ?.first
 }

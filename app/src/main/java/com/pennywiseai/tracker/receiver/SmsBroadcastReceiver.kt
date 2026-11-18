@@ -269,7 +269,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                     notificationManager.notify(
                         GROUP_SUMMARY_ID,
                         NotificationCompat.Builder(context, CHANNEL_ID)
-                            .setSmallIcon(R.drawable.ic_launcher_foreground)
+                            .setSmallIcon(R.drawable.ic_notification)
                             .setContentTitle(title)
                             .setContentText(lines.firstOrNull())
                             .setStyle(NotificationCompat.InboxStyle().setBigContentTitle(title).also { style -> lines.forEach(style::addLine) })
@@ -329,7 +329,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 .firstOrNull { it.id == notificationId && it.tag == null }?.notification
                 ?.takeIf { it.extras.getBoolean(EXTRA_BILL_ACTION) }
             val builder = NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setSmallIcon(R.drawable.ic_notification)
                 .setContentTitle(context.getString(R.string.notif_txn_learned_title, context.bidiIsolate(CategoryMapping.label(context, learned.category))))
                 .setContentText(text)
                 .setStyle(NotificationCompat.BigTextStyle().bigText(text))
@@ -455,7 +455,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 notificationManager.notify(
                     notificationId,
                     NotificationCompat.Builder(context, CHANNEL_ID)
-                        .setSmallIcon(R.drawable.ic_launcher_foreground)
+                        .setSmallIcon(R.drawable.ic_notification)
                         .setContentTitle(text)
                         .setContentIntent(openTransactionIntent(context, transactionId))
                         .setAutoCancel(true)
@@ -487,7 +487,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 BALANCE_TAG,
                 balanceAlertId(transaction),
                 NotificationCompat.Builder(context, CHANNEL_ID)
-                    .setSmallIcon(R.drawable.ic_launcher_foreground)
+                    .setSmallIcon(R.drawable.ic_notification)
                     .setContentTitle(title)
                     .setContentText(text)
                     .setStyle(NotificationCompat.BigTextStyle().bigText(text))
@@ -496,7 +496,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                     .setVisibility(NotificationCompat.VISIBILITY_PRIVATE)
                     .setPublicVersion(
                         NotificationCompat.Builder(context, CHANNEL_ID)
-                            .setSmallIcon(R.drawable.ic_launcher_foreground)
+                            .setSmallIcon(R.drawable.ic_notification)
                             .setContentTitle(context.getString(R.string.notif_txn_public_text, bankName))
                             .setContentText(text)
                             .setContentIntent(pendingIntent)
@@ -531,7 +531,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             ensureChannel(context).notify(
                 notificationId,
                 NotificationCompat.Builder(context, CHANNEL_ID)
-                    .setSmallIcon(R.drawable.ic_launcher_foreground)
+                    .setSmallIcon(R.drawable.ic_notification)
                     .setContentTitle(title)
                     .setContentText("$merchant · ${CurrencyFormatter.formatCurrency(transaction.amount, transaction.currency, maskIfHidden = false)}")
                     .setContentIntent(openTransactionIntent(context, transaction.id))
@@ -665,7 +665,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
                 SUGGESTION_TAG,
                 notificationId,
                 NotificationCompat.Builder(context, CHANNEL_ID)
-                    .setSmallIcon(R.drawable.ic_launcher_foreground)
+                    .setSmallIcon(R.drawable.ic_notification)
                     .setContentTitle(title)
                     .setContentText(
                         context.getString(
@@ -865,7 +865,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
             val expanded = listOfNotNull(merchant, askLine, priceLine).joinToString("\n")
 
             val notificationBuilder = NotificationCompat.Builder(context, CHANNEL_ID)
-                .setSmallIcon(R.drawable.ic_launcher_foreground)
+                .setSmallIcon(R.drawable.ic_notification)
                 .setContentTitle(title)
                 .setContentText(merchant)
                 .setSubText(if (uncategorized) null else CategoryMapping.label(context, transaction.category, categories))

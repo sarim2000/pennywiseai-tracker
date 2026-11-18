@@ -17,7 +17,7 @@ class BackupDismissedRecurringSuggestionsTest {
     private val context = mockk<Context>(relaxed = true) {
         every { getSharedPreferences(any(), any()).edit().putStringSet(any(), any()).commit() } returns true
     }
-    private val importer = BackupImporter(context, mockk(relaxed = true), prefs, mockk(relaxed = true), mockk(relaxed = true))
+    private val importer = BackupImporter(context, mockk(relaxed = true), prefs, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true))
 
     @Test
     fun olderBackupWithoutTheKeyDecodesToEmpty() {

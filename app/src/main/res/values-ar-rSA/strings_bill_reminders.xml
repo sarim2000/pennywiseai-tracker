@@ -1,6 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- "Bill due tomorrow" reminder for subscriptions -->
+    <string name="bill_reminder_channel_name">تذكيرات الفواتير</string>
+    <string name="bill_reminder_channel_description">تذكير قبل موعد سداد الاشتراك أو الفاتورة بيوم</string>
     <!-- %1$s: the subscription's name, e.g. "Rent" -->
+    <string name="bill_reminder_title">غدًا موعد سداد %1$s</string>
     <!-- %1$s: amount with currency; %2$s: billing cycle, e.g. "Monthly" -->
+    <string name="bill_reminder_action_paid">تم السداد</string>
+    <string name="bill_reminder_action_skip">تخطَّ هذه المرة</string>
 </resources>

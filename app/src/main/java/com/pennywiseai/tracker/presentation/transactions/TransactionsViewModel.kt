@@ -23,6 +23,7 @@ import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
 import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
+import com.pennywiseai.tracker.domain.model.filterTrackedByProfile
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.RestoreTransactionUseCase
 import com.pennywiseai.tracker.presentation.common.AccountOption
@@ -37,7 +38,6 @@ import com.pennywiseai.tracker.utils.CurrencyUtils
 import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
 import com.pennywiseai.tracker.utils.dateQueryWindow
 import dagger.hilt.android.lifecycle.HiltViewModel
-import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.FlowPreview
 import kotlinx.coroutines.flow.*
@@ -65,7 +65,9 @@ class TransactionsViewModel @Inject constructor(
     private val deleteTransactionUseCase: DeleteTransactionUseCase,
     private val restoreTransactionUseCase: RestoreTransactionUseCase,
     private val savedStateHandle: androidx.lifecycle.SavedStateHandle,
-    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context
+    @dagger.hilt.android.qualifiers.ApplicationContext private val context: android.content.Context,
+    // Where the list is filtered, sorted and converted off the main thread.
+    @com.pennywiseai.tracker.core.DefaultDispatcher private val defaultDispatcher: kotlinx.coroutines.CoroutineDispatcher
 ) : ViewModel() {
 
     // Keep home-screen widgets in sync with edits made here (delete/undo,
@@ -112,6 +114,9 @@ class TransactionsViewModel @Inject constructor(
 
     private val _selectedProfileId = MutableStateFlow<Long?>(null)
     val selectedProfileId: StateFlow<Long?> = _selectedProfileId.asStateFlow()
+
+    // Set by a chat figure's link: the list stays on that figure's profile (see pinProfile).
+    private var profilePinned = false
 
     private val _ignoredAccountKeys = MutableStateFlow<Set<String>>(emptySet())
     private val _profileAccountKeys = MutableStateFlow<Map<Long, Set<String>>>(emptyMap())
@@ -349,7 +354,7 @@ class TransactionsViewModel @Inject constructor(
     // the originals.
     val suggestedTransferPartnerOf: StateFlow<Map<Long, Long>> = _uiState
         .map { state -> computeSelfTransferPairs(state.transactions) }
-        .flowOn(Dispatchers.Default)
+        .flowOn(defaultDispatcher)
         .stateIn(
             scope = viewModelScope,
             started = SharingStarted.WhileSubscribed(5000),
@@ -407,8 +412,6 @@ class TransactionsViewModel @Inject constructor(
             }
 
             val (expense, income) = if (a.transactionType == TransactionType.EXPENSE) a to b else b to a
-            val fromAcct = expense.accountNumber
-            val toAcct = income.accountNumber
 
             // Snapshot for Undo: type + the two account fields per row.
             data class Snapshot(val type: TransactionType, val fromAccount: String?, val toAccount: String?,
@@ -417,30 +420,7 @@ class TransactionsViewModel @Inject constructor(
                 it.id to Snapshot(it.transactionType, it.fromAccount, it.toAccount, it.fromBankName, it.toBankName, it.transferPairId)
             }
 
-            val now = java.time.LocalDateTime.now()
-            val pairId = java.util.UUID.randomUUID().toString()
-            transactionRepository.updateTransaction(
-                a.copy(
-                    transactionType = TransactionType.TRANSFER,
-                    fromAccount = fromAcct,
-                    toAccount = toAcct,
-                    fromBankName = expense.bankName,
-                    toBankName = income.bankName,
-                    transferPairId = pairId,
-                    updatedAt = now
-                )
-            )
-            transactionRepository.updateTransaction(
-                b.copy(
-                    transactionType = TransactionType.TRANSFER,
-                    fromAccount = fromAcct,
-                    toAccount = toAcct,
-                    fromBankName = expense.bankName,
-                    toBankName = income.bankName,
-                    transferPairId = pairId,
-                    updatedAt = now
-                )
-            )
+            transactionRepository.markAsTransferPair(expense, income)
             refreshWidgets()
             _bulkSnack.value = BulkSnack(
                 message = UiText.Res(R.string.txn_list_bulk_marked_transfer),
@@ -578,6 +558,10 @@ class TransactionsViewModel @Inject constructor(
     private var appliedBudgetParams: BudgetParams? = null
 
     // Categories flow - will be used to map category names to colors
+    // Category names by recent use, most first — the picker's "Most used" (#1058).
+    val mostUsedCategories: StateFlow<List<String>> = transactionRepository.observeRecentCategoryUsage()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), emptyList())
+
     val categories: StateFlow<Map<String, CategoryEntity>> = categoryRepository.getAllCategories()
         .map { categoryList ->
             categoryList.associateBy { it.name }
@@ -668,7 +652,8 @@ class TransactionsViewModel @Inject constructor(
         // Observe selected profile from preferences and cache profile account keys
         viewModelScope.launch {
             userPreferencesRepository.selectedProfileId.collect { profileId ->
-                _selectedProfileId.value = profileId
+                // A list pinned to a figure's profile keeps it while Home switches (pinProfile).
+                if (!profilePinned) _selectedProfileId.value = profileId
             }
         }
         viewModelScope.launch {
@@ -753,7 +738,7 @@ class TransactionsViewModel @Inject constructor(
                                 filterableCategories(transactions, allSplits, parentOf)
                             }
                     }
-                    .flowOn(Dispatchers.Default)
+                    .flowOn(defaultDispatcher)
                     .collect { emit(it) }
             }
             .onEach { categories ->
@@ -875,7 +860,7 @@ class TransactionsViewModel @Inject constructor(
                             splitShares = splitShares
                         )
                     }
-                    .flowOn(Dispatchers.Default)
+                    .flowOn(defaultDispatcher)
                     .collect { emit(it) }
             }
             .onEach { computed ->
@@ -900,7 +885,7 @@ class TransactionsViewModel @Inject constructor(
                     // rows and grouped totals shouldn't. The map only means anything in the
                     // currency it was built for, so a switch meanwhile discards it.
                     val displayCurrency = _selectedCurrency.value
-                    val converted = withContext(Dispatchers.Default) {
+                    val converted = withContext(defaultDispatcher) {
                         convertedAmountsFor(computed.transactions, displayCurrency, computed.splitShares)
                     }
                     if (_selectedCurrency.value == displayCurrency) {
@@ -977,6 +962,18 @@ class TransactionsViewModel @Inject constructor(
         if (!pinnedCurrency.compareAndSet(null, currency)) return
         _isUnifiedMode.value = false
         _selectedCurrency.value = currency
+    }
+
+    /**
+     * Lists only [profileId]'s rows (null for all profiles), the profile a chat figure was
+     * worked out in, whatever profile Home selects meanwhile. The saved selection isn't
+     * touched. As with [pinCurrency], only the first call counts: the screen calls this on
+     * every return, and must not undo a profile the user has since picked here.
+     */
+    fun pinProfile(profileId: Long?) {
+        if (profilePinned) return
+        profilePinned = true
+        _selectedProfileId.value = profileId
     }
 
     /**
@@ -1086,12 +1083,6 @@ class TransactionsViewModel @Inject constructor(
         TransactionTypeFilter.entries.firstOrNull { it.name == type && it.inTransactionsList }
             ?: TransactionTypeFilter.ALL
 
-    private fun decodeUrlParam(value: String): String {
-        return if (value.contains("+") || value.contains("%")) {
-            java.net.URLDecoder.decode(value, "UTF-8")
-        } else value
-    }
-
     fun applyInitialFilters(
         category: String?,
         merchant: String?,
@@ -1113,15 +1104,9 @@ class TransactionsViewModel @Inject constructor(
             setAccountFilter(account)
             setTagFilter(tag)
 
-            category?.let {
-                val decoded = decodeUrlParam(it)
-                setCategoryFilter(decoded)
-            }
-
-            merchant?.let {
-                val decoded = decodeUrlParam(it)
-                updateSearchQuery(decoded)
-            }
+            // Typed nav keys carry names as they are: "Savings 10%" isn't URL-encoded.
+            category?.let { setCategoryFilter(it) }
+            merchant?.let { updateSearchQuery(it) }
 
             period?.let { periodName ->
                 applyNavigatedPeriod(periodName, startDateEpochDay, endDateEpochDay)
@@ -1194,15 +1179,8 @@ class TransactionsViewModel @Inject constructor(
         setAccountFilter(account)
         setTagFilter(tag)
 
-        category?.let {
-            val decoded = decodeUrlParam(it)
-            setCategoryFilter(decoded)
-        }
-
-        merchant?.let {
-            val decoded = decodeUrlParam(it)
-            updateSearchQuery(decoded)
-        }
+        category?.let { setCategoryFilter(it) }
+        merchant?.let { updateSearchQuery(it) }
 
         period?.let { periodName ->
             applyNavigatedPeriod(periodName, startDateEpochDay, endDateEpochDay)
@@ -1263,9 +1241,7 @@ class TransactionsViewModel @Inject constructor(
 
         // Set multiple categories filter
         categories?.let { cats ->
-            val categoryList = cats.split(",").map { cat ->
-                decodeUrlParam(cat)
-            }.filter { it.isNotBlank() }
+            val categoryList = cats.split(",").filter { it.isNotBlank() }
 
             if (categoryList.isNotEmpty()) {
                 _categoriesFilter.value = categoryList
@@ -1502,7 +1478,8 @@ internal fun computeSelfTransferPairs(
     val incomesByKey = HashMap<Pair<String, BigDecimal>, MutableList<TransactionEntity>>()
     for (tx in txns) {
         if (tx.transactionType == TransactionType.INCOME) {
-            incomesByKey.getOrPut(tx.currency to tx.amount) { mutableListOf() }.add(tx)
+            // Scale-free key: one bank sends 100.00, another 100.000 (3-decimal currencies).
+            incomesByKey.getOrPut(tx.currency to tx.amount.stripTrailingZeros()) { mutableListOf() }.add(tx)
         }
     }
     if (incomesByKey.isEmpty()) return emptyMap()
@@ -1511,7 +1488,7 @@ internal fun computeSelfTransferPairs(
     val claimedIncome = HashSet<Long>()
     for (expense in txns) {
         if (expense.transactionType != TransactionType.EXPENSE) continue
-        val candidates = incomesByKey[expense.currency to expense.amount] ?: continue
+        val candidates = incomesByKey[expense.currency to expense.amount.stripTrailingZeros()] ?: continue
         // Closest in time within the window, not on the same known account, not
         // already claimed by another expense.
         val expenseAcct = acctOf(expense)

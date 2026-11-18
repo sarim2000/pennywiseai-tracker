@@ -1,19 +1,19 @@
 package com.pennywiseai.tracker.worker
 
-import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
-
-import com.pennywiseai.tracker.R
 import android.content.Context
 import android.os.Process
 import android.os.Trace
 import android.util.Log
 import androidx.hilt.work.HiltWorker
 import androidx.work.*
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.core.TimeConstants
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.core.TimeConstants
+import com.pennywiseai.tracker.data.ledger.cashWallets
 import com.pennywiseai.tracker.data.manager.SmsScanParamsCalculator
 import com.pennywiseai.tracker.data.manager.SmsScanParamsInput
+import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.ScanPreferences
 import com.pennywiseai.tracker.data.repository.*
@@ -82,6 +82,8 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
         // Re-read the whole scan window without deleting anything: adds what an
         // earlier scan missed and keeps every edit (the gentle "scan again").
         const val INPUT_RESCAN_ALL                  = "input_rescan_all"
+        /** Tags a rebuild ([INPUT_FORCE_RESYNC]), whose saved count isn't new rows. */
+        const val TAG_REBUILD                       = "sms_rebuild"
         const val PROGRESS_TOTAL                    = "progress_total"
         const val PROGRESS_PROCESSED                = "progress_processed"
         const val PROGRESS_PARSED                   = "progress_parsed"
@@ -212,6 +214,9 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                     },
                     accountsBeforeRebuild = accountsBeforeRebuild,
                     rebuildStartedAt = rebuildStartedAt,
+                    atmCashWallets = if (userPreferencesRepository.atmCashToWallet.first()) {
+                        accountBalanceRepository.getAllLatestBalancesOnce().cashWallets()
+                    } else emptyList(),
                 )
             } finally {
                 Trace.endSection()
@@ -269,6 +274,13 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             // Rows rebuilt from balance-only SMS don't pass through processBalanceUpdate,
             // so put each typed account's type back on the rows that lost it (#792).
             for (row in accountsBeforeRebuild.values) accountBalanceRepository.restoreAccountType(row)
+            // A rebuild drops ATM transfers into Cash wallets (#1062) and may not route
+            // them again (setting since turned off), so re-derive every Cash wallet.
+            if (rebuildStartedAt != null) {
+                accountBalanceRepository.getAllLatestBalancesOnce().cashWallets().forEach {
+                    accountBalanceRepository.recomputeManualBalance(it.bankName, it.accountLast4)
+                }
+            }
             SmsScanCleanup(
                 unrecognizedSmsRepository = unrecognizedSmsRepository,
                 transactionRepository = transactionRepository,
@@ -294,7 +306,6 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             Result.success(
                 completionData(stats.total, stats.processed.get(), stats.parsed.get(), stats.saved.get())
             )
-
         } catch (e: Exception) {
             Log.e(TAG, "Fatal error in SMS worker", e)
             Result.failure()

@@ -72,10 +72,18 @@
     <string name="txn_detail_unmark_loan_title">ยกเลิกการทำเครื่องหมายเป็นเงินกู้?</string>
     <string name="txn_detail_unmark_loan_message">การนี้จะเอาลิงก์เงินกู้ออกจากธุรกรรมนี้ ถ้าไม่มีธุรกรรมอื่นที่ลิงก์อยู่ เงินกู้จะถูกลบไปด้วย</string>
     <string name="txn_detail_unmark_loan_confirm">ยกเลิกเครื่องหมาย</string>
+    <!-- Unmarking leaves the loan's other transactions running the other way (e.g. undoing an overpayment that turned the loan around) -->
+    <!-- %1$s = person name, %2$s = formatted amount -->
+    <!-- %1$s = person name, %2$s = formatted amount -->
     <string name="txn_detail_unmark_loan">ยกเลิกการทำเครื่องหมายเป็นเงินกู้</string>
     <string name="txn_detail_mark_as_loan">ทำเครื่องหมายเป็นเงินกู้</string>
     <string name="txn_detail_loan_lent_to">ให้ %1$s ยืม</string>
     <string name="txn_detail_loan_borrowed_from">ยืมจาก %1$s</string>
+    <!-- A repayment row on a loan. %1$s = person name -->
+    <!-- A repayment row on a loan. %1$s = person name -->
+    <!-- Part of a loan-linked transaction that is on the loan. %1$s = formatted amount -->
+    <!-- Part of a loan-linked transaction that counts as the user's own spending. %1$s = formatted amount -->
+    <!-- Part of a loan-linked transaction that counts as the user's own income. %1$s = formatted amount -->
     <string name="txn_detail_receipt_full_screen">ใบเสร็จแบบเต็มจอ</string>
     <string name="txn_detail_close">ปิด</string>
     <string name="txn_detail_exclude_analytics_title">ไม่รวมในการวิเคราะห์</string>
@@ -362,25 +370,6 @@
     <string name="recurring_day_of_week_any">วันไหนก็ได้</string>
     <string name="recurring_field_note">หมายเหตุ (ไม่บังคับ)</string>
     <string name="recurring_field_active">ใช้งานอยู่</string>
-    <!-- Share card, sheet and banner -->
-    <string name="share_card_caption_transactions">ข้อความธนาคารที่บันทึกให้ พิมพ์เอง 0 รายการ</string>
-    <plurals name="share_card_caption_subscriptions">
-        <item quantity="other">การสมัครสมาชิกที่ฉันลืมไป</item>
-    </plurals>
-    <string name="share_card_period_all_time">ตลอดเวลา</string>
-    <string name="share_card_tagline">อ่านจาก SMS ธนาคารของฉัน ไม่มีข้อมูลออกจากโทรศัพท์เลย</string>
-    <string name="share_sheet_no_amounts">ไม่มีการแสดงจำนวนเงิน</string>
-    <string name="share_sheet_share">แชร์</string>
-    <string name="share_sheet_done">เสร็จสิ้น</string>
-    <string name="share_sheet_customise">ปรับแต่ง</string>
-    <string name="share_sheet_show">แสดง</string>
-    <string name="share_sheet_transactions">ไทม์ไลน์</string>
-    <string name="share_sheet_subscriptions">การสมัครสมาชิก</string>
-    <string name="share_sheet_no_subscriptions">ยังไม่พบการสมัครสมาชิก PennyWise จะหาจากการชำระเงินที่เกิดซ้ำใน SMS ของคุณ</string>
-    <string name="share_sheet_period">ช่วงเวลา</string>
-    <string name="share_sheet_this_month">เดือนนี้</string>
-    <string name="share_sheet_last_month">เดือนที่แล้ว</string>
-    <string name="share_sheet_all_time">ตลอดเวลา</string>
     <!-- %1$s = month name -->
     <string name="share_banner_title">สรุป %1$s</string>
     <string name="share_banner_subtitle">ดูว่า PennyWise บันทึกอะไรให้คุณบ้าง</string>
@@ -400,6 +389,10 @@
     <string name="quick_add_from">จาก: %1$s</string>
     <!-- %1$s amount with currency, %2$s category -->
     <string name="quick_add_saved">บันทึก %1$s · %2$s แล้ว</string>
+    <!-- The sheet filled from the voice mic (Home, the cash widget) -->
+    <!-- Clears a day said out loud ("yesterday") back to today -->
+    <!-- Amount calculator: a keypad sheet opened from the amount field -->
+    <!-- The sum is unfinished or doesn't make sense yet, e.g. "12+" or "1..2" -->
     <string name="date_range_title">เลือกช่วงวันที่</string>
     <string name="date_range_ok">ตกลง</string>
     <string name="date_range_cancel">ยกเลิก</string>

@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.components
 
+import androidx.compose.animation.core.Animatable
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -8,14 +9,13 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.widthIn
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.MaterialShapes
+import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.animation.core.Animatable
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -23,17 +23,17 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.graphics.graphicsLayer
-import androidx.graphics.shapes.Morph
-import kotlinx.coroutines.launch
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.graphics.shapes.Morph
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import kotlinx.coroutines.launch
 
 /**
  * The app's empty state: tonal icon circle, headline, one line of explanation,
@@ -47,6 +47,9 @@ import com.pennywiseai.tracker.ui.theme.Spacing
  * The description is capped at ~40 characters per line ([DESCRIPTION_MAX_WIDTH])
  * because centred text set to the full width of a phone wraps into a shape
  * that's hard to read; a measure closer to a paragraph reads better.
+ *
+ * A [mascot] takes the icon badge's place and fades in the same way; [icon] is then
+ * unused. Screens that don't pass one keep the badge.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -57,7 +60,8 @@ fun PennyWiseEmptyState(
     modifier: Modifier = Modifier,
     actionLabel: String? = null,
     onAction: (() -> Unit)? = null,
-    ghostContent: @Composable (() -> Unit)? = null
+    ghostContent: @Composable (() -> Unit)? = null,
+    mascot: @Composable (() -> Unit)? = null
 ) {
     Column(
         modifier = modifier
@@ -80,25 +84,29 @@ fun PennyWiseEmptyState(
             launch { fade.animateTo(1f, effects) }
             settle.animateTo(1f, spatial)
         }
-        Box(
-            modifier = Modifier
-                .size(Dimensions.Icon.emptyStateContainer)
-                .graphicsLayer {
-                    // No scale-in (design.md motion rule 4): it fades while the shape
-                    // settles, clamped so the spring's overshoot stays between the shapes.
-                    alpha = fade.value
-                    shape = MorphShape(morph, settle.value.coerceIn(0f, 1f))
-                    clip = true
-                }
-                .background(MaterialTheme.colorScheme.primaryContainer),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon,
-                contentDescription = null,
-                modifier = Modifier.size(Dimensions.Icon.emptyStateGlyph),
-                tint = MaterialTheme.colorScheme.onPrimaryContainer
-            )
+        if (mascot != null) {
+            Box(Modifier.graphicsLayer { alpha = fade.value }) { mascot() }
+        } else {
+            Box(
+                modifier = Modifier
+                    .size(Dimensions.Icon.emptyStateContainer)
+                    .graphicsLayer {
+                        // No scale-in (design.md motion rule 4): it fades while the shape
+                        // settles, clamped so the spring's overshoot stays between the shapes.
+                        alpha = fade.value
+                        shape = MorphShape(morph, settle.value.coerceIn(0f, 1f))
+                        clip = true
+                    }
+                    .background(MaterialTheme.colorScheme.primaryContainer),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = icon,
+                    contentDescription = null,
+                    modifier = Modifier.size(Dimensions.Icon.emptyStateGlyph),
+                    tint = MaterialTheme.colorScheme.onPrimaryContainer
+                )
+            }
         }
 
         Text(

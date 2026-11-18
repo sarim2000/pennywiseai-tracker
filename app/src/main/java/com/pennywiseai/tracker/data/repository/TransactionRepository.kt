@@ -13,9 +13,11 @@ import com.pennywiseai.tracker.data.notification.BankNotificationConfig
 import com.pennywiseai.tracker.data.preferences.BudgetPreferences
 import com.pennywiseai.tracker.data.statement.StatementTransactionEnricher
 import com.pennywiseai.tracker.domain.model.BudgetCycle
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.withContext
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -111,6 +113,10 @@ open class TransactionRepository @Inject constructor(
      */
     suspend fun getCategoriesByUsage(): List<String> = transactionDao.getCategoriesByUsage()
 
+    /** Category names by use in the last 90 days, most first — the pickers' "Most used" (#1058). */
+    fun observeRecentCategoryUsage(): Flow<List<String>> =
+        transactionDao.observeCategoriesByUsageSince(LocalDateTime.now().minusDays(90))
+
     fun getAllMerchants(): Flow<List<String>> =
         transactionDao.getAllMerchants()
 
@@ -147,6 +153,31 @@ open class TransactionRepository @Inject constructor(
      */
     suspend fun updateTransaction(transaction: TransactionEntity) = goalRepository.writeAndCap(transaction.id) {
         writeKeepingSplit(transaction)
+    }
+
+    /**
+     * Marks a debit and its credit as one transfer (#385): both rows turn TRANSFER with the
+     * same from/to and a shared [TransactionEntity.transferPairId], so each stays one leg.
+     * Balances stay untouched: the money moved when the two SMS arrived.
+     */
+    // ponytail: NonCancellable covers leaving the screen mid-write, not a crash between the
+    // two writes; move both into one database transaction if that ever shows up.
+    suspend fun markAsTransferPair(expense: TransactionEntity, income: TransactionEntity) = withContext(NonCancellable) {
+        val now = LocalDateTime.now()
+        val pairId = java.util.UUID.randomUUID().toString()
+        listOf(expense, income).forEach { row ->
+            updateTransaction(
+                row.copy(
+                    transactionType = TransactionType.TRANSFER,
+                    fromAccount = expense.accountNumber,
+                    toAccount = income.accountNumber,
+                    fromBankName = expense.bankName,
+                    toBankName = income.bankName,
+                    transferPairId = pairId,
+                    updatedAt = now
+                )
+            )
+        }
     }
 
     /**

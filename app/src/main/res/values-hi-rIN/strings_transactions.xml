@@ -74,10 +74,18 @@
     <string name="txn_detail_unmark_loan_title">ऋण के रूप में चिह्न हटाएँ?</string>
     <string name="txn_detail_unmark_loan_message">इससे यह लेन-देन उधार से अलग हो जाएगा। अगर कोई और लेन-देन जुड़ा नहीं है, तो उधार भी हट जाएगा।</string>
     <string name="txn_detail_unmark_loan_confirm">चिह्न हटाएँ</string>
+    <!-- Unmarking leaves the loan's other transactions running the other way (e.g. undoing an overpayment that turned the loan around) -->
+    <!-- %1$s = person name, %2$s = formatted amount -->
+    <!-- %1$s = person name, %2$s = formatted amount -->
     <string name="txn_detail_unmark_loan">ऋण के रूप में चिह्न हटाएँ</string>
     <string name="txn_detail_mark_as_loan">ऋण के रूप में चिह्नित करें</string>
     <string name="txn_detail_loan_lent_to">%1$s को उधार दिया</string>
     <string name="txn_detail_loan_borrowed_from">%1$s से उधार लिया</string>
+    <!-- A repayment row on a loan. %1$s = person name -->
+    <!-- A repayment row on a loan. %1$s = person name -->
+    <!-- Part of a loan-linked transaction that is on the loan. %1$s = formatted amount -->
+    <!-- Part of a loan-linked transaction that counts as the user's own spending. %1$s = formatted amount -->
+    <!-- Part of a loan-linked transaction that counts as the user's own income. %1$s = formatted amount -->
     <string name="txn_detail_receipt_full_screen">रसीद फ़ुल स्क्रीन</string>
     <string name="txn_detail_close">बंद करें</string>
     <string name="txn_detail_exclude_analytics_title">विश्लेषण से बाहर रखें</string>
@@ -372,26 +380,6 @@
     <string name="recurring_day_of_week_any">कोई भी</string>
     <string name="recurring_field_note">नोट (वैकल्पिक)</string>
     <string name="recurring_field_active">चालू</string>
-    <!-- Share card, sheet and banner -->
-    <string name="share_card_caption_transactions">बैंक मैसेज ट्रैक हुए। 0 टाइप किए।</string>
-    <plurals name="share_card_caption_subscriptions">
-        <item quantity="one">भूली हुई सदस्यता</item>
-        <item quantity="other">भूली हुई सदस्यताएँ</item>
-    </plurals>
-    <string name="share_card_period_all_time">अब तक</string>
-    <string name="share_card_tagline">मेरे बैंक SMS से पढ़ा गया। कुछ भी मेरे फ़ोन से बाहर नहीं गया।</string>
-    <string name="share_sheet_no_amounts">कोई राशि शामिल नहीं है।</string>
-    <string name="share_sheet_share">साझा करें</string>
-    <string name="share_sheet_done">समाप्त</string>
-    <string name="share_sheet_customise">अपने हिसाब से बदलें</string>
-    <string name="share_sheet_show">दिखाएँ</string>
-    <string name="share_sheet_transactions">टाइमलाइन</string>
-    <string name="share_sheet_subscriptions">सदस्यताएँ</string>
-    <string name="share_sheet_no_subscriptions">अभी तक कोई सदस्यता नहीं मिली — PennyWise इन्हें आपके SMS में बार-बार होने वाले भुगतानों से ढूँढता है।</string>
-    <string name="share_sheet_period">अवधि</string>
-    <string name="share_sheet_this_month">इस महीने</string>
-    <string name="share_sheet_last_month">पिछला महीना</string>
-    <string name="share_sheet_all_time">अब तक</string>
     <!-- %1$s = month name -->
     <string name="share_banner_title">%1$s का पूरा हिसाब</string>
     <string name="share_banner_subtitle">देखें PennyWise ने आपके लिए क्या ट्रैक किया</string>
@@ -411,6 +399,10 @@
     <string name="quick_add_from">से: %1$s</string>
     <!-- %1$s amount with currency, %2$s category -->
     <string name="quick_add_saved">सेव हुआ %1$s · %2$s</string>
+    <!-- The sheet filled from the voice mic (Home, the cash widget) -->
+    <!-- Clears a day said out loud ("yesterday") back to today -->
+    <!-- Amount calculator: a keypad sheet opened from the amount field -->
+    <!-- The sum is unfinished or doesn't make sense yet, e.g. "12+" or "1..2" -->
     <string name="date_range_title">तारीख सीमा चुनें</string>
     <string name="date_range_ok">ठीक है</string>
     <string name="date_range_cancel">रद्द करें</string>

@@ -56,6 +56,15 @@ object BankNotificationConfig {
     fun isAllowed(packageName: String): Boolean =
         allowedPackages.containsKey(packageName.lowercase())
 
+    /**
+     * A group summary repeats its children. A tracked app's ongoing notification (a ride
+     * in progress, a download) keeps updating its text, so each update would be a new
+     * suggestion. Bank apps keep their parser path, which dedupes on its own.
+     */
+    fun skipsPost(flags: Int, trackedApp: Boolean): Boolean =
+        (flags and Notification.FLAG_GROUP_SUMMARY) != 0 ||
+            (trackedApp && (flags and Notification.FLAG_ONGOING_EVENT) != 0)
+
     fun senderAlias(packageName: String): String =
         allowedPackages[packageName.lowercase()] ?: packageName
 

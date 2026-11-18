@@ -43,6 +43,7 @@
     <string name="txn_detail_error_merchant_required">Merchant name is required</string>
     <string name="txn_detail_error_amount_positive">Amount must be positive</string>
     <string name="txn_detail_error_same_accounts">Source and destination accounts must be different</string>
+    <string name="txn_detail_error_transfer_accounts">Pick the accounts the money moved between</string>
     <string name="txn_detail_error_loan_type_locked">This transaction is part of a loan. Remove it from the loan before switching it between income and spending.</string>
     <string name="txn_detail_error_loan_currency_locked">This transaction is part of a loan. Remove it from the loan before changing its currency.</string>
     <string name="txn_detail_error_tag_rule">Saved, but couldn\'t create the tag rule: %1$s</string>
@@ -78,10 +79,27 @@
     <string name="txn_detail_unmark_loan_title">Unmark as loan?</string>
     <string name="txn_detail_unmark_loan_message">This removes the loan link from this transaction. If no other transactions are linked, the loan is deleted too.</string>
     <string name="txn_detail_unmark_loan_confirm">Unmark</string>
+    <!-- Unmarking leaves the loan's other transactions running the other way (e.g. undoing an overpayment that turned the loan around) -->
+    <string name="txn_detail_unmark_loan_reversal_message">Without this transaction, the rest of this loan runs the other way. Keep that as a loan, or just unmark?</string>
+    <!-- %1$s = person name, %2$s = formatted amount -->
+    <string name="txn_detail_unmark_loan_keep_you_owe">Keep: you owe %1$s %2$s</string>
+    <!-- %1$s = person name, %2$s = formatted amount -->
+    <string name="txn_detail_unmark_loan_keep_owes_you">Keep: %1$s owes you %2$s</string>
+    <string name="txn_detail_unmark_loan_only">Just unmark</string>
     <string name="txn_detail_unmark_loan">Unmark as loan</string>
     <string name="txn_detail_mark_as_loan">Mark as loan</string>
     <string name="txn_detail_loan_lent_to">Lent to %1$s</string>
     <string name="txn_detail_loan_borrowed_from">Borrowed from %1$s</string>
+    <!-- A repayment row on a loan. %1$s = person name -->
+    <string name="txn_detail_loan_repaid_by">Repaid by %1$s</string>
+    <!-- A repayment row on a loan. %1$s = person name -->
+    <string name="txn_detail_loan_repaid_to">Repaid to %1$s</string>
+    <!-- Part of a loan-linked transaction that is on the loan. %1$s = formatted amount -->
+    <string name="txn_detail_loan_part">%1$s on the loan</string>
+    <!-- Part of a loan-linked transaction that counts as the user's own spending. %1$s = formatted amount -->
+    <string name="txn_detail_loan_own_spend">%1$s your spending</string>
+    <!-- Part of a loan-linked transaction that counts as the user's own income. %1$s = formatted amount -->
+    <string name="txn_detail_loan_own_income">%1$s your income</string>
     <string name="txn_detail_receipt_full_screen">Receipt full screen</string>
     <string name="txn_detail_close">Close</string>
     <string name="txn_detail_exclude_analytics_title">Exclude from analytics</string>
@@ -383,26 +401,6 @@
     <string name="recurring_field_note">Note (optional)</string>
     <string name="recurring_field_active">Active</string>
 
-    <!-- Share card, sheet and banner -->
-    <string name="share_card_caption_transactions">bank texts tracked. 0 typed.</string>
-    <plurals name="share_card_caption_subscriptions">
-        <item quantity="one">subscription I forgot</item>
-        <item quantity="other">subscriptions I forgot</item>
-    </plurals>
-    <string name="share_card_period_all_time">ALL TIME</string>
-    <string name="share_card_tagline">Read from my bank SMS. Nothing left my phone.</string>
-    <string name="share_sheet_no_amounts">No amounts are included.</string>
-    <string name="share_sheet_share">Share</string>
-    <string name="share_sheet_done">Done</string>
-    <string name="share_sheet_customise">Customise</string>
-    <string name="share_sheet_show">Show</string>
-    <string name="share_sheet_transactions">Transactions</string>
-    <string name="share_sheet_subscriptions">Subscriptions</string>
-    <string name="share_sheet_no_subscriptions">No subscriptions detected yet — PennyWise finds these from recurring payments in your SMS.</string>
-    <string name="share_sheet_period">Period</string>
-    <string name="share_sheet_this_month">This month</string>
-    <string name="share_sheet_last_month">Last month</string>
-    <string name="share_sheet_all_time">All time</string>
     <!-- %1$s = month name -->
     <string name="share_banner_title">%1$s, summed up</string>
     <string name="share_banner_subtitle">See what changed and where it went</string>
@@ -410,6 +408,11 @@
 
     <!-- Shared transaction components -->
     <string name="quick_category_title">Change category</string>
+    <string name="category_picker_search">Search categories</string>
+    <string name="category_picker_most_used">Most used</string>
+    <string name="category_picker_all">All</string>
+    <string name="category_picker_create">Create \"%1$s\"</string>
+    <string name="category_picker_no_match">No categories found</string>
     <string name="quick_category_not_expense">Not an expense</string>
     <string name="quick_category_not_income">Not income</string>
     <!-- Walking the recap's unsorted rows: "2 of 3" -->
@@ -423,6 +426,35 @@
     <string name="quick_add_from">From: %1$s</string>
     <!-- %1$s amount with currency, %2$s category -->
     <string name="quick_add_saved">Saved %1$s · %2$s</string>
+    <!-- The sheet filled from the voice mic (Home, the cash widget) -->
+    <string name="quick_add_title_income">Cash received</string>
+    <string name="quick_add_spent">Spent</string>
+    <string name="quick_add_received">Received</string>
+    <!-- Clears a day said out loud ("yesterday") back to today -->
+    <string name="quick_add_date_today">Use today</string>
+    <string name="quick_add_voice_title">Add by voice</string>
+    <string name="quick_add_voice_hint">Say a cash spend like “200 lunch”, or ask a question.</string>
+    <string name="quick_add_voice_unclear">Couldn\'t find one amount in that. Try again, or type it.</string>
+    <string name="quick_add_voice_chat_hidden">Questions go to Chat, which is hidden. Show it in Appearance settings, or say a spend.</string>
+    <string name="quick_add_voice_type">Type instead</string>
+    <!-- Amount calculator: a keypad sheet opened from the amount field -->
+    <string name="calculator_open">Calculator</string>
+    <string name="calculator_title">Work out the amount</string>
+    <string name="calculator_apply">Use amount</string>
+    <string name="calculator_must_be_positive">The amount must be more than zero</string>
+    <string name="calculator_divide_by_zero">Can\'t divide by zero</string>
+    <string name="calculator_too_large">That amount is too large</string>
+    <!-- The sum is unfinished or doesn't make sense yet, e.g. "12+" or "1..2" -->
+    <string name="calculator_too_long">That sum is too long. Shorten it or press =</string>
+    <string name="calculator_unfinished">Finish the sum to use it</string>
+    <string name="calculator_clear">Clear</string>
+    <string name="calculator_divide">Divide</string>
+    <string name="calculator_multiply">Multiply</string>
+    <string name="calculator_minus">Minus</string>
+    <string name="calculator_plus">Plus</string>
+    <string name="calculator_equals">Equals</string>
+    <string name="calculator_decimal_point">Decimal point</string>
+    <string name="calculator_backspace">Delete</string>
     <string name="date_range_title">Select Date Range</string>
     <string name="date_range_ok">OK</string>
     <string name="date_range_cancel">Cancel</string>
@@ -448,4 +480,18 @@
     <string name="tag_input_add">Add tag</string>
     <string name="tag_input_create">Create \"%1$s\"</string>
 
+    <string name="what_was_this_title">What was this?</string>
+    <string name="what_was_this_subtitle">Lent, split, saved, or moved between your accounts</string>
+    <string name="what_was_this_loan">Lent to or borrowed from someone</string>
+    <string name="what_was_this_loan_hint">Track who owes whom</string>
+    <string name="what_was_this_split">Split with people</string>
+    <string name="what_was_this_split_hint">Only your share counts as spending</string>
+    <string name="what_was_this_saving">Saving or investment</string>
+    <string name="what_was_this_saving_hint">Gold, a fund, a deposit. Not spending</string>
+    <string name="what_was_this_transfer">Between my accounts</string>
+    <string name="what_was_this_transfer_hint">Not spending or income</string>
+    <string name="own_transfer_partner_title">Is this the other side?</string>
+    <string name="own_transfer_partner_message">%1$s · %2$s · %3$s. Count both as one move between your accounts?</string>
+    <string name="own_transfer_partner_confirm">Yes, pair them</string>
+    <string name="own_transfer_partner_decline">No, pick accounts</string>
 </resources>

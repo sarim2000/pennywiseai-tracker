@@ -9,8 +9,8 @@ import java.math.BigDecimal
  *
  * Card purchases/finance charges use CREDIT (PennyWise's credit-card spending
  * type), and available credit is creditLimit, never a deposit-account balance.
- * Card bill repayments are TRANSFER, never income. eTAC, statements, and NPS
- * confirmations without source-account identification are intentionally ignored.
+ * Card bill repayments, eTAC, statements, and NPS confirmations without
+ * source-account identification are intentionally ignored.
  * All sample identifiers in tests are synthetic.
  */
 class StandardCharteredBangladeshParser : BankParser() {

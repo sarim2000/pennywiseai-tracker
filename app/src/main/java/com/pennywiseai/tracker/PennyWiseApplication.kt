@@ -21,6 +21,10 @@ import dagger.hilt.android.HiltAndroidApp
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
+import kotlinx.coroutines.channels.BufferOverflow
+import kotlinx.coroutines.flow.MutableSharedFlow
+import kotlinx.coroutines.flow.SharedFlow
+import kotlinx.coroutines.flow.asSharedFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.distinctUntilChanged
@@ -69,6 +73,11 @@ class PennyWiseApplication : Application(), Configuration.Provider {
     var isAppInForeground: Boolean = false
         private set
 
+    private val _backgrounded = MutableSharedFlow<Unit>(extraBufferCapacity = 1, onBufferOverflow = BufferOverflow.DROP_OLDEST)
+
+    /** Emits each time the user leaves the app; a rotation stops the activity but isn't leaving. */
+    val backgrounded: SharedFlow<Unit> = _backgrounded.asSharedFlow()
+
     override val workManagerConfiguration: Configuration
         get() = Configuration.Builder()
             .setWorkerFactory(workerFactory)
@@ -98,6 +107,7 @@ class PennyWiseApplication : Application(), Configuration.Provider {
         // The weekend a last-working-day budget cycle rolls back over: the SIM country, kept once saved.
         com.pennywiseai.tracker.data.preferences.WeekendCountryStore.load(this)
         registerActivityLifecycleCallbacks(AppLockLifecycleObserver())
+        registerActivityLifecycleCallbacks(com.pennywiseai.tracker.utils.LatinDigitsDefaultKeeper)
         lastLocales = resources.configuration.locales
         com.pennywiseai.tracker.utils.useLatinDigitsByDefault()
 
@@ -261,6 +271,7 @@ class PennyWiseApplication : Application(), Configuration.Provider {
                 // Ends the unlock and starts the lock timeout. A rotation stops
                 // the only activity too, but the user never left.
                 if (!activity.isChangingConfigurations) {
+                    _backgrounded.tryEmit(Unit)
                     appLockRepository.onAppBackgrounded()?.let { leftAt ->
                         applicationScope.launch { appLockRepository.recordLeftAt(leftAt) }
                     }

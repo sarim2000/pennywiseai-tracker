@@ -251,6 +251,7 @@ class QuickCategoryPickerActivity : FragmentActivity() {
         var transactionLoaded by remember(args.transactionId) { mutableStateOf(false) }
         var categories by remember { mutableStateOf<List<CategoryEntity>>(emptyList()) }
         var categoriesLoaded by remember { mutableStateOf(false) }
+        var mostUsed by remember { mutableStateOf<List<String>>(emptyList()) }
         // Tags for the inline tag section (#696): the txn's current tags seed
         // the field, and every known tag name feeds autocomplete.
         var initialTags by remember(args.transactionId) { mutableStateOf<List<String>>(emptyList()) }
@@ -277,6 +278,7 @@ class QuickCategoryPickerActivity : FragmentActivity() {
         LaunchedEffect(Unit) {
             categories = categoryRepository.getVisibleCategories().first()
             categoriesLoaded = true
+            mostUsed = transactionRepository.observeRecentCategoryUsage().first()
             tagSuggestions = tagRepository.observeAllTagNames().first()
         }
 
@@ -335,7 +337,8 @@ class QuickCategoryPickerActivity : FragmentActivity() {
                     // consumer — no reorder, and no loss when the picker retargets
                     // to another transaction via onNewIntent. (#710)
                     tagRepository.enqueueSetTags(txn.id, newTags)
-                }
+                },
+                mostUsed = mostUsed
             )
         }
     }

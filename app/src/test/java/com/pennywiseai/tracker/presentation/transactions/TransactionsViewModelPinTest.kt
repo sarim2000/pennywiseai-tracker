@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
@@ -27,15 +28,14 @@ import kotlinx.coroutines.flow.filter
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
-import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.advanceUntilIdle
 import kotlinx.coroutines.test.resetMain
+import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import kotlinx.coroutines.withTimeout
-import kotlinx.coroutines.withTimeoutOrNull
 import org.junit.After
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -63,14 +63,20 @@ class TransactionsViewModelPinTest {
 
     private lateinit var viewModel: TransactionsViewModel
 
+    // Main and the ViewModel's background work share this one thread and virtual clock.
+    private val dispatcher = UnconfinedTestDispatcher()
+
     // The screen sets its filters and its pin in one go on the main thread. Here Main is unconfined, so
-    // the auto-clear could run between the two on a worker: rows wait until the test has done both.
+    // the auto-clear could run between the two: rows wait until the test has done both.
     private val filtersSet = MutableStateFlow(false)
     private fun <T> afterFiltersSet(value: () -> T) = filtersSet.filter { it }.map { value() }
 
+    // The profile Home has selected.
+    private val homeProfile = MutableStateFlow<Long?>(null)
+
     @Before
     fun setUp() {
-        Dispatchers.setMain(UnconfinedTestDispatcher())
+        Dispatchers.setMain(dispatcher)
         val rows = listOf(september, shopping)
         val transactions = mockk<TransactionRepository> {
             every { getAllTransactions() } returns afterFiltersSet { rows }
@@ -80,6 +86,7 @@ class TransactionsViewModelPinTest {
             }
             every { observeSplitsForActiveTransactions() } returns flowOf(emptyList())
             every { getAllCurrencies() } returns flowOf(listOf("USD"))
+            every { observeRecentCategoryUsage() } returns flowOf(emptyList())
             every { getCurrenciesForPeriod(any(), any()) } returns flowOf(listOf("USD"))
         }
         val categories = mockk<CategoryRepository> {
@@ -96,7 +103,7 @@ class TransactionsViewModelPinTest {
             every { baseCurrency } returns flowOf("USD")
             every { displayCurrency } returns flowOf("USD")
             every { unifiedCurrencyMode } returns flowOf(true)
-            every { selectedProfileId } returns flowOf(null)
+            every { selectedProfileId } returns homeProfile
             every { budgetCycleStartDay } returns flowOf(1)
             coEvery { getBudgetCycleStartDay() } returns 1
             every { smsScanMonths } returns flowOf(3)
@@ -111,7 +118,7 @@ class TransactionsViewModelPinTest {
         val groups = mockk<TransactionGroupRepository> { every { getAllGroups() } returns flowOf(emptyList()) }
         viewModel = TransactionsViewModel(
             transactions, categories, tags, aliases, prefs, mockk(relaxed = true), accounts, cards, ignored,
-            profiles, groups, mockk(relaxed = true), mockk(relaxed = true), SavedStateHandle(), mockk<Context>(relaxed = true),
+            profiles, groups, mockk(relaxed = true), mockk(relaxed = true), SavedStateHandle(), mockk<Context>(relaxed = true), dispatcher,
         )
     }
 
@@ -126,21 +133,43 @@ class TransactionsViewModelPinTest {
     )
 
     @Test
-    fun `a pinned list keeps a category with no rows and shows nothing`() = runBlocking {
+    fun `a pinned list keeps a category with no rows and shows nothing`() = runTest(dispatcher) {
         openTravelInOctober()
         viewModel.pinCurrency("USD")
         filtersSet.value = true
 
         withTimeout(10_000) { viewModel.availableCategories.first { "Shopping" in it } }
-        // Long enough for an auto-clear and the list after it to have landed.
-        assertNull(withTimeoutOrNull(1_500) { viewModel.categoryFilter.first { it == null } })
+        // Idle: an auto-clear, and the list after it, would have landed by now.
+        advanceUntilIdle()
         assertEquals("Travel", viewModel.categoryFilter.value)
-        assertTrue(viewModel.uiState.value.transactions.isEmpty())
+        assertTrue(!viewModel.uiState.value.isLoading && viewModel.uiState.value.transactions.isEmpty())
         assertEquals("USD", viewModel.selectedCurrency.value)
     }
 
     @Test
-    fun `any other list still drops a category the period no longer has`() = runBlocking {
+    fun `a category name opens as written, a percent or plus sign in it too`() = runTest(dispatcher) {
+        listOf("Savings 10%", "Food + Drinks").forEach { name ->
+            viewModel.applyNavigationFilters(name, null, "CUSTOM", "USD", october.first.toEpochDay(), october.second.toEpochDay())
+            assertEquals(name, viewModel.categoryFilter.value)
+        }
+    }
+
+    @Test
+    fun `a list pinned to a figure's profile keeps it while Home switches`() = runTest(dispatcher) {
+        homeProfile.value = ProfileEntity.BUSINESS_ID
+        assertEquals(ProfileEntity.BUSINESS_ID, viewModel.selectedProfileId.value)
+        // The figure counted every profile: the list does too, Business still selected on Home.
+        viewModel.pinProfile(null)
+        assertEquals(null, viewModel.selectedProfileId.value)
+        homeProfile.value = ProfileEntity.PERSONAL_ID
+        assertEquals(null, viewModel.selectedProfileId.value)
+        // The screen pins again on every return: only the first counts.
+        viewModel.pinProfile(ProfileEntity.BUSINESS_ID)
+        assertEquals(null, viewModel.selectedProfileId.value)
+    }
+
+    @Test
+    fun `any other list still drops a category the period no longer has`() = runTest(dispatcher) {
         openTravelInOctober()
         filtersSet.value = true
 

@@ -4,9 +4,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.ledger.forTotals
-import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
-import com.pennywiseai.tracker.domain.model.filterTransactionsByProfile
 import java.math.BigDecimal
 import java.time.LocalDate
 
@@ -16,6 +14,12 @@ import java.time.LocalDate
  * order: categories, type, search, tracked accounts and profile, account, tag, currency, sort,
  * date groups.
  */
+
+/**
+ * Whether [name] is one of these categories, in any case: a chat figure counts a row filed as
+ * "food" under "Food", and the list its link opens has to show that row too.
+ */
+private fun Set<String>.hasCategory(name: String) = any { it.equals(name, ignoreCase = true) }
 
 /**
  * Rows in [categories]: a split row by its splits' categories, any other by its own, the same
@@ -28,7 +32,7 @@ internal fun filterByCategories(
 ): List<TransactionEntity> {
     val splitsByTxId = splits.groupBy { it.transactionId }
     return transactions.filter { tx ->
-        splitsByTxId[tx.id]?.any { it.category in categories } ?: (tx.category in categories)
+        splitsByTxId[tx.id]?.any { categories.hasCategory(it.category) } ?: categories.hasCategory(tx.category)
     }
 }
 
@@ -45,7 +49,7 @@ class CategorySplitShares(
 
     /** The amount of [tx]'s splits in the filter, or null when [tx] isn't split. For display. */
     fun shareOf(tx: TransactionEntity): BigDecimal? =
-        splitsByTxId[tx.id]?.filter { it.category in categories }?.sumOf { it.amount }
+        splitsByTxId[tx.id]?.filter { categories.hasCategory(it.category) }?.sumOf { it.amount }
 
     /** The amount [tx] shows: its share when split, else its own amount. */
     fun shownAmount(tx: TransactionEntity): BigDecimal = shareOf(tx) ?: tx.amount
@@ -57,7 +61,7 @@ class CategorySplitShares(
     fun forTotals(tx: TransactionEntity): TransactionEntity? {
         val splits = splitsByTxId[tx.id] ?: return tx.forTotals()
         val counted = TransactionWithSplits(tx, splits).forTotals() ?: return null
-        val share = counted.splits.filter { it.category in categories }.sumOf { it.amount }
+        val share = counted.splits.filter { categories.hasCategory(it.category) }.sumOf { it.amount }
         return tx.copy(amount = share, loanId = null, loanContribution = null, lentSharesTotal = null).forTotals()
     }
 }
@@ -109,26 +113,6 @@ private fun amountMatchesSearch(query: String, amount: BigDecimal): Boolean {
     return cleanedQuery.isNotEmpty() &&
         cleanedQuery.all { it.isDigit() || it == '.' } &&
         amount.toPlainString().contains(cleanedQuery)
-}
-
-internal fun filterTrackedByProfile(
-    transactions: List<TransactionEntity>,
-    profileId: Long?,
-    ignoredAccountKeys: Set<String>,
-    profileAccountKeys: Map<Long, Set<String>>,
-): List<TransactionEntity> {
-    // Ignored accounts drop out first, and independently of the profile
-    // filter — that one returns early for "All profiles" and falls back to
-    // Personal for an unattributed transaction, so it can't carry the
-    // exclusion (#826).
-    val tracked = if (ignoredAccountKeys.isEmpty()) {
-        transactions
-    } else {
-        transactions.filterNot { tx ->
-            IgnoredAccountsStore.isIgnored(ignoredAccountKeys, tx.bankName, tx.accountNumber)
-        }
-    }
-    return filterTransactionsByProfile(tracked, profileId, profileAccountKeys)
 }
 
 /** Rows carrying exactly [tag], ignoring case; null means no tag filter. */

@@ -39,6 +39,8 @@ import com.pennywiseai.tracker.ui.animations.staggerDelayMs
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.mascot.Mascot
+import com.pennywiseai.tracker.ui.components.mascot.MascotShape
 import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
@@ -225,7 +227,8 @@ fun UnrecognizedSmsScreen(
                     PennyWiseEmptyState(
                         icon = Icons.Outlined.MarkEmailRead,
                         headline = stringResource(R.string.unrecognized_empty_title),
-                        description = stringResource(R.string.unrecognized_empty_body)
+                        description = stringResource(R.string.unrecognized_empty_body),
+                        mascot = { Mascot(size = Dimensions.Icon.extraLarge, shape = MascotShape.Bubble, interactive = true) }
                     )
                 }
             } else {
@@ -400,7 +403,7 @@ private fun UnrecognizedSmsItem(
                 Text(
                     text = stringResource(R.string.teach_format_changed),
                     style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.tertiary
+                    color = MaterialTheme.colorScheme.primary
                 )
             }
 

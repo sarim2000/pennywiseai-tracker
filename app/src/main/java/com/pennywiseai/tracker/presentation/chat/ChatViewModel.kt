@@ -6,6 +6,10 @@ import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.data.database.entity.ChatMessage
+import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.events.TransactionEvents
+import com.pennywiseai.tracker.data.events.TransactionOrigin
+import com.pennywiseai.tracker.data.manager.ChatDraftInbox
 import com.pennywiseai.tracker.data.manager.ModelDownloader
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.LlmRepository
@@ -43,8 +47,15 @@ class ChatViewModel @Inject constructor(
     categoryRepository: com.pennywiseai.tracker.data.repository.CategoryRepository,
     private val transactionRepository: com.pennywiseai.tracker.data.repository.TransactionRepository,
     private val modelDownloader: ModelDownloader,
+    private val transactionEvents: TransactionEvents,
     @com.pennywiseai.tracker.core.ApplicationScope private val appScope: kotlinx.coroutines.CoroutineScope,
+    private val chatDrafts: ChatDraftInbox,
 ) : ViewModel() {
+
+    /** A question asked from the quick add mic, for the message box. */
+    val chatDraft: StateFlow<ChatDraftInbox.Draft?> = chatDrafts.draft
+
+    fun takeChatDraft(draft: ChatDraftInbox.Draft) = chatDrafts.take(draft)
 
     val downloadProgress: StateFlow<Int> = modelDownloader.progress
         .map { (it.downloadedBytes * 100 / it.totalBytes.coerceAtLeast(1)).toInt() }
@@ -88,6 +99,9 @@ class ChatViewModel @Inject constructor(
 
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
+
+    /** Each reply's links to the transactions behind its figures, by message id. */
+    val links: StateFlow<Map<String, List<com.pennywiseai.tracker.data.model.ChatLink>>> = llmRepository.links
 
     private val _currentResponse = MutableStateFlow("")
     val currentResponse: StateFlow<String> = _currentResponse.asStateFlow()
@@ -134,6 +148,13 @@ class ChatViewModel @Inject constructor(
                     null -> return@collect
                 }
                 _uiState.value = _uiState.value.copy(error = UiText.Res(message))
+            }
+        }
+
+        // The latest reply's mascot, from what the repository says it answered.
+        viewModelScope.launch {
+            llmRepository.lastReply.collect { subject ->
+                _uiState.value = _uiState.value.copy(replyTopic = subject?.let(::replyTopic))
             }
         }
     }
@@ -259,6 +280,13 @@ class ChatViewModel @Inject constructor(
                         // The user tapped Add: leaving the screen now can't undo that, or lose what was saved.
                         if (drafts.isNotEmpty()) withContext(NonCancellable) {
                             addTransactionUseCase.executeAll(drafts)
+                            // The card committed as one: one reaction for it, not one per row.
+                            // A mixed card is a receipt, not one of its rows' shapes.
+                            transactionEvents.onSaved(
+                                type = drafts.map { it.type }.distinct().singleOrNull() ?: TransactionType.EXPENSE,
+                                origin = TransactionOrigin.CHAT,
+                                count = drafts.size
+                            )
                             com.pennywiseai.tracker.worker.MoneyAlertWorker.enqueue(context)
                             // Saved: the card stays drawn with its check for a beat. Its line is
                             // written first, so dying in that beat can't leave a saved transaction
@@ -297,16 +325,18 @@ class ChatViewModel @Inject constructor(
         llmRepository.clearPendingAction()
 
         sendJob = viewModelScope.launch {
+            // The last reply's mascot goes as the new request starts.
             _uiState.value = _uiState.value.copy(
                 isLoading = true,
-                error = null
+                error = null,
+                replyTopic = null
             )
             _currentResponse.value = ""
 
             val tap = System.nanoTime()
             var firstShown = false
             try {
-                // Use streaming for better UX
+                // The reply comes whole, once its tool calls are resolved: until then, the typing dots.
                 llmRepository.sendMessageStream(message)
                     .catch { error ->
                         val errorMessage = sendErrorText(error, R.string.chat_error_generate_failed)
@@ -320,7 +350,7 @@ class ChatViewModel @Inject constructor(
                             firstShown = true
                             android.util.Log.i(LlmRepository.TIMING, "first=${(System.nanoTime() - tap) / 1_000_000}ms")
                         }
-                        _currentResponse.value = if (partialResponse == LlmRepository.RESET_REPLY) "" else _currentResponse.value + partialResponse
+                        _currentResponse.value += partialResponse
                     }
                 android.util.Log.i(LlmRepository.TIMING, "reply=${(System.nanoTime() - tap) / 1_000_000}ms")
 
@@ -342,7 +372,7 @@ class ChatViewModel @Inject constructor(
         if (_uiState.value.isLoading || _isConfirming.value) return
         llmRepository.clearPendingAction()
         // Claimed before launching, so a second tap or a send can't start alongside it.
-        _uiState.value = _uiState.value.copy(isLoading = true, error = null)
+        _uiState.value = _uiState.value.copy(isLoading = true, error = null, replyTopic = null)
         sendJob = viewModelScope.launch {
             try {
                 llmRepository.answerQuickAction(action)
@@ -362,7 +392,8 @@ class ChatViewModel @Inject constructor(
         viewModelScope.launch {
             llmRepository.deleteAllMessages()
             _uiState.value = _uiState.value.copy(
-                error = null
+                error = null,
+                replyTopic = null
             )
             // Reload context message after clearing chat
             loadContextMessage()
@@ -422,7 +453,9 @@ data class ChatUiState(
     /** An Add card whose rows were just saved: still drawn, with its check, for a beat. */
     val settledCard: com.pennywiseai.tracker.data.model.PendingChatAction.Add? = null,
     /** Adds saved so far; the Confirm haptic keys on it, since [settledCard] may never reach a frame. */
-    val adds: Int = 0
+    val adds: Int = 0,
+    /** The mascot beside the latest assistant reply, or null. Transient: never saved. */
+    val replyTopic: ReplyTopic? = null
 ) {
     val cardSaved: Boolean get() = settledCard != null
 }

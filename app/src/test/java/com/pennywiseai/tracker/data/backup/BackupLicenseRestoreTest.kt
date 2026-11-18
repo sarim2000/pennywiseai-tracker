@@ -20,7 +20,7 @@ class BackupLicenseRestoreTest {
         every { getSharedPreferences(any(), any()).edit().putStringSet(any(), any()).commit() } returns true
     }
     private val restorer = mockk<LicenseRestorer>(relaxed = true)
-    private val importer = BackupImporter(context, mockk(relaxed = true), prefs, restorer, mockk(relaxed = true))
+    private val importer = BackupImporter(context, mockk(relaxed = true), prefs, restorer, mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true), mockk(relaxed = true))
 
     private fun snapshot(key: String?, instanceId: String?) =
         PreferencesSnapshot(app = AppPreferences(licenseKey = key, licenseInstanceId = instanceId))

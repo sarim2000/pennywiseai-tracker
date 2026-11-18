@@ -5,6 +5,7 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.dao.ChatDao
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.ChatMessage
+import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.model.PendingChatAction
@@ -37,6 +38,7 @@ class ChatTurnTest {
     private val chatDao = mockk<ChatDao>(relaxed = true) {
         coEvery { getAllMessagesForContext() } answers { saved.toList() }
         coEvery { insertMessage(any()) } answers { saved += firstArg<ChatMessage>() }
+        coEvery { insertMessages(any()) } answers { saved += firstArg<List<ChatMessage>>() }
         coEvery { deleteMessagesBefore(any()) } answers { saved.removeAll { it.timestamp < firstArg<Long>() } }
     }
     private val sent = mutableListOf<String>()
@@ -52,9 +54,7 @@ class ChatTurnTest {
             }
         }
     }
-    private val aiContext = mockk<AiContextRepository>(relaxed = true) {
-        coEvery { getMonthSummary() } returns mockk(relaxed = true)
-    }
+    private val aiContext = mockk<AiContextRepository>(relaxed = true)
     private val preferences = mockk<UserPreferencesRepository>(relaxed = true) {
         every { baseCurrency } returns flowOf("INR")
         every { countCreditCardAsExpense } returns flowOf(false)
@@ -70,8 +70,8 @@ class ChatTurnTest {
         every { getString(R.string.chat_reply_unreadable) } returns "UNREADABLE"
         every { getString(R.string.chat_reply_nothing_changed) } returns "NOTHING_CHANGED"
         every { getString(R.string.chat_reply_unknown_category, any()) } returns "UNKNOWN_CATEGORY"
-        every { getString(R.string.chat_reply_category_spend, any(), any(), any()) } returns "SPEND"
-        every { getString(R.string.chat_reply_nothing_spent, any()) } returns "NOTHING_SPENT"
+        every { resources.getQuantityString(R.plurals.chat_reply_category_spend, any(), any(), any(), any(), any()) } returns "SPEND"
+        every { getString(R.string.chat_reply_nothing_spent, any(), any()) } returns "NOTHING_SPENT"
     }
     private val transactions = mockk<TransactionRepository>(relaxed = true)
     private val repository = LlmRepository(
@@ -92,14 +92,118 @@ class ChatTurnTest {
         mapOf("items" to amounts.map { mapOf("amount" to it, "merchant" to "shop") })
     )
 
-    // What the screen ends up showing: ChatViewModel folds a reset the same way.
-    private suspend fun send(message: String) =
-        repository.sendMessageStream(message).toList().fold("") { shown, part -> if (part == LlmRepository.RESET_REPLY) "" else shown + part }
+    // Everything the screen was shown during the turn, in order.
+    private val shown = mutableListOf<String>()
+
+    // What the screen ends up showing: ChatViewModel joins the parts the same way.
+    private suspend fun send(message: String) = repository.sendMessageStream(message).toList().also { shown += it }.joinToString("")
+
+    @Test
+    fun `prose beside any tool call never reaches the screen or the save`() = runTest {
+        val w = SpendingComparison.Window(LocalDateTime.of(2026, 10, 1, 0, 0), LocalDateTime.of(2026, 10, 9, 0, 0))
+        coEvery { aiContext.compareSpending(any(), any(), any(), any()) } returns SpendingComparison.Result.NoData(w, w, w)
+        coEvery { aiContext.categorySpending(any(), any()) } returns spent("120")
+        coEvery { aiContext.spending(any()) } returns com.pennywiseai.tracker.data.model.PeriodSpending(
+            com.pennywiseai.tracker.data.model.ChatScope(w),
+            spent = mapOf("INR" to BigDecimal("700")),
+            income = emptyMap(),
+        )
+        every { context.getString(R.string.chat_reply_add, any()) } returns "CARD"
+        every { context.getString(R.string.chat_reply_delete, any()) } returns "DELETE"
+        every { context.getString(R.string.chat_reply_update, any(), any()) } returns "UPDATE"
+        every { context.getString(R.string.chat_reply_compare_no_data, any()) } returns "NO_DATA"
+        every { context.getString(R.string.chat_reply_month_spend, any()) } returns "SPENT"
+        val now = LocalDateTime.now()
+        val row = TransactionEntity(
+            id = 1, amount = BigDecimal("50"), merchantName = "coffee", category = "Food",
+            transactionType = TransactionType.EXPENSE, dateTime = now, transactionHash = "h1"
+        )
+        every { transactions.getTransactionsBetweenDates(any<LocalDateTime>(), any<LocalDateTime>()) } returns flowOf(listOf(row))
+        val calls = listOf(
+            add(120.0),
+            LlmEvent.ToolCall(PennyWiseTools.DELETE_TRANSACTION, mapOf("merchant" to "coffee")),
+            LlmEvent.ToolCall(PennyWiseTools.UPDATE_TRANSACTION, mapOf("merchant" to "coffee", "new_category" to "طعام")),
+            LlmEvent.ToolCall(PennyWiseTools.MONTH_SUMMARY, emptyMap()),
+            LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "طعام")),
+            LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month")),
+        )
+        for (call in calls) {
+            for (before in listOf(true, false)) {
+                repository.clearPendingAction()
+                shown.clear()
+                val prose = LlmEvent.Text("Done, I saved ₹999 and you spent nine hundred. ")
+                events = if (before) listOf(prose, call) else listOf(call, prose)
+                val reply = send("coffee")
+                val where = "${call.name}, prose ${if (before) "before" else "after"}"
+                assertTrue(where, shown.none { "999" in it || "nine" in it })
+                assertFalse(where, "999" in saved.last().message || "nine" in saved.last().message)
+                assertEquals(where, reply, saved.last().message)
+                assertFalse(where, "UNREADABLE" in reply)
+            }
+        }
+        // Each of those turns left prose in the live conversation: the next one rebuilds without it.
+        coVerify(exactly = calls.size * 2) { llmService.closeConversation() }
+    }
+
+    @Test
+    fun `prose beside a card and a total in one turn is dropped, the app's lines kept`() = runTest {
+        every { context.getString(R.string.chat_reply_add, any()) } returns "CARD"
+        coEvery { aiContext.categorySpending(any(), any()) } returns spent("120")
+        events = listOf(
+            LlmEvent.Text("Sure! "),
+            add(120.0),
+            LlmEvent.Text("You have spent ₹5,000. "),
+            LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "طعام")),
+        )
+        assertEquals("CARD\nSPEND", send("coffee 120, and how much on food?"))
+        assertEquals(listOf("CARD\nSPEND"), shown)
+    }
+
+    @Test
+    fun `a filler preamble beside a card keeps the live conversation, a claim doesn't`() = runTest {
+        every { context.getString(R.string.chat_reply_add, any()) } returns "CARD"
+        events = listOf(LlmEvent.Text("Sure! "), add(120.0))
+        assertEquals("CARD", send("coffee 120"))
+        // Rebuilding would prefill the whole chat again for nothing that could mislead a later turn.
+        coVerify(exactly = 0) { llmService.closeConversation() }
+
+        // The card's own amount in the preamble says nothing the saved card line doesn't.
+        repository.clearPendingAction()
+        events = listOf(LlmEvent.Text("Adding ₹120 for coffee. "), add(120.0))
+        assertEquals("CARD", send("coffee 120"))
+        coVerify(exactly = 0) { llmService.closeConversation() }
+
+        repository.clearPendingAction()
+        events = listOf(LlmEvent.Text("Done, I've added it. "), add(120.0))
+        assertEquals("CARD", send("coffee 120"))
+        coVerify(exactly = 1) { llmService.closeConversation() }
+
+        // Any other number could mislead the next turn.
+        repository.clearPendingAction()
+        events = listOf(LlmEvent.Text("Adding ₹150 for coffee. "), add(120.0))
+        assertEquals("CARD", send("coffee 120"))
+        coVerify(exactly = 2) { llmService.closeConversation() }
+    }
+
+    @Test
+    fun `prose in front of a call that breaks is dropped for the note that nothing changed`() = runTest {
+        events = listOf(LlmEvent.Text("I've added ₹300 for shoes. "))
+        failure = RuntimeException("Failed to parse tool calls from code block: {\"name\"")
+        assertEquals("UNREADABLE", send("shoes 300"))
+        assertEquals(listOf("UNREADABLE"), shown)
+    }
+
+    @Test
+    fun `a reply with no tool call is shown once, whole`() = runTest {
+        events = listOf(LlmEvent.Text("Hello"), LlmEvent.Text(" there!"))
+        assertEquals("Hello there!", send("hi"))
+        assertEquals(listOf("Hello there!"), shown)
+    }
 
     @Test
     fun `prose streamed before a comparison leaves the screen, and the save`() = runTest {
         val w = SpendingComparison.Window(LocalDateTime.of(2026, 10, 1, 0, 0), LocalDateTime.of(2026, 10, 9, 0, 0))
-        coEvery { aiContext.compareSpending(any(), any(), any()) } returns SpendingComparison.Result.NoData(w, w, w)
+        coEvery { aiContext.compareSpending(any(), any(), any(), any()) } returns SpendingComparison.Result.NoData(w, w, w)
         every { context.getString(R.string.chat_reply_compare_no_data, any()) } returns "NO_DATA"
         events = listOf(LlmEvent.Text("You spent ₹999 more. "), LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month")))
         assertEquals("NO_DATA", send("compare with last month"))
@@ -109,9 +213,18 @@ class ChatTurnTest {
     }
 
     @Test
+    fun `prose streamed before a total leaves the screen, and the save`() = runTest {
+        coEvery { aiContext.categorySpending(any(), any()) } returns spent("120")
+        events = listOf(LlmEvent.Text("You've spent about ₹5,000 on food. "), LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "طعام")))
+        assertEquals("SPEND", send("how much on food?"))
+        assertEquals("SPEND", saved.last().message)
+        coVerify(exactly = 1) { llmService.closeConversation() }
+    }
+
+    @Test
     fun `a comparison with no prose keeps the live conversation`() = runTest {
         val w = SpendingComparison.Window(LocalDateTime.of(2026, 10, 1, 0, 0), LocalDateTime.of(2026, 10, 9, 0, 0))
-        coEvery { aiContext.compareSpending(any(), any(), any()) } returns SpendingComparison.Result.NoData(w, w, w)
+        coEvery { aiContext.compareSpending(any(), any(), any(), any()) } returns SpendingComparison.Result.NoData(w, w, w)
         every { context.getString(R.string.chat_reply_compare_no_data, any()) } returns "NO_DATA"
         events = listOf(LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month")))
         send("compare with last month")
@@ -121,7 +234,7 @@ class ChatTurnTest {
     @Test
     fun `a comparison for a category nobody has is unknown, not nothing spent`() = runTest {
         val w = SpendingComparison.Window(LocalDateTime.of(2026, 10, 1, 0, 0), LocalDateTime.of(2026, 10, 9, 0, 0))
-        coEvery { aiContext.compareSpending(any(), any(), any()) } returns SpendingComparison.Result.Rows(w, w, emptyList())
+        coEvery { aiContext.compareSpending(any(), any(), any(), any()) } returns SpendingComparison.Result.Rows(w, w, emptyList())
         every { context.getString(R.string.chat_reply_compare_nothing_category, any(), any(), any()) } returns "NOTHING"
         events = listOf(LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "Unicorns")))
         assertEquals("UNKNOWN_CATEGORY", send("compare unicorns with last month"))
@@ -137,11 +250,11 @@ class ChatTurnTest {
     @Test
     fun `a category only transactions carry is that category, even when it reads like "all"`() = runTest {
         val w = SpendingComparison.Window(LocalDateTime.of(2026, 10, 1, 0, 0), LocalDateTime.of(2026, 10, 9, 0, 0))
-        coEvery { aiContext.compareSpending(any(), any(), any()) } returns
+        coEvery { aiContext.compareSpending(any(), any(), any(), any()) } returns
             SpendingComparison.Result.Rows(w, w, listOf(SpendingComparison.Row("INR", BigDecimal("100"), BigDecimal.ZERO, null)))
         events = listOf(LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "General")))
         send("compare general with last month")
-        coVerify(exactly = 0) { aiContext.compareSpending(any(), null, any()) }
+        coVerify(exactly = 0) { aiContext.compareSpending(any(), null, any(), any()) }
     }
 
     @Test
@@ -167,6 +280,35 @@ class ChatTurnTest {
         every { context.getString(R.string.chat_reply_add, any()) } returns "CARD"
         events = listOf(LlmEvent.Text("\n\n"), add(120.0))
         assertEquals("CARD", send("coffee 120"))
+    }
+
+    @Test
+    fun `the latest reply is known by its id, with the tool it answered and its figure`() = runTest {
+        val w = SpendingComparison.Window(LocalDateTime.of(2026, 10, 1, 0, 0), LocalDateTime.of(2026, 10, 9, 0, 0))
+        coEvery { aiContext.compareSpending(any(), any(), any(), any()) } returns
+            SpendingComparison.Result.Rows(w, w, listOf(SpendingComparison.Row("INR", BigDecimal("80"), BigDecimal("100"), BigDecimal("-20"))))
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month")))
+        send("compare with last month")
+        val compared = repository.lastReply.value!!
+        assertEquals(saved.last().id, compared.messageId)
+        assertEquals(PennyWiseTools.COMPARE_SPENDING, compared.tool)
+        assertEquals(-1, compared.trend)
+
+        events = listOf(LlmEvent.Text("Hello!"))
+        send("hi")
+        assertEquals(saved.last().id, repository.lastReply.value!!.messageId)
+        assertEquals(null, repository.lastReply.value!!.tool)
+
+        events = listOf(add(120.0))
+        send("coffee 120")
+        assertEquals(PennyWiseTools.ADD_TRANSACTIONS, repository.lastReply.value!!.tool)
+        repository.completePendingAction("Added ₹120 at shop (Food).")
+        val added = repository.lastReply.value!!
+        assertEquals(saved.last().id, added.messageId)
+        assertTrue(added.saved)
+
+        repository.deleteAllMessages()
+        assertEquals(null, repository.lastReply.value)
     }
 
     @Test
@@ -316,9 +458,238 @@ class ChatTurnTest {
     }
 
     @Test
+    fun `the typed month summary and the one-tap answer give Home's figures, the same way`() = runTest {
+        every { context.getString(R.string.chat_reply_month_spend, any()) } returns "SPENT"
+        every { context.getString(R.string.chat_reply_spent_with_forgiven, any(), any()) } returns "WITH_FORGIVEN"
+        every { context.getString(R.string.chat_reply_converted_estimate, any(), any()) } returns "ESTIMATE"
+        every { context.getString(R.string.chat_reply_converted_left_out, any()) } returns "LEFT_OUT"
+        every { context.getString(R.string.chat_reply_received, any()) } returns "RECEIVED"
+        every { context.resources.getQuantityString(R.plurals.chat_reply_transaction_count, 12, 12) } returns "COUNT"
+        coEvery { aiContext.spending(any()) } returns com.pennywiseai.tracker.data.model.PeriodSpending(
+            com.pennywiseai.tracker.data.model.ChatScope(SpendingComparison.Window(LocalDateTime.of(2026, 11, 1, 0, 0), LocalDateTime.of(2026, 11, 16, 23, 59))),
+            spent = mapOf("USD" to BigDecimal("5"), "INR" to BigDecimal("600")),
+            income = mapOf("INR" to BigDecimal("5000")),
+            forgiven = mapOf("INR" to BigDecimal("400")),
+            estimate = com.pennywiseai.tracker.data.ledger.ConvertedEstimate("INR", BigDecimal("1000"), mapOf("XYZ" to BigDecimal("3"))),
+            transactionCount = 12,
+        )
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.MONTH_SUMMARY, emptyMap()))
+        val typed = send("how much did I spend this month?")
+        // The user's own currency first, its forgiven loan named inside the figure; a gap in the estimate said.
+        val lines = typed.lines()
+        assertEquals(listOf("SPENT", "WITH_FORGIVEN"), lines.take(2))
+        assertTrue(lines[2], lines[2].contains("5") && "$" in lines[2])
+        // Typed, it also gives the count monthSummary promises the model.
+        assertEquals(listOf("ESTIMATE", "LEFT_OUT", "RECEIVED", "COUNT"), lines.drop(3))
+        repository.answerQuickAction(QuickAction.MONTH_SPEND)
+        assertEquals(lines.dropLast(1).joinToString("\n"), saved.last().message)
+    }
+
+    @Test
+    fun `the welcome gives the estimate the answers give, and nothing spent in the currency Home shows`() = runTest {
+        every { context.getString(R.string.chat_reply_converted_estimate, any(), any()) } returns "ESTIMATE"
+        every { context.getString(R.string.chat_reply_converted_left_out, any()) } returns "LEFT_OUT"
+        every { preferences.unifiedCurrencyMode } returns flowOf(true)
+        every { preferences.displayCurrency } returns flowOf("USD")
+        val scope = com.pennywiseai.tracker.data.model.ChatScope(SpendingComparison.Window(LocalDateTime.of(2026, 11, 1, 0, 0), LocalDateTime.of(2026, 11, 16, 23, 59)))
+        coEvery { aiContext.spending(any()) } returns com.pennywiseai.tracker.data.model.PeriodSpending(
+            scope,
+            spent = mapOf("USD" to BigDecimal("5"), "INR" to BigDecimal("600")),
+            income = emptyMap(),
+            estimate = com.pennywiseai.tracker.data.ledger.ConvertedEstimate("USD", BigDecimal("12.50"), mapOf("XYZ" to BigDecimal("3"))),
+        )
+        repository.getFormattedContextForDisplay()
+        verify { context.getString(R.string.chat_welcome, "1 Nov–16 Nov", match<String> { it.lines().drop(1) == listOf("ESTIMATE", "LEFT_OUT") && "$" in it.lines()[0] }) }
+
+        coEvery { aiContext.spending(any()) } returns com.pennywiseai.tracker.data.model.PeriodSpending(scope, spent = emptyMap(), income = emptyMap())
+        repository.getFormattedContextForDisplay()
+        verify { context.getString(R.string.chat_welcome, "1 Nov–16 Nov", match<String> { "$" in it && "₹" !in it && "\n" !in it }) }
+    }
+
+    @Test
+    fun `a seeded profile is named in the app's language, on totals and comparisons alike`() = runTest {
+        val business = ProfileEntity(ProfileEntity.BUSINESS_ID, "Business", "#000")
+        every { context.getString(R.string.profile_default_business) } returns "عمل"
+        coEvery { aiContext.spending(any()) } returns com.pennywiseai.tracker.data.model.PeriodSpending(
+            com.pennywiseai.tracker.data.model.ChatScope(SpendingComparison.Window(LocalDateTime.of(2026, 11, 1, 0, 0), LocalDateTime.of(2026, 11, 16, 23, 59)), business),
+            spent = mapOf("INR" to BigDecimal("700")),
+            income = emptyMap(),
+        )
+        repository.answerQuickAction(QuickAction.MONTH_SPEND)
+        verify { context.getString(R.string.chat_reply_month_spend, "1 Nov–16 Nov · عمل") }
+        // Its link opens that profile's rows, whatever Home shows by the time it's tapped.
+        assertEquals(listOf(ProfileEntity.BUSINESS_ID), repository.links.value[saved.last().id]?.map { it.profileId })
+
+        // A comparison covers the same profile, so it says so too.
+        val w = SpendingComparison.Window(LocalDateTime.of(2026, 11, 1, 0, 0), LocalDateTime.of(2026, 11, 16, 23, 59))
+        val rows = SpendingComparison.Result.Rows(w, w, listOf(SpendingComparison.Row("INR", BigDecimal("700"), BigDecimal("500"), BigDecimal("40"))), profile = business)
+        coEvery { aiContext.compareSpending(any(), any(), any(), any()) } returns rows
+        repository.answerQuickAction(QuickAction.COMPARE_MONTH)
+        verify { context.getString(R.string.chat_reply_compare_title, "1 Nov–16 Nov", "1 Nov–16 Nov · عمل") }
+        assertEquals(listOf(ProfileEntity.BUSINESS_ID, ProfileEntity.BUSINESS_ID), repository.links.value[saved.last().id]?.map { it.profileId })
+
+        // A renamed one shows as the user named it.
+        coEvery { aiContext.compareSpending(any(), any(), any(), any()) } returns rows.copy(profile = business.copy(name = "Shop"))
+        repository.answerQuickAction(QuickAction.COMPARE_MONTH)
+        verify { context.getString(R.string.chat_reply_compare_title, "1 Nov–16 Nov", "1 Nov–16 Nov · Shop") }
+    }
+
+    @Test
+    fun `a typed month summary says nothing was received, in no currency it had no activity in`() = runTest {
+        every { context.getString(R.string.chat_reply_month_spend, any()) } returns "SPENT"
+        every { context.getString(R.string.chat_reply_received_nothing) } returns "NOTHING_RECEIVED"
+        // The user's own currency is USD; all of the month was spent in rupees, and nothing came in.
+        every { preferences.baseCurrency } returns flowOf("USD")
+        coEvery { aiContext.spending(any()) } returns com.pennywiseai.tracker.data.model.PeriodSpending(
+            com.pennywiseai.tracker.data.model.ChatScope(SpendingComparison.Window(LocalDateTime.of(2026, 11, 1, 0, 0), LocalDateTime.of(2026, 11, 16, 23, 59))),
+            spent = mapOf("INR" to BigDecimal("700")),
+            income = emptyMap(),
+        )
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.MONTH_SUMMARY, emptyMap()))
+        val reply = send("how much did I earn this month?")
+        // The question is answered, with no "Received: $0" in a currency nothing happened in.
+        assertTrue(reply, "NOTHING_RECEIVED" in reply.lines())
+        verify(exactly = 0) { context.getString(R.string.chat_reply_received, any()) }
+    }
+
+    @Test
+    fun `a category's spend is per currency and dated`() = runTest {
+        coEvery { aiContext.categorySpending(any(), any()) } returns spent("120").copy(category = "طعام", byCurrency = mapOf("USD" to BigDecimal("3"), "INR" to BigDecimal("120")))
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "طعام")))
+        assertEquals("SPEND", send("how much on food?"))
+        // Both currencies, the user's own first, never added; the dates it covers.
+        verify {
+            context.resources.getQuantityString(
+                R.plurals.chat_reply_category_spend,
+                1,
+                match<String> { it.indexOf("120") in 0 until it.indexOf("3") && " · " in it },
+                "طعام",
+                "1 Nov–16 Nov",
+                1
+            )
+        }
+    }
+
+    @Test
+    fun `a total links to its days' transactions, one per currency, and only for this session`() = runTest {
+        every { context.getString(R.string.chat_link_transactions) } returns "SEE"
+        every { context.getString(R.string.chat_link_transactions_in, any()) } answers { "SEE ${(args[1] as Array<*>)[0]}" }
+        val (nov1, nov16) = LocalDate.of(2026, 11, 1) to LocalDate.of(2026, 11, 16)
+        coEvery { aiContext.spending(any()) } returns com.pennywiseai.tracker.data.model.PeriodSpending(
+            com.pennywiseai.tracker.data.model.ChatScope(SpendingComparison.Window(nov1.atStartOfDay(), nov16.atTime(23, 59))),
+            spent = mapOf("USD" to BigDecimal("5"), "INR" to BigDecimal("600")),
+            income = mapOf("AED" to BigDecimal("50")),
+            forgiven = mapOf("EUR" to BigDecimal("9")),
+        )
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.MONTH_SUMMARY, emptyMap()))
+        send("how much this month?")
+        // The user's own currency first, each pinned; a forgiven loan has no transactions to show.
+        assertEquals(
+            listOf("INR", "AED", "USD").map { com.pennywiseai.tracker.data.model.ChatLink("SEE $it", nov1, nov16, null, it, null) },
+            repository.links.value[saved.last().id]
+        )
+
+        // A category in one currency: one link, pinned, named after the category.
+        coEvery { aiContext.categorySpending(any(), any()) } returns spent("120").copy(category = "طعام")
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "طعام")))
+        send("how much on food?")
+        assertEquals(listOf(com.pennywiseai.tracker.data.model.ChatLink("SEE طعام", nov1, nov16, "طعام", "INR", null)), repository.links.value[saved.last().id])
+
+        // Nothing found, nothing to open; the model's own words never get a link.
+        coEvery { aiContext.categorySpending(any(), any()) } returns spent()
+        send("how much on food?")
+        events = listOf(LlmEvent.Text("Hello!"))
+        send("hi")
+        assertEquals(2, repository.links.value.size)
+
+        // One-tap answers link the same way.
+        repository.answerQuickAction(QuickAction.MONTH_SPEND)
+        assertEquals(3, repository.links.value[saved.last().id]?.size)
+
+        repository.deleteAllMessages()
+        assertEquals(emptyMap<String, Any>(), repository.links.value)
+    }
+
+    @Test
+    fun `a comparison links to both of its periods, each pinned to a currency`() = runTest {
+        every { context.getString(R.string.chat_link_transactions_in, any()) } answers { "SEE ${(args[1] as Array<*>)[0]}" }
+        val now = SpendingComparison.Window(LocalDateTime.of(2026, 11, 1, 0, 0), LocalDateTime.of(2026, 11, 16, 23, 59))
+        val before = SpendingComparison.Window(LocalDateTime.of(2026, 10, 1, 0, 0), LocalDateTime.of(2026, 10, 16, 23, 59))
+        val (nov1, nov16) = LocalDate.of(2026, 11, 1) to LocalDate.of(2026, 11, 16)
+        val (oct1, oct16) = LocalDate.of(2026, 10, 1) to LocalDate.of(2026, 10, 16)
+        val inr = SpendingComparison.Row("INR", BigDecimal("700"), BigDecimal("500"), BigDecimal("40"))
+        coEvery { aiContext.compareSpending(any(), any(), any(), any()) } returns SpendingComparison.Result.Rows(now, before, listOf(inr))
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "طعام")))
+        send("compare food with last month")
+        assertEquals(
+            listOf(
+                com.pennywiseai.tracker.data.model.ChatLink("SEE طعام · 1 Nov–16 Nov", nov1, nov16, "طعام", "INR", null),
+                com.pennywiseai.tracker.data.model.ChatLink("SEE طعام · 1 Oct–16 Oct", oct1, oct16, "طعام", "INR", null),
+            ),
+            repository.links.value[saved.last().id]
+        )
+
+        // Several currencies: one pinned link per currency and period, so USD isn't behind the base.
+        coEvery { aiContext.compareSpending(any(), any(), any(), any()) } returns
+            SpendingComparison.Result.Rows(now, before, listOf(inr.copy(currency = "USD"), inr))
+        repository.answerQuickAction(QuickAction.COMPARE_MONTH)
+        assertEquals(
+            listOf(
+                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Nov–16 Nov · INR", nov1, nov16, null, "INR", null),
+                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Nov–16 Nov · USD", nov1, nov16, null, "USD", null),
+                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Oct–16 Oct · INR", oct1, oct16, null, "INR", null),
+                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Oct–16 Oct · USD", oct1, oct16, null, "USD", null),
+            ),
+            repository.links.value[saved.last().id]
+        )
+
+        // A currency only a forgiven loan has, or one a period spent nothing in, has no rows to open.
+        val eurForgiven = SpendingComparison.Row("EUR", BigDecimal("5"), BigDecimal.ZERO, null)
+        coEvery { aiContext.compareSpending(any(), any(), any(), any()) } returns SpendingComparison.Result.Rows(
+            now, before, listOf(eurForgiven, inr, inr.copy(currency = "USD", previous = BigDecimal.ZERO)),
+            currentSpentIn = setOf("INR", "USD"), previousSpentIn = setOf("INR"),
+        )
+        repository.answerQuickAction(QuickAction.COMPARE_MONTH)
+        assertEquals(
+            listOf(
+                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Nov–16 Nov · INR", nov1, nov16, null, "INR", null),
+                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Nov–16 Nov · USD", nov1, nov16, null, "USD", null),
+                com.pennywiseai.tracker.data.model.ChatLink("SEE 1 Oct–16 Oct", oct1, oct16, null, "INR", null),
+            ),
+            repository.links.value[saved.last().id]
+        )
+    }
+
+    @Test
+    fun `links from several lookups in a turn say what each opens, once each`() = runTest {
+        every { context.getString(R.string.chat_link_transactions) } returns "SEE"
+        every { context.getString(R.string.chat_link_transactions_in, any()) } answers { "SEE ${(args[1] as Array<*>)[0]}" }
+        coEvery { aiContext.categorySpending("طعام", any()) } returns spent("120").copy(category = "طعام")
+        coEvery { aiContext.categorySpending("Hobbies", any()) } returns spent("40").copy(category = "Hobbies")
+        coEvery { aiContext.spending(any()) } returns com.pennywiseai.tracker.data.model.PeriodSpending(
+            spent("1").scope,
+            spent = mapOf("INR" to BigDecimal("700")),
+            income = emptyMap(),
+        )
+        val food = LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "طعام"))
+        events = listOf(food, LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "Hobbies")), food,
+            LlmEvent.ToolCall(PennyWiseTools.MONTH_SUMMARY, emptyMap()))
+        send("how much on food and hobbies, and this month?")
+        assertEquals(listOf("SEE طعام", "SEE Hobbies", "SEE"), repository.links.value[saved.last().id]?.map { it.label })
+    }
+
+    /** A category lookup's result: nothing spent, or [inr] rupees. */
+    private fun spent(inr: String? = null) = com.pennywiseai.tracker.data.model.CategorySpend(
+        com.pennywiseai.tracker.data.model.ChatScope(SpendingComparison.Window(LocalDateTime.of(2026, 11, 1, 0, 0), LocalDateTime.of(2026, 11, 16, 23, 59))),
+        category = "x",
+        byCurrency = inr?.let { mapOf("INR" to BigDecimal(it)) }.orEmpty(),
+        transactionCount = if (inr == null) 0 else 1,
+    )
+
+    @Test
     fun `a category lookup matches non-Latin names and refuses unknown ones`() = runTest {
-        coEvery { aiContext.getCategorySpending(any()) } returns null
-        coEvery { aiContext.getCategorySpending("طعام") } returns mockk(relaxed = true)
+        coEvery { aiContext.categorySpending(any(), any()) } returns spent()
+        coEvery { aiContext.categorySpending("طعام", any()) } returns spent("120")
         suspend fun lookup(category: String): String {
             events = listOf(LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to category)))
             return send("how much on $category?")
@@ -329,16 +700,25 @@ class ChatTurnTest {
 
     @Test
     fun `a category lookup reads hidden categories and names only found on transactions`() = runTest {
-        coEvery { aiContext.getCategorySpending(any()) } returns null
+        coEvery { aiContext.categorySpending(any(), any()) } returns spent()
         suspend fun lookup(category: String): String {
             events = listOf(LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to category)))
             return send("how much on $category?")
         }
         assertEquals("NOTHING_SPENT", lookup("Hobbies")) // Hidden, but it exists.
-        coEvery { aiContext.getCategorySpending("Hobbies") } returns mockk(relaxed = true)
+        coEvery { aiContext.categorySpending("Hobbies", any()) } returns spent("40")
         assertEquals("SPEND", lookup("Hobbies"))
-        coEvery { aiContext.getCategorySpending("Old Name") } returns mockk(relaxed = true)
+        coEvery { aiContext.categorySpending("Old Name", any()) } returns spent("15")
         assertEquals("SPEND", lookup("Old Name")) // No such category now, but rows still carry it.
+        // The figure matched the rows in any case; the list would match the model's spelling
+        // exactly and open on nothing, so there's no link.
+        assertEquals(null, repository.links.value[saved.last().id])
+        val w = SpendingComparison.Window(LocalDateTime.of(2026, 11, 1, 0, 0), LocalDateTime.of(2026, 11, 16, 23, 59))
+        coEvery { aiContext.compareSpending(any(), "Old Name", any(), any()) } returns
+            SpendingComparison.Result.Rows(w, w, listOf(SpendingComparison.Row("INR", BigDecimal("15"), BigDecimal("5"), BigDecimal("200"))))
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "Old Name")))
+        send("compare old name with last month")
+        assertEquals(null, repository.links.value[saved.last().id])
     }
 
     @Test
@@ -356,7 +736,191 @@ class ChatTurnTest {
 
     private fun savedChat(pairs: Int) = repeat(pairs) { i ->
         saved += ChatMessage(message = "u$i", isUser = true, timestamp = i * 2L)
-        saved += ChatMessage(message = "a$i", isUser = false, timestamp = i * 2L + 1)
+        saved += ChatMessage(id = LlmRepository.MODEL_ID + i, message = "a$i", isUser = false, timestamp = i * 2L + 1)
+    }
+
+    /** The screen closed and freed the model: the next message rebuilds the window from the save. */
+    private fun rebuilt(): MutableList<List<Pair<String, Boolean>>> {
+        every { llmService.hasActiveConversation() } returns false
+        val histories = mutableListOf<List<Pair<String, Boolean>>>()
+        coEvery { llmService.createConversation(any(), capture(histories), any()) } returns Result.success(Unit)
+        coEvery { llmService.tokenCount() } returns 1500
+        return histories
+    }
+
+    private fun call(name: String, args: Map<String, Any?>) = LlmRepository.callsText(listOf(LlmEvent.ToolCall(name, args)))
+
+    @Test
+    fun `a call is replayed as Qwen writes it and the template renders it`() {
+        assertEquals(
+            "<tool_call>\n{\"name\": \"compare_spending\", \"arguments\": {\"period\": \"month\", \"category\": \"طعام \\\"x\\\"\", \"n\": 2}}\n</tool_call>\n" +
+                "<tool_call>\n{\"name\": \"month_summary\", \"arguments\": {}}\n</tool_call>",
+            LlmRepository.callsText(
+                listOf(
+                    LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "طعام \"x\"", "n" to 2)),
+                    LlmEvent.ToolCall(PennyWiseTools.MONTH_SUMMARY, emptyMap()),
+                )
+            )
+        )
+    }
+
+    @Test
+    fun `a typed total is replayed as the call the model made, not the figures`() = runTest {
+        savedChat(1)
+        coEvery { aiContext.categorySpending(any(), any()) } returns spent("120")
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "طعام")))
+        send("how much on food?")
+        assertEquals(listOf("u0", "a0", "how much on food?", "SPEND"), saved.filter { !it.isSystemPrompt }.map { it.message })
+
+        // A follow-up in the live conversation goes on from the call the model made: nothing rebuilt.
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "طعام")))
+        send("and last month?")
+        coVerify(exactly = 0) { llmService.createConversation(any(), any(), any()) }
+
+        val histories = rebuilt()
+        events = listOf(LlmEvent.Text("hi"))
+        send("and now?")
+        // Replayed, any line standing for those figures was what the model wrote back to a new
+        // question (the emulator, after a language change), instead of asking the tool.
+        assertEquals(
+            listOf(
+                "u0" to true, "a0" to false,
+                "how much on food?" to true, call(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "طعام")) to false,
+                "and last month?" to true, call(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "طعام")) to false,
+            ),
+            histories.single()
+        )
+    }
+
+    @Test
+    fun `a rebuilt window holds no line the app wrote for the model to copy`() = runTest {
+        val w = SpendingComparison.Window(LocalDateTime.of(2026, 10, 1, 0, 0), LocalDateTime.of(2026, 10, 9, 0, 0))
+        coEvery { aiContext.compareSpending(any(), any(), any(), any()) } returns
+            SpendingComparison.Result.Rows(w, w, listOf(SpendingComparison.Row("INR", BigDecimal("700"), BigDecimal("500"), BigDecimal("40"))))
+        coEvery { aiContext.categorySpending(any(), any()) } returns spent("120")
+        coEvery { aiContext.spending(any()) } returns com.pennywiseai.tracker.data.model.PeriodSpending(
+            com.pennywiseai.tracker.data.model.ChatScope(w),
+            spent = mapOf("INR" to BigDecimal("700")),
+            income = emptyMap(),
+        )
+        every { context.getString(R.string.chat_reply_add, any()) } returns "ADD_CARD"
+        every { context.getString(R.string.chat_reply_month_spend, any()) } returns "MONTH"
+        events = listOf(LlmEvent.Text("Hello!"))
+        send("hi")
+        // Prose before the call: the live conversation holds it, so it closes.
+        events = listOf(LlmEvent.Text("Let me check. "), LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "طعام")))
+        send("compare food with last month")
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.MONTH_SUMMARY, emptyMap()))
+        send("how much this month?")
+        repository.answerQuickAction(QuickAction.MONTH_SPEND)
+        // A change the model claimed and didn't make: the app's line takes its place.
+        events = listOf(LlmEvent.Text("I have added it"))
+        assertEquals("NOTHING_CHANGED", send("coffee 50"))
+        events = listOf(LlmEvent.Text("Sure! "), add(45.0))
+        send("taxi 45")
+        repository.completePendingAction("Added ₹45 at taxi (Transport).")
+
+        val histories = rebuilt()
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "طعام")))
+        assertEquals("SPEND", send("كم صرفت على الطعام؟"))
+        // Only the model's own words and calls: an app line replayed as its reply is one it can
+        // write back. The correction's and the card's requests go with them: left open, the
+        // model answers them again, and a confirmed card comes back to be saved twice.
+        assertEquals(
+            listOf(
+                "hi" to true, "Hello!" to false,
+                "compare food with last month" to true, call(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "طعام")) to false,
+                "how much this month?" to true, call(PennyWiseTools.MONTH_SUMMARY, emptyMap()) to false,
+            ),
+            histories.single()
+        )
+    }
+
+    @Test
+    fun `a reply saved before the model's replies were marked is not replayed, nor its question`() = runTest {
+        savedChat(1)
+        // As 2.26.0 and earlier saved every reply, the app's figures too.
+        saved += ChatMessage(message = "how much on food?", isUser = true, timestamp = 10)
+        saved += ChatMessage(message = "You spent ₹120 on food this month.", isUser = false, timestamp = 11)
+        val histories = rebuilt()
+        events = listOf(LlmEvent.Text("hi"))
+        send("and now?")
+        assertEquals(listOf("u0" to true, "a0" to false), histories.single())
+    }
+
+    @Test
+    fun `a follow-up after the app closed the conversation still sees the call it follows`() = runTest {
+        val w = SpendingComparison.Window(LocalDateTime.of(2026, 10, 1, 0, 0), LocalDateTime.of(2026, 10, 9, 0, 0))
+        coEvery { aiContext.compareSpending(any(), any(), any(), any()) } returns
+            SpendingComparison.Result.Rows(w, w, listOf(SpendingComparison.Row("INR", BigDecimal("700"), BigDecimal("500"), BigDecimal("40"))))
+        // Prose before the call: the live conversation holds it, so the app closes it.
+        events = listOf(LlmEvent.Text("Let me check. "), LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "طعام")))
+        send("compare food with last month")
+        coVerify { llmService.closeConversation() }
+
+        val histories = rebuilt()
+        events = listOf(LlmEvent.Text("ok"))
+        send("and transport?")
+        // The call the model made, without its prose or the figures the app wrote under it.
+        val compared = listOf("compare food with last month" to true, call(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "طعام")) to false)
+        assertEquals(compared, histories.single())
+
+        // A later rebuild still has the whole exchange: never a question left open.
+        histories.clear()
+        send("thanks")
+        assertEquals(compared + listOf("and transport?" to true, "ok" to false), histories.single())
+    }
+
+    @Test
+    fun `a request the app answered with a correction leaves the rebuilt window whole`() = runTest {
+        events = listOf(LlmEvent.Text("I have added it"))
+        assertEquals("NOTHING_CHANGED", send("coffee 50"))
+        val histories = rebuilt()
+        events = listOf(LlmEvent.Text("ok"))
+        send("then add it")
+        assertEquals(emptyList<Pair<String, Boolean>>(), histories.single())
+    }
+
+    @Test
+    fun `a confirmed card rescued from a broken call leaves the rebuilt window whole`() = runTest {
+        every { context.getString(R.string.chat_reply_add, any()) } returns "CARD"
+        events = emptyList()
+        failure = RuntimeException("Failed to parse tool calls from code block: {\"name\": \"add_transactions\", \"arguments\": {\"items\": [{\"amount\": 50, \"merchant\": \"coffee\"}]}};")
+        assertEquals("CARD", send("coffee 50"))
+        coVerify { llmService.closeConversation() }
+        repository.completePendingAction("Added ₹50 at coffee.")
+
+        val histories = rebuilt()
+        failure = null
+        events = listOf(add(30.0))
+        send("taxi 30")
+        // Left open, "coffee 50" was proposed again beside taxi, and confirming it saved it twice.
+        assertEquals(emptyList<Pair<String, Boolean>>(), histories.single())
+        assertEquals(listOf("(The user confirmed the last card. It is saved.)\ntaxi 30"), sent.takeLast(1))
+    }
+
+    @Test
+    fun `a broken turn's window is rebuilt with its call, even when the screen warms up as it shows`() = runTest {
+        coEvery { aiContext.categorySpending(any(), any()) } returns spent("120")
+        var live = true
+        every { llmService.hasActiveConversation() } answers { live }
+        coEvery { llmService.closeConversation() } answers { live = false }
+        val histories = mutableListOf<List<Pair<String, Boolean>>>()
+        coEvery { llmService.createConversation(any(), capture(histories), any()) } answers { live = true; Result.success(Unit) }
+        coEvery { llmService.tokenCount() } returns 1500
+        // Prose beside a lookup: the live conversation holds it, so this turn closes it.
+        val lookup = LlmEvent.ToolCall(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "طعام"))
+        events = listOf(LlmEvent.Text("You spent ₹999. "), lookup)
+        // The user comes back to the chat while the reply shows, before it's saved.
+        repository.sendMessageStream("how much on food?").collect { repository.warmUp() }
+
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "طعام")))
+        send("and last month?")
+        // "and last month?" follows the call the model made, not a window without it.
+        assertEquals(
+            listOf("how much on food?" to true, call(PennyWiseTools.SPENDING_BY_CATEGORY, mapOf("category" to "طعام")) to false),
+            histories.single()
+        )
     }
 
     @Test
@@ -465,6 +1029,16 @@ class ChatTurnTest {
         assertEquals("CARD", send("shoes 300 and socks 150"))
         assertEquals(2, (repository.pendingAction.value as PendingChatAction.Add).rows.size)
         assertFalse(saved.any { it.message.contains("tool_call") })
+    }
+
+    @Test
+    fun `an add call let through as text after prose drops the prose too`() = runTest {
+        every { context.getString(R.string.chat_reply_add, any()) } returns "CARD"
+        events = listOf(LlmEvent.Text("Sure, adding ₹999 for shoes.\n<tool_call>\n{\"name\": \"add_transactions\", \"arguments\": {\"items\": [{\"amount\": 300, \"merchant\": \"shoes\"}]}}"))
+        assertEquals("CARD", send("shoes 300"))
+        assertEquals(listOf("CARD"), shown)
+        assertTrue(repository.pendingAction.value is PendingChatAction.Add)
+        assertEquals("CARD", saved.last().message)
     }
 
     @Test

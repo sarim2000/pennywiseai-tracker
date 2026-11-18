@@ -5,6 +5,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
+import com.pennywiseai.tracker.domain.model.filterTrackedByProfile
 import com.pennywiseai.tracker.presentation.common.filterTransactionsByAccount
 import org.junit.Assert.assertEquals
 import org.junit.Test
@@ -70,6 +71,12 @@ class TransactionListFiltersTest {
     fun `a row's own category matches`() {
         val rows = listOf(tx(1, "Food"), tx(2, "Travel"))
         assertEquals(listOf(1L), ids(filterByCategories(rows, setOf("Food"), emptyList())))
+    }
+
+    @Test
+    fun `a category matches in any case, as a chat figure counts it`() {
+        val rows = listOf(tx(1, "food"), tx(2, "Others"), tx(3, "Others"))
+        assertEquals(listOf(1L, 2L), ids(filterByCategories(rows, setOf("Food"), listOf(split(2, "FOOD")))))
     }
 
     @Test

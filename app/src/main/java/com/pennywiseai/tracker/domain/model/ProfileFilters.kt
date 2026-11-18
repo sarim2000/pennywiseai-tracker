@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.domain.model
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 
 /**
  * Filters transactions by the selected profile.
@@ -20,17 +21,40 @@ fun filterTransactionsByProfile(
     profileAccountKeys: Map<Long, Set<String>>
 ): List<TransactionEntity> {
     if (selectedProfileId == null) return transactions
-    return transactions.filter { tx ->
-        // Explicit override > account inheritance > default Personal
-        val effectiveProfileId = tx.profileId ?: run {
-            if (tx.bankName != null && tx.accountNumber != null) {
-                val key = "${tx.bankName}_${tx.accountNumber}"
-                profileAccountKeys.entries.firstOrNull { (_, keys) -> keys.contains(key) }?.key
-            } else null
-        } ?: ProfileEntity.PERSONAL_ID
-        effectiveProfileId == selectedProfileId
-    }
+    return transactions.filter { tx -> tx.effectiveProfileId(profileAccountKeys) == selectedProfileId }
 }
+
+/**
+ * The rows a list or total counts: [profileId]'s (null for all), and none from an ignored
+ * account (#826). [ignoredAccountKeys] should already hold those accounts' linked cards
+ * ([IgnoredAccountsStore.withLinkedCards]). Home, the chat and the Transactions list share it.
+ */
+fun TransactionEntity.isTracked(
+    profileId: Long?,
+    ignoredAccountKeys: Set<String>,
+    profileAccountKeys: Map<Long, Set<String>>,
+): Boolean =
+    // Checked apart from the profile: "All profiles" keeps everything and an unattributed
+    // row falls back to Personal, so the profile rule can't carry the exclusion.
+    !IgnoredAccountsStore.isIgnored(ignoredAccountKeys, bankName, accountNumber) &&
+        (profileId == null || effectiveProfileId(profileAccountKeys) == profileId)
+
+/** [transactions] that are [isTracked]. */
+fun filterTrackedByProfile(
+    transactions: List<TransactionEntity>,
+    profileId: Long?,
+    ignoredAccountKeys: Set<String>,
+    profileAccountKeys: Map<Long, Set<String>>,
+): List<TransactionEntity> = transactions.filter { it.isTracked(profileId, ignoredAccountKeys, profileAccountKeys) }
+
+/** Explicit override > account inheritance > default Personal. */
+fun TransactionEntity.effectiveProfileId(profileAccountKeys: Map<Long, Set<String>>): Long =
+    profileId ?: run {
+        if (bankName != null && accountNumber != null) {
+            val key = "${bankName}_$accountNumber"
+            profileAccountKeys.entries.firstOrNull { (_, keys) -> keys.contains(key) }?.key
+        } else null
+    } ?: ProfileEntity.PERSONAL_ID
 
 /**
  * Builds a map of profileId → set of "bankName_accountLast4" keys from account balances.

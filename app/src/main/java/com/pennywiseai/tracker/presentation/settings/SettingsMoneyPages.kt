@@ -63,6 +63,7 @@ internal fun AccountsPage(
 ) {
     val context = LocalContext.current
     val countCreditCardAsExpense by settingsViewModel.countCreditCardAsExpense.collectAsStateWithLifecycle(initialValue = false)
+    val atmCashToWallet by settingsViewModel.atmCashToWallet.collectAsStateWithLifecycle(initialValue = false)
     val useContactsForVpa by settingsViewModel.useContactsForVpa.collectAsStateWithLifecycle(initialValue = false)
     val upiId by settingsViewModel.upiId.collectAsStateWithLifecycle(initialValue = null)
     var showUpiIdDialog by remember { mutableStateOf(false) }
@@ -120,6 +121,16 @@ internal fun AccountsPage(
             subtitle = stringResource(R.string.settings_card_spend_as_expense_subtitle),
             checked = countCreditCardAsExpense,
             onCheckedChange = { settingsViewModel.setCountCreditCardAsExpense(it) },
+            position = ListItemPosition.Middle
+        )
+        SettingsSwitchRow(
+            icon = Icons.Default.LocalAtm,
+            iconBgColor = teal_light,
+            iconTint = teal_dark,
+            title = stringResource(R.string.settings_atm_cash_to_wallet_title),
+            subtitle = stringResource(R.string.settings_atm_cash_to_wallet_subtitle),
+            checked = atmCashToWallet,
+            onCheckedChange = { settingsViewModel.setAtmCashToWallet(it) },
             position = ListItemPosition.Bottom
         )
     }

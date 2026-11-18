@@ -191,19 +191,22 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                     // time-series.
                     // On disk before any row goes, so a scan that stops part-way can't lose
                     // the bill the user set. Today's rows come first: put back
-                    // first, they win over an older interrupted rebuild's.
-                    val latestBeforeRebuild = rebuildAccountFields.saveBeforeRebuild {
-                        accountBalanceRepository.getAllLatestBalancesOnce()
-                    }
+                    // first, they win over an older interrupted rebuild's. The deletes run
+                    // under the same lock, so a bill edited in between can't go with them.
+                    val latestBeforeRebuild = rebuildAccountFields.saveBeforeRebuild(
+                        read = { accountBalanceRepository.getAllLatestBalancesOnce() },
+                        deleteRows = {
+                            transactionRepository.deleteRebuildableSmsTransactions(
+                                java.time.LocalDateTime.ofInstant(
+                                    java.time.Instant.ofEpochMilli(scanStartTime), java.time.ZoneId.systemDefault()
+                                )
+                            )
+                            accountBalanceRepository.deleteRebuildableBalances()
+                        },
+                    )
                     accountsBeforeRebuild = latestBeforeRebuild
                         .filter { it.accountType != null }
                         .associateBy { it.bankName to it.accountLast4 }
-                    transactionRepository.deleteRebuildableSmsTransactions(
-                        java.time.LocalDateTime.ofInstant(
-                            java.time.Instant.ofEpochMilli(scanStartTime), java.time.ZoneId.systemDefault()
-                        )
-                    )
-                    accountBalanceRepository.deleteRebuildableBalances()
                 } finally {
                     Trace.endSection()
                 }

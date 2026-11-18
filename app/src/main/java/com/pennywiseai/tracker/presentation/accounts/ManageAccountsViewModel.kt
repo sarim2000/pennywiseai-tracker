@@ -300,7 +300,7 @@ class ManageAccountsViewModel @Inject constructor(
     fun setStatementDay(bankName: String, accountLast4: String, day: Int?) {
         viewModelScope.launch {
             // A rebuild still waiting to put the old day back mustn't undo this edit.
-            rebuildAccountFields.editStatementDay(bankName, accountLast4) {
+            rebuildAccountFields.editStatementDay(bankName, accountLast4, day) {
                 accountBalanceRepository.updateStatementDay(bankName, accountLast4, day)
             }
         }

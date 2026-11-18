@@ -55,11 +55,11 @@ class RebuildAccountFieldsStoreTest {
     fun `a bill cleared after an interrupted rebuild stays cleared at the next scan`() = runTest {
         val store = RebuildAccountFieldsStore(contextOverOneFile())
         // The rebuild saved the card, then stopped before any scan put it back.
-        store.saveBeforeRebuild { listOf(card, card.copy(accountLast4 = "2222")) }
+        store.saveBeforeRebuild({ listOf(card, card.copy(accountLast4 = "2222")) }) {}
 
-        // The user clears the recreated card's bill, then sets its statement day afresh.
-        store.editCardBill("Test Bank", "0000") {}
-        store.editStatementDay("Test Bank", "0000") {}
+        // The user clears the recreated card's bill and its statement day.
+        store.editCardBill("Test Bank", "0000", null, null, null) { 1 }
+        store.editStatementDay("Test Bank", "0000", null) { 1 }
 
         // What the next scan would put back: nothing for this card, the other one untouched.
         val pending = store.pending().associateBy { it.accountLast4 }
@@ -70,9 +70,9 @@ class RebuildAccountFieldsStoreTest {
     @Test
     fun `an account with nothing left to put back is dropped`() = runTest {
         val store = RebuildAccountFieldsStore(contextOverOneFile())
-        store.saveBeforeRebuild { listOf(card.copy(statementDay = null)) }
+        store.saveBeforeRebuild({ listOf(card.copy(statementDay = null)) }) {}
 
-        store.editCardBill("Test Bank", "0000") {}
+        store.editCardBill("Test Bank", "0000", 5, BigDecimal("700"), LocalDateTime.of(2026, 3, 21, 9, 0)) { 1 }
 
         assertTrue(store.pending().isEmpty())
     }
@@ -80,7 +80,7 @@ class RebuildAccountFieldsStoreTest {
     @Test
     fun `an edit that lands while a scan puts the bill back stays as the user set it`() = runTest {
         val store = RebuildAccountFieldsStore(contextOverOneFile())
-        store.saveBeforeRebuild { listOf(card) }
+        store.saveBeforeRebuild({ listOf(card) }) {}
         // The card's rows, recreated by the scan without the bill.
         var rowBill: BigDecimal? = null
         val restoring = CompletableDeferred<Unit>()
@@ -97,13 +97,59 @@ class RebuildAccountFieldsStoreTest {
         }
         restoring.await()
         // The user clears the bill in the middle of that.
-        val edit = launch { store.editCardBill("Test Bank", "0000") { rowBill = null } }
+        val edit = launch { store.editCardBill("Test Bank", "0000", null, null, null) { rowBill = null; 1 } }
         runCurrent()
         finish.complete(Unit)
         joinAll(scan, edit)
 
         assertNull(rowBill)
         assertTrue(store.pending().isEmpty())
+    }
+
+    @Test
+    fun `an edit while the rebuild has no rows for the card waits for the scan`() = runTest {
+        val store = RebuildAccountFieldsStore(contextOverOneFile())
+        store.saveBeforeRebuild({ listOf(card) }) {}
+        val enteredAt = LocalDateTime.of(2026, 3, 21, 9, 0)
+
+        // The rows are gone, so the write changes nothing: the edit is what the scan puts back.
+        store.editCardBill("Test Bank", "0000", 5, BigDecimal("700"), enteredAt) { 0 }
+
+        val saved = store.pending().single()
+        assertEquals(5, saved.cardDueDay)
+        assertEquals(BigDecimal("700"), saved.cardBillAmount)
+        assertEquals(enteredAt, saved.cardBillAsOf)
+        assertEquals(card.statementDay, saved.statementDay)
+    }
+
+    @Test
+    fun `an edit can't land between the snapshot and the deletes`() = runTest {
+        val store = RebuildAccountFieldsStore(contextOverOneFile())
+        var rowBill: BigDecimal? = card.cardBillAmount
+        val deleting = CompletableDeferred<Unit>()
+        val finish = CompletableDeferred<Unit>()
+
+        val rebuild = launch {
+            store.saveBeforeRebuild({ listOf(card) }) {
+                deleting.complete(Unit)
+                finish.await()
+                rowBill = null
+            }
+        }
+        deleting.await()
+        // The user sets a new bill while the rows are being deleted: it waits for the
+        // deletes, finds no rows, and stays saved for the scan.
+        val edit = launch {
+            store.editCardBill("Test Bank", "0000", 2, BigDecimal("800"), LocalDateTime.of(2026, 3, 21, 9, 0)) {
+                if (rowBill != null) { rowBill = BigDecimal("800"); 1 } else 0
+            }
+        }
+        runCurrent()
+        finish.complete(Unit)
+        joinAll(rebuild, edit)
+
+        assertNull(rowBill)
+        assertEquals(BigDecimal("800"), store.pending().single().cardBillAmount)
     }
 
     private fun contextOverOneFile(): Context {

@@ -7,6 +7,8 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.builtins.ListSerializer
+import java.math.BigDecimal
+import java.time.LocalDateTime
 import javax.inject.Inject
 
 /**
@@ -15,9 +17,11 @@ import javax.inject.Inject
  * rows are deleted before the inbox is read again, so a scan that stops in between
  * would otherwise lose it for good; the next scan to finish puts it back.
  *
- * Once the user edits one of those fields, what they typed wins: the edit drops the
- * saved copy, or the next scan would put a cleared bill back. Taking the snapshot,
- * putting it back, and an edit each run whole under one lock, so a scan can't read
+ * Once the user edits one of those fields, what they typed wins: the saved copy
+ * takes the edit, and drops it once the edit is on the account's rows, or the next
+ * scan would put a cleared bill back. Taking the snapshot with the deletes after it,
+ * putting it back, and an edit each run whole under one lock, so an edit can't land
+ * between the snapshot and the deletes and go with the rows, and a scan can't read
  * the copy, let the user clear the field, and then write its stale copy back.
  *
  * Device-only scratch state: not part of any backup.
@@ -29,11 +33,14 @@ class RebuildAccountFieldsStore @Inject constructor(@ApplicationContext context:
     fun pending(): List<AccountBalanceEntity> = decode(prefs.getString(KEY, null))
 
     /**
-     * Before a rebuild deletes any row: saves the accounts [read] returns ahead of any
-     * older interrupted rebuild's, so they win when put back. Returns what [read] gave.
+     * Before a rebuild: saves the accounts [read] returns ahead of any older interrupted
+     * rebuild's, so they win when put back, then runs [deleteRows]. Returns what [read] gave.
      */
-    suspend fun saveBeforeRebuild(read: suspend () -> List<AccountBalanceEntity>): List<AccountBalanceEntity> =
-        lock.withLock { read().also { save(it + pending()) } }
+    suspend fun saveBeforeRebuild(
+        read: suspend () -> List<AccountBalanceEntity>,
+        deleteRows: suspend () -> Unit,
+    ): List<AccountBalanceEntity> =
+        lock.withLock { read().also { save(it + pending()); deleteRows() } }
 
     /**
      * Once a scan has finished: [put] puts each account's saved fields back on its rows
@@ -46,26 +53,46 @@ class RebuildAccountFieldsStore @Inject constructor(@ApplicationContext context:
         }
     }
 
-    /** The user sets a card's due day and bill with [write]; the saved copy of those goes first. */
-    suspend fun editCardBill(bankName: String, accountLast4: String, write: suspend () -> Unit) =
-        edit(bankName, accountLast4, write) { it.copy(cardDueDay = null, cardBillAmount = null, cardBillAsOf = null) }
+    /**
+     * The user sets a card's due day and bill (nulls clear them) with [write], which
+     * says how many rows it changed.
+     */
+    suspend fun editCardBill(
+        bankName: String,
+        accountLast4: String,
+        dueDay: Int?,
+        amount: BigDecimal?,
+        asOf: LocalDateTime?,
+        write: suspend () -> Int,
+    ) = edit(
+        bankName, accountLast4, write,
+        edited = { it.copy(cardDueDay = dueDay, cardBillAmount = amount, cardBillAsOf = asOf) },
+        cleared = { it.copy(cardDueDay = null, cardBillAmount = null, cardBillAsOf = null) },
+    )
 
-    /** The user sets an account's statement day with [write]; the saved copy goes first. */
-    suspend fun editStatementDay(bankName: String, accountLast4: String, write: suspend () -> Unit) =
-        edit(bankName, accountLast4, write) { it.copy(statementDay = null) }
+    /** The user sets an account's statement day (null clears it) with [write], which says how many rows it changed. */
+    suspend fun editStatementDay(bankName: String, accountLast4: String, day: Int?, write: suspend () -> Int) =
+        edit(bankName, accountLast4, write, edited = { it.copy(statementDay = day) }, cleared = { it.copy(statementDay = null) })
 
+    /**
+     * [edited] goes into the saved copy first, so a scan still to come puts back the
+     * edit rather than what was there before. Once [write] has put it on some row, the
+     * copy drops those fields ([cleared]); while the account has no rows (a rebuild
+     * deleted them), the edit stays there for the scan that recreates them.
+     */
     private suspend fun edit(
         bankName: String,
         accountLast4: String,
-        write: suspend () -> Unit,
-        clear: (AccountBalanceEntity) -> AccountBalanceEntity,
+        write: suspend () -> Int,
+        edited: (AccountBalanceEntity) -> AccountBalanceEntity,
+        cleared: (AccountBalanceEntity) -> AccountBalanceEntity,
     ) {
         lock.withLock {
-            val rows = pending()
-            if (rows.any { it.isAccount(bankName, accountLast4) }) {
-                save(rows.map { if (it.isAccount(bankName, accountLast4)) clear(it) else it })
-            }
-            write()
+            fun savedWith(change: (AccountBalanceEntity) -> AccountBalanceEntity) =
+                save(pending().map { if (it.isAccount(bankName, accountLast4)) change(it) else it })
+            val saved = pending().any { it.isAccount(bankName, accountLast4) }
+            if (saved) savedWith(edited)
+            if (write() > 0 && saved) savedWith(cleared)
         }
     }
 

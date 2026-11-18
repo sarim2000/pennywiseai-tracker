@@ -93,7 +93,7 @@ class AccountDetailViewModel @Inject constructor(
     private fun writeCardBill(dueDay: Int?, amount: BigDecimal?, asOf: LocalDateTime?) {
         viewModelScope.launch {
             // A rebuild still waiting to put the old bill back mustn't undo this edit.
-            rebuildAccountFields.editCardBill(bankName, accountLast4) {
+            rebuildAccountFields.editCardBill(bankName, accountLast4, dueDay, amount, asOf) {
                 accountBalanceRepository.setCardBill(bankName, accountLast4, dueDay, amount, asOf)
             }
         }

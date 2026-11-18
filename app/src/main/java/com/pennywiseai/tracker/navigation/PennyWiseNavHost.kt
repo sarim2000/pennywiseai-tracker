@@ -467,6 +467,24 @@ fun PennyWiseNavHost(
                         )
                     }
 
+                    entry<Achievements> { key ->
+                        com.pennywiseai.tracker.presentation.achievements.AchievementsScreen(
+                            onNavigateBack = { backStack.pop(key) },
+                            onShare = { achievement ->
+                                backStack.navigate(ShareStudio(kind = "ACHIEVEMENTS", achievement = achievement))
+                            }
+                        )
+                    }
+
+                    entry<NetWorth> { key ->
+                        com.pennywiseai.tracker.presentation.accounts.NetWorthScreen(
+                            onNavigateBack = { backStack.pop(key) },
+                            onAccountClick = { bankName, accountLast4 ->
+                                backStack.navigate(AccountDetail(bankName, accountLast4))
+                            },
+                        )
+                    }
+
                     // Also in a tab; here for the runway's "Open accounts", to set a balance.
                     entry<ManageAccounts> { key ->
                         com.pennywiseai.tracker.presentation.accounts.ManageAccountsScreen(
@@ -475,6 +493,7 @@ fun PennyWiseNavHost(
                             onNavigateToBalanceHistory = { bankName, accountLast4 ->
                                 backStack.navigate(BalanceHistory(bankName, accountLast4))
                             },
+                            onNavigateToNetWorth = { backStack.navigate(NetWorth()) },
                         )
                     }
 

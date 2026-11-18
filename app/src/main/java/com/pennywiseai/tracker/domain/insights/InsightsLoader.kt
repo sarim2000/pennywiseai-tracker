@@ -12,7 +12,6 @@ import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.data.repository.BudgetSummaryProvider
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
-import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
 import com.pennywiseai.tracker.domain.review.PeriodReview
 import com.pennywiseai.tracker.domain.review.PeriodReviewLoader
 import com.pennywiseai.tracker.domain.review.ReviewKind
@@ -150,12 +149,12 @@ internal fun scopedSubscriptions(
     profileId: Long?,
     balances: List<AccountBalanceEntity>,
 ): List<SubscriptionEntity> {
-    val profileKeys = buildProfileAccountKeys(balances)
+    // Accounts as the payment matcher compares them (RecurringCharge.couldBePaidFrom):
+    // trimmed and ignoring case, as a subscription may spell its bank another way.
+    fun accountKey(bank: String?, last4: String?) = "${bank?.trim()?.lowercase()}_${last4?.trim()}"
+    val profiles = balances.groupBy({ accountKey(it.bankName, it.accountLast4) }, { it.profileId })
     return subscriptions.filter { sub ->
-        val key = "${sub.bankName}_${sub.accountLast4}"
-        // Bank names as the payment matcher compares them: a subscription may spell its bank another case.
-        val profile = profileKeys.entries.firstOrNull { (_, keys) -> keys.any { it.equals(key, ignoreCase = true) } }?.key
-            ?: ProfileEntity.PERSONAL_ID
+        val profile = profiles[accountKey(sub.bankName, sub.accountLast4)]?.firstOrNull() ?: ProfileEntity.PERSONAL_ID
         !IgnoredAccountsStore.isIgnored(ignored, sub.bankName, sub.accountLast4) &&
             (profileId == null || profile == profileId)
     }

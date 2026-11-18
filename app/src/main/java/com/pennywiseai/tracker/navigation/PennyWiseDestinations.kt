@@ -196,11 +196,19 @@ data class Review(val kind: String = "MONTH", val weekStart: String? = null) : N
 @Serializable
 data object Insights : NavKey
 
+/** Achievements earned and still to earn, worked out from the app's history. */
+@Serializable
+data object Achievements : NavKey
+
+/** What you own minus what you owe; opened from Home (on its currency) and Manage Accounts. */
+@Serializable
+data class NetWorth(val currency: String? = null) : NavKey
+
 /**
  * The share studio. [kind] is a ShareKind name, the card it opens on. A review passes
  * the period it shows as [reviewKind] (a ReviewKind name), [offset] and the epoch day
- * [today] the offset counts from; a goal passes [goalId]. Without them it opens on the
- * last finished cycle.
+ * [today] the offset counts from; a goal passes [goalId]; one achievement passes its key
+ * as [achievement]. Without them it opens on the last finished cycle.
  */
 @Serializable
 data class ShareStudio(
@@ -209,6 +217,7 @@ data class ShareStudio(
     val offset: Int = 0,
     val goalId: Long = -1L,
     val today: Long? = null,
+    val achievement: String? = null,
 ) : NavKey
 
 // Screens inside MainScreen's tab stacks (Settings, SettingsPage, Categories, Faq

@@ -362,6 +362,16 @@
         <item quantity="other">صرفت %1$s على %2$s خلال %3$s، في %4$d معاملة.</item>
     </plurals>
     <string name="chat_reply_nothing_spent">لم تصرف شيئًا على %1$s خلال %2$s.</string>
+    <plurals name="chat_reply_category_income">
+        <item quantity="zero">استلمت %1$s من %2$s خلال %3$s، دون أي معاملة.</item>
+        <item quantity="one">استلمت %1$s من %2$s خلال %3$s، في %4$d معاملة.</item>
+        <item quantity="two">استلمت %1$s من %2$s خلال %3$s، في معاملتين.</item>
+        <item quantity="few">استلمت %1$s من %2$s خلال %3$s، في %4$d معاملات.</item>
+        <item quantity="many">استلمت %1$s من %2$s خلال %3$s، في %4$d معاملة.</item>
+        <item quantity="other">استلمت %1$s من %2$s خلال %3$s، في %4$d معاملة.</item>
+    </plurals>
+    <string name="chat_reply_nothing_received_in">لم تستلم شيئًا من %1$s خلال %2$s.</string>
+    <string name="chat_reply_income_ranking_unsupported">أستطيع جمع المبالغ المستلَمة، لكن لا أستطيع ترتيبها بعد. جرّب \"كم استلمت من الراتب هذا الشهر؟\"</string>
     <string name="chat_reply_spent_with_forgiven">%1$s، منها %2$s قروض متنازَل عنها</string>
     <string name="chat_reply_forgiven_loans">قروض متنازَل عنها: %1$s</string>
     <string name="chat_reply_received">المبالغ المستلَمة: %1$s</string>
@@ -377,11 +387,30 @@
     <string name="chat_reply_converted_estimate">نحو %1$s إجمالًا: تقدير محوَّل إلى %2$s</string>
     <string name="chat_reply_converted_left_out">خارج التقدير لعدم توفر سعر صرف: %1$s</string>
     <string name="chat_reply_unknown_category">لا توجد لديك فئة باسم %1$s.</string>
+    <string name="chat_reply_query_group_unknown">يمكنني عرض الفئات أو التجار أو الحسابات الأعلى إنفاقًا.</string>
+    <string name="chat_reply_query_period_unknown">لا يمكنني البحث في هذه الأيام. جرّب هذا الشهر أو الشهر الماضي أو هذا الأسبوع أو الأسبوع الماضي أو هذه السنة أو السنة الماضية أو شهرًا مثل 2026-10 أو تاريخ بداية ونهاية.</string>
+    <string name="chat_reply_query_date_unreadable">لم أستطع قراءة التاريخ %1$s. جرّب تاريخًا مثل 2026-10-31.</string>
+    <string name="chat_reply_query_name_unreadable">لم أستطع قراءة التاجر أو الفئة المطلوبة. جرّب ذكر الاسم مرة أخرى.</string>
+    <string name="chat_reply_query_no_start">من أي يوم تبدأ هذه الفترة؟</string>
+    <string name="chat_reply_query_dates_reversed">%1$s يأتي بعد %2$s. ابدأ بالتاريخ الأقدم.</string>
+    <string name="chat_reply_query_future">هذه الأيام لم تأتِ بعد. يمكنني البحث حتى اليوم فقط.</string>
     <string name="chat_quick_month_spend">الإنفاق هذا الشهر</string>
     <string name="chat_quick_top_categories">الفئات الأعلى إنفاقًا</string>
     <string name="chat_quick_compare_month">قارن بالشهر الماضي</string>
     <string name="chat_reply_month_spend">الإنفاق (%1$s):</string>
     <string name="chat_reply_top_categories">الفئات الأعلى إنفاقًا (%1$s):</string>
+    <string name="chat_reply_top_merchants">التجار الأعلى إنفاقًا (%1$s):</string>
+    <string name="chat_reply_top_accounts">الحسابات الأعلى إنفاقًا (%1$s):</string>
+    <string name="chat_group_no_account">بدون حساب</string>
+    <string name="chat_reply_planning_unknown">يمكنني عرض المتبقي من ميزانياتك، أو الفواتير المستحقة هذا الأسبوع.</string>
+    <string name="chat_reply_budgets_title">ميزانياتك:</string>
+    <string name="chat_reply_budget_left">\u200F%1$s (%2$s): صرفت %3$s من %4$s، والمتبقي %5$s</string>
+    <string name="chat_reply_budget_over">\u200F%1$s (%2$s): صرفت %3$s من %4$s، متجاوزًا الحد بمبلغ %5$s</string>
+    <string name="chat_reply_budget_no_rate">\u200F%1$s (%2$s): صرفت %3$s. لا يوجد سعر صرف لعرض حدّها بعملة %4$s، لذا لا يمكن حساب المتبقي.</string>
+    <string name="chat_reply_budgets_none">لا توجد حدود ميزانية سارية اليوم. يمكنك إضافة حد من شاشة الميزانيات.</string>
+    <string name="chat_reply_bills_none">لا توجد فواتير مستحقة حتى %1$s.</string>
+    <string name="chat_reply_bills_overdue">متأخرة:</string>
+    <string name="chat_reply_bills_due">مستحقة حتى %1$s:</string>
     <string name="chat_reply_quick_nothing">لم تصرف شيئًا خلال %1$s.</string>
     <string name="chat_reply_compare_title">الإنفاق، %1$s مقابل %2$s:</string>
     <string name="chat_reply_compare_title_category">%1$s، %2$s مقابل %3$s:</string>
@@ -402,6 +431,7 @@
     <string name="chat_done_added">تمت إضافة %1$s (%2$s).</string>
     <string name="chat_done_deleted">تم حذف %1$s.</string>
     <string name="chat_done_updated">تم تعديل %1$s.</string>
+    <!-- Under a chat answer: opens the transactions behind its figures. %1$s in _in is what they are, joined by " · ": a category name, a date range like "1 Nov–16 Nov" and/or a currency code like "USD" -->
     <string name="chat_link_transactions">عرض المعاملات</string>
     <string name="chat_link_transactions_in">عرض معاملات %1$s</string>
     <string name="chat_welcome">مرحبًا! أنا PennyWise AI.\n\nأخبرني بما صرفته وسأضيفه بعد تأكيدك، مثل \"قهوة 120 في Starbucks\" أو \"استلمت راتب 50000\". واسأل \"كم صرفت على البقالة هذا الشهر؟\" لتعرف الإجمالي.\n\nالإنفاق حتى الآن (%1$s): %2$s.\nلا يُحفظ شيء دون ضغطة منك.</string>

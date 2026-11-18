@@ -266,6 +266,8 @@ class InsightRulesTest {
         val rate = evaluate(rows = rows).single { it.fact is SavingsRate }
         assertEquals(InsightSeverity.WARNING, rate.severity)
         assertEquals(-999, (rate.fact as SavingsRate).percent)
+        // The summary card's figure, which is worked out on its own.
+        assertEquals(-999, InsightRules.savingsPercent(BigDecimal("-299999.99"), BigDecimal("0.01")))
     }
 
     @Test
@@ -619,7 +621,7 @@ class InsightRulesTest {
         val subscriptions = listOf(subscription(1, "100", "2026-11-22"), subscription(2, "50", "2026-11-26"))
         val before = evaluate(subscriptions = subscriptions).single { it.fact is BillsDue }
         val after = evaluate(subscriptions = subscriptions.drop(1)).single { it.fact is BillsDue }
-        assertEquals("bills_due:v2:2026-11-01:all:INR:next7@2026-11-22,2026-11-26", before.id)
+        assertEquals("bills_due:v2:2026-11-01:all:INR:next7@1@2026-11-22,2@2026-11-26", before.id)
         assertTrue(before.id != after.id)
     }
 
@@ -628,6 +630,13 @@ class InsightRulesTest {
         val first = subscription(1, "100", "2026-11-22")
         val before = evaluate(subscriptions = listOf(first)).single { it.fact is BillsDue }
         val after = evaluate(subscriptions = listOf(first, subscription(2, "50", "2026-11-26"))).single { it.fact is BillsDue }
+        assertNotEquals(before.id, after.id)
+    }
+
+    @Test
+    fun `another bill on a dismissed bill's date shows again`() {
+        val before = evaluate(subscriptions = listOf(subscription(1, "100", "2026-11-22"))).single { it.fact is BillsDue }
+        val after = evaluate(subscriptions = listOf(subscription(2, "100", "2026-11-22", merchant = "Gym"))).single { it.fact is BillsDue }
         assertNotEquals(before.id, after.id)
     }
 

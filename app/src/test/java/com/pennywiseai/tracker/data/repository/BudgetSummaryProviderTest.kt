@@ -17,6 +17,7 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -166,6 +167,22 @@ class BudgetSummaryProviderTest {
             )
         )
         assertEquals(mapOf("Food" to true), flags)
+    }
+
+    @Test
+    fun `unified - a rate that turns up later doesn't add the row back to the total`() {
+        var calls = 0
+        val food = runBlocking {
+            provider(
+                unified = true,
+                budgets = listOf(budget(1, "Food", "Food")),
+                transactions = listOf(tx(1, "10", "Food", "USD")),
+                rate = { amount, _ -> amount.takeIf { calls++ > 0 } }
+            ).summary(YearMonth.from(today), flagUncounted = true).first().groups.single()
+        }
+        // The flag and the total come from the same pass: left out of one, left out of both.
+        assertEquals(0, food.totalActual.signum())
+        assertTrue(food.hasUnconvertedSpend)
     }
 
     @Test

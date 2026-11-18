@@ -97,6 +97,23 @@ class PeriodReviewLoaderTest {
     }
 
     @Test
+    fun `recorded dates stop at today by the parsed date, and reach back past 2000`() = runTest {
+        every { transactions.getAllTransactions() } returns flowOf(
+            listOf(
+                // Reads as December 1, after today.
+                row(LocalDateTime.of(2026, 12, 1, 0, 0)).transaction,
+                row(LocalDateTime.of(2026, 11, 30, 23, 59, 59, 500_000_000)).transaction,
+                // An old import.
+                row(LocalDateTime.of(1999, 12, 31, 12, 0)).transaction,
+            )
+        )
+        assertEquals(
+            listOf(LocalDate.of(1999, 12, 31), LocalDate.of(2026, 11, 30)),
+            loader.recordedDates(today = LocalDate.of(2026, 11, 30)),
+        )
+    }
+
+    @Test
     fun `a card linked to an ignored account stays out`() = runTest {
         every { ignored.keysFlow } returns flowOf(setOf(IgnoredAccountsStore.keyFor("Test Bank", "1111")))
         every { cards.getAllCards() } returns flowOf(

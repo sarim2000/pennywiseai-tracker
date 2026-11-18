@@ -7,9 +7,12 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.dao.ChatDao
 import com.pennywiseai.tracker.data.database.entity.ChatMessage
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
+import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.ledger.ConvertedEstimate
+import com.pennywiseai.tracker.data.model.BillsDue
+import com.pennywiseai.tracker.data.model.BudgetStatus
 import com.pennywiseai.tracker.data.model.ChatLink
 import com.pennywiseai.tracker.data.model.ChatMessageFacts
 import com.pennywiseai.tracker.data.model.ChatScope
@@ -18,6 +21,8 @@ import com.pennywiseai.tracker.data.model.PeriodSpending
 import com.pennywiseai.tracker.data.model.ReplySubject
 import com.pennywiseai.tracker.data.model.ReviewRow
 import com.pennywiseai.tracker.data.model.SpendingComparison
+import com.pennywiseai.tracker.data.model.SpendingFilter
+import com.pennywiseai.tracker.data.model.SpendingQuery
 import com.pennywiseai.tracker.data.model.TopCategories
 import com.pennywiseai.tracker.data.model.TransactionDraft
 import com.pennywiseai.tracker.data.model.TransactionFinder
@@ -45,6 +50,11 @@ import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.JsonPrimitive
 import java.math.BigDecimal
+import java.time.LocalDate
+import java.time.LocalDateTime
+import java.time.LocalTime
+import java.time.temporal.WeekFields
+import java.util.Locale
 import java.util.UUID
 import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
@@ -61,7 +71,8 @@ class LlmRepository @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
     private val transactionRepository: TransactionRepository,
-    private val ignoredAccountsStore: IgnoredAccountsStore
+    private val ignoredAccountsStore: IgnoredAccountsStore,
+    private val planningRepository: PlanningRepository,
 ) {
 
     // A transaction the model proposed via the add_transaction tool (#170),
@@ -111,6 +122,9 @@ class LlmRepository @Inject constructor(
 
     // The links the turn in progress has found so far.
     private val turnLinks = mutableListOf<ChatLink>()
+
+    // Today, for dating answers: tests pin it so a label's year doesn't depend on when they run.
+    internal var today: () -> LocalDate = { LocalDate.now() }
 
     private val _contextTokens = MutableStateFlow(0)
     /** Tokens the model's window holds, measured by LiteRT-LM (developer stats). */
@@ -256,7 +270,7 @@ class LlmRepository @Inject constructor(
         // repository's figures, or the card it proposes. Prose beside them could carry the
         // model's own arithmetic, a figure from an earlier turn, or a claim that it saved
         // something, and checking it for digits misses numbers in words.
-        val figures: (LlmEvent.ToolCall) -> Boolean = { it.isComparison(userMessage) || it.name in MONTH_LOOKUPS }
+        val figures: (LlmEvent.ToolCall) -> Boolean = { it.isComparison(userMessage) || it.name in LOOKUPS }
         var prose = ""
         if (toolCalls.isNotEmpty() || unreadableToolCall) {
             prose = responseBuilder.toString()
@@ -295,8 +309,8 @@ class LlmRepository @Inject constructor(
         if (prose.isNotBlank()) {
             val onCard = _pendingAction.value?.takeIf { it !== cardBefore }?.let(::amountsOf).orEmpty()
             val numbers = ChatMessageFacts.numbersIn(prose)
-            // A digit it can't read as an amount ("12,50") is a number all the same.
-            val strayNumber = numbers.any { n -> onCard.none { it.compareTo(n) == 0 } } || (numbers.isEmpty() && prose.any(Char::isDigit))
+            // A digit it can't read as an amount ("12,50") is a number all the same, beside one it can or not.
+            val strayNumber = numbers.any { n -> onCard.none { it.compareTo(n) == 0 } } || ChatMessageFacts.hasUnreadNumber(prose)
             if (toolCalls.any(figures) || strayNumber || claimsAChange(prose, emptyList())) conversationBroken = true
         }
         // A small model sometimes narrates a change instead of calling the tool. Unless it's about
@@ -523,12 +537,20 @@ class LlmRepository @Inject constructor(
     }
 
     /**
-     * A compareSpending call, or a this-month lookup for a message that names last month or week:
-     * those lookups can't answer it, and the small model reaches for them in Hinglish.
+     * A compareSpending call, or a plain this-month lookup (a total, or one category's) for a
+     * message that names last month or week: the small model reaches for it in Hinglish for "more
+     * than last month?". Income isn't compared; [datesAsked] gives it the days named.
      */
-    private fun LlmEvent.ToolCall.isComparison(userMessage: String) = name == PennyWiseTools.COMPARE_SPENDING ||
-        (name in MONTH_LOOKUPS && SpendingComparison.namesThePreviousPeriod(userMessage) &&
-            !(name == PennyWiseTools.MONTH_SUMMARY && SpendingComparison.asksAboutIncome(userMessage)))
+    private fun LlmEvent.ToolCall.isComparison(userMessage: String): Boolean {
+        if (name == PennyWiseTools.COMPARE_SPENDING) return true
+        if (name != PennyWiseTools.QUERY_SPENDING || !SpendingComparison.namesThePreviousPeriod(userMessage)) return false
+        val a = arguments
+        val plain = SpendingQuery.defaultPeriod(a["period"], a["from"], a["to"]) &&
+            a["merchant"]?.toString().isNullOrBlank() &&
+            SpendingQuery.groupBy(a.arg("groupBy")) == SpendingQuery.GroupBy.NONE
+        // Income isn't compared, a category's ("salary last month?") or all of it.
+        return plain && !SpendingComparison.asksAboutIncome(userMessage)
+    }
 
     private suspend fun handleToolCallInner(call: LlmEvent.ToolCall, userMessage: String): String? = if (call.isComparison(userMessage)) {
         val period = SpendingComparison.period(userMessage, call.arguments["period"])
@@ -586,36 +608,168 @@ class LlmRepository @Inject constructor(
                 }
             }
         }
-        // The same figures as the one-tap question, and as Home's "Spent this month".
-        PennyWiseTools.MONTH_SUMMARY -> aiContextRepository.spending().let { p ->
-            turnLinks += spendingLinks(p)
-            spendingText(p, typed = true)
-        }
-        PennyWiseTools.SPENDING_BY_CATEGORY -> {
-            val wanted = (call.arguments["category"] as? String)?.trim().orEmpty()
-            // Hidden categories still hold transactions, and a row can name a category that no
-            // longer exists: a read-only lookup asks the transactions before saying it's unknown.
-            val category = matchCategory(wanted, categoryRepository.getAllCategories().first())
-            val spend = aiContextRepository.categorySpending(category ?: wanted)
-            when {
-                // "Nothing spent" would be a false figure for a category that doesn't exist.
-                spend.byCurrency.isEmpty() && category == null -> context.getString(R.string.chat_reply_unknown_category, wanted)
-                spend.byCurrency.isEmpty() -> context.getString(R.string.chat_reply_nothing_spent, category, scopeLabel(spend.scope))
-                else -> context.resources.getQuantityString(
-                    R.plurals.chat_reply_category_spend,
-                    spend.transactionCount,
-                    amounts(spend.byCurrency),
-                    spend.category,
-                    scopeLabel(spend.scope),
-                    spend.transactionCount
-                ).also {
-                    turnSubject = turnSubject?.copy(share = spend.share)
-                    // Only for a name the category list spells: "uber" isn't a category to open.
-                    if (category != null) turnLinks += linksTo(spend.scope, category, spend.byCurrency.keys)
-                }
-            }
+        PennyWiseTools.QUERY_SPENDING -> querySpending(call.arguments)
+        PennyWiseTools.PLANNING_STATUS -> when (call.arguments["kind"]?.toString()?.trim()?.lowercase()?.removeSuffix("s")) {
+            "budget", "limit" -> budgetsText(planningRepository.budgets())
+            "bill", "subscription", "payment" -> billsText(planningRepository.billsDue())
+            else -> context.getString(R.string.chat_reply_planning_unknown)
         }
         else -> null
+    }
+
+    /**
+     * Each spending limit live today on its own line, in its own window and currency: limits over
+     * different days have no shared "left", so none is made up.
+     */
+    private fun budgetsText(budgets: List<BudgetStatus>): String {
+        // The mascot's gauge: the most used limit, each against its own (never a sum across them).
+        turnSubject = turnSubject?.copy(share = budgets.mapNotNull { b -> b.limit?.let { b.spent.toFloat() / it.toFloat() } }.maxOrNull()?.coerceIn(0f, 1f) ?: 0f)
+        if (budgets.isEmpty()) return context.getString(R.string.chat_reply_budgets_none)
+        return buildList {
+            add(context.getString(R.string.chat_reply_budgets_title))
+            budgets.forEach { b ->
+                val days = range(SpendingComparison.Window(b.start.atStartOfDay(), b.end.atStartOfDay()))
+                val (limit, remaining) = b.limit to b.remaining
+                add(
+                    if (limit == null || remaining == null) {
+                        context.getString(R.string.chat_reply_budget_no_rate, b.name, days, money(b.spent, b.currency), b.currency)
+                    } else {
+                        context.getString(
+                            if (remaining.signum() >= 0) R.string.chat_reply_budget_left else R.string.chat_reply_budget_over,
+                            b.name,
+                            days,
+                            money(b.spent, b.currency),
+                            money(limit, b.currency),
+                            money(remaining.abs(), b.currency),
+                        )
+                    }
+                )
+            }
+        }.joinToString("\n")
+    }
+
+    /** Overdue bills first, then those due by [BillsDue.through], each in its own currency. */
+    private fun billsText(bills: BillsDue): String {
+        val through = bills.through.format(DAY_MONTH)
+        if (bills.overdue.isEmpty() && bills.upcoming.isEmpty()) return context.getString(R.string.chat_reply_bills_none, through)
+        fun line(s: SubscriptionEntity) =
+            "${s.merchantName} · ${money(s.amount, s.currency)} · ${s.nextPaymentDate?.format(DAY_MONTH).orEmpty()}"
+        return buildList {
+            if (bills.overdue.isNotEmpty()) add(context.getString(R.string.chat_reply_bills_overdue))
+            bills.overdue.forEach { add(line(it)) }
+            if (bills.upcoming.isNotEmpty()) add(context.getString(R.string.chat_reply_bills_due, through))
+            bills.upcoming.forEach { add(line(it)) }
+        }.joinToString("\n")
+    }
+
+    /**
+     * A querySpending call: the figures for the days, category and merchant the model passed, per
+     * currency, as Home works them out (Home's own figure when nothing narrows it), or the
+     * biggest categories, merchants or accounts. The reply's label names what was looked up;
+     * arguments it can't read are said, never answered with other days instead.
+     */
+    private suspend fun querySpending(args: Map<String, Any?>): String {
+        val asGrouped = SpendingQuery.groupBy(args.arg("groupBy")) ?: return context.getString(R.string.chat_reply_query_group_unknown)
+        val window = when (val dates = datesAsked(args)) {
+            is SpendingQuery.Dates.Invalid -> return datesProblem(dates)
+            is SpendingQuery.Dates.Of -> dates.window
+            SpendingQuery.Dates.Home -> null
+        }
+        // Absent or blank is no filter; anything but text (a number, a list) can't be read as one.
+        if (listOf("merchant", "category").any { args[it] != null && args[it] !is String }) {
+            return context.getString(R.string.chat_reply_query_name_unreadable)
+        }
+        fun named(key: String) = (args[key] as? String)?.trim()?.takeUnless { it.isEmpty() }
+        val categories = categoryRepository.getAllCategories().first()
+        // "all" or "total" from the model means no filter: as a merchant always, as a category
+        // unless one is saved under the name ("General").
+        val merchant = named("merchant")?.takeUnless { SpendingComparison.meansAllSpending(it) }
+        val asked = named("category")?.takeUnless { a -> SpendingComparison.meansAllSpending(a) && categories.none { it.name.equals(a, ignoreCase = true) } }
+        // Hidden categories still hold transactions, and a row can name a category that no
+        // longer exists: a read-only lookup asks the transactions before saying it's unknown.
+        val known = asked?.let { matchCategory(it, categories) }
+        val category = known ?: asked
+        val filter = SpendingFilter(window, merchant)
+        val groupBy = SpendingQuery.grouping(asGrouped, category, merchant)
+        val narrowed = merchant?.let { " · $it" }.orEmpty()
+        // The list can't be narrowed to a merchant as the figure was (its search reads notes and
+        // SMS too), and only a name the category list spells is a category to open: not "uber".
+        val linked = merchant == null && (category == null || known != null)
+        // "How much salary did I receive?": what came in, never what was spent. Decided by this
+        // call's category, not the message: "salary received and food spent" sends Food here too.
+        val incomeAsked = categories.any { it.isIncome && it.name == known }
+        return when {
+            // A ranking counts only what went out: "salary by account" would rank spending, or nothing.
+            groupBy != SpendingQuery.GroupBy.NONE && incomeAsked -> context.getString(R.string.chat_reply_income_ranking_unsupported)
+            groupBy != SpendingQuery.GroupBy.NONE -> {
+                val top = aiContextRepository.topCategories(filter = filter, by = groupBy, category = category)
+                if (category != null && known == null && top.ranking.isEmpty()) {
+                    context.getString(R.string.chat_reply_unknown_category, asked)
+                } else {
+                    turnSubject = turnSubject?.copy(share = top.share)
+                    if (linked) turnLinks += linksTo(top.scope, category, top.ranking.keys)
+                    topCategoriesText(top, groupBy, narrowed, category)
+                }
+            }
+            // What came in under it, never "nothing spent".
+            category != null && incomeAsked -> {
+                val got = aiContextRepository.categoryIncome(category, filter = filter)
+                val label = scopeLabel(got.scope) + narrowed
+                when {
+                    got.byCurrency.isEmpty() && known == null -> context.getString(R.string.chat_reply_unknown_category, asked)
+                    got.byCurrency.isEmpty() -> context.getString(R.string.chat_reply_nothing_received_in, category, label)
+                    else -> context.resources.getQuantityString(
+                        R.plurals.chat_reply_category_income,
+                        got.transactionCount,
+                        amounts(got.byCurrency),
+                        category,
+                        label,
+                        got.transactionCount
+                    ).also {
+                        if (linked) turnLinks += linksTo(got.scope, category, got.byCurrency.keys)
+                    }
+                }
+            }
+            category != null -> {
+                val spend = aiContextRepository.categorySpending(category, filter = filter)
+                val label = scopeLabel(spend.scope) + narrowed
+                when {
+                    // "Nothing spent" would be a false figure for a category that doesn't exist.
+                    spend.byCurrency.isEmpty() && known == null -> context.getString(R.string.chat_reply_unknown_category, asked)
+                    spend.byCurrency.isEmpty() -> context.getString(R.string.chat_reply_nothing_spent, category, label)
+                    else -> context.resources.getQuantityString(
+                        R.plurals.chat_reply_category_spend,
+                        spend.transactionCount,
+                        amounts(spend.byCurrency),
+                        spend.category,
+                        label,
+                        spend.transactionCount
+                    ).also {
+                        turnSubject = turnSubject?.copy(share = spend.share)
+                        if (linked) turnLinks += linksTo(spend.scope, category, spend.byCurrency.keys)
+                    }
+                }
+            }
+            // The same figures as the one-tap question, and as Home's "Spent this month".
+            else -> aiContextRepository.spending(filter = filter).let { p ->
+                if (linked) turnLinks += spendingLinks(p)
+                spendingText(p, typed = true, narrowed = narrowed)
+            }
+        }
+    }
+
+    /** The days a querySpending call asks about, as the model passed them, against the chat's clock. */
+    private suspend fun datesAsked(args: Map<String, Any?>): SpendingQuery.Dates = SpendingQuery.dates(
+        args["period"], args["from"], args["to"], LocalDateTime.of(today(), LocalTime.now()), WeekFields.of(Locale.getDefault()).firstDayOfWeek,
+        userPreferencesRepository.budgetCycleStartDay.first()
+    )
+
+    private fun datesProblem(invalid: SpendingQuery.Dates.Invalid): String = when (invalid.problem) {
+        SpendingQuery.Problem.PERIOD -> context.getString(R.string.chat_reply_query_period_unknown)
+        SpendingQuery.Problem.DATE -> context.getString(R.string.chat_reply_query_date_unreadable, invalid.value)
+        SpendingQuery.Problem.NO_START -> context.getString(R.string.chat_reply_query_no_start)
+        SpendingQuery.Problem.ORDER -> context.getString(R.string.chat_reply_query_dates_reversed, invalid.value, invalid.other)
+        SpendingQuery.Problem.FUTURE -> context.getString(R.string.chat_reply_query_future)
     }
 
     /** Notes which way this comparison went, for the reply's mascot. */
@@ -658,7 +812,7 @@ class LlmRepository @Inject constructor(
             QuickAction.TOP_CATEGORIES -> aiContextRepository.topCategories().let { top ->
                 subject = subject.copy(share = top.share)
                 links = linksTo(top.scope, null, top.ranking.keys)
-                topCategoriesText(top)
+                topCategoriesText(top, SpendingQuery.GroupBy.CATEGORY)
             }
         }
         val at = System.currentTimeMillis()
@@ -675,17 +829,18 @@ class LlmRepository @Inject constructor(
     /**
      * Home's "Spent this month" as chat lines: the dated scope, then each currency on its own,
      * forgiven loans named inside the figure they're part of. A converted estimate only when
-     * Home shows one, with what it had to leave out. [typed] answers monthSummary, which income
+     * Home shows one, with what it had to leave out. [typed] answers querySpending, which income
      * and count questions reach too: it always says what was received, if anything, and how many
      * transactions.
      */
-    private suspend fun spendingText(p: PeriodSpending, typed: Boolean = false): String {
+    private suspend fun spendingText(p: PeriodSpending, typed: Boolean = false, narrowed: String = ""): String {
         val spent = ordered(p.spentWithForgiven)
+        val label = scopeLabel(p.scope) + narrowed
         return buildList {
             if (spent.isEmpty()) {
-                add(context.getString(R.string.chat_reply_quick_nothing, scopeLabel(p.scope)))
+                add(context.getString(R.string.chat_reply_quick_nothing, label))
             } else {
-                add(context.getString(R.string.chat_reply_month_spend, scopeLabel(p.scope)))
+                add(context.getString(R.string.chat_reply_month_spend, label))
                 spent.forEach { (c, a) ->
                     val forgiven = p.forgiven[c]?.takeIf { it.signum() > 0 }
                     add(if (forgiven == null) money(a, c) else context.getString(R.string.chat_reply_spent_with_forgiven, money(a, c), money(forgiven, c)))
@@ -742,13 +897,29 @@ class LlmRepository @Inject constructor(
         e?.leftOut?.takeIf { it.isNotEmpty() }?.let { context.getString(R.string.chat_reply_converted_left_out, amounts(it)) }
     )
 
-    /** A ranking per currency, a blank line between them; forgiven loans below, never ranked as a category. */
-    private suspend fun topCategoriesText(top: TopCategories): String {
+    /**
+     * A ranking [by] category, merchant or account per currency, a blank line between them;
+     * forgiven loans below, never ranked as one of them. [narrowed] and [category] name what
+     * the ranking was narrowed to.
+     */
+    private suspend fun topCategoriesText(top: TopCategories, by: SpendingQuery.GroupBy, narrowed: String = "", category: String? = null): String {
         val forgiven = top.forgiven.filterValues { it.signum() > 0 }
-        if (top.ranking.isEmpty() && forgiven.isEmpty()) return context.getString(R.string.chat_reply_quick_nothing, scopeLabel(top.scope))
+        val label = scopeLabel(top.scope) + listOfNotNull(category).joinToString("") { " · $it" } + narrowed
+        if (top.ranking.isEmpty() && forgiven.isEmpty()) return context.getString(R.string.chat_reply_quick_nothing, label)
+        val noAccount = context.getString(R.string.chat_group_no_account)
+        val name: (String) -> String = { if (by == SpendingQuery.GroupBy.ACCOUNT && it == AiContextRepository.NO_ACCOUNT) noAccount else it }
         return buildList {
-            add(context.getString(R.string.chat_reply_top_categories, scopeLabel(top.scope)))
-            if (top.ranking.isNotEmpty()) add(ordered(top.ranking).joinToString("\n\n") { (c, cats) -> cats.joinToString("\n") { (name, a) -> "$name: ${money(a, c)}" } })
+            add(
+                context.getString(
+                    when (by) {
+                        SpendingQuery.GroupBy.MERCHANT -> R.string.chat_reply_top_merchants
+                        SpendingQuery.GroupBy.ACCOUNT -> R.string.chat_reply_top_accounts
+                        else -> R.string.chat_reply_top_categories
+                    },
+                    label
+                )
+            )
+            if (top.ranking.isNotEmpty()) add(ordered(top.ranking).joinToString("\n\n") { (c, groups) -> groups.joinToString("\n") { (n, a) -> "${name(n)}: ${money(a, c)}" } })
             if (forgiven.isNotEmpty()) add((if (top.ranking.isEmpty()) "" else "\n") + context.getString(R.string.chat_reply_forgiven_loans, amounts(forgiven)))
         }.joinToString("\n")
     }
@@ -771,8 +942,14 @@ class LlmRepository @Inject constructor(
     private fun profileLabel(profile: ProfileEntity?) =
         profile?.let { " · " + (it.seededNameRes()?.let(context::getString) ?: it.name) }.orEmpty()
 
+    /**
+     * "1 Oct–31 Oct". Days outside this year carry the year, on both ends: "1 Oct" alone reads as
+     * this October, and the label is all that says which days were counted.
+     */
     private fun range(w: SpendingComparison.Window): String {
-        val (a, b) = w.start.format(DAY_MONTH) to w.end.format(DAY_MONTH)
+        val (start, end) = w.start.toLocalDate() to w.end.toLocalDate()
+        val format = if (start.year == end.year && start.year == today().year) DAY_MONTH else DAY_MONTH_YEAR
+        val (a, b) = start.format(format) to end.format(format)
         return if (a == b) a else "$a–$b"
     }
 
@@ -898,7 +1075,8 @@ class LlmRepository @Inject constructor(
 
             When the user tells you about money they spent, paid, bought or received, call addTransactions. Use EXPENSE unless they clearly received money.
             When the user asks to compare spending with last month or last week, call compareSpending.
-            When the user asks how much they spent on something, call spendingByCategory; for this month's overall totals call monthSummary. Never state a spending or income total yourself: only the tools have the figures.
+            When the user asks about their budgets or bills due, call planningStatus.
+            When the user asks how much they spent or received, in all, on a category or at a merchant, call querySpending with the period or dates they named. Never state a spending or income total yourself: only the tools have the figures.
             If the user refers to something already recorded — "the tea from today", "that uber", "change", "should be", "was actually", "delete", "remove" — call updateTransaction or deleteTransaction with the words they used to identify it. Never call addTransactions for those.
             Otherwise answer briefly and helpfully. Never invent transactions or figures, and never say you added, changed or deleted anything yourself — only the tools do that, and the user confirms each one.
 
@@ -1027,7 +1205,9 @@ class LlmRepository @Inject constructor(
         // Built per use: a formatter keeps the locale it was made in, and the app's language can
         // change while the process lives (Arabic month names in an English reply, and back).
         private val DAY_MONTH get() = java.time.format.DateTimeFormatter.ofPattern("d MMM")
-        private val MONTH_LOOKUPS = setOf(PennyWiseTools.MONTH_SUMMARY, PennyWiseTools.SPENDING_BY_CATEGORY)
+        private val DAY_MONTH_YEAR get() = java.time.format.DateTimeFormatter.ofPattern("d MMM yyyy")
+        // Answered with the app's figures alone.
+        private val LOOKUPS = setOf(PennyWiseTools.QUERY_SPENDING, PennyWiseTools.PLANNING_STATUS)
         private val CARD_TOOLS = setOf(PennyWiseTools.ADD_TRANSACTIONS, PennyWiseTools.DELETE_TRANSACTION, PennyWiseTools.UPDATE_TRANSACTION)
         private const val TOOL_CALL_TAG = "<tool_call>"
         // Matched by ChatViewModel.sendErrorText: these exception messages are never shown.
@@ -1044,7 +1224,7 @@ class LlmRepository @Inject constructor(
  * the tool that answers the same question, whose shape its reply's mascot takes.
  */
 enum class QuickAction(@androidx.annotation.StringRes val label: Int, val tool: String) {
-    MONTH_SPEND(R.string.chat_quick_month_spend, PennyWiseTools.MONTH_SUMMARY),
-    TOP_CATEGORIES(R.string.chat_quick_top_categories, PennyWiseTools.SPENDING_BY_CATEGORY),
+    MONTH_SPEND(R.string.chat_quick_month_spend, PennyWiseTools.QUERY_SPENDING),
+    TOP_CATEGORIES(R.string.chat_quick_top_categories, PennyWiseTools.QUERY_SPENDING),
     COMPARE_MONTH(R.string.chat_quick_compare_month, PennyWiseTools.COMPARE_SPENDING)
 }

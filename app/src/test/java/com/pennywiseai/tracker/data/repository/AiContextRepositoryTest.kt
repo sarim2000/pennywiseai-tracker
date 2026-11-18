@@ -10,6 +10,7 @@ import com.pennywiseai.tracker.data.database.entity.CardEntity
 import com.pennywiseai.tracker.data.database.entity.CardType
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.ExchangeRateEntity
+import com.pennywiseai.tracker.data.database.entity.MerchantAliasEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
@@ -19,6 +20,8 @@ import com.pennywiseai.tracker.data.ledger.breakdownByCurrency
 import com.pennywiseai.tracker.data.ledger.convertedSpent
 import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.model.SpendingComparison
+import com.pennywiseai.tracker.data.model.SpendingFilter
+import com.pennywiseai.tracker.data.model.SpendingQuery
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
@@ -61,6 +64,7 @@ class AiContextRepositoryTest {
     private val today = LocalDate.of(2026, 11, 16)
     private val rows = mutableListOf<TransactionWithSplits>()
     private val accounts = mutableListOf<AccountBalanceEntity>()
+    private val aliases = mutableMapOf<String, String>()
     private var forgiven: Map<String, BigDecimal> = emptyMap()
     private var forgivenSource: TransactionEntity? = null
     private var ignored: Set<String> = emptySet()
@@ -140,6 +144,7 @@ class AiContextRepositoryTest {
             },
             ignoredAccountsStore = mockk { every { keys() } answers { ignored } },
             cardDao = mockk { every { getAllCards() } answers { flowOf(cards.toList()) } },
+            merchantAliasDao = mockk { coEvery { getAllAliasesList() } answers { aliases.map { (m, a) -> MerchantAliasEntity(merchantName = m, alias = a) } } },
         )
     }
 
@@ -162,11 +167,12 @@ class AiContextRepositoryTest {
         excluded: Boolean = false,
         account: String? = null,
         profileId: Long? = null,
+        merchant: String = "Shop",
     ): TransactionWithSplits {
         val id = nextId++
         val row = TransactionWithSplits(
             TransactionEntity(
-                id = id, amount = BigDecimal(amount), merchantName = "Shop", category = category, transactionType = type,
+                id = id, amount = BigDecimal(amount), merchantName = merchant, category = category, transactionType = type,
                 dateTime = at, transactionHash = "h$id", currency = currency, excludedFromAnalytics = excluded,
                 lentSharesTotal = lent?.let(::BigDecimal), loanId = loanId, loanContribution = loanPart?.let(::BigDecimal),
                 budgetCategory = refundTo, budgetImpactType = refundTo?.let { BudgetImpactType.DEDUCT_SPENT },
@@ -299,6 +305,22 @@ class AiContextRepositoryTest {
     }
 
     @Test
+    fun `a category's income is what came in under it, per currency, without refunds or ignored accounts`() = runBlocking {
+        ignored = setOf("Bank_9999")
+        tx("5000", type = TransactionType.INCOME, category = "Salary")
+        tx("40", currency = "USD", type = TransactionType.INCOME, category = "Salary")
+        tx("700", type = TransactionType.INCOME, category = "Salary", account = "9999") // an ignored account's
+        tx("100", type = TransactionType.INCOME, category = "Salary", refundTo = "Food") // a refund gives spending back
+        tx("300", category = "Salary") // money out isn't income
+        tx("60", type = TransactionType.INCOME, category = "Others", splits = listOf("Others" to "20", "Salary" to "40"))
+
+        val salary = repository.categoryIncome("Salary", today)
+        assertEquals(mapOf("INR" to "5040", "USD" to "40"), amounts(salary.byCurrency))
+        assertEquals(3, salary.transactionCount)
+        assertTrue(repository.categoryIncome("Travel", today).byCurrency.isEmpty())
+    }
+
+    @Test
     fun `a category's figure is the rows its links list, in the profile and without ignored accounts`() = runBlocking {
         preferences.updateSelectedProfileId(ProfileEntity.BUSINESS_ID)
         accounts += AccountBalanceEntity(bankName = "Bank", accountLast4 = "1111", balance = BigDecimal.ZERO, timestamp = today.atStartOfDay(), profileId = ProfileEntity.BUSINESS_ID)
@@ -420,5 +442,99 @@ class AiContextRepositoryTest {
         tx("5", at = now.minusMonths(1).withDayOfMonth(1).withHour(0).withMinute(0))
         val result = repository.compareSpending(SpendingComparison.Period.MONTH, "food", creditAsExpense = false)
         assertEquals(BigDecimal("20"), (result as SpendingComparison.Result.Rows).rows.single().current)
+    }
+
+    @Test
+    fun `a figure narrowed to a merchant is its alone, refunds off and forgiven loans out`() = runBlocking {
+        forgiven = mapOf("INR" to BigDecimal("400"))
+        aliases["AMZN MKTP IN"] = "Amazon"
+        tx("300", merchant = "AMZN MKTP IN", account = "1234")
+        tx("50", type = TransactionType.INCOME, refundTo = "Food", merchant = "AMZN MKTP IN", account = "1234")
+        tx("200", merchant = "Cafe", account = "9999")
+        tx("70", currency = "USD", merchant = "Cafe", account = "1234")
+
+        // Found by the name the user gave it, not only the one the SMS used.
+        val amazon = repository.spending(today, SpendingFilter(merchant = "amazon"))
+        assertEquals(mapOf("INR" to "250"), amounts(amazon.spentWithForgiven))
+        // Not narrowed, it's Home's figure, the forgiven loan in.
+        assertEquals(mapOf("INR" to "850", "USD" to "70"), amounts(repository.spending(today).spentWithForgiven))
+        // A merchant nobody has is nothing spent: no figure to invent.
+        assertTrue(repository.spending(today, SpendingFilter(merchant = "Unicorn")).spentWithForgiven.isEmpty())
+    }
+
+    @Test
+    fun `a card's purchases count once narrowed to a merchant, whatever Home's card setting`() = runBlocking {
+        preferences.setCountCreditCardAsExpense(false)
+        accounts += AccountBalanceEntity(bankName = "Bank", accountLast4 = "1234", balance = BigDecimal.ZERO, timestamp = today.atStartOfDay(), isCreditCard = true)
+        tx("300", type = TransactionType.CREDIT, merchant = "Amazon", account = "1234")
+        // Part of the card's bill, paid from the bank account.
+        tx("250", merchant = "Card bill", account = "9999")
+
+        // Home's figure counts the bill, not the purchase as well.
+        assertEquals(mapOf("INR" to "250"), amounts(repository.spending(today).spentWithForgiven))
+        val amazon = repository.spending(today, SpendingFilter(merchant = "amazon"))
+        assertEquals(mapOf("INR" to "300"), amounts(amazon.spentWithForgiven))
+        assertEquals(1, amazon.transactionCount)
+        assertEquals(mapOf("INR" to "300"), amounts(repository.categorySpending("food", today, SpendingFilter(merchant = "amazon")).byCurrency))
+        // Each account's own spending: the card is ranked too.
+        val byAccount = repository.topCategories(today, by = SpendingQuery.GroupBy.ACCOUNT)
+        assertEquals(listOf("Bank ••1234", "Bank ••9999"), byAccount.ranking.getValue("INR").map { it.first })
+    }
+
+    @Test
+    fun `other days are their own window, in the profile Home shows`() = runBlocking {
+        val october = SpendingComparison.Window(LocalDate.of(2026, 10, 1).atStartOfDay(), LocalDate.of(2026, 10, 31).atTime(LocalTime.MAX))
+        tx("100", at = LocalDateTime.of(2026, 10, 31, 23, 59))
+        tx("10", at = LocalDateTime.of(2026, 10, 1, 0, 0), category = "Travel")
+        tx("1", at = LocalDateTime.of(2026, 9, 30, 23, 59))
+        tx("1000")
+        val p = repository.spending(today, SpendingFilter(window = october))
+        assertEquals(october, p.scope.window)
+        assertEquals(mapOf("INR" to "110"), amounts(p.spent))
+        assertEquals(mapOf("INR" to "100"), amounts(repository.categorySpending("food", today, SpendingFilter(window = october)).byCurrency))
+    }
+
+    @Test
+    fun `two accounts with the same name rank apart, told apart by bank and digits`() = runBlocking {
+        for (digits in listOf("1234", "5678")) {
+            accounts += AccountBalanceEntity(bankName = "Bank", accountLast4 = digits, balance = BigDecimal.ZERO, timestamp = today.atStartOfDay(), alias = "Daily")
+        }
+        accounts += AccountBalanceEntity(bankName = "Bank", accountLast4 = "9999", balance = BigDecimal.ZERO, timestamp = today.atStartOfDay(), alias = "Card")
+        tx("300", account = "1234")
+        tx("200", account = "5678")
+        tx("100", account = "9999")
+        val byAccount = repository.topCategories(today, by = SpendingQuery.GroupBy.ACCOUNT)
+        assertEquals(
+            listOf("Bank ••1234" to "300", "Bank ••5678" to "200", "Card" to "100"),
+            byAccount.ranking.getValue("INR").map { it.first to it.second.toPlainString() }
+        )
+    }
+
+    @Test
+    fun `merchants and accounts rank per currency, refunds off their own, named as the user knows them`() = runBlocking {
+        forgiven = mapOf("INR" to BigDecimal("400"))
+        aliases["AMZN MKTP IN"] = "Amazon"
+        accounts += AccountBalanceEntity(bankName = "Bank", accountLast4 = "1234", balance = BigDecimal.ZERO, timestamp = today.atStartOfDay(), alias = "Salary card")
+        tx("300", merchant = "AMZN MKTP IN", account = "1234")
+        tx("50", type = TransactionType.INCOME, refundTo = "Food", merchant = "AMZN MKTP IN", account = "1234")
+        tx("200", merchant = "Cafe", account = "9999", splits = listOf("Food" to "120", "Travel" to "80"))
+        tx("70", currency = "USD", merchant = "Cafe")
+
+        val merchants = repository.topCategories(today, by = SpendingQuery.GroupBy.MERCHANT)
+        assertEquals(listOf("Amazon" to "250", "Cafe" to "200"), merchants.ranking.getValue("INR").map { it.first to it.second.toPlainString() })
+        assertEquals(listOf("Cafe" to "70"), merchants.ranking.getValue("USD").map { it.first to it.second.toPlainString() })
+        // A forgiven loan is no merchant.
+        assertTrue(merchants.forgiven.isEmpty())
+
+        val byAccount = repository.topCategories(today, by = SpendingQuery.GroupBy.ACCOUNT)
+        assertEquals(listOf("Salary card" to "250", "Bank ••9999" to "200"), byAccount.ranking.getValue("INR").map { it.first to it.second.toPlainString() })
+        assertEquals(listOf(AiContextRepository.NO_ACCOUNT to "70"), byAccount.ranking.getValue("USD").map { it.first to it.second.toPlainString() })
+
+        // In one category, only its share of a split row counts.
+        val food = repository.topCategories(today, by = SpendingQuery.GroupBy.MERCHANT, category = "Food")
+        assertEquals(listOf("Amazon" to "250", "Cafe" to "120"), food.ranking.getValue("INR").map { it.first to it.second.toPlainString() })
+
+        // Categories, unnarrowed, keep the forgiven loan beside them.
+        assertEquals(mapOf("INR" to "400"), amounts(repository.topCategories(today).forgiven))
     }
 }

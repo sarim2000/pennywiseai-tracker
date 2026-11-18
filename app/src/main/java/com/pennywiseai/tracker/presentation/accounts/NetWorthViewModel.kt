@@ -46,7 +46,8 @@ class NetWorthViewModel @Inject constructor(
     /** Null while loading. */
     val state: StateFlow<NetWorthUiState?> = combine(
         loader.observe(),
-        savedStateHandle.getStateFlow<String?>(KEY_CURRENCY, null),
+        // Starts on the currency it was opened with (Home's), else the one with most accounts.
+        savedStateHandle.getStateFlow(KEY_CURRENCY, savedStateHandle.get<String>("currency")),
         ::netWorthUiState,
     ).stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 

@@ -184,9 +184,9 @@ data class TransactionsWithFilter(
 @Serializable
 data class Review(val kind: String = "MONTH", val weekStart: String? = null) : NavKey
 
-/** What you own minus what you owe; opened from Home's balance and Manage Accounts. */
+/** What you own minus what you owe; opened from Home (on its currency) and Manage Accounts. */
 @Serializable
-data object NetWorth : NavKey
+data class NetWorth(val currency: String? = null) : NavKey
 
 // Screens inside MainScreen's tab stacks (Settings, SettingsPage, Categories, Faq
 // and ImportStatement live only there; UnrecognizedSms also opens on the root stack).

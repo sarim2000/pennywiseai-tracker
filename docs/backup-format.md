@@ -95,9 +95,10 @@ one file format and every v1.x app can read it (older apps ignore the key):
   `..`, nested dirs and backslashes are rejected. A receipt is written only if a
   transaction in the DB after the import points at that path (so a merge
   restores exactly the photos of the rows it kept), and an existing file is
-  never overwritten. Runs after the DB transaction commits. A PDF whose
-  `data_base64` is longer than a 5 MB file encodes to is skipped before it's
-  decoded and counted in the import message; photos restore at any size.
+  never overwritten. Runs after the DB transaction commits. A PDF over 5 MB is
+  skipped: by its `data_base64` length before decoding, then by its decoded
+  size. The import message counts it only when no file is already at that path
+  (a merge onto the same phone keeps the copy it has). Photos restore at any size.
 - A transaction whose `receiptPath` file is missing shows "Receipt photo not
   included in this backup" on its detail screen.
 

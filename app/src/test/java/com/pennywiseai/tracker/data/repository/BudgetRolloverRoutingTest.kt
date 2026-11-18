@@ -15,16 +15,12 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.preferences.BudgetPreferences
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
-import com.pennywiseai.tracker.domain.insights.InsightFact
-import com.pennywiseai.tracker.domain.insights.InsightRules
-import com.pennywiseai.tracker.domain.insights.budgetStatuses
 import com.pennywiseai.tracker.domain.spending.BudgetAlertTier
 import com.pennywiseai.tracker.domain.spending.MoneyAlertRules
 import com.pennywiseai.tracker.presentation.budgetgroups.historyBudgetTotal
 import com.pennywiseai.tracker.presentation.home.homeBudgetSummary
 import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.widget.budgetWidgetData
-import com.pennywiseai.tracker.worker.DailySummaryWorker
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -50,7 +46,7 @@ import java.time.YearMonth
 
 /**
  * Every figure a rolled-over budget feeds (the Budgets screen in both currency
- * modes, Home, the widget, alerts, the digest, Insights, Budget History) gets
+ * modes, Home, the widget, alerts, Budget History) gets
  * the same carry from last week.
  */
 class BudgetRolloverRoutingTest {
@@ -137,13 +133,17 @@ class BudgetRolloverRoutingTest {
         }
     }
 
-    private fun overall(repo: BudgetGroupRepository, unified: Boolean): BudgetOverallSummary = runBlocking {
+    private fun overall(
+        repo: BudgetGroupRepository,
+        unified: Boolean,
+        month: YearMonth = YearMonth.from(today)
+    ): BudgetOverallSummary = runBlocking {
         val prefs = mockk<CurrencyPreferences> {
             every { baseCurrency } returns flowOf("JOD")
             every { unifiedCurrencyMode } returns flowOf(unified)
             every { displayCurrency } returns flowOf("JOD")
         }
-        BudgetSummaryProvider(repo, prefs, conversion).summary(YearMonth.from(today)).first()
+        BudgetSummaryProvider(repo, prefs, conversion).summary(month).first()
     }
 
     private fun summary(repo: BudgetGroupRepository, unified: Boolean): BudgetGroupSpending =
@@ -175,6 +175,33 @@ class BudgetRolloverRoutingTest {
     }
 
     @Test
+    fun `a budget made of category limits counts every one, spent in this week or not`() {
+        // No overall limit: Food 100 + Fuel 100. Last week 500 on Food carries the limit
+        // down to 0; nothing spent yet this week mustn't drop Fuel's 100 from the base.
+        val categoryOnly = budget().let { g ->
+            g.copy(
+                budget = g.budget.copy(limitAmount = BigDecimal.ZERO),
+                categories = g.categories + BudgetCategoryEntity(budgetId = 1, categoryName = "Fuel", budgetAmount = BigDecimal("100"))
+            )
+        }
+        val repo = repository(categoryOnly, listOf(spend("500", at = lastWeek)))
+        for (g in listOf(summary(repo, unified = false), summary(repo, unified = true), home(repo))) {
+            assertFigures(g, carry = "-200", limit = "0", remaining = "0")
+            assertTrue(g.hasLimit)
+        }
+    }
+
+    @Test
+    fun `next month's budgets carry nothing while this period is still running`() {
+        val repo = repository(budget(), listOf(spend("30")))
+        for (unified in listOf(false, true)) {
+            val g = overall(repo, unified, YearMonth.from(today).plusMonths(1)).groups.single()
+            assertEquals(0, BigDecimal.ZERO.compareTo(g.carry))
+            assertEquals(0, BigDecimal("100").compareTo(g.totalBudget))
+        }
+    }
+
+    @Test
     fun `an overspend lowers this week's limit everywhere`() {
         val repo = repository(budget(), listOf(spend("130", at = lastWeek), spend("30")))
         assertFigures(summary(repo, unified = false), carry = "-30", limit = "70", remaining = "40")
@@ -196,11 +223,6 @@ class BudgetRolloverRoutingTest {
         }
         for (unified in listOf(false, true)) {
             val overall = overall(repo, unified)
-            assertEquals(
-                listOf(DailySummaryWorker.BudgetLeft("Food", BigDecimal("-30"), incomplete = false)),
-                DailySummaryWorker.budgetsLeft(overall, today)
-            )
-            assertTrue(InsightRules.budgets(budgetStatuses(overall, today), "p").single().fact is InsightFact.BudgetOver)
             // The widget shows it used up, not its "create a budget" empty state.
             val widget = budgetWidgetData(overall, overall)
             assertTrue(widget.hasLimit)

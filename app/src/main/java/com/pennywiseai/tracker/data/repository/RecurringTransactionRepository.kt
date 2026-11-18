@@ -1,11 +1,11 @@
 package com.pennywiseai.tracker.data.repository
 
 import android.util.Log
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.dao.RecurringTransactionDao
 import com.pennywiseai.tracker.data.database.entity.RecurringTransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
-import com.pennywiseai.tracker.data.database.withTransaction
 import kotlinx.coroutines.flow.Flow
 import java.math.BigDecimal
 import java.security.MessageDigest
@@ -85,7 +85,7 @@ class RecurringTransactionRepository @Inject constructor(
                     // Advance the schedule regardless of whether the insert was a
                     // fresh row or a dedup no-op (-1): the intent is "this due
                     // date has been handled, move on".
-                    dao.updateNextDueDate(template.id, template.nextDueDateAfter(today))
+                    dao.updateNextDueDate(template.id, nextDueDateAfter(template, today))
                     if (rowId != -1L) created++
                 }
             } catch (e: Exception) {
@@ -94,6 +94,23 @@ class RecurringTransactionRepository @Inject constructor(
             }
         }
         return created
+    }
+
+    /**
+     * The first occurrence strictly after [today], stepping by the template's
+     * cadence from its current [RecurringTransactionEntity.nextDueDate]. Loops
+     * so a template that missed several cycles lands on the next real future
+     * date instead of re-firing immediately.
+     */
+    private fun nextDueDateAfter(
+        template: RecurringTransactionEntity,
+        today: LocalDate
+    ): LocalDate {
+        var next = template.nextDueAfter(template.nextDueDate)
+        while (!next.isAfter(today)) {
+            next = template.nextDueAfter(next)
+        }
+        return next
     }
 
     /**
@@ -133,7 +150,7 @@ class RecurringTransactionRepository @Inject constructor(
     ): String {
         // Template id + due date make this deterministic per (template, cycle),
         // so a repeated run before the date advances collides on the unique hash.
-        val data = "RECURRING_${templateId}_${amount}_${merchant}_$dueDate"
+        val data = "RECURRING_${templateId}_${amount}_${merchant}_${dueDate}"
         return MessageDigest.getInstance("MD5")
             .digest(data.toByteArray())
             .joinToString("") { "%02x".format(it) }

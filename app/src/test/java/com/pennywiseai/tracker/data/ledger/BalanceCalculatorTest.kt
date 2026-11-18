@@ -12,6 +12,23 @@ import java.time.LocalDateTime
 class BalanceCalculatorTest {
 
     @Test
+    fun `availableCredit is the limit left after the outstanding, matching the SMS figure`() {
+        // An SMS: spent 10,000, "avl limit 90,000". The row stores the total limit
+        // (90,000 + 10,000) and the outstanding; Available Credit must read 90,000,
+        // not the 100,000 total next to "Outstanding: 10,000".
+        val storedLimit = BigDecimal("90000.00") + BigDecimal("10000.00")
+        assertEquals(
+            BigDecimal("90000.00"),
+            BalanceCalculator.availableCredit(storedLimit, BigDecimal("10000.00"))
+        )
+        // Over the limit: shown as negative headroom, not clamped to the limit.
+        assertEquals(
+            BigDecimal("-500.00"),
+            BalanceCalculator.availableCredit(BigDecimal("1000.00"), BigDecimal("1500.00"))
+        )
+    }
+
+    @Test
     fun `preservedAccountType carries over the existing account's type`() {
         val existing = AccountBalanceEntity(
             bankName = "HDFC",

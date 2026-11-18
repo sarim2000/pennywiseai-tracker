@@ -3,8 +3,6 @@ package com.pennywiseai.tracker.presentation.home
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -12,7 +10,6 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -25,7 +22,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetValue
-import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberBottomSheetState
@@ -52,7 +48,6 @@ import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.SHORT_DATE
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
-import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -134,7 +129,6 @@ fun SafeToSpendCard(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        GoalsLine(primary)
         CappedLine(primary)
         if (state.others.isNotEmpty()) {
             Text(
@@ -165,17 +159,6 @@ private fun IncompleteLine(cards: Int) {
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
     }
-}
-
-/** "₹1,500 set aside for goals", only when the user asked for it and there's some. */
-@Composable
-private fun GoalsLine(s: SafeToSpend) {
-    if (s.goalReserve.signum() <= 0) return
-    Text(
-        text = stringResource(R.string.safe_to_spend_goals_set_aside, CurrencyFormatter.formatCurrency(s.goalReserve, s.currency)),
-        style = MaterialTheme.typography.bodySmall,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
-    )
 }
 
 /** "Capped by your budget: ₹5,000 left", only when the budget sets the figure. */
@@ -211,12 +194,11 @@ private fun PerDayLine(s: SafeToSpend, until: String, dueBefore: String) {
 }
 
 /** Breakdown behind [SafeToSpendCard]: accounts counted, bills due, and the total. */
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SafeToSpendSheet(
     state: SafeToSpendUi,
     onSetIncluded: (AccountBalanceEntity, Boolean) -> Unit,
-    onSetReserveGoals: (Boolean) -> Unit,
     onOpenCard: (AccountBalanceEntity) -> Unit,
     onDismiss: () -> Unit
 ) {
@@ -311,8 +293,11 @@ fun SafeToSpendSheet(
                     state.bills.sortedBy { it.dueDate }.forEachIndexed { i, bill ->
                         GroupedRow(position = ListItemPosition.from(i, state.bills.size)) {
                             val overdue = bill.isCardBill && bill.dueDate.isBefore(today)
-                            val due = if (overdue) stringResource(R.string.safe_to_spend_overdue, bill.dueDate.format(SHORT_DATE))
-                            else bill.dueDate.format(SHORT_DATE)
+                            val due = if (overdue) {
+                                stringResource(R.string.safe_to_spend_overdue, bill.dueDate.format(SHORT_DATE))
+                            } else {
+                                bill.dueDate.format(SHORT_DATE)
+                            }
                             SheetRowLabels(
                                 title = bill.name,
                                 // A card bill's name is the card's, so say what it is.
@@ -358,51 +343,17 @@ fun SafeToSpendSheet(
                 }
             }
 
-            if (state.goals.available) {
-                SectionHeaderV2(title = stringResource(R.string.safe_to_spend_goals_header))
-                // Only what was actually taken off: a goal in a currency with no line isn't.
-                val setAside = (listOf(primary) + state.others)
-                    .filter { it.goalReserve.signum() > 0 }
-                    .associate { it.currency to Money(it.goalReserve, it.currency) }
-                val position = ListItemPosition.from(0, 1)
-                GroupedList {
-                    GroupedRow(
-                        position = position,
-                        // The whole row is the switch, for touch and TalkBack alike.
-                        modifier = Modifier
-                            .clip(position.toShape())
-                            .toggleable(value = state.goals.on, role = Role.Switch, onValueChange = onSetReserveGoals)
-                    ) {
-                        SheetRowLabels(
-                            title = stringResource(R.string.safe_to_spend_goals_toggle),
-                            subtitle = if (state.goals.on && setAside.isNotEmpty()) {
-                                stringResource(R.string.safe_to_spend_goals_on, CurrencyFormatter.formatByCurrency(setAside), until)
-                            } else {
-                                stringResource(R.string.safe_to_spend_goals_off, until)
-                            },
-                            modifier = Modifier.weight(1f)
-                        )
-                        Switch(checked = state.goals.on, onCheckedChange = null)
-                    }
-                }
-            }
-
             Spacer(Modifier.height(Spacing.md))
             // Inset like the grouped rows above, so the total lines up with their amounts.
-            // The label keeps its width: amounts in several currencies that don't fit
-            // beside it wrap onto the line below instead of squeezing it.
-            FlowRow(
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalArrangement = Arrangement.spacedBy(Spacing.xxs),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Spacing.md)
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = Spacing.md)
             ) {
                 Text(
                     text = stringResource(R.string.safe_to_spend_title),
                     style = MaterialTheme.typography.titleMedium,
                     color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(end = Spacing.sm)
+                    modifier = Modifier.weight(1f)
                 )
                 Text(
                     text = (listOf(primary) + state.others).formatAmounts(),

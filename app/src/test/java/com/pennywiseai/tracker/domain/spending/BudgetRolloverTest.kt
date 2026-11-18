@@ -176,6 +176,19 @@ class BudgetRolloverTest {
     }
 
     @Test
+    fun `saving a legacy budget's default anchor keeps the start`() {
+        // A null anchor is Monday for a weekly budget, the global start day for a monthly one.
+        val weekly = budget().copy(weekStartDay = null)
+        assertEquals(weekly.rolloverSince, BudgetRollover.sinceAfterEdit(weekly, weekly.copy(weekStartDay = 1), today))
+        val monthly = budget(periodType = BudgetPeriodType.MONTHLY)
+        assertEquals(
+            monthly.rolloverSince,
+            BudgetRollover.sinceAfterEdit(monthly, monthly.copy(monthStartDay = 5), today, globalStartDay = 5)
+        )
+        assertEquals(today, BudgetRollover.sinceAfterEdit(monthly, monthly.copy(monthStartDay = 5), today, globalStartDay = 1))
+    }
+
+    @Test
     fun `a new currency or period starts it again`() {
         val b = budget()
         assertEquals(today, BudgetRollover.sinceAfterEdit(b, b.copy(currency = "USD"), today))

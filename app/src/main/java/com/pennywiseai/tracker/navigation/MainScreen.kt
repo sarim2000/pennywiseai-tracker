@@ -259,6 +259,17 @@ fun MainScreen(
         }
     }
 
+    // A question said to the quick add mic: once the app is unlocked and back on Home
+    // (PennyWiseApp), Chat shows, once; Chat puts the question in its box when the box is there.
+    val openChat by mainViewModel.openChat.collectAsStateWithLifecycle()
+    LaunchedEffect(openChat, themeState.isLoading) {
+        if (!openChat || themeState.isLoading) return@LaunchedEffect
+        mainViewModel.chatOpened()
+        if (BottomNavItem.Chat.route in hiddenTabs) return@LaunchedEffect
+        tabStacks.getValue(BottomNavItem.Chat).resetTo(Chat)
+        selectTab(BottomNavItem.Chat)
+    }
+
     // Home's scan, for the Spotlight tutorial drawn over the bar (set by Home's entry).
     var scanSms by remember { mutableStateOf<(() -> Unit)?>(null) }
 
@@ -289,9 +300,6 @@ fun MainScreen(
                 },
                 onNavigateToReview = { kind ->
                     openRoot(com.pennywiseai.tracker.navigation.Review(kind.name))
-                },
-                onNavigateToInsights = {
-                    openRoot(Insights)
                 },
                 onNavigateToSubscriptions = {
                     open(tab, Subscriptions)
@@ -401,9 +409,6 @@ fun MainScreen(
                 },
                 onNavigateToHome = {
                     selectTab(BottomNavItem.Home)
-                },
-                onNavigateToInsights = {
-                    openRoot(Insights)
                 }
             )
         }

@@ -1,4 +1,4 @@
-package com.pennywiseai.tracker.presentation.chat
+package com.pennywiseai.tracker.ui.voice
 
 import android.Manifest
 import android.content.ComponentName
@@ -90,10 +90,11 @@ import kotlinx.coroutines.delay
 import java.util.Locale
 
 /**
- * Chat voice input (M5). The phone's on-device recognizer by default. A phone language it
- * can't recognize offline (Arabic on Google's recognizer today) can run on the phone's
- * online speech service, but only after the user agrees once. The words only fill the
- * message box: nothing is sent, and no audio is kept.
+ * Voice input for chat and quick add (M5). The phone's on-device recognizer by default. A
+ * phone language it can't recognize offline (Arabic on Google's recognizer today) can run on
+ * the phone's online speech service, but only after the user agrees once. The words only
+ * fill a box ([onText]) and, once the user is done, are handed over once ([onDone]): nothing
+ * is sent from here, and no audio is kept.
  */
 @Stable
 class VoiceInput internal constructor(
@@ -106,8 +107,7 @@ class VoiceInput internal constructor(
     data class Note(@param:StringRes val text: Int, val arg: String? = null, val isError: Boolean = true)
 
     // ponytail: API 33+ only, where language lists and downloads exist; older phones get no mic.
-    val available: Boolean =
-        Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && SpeechRecognizer.isOnDeviceRecognitionAvailable(context)
+    val available: Boolean = isAvailable(context)
 
     var state by mutableStateOf(State.Idle)
         private set
@@ -144,6 +144,13 @@ class VoiceInput internal constructor(
     /** False until the recognizer has said which languages it has (or if it couldn't). */
     private var supportKnown by mutableStateOf(false)
 
+    /**
+     * True once the first language query has answered, either way. Until then an online-only
+     * language looks on-device, so a mic that starts by itself waits for this.
+     */
+    var ready by mutableStateOf(false)
+        private set
+
     private var chosen by mutableStateOf(prefs.getString(KEY_LANGUAGE, null))
 
     /** Bumped on every pick, so a download can tell whether the user chose anything since. */
@@ -163,12 +170,25 @@ class VoiceInput internal constructor(
 
     internal var requestPermission: () -> Unit = {}
     internal var onText: (String) -> Unit = {}
+
+    /**
+     * The whole text once, when a recording ends with words heard and no error: never per
+     * partial, and not on [cancel], so a caller can act on what was said exactly once.
+     */
+    internal var onDone: (String) -> Unit = {}
     private var recognizer: SpeechRecognizer? = null
     private val downloads = mutableListOf<SpeechRecognizer>()
     private var prefix = ""
     private var heard = ""
     private var pendingStart = false
     private var probe: SpeechRecognizer? = null
+
+    // The last answered probe, kept to listen with: destroying it unbinds the speech service,
+    // and a mic started right after (the quick add sheet starts on the answer) was cancelled.
+    private var spare: SpeechRecognizer? = null
+
+    // A probe that failed, for the same reason destroyed only once a recording ends or the screen goes.
+    private var retired: SpeechRecognizer? = null
     private var userStopped = false
     private val main = Handler(Looper.getMainLooper())
 
@@ -270,6 +290,10 @@ class VoiceInput internal constructor(
         cancel()
         probe?.destroy()
         probe = null
+        spare?.destroy()
+        spare = null
+        retired?.destroy()
+        retired = null
         downloads.forEach { it.destroy() }
         downloads.clear()
     }
@@ -292,7 +316,7 @@ class VoiceInput internal constructor(
         val r = if (service != null) {
             SpeechRecognizer.createSpeechRecognizer(context, service)
         } else {
-            SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
+            spare?.also { spare = null } ?: SpeechRecognizer.createOnDeviceSpeechRecognizer(context)
         }
         recognizer = r
         r.setRecognitionListener(Listener(r))
@@ -304,10 +328,16 @@ class VoiceInput internal constructor(
         if (recognizer !== r) return
         recognizer = null
         r.destroy()
+        retired?.destroy()
+        retired = null
         state = State.Idle
         level = 0f
         note = result
+        if (result == null && heard.isNotEmpty()) onDone(spoken())
     }
+
+    /** What was in the box before the mic, then the words heard. */
+    private fun spoken() = listOf(prefix.trimEnd(), heard).filter { it.isNotEmpty() }.joinToString(" ")
 
     private inner class Listener(private val r: SpeechRecognizer) : RecognitionListener {
         private fun show(bundle: Bundle) {
@@ -315,7 +345,7 @@ class VoiceInput internal constructor(
             val text = bundle.getStringArrayList(SpeechRecognizer.RESULTS_RECOGNITION)?.firstOrNull()?.trim()
             if (text.isNullOrEmpty()) return
             heard = text
-            onText(listOf(prefix.trimEnd(), text).filter { it.isNotEmpty() }.joinToString(" "))
+            onText(spoken())
         }
 
         // Google's on-device recognizer sends the final words as a partial with
@@ -390,7 +420,7 @@ class VoiceInput internal constructor(
                 override fun onSupportResult(support: RecognitionSupport) {
                     if (probe !== r) return
                     probe = null
-                    r.destroy()
+                    keepSpare(r)
                     installed = support.installedOnDeviceLanguages.distinct()
                     pending = support.pendingOnDeviceLanguages.filter { it !in installed }.distinct()
                     downloadable = support.supportedOnDeviceLanguages
@@ -400,15 +430,28 @@ class VoiceInput internal constructor(
                     val onDevice = installed + pending + downloadable
                     online = if (onlineService() == null) emptyList() else onlineOnly(mine, onDevice)
                     supportKnown = true
+                    ready = true
                 }
 
                 override fun onError(error: Int) {
                     if (probe !== r) return
                     probe = null
-                    r.destroy()
+                    // Its connection is fine when the service just can't say what it supports.
+                    if (error == SpeechRecognizer.ERROR_CANNOT_CHECK_SUPPORT) {
+                        keepSpare(r)
+                    } else {
+                        retired?.destroy()
+                        retired = r
+                    }
+                    ready = true
                 }
             }
         )
+    }
+
+    private fun keepSpare(r: SpeechRecognizer) {
+        spare?.destroy()
+        spare = r
     }
 
     fun download(tag: String) {
@@ -513,6 +556,10 @@ class VoiceInput internal constructor(
 
         val QUIET_ERRORS = setOf(SpeechRecognizer.ERROR_NO_MATCH, SpeechRecognizer.ERROR_SPEECH_TIMEOUT)
 
+        /** Whether this phone gets a mic at all; widgets ask before showing one. */
+        fun isAvailable(context: Context): Boolean =
+            Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU && SpeechRecognizer.isOnDeviceRecognitionAvailable(context)
+
         fun sameLanguage(a: String, b: String) = Locale.forLanguageTag(a).language == Locale.forLanguageTag(b).language
 
         /**
@@ -561,18 +608,23 @@ class VoiceInput internal constructor(
     }
 }
 
-/** [onText] gets the whole box text: what was there before the mic, then the words heard. */
+/**
+ * [onText] gets the whole box text: what was there before the mic, then the words heard.
+ * [onDone] gets it once more when the user is done speaking.
+ */
 @Composable
-fun rememberVoiceInput(onText: (String) -> Unit): VoiceInput {
+fun rememberVoiceInput(onText: (String) -> Unit, onDone: (String) -> Unit = {}): VoiceInput {
     val context = LocalContext.current
     val activity = LocalActivity.current
     val prefs = remember { context.getSharedPreferences(VoiceInput.PREFS, Context.MODE_PRIVATE) }
     val voice = remember { VoiceInput(context.applicationContext, prefs) }
     val currentOnText by rememberUpdatedState(onText)
+    val currentOnDone by rememberUpdatedState(onDone)
     val launcher = rememberLauncherForActivityResult(ActivityResultContracts.RequestPermission()) {
         voice.onPermission(it)
     }
     voice.onText = { currentOnText(it) }
+    voice.onDone = { currentOnDone(it) }
     voice.requestPermission = {
         // Android stops showing the dialog after repeated denials; settings is the only way back.
         val blocked = prefs.getBoolean(VoiceInput.KEY_ASKED, false) && activity != null &&

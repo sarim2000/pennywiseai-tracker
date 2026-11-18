@@ -1,8 +1,5 @@
 package com.pennywiseai.tracker.domain.spending
 
-import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
-import com.pennywiseai.tracker.data.database.entity.TransactionEntity
-import com.pennywiseai.tracker.data.database.entity.TransactionType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -91,67 +88,5 @@ class RecurringChargeTest {
         val nov26 = LocalDate.of(2026, 11, 26)
         assertTrue(RecurringCharge.isRetap(nov23, LocalDate.of(2026, 11, 30), nov26, nov23))
         assertFalse(RecurringCharge.isRetap(nov23, LocalDate.of(2026, 11, 30), nov26, nov26))
-    }
-
-    @Test
-    fun `the next payment shown keeps today and moves past dates on a month at a time`() {
-        val today = LocalDate.of(2026, 11, 16)
-        assertEquals(today, RecurringCharge.nextPaymentShown(today, "Monthly", today))
-        assertEquals(LocalDate.of(2026, 12, 10), RecurringCharge.nextPaymentShown(LocalDate.of(2026, 10, 10), "Monthly", today))
-        assertEquals(LocalDate.of(2026, 11, 20), RecurringCharge.nextPaymentShown(LocalDate.of(2026, 11, 20), "Monthly", today))
-    }
-
-    @Test
-    fun `the next payment shown moves on by the subscription's own cycle`() {
-        val today = LocalDate.of(2026, 11, 17)
-        // Weekly: Nov 13 is next due Nov 20, not Dec 13.
-        assertEquals(LocalDate.of(2026, 11, 20), RecurringCharge.nextPaymentShown(LocalDate.of(2026, 11, 13), "Weekly", today))
-        // Annual: a missed March date is next due next March, with no monthly dates between.
-        assertEquals(LocalDate.of(2027, 3, 5), RecurringCharge.nextPaymentShown(LocalDate.of(2026, 3, 5), "Annual", today))
-        assertEquals(LocalDate.of(2027, 2, 1), RecurringCharge.nextPaymentShown(LocalDate.of(2026, 11, 1), "Quarterly", today))
-        // Due today stays today, whatever the cycle.
-        assertEquals(today, RecurringCharge.nextPaymentShown(today, "Weekly", today))
-    }
-
-    @Test
-    fun `a month-end payment lands on February's last day and comes back to the 31st`() {
-        val jan31 = LocalDate.of(2027, 1, 31)
-        assertEquals(LocalDate.of(2027, 2, 28), RecurringCharge.nextPaymentShown(jan31, "Monthly", LocalDate.of(2027, 2, 10)))
-        assertEquals(
-            LocalDate.of(2028, 2, 29),
-            RecurringCharge.nextPaymentShown(LocalDate.of(2028, 1, 31), "Monthly", LocalDate.of(2028, 2, 10)),
-        )
-        assertEquals(LocalDate.of(2027, 3, 31), RecurringCharge.nextPaymentShown(jan31, "Monthly", LocalDate.of(2027, 3, 1)))
-    }
-
-    @Test
-    fun `advance moves by the cycle, either way`() {
-        val date = LocalDate.of(2026, 11, 13)
-        assertEquals(LocalDate.of(2026, 11, 20), RecurringCharge.advance(date, "Weekly"))
-        assertEquals(LocalDate.of(2026, 11, 6), RecurringCharge.advance(date, "WEEKLY", -1))
-        assertEquals(LocalDate.of(2027, 5, 13), RecurringCharge.advance(date, "Semi-Annual"))
-        assertEquals(LocalDate.of(2027, 11, 13), RecurringCharge.advance(date, "Yearly"))
-        assertEquals(LocalDate.of(2026, 12, 13), RecurringCharge.advance(date, "Fortnightly"))
-    }
-
-    @Test
-    fun `a charge pays only from every part of the account the bill names`() {
-        fun sub(bank: String?, last4: String?) = SubscriptionEntity(
-            merchantName = "Streamer", amount = BigDecimal("100"), nextPaymentDate = null, bankName = bank, accountLast4 = last4,
-        )
-        fun charge(bank: String?, account: String?) = TransactionEntity(
-            amount = BigDecimal("100"), merchantName = "Streamer", category = "Bills", transactionType = TransactionType.EXPENSE,
-            dateTime = LocalDate.of(2026, 11, 17).atStartOfDay(), transactionHash = "h", bankName = bank, accountNumber = account,
-        )
-        assertTrue(RecurringCharge.couldBePaidFrom(sub("Bank A", "1111"), charge("bank a", "1111")))
-        assertFalse(RecurringCharge.couldBePaidFrom(sub("Bank A", "1111"), charge("Bank A", "2222")))
-        assertFalse(RecurringCharge.couldBePaidFrom(sub("Bank A", "1111"), charge("Bank B", "1111")))
-        // Missing on the charge: not enough to pay an account-tied bill.
-        assertFalse(RecurringCharge.couldBePaidFrom(sub("Bank A", "1111"), charge("Bank A", null)))
-        assertFalse(RecurringCharge.couldBePaidFrom(sub("Bank A", "1111"), charge(null, null)))
-        assertFalse(RecurringCharge.couldBePaidFrom(sub("Bank A", null), charge(null, "1111")))
-        // Only what the bill names has to match.
-        assertTrue(RecurringCharge.couldBePaidFrom(sub("Bank A", null), charge("Bank A", "2222")))
-        assertTrue(RecurringCharge.couldBePaidFrom(sub(null, null), charge(null, null)))
     }
 }

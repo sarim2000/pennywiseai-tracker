@@ -76,7 +76,6 @@ fun HomeScreen(
     onNavigateToTransactionsWithSearch: () -> Unit = {},
     onNavigateToSubscriptions: () -> Unit = {},
     onNavigateToReview: (ReviewKind) -> Unit = {},
-    onNavigateToInsights: () -> Unit = {},
     onNavigateToBudgets: () -> Unit = {},
     onNavigateToLoans: () -> Unit = {},
     onNavigateToTransactionGroups: () -> Unit = {},
@@ -128,16 +127,6 @@ fun HomeScreen(
     // Fixes happen in system Settings, so every check reruns on return.
     val context = LocalContext.current
     val backgroundAccess: BackgroundAccessViewModel = hiltViewModel()
-    val insightsViewModel: com.pennywiseai.tracker.presentation.insights.InsightsViewModel = hiltViewModel()
-    // Only loaded while the section is shown: hidden, it costs nothing.
-    val topInsights = if (homeSectionLayout.contains(HomeSection.INSIGHTS to true)) {
-        com.pennywiseai.tracker.presentation.insights.homeInsights(
-            active = insightsViewModel.active.collectAsStateWithLifecycle().value,
-            budgetsOnHome = homeSectionLayout.contains(HomeSection.BUDGETS to true) && uiState.budgetSummary != null,
-        )
-    } else {
-        emptyList()
-    }
     val backgroundState by backgroundAccess.state.collectAsStateWithLifecycle()
     var canReceiveSms by remember { mutableStateOf(context.canReceiveSms()) }
     // Read on resume too, so a snooze that ran out while Home sat in the background ends.
@@ -175,6 +164,12 @@ fun HomeScreen(
     // Set while the floating nav bar is up: Sync docks beside it, and Add
     // moves to the header so no FAB stack floats over the content.
     val navDock = LocalNavDock.current
+
+    // Say a cash spend, or ask: the quick add sheet listens, on phones with a recognizer.
+    val onVoiceClick = remember(context) {
+        { context.startActivity(com.pennywiseai.tracker.core.QuickAddIntent.voice(context)) }
+            .takeIf { com.pennywiseai.tracker.ui.voice.VoiceInput.isAvailable(context) }
+    }
 
     // Haptic on successful SMS scan completion
     LaunchedEffect(smsScanWorkInfo?.state) {
@@ -222,7 +217,6 @@ fun HomeScreen(
     // A new day moves the forecast and Safe to spend on, even with no data change.
     androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
         viewModel.refreshDate()
-        insightsViewModel.refreshDate()
         onPauseOrDispose { }
     }
 
@@ -296,6 +290,7 @@ fun HomeScreen(
                         onProfileSelected = { viewModel.updateSelectedProfile(it) },
                         onDismissProfileFilter = { showProfileFilterMenu = false },
                         onNavigateToAddScreen = onNavigateToAddScreen,
+                        onVoiceClick = onVoiceClick,
                         onMoreClick = { showMenuSheet = true }
                     )
                 },
@@ -307,6 +302,7 @@ fun HomeScreen(
                         onAvatarClick = onNavigateToSettings,
                         onMenuClick = { showMenuSheet = true },
                         onAddClick = onNavigateToAddScreen.takeIf { navDock != null },
+                        onVoiceClick = onVoiceClick,
                         profiles = uiState.profiles,
                         selectedProfileId = uiState.selectedProfileId,
                         onProfileSelected = { viewModel.updateSelectedProfile(it) },
@@ -486,7 +482,6 @@ fun HomeScreen(
                     when (section) {
                         HomeSection.SAFE_TO_SPEND -> safeToSpend != null
                         HomeSection.BUDGETS -> uiState.budgetSummary != null
-                        HomeSection.INSIGHTS -> topInsights.isNotEmpty()
                         HomeSection.GOALS -> goals.isNotEmpty()
                         HomeSection.LOANS -> uiState.loanSummary != null
                         HomeSection.GROUPS -> groupSummaries.isNotEmpty()
@@ -523,19 +518,6 @@ fun HomeScreen(
                                         HomeBudgetsSection(
                                             summary = summary,
                                             onNavigateToBudgets = onNavigateToBudgets
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                        HomeSection.INSIGHTS -> {
-                            // What needs attention this cycle; absent until there's something to say.
-                            if (topInsights.isNotEmpty()) {
-                                item(key = section.name) {
-                                    StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
-                                        HomeInsightsSection(
-                                            insights = topInsights,
-                                            onNavigateToInsights = onNavigateToInsights
                                         )
                                     }
                                 }
@@ -796,7 +778,6 @@ fun HomeScreen(
             HomeMenuSheet(
                 sheetState = sheetState,
                 onDismiss = { showMenuSheet = false },
-                onOpenInsights = onNavigateToInsights,
                 onOpenReview = { onNavigateToReview(ReviewKind.MONTH) },
                 onOpenShareCard = { showShareSheet = true },
                 onOpenSettings = onNavigateToSettings,
@@ -810,7 +791,6 @@ fun HomeScreen(
         SafeToSpendSheet(
             state = state,
             onSetIncluded = viewModel::setSafeToSpendAccountIncluded,
-            onSetReserveGoals = viewModel::setReserveGoalSavings,
             onOpenCard = { card ->
                 showSafeToSpendSheet = false
                 onAccountClick(card.bankName, card.accountLast4)

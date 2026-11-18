@@ -14,13 +14,10 @@ class AccountFieldsTest {
         cardDueDay = 2,
         cardBillAmount = BigDecimal("650.25"),
         cardBillAsOf = LocalDateTime.of(2026, 3, 14, 9, 0),
-        anchorAmount = BigDecimal("1000"),
-        anchorAt = LocalDateTime.of(2026, 1, 1, 8, 0),
-        anchorSource = "MANUAL",
     )
 
     @Test
-    fun `a new row carries the bill, statement day and anchor`() {
+    fun `a new row carries the bill and statement day`() {
         val next = row(BigDecimal("950")).withAccountFieldsOf(set)
 
         assertEquals(BigDecimal("950"), next.balance)
@@ -28,9 +25,6 @@ class AccountFieldsTest {
         assertEquals(2, next.cardDueDay)
         assertEquals(BigDecimal("650.25"), next.cardBillAmount)
         assertEquals(set.cardBillAsOf, next.cardBillAsOf)
-        assertEquals(BigDecimal("1000"), next.anchorAmount)
-        assertEquals(set.anchorAt, next.anchorAt)
-        assertEquals("MANUAL", next.anchorSource)
     }
 
     @Test

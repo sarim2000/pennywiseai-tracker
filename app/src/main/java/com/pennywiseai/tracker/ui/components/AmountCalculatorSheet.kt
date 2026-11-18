@@ -45,8 +45,8 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.domain.model.AmountExpression
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import com.pennywiseai.tracker.ui.theme.money
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
 import java.text.DecimalFormatSymbols
 
@@ -64,13 +64,18 @@ fun AmountCalculatorSheet(
     onApply: (BigDecimal) -> Unit,
     onDismiss: () -> Unit
 ) {
-    // Kept with '.' as the point; shown with the locale's.
-    var expression by rememberSaveable { mutableStateOf(initialAmount.take(AmountExpression.MAX_LENGTH)) }
+    // Kept with '.' as the point; shown with the locale's. Never cut short: dropping
+    // digits changes the amount, so an over-long start is left for check() to reject.
+    var expression by rememberSaveable { mutableStateOf(initialAmount) }
     val outcome = AmountExpression.check(expression, MinorUnits.digits(currency))
     val result = (outcome as? AmountExpression.Outcome.Amount)?.value
     val canApply = result != null && result.signum() > 0
     // Why there's nothing to use, when it's worth saying; null shows the result.
+    // A key the length limit turned away; any edit that goes through clears it.
+    var full by rememberSaveable { mutableStateOf(false) }
+    val tooLong = full || expression.length > AmountExpression.MAX_LENGTH
     val problem = when {
+        tooLong -> stringResource(R.string.calculator_too_long)
         canApply -> null
         result != null -> stringResource(R.string.calculator_must_be_positive)
         outcome == AmountExpression.Outcome.DividesByZero -> stringResource(R.string.calculator_divide_by_zero)
@@ -82,7 +87,8 @@ fun AmountCalculatorSheet(
     val point = remember(locale) { DecimalFormatSymbols.getInstance(locale).decimalSeparator }
     fun shown(text: String) = text.replace('.', point)
     fun type(key: String) {
-        if (expression.length + key.length <= AmountExpression.MAX_LENGTH) expression += key
+        full = expression.length + key.length > AmountExpression.MAX_LENGTH
+        if (!full) expression += key
     }
 
     ModalBottomSheet(
@@ -113,12 +119,14 @@ fun AmountCalculatorSheet(
                     )
                     Text(
                         text = when {
-                            canApply -> "= " + shown(result.toPlainString())
+                            // With its currency, so it's clear what Apply writes. Not masked
+                            // when amounts are hidden: the sum being typed is on screen anyway.
+                            !tooLong && canApply -> "= " + CurrencyFormatter.formatCurrency(result, currency, maskIfHidden = false)
                             else -> problem ?: " "
                         },
                         style = MaterialTheme.typography.titleMedium.money(),
                         // A sum still being typed isn't a mistake, so it isn't red.
-                        color = if (problem != null && outcome != AmountExpression.Outcome.Unfinished) {
+                        color = if (tooLong || (problem != null && outcome != AmountExpression.Outcome.Unfinished)) {
                             MaterialTheme.colorScheme.error
                         } else {
                             MaterialTheme.colorScheme.onSurfaceVariant
@@ -131,10 +139,21 @@ fun AmountCalculatorSheet(
                     Keypad(
                         point = point,
                         onKey = ::type,
-                        onClear = { expression = "" },
-                        onBackspace = { expression = expression.dropLast(1) },
+                        onClear = {
+                            expression = ""
+                            full = false
+                        },
+                        onBackspace = {
+                            expression = expression.dropLast(1)
+                            full = false
+                        },
                         // "=" folds the sum into its result, to keep going from there.
-                        onEquals = { result?.let { expression = it.toPlainString() } }
+                        onEquals = {
+                            result?.let {
+                                expression = it.toPlainString()
+                                full = false
+                            }
+                        }
                     )
                 }
             }
@@ -147,7 +166,8 @@ fun AmountCalculatorSheet(
                 }
                 Button(
                     onClick = { result?.let(onApply) },
-                    enabled = canApply,
+                    // Not while a key was turned away: the result isn't the sum the user typed.
+                    enabled = canApply && !tooLong,
                     shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.calculator_apply))
@@ -192,11 +212,12 @@ private fun Keypad(
             FilledTonalButton(
                 onClick = onBackspace,
                 shapes = ButtonDefaults.shapes(),
+                colors = digitColors(),
                 modifier = Modifier.weight(1f).heightIn(min = Dimensions.Component.minTouchTarget)
             ) {
                 Icon(Icons.AutoMirrored.Outlined.Backspace, contentDescription = backspace)
             }
-            Key("=", Modifier.weight(1f), operator = true, description = equals, onClick = onEquals)
+            Key("=", Modifier.weight(1f), operator = true, primary = true, description = equals, onClick = onEquals)
         }
     }
 }
@@ -206,22 +227,21 @@ private fun Key(
     label: String,
     modifier: Modifier,
     operator: Boolean = false,
+    primary: Boolean = false,
     description: String? = null,
     onClick: () -> Unit
 ) {
     FilledTonalButton(
         onClick = onClick,
         shapes = ButtonDefaults.shapes(),
-        colors = if (operator) {
-            // In light themes primaryContainer is as pale as the digit keys' fill, so
-            // operators take primary there; in dark, primaryContainer already stands out.
-            val dark = isAppInDarkTheme()
-            ButtonDefaults.filledTonalButtonColors(
-                containerColor = if (dark) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.primary,
-                contentColor = if (dark) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary
+        // Calm keys like a phone calculator: neutral digits, tonal operators, only "=" in primary.
+        colors = when {
+            primary -> ButtonDefaults.filledTonalButtonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
             )
-        } else {
-            ButtonDefaults.filledTonalButtonColors()
+            operator -> ButtonDefaults.filledTonalButtonColors()
+            else -> digitColors()
         },
         modifier = modifier.heightIn(min = Dimensions.Component.minTouchTarget)
     ) {
@@ -233,3 +253,9 @@ private fun Key(
         )
     }
 }
+
+@Composable
+private fun digitColors() = ButtonDefaults.filledTonalButtonColors(
+    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+    contentColor = MaterialTheme.colorScheme.onSurface
+)

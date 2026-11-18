@@ -71,8 +71,7 @@ class BudgetGroupRepository @Inject constructor(
         )
     }
 
-    /** Sub-category name → parent name; a parent budget row also counts its children (#374). */
-    suspend fun parentOf(): Map<String, String> = categoryDao.getAllCategoriesList().parentNameOf()
+    private suspend fun parentOf(): Map<String, String> = categoryDao.getAllCategoriesList().parentNameOf()
     private suspend fun expandWithChildren(names: Set<String>): Set<String> =
         categoryDao.getAllCategoriesList().expandWithChildren(names)
 
@@ -238,7 +237,7 @@ class BudgetGroupRepository @Inject constructor(
             updatedAt = LocalDateTime.now(),
             rolloverEnabled = (rollover ?: existing.rolloverEnabled) && BudgetRollover.isAvailable(groupType, effectivePeriod)
         )
-        budgetDao.updateBudget(updated.copy(rolloverSince = BudgetRollover.sinceAfterEdit(existing, updated, now)))
+        budgetDao.updateBudget(updated.copy(rolloverSince = BudgetRollover.sinceAfterEdit(existing, updated, now, globalStartDay)))
 
         budgetDao.deleteCategoriesForBudget(budgetId)
         if (buckets.isNotEmpty()) {
@@ -761,9 +760,14 @@ class BudgetGroupRepository @Inject constructor(
         !today.isBefore(window.start) &&
         !today.isAfter(window.end)
 
-    /** Rollover: the full period [budget] carries into [window] from, or null when it carries nothing. */
+    /**
+     * Rollover: the full period [budget] carries into [window] from, or null when it
+     * carries nothing. A [window] that hasn't started carries nothing yet: the period
+     * before it may still be running (a future month opened on the Budgets screen).
+     */
     private fun carryWindow(budget: BudgetEntity, window: BudgetWindow, startDay: Int): BudgetWindow? =
-        if (window.days < 1) null else BudgetRollover.sourceWindow(budget, window, startDay)
+        if (window.days < 1 || window.start.isAfter(LocalDate.now())) null
+        else BudgetRollover.sourceWindow(budget, window, startDay)
 
     /** Every transaction, in every currency, across [windows]; observed, so edits back there re-emit. */
     private fun carryTransactions(windows: Collection<BudgetWindow>): Flow<List<TransactionWithSplits>> =
@@ -787,9 +791,7 @@ class BudgetGroupRepository @Inject constructor(
      * including for a [window] that hasn't started.
      */
     private suspend fun carrySource(budget: BudgetEntity, window: BudgetWindow, startDay: Int): List<TransactionWithSplits>? =
-        // A period that hasn't started carries nothing yet: its source may still be running.
-        if (window.start.isAfter(LocalDate.now())) null
-        else carryWindow(budget, window, startDay)?.let { carryTransactions(listOf(it)).first() }
+        carryWindow(budget, window, startDay)?.let { carryTransactions(listOf(it)).first() }
 
     /**
      * [group]'s carry in [currency] from [previous]. Without [convert] it counts only

@@ -144,7 +144,7 @@ const val SCHEMA_VERSION = 71
         // for split bills (#346) — purely additive.
         AutoMigration(from = 66, to = 67)
         // 67→68 adds transactions.transfer_pair_id and links existing pairs: manual.
-        // 68→69 adds the card bill and balance anchor columns to account_balances: manual.
+        // 68→69 adds the card bill columns to account_balances: manual.
         // 69→70 adds the rollover setting to budgets: manual.
         // 70→71 adds transactions.warranty_until: manual.
     ]

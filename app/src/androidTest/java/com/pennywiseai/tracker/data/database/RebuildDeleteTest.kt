@@ -70,7 +70,7 @@ class RebuildDeleteTest {
 
         dao.fillMissingAccountFields(
             before.bankName, before.accountLast4, before.statementDay, before.cardDueDay,
-            before.cardBillAmount, before.cardBillAsOf, before.currency, null, null, null,
+            before.cardBillAmount, before.cardBillAsOf, before.currency,
         )
 
         val rebuilt = dao.getLatestBalance("Example Bank", "0000")!!
@@ -92,7 +92,7 @@ class RebuildDeleteTest {
         // A merged INR card's bill: the due and statement day carry over, the amount doesn't.
         dao.fillMissingAccountFields(
             target.bankName, target.accountLast4, 12, 2,
-            BigDecimal("4000"), LocalDateTime.of(2026, 10, 13, 9, 0), "INR", null, null, null,
+            BigDecimal("4000"), LocalDateTime.of(2026, 10, 13, 9, 0), "INR",
         )
 
         val merged = dao.getLatestBalance("Example Bank", "1111")!!

@@ -49,11 +49,12 @@ class MainActivity : FragmentActivity() {
         const val EXTRA_OPEN_GOAL_ID = "com.pennywiseai.tracker.OPEN_GOAL_ID"
         const val EXTRA_OPEN_REVIEW = "com.pennywiseai.tracker.OPEN_REVIEW"
         const val EXTRA_REVIEW_WEEK_START = "com.pennywiseai.tracker.REVIEW_WEEK_START"
-        // Set by the evening recap when Insights has an alert.
-        const val EXTRA_OPEN_INSIGHTS = "com.pennywiseai.tracker.OPEN_INSIGHTS"
         private const val KEY_LAUNCH_PENDING = "launch_request_pending"
         const val EXTRA_OPEN_BUDGETS = "com.pennywiseai.tracker.OPEN_BUDGETS"
         const val EXTRA_CREATE_GOAL = "com.pennywiseai.tracker.CREATE_GOAL"
+
+        /** A question said to the quick add mic: Chat opens with it in the box, not sent. */
+        const val EXTRA_CHAT_TEXT = "com.pennywiseai.tracker.CHAT_TEXT"
 
         /**
          * Deep link that jumps straight to Add Transaction: `pennywise://add`.
@@ -85,7 +86,12 @@ class MainActivity : FragmentActivity() {
     var sharedText by mutableStateOf<String?>(null)
         private set
 
+    // A question said to the quick add mic (its words wait in ChatDraftInbox): when it was asked.
+    var openChat by mutableStateOf<Long?>(null)
+        private set
+
     @Inject lateinit var appLockRepository: AppLockRepository
+    @Inject lateinit var chatDrafts: com.pennywiseai.tracker.data.manager.ChatDraftInbox
 
     override fun attachBaseContext(newBase: android.content.Context) {
         super.attachBaseContext(newBase.withLatinDigits())
@@ -133,7 +139,12 @@ class MainActivity : FragmentActivity() {
                 sharedText = sharedText,
                 onSharedTextHandled = sharedTextCallback,
                 widgetDestination = widgetDestination,
-                onWidgetDestinationHandled = { widgetDestination = null }
+                onWidgetDestinationHandled = { widgetDestination = null },
+                openChat = openChat,
+                onOpenChatHandled = {
+                    openChat = null
+                    chatDrafts.requestOpen()
+                }
             )
         }
     }
@@ -159,7 +170,8 @@ class MainActivity : FragmentActivity() {
         super.onSaveInstanceState(outState)
         outState.putBoolean(
             KEY_LAUNCH_PENDING,
-            editTransactionId != null || openAddTransaction != null || sharedText != null || widgetDestination != null
+            editTransactionId != null || openAddTransaction != null || sharedText != null || widgetDestination != null ||
+                openChat != null
         )
     }
 
@@ -184,8 +196,6 @@ class MainActivity : FragmentActivity() {
                     kind = intent.getStringExtra(EXTRA_OPEN_REVIEW) ?: "WEEK",
                     weekStart = intent.getStringExtra(EXTRA_REVIEW_WEEK_START),
                 )
-            intent.getBooleanExtra(EXTRA_OPEN_INSIGHTS, false) ->
-                com.pennywiseai.tracker.navigation.Insights
             intent.getBooleanExtra(EXTRA_OPEN_BUDGETS, false) ->
                 com.pennywiseai.tracker.navigation.BudgetGroups(
                     createGoal = intent.getBooleanExtra(EXTRA_CREATE_GOAL, false),
@@ -207,6 +217,10 @@ class MainActivity : FragmentActivity() {
         if (intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") {
             // Capped: it travels as a navigation argument and ends up as a note.
             sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)?.trim()?.take(MAX_SHARED_TEXT)?.ifEmpty { null }
+        }
+        intent?.getStringExtra(EXTRA_CHAT_TEXT)?.take(MAX_SHARED_TEXT)?.let {
+            chatDrafts.put(it)
+            openChat = android.os.SystemClock.elapsedRealtime()
         }
         if (intent?.getBooleanExtra(EXTRA_OPEN_ADD_TRANSACTION, false) == true || intent.isAddDeepLink()) {
             openAddTransaction = com.pennywiseai.tracker.navigation.AddTransaction(

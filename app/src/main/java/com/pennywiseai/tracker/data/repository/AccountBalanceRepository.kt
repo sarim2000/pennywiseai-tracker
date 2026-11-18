@@ -348,9 +348,8 @@ open class AccountBalanceRepository @Inject constructor(
     ): Int = accountBalanceDao.setCardBill(bankName, accountLast4, dueDay, amount, asOf)
 
     /**
-     * Puts [snapshot]'s account-level fields (statement and due day, card bill and,
-     * unless [withAnchor] is false, the balance anchor) back on the rows of
-     * [bankName]/[accountLast4] that don't have them. A force resync rebuilds an
+     * Puts [snapshot]'s account-level fields (statement and due day, card bill) back
+     * on the rows of [bankName]/[accountLast4] that don't have them. A force resync rebuilds an
      * account's rows and a merge moves it, and neither may lose what the user set.
      * The bill amount goes only onto rows in [snapshot]'s currency.
      */
@@ -358,7 +357,6 @@ open class AccountBalanceRepository @Inject constructor(
         snapshot: AccountBalanceEntity,
         bankName: String = snapshot.bankName,
         accountLast4: String = snapshot.accountLast4,
-        withAnchor: Boolean = true,
     ): Int = accountBalanceDao.fillMissingAccountFields(
         bankName = bankName,
         accountLast4 = accountLast4,
@@ -367,9 +365,6 @@ open class AccountBalanceRepository @Inject constructor(
         billAmount = snapshot.cardBillAmount,
         billAsOf = snapshot.cardBillAsOf,
         billCurrency = snapshot.currency,
-        anchorAmount = snapshot.anchorAmount.takeIf { withAnchor },
-        anchorAt = snapshot.anchorAt.takeIf { withAnchor },
-        anchorSource = snapshot.anchorSource.takeIf { withAnchor },
     )
 
     /**

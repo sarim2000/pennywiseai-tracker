@@ -257,6 +257,7 @@ fun TransactionTabContent(
                                 focusManager.clearFocus()
                                 showCalculator = true
                             },
+                            enabled = uiState.draftLoaded,
                             shapes = IconButtonDefaults.shapes()
                         ) {
                             Icon(Icons.Default.Calculate, contentDescription = stringResource(R.string.calculator_open))
@@ -271,7 +272,7 @@ fun TransactionTabContent(
             if (showCalculator) {
                 AmountCalculatorSheet(
                     initialAmount = uiState.amount,
-                    currency = uiState.currency,
+                    currency = uiState.entryCurrency,
                     onApply = {
                         viewModel.updateTransactionAmount(it.toPlainString())
                         showCalculator = false

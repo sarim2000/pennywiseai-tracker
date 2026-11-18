@@ -43,9 +43,6 @@ object SpendingComparison {
             val rows: List<Row>,
             val currentSpentIn: Set<String> = rows.filter { it.current.signum() > 0 }.mapTo(mutableSetOf()) { it.currency },
             val previousSpentIn: Set<String> = rows.filter { it.previous.signum() > 0 }.mapTo(mutableSetOf()) { it.currency },
-            /** What each window's category list adds up to beyond its figure (negative: short of it), as [refundedOutside] gives it. */
-            val currentRefunded: Map<String, BigDecimal> = emptyMap(),
-            val previousRefunded: Map<String, BigDecimal> = emptyMap(),
             override val profile: ProfileEntity? = null,
         ) : Result
         /** No transactions at all in [missing]: the app can't tell "spent nothing" from "wasn't tracking". */
@@ -104,9 +101,7 @@ object SpendingComparison {
             val p = before[currency] ?: BigDecimal.ZERO
             Row(currency, c, p, change(c, p))
         }
-        val refundedNow = categories?.let { refundedOutside(current, it, creditAsExpense) }.orEmpty()
-        val refundedBefore = categories?.let { refundedOutside(previous, it, creditAsExpense) }.orEmpty()
-        return Result.Rows(cw, pw, rows, spentNow.keys, spentBefore.keys, refundedNow, refundedBefore)
+        return Result.Rows(cw, pw, rows, spentNow.keys, spentBefore.keys)
     }
 
     /**
@@ -133,11 +128,9 @@ object SpendingComparison {
      * Refunds (INCOME + DEDUCT_SPENT) as (currency, category, amount): they come off spending, as on
      * Home and in Analytics. A refund's category is the budget category it gives back to.
      */
-    internal fun refunds(rows: List<TransactionWithSplits>) = refundRows(rows)
-        .map { Triple(it.transaction.currency, (it.transaction.budgetCategory ?: "").ifEmpty { "Others" }, it.transaction.amount) }
-
-    private fun refundRows(rows: List<TransactionWithSplits>) = rows.forTotals()
+    internal fun refunds(rows: List<TransactionWithSplits>) = rows.forTotals()
         .filter { it.transaction.transactionType == TransactionType.INCOME && it.transaction.budgetImpactType == BudgetImpactType.DEDUCT_SPENT }
+        .map { Triple(it.transaction.currency, (it.transaction.budgetCategory ?: "").ifEmpty { "Others" }, it.transaction.amount) }
 
     /**
      * Same rules as Home's "spent": what counts toward totals, refunds netted per currency and floored
@@ -151,35 +144,9 @@ object SpendingComparison {
                 .filterKeys { it in spentIn }
                 .mapValues { it.value.expenses }
         }
-        val refunded = refundedTo(rows, categories)
-        return grossSpend(rows, categories, creditAsExpense).mapValues { (currency, gross) -> (gross - (refunded[currency] ?: BigDecimal.ZERO)).max(BigDecimal.ZERO) }
-    }
-
-    /** Refunds given back to [categories], per currency: [spend] takes them off. */
-    private fun refundedTo(rows: List<TransactionWithSplits>, categories: Set<String>): Map<String, BigDecimal> =
-        refunds(rows).filter { categories.includes(it.second) }
+        val refunded = refunds(rows).filter { categories.includes(it.second) }
             .groupBy({ it.first }, { it.third }).mapValues { (_, a) -> a.fold(BigDecimal.ZERO, BigDecimal::add) }
-
-    /**
-     * How much more the list of [categories]' transactions adds up to than [spend]'s figure, per
-     * currency; negative where the list adds up to less. The figure takes off each refund given
-     * back to them whole; the list nets only a refund row's own part in them (all of it, or its
-     * splits there). A refund given back to them but filed under another category, or split
-     * partly into one, leaves the list higher; one given back elsewhere but split partly into
-     * them leaves it lower. Both floor at zero, so this is the gap between the two and no more.
-     * Currencies with no gap are left out.
-     */
-    fun refundedOutside(rows: List<TransactionWithSplits>, categories: Set<String>, creditAsExpense: Boolean = true): Map<String, BigDecimal> {
-        val byFigure = refundedTo(rows, categories)
-        val byList = refundRows(rows)
-            .map { row -> row.transaction.currency to row.getAmountByCategory().filterKeys { categories.includes(it) }.values.fold(BigDecimal.ZERO, BigDecimal::add) }
-            .sumByCurrency({ it.first }, { it.second })
-            .mapValues { it.value.amount }
-        return grossSpend(rows, categories, creditAsExpense)
-            .mapValues { (c, gross) ->
-                (gross - (byList[c] ?: BigDecimal.ZERO)).max(BigDecimal.ZERO) - (gross - (byFigure[c] ?: BigDecimal.ZERO)).max(BigDecimal.ZERO)
-            }
-            .filterValues { it.signum() != 0 }
+        return grossSpend(rows, categories, creditAsExpense).mapValues { (currency, gross) -> (gross - (refunded[currency] ?: BigDecimal.ZERO)).max(BigDecimal.ZERO) }
     }
 
     /** How many spending transactions [spend] counted for [categories]: a split row once. */

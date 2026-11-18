@@ -45,7 +45,6 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.domain.model.AmountExpression
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import com.pennywiseai.tracker.ui.theme.money
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
@@ -196,11 +195,12 @@ private fun Keypad(
             FilledTonalButton(
                 onClick = onBackspace,
                 shapes = ButtonDefaults.shapes(),
+                colors = digitColors(),
                 modifier = Modifier.weight(1f).heightIn(min = Dimensions.Component.minTouchTarget)
             ) {
                 Icon(Icons.AutoMirrored.Outlined.Backspace, contentDescription = backspace)
             }
-            Key("=", Modifier.weight(1f), operator = true, description = equals, onClick = onEquals)
+            Key("=", Modifier.weight(1f), operator = true, primary = true, description = equals, onClick = onEquals)
         }
     }
 }
@@ -210,22 +210,21 @@ private fun Key(
     label: String,
     modifier: Modifier,
     operator: Boolean = false,
+    primary: Boolean = false,
     description: String? = null,
     onClick: () -> Unit
 ) {
     FilledTonalButton(
         onClick = onClick,
         shapes = ButtonDefaults.shapes(),
-        colors = if (operator) {
-            // In light themes primaryContainer is as pale as the digit keys' fill, so
-            // operators take primary there; in dark, primaryContainer already stands out.
-            val dark = isAppInDarkTheme()
-            ButtonDefaults.filledTonalButtonColors(
-                containerColor = if (dark) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.primary,
-                contentColor = if (dark) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onPrimary
+        // Calm keys like a phone calculator: neutral digits, tonal operators, only "=" in primary.
+        colors = when {
+            primary -> ButtonDefaults.filledTonalButtonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
             )
-        } else {
-            ButtonDefaults.filledTonalButtonColors()
+            operator -> ButtonDefaults.filledTonalButtonColors()
+            else -> digitColors()
         },
         modifier = modifier.heightIn(min = Dimensions.Component.minTouchTarget)
     ) {
@@ -237,3 +236,9 @@ private fun Key(
         )
     }
 }
+
+@Composable
+private fun digitColors() = ButtonDefaults.filledTonalButtonColors(
+    containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+    contentColor = MaterialTheme.colorScheme.onSurface
+)

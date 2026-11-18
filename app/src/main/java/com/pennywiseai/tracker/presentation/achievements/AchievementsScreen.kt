@@ -143,7 +143,6 @@ private fun Summary(all: List<Achievement>) {
         ) {
             FlowRow(
                 Modifier.fillMaxWidth(),
-                maxItemsInEachRow = SUMMARY_PER_ROW,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm, Alignment.CenterHorizontally),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm),
             ) {
@@ -233,8 +232,5 @@ private fun earnedLine(a: Achievement): String? {
     val earnedOn = a.unlockedOn?.let { stringResource(R.string.achievements_earned_on, it.format(AppDates.pattern("d MMM yyyy"))) }
     return listOfNotNull(tierLabel(a), earnedOn).joinToString(SEPARATOR).ifEmpty { null }
 }
-
-/** Badges per row in the summary: nine split five over four, rather than seven over two. */
-private const val SUMMARY_PER_ROW = 5
 
 private const val SEPARATOR = " · "

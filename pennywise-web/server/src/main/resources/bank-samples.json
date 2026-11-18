@@ -1133,6 +1133,17 @@
       "reference": null,
       "balance": "5174.79"
     },
+    "Standard Chartered Bank (Bangladesh)": {
+      "sender": "StanChartBD",
+      "message": "BDT 1234.50 transaction was made on card ending 1234 at DISCOUNT STORE DHAKA BD on 18-Sep-26. Available credit: BDT 50,000.00. Enquiries:12345",
+      "currency": "BDT",
+      "amount": "1234.50",
+      "type": "CREDIT",
+      "merchant": "DISCOUNT STORE DHAKA BD",
+      "accountLast4": "1234",
+      "reference": null,
+      "balance": null
+    },
     "Standard Chartered Bank Nepal": {
       "sender": "SC_ALERT",
       "message": "NPR 5,000.00 has been debited from your account 3301 at ATM.",

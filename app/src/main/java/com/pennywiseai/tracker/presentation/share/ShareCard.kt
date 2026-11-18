@@ -6,6 +6,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -60,6 +61,9 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.share.SHARE_CARD_URL
+import com.pennywiseai.tracker.domain.achievements.AchievementId
+import com.pennywiseai.tracker.ui.components.AchievementBadge
+import com.pennywiseai.tracker.ui.components.badgeArt
 import com.pennywiseai.tracker.ui.theme.GoogleSansFlexFamily
 import com.pennywiseai.tracker.ui.theme.GoogleSansFlexHeadingFamily
 import kotlin.math.abs
@@ -194,6 +198,7 @@ fun ShareCard(content: ShareCardContent, theme: ShareTheme, modifier: Modifier =
 @Composable
 private fun ShareCardLayout(content: ShareCardContent, theme: ShareTheme, modifier: Modifier) {
     val p = theme.palette()
+    if (content.kind == ShareKind.ACHIEVEMENTS) return AchievementsCard(content, p, modifier)
     val ringHero = content.chart?.type == ShareChartType.RING && content.hero != null
     Column(
         modifier = modifier
@@ -683,6 +688,155 @@ private fun LineChart(chart: ShareChart, p: SharePalette, modifier: Modifier) {
     }
 }
 
+// --- Achievements. One is a medal under a glow in its own hue; several are a set of
+// --- badges under how many there are. Badges keep their hues on every theme: each one
+// --- carries its own background (see AchievementBadge).
+
+@Composable
+private fun AchievementsCard(content: ShareCardContent, p: SharePalette, modifier: Modifier) {
+    val single = content.achievements.singleOrNull()
+    Column(
+        modifier = modifier
+            .size(ShareCardWidth, ShareCardHeight)
+            .cardBackground(p)
+            .padding(horizontal = 24.dp, vertical = 22.dp),
+        horizontalAlignment = if (single != null) Alignment.CenterHorizontally else Alignment.Start,
+    ) {
+        BrandRow(p, content.periodLabel)
+        if (single != null) {
+            Spacer(Modifier.weight(1f))
+            GlowingBadge(single, 156.dp)
+            Spacer(Modifier.height(22.dp))
+            AchievementWords(content, single, p)
+            Spacer(Modifier.weight(1f))
+        } else {
+            Spacer(Modifier.height(20.dp))
+            Text(
+                text = content.title,
+                style = Heading.copy(fontSize = 22.sp, lineHeight = 26.sp, fontWeight = FontWeight.SemiBold, color = p.text),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+            )
+            Spacer(Modifier.height(4.dp))
+            content.hero?.let { CountHero(it, p) }
+            Box(Modifier.weight(1f).fillMaxWidth().padding(vertical = 12.dp), contentAlignment = Alignment.Center) {
+                BadgeGrid(content.achievements, p, portraitGrid(content.achievements.size))
+            }
+        }
+        Footer(p)
+    }
+}
+
+/** The kicker, the achievement's name, what it took and its tier. */
+@Composable
+private fun AchievementWords(content: ShareCardContent, a: ShareAchievement, p: SharePalette) {
+    val align = TextAlign.Center
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Text(
+            text = content.title,
+            style = Body.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, letterSpacing = 1.2.sp, color = p.accent, textAlign = align),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
+        )
+        Spacer(Modifier.height(6.dp))
+        Text(
+            text = a.title,
+            style = Heading.copy(fontWeight = FontWeight.Black, letterSpacing = (-0.5).sp, color = p.text, textAlign = align),
+            maxLines = 1,
+            autoSize = TextAutoSize.StepBased(minFontSize = 20.sp, maxFontSize = 34.sp),
+        )
+        Spacer(Modifier.height(4.dp))
+        Text(
+            text = a.description,
+            style = Body.copy(fontSize = 16.sp, lineHeight = 21.sp, fontWeight = FontWeight.Medium, color = p.text.copy(alpha = 0.82f), textAlign = align),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        content.subtitle?.let {
+            Spacer(Modifier.height(12.dp))
+            DeltaPill(it, p.accent)
+        }
+    }
+}
+
+/** A medal lit from behind in its own hue. */
+@Composable
+private fun GlowingBadge(a: ShareAchievement, size: Dp) {
+    val id = AchievementId.fromKey(a.id)
+    val hue = badgeArt(id).hue
+    AchievementBadge(
+        id = id,
+        tier = a.tier,
+        size = size,
+        modifier = Modifier.drawBehind {
+            val radius = this.size.width * 0.9f
+            drawCircle(Brush.radialGradient(listOf(hue.copy(alpha = 0.45f), Color.Transparent), center, radius), radius, center)
+        },
+    )
+}
+
+/** How a set of badges is laid out: [columns] per row, each [badge] across. */
+private data class GridShape(val columns: Int, val badge: Dp)
+
+// Rows as even as the count allows (five over four, not seven over two), and the badges
+// smaller as they fill: a portrait card has room for two rows under the count.
+private fun portraitGrid(n: Int): GridShape {
+    val columns = if (n <= 3) n else (n + 1) / 2
+    return GridShape(columns, if (columns <= 2) 80.dp else if (columns == 3) 70.dp else if (columns == 4) 58.dp else 48.dp)
+}
+
+/** Badges in rows of [GridShape.columns], a short last row centred under the others. */
+@Composable
+private fun BadgeGrid(items: List<ShareAchievement>, p: SharePalette, shape: GridShape) {
+    BoxWithConstraints {
+        val cell = maxWidth / shape.columns
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            items.chunked(shape.columns).forEach { row ->
+                Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.Center) {
+                    row.forEach { a ->
+                        Column(Modifier.width(cell).padding(horizontal = 3.dp), horizontalAlignment = Alignment.CenterHorizontally) {
+                            AchievementBadge(AchievementId.fromKey(a.id), a.tier, shape.badge)
+                            Spacer(Modifier.height(5.dp))
+                            Text(
+                                text = a.title,
+                                style = Body.copy(
+                                    fontSize = 11.sp, lineHeight = 13.sp, fontWeight = FontWeight.SemiBold,
+                                    color = p.text, textAlign = TextAlign.Center,
+                                ),
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis,
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+
+/** The count beside its words: as big a figure as the recap's, in less height, so the badges get the room. */
+@Composable
+private fun CountHero(hero: ShareCardHero, p: SharePalette) {
+    val size = 64.sp
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        Text(
+            text = hero.value,
+            style = Heading.copy(
+                fontSize = size, lineHeight = size, fontWeight = FontWeight.Black,
+                letterSpacing = (-2).sp, color = p.accent, fontFeatureSettings = "tnum",
+            ),
+            maxLines = 1,
+        )
+        Spacer(Modifier.width(12.dp))
+        Text(
+            text = hero.label,
+            style = Body.copy(fontSize = 17.sp, lineHeight = 21.sp, fontWeight = FontWeight.Medium, color = p.text.copy(alpha = 0.82f)),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+    }
+}
+
 // --- Previews. The thumbnail one is the size that matters: if it fails there it fails in
 // --- a chat, however good it looks in the app.
 
@@ -775,4 +929,35 @@ private fun ShareCardThumbnailPreview() {
     Box(Modifier.background(Color(0xFF303030))) {
         ShareCard(previewSpending, ShareTheme.MIDNIGHT, Modifier.scaleTo(130.dp / ShareCardWidth))
     }
+}
+
+internal val previewAchievement = ShareCardContent(
+    kind = ShareKind.ACHIEVEMENTS,
+    title = "Achievement unlocked",
+    subtitle = "Tier 3 of 4",
+    periodLabel = "14 OCT 2026",
+    achievements = listOf(ShareAchievement("transactions_tracked", "Bookkeeper", "1,000 transactions tracked", 3)),
+)
+
+internal val previewAchievements = ShareCardContent(
+    kind = ShareKind.ACHIEVEMENTS,
+    title = "My achievements",
+    hero = ShareCardHero(label = "achievements earned", value = "3"),
+    achievements = listOf(
+        ShareAchievement("tracking_streak", "Steady habit", "Tracked 6 months in a row", 2),
+        ShareAchievement("goals_reached", "Goal getter", "Reached 1 goal", 1),
+        ShareAchievement("transactions_tracked", "Bookkeeper", "500 transactions tracked", 2),
+    ),
+)
+
+@Preview(name = "Achievement", widthDp = 400, heightDp = 490)
+@Composable
+private fun ShareCardAchievementPreview() {
+    Box(Modifier.background(Color(0xFF303030)).padding(20.dp)) { ShareCard(previewAchievement, ShareTheme.MIDNIGHT) }
+}
+
+@Preview(name = "Achievements", widthDp = 400, heightDp = 490)
+@Composable
+private fun ShareCardAchievementsPreview() {
+    Box(Modifier.background(Color(0xFF303030)).padding(20.dp)) { ShareCard(previewAchievements, ShareTheme.PAPER) }
 }

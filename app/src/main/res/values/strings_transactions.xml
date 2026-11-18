@@ -488,6 +488,8 @@
     <string name="what_was_this_split_hint">Only your share counts as spending</string>
     <string name="what_was_this_saving">Saving or investment</string>
     <string name="what_was_this_saving_hint">Gold, a fund, a deposit. Not spending</string>
+    <string name="what_was_this_refund">Refund</string>
+    <string name="what_was_this_refund_hint">Comes off a category\'s spending</string>
     <string name="what_was_this_transfer">Between my accounts</string>
     <string name="what_was_this_transfer_hint">Not spending or income</string>
     <string name="own_transfer_partner_title">Is this the other side?</string>

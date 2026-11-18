@@ -29,7 +29,7 @@ import dev.chrisbanes.haze.hazeSource
 internal const val COVER_ALPHA = 0.45f
 
 /** Past the 4.5:1 floor, so 8-bit rounding of the drawn gradient never lands under it. */
-private const val COVER_TEXT_TARGET = TEXT_CONTRAST + 0.1f
+internal const val COVER_TEXT_TARGET = TEXT_CONTRAST + 0.1f
 
 /**
  * [style]'s gradient stops for Home, each moved toward black or white (in Oklab, so the
@@ -40,8 +40,11 @@ private const val COVER_TEXT_TARGET = TEXT_CONTRAST + 0.1f
  *
  * The banner adapts rather than the inks: a pale stop on a dark theme (Lavender Mist,
  * Rose Gold) is too light for even pure white, but darkening the stop always works.
+ *
+ * [forPreview] gives the same stops at the Appearance tile's alpha, so a tile shows the
+ * banner Home will draw.
  */
-fun ColorScheme.readableCoverStops(style: CoverStyle): List<Color> {
+fun ColorScheme.readableCoverStops(style: CoverStyle, forPreview: Boolean = false): List<Color> {
     val raw = getCoverGradientColors(style, isDark)
     if (raw.isEmpty()) return raw
     val inks = listOf(onBackground, onSurface, onSurfaceVariant)
@@ -51,7 +54,7 @@ fun ColorScheme.readableCoverStops(style: CoverStyle): List<Color> {
     fun drawn(c: Color) = c.copy(alpha = COVER_ALPHA).compositeOver(background)
     fun reads(c: Color) = inks.minOf { contrastRatio(it, drawn(c)) } >= COVER_TEXT_TARGET
     val withMids = raw.zipWithNext { a, b -> listOf(a, srgbMidpoint(a, b)) }.flatten() + raw.last()
-    return withMids.map { stop ->
+    val stops = withMids.map { stop ->
         if (reads(stop)) return@map stop
         var lo = 0f
         var hi = 1f
@@ -61,7 +64,11 @@ fun ColorScheme.readableCoverStops(style: CoverStyle): List<Color> {
         }
         lerp(stop, end, hi)
     }
+    return if (forPreview) stops.map { it.copy(alpha = coverPreviewAlpha(isDark)) } else stops
 }
+
+/** How opaque a cover's gradient is on its Appearance tile. */
+private fun coverPreviewAlpha(isDark: Boolean): Float = if (isDark) 0.70f else 0.75f
 
 /** Halfway between two colours as a linear-gradient brush blends them (per sRGB channel). */
 internal fun srgbMidpoint(a: Color, b: Color): Color =
@@ -100,8 +107,7 @@ fun getCoverGradientColors(
     isDark: Boolean,
     forPreview: Boolean = false
 ): List<Color> {
-    val previewAlpha = if (isDark) 0.70f else 0.75f
-    val alpha = if (forPreview) previewAlpha else 1.0f
+    val alpha = if (forPreview) coverPreviewAlpha(isDark) else 1.0f
 
     return when (style) {
         CoverStyle.NONE -> emptyList()

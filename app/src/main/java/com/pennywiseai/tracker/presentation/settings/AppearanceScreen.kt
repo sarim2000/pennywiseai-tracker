@@ -85,7 +85,7 @@ import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.IconTile
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
-import com.pennywiseai.tracker.ui.components.getCoverGradientColors
+import com.pennywiseai.tracker.ui.components.readableCoverStops
 import com.pennywiseai.tracker.ui.effects.BlurredAnimatedVisibility
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -269,7 +269,6 @@ fun AppearanceScreen(
                 )
                 CoverStyleSelector(
                     currentStyle = themeUiState.coverStyle,
-                    isDark = themeUiState.isDarkTheme ?: isSystemInDarkTheme(),
                     onStyleSelected = { themeViewModel.updateCoverStyle(it) }
                 )
 
@@ -687,7 +686,6 @@ private fun NavBarStyleSelector(
 @Composable
 private fun CoverStyleSelector(
     currentStyle: CoverStyle,
-    isDark: Boolean,
     onStyleSelected: (CoverStyle) -> Unit
 ) {
     LazyRow(
@@ -697,6 +695,9 @@ private fun CoverStyleSelector(
     ) {
         items(CoverStyle.entries.toList()) { style ->
             val isSelected = currentStyle == style
+            // The stops Home draws, so a pale cover on a dark theme looks here as it will there.
+            val scheme = MaterialTheme.colorScheme
+            val tileColors = remember(scheme, style) { scheme.readableCoverStops(style, forPreview = true) }
 
             Box(
                 modifier = Modifier
@@ -707,9 +708,7 @@ private fun CoverStyleSelector(
                             Modifier.background(MaterialTheme.colorScheme.surfaceContainerLow)
                         } else {
                             Modifier.background(
-                                Brush.verticalGradient(
-                                    colors = getCoverGradientColors(style, isDark, forPreview = true)
-                                )
+                                Brush.verticalGradient(colors = tileColors)
                             )
                         }
                     )
@@ -735,8 +734,7 @@ private fun CoverStyleSelector(
                     val behind = if (style == CoverStyle.NONE) {
                         MaterialTheme.colorScheme.surfaceContainerLow
                     } else {
-                        getCoverGradientColors(style, isDark, forPreview = true)
-                            .let { it[it.size / 2] }
+                        tileColors[tileColors.size / 2]
                             .compositeOver(MaterialTheme.colorScheme.background)
                     }
                     Icon(

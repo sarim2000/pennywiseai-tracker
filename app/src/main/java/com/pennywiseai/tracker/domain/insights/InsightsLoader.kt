@@ -11,7 +11,6 @@ import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.data.repository.BudgetSummaryProvider
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
-import com.pennywiseai.tracker.domain.goals.GoalAffordabilityLoader
 import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
 import com.pennywiseai.tracker.domain.review.PeriodReview
 import com.pennywiseai.tracker.domain.review.PeriodReviewLoader
@@ -58,7 +57,6 @@ class InsightsLoader @Inject constructor(
     private val budgetSummaryProvider: BudgetSummaryProvider,
     private val subscriptionRepository: SubscriptionRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
-    private val goalAffordabilityLoader: GoalAffordabilityLoader,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val insightPreferences: InsightPreferences,
 ) {
@@ -71,16 +69,15 @@ class InsightsLoader @Inject constructor(
             combine(
                 periodReviewLoader.observe(ReviewKind.MONTH, 0, today, detail = true),
                 budgets(today, profileId),
-                combine(subscriptions(profileId), goalAffordabilityLoader.goalsToWeigh(today), ::Pair),
+                subscriptions(profileId),
                 accounts(profileId),
                 insightPreferences.dismissedInsights,
-            ) { review, budgets, (subscriptions, goals), (accounts, unanchored), dismissed ->
+            ) { review, budgets, subscriptions, (accounts, unanchored), dismissed ->
                 val averages = CycleAverages.of(review.detail?.cycles.orEmpty())
                 val runways = Runway.calculate(accounts, averages, unanchored)
                 val inputs = InsightInputs(
                     today, review, budgets, subscriptions, accounts.filter { it.isCreditCard }, profileId,
                     runways = runways,
-                    goals = GoalAffordabilityLoader.affordability(goals, review.detail),
                 )
                 InsightsSnapshot(
                     review, InsightRules.evaluate(inputs), dismissed,

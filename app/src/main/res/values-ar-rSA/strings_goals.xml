@@ -11,14 +11,6 @@
     <string name="goals_archived_row">المؤرشفة (%1$d)</string>
     <string name="goals_archived_title">الأهداف المؤرشفة</string>
     <string name="goals_unarchive">إلغاء الأرشفة</string>
-    <!-- Above the goals: whether they fit what a usual month leaves over. %1$s = what all goals in progress need a month -->
-    <string name="goals_need_per_month">تحتاج أهدافك %1$s شهريًا</string>
-    <!-- %1$s = what a usual month leaves over -->
-    <string name="goals_fit">يتبقى في الشهر المعتاد نحو %1$s، فهي في متناولك.</string>
-    <!-- %1$s = how much more a month the goals need -->
-    <string name="goals_short">هذا أكثر بـ%1$s مما يتبقى في الشهر المعتاد.</string>
-    <string name="goals_no_surplus">الشهر المعتاد يُنفق كل ما يدخل، فلا يتبقى لها شيء بعد.</string>
-    <string name="goals_fit_no_data">بعد تسجيل دخل ثلاثة أشهر، سترى إن كانت في متناولك.</string>
     <string name="goals_amount_of">%1$s من %2$s</string>
     <string name="goals_per_month">%1$s شهريًا</string>
     <string name="goals_behind">متأخر بـ %1$s</string>

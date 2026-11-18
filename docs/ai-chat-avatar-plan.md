@@ -40,7 +40,7 @@ Agreed with Codex (`gpt-6.1-sol`, high) over two rounds. Its objections that we 
 |---|---|---|
 | `Calm` | Blink every ~4.2s (0.19s, 20% doubles). Gaze wander only at hero size | Default |
 | `Thinking` | ~3° tilt, eyes up and toward line-start, squint, slower blink | `isLoading && currentResponse.isEmpty()` |
-| `Happy` | `^` eyes and one short hop: translation only, **no squash or stretch** (`design.md` forbids scaling) | Income recorded; a chat Add saved (`adds` increment); a goal reached, **on the goal screen only** |
+| `Happy` | `^` eyes and one short hop: translation only, **no squash or stretch** (`design.md` forbids scaling) | Income recorded; a chat Add saved (`adds` increment); a goal reached on the goal screen; on the Chat tab, a goal reached or a debt paid off (see the moments table below) |
 | `Worried` | Slanted brows, eyes down, one small shake | **Data only**, on contextual screens: budget ≥ 90%. Never for errors, never on the tab **(Codex)** |
 | `Asleep` | Eyes closed, static | Model `NOT_DOWNLOADED` / `DOWNLOADING` / `ERROR` |
 
@@ -57,7 +57,7 @@ Agreed with Codex (`gpt-6.1-sol`, high) over two rounds. Its objections that we 
   - **Default plan:** the body uses the theme accent in both states, and the pill marks selection.
   - **When pill and labels are both hidden:** fall back to the muted tint when unselected, because colour would then be the only selection cue.
   - The preview has a "Muted tab" toggle for comparing the two.
-- **At 24/32dp:** a two-tone silhouette only, with the eyes cut in the colour behind it. No mask, iris, coin or receipt lines **(Codex)**. The one mark is an arrival's: the receipt's check, cut out like the eyes.
+- **At 24/32dp:** a two-tone silhouette only, with the eyes cut in the colour behind it. No mask, iris, coin or receipt lines **(Codex)**. The one mark is a cue's check, cut out like the eyes: the receipt's on an expense, the wallet's on a debt paid off.
 - **Coming back to the bar:** the bar returns from under a pushed screen (Add) already holding the save's reaction. The owl shows for a beat (350ms) and then turns, so the change is seen rather than already done.
 - **Amount chip (2026-11-17):** while a single save's reaction holds, a small pill above the Chat slot shows what was saved: `+` in the income colour, `-` in the spending colour, transfers and investments unsigned. It formats with `CurrencyFormatter` (so it shows `••••` while amounts are hidden), takes no touches and is silent to TalkBack. A batch (a chat card of several rows, a scan) shows none.
 - **Behaviour:** no poke, drag, haptic or separate focus target on the tab. The click goes to the parent. The accessible name stays the localized "Chat", and the drawing is decorative.

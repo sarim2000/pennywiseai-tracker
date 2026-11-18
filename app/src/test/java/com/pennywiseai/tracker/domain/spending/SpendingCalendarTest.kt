@@ -177,12 +177,11 @@ class SpendingCalendarTest {
         id = 1, merchantName = "Cleaner", amount = d("100"), nextPaymentDate = date(next), billingCycle = "Weekly",
     )
 
-    private fun upcoming(today: LocalDate, posted: List<TransactionEntity> = emptyList()) = UpcomingPayments.of(
-        subscriptions = listOf(weekly("2026-11-06")),
+    private fun upcoming(today: LocalDate, next: String = "2026-11-06") = UpcomingPayments.of(
+        subscriptions = listOf(weekly(next)),
         recurring = emptyList(),
         cardBills = emptyList(),
         cards = emptyList(),
-        posted = posted,
         today = today,
         end = november.atEndOfMonth(),
     )
@@ -201,7 +200,8 @@ class SpendingCalendarTest {
     fun `once the payment posts, its day shows the spend and no longer the plan`() {
         val today = date("2026-11-13")
         val paid = tx("2026-11-13", merchant = "Cleaner")
-        val result = days(listOf(paid), planned = upcoming(today, posted = listOf(paid)), today = today)
+        // Recording the charge moved the subscription on a week.
+        val result = days(listOf(paid), planned = upcoming(today, next = "2026-11-20"), today = today)
 
         val day = result.getValue(today)
         assertTrue(day.planned.isEmpty())

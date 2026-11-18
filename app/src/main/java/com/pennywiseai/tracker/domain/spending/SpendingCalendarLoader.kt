@@ -5,7 +5,6 @@ import com.pennywiseai.tracker.domain.review.PeriodReviewLoader
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
-import kotlinx.coroutines.flow.map
 import java.time.LocalDate
 import java.time.YearMonth
 import javax.inject.Inject
@@ -24,7 +23,7 @@ class SpendingCalendarLoader @Inject constructor(
         val end = month.atEndOfMonth()
         // For a month that's over, this is just the card bills from it still owed. For one
         // ahead, schedules are walked from its first day, so a daily payment still shows.
-        val planned = upcomingPaymentsLoader.observe(today, end, keepCardCharges = true, from = month.atDay(1)).map { it.bills }
+        val planned = upcomingPaymentsLoader.observe(today, end, from = month.atDay(1))
         return combine(
             periodReviewLoader.scopedRows(month.atDay(1), end),
             planned,

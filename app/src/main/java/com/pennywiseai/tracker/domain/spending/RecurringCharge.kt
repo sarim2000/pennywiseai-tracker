@@ -1,7 +1,5 @@
 package com.pennywiseai.tracker.domain.spending
 
-import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
-import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -28,18 +26,6 @@ object RecurringCharge {
         return key.isNotEmpty() && key == merchantKey(b)
     }
 
-    /**
-     * Whether [charge] can pay [subscription] without asking: every part of the funding
-     * account the subscription names (bank, account number) is on the charge and the
-     * same. A charge that doesn't say which account it came from can't pay a bill tied
-     * to one; a bill that names no account can be paid from any.
-     */
-    fun couldBePaidFrom(subscription: SubscriptionEntity, charge: TransactionEntity): Boolean {
-        fun meets(required: String?, actual: String?) =
-            required.isNullOrBlank() || (!actual.isNullOrBlank() && required.trim().equals(actual.trim(), ignoreCase = true))
-        return meets(subscription.bankName, charge.bankName) && meets(subscription.accountLast4, charge.accountNumber)
-    }
-
     /** Within 5% of the larger amount — symmetric, so match(a, b) == match(b, a). */
     fun sameAmount(a: BigDecimal, b: BigDecimal): Boolean =
         a.subtract(b).abs() <= a.max(b).multiply(BigDecimal("0.05"))
@@ -56,14 +42,6 @@ object RecurringCharge {
         in 350L..380L -> "Annual"
         else -> null
     }
-
-    /**
-     * A posted charge on [chargeDate] settles the payment due [dueDate]: within
-     * [DUE_WINDOW_DAYS] either side of it. Unlike [canPayCycle] this is bounded
-     * after the due date too, so last month's charge can't settle this month's.
-     */
-    fun settles(dueDate: LocalDate, chargeDate: LocalDate): Boolean =
-        Math.abs(ChronoUnit.DAYS.between(dueDate, chargeDate)) <= DUE_WINDOW_DAYS
 
     /**
      * A charge can pay the cycle due [dueDate] from [DUE_WINDOW_DAYS] before it
@@ -101,37 +79,6 @@ object RecurringCharge {
     fun isRetap(lastPaid: LocalDate, cycleAfterLastPaid: LocalDate, scheduled: LocalDate, today: LocalDate): Boolean =
         today.isBefore(cycleAfterLastPaid) &&
             (today.isBefore(scheduled.minusDays(EARLY_PAY_DAYS)) || today.isBefore(lastPaid.plusDays(EARLY_PAY_DAYS)))
-
-    /**
-     * [date] moved [times] billing cycles on (back, when negative). Months and years
-     * use calendar arithmetic, so "Monthly" lands on the same day of the month, not
-     * 30 days on. An unknown cycle moves monthly, so a hand-made row never stays put.
-     */
-    fun advance(date: LocalDate, billingCycle: String, times: Long = 1): LocalDate =
-        when (billingCycle.uppercase()) {
-            "WEEKLY" -> date.plusWeeks(times)
-            "MONTHLY" -> date.plusMonths(times)
-            "QUARTERLY" -> date.plusMonths(3L * times)
-            "SEMI-ANNUAL", "SEMI ANNUAL", "SEMIANNUAL" -> date.plusMonths(6L * times)
-            "ANNUAL", "YEARLY" -> date.plusYears(times)
-            else -> date.plusMonths(times)
-        }
-
-    /**
-     * The next payment as the Subscriptions screen shows it: [scheduled], moved on a
-     * [billingCycle] at a time while it's in the past. Each step counts from
-     * [scheduled], so a bill due on the 31st comes back to the 31st after February.
-     * A payment due today stays today: a paid bill has already moved on
-     * ([com.pennywiseai.tracker.data.repository.SubscriptionRepository.recordCharge]),
-     * so one still on today hasn't been seen paid. Anything else that names a
-     * subscription's next date reads this, so the two never disagree.
-     */
-    fun nextPaymentShown(scheduled: LocalDate, billingCycle: String, today: LocalDate): LocalDate {
-        var cycles = 0L
-        var next = scheduled
-        while (next.isBefore(today)) next = advance(scheduled, billingCycle, ++cycles)
-        return next
-    }
 
     const val EARLY_PAY_DAYS = 3L
     const val DUE_WINDOW_DAYS = 5L

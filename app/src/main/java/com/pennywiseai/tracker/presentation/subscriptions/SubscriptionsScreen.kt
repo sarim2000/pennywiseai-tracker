@@ -41,7 +41,6 @@ import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.database.entity.formatAmount
 import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.domain.model.getAccountType
-import com.pennywiseai.tracker.domain.spending.RecurringCharge
 import com.pennywiseai.tracker.presentation.accounts.icon
 import com.pennywiseai.tracker.ui.animations.StaggeredEntrance
 import com.pennywiseai.tracker.ui.animations.pwCollapse
@@ -80,7 +79,7 @@ fun SubscriptionsScreen(
     viewModel: SubscriptionsViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit = {},
     onAddSubscriptionClick: () -> Unit = {},
-    // A tab root has no back arrow; opened over another screen (an insight's link), it needs one.
+    // A tab root has no back arrow; opened over another screen (a calendar bill's link), it needs one.
     showBack: Boolean = false,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -674,7 +673,10 @@ private fun SwipeableSubscriptionItem(
                                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                                     )
                                 } else {
-                                    val nextPaymentDate = RecurringCharge.nextPaymentShown(subscriptionDate, subscription.billingCycle, today)
+                                    var nextPaymentDate: LocalDate = subscriptionDate
+                                    while (nextPaymentDate.isBefore(today) || nextPaymentDate.isEqual(today)) {
+                                        nextPaymentDate = nextPaymentDate.plusMonths(1)
+                                    }
                                     val daysUntilNext = ChronoUnit.DAYS.between(today, nextPaymentDate)
 
                                     Icon(

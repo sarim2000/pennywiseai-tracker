@@ -2,10 +2,13 @@ package com.pennywiseai.tracker.presentation.add
 
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionType
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
+import java.time.LocalDate
 import java.time.LocalDateTime
 
 /** The quick cash add: what the amount field accepts and the order of its category chips. */
@@ -65,5 +68,59 @@ class QuickAddActivityTest {
             listOf("Business cash", "Wallet", "Home box"),
             QuickAddActivity.cashAccounts(accounts, "JOD", profileId = null).map { it.bankName }
         )
+    }
+
+    private val voiceCategories = listOf(
+        CategoryEntity(name = "Food & Dining", color = "#000000"),
+        CategoryEntity(name = "Others", color = "#000000"),
+        CategoryEntity(name = "Salary", color = "#000000", isIncome = true),
+    )
+
+    private fun route(text: String, chatOpen: Boolean = true, modelReady: Boolean = true) =
+        QuickAddActivity.voiceRoute(text, voiceCategories, "JOD", chatOpen, modelReady, today = LocalDate.of(2026, 3, 10))
+
+    @Test
+    fun `a spend said fills the sheet, type and currency included`() {
+        val spend = route("200 lunch cash") as QuickAddActivity.VoiceRoute.Fill
+        assertEquals(TransactionType.EXPENSE, spend.entry.type)
+        assertEquals("JOD", spend.entry.currency)
+        assertEquals("Food & Dining", spend.entry.category)
+
+        val income = route("received 50 dollars salary") as QuickAddActivity.VoiceRoute.Fill
+        assertEquals(TransactionType.INCOME, income.entry.type)
+        assertEquals("USD", income.entry.currency)
+        assertEquals("Salary", income.entry.category)
+    }
+
+    @Test
+    fun `a question or two amounts go to Chat`() {
+        assertEquals(QuickAddActivity.VoiceRoute.Chat, route("how much did I spend on food this month"))
+        assertEquals(QuickAddActivity.VoiceRoute.Chat, route("كم صرفت هذا الشهر"))
+        assertEquals(QuickAddActivity.VoiceRoute.Chat, route("lunch 200 and taxi 50"))
+    }
+
+    @Test
+    fun `with no model two amounts stay here, a question still goes to Chat`() {
+        // Chat could only keep these, not record them.
+        assertEquals(QuickAddActivity.VoiceRoute.Unclear, route("2 coffees 10", modelReady = false))
+        assertEquals(QuickAddActivity.VoiceRoute.Unclear, route("taxi 30 last monday", modelReady = false))
+        assertEquals(QuickAddActivity.VoiceRoute.Chat, route("how much did I spend on food", modelReady = false))
+        assertEquals(QuickAddActivity.VoiceRoute.Chat, route("I will pay 500 rent tomorrow", modelReady = false))
+    }
+
+    @Test
+    fun `a spend whose amount wasn't heard stays here, not Chat`() {
+        // The recognizer dropped the digits, or said the number in words.
+        assertEquals(QuickAddActivity.VoiceRoute.Unclear, route("lunch cash"))
+        assertEquals(QuickAddActivity.VoiceRoute.Unclear, route("دفعت خمسين ريال قهوة"))
+        assertEquals(QuickAddActivity.VoiceRoute.Unclear, route("0 lunch"))
+    }
+
+    @Test
+    fun `with Chat hidden a question has nowhere to go`() {
+        assertEquals(QuickAddActivity.VoiceRoute.ChatHidden, route("how much did I spend on food", chatOpen = false))
+        assertEquals(QuickAddActivity.VoiceRoute.Unclear, route("lunch 200 and taxi 50", chatOpen = false))
+        assertTrue(route("200 lunch", chatOpen = false) is QuickAddActivity.VoiceRoute.Fill)
+        assertEquals(QuickAddActivity.VoiceRoute.Unclear, route("  "))
     }
 }

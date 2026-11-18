@@ -618,9 +618,9 @@ class BackupModelsTest {
         assertEquals(BigDecimal("500.00"), withThreshold.lowBalanceThreshold)
     }
 
-    /** A backup from before schema 69 has no card bill or balance anchor: all unknown. */
+    /** A backup from before schema 69 has no card bill: all unknown. */
     @Test
-    fun oldBackupMissingCardBillAndAnchor_defaultsToNull() {
+    fun oldBackupMissingCardBill_defaultsToNull() {
         val json = """
         {
           "database": {
@@ -645,13 +645,10 @@ class BackupModelsTest {
         assertNull(legacy.cardDueDay)
         assertNull(legacy.cardBillAmount)
         assertNull(legacy.cardBillAsOf)
-        assertNull(legacy.anchorAmount)
-        assertNull(legacy.anchorAt)
-        assertNull(legacy.anchorSource)
     }
 
     @Test
-    fun cardBillAndAnchorSurviveBackupRoundtrip() {
+    fun cardBillSurvivesBackupRoundtrip() {
         val card = AccountBalanceEntity(
             bankName = "Test Bank",
             accountLast4 = "1234",
@@ -661,9 +658,6 @@ class BackupModelsTest {
             cardDueDay = 31,
             cardBillAmount = BigDecimal("3900.50"),
             cardBillAsOf = LocalDateTime.of(2024, 2, 20, 8, 30),
-            anchorAmount = BigDecimal("-120.00"),
-            anchorAt = LocalDateTime.of(2024, 2, 1, 12, 0),
-            anchorSource = "MANUAL",
         )
 
         val restored = backupJson.decodeFromString<AccountBalanceEntity>(backupJson.encodeToString(card))

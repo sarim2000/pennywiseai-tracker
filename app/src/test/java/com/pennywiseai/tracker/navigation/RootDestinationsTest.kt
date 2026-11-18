@@ -19,7 +19,7 @@ class RootDestinationsTest {
         val activity = File(src, "MainActivity.kt").readText()
         val handler = activity.substringAfter("fun handleWidgetIntent(").substringBefore("\n    }\n")
         val opened = Regex("""navigation\.(\w+)""").findAll(handler).map { it.groupValues[1] }.toSet()
-        assertEquals(setOf("GoalDetail", "UnrecognizedSms", "Review", "Insights", "BudgetGroups"), opened)
+        assertEquals(setOf("GoalDetail", "UnrecognizedSms", "Review", "BudgetGroups"), opened)
 
         val host = File(src, "navigation/PennyWiseNavHost.kt").readText()
         val registered = Regex("""entry<(\w+)>""").findAll(host).map { it.groupValues[1] }.toSet()

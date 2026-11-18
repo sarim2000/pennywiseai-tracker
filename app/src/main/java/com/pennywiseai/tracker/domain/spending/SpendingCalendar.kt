@@ -22,8 +22,9 @@ object SpendingCalendar {
      * The days of [month] with spend or a payment due. [rows] are already scoped (profile,
      * ignored accounts); spend follows Analytics' default view ([defaultTypeFilter]): loans and
      * exclusions out, transfer pairs once, refunds netted off their day. [planned] comes from
-     * [UpcomingPayments], so a payment that has posted is already gone from it. A card bill
-     * still owed from an earlier month shows on [today] when [month] is this month: it's due now.
+     * [UpcomingPayments], so a payment that has posted has already moved its schedule on. A
+     * card bill still owed from an earlier month shows on [today] when [month] is this month:
+     * it's due now.
      */
     suspend fun days(
         month: YearMonth,

@@ -19,7 +19,7 @@ import org.junit.Test
 import java.math.BigDecimal
 import java.time.LocalDate
 
-/** Safe to spend reserves a profile's subscriptions as Insights scopes them. */
+/** The calendar shows a profile's subscriptions as its spending is scoped. */
 class UpcomingPaymentsLoaderTest {
     private val today = LocalDate.of(2026, 11, 17)
     private val business = 2L
@@ -34,7 +34,7 @@ class UpcomingPaymentsLoaderTest {
         bankName = last4?.let { "Test Bank" }, accountLast4 = last4,
     )
 
-    private fun loader(profileId: Long?): UpcomingPaymentsLoader {
+    private fun loader(profileId: Long?, ignoredKeys: Set<String> = emptySet()): UpcomingPaymentsLoader {
         val subscriptions = mockk<SubscriptionRepository>()
         every { subscriptions.getActiveSubscriptions() } returns
             flowOf(listOf(subscription(1, "1111"), subscription(2, "2222"), subscription(3, null)))
@@ -46,19 +46,24 @@ class UpcomingPaymentsLoaderTest {
         val transactions = mockk<TransactionRepository>()
         every { transactions.getTransactionsBetweenDates(any<LocalDate>(), any<LocalDate>()) } returns flowOf(emptyList())
         val ignored = mockk<IgnoredAccountsStore>()
-        every { ignored.keysFlow } returns flowOf(emptySet())
+        every { ignored.keysFlow } returns flowOf(ignoredKeys)
         val prefs = mockk<UserPreferencesRepository>()
         every { prefs.selectedProfileId } returns flowOf(profileId)
-        return UpcomingPaymentsLoader(subscriptions, recurring, accounts, transactions, CardBillsLoader(transactions), ignored, prefs)
+        return UpcomingPaymentsLoader(subscriptions, recurring, accounts, CardBillsLoader(transactions), ignored, prefs)
     }
 
-    private suspend fun names(profileId: Long?) =
-        loader(profileId).observe(today, today.plusDays(10)).first().bills.map { it.name }
+    private suspend fun names(profileId: Long?, ignoredKeys: Set<String> = emptySet()) =
+        loader(profileId, ignoredKeys).observe(today, today.plusDays(10)).first().map { it.name }
 
     @Test
-    fun `a subscription with no known account is reserved only for Personal`() = runTest {
+    fun `a subscription with no known account shows only for Personal`() = runTest {
         assertEquals(listOf("Bill 1", "Bill 3"), names(ProfileEntity.PERSONAL_ID))
         assertEquals(listOf("Bill 2"), names(business))
         assertEquals(listOf("Bill 1", "Bill 2", "Bill 3"), names(null))
+    }
+
+    @Test
+    fun `a subscription paid from an ignored account doesn't show`() = runTest {
+        assertEquals(listOf("Bill 1", "Bill 3"), names(null, setOf(IgnoredAccountsStore.keyFor("Test Bank", "2222"))))
     }
 }

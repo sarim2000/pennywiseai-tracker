@@ -6,8 +6,6 @@ import com.pennywiseai.tracker.data.database.entity.RecurringTransactionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
-import com.pennywiseai.tracker.data.database.entity.TransactionEntity
-import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.utils.Money
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -32,11 +30,9 @@ class UpcomingPaymentsTest {
         last4: String? = null,
         state: SubscriptionState = SubscriptionState.ACTIVE,
         direction: SubscriptionDirection = SubscriptionDirection.EXPENSE,
-        lastPaid: String? = null,
     ) = SubscriptionEntity(
         id = nextId++, merchantName = name, amount = d(amount), nextPaymentDate = next?.let(::date),
         billingCycle = cycle, bankName = bank, accountLast4 = last4, state = state, direction = direction,
-        lastPaidAt = lastPaid?.let(::date),
     )
 
     private fun template(name: String, next: String, amount: String = "100", frequency: RecurringFrequency = RecurringFrequency.MONTHLY, last4: String? = null) =
@@ -45,59 +41,34 @@ class UpcomingPaymentsTest {
             dayOfMonth = date(next).dayOfMonth, accountLast4 = last4, bankName = last4?.let { "Test Bank" },
         )
 
-    private fun charge(name: String, on: String, amount: String = "100", bank: String? = null, last4: String? = null) = TransactionEntity(
-        id = nextId, amount = d(amount), merchantName = name, category = "Bills", transactionType = TransactionType.EXPENSE,
-        dateTime = date(on).atTime(10, 0), transactionHash = "h${nextId++}", bankName = bank, accountNumber = last4,
-    )
-
     private val card = AccountBalanceEntity(
         bankName = "Test Bank", accountLast4 = "4444", balance = d("3000"),
         timestamp = today.atStartOfDay(), isCreditCard = true,
     )
 
-    /** The card's latest bill (closed 12 October) is entered and paid off, unless [cardBills] says otherwise. */
     private fun upcoming(
         subscriptions: List<SubscriptionEntity> = emptyList(),
         recurring: List<RecurringTransactionEntity> = emptyList(),
-        cardBills: List<CardBillStatus> = listOf(CardBillStatus(card, null, needsBill = false, enteredStatement = date("2026-10-12"))),
-        posted: List<TransactionEntity> = emptyList(),
-        on: LocalDate = today,
+        cardBills: List<CardBillStatus> = emptyList(),
         isExcluded: (String?, String?) -> Boolean = { _, _ -> false },
-        keepCardCharges: Boolean = false,
-    ) = UpcomingPayments.of(subscriptions, recurring, cardBills, listOf(card), posted, on, end, isExcluded, keepCardCharges)
-
-    @Test
-    fun `a charge pays the same bill whatever the window, so Safe to spend and Insights agree`() {
-        // The cycle ends tomorrow. A names no account and is due tomorrow; B, at the same
-        // merchant and price, is due in three days on its own account, which today's charge names.
-        val a = sub("Gym", "2026-10-24")
-        val b = sub("Gym", "2026-10-26", bank = "Test Bank", last4 = "1111")
-        val posted = listOf(charge("Gym", "2026-10-23", bank = "Test Bank", last4 = "1111"))
-
-        val insights = UpcomingPayments.subscriptions(listOf(a, b), posted, today, today.plusDays(7))
-        val safeToSpend = UpcomingPayments.of(listOf(a, b), emptyList(), emptyList(), emptyList(), posted, today, today.plusDays(1))
-
-        // The charge is B's; A is still to pay, on both screens.
-        assertEquals(listOf(date("2026-10-24")), insights.map { it.dueDate })
-        assertEquals(insights, safeToSpend)
-    }
+    ) = UpcomingPayments.of(subscriptions, recurring, cardBills, listOf(card), today, end, isExcluded)
 
     @Test
     fun `only active expense subscriptions with a date count`() {
-        val bills = UpcomingPayments.subscriptions(
-            listOf(
+        val bills = upcoming(
+            subscriptions = listOf(
                 sub("Netflix", "2026-10-28"),
                 sub("No date", null),
                 sub("Ended", "2026-10-28", state = SubscriptionState.ENDED),
                 sub("Salary", "2026-10-28", direction = SubscriptionDirection.INCOME),
             ),
-            emptyList(), today, end,
         )
         assertEquals(listOf("Netflix"), bills.map { it.name })
+        assertEquals(BillSource.Subscription, bills.single().source)
     }
 
     @Test
-    fun `a weekly subscription counts every time it falls in the window`() {
+    fun `a weekly subscription shows every time it falls in the window`() {
         val bills = upcoming(subscriptions = listOf(sub("Cleaner", "2026-10-24", cycle = "Weekly")))
 
         assertEquals(
@@ -107,11 +78,22 @@ class UpcomingPaymentsTest {
     }
 
     @Test
-    fun `a weekly template counts every time too, and the one due today`() {
+    fun `a bill due on the 31st comes back to the 31st after a short month`() {
+        val bills = UpcomingPayments.of(
+            listOf(sub("Rent", "2027-01-31")), emptyList(), emptyList(), emptyList(),
+            today, date("2027-03-31"), from = date("2027-03-01"),
+        )
+
+        assertEquals(listOf(date("2027-03-31")), bills.map { it.dueDate })
+    }
+
+    @Test
+    fun `a weekly template shows every time too, and the one due today`() {
         val bills = upcoming(recurring = listOf(template("Allowance", "2026-10-23", frequency = RecurringFrequency.WEEKLY)))
 
         assertEquals(5, bills.size)
         assertEquals(today, bills.first().dueDate)
+        assertTrue(bills.all { it.source == BillSource.Recurring })
     }
 
     @Test
@@ -122,12 +104,12 @@ class UpcomingPaymentsTest {
     }
 
     @Test
-    fun `a subscription already due before today isn't counted again`() {
+    fun `a subscription already due before today isn't shown again`() {
         assertEquals(listOf(date("2026-11-20")), upcoming(subscriptions = listOf(sub("Gym", "2026-10-20"))).map { it.dueDate })
     }
 
     @Test
-    fun `two subscriptions from the same merchant are both counted`() {
+    fun `two subscriptions from the same merchant both show`() {
         val bills = upcoming(
             subscriptions = listOf(
                 sub("Google", "2026-10-25", amount = "130"),
@@ -139,7 +121,7 @@ class UpcomingPaymentsTest {
     }
 
     @Test
-    fun `a subscription and a template for the same payment count once`() {
+    fun `a subscription and a template for the same payment show once`() {
         val bills = upcoming(
             subscriptions = listOf(sub("Rent", "2026-11-01", amount = "15000")),
             recurring = listOf(
@@ -152,164 +134,39 @@ class UpcomingPaymentsTest {
     }
 
     @Test
-    fun `a template for a subscription payment that's already posted is paid too`() {
+    fun `a payment charged to a card stays on its own day`() {
         val bills = upcoming(
-            subscriptions = listOf(sub("Rent", "2026-10-25", amount = "15000")),
-            recurring = listOf(template("Rent", "2026-10-25", amount = "15000")),
-            posted = listOf(charge("Rent", "2026-10-23", amount = "15000")),
-        )
-
-        // Next month's payment falls after payday: nothing left to set aside.
-        assertTrue(bills.isEmpty())
-    }
-
-    @Test
-    fun `a posted charge settles one occurrence, within a few days of it`() {
-        val bills = upcoming(
-            subscriptions = listOf(sub("Cleaner", "2026-10-24", cycle = "Weekly")),
-            posted = listOf(charge("Cleaner", "2026-10-22")),
-        )
-
-        assertEquals(date("2026-10-31"), bills.first().dueDate)
-        assertEquals(4, bills.size)
-    }
-
-    @Test
-    fun `a charge at a new price still settles the payment`() {
-        val bills = upcoming(
-            subscriptions = listOf(sub("Netflix", "2026-10-24")),
-            posted = listOf(charge("Netflix", "2026-10-23", amount = "130")),
-        )
-
-        assertTrue(bills.isEmpty())
-    }
-
-    @Test
-    fun `last month's charge doesn't settle this month's payment`() {
-        val bills = upcoming(
-            subscriptions = listOf(sub("Netflix", "2026-10-25")),
-            posted = listOf(charge("Netflix", "2026-09-25")),
-        )
-
-        assertEquals(listOf(date("2026-10-25"), date("2026-11-25")).filter { !it.isAfter(end) }, bills.map { it.dueDate })
-    }
-
-    @Test
-    fun `the charge that already paid the last cycle doesn't settle the next`() {
-        val bills = upcoming(
-            subscriptions = listOf(sub("Cleaner", "2026-10-24", cycle = "Weekly", lastPaid = "2026-10-20")),
-            posted = listOf(charge("Cleaner", "2026-10-20")),
-        )
-
-        assertEquals(date("2026-10-24"), bills.first().dueDate)
-    }
-
-    @Test
-    fun `a same-priced charge from another account doesn't settle the subscription`() {
-        val netflix = sub("Netflix", "2026-10-24", bank = "Test Bank", last4 = "1111")
-
-        val otherAccount = upcoming(subscriptions = listOf(netflix), posted = listOf(charge("Netflix", "2026-10-23", bank = "Test Bank", last4 = "2222")))
-        val ownAccount = upcoming(subscriptions = listOf(netflix), posted = listOf(charge("Netflix", "2026-10-23", bank = "Test Bank", last4 = "1111")))
-        val byHand = upcoming(subscriptions = listOf(netflix), posted = listOf(charge("Netflix", "2026-10-23")))
-        val otherBank = upcoming(subscriptions = listOf(netflix), posted = listOf(charge("Netflix", "2026-10-23", bank = "Other Bank")))
-
-        assertEquals(listOf(date("2026-10-24")), otherAccount.map { it.dueDate })
-        // Paid; the next one, 24 November, falls after payday.
-        assertTrue(ownAccount.isEmpty())
-        // A charge with no account, even from another bank, can't be told to come from this one.
-        assertEquals(listOf(date("2026-10-24")), byHand.map { it.dueDate })
-        assertEquals(listOf(date("2026-10-24")), otherBank.map { it.dueDate })
-    }
-
-    @Test
-    fun `a subscription with no account is paid from any`() {
-        val bills = upcoming(
-            subscriptions = listOf(sub("Netflix", "2026-10-24")),
-            posted = listOf(charge("Netflix", "2026-10-23", bank = "Test Bank", last4 = "2222")),
-        )
-
-        assertTrue(bills.isEmpty())
-    }
-
-    @Test
-    fun `a charge on an excluded account settles nothing`() {
-        val bills = upcoming(
-            subscriptions = listOf(sub("Netflix", "2026-10-24")),
-            posted = listOf(charge("Netflix", "2026-10-23", bank = "Other Bank", last4 = "9999")),
-            isExcluded = { bank, last4 -> bank == "Other Bank" && last4 == "9999" },
-        )
-
-        assertEquals(date("2026-10-24"), bills.first().dueDate)
-    }
-
-    @Test
-    fun `a card payment by the entered statement's close is inside that bill`() {
-        // Entered on the statement day: what's charged that day is in it, what's charged after isn't.
-        val bills = upcoming(
-            subscriptions = listOf(
-                sub("Spotify", "2026-10-23", bank = "Test Bank", last4 = "4444"),
-                sub("Music", "2026-10-23", last4 = "4444"),
-                sub("Cloud", "2026-10-24", bank = "Test Bank", last4 = "4444"),
-            ),
-            recurring = listOf(template("Fuel", "2026-10-23", last4 = "4444")),
-            cardBills = listOf(CardBillStatus(card, null, needsBill = false, enteredStatement = today)),
-        )
-
-        assertEquals(listOf("Cloud"), bills.map { it.name })
-    }
-
-    @Test
-    fun `a card payment after the entered statement is still set aside, even with that bill paid`() {
-        // 4 November: October's statement (closed 5 October, due the 10th) is entered and
-        // paid; November's closes tomorrow, so today's charge isn't in any bill entered yet.
-        val bills = upcoming(
-            subscriptions = listOf(sub("Spotify", "2026-11-04", bank = "Test Bank", last4 = "4444")),
-            recurring = listOf(template("Fuel", "2026-11-06", last4 = "4444")),
-            cardBills = listOf(CardBillStatus(card, null, needsBill = false, enteredStatement = date("2026-10-05"))),
-            on = date("2026-11-04"),
-        )
-
-        assertEquals(listOf("Spotify", "Fuel"), bills.map { it.name })
-    }
-
-    @Test
-    fun `the calendar keeps a subscription on a billed card on its own day, but not one from an excluded account`() {
-        val bills = upcoming(
-            subscriptions = listOf(
-                sub("Spotify", "2026-10-28", bank = "Test Bank", last4 = "4444"),
-                sub("Rent", "2026-11-01", bank = "Other Bank", last4 = "9999"),
-            ),
+            subscriptions = listOf(sub("Spotify", "2026-10-28", bank = "Test Bank", last4 = "4444")),
             recurring = listOf(template("Fuel", "2026-10-30", last4 = "4444")),
-            isExcluded = { bank, last4 -> bank == "Other Bank" && last4 == "9999" },
-            keepCardCharges = true,
+            cardBills = listOf(CardBillStatus(card, null, needsBill = false, enteredStatement = date("2026-10-12"))),
         )
 
         assertEquals(listOf("Spotify" to date("2026-10-28"), "Fuel" to date("2026-10-30")), bills.map { it.name to it.dueDate })
     }
 
     @Test
-    fun `a subscription on a card with no bill entered still counts`() {
+    fun `payments from an excluded account don't show`() {
         val bills = upcoming(
-            subscriptions = listOf(sub("Spotify", "2026-10-28", bank = "Test Bank", last4 = "4444")),
-            recurring = listOf(template("Fuel", "2026-10-30", last4 = "4444")),
-            cardBills = listOf(CardBillStatus(card, null, needsBill = true)),
-        )
-
-        assertEquals(listOf("Spotify", "Fuel"), bills.map { it.name })
-    }
-
-    @Test
-    fun `payments from an excluded account don't count`() {
-        val bills = upcoming(
-            subscriptions = listOf(sub("Rent", "2026-11-01", bank = "Other Bank", last4 = "9999"), sub("Gym", "2026-11-01")),
-            isExcluded = { bank, last4 -> bank == "Other Bank" && last4 == "9999" },
+            subscriptions = listOf(sub("Rent", "2026-11-01", bank = "Test Bank", last4 = "9999"), sub("Gym", "2026-11-01")),
+            recurring = listOf(template("Fuel", "2026-10-30", last4 = "9999")),
+            isExcluded = { bank, last4 -> bank == "Test Bank" && last4 == "9999" },
         )
 
         assertEquals(listOf("Gym"), bills.map { it.name })
     }
 
     @Test
-    fun `card bills count with what's left, overdue ones included, until the window ends`() {
+    fun `a payment on a hidden card doesn't show, even when it names only the card's digits`() {
+        val bills = upcoming(
+            subscriptions = listOf(sub("Spotify", "2026-10-28", last4 = "4444"), sub("Gym", "2026-11-01")),
+            isExcluded = { bank, last4 -> bank == "Test Bank" && last4 == "4444" },
+        )
+
+        assertEquals(listOf("Gym"), bills.map { it.name })
+    }
+
+    @Test
+    fun `card bills show what's left, overdue ones included, until the window ends`() {
         fun bill(due: String, amount: String = "4000", paid: String = "0") = CardBill(
             "Test Bank", "4444", "Card", "INR", d(amount), d(paid), date(due).minusDays(20), date(due),
         )
@@ -318,12 +175,12 @@ class UpcomingPaymentsTest {
                 bill("2026-10-20", paid = "1500"), // overdue, part paid
                 bill("2026-11-05"),
                 bill("2026-11-10", paid = "4000"), // paid off
-                bill("2026-12-02"), // after payday
+                bill("2026-12-02"), // after the window
             ).map { CardBillStatus(card, it, needsBill = false) }
         )
 
         assertEquals(listOf(Money(d("2500"), "INR"), Money(d("4000"), "INR")), bills.map { it.amount })
-        assertTrue(bills.all { it.isCardBill })
+        assertTrue(bills.all { it.source == BillSource.Card("Test Bank", "4444") })
     }
 
     @Test
@@ -335,7 +192,6 @@ class UpcomingPaymentsTest {
             recurring = listOf(template("Lunch", "2026-10-24", frequency = RecurringFrequency.DAILY)),
             cardBills = emptyList(),
             cards = listOf(card),
-            posted = emptyList(),
             today = today,
             end = date("2028-03-31"),
             from = from,

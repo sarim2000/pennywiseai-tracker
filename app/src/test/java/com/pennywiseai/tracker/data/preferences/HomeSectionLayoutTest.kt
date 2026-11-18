@@ -12,7 +12,6 @@ class HomeSectionLayoutTest {
             HomeSection.SAFE_TO_SPEND to false,
             HomeSection.GROUPS to false,
             HomeSection.BUDGETS to true,
-            HomeSection.INSIGHTS to false,
             HomeSection.GOALS to false,
             HomeSection.LOANS to true,
             HomeSection.RECENT_TRANSACTIONS to false,
@@ -21,7 +20,7 @@ class HomeSectionLayoutTest {
             HomeSection.MONEY_IN_MOTION to false,
         )
         val encoded = HomeSectionLayout.encode(layout)
-        assertEquals("ACTIVITY,!SAFE_TO_SPEND,!GROUPS,BUDGETS,!INSIGHTS,!GOALS,LOANS,!RECENT_TRANSACTIONS,ACCOUNTS,SUBSCRIPTIONS,!MONEY_IN_MOTION", encoded)
+        assertEquals("ACTIVITY,!SAFE_TO_SPEND,!GROUPS,BUDGETS,!GOALS,LOANS,!RECENT_TRANSACTIONS,ACCOUNTS,SUBSCRIPTIONS,!MONEY_IN_MOTION", encoded)
         assertEquals(layout, HomeSectionLayout.decode(encoded))
     }
 
@@ -38,10 +37,10 @@ class HomeSectionLayoutTest {
         val decoded = HomeSectionLayout.decode("!ACTIVITY,ACCOUNTS")
         assertEquals(
             listOf(
-                HomeSection.SAFE_TO_SPEND, HomeSection.BUDGETS, HomeSection.INSIGHTS, HomeSection.RECENT_TRANSACTIONS,
+                HomeSection.SAFE_TO_SPEND, HomeSection.BUDGETS, HomeSection.RECENT_TRANSACTIONS,
                 HomeSection.SUBSCRIPTIONS, HomeSection.LOANS, HomeSection.GOALS, HomeSection.GROUPS,
                 HomeSection.MONEY_IN_MOTION,
-            ).map { it to true }.let { it.take(4) + listOf(HomeSection.ACTIVITY to false) + it.drop(4) } +
+            ).map { it to true }.let { it.take(3) + listOf(HomeSection.ACTIVITY to false) + it.drop(3) } +
                 listOf(HomeSection.ACCOUNTS to true),
             decoded,
         )
@@ -52,8 +51,8 @@ class HomeSectionLayoutTest {
         // A layout saved before Money in motion was a section (it used to be a fixed card on top).
         val saved = "SAFE_TO_SPEND,BUDGETS,GOALS,LOANS,GROUPS,RECENT_TRANSACTIONS,ACCOUNTS,SUBSCRIPTIONS,ACTIVITY"
         val decoded = HomeSectionLayout.decode(saved).map { it.first.name }
-        assertEquals(saved.split(','), decoded - "MONEY_IN_MOTION" - "INSIGHTS")
-        assertEquals(9, decoded.indexOf("MONEY_IN_MOTION"))
+        assertEquals(saved.split(','), decoded - "MONEY_IN_MOTION")
+        assertEquals(8, decoded.indexOf("MONEY_IN_MOTION"))
     }
 
     @Test
@@ -65,14 +64,8 @@ class HomeSectionLayoutTest {
         assertEquals(HomeSection.SAFE_TO_SPEND to true, decoded.first())
         assertEquals(
             listOf("ACTIVITY", "BUDGETS", "GOALS", "LOANS", "!GROUPS", "RECENT_TRANSACTIONS", "ACCOUNTS", "SUBSCRIPTIONS"),
-            decoded.drop(1).filter { it.first != HomeSection.MONEY_IN_MOTION && it.first != HomeSection.INSIGHTS }.map { (s, v) -> (if (v) "" else "!") + s.name },
+            decoded.drop(1).filter { it.first != HomeSection.MONEY_IN_MOTION }.map { (s, v) -> (if (v) "" else "!") + s.name },
         )
-    }
-
-    @Test
-    fun `insights join a saved layout right after budgets`() {
-        val decoded = HomeSectionLayout.decode("SAFE_TO_SPEND,BUDGETS,RECENT_TRANSACTIONS").map { it.first }
-        assertEquals(HomeSection.INSIGHTS, decoded[2])
     }
 
     @Test

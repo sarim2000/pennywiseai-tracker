@@ -111,14 +111,7 @@ data class BudgetGroupSpending(
      * True when the displayed window is the current week in the current
      * month and its cap is `today` (live, still accumulating).
      */
-    val displayedIsLive: Boolean = false,
-    /**
-     * Some spending this budget counts in the displayed window was left out of
-     * [totalActual], so [remaining] reads high: it had no exchange rate (unified
-     * mode, #670) or isn't in the base currency (otherwise; only set when
-     * [BudgetSummaryProvider.summary] is asked to flag it).
-     */
-    val hasUnconvertedSpend: Boolean = false
+    val displayedIsLive: Boolean = false
 )
 
 data class BudgetOverallSummary(

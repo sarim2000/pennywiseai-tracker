@@ -300,7 +300,7 @@ class ManageAccountsViewModel @Inject constructor(
     fun setStatementDay(bankName: String, accountLast4: String, day: Int?) {
         viewModelScope.launch {
             // A rebuild still waiting to put the old day back mustn't undo this edit.
-            rebuildAccountFields.editStatementDay(bankName, accountLast4) {
+            rebuildAccountFields.editStatementDay(bankName, accountLast4, day) {
                 accountBalanceRepository.updateStatementDay(bankName, accountLast4, day)
             }
         }
@@ -643,10 +643,7 @@ class ManageAccountsViewModel @Inject constructor(
                         // without a historical balance trace.
                         accountBalanceRepository.deleteAccount(source.bankName, source.accountLast4)
                         // The card's bill and statement day carry over when the target has none.
-                        // Not the balance anchor: the source's balance is dropped with it.
-                        accountBalanceRepository.keepAccountFields(
-                            source, target.bankName, target.accountLast4, withAnchor = false
-                        )
+                        accountBalanceRepository.keepAccountFields(source, target.bankName, target.accountLast4)
                         rows
                     }
 

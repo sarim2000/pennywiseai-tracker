@@ -42,19 +42,10 @@ class PeriodReviewLoader @Inject constructor(
     private val ignoredAccountsStore: IgnoredAccountsStore,
     private val cardRepository: CardRepository,
 ) {
-    /**
-     * [detail] adds [PeriodReview.detail] for a cycle: the [DETAIL_CYCLES] cycles ending
-     * with it. Weeks and years don't carry it.
-     */
-    fun observe(
-        kind: ReviewKind,
-        offset: Int,
-        today: LocalDate = LocalDate.now(),
-        detail: Boolean = false,
-    ): Flow<PeriodReview> = flow {
-        val cycleStartDay = userPreferencesRepository.getBudgetCycleStartDay()
-        val range = reviewRange(kind, offset, today, cycleStartDay, localFirstDayOfWeek())
-        val cycles = if (detail && kind == ReviewKind.MONTH) cyclesEndingWith(range, cycleStartDay, DETAIL_CYCLES) else null
+    fun observe(kind: ReviewKind, offset: Int, today: LocalDate = LocalDate.now()): Flow<PeriodReview> = flow {
+        val range = reviewRange(
+            kind, offset, today, userPreferencesRepository.getBudgetCycleStartDay(), localFirstDayOfWeek()
+        )
         emitAll(
             combine(
                 rowsIn(range.start, range.end),
@@ -64,14 +55,12 @@ class PeriodReviewLoader @Inject constructor(
                 accountBalanceRepository.getAllLatestBalances(),
             ) { rows, previousRows, ignored, profileId, balances ->
                 val keep = scopeOf(ignored, profileId, balances)
-                val creditAsExpense = userPreferencesRepository.countCreditCardAsExpense.first()
-                val parentOf = categoryRepository.getAllCategories().first().parentNameOf()
                 buildPeriodReview(
                     range = range,
                     rows = rows.filter { keep(it.transaction) },
                     previousRows = previousRows.filter { keep(it.transaction) },
-                    creditAsExpense = creditAsExpense,
-                    parentOf = parentOf,
+                    creditAsExpense = userPreferencesRepository.countCreditCardAsExpense.first(),
+                    parentOf = categoryRepository.getAllCategories().first().parentNameOf(),
                     settlementLoss = settlementLoss(range.start, range.end, keep),
                     previousSettlementLoss = settlementLoss(range.previousStart, range.previousEnd, keep),
                 ).let { review ->
@@ -79,18 +68,6 @@ class PeriodReviewLoader @Inject constructor(
                     // further back when the previous period didn't already answer it.
                     if (review.hasOlder) review
                     else review.copy(hasOlder = hasRowsBefore(range.start, keep))
-                }.let { review ->
-                    // Read on each emission: any write to the table re-runs the queries above.
-                    if (cycles == null) return@let review
-                    review.copy(
-                        detail = buildPeriodDetail(
-                            cycles = cycles,
-                            rows = rowsIn(cycles.first().first, range.end).first().filter { keep(it.transaction) },
-                            creditAsExpense = creditAsExpense,
-                            parentOf = parentOf,
-                            settlementLoss = cycles.map { (start, end) -> settlementLoss(start, end, keep) },
-                        )
-                    )
                 }
             }
         )
@@ -168,9 +145,4 @@ class PeriodReviewLoader @Inject constructor(
         loanRepository.getLentLoansSettledInPeriod(start.atStartOfDay(), end.atTime(LocalTime.MAX)).first(),
         keep,
     )
-
-    private companion object {
-        /** This cycle and the five before it: a half-year trend, with a 3-cycle baseline inside it. */
-        const val DETAIL_CYCLES = 6
-    }
 }

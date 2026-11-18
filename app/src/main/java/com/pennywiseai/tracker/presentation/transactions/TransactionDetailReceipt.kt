@@ -30,6 +30,7 @@ import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
@@ -516,7 +517,12 @@ internal fun TransactionReceipt(
             // A PDF opens in the phone's PDF viewer; a photo opens full screen here. With no
             // PDF viewer installed there's nothing to tap through to, so the card says so.
             val pdfIntent = remember(uri) { viewModel.pdfReceiptViewIntent() }
-            val canOpen = remember(pdfIntent) { pdfIntent == null || pdfIntent.resolveActivity(context.packageManager) != null }
+            var canOpen by remember(pdfIntent) { mutableStateOf(true) }
+            // Asked again on each return, so a viewer installed meanwhile is picked up.
+            LifecycleResumeEffect(pdfIntent) {
+                canOpen = pdfIntent == null || pdfIntent.resolveActivity(context.packageManager) != null
+                onPauseOrDispose { }
+            }
             Surface(
                 modifier = Modifier
                     .fillMaxWidth()

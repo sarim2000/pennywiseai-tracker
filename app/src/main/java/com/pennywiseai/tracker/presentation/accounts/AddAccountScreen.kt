@@ -277,8 +277,14 @@ fun AddAccountScreen(
                     onValueChange = viewModel::updateBalance,
                     label = {
                         Text(
-                            if (formState.accountType == AccountType.LOAN) stringResource(R.string.manage_accounts_outstanding_balance)
-                            else stringResource(R.string.add_account_balance_label),
+                            // A card's balance is what's owed on it, like a loan's; never the credit left.
+                            stringResource(
+                                if (formState.accountType == AccountType.LOAN || formState.accountType == AccountType.CREDIT) {
+                                    R.string.manage_accounts_outstanding_balance
+                                } else {
+                                    R.string.add_account_balance_label
+                                }
+                            ),
                             fontWeight = FontWeight.SemiBold
                         )
                     },

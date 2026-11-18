@@ -24,6 +24,7 @@ import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Repeat
+import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -104,6 +105,7 @@ fun GoalDetailScreen(
     onEdit: (Long) -> Unit,
     onOpenGoal: (Long) -> Unit,
     onOpenTransaction: (Long) -> Unit = {},
+    onShare: (Long) -> Unit = {},
     viewModel: GoalDetailViewModel = hiltViewModel(),
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
@@ -133,6 +135,9 @@ fun GoalDetailScreen(
         },
         actions = {
             if (progress != null) {
+                IconButton(onClick = { onShare(progress.goal.id) }, shapes = IconButtonDefaults.shapes()) {
+                    Icon(Icons.Default.Share, contentDescription = stringResource(R.string.goal_share))
+                }
                 GoalOverflowMenu(
                     progress = progress,
                     onEdit = { onEdit(progress.goal.id) },

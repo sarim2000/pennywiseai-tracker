@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -21,6 +22,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Visibility
@@ -51,6 +53,7 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -107,6 +110,8 @@ fun BalanceCard(
     totalAvailableCredit: BigDecimal = BigDecimal.ZERO,
     forecast: SpendForecast? = null,
     onAccountClick: (String, String) -> Unit = { _, _ -> },
+    /** Opens Net worth from a labelled link in the expanded card; null hides the link. */
+    onOpenNetWorth: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     blurEffects: Boolean = false,
     hazeState: HazeState = remember { HazeState() },
@@ -493,6 +498,32 @@ fun BalanceCard(
                                     color = MaterialTheme.colorScheme.error,
                                     modifier = Modifier.fillMaxWidth()
                                 )
+                            }
+                            // Named for where it goes: Net worth takes off cards and loans,
+                            // so its figure isn't this total.
+                            if (onOpenNetWorth != null) {
+                                val netWorthLabel = stringResource(R.string.net_worth_title)
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(Dimensions.CornerRadius.medium))
+                                        .clickable(onClickLabel = netWorthLabel, role = Role.Button, onClick = onOpenNetWorth)
+                                        .defaultMinSize(minHeight = Dimensions.Component.minTouchTarget),
+                                    horizontalArrangement = Arrangement.End,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Text(
+                                        text = netWorthLabel,
+                                        style = MaterialTheme.typography.labelLarge,
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(Dimensions.Icon.small)
+                                    )
+                                }
                             }
                         }
 

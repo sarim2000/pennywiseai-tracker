@@ -380,26 +380,6 @@
     <string name="recurring_day_of_week_any">N\'importe quel</string>
     <string name="recurring_field_note">Note (facultatif)</string>
     <string name="recurring_field_active">Actif</string>
-    <!-- Share card, sheet and banner -->
-    <string name="share_card_caption_transactions">textes bancaires traqués. 0 saisi.</string>
-    <plurals name="share_card_caption_subscriptions">
-        <item quantity="one">souscription oubliée</item>
-        <item quantity="other">souscriptions oubliées</item>
-    </plurals>
-    <string name="share_card_period_all_time">TOUT LE TEMPS</string>
-    <string name="share_card_tagline">Lisez les SMS de ma banque. Rien n\'a quitté mon téléphone.</string>
-    <string name="share_sheet_no_amounts">Aucun montant n\'est inclus.</string>
-    <string name="share_sheet_share">Partager</string>
-    <string name="share_sheet_done">Fait</string>
-    <string name="share_sheet_customise">Personnaliser</string>
-    <string name="share_sheet_show">Afficher</string>
-    <string name="share_sheet_transactions">Chronologie</string>
-    <string name="share_sheet_subscriptions">Abonnements</string>
-    <string name="share_sheet_no_subscriptions">Aucun abonnement détecté pour le moment — PennyWise les trouve à partir de paiements récurrents dans votre SMS.</string>
-    <string name="share_sheet_period">Période</string>
-    <string name="share_sheet_this_month">Ce mois-ci</string>
-    <string name="share_sheet_last_month">Le mois dernier</string>
-    <string name="share_sheet_all_time">Tous les temps</string>
     <!-- %1$s = month name -->
     <string name="share_banner_title">%1$s, résumé</string>
     <string name="share_banner_subtitle">Voir ce que PennyWise a suivi pour vous</string>
@@ -421,6 +401,8 @@
     <string name="quick_add_saved">Enregistré %1$s · %2$s</string>
     <!-- The sheet filled from the voice mic (Home, the cash widget) -->
     <!-- Clears a day said out loud ("yesterday") back to today -->
+    <!-- Amount calculator: a keypad sheet opened from the amount field -->
+    <!-- The sum is unfinished or doesn't make sense yet, e.g. "12+" or "1..2" -->
     <string name="date_range_title">Sélectionnez la plage de dates</string>
     <string name="date_range_ok">Ok</string>
     <string name="date_range_cancel">Abandonner</string>

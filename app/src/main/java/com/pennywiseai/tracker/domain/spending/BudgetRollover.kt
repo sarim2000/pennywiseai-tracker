@@ -24,15 +24,19 @@ object BudgetRollover {
             (periodType == BudgetPeriodType.WEEKLY || periodType == BudgetPeriodType.MONTHLY)
 
     /**
-     * `clamp(base − previousSpent, −base, +base)`, measured against the [baseLimit],
-     * never a limit that already carried something in. [previousSpent] is null when
-     * some of last period's spending couldn't be counted (no exchange rate): that
-     * carries nothing, since a missing rate must never look like money left over.
+     * `clamp(base − previousSpent, −cap, +cap)`, measured against the [baseLimit],
+     * never a limit that already carried something in. [cap] is the budget's own
+     * limit: [baseLimit] may hold last period's extra budget too, which mustn't let an
+     * overspend carry more than one limit and leave this period's below 0.
+     * [previousSpent] is null when some of last period's spending couldn't be counted
+     * (no exchange rate): that carries nothing, since a missing rate must never look
+     * like money left over.
      */
-    fun carry(baseLimit: Money, previousSpent: Money?): Money {
+    fun carry(baseLimit: Money, previousSpent: Money?, cap: Money = baseLimit): Money {
         if (previousSpent == null || baseLimit.amount.signum() <= 0) return Money.zero(baseLimit.currency)
         val left = (baseLimit + Money(previousSpent.amount.negate(), previousSpent.currency)).amount
-        return Money(left.coerceIn(baseLimit.amount.negate(), baseLimit.amount), baseLimit.currency)
+        require(cap.currency == baseLimit.currency) { "carry cap in ${cap.currency}, limit in ${baseLimit.currency}" }
+        return Money(left.coerceIn(cap.amount.negate(), cap.amount), baseLimit.currency)
     }
 
     /** The one limit every budget figure (remaining, pace, alerts, widget) is measured against. */

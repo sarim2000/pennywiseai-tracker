@@ -70,7 +70,7 @@ suspend fun budgetCarry(
     // (no overall limit) adds its extra-budget boosts to them, so they count here too.
     val limit = if (group.budget.limitAmount.signum() > 0) base else base + spend.boost
     return BudgetCarry(
-        BudgetRollover.carry(Money(limit, currency), spent?.let { Money(it, currency) }),
+        BudgetRollover.carry(Money(limit, currency), spent?.let { Money(it, currency) }, cap = Money(base, currency)),
         CarryGap.NO_RATE.takeIf { spent == null }
     )
 }

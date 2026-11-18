@@ -67,6 +67,8 @@ class BudgetCarryTest {
         assertEquals(Money(BigDecimal("100"), "JOD"), carry(group("0", "Food" to "1000"), listOf(boost, tx("1400"))).amount)
         // With an overall limit the card ignores boosts, so the carry does too.
         assertEquals(Money(BigDecimal("-400"), "JOD"), carry(group("1000", "Food" to "1000"), listOf(boost, tx("1400"))).amount)
+        // An overspend past limit and boost carries at most one limit: this period starts at 0, not below.
+        assertEquals(Money(BigDecimal("-1000"), "JOD"), carry(group("0", "Food" to "1000"), listOf(boost, tx("3000"))).amount)
     }
 
     @Test

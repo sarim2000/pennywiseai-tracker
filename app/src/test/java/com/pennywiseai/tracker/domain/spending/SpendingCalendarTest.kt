@@ -173,6 +173,13 @@ class SpendingCalendarTest {
         assertTrue(days(planned = overdue, month = YearMonth.of(2026, 12)).isEmpty())
     }
 
+    @Test
+    fun `a card bill overdue since earlier this month shows today, not on its day`() {
+        val result = days(planned = listOf(cardBill("2026-11-01")))
+
+        assertEquals(listOf(date("2026-11-16")), result.keys.toList())
+    }
+
     private fun weekly(next: String) = SubscriptionEntity(
         id = 1, merchantName = "Cleaner", amount = d("100"), nextPaymentDate = date(next), billingCycle = "Weekly",
     )
@@ -188,7 +195,8 @@ class SpendingCalendarTest {
 
     @Test
     fun `a weekly payment shows on every day it falls`() {
-        val result = days(planned = upcoming(today = date("2026-11-01")))
+        val today = date("2026-11-01")
+        val result = days(planned = upcoming(today), today = today)
 
         assertEquals(
             listOf("2026-11-06", "2026-11-13", "2026-11-20", "2026-11-27").map(::date),

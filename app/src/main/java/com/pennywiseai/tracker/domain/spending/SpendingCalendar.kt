@@ -22,9 +22,9 @@ object SpendingCalendar {
      * The days of [month] with spend or a payment due. [rows] are already scoped (profile,
      * ignored accounts); spend follows Analytics' default view ([defaultTypeFilter]): loans and
      * exclusions out, transfer pairs once, refunds netted off their day. [planned] comes from
-     * [UpcomingPayments], so a payment that has posted has already moved its schedule on. A
-     * card bill still owed from an earlier month shows on [today] when [month] is this month:
-     * it's due now.
+     * [UpcomingPayments], so a payment that has posted has already moved its schedule on. In
+     * this month, any unpaid bill past its due date shows on [today]: it's due now. A past
+     * month still shows it on its own day.
      */
     suspend fun days(
         month: YearMonth,
@@ -49,8 +49,8 @@ object SpendingCalendar {
         val isThisMonth = YearMonth.from(today) == month
         val due = planned.mapNotNull { bill ->
             when {
+                isThisMonth && bill.dueDate.isBefore(today) -> today to bill
                 YearMonth.from(bill.dueDate) == month -> bill.dueDate to bill
-                isThisMonth && bill.dueDate.isBefore(month.atDay(1)) -> today to bill
                 else -> null
             }
         }.groupBy({ it.first }, { it.second })

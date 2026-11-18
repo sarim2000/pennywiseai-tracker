@@ -20,7 +20,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
@@ -54,7 +56,23 @@ fun ReceiptPreview(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    val isPdf = remember(uri) { ReceiptManager.isPdf(context, uri) }
+    // A content Uri's type is a provider call, so it's asked off the main thread; a stored
+    // `file:` receipt is known from its name straight away.
+    val type = remember(uri) {
+        mutableStateOf(if (uri.scheme == "file") ReceiptManager.isPdf(context, uri) else null)
+    }
+    LaunchedEffect(uri) {
+        if (type.value == null) type.value = withContext(Dispatchers.IO) { ReceiptManager.isPdf(context, uri) }
+    }
+    val isPdf = type.value
+    if (isPdf == null) {
+        Box(
+            modifier = modifier
+                .heightIn(min = 96.dp)
+                .background(MaterialTheme.colorScheme.surfaceContainerHigh)
+        )
+        return
+    }
     if (!isPdf) {
         AsyncImage(
             model = uri,

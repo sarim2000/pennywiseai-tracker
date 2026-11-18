@@ -608,7 +608,7 @@ class LlmRepository @Inject constructor(
                 }
             }
         }
-        PennyWiseTools.QUERY_SPENDING -> querySpending(call.arguments, userMessage)
+        PennyWiseTools.QUERY_SPENDING -> querySpending(call.arguments)
         PennyWiseTools.PLANNING_STATUS -> when (call.arguments["kind"]?.toString()?.trim()?.lowercase()?.removeSuffix("s")) {
             "budget", "limit" -> budgetsText(planningRepository.budgets())
             "bill", "subscription", "payment" -> billsText(planningRepository.billsDue())
@@ -668,7 +668,7 @@ class LlmRepository @Inject constructor(
      * biggest categories, merchants or accounts. The reply's label names what was looked up;
      * arguments it can't read are said, never answered with other days instead.
      */
-    private suspend fun querySpending(args: Map<String, Any?>, userMessage: String): String {
+    private suspend fun querySpending(args: Map<String, Any?>): String {
         val asGrouped = SpendingQuery.groupBy(args.arg("groupBy")) ?: return context.getString(R.string.chat_reply_query_group_unknown)
         val window = when (val dates = datesAsked(args)) {
             is SpendingQuery.Dates.Invalid -> return datesProblem(dates)
@@ -692,8 +692,9 @@ class LlmRepository @Inject constructor(
         // The list can't be narrowed to a merchant as the figure was (its search reads notes and
         // SMS too), and only a name the category list spells is a category to open: not "uber".
         val linked = merchant == null && (category == null || known != null)
-        // "How much salary did I receive?": what came in, never what was spent.
-        val incomeAsked = categories.any { it.isIncome && it.name == known } || SpendingComparison.asksAboutIncome(userMessage)
+        // "How much salary did I receive?": what came in, never what was spent. Decided by this
+        // call's category, not the message: "salary received and food spent" sends Food here too.
+        val incomeAsked = categories.any { it.isIncome && it.name == known }
         return when {
             // A ranking counts only what went out: "salary by account" would rank spending, or nothing.
             groupBy != SpendingQuery.GroupBy.NONE && incomeAsked -> context.getString(R.string.chat_reply_income_ranking_unsupported)

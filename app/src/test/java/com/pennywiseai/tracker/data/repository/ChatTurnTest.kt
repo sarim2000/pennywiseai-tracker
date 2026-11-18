@@ -1284,11 +1284,31 @@ class ChatTurnTest {
         every { context.getString(R.string.chat_reply_income_ranking_unsupported) } returns "NO_INCOME_RANKING"
         events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("category" to "Salary", "group_by" to "account")))
         assertEquals("NO_INCOME_RANKING", send("how much salary went into each account?"))
-        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("group_by" to "category")))
-        assertEquals("NO_INCOME_RANKING", send("which category did I receive the most income in?"))
-        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("group_by" to "account")))
-        assertEquals("NO_INCOME_RANKING", send("أي حساب استلمت فيه أكثر دخل؟"))
         coVerify(exactly = 0) { aiContext.topCategories(any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `income is decided per call, by its category, not by the message`() = runTest {
+        every { context.resources.getQuantityString(R.plurals.chat_reply_category_income, any(), any(), any(), any(), any()) } answers {
+            (args[2] as Array<*>).let { "RECEIVED ${it[0]} ${it[1]}" }
+        }
+        every { categories.getAllCategories() } returns flowOf(
+            listOf(CategoryEntity(id = 1, name = "طعام", color = "#000"), CategoryEntity(id = 3, name = "Salary", color = "#000", isIncome = true))
+        )
+        coEvery { aiContext.categoryIncome("Salary", any(), any()) } returns spent("500").copy(category = "Salary")
+        coEvery { aiContext.categorySpending("طعام", any(), any()) } returns spent("120").copy(category = "طعام")
+        events = listOf(
+            LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("category" to "Salary")),
+            LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("category" to "طعام")),
+        )
+        assertEquals("RECEIVED ₹500 Salary\nSPEND", send("How much salary did I receive and how much did I spend on food?"))
+        coVerify(exactly = 0) { aiContext.categoryIncome("طعام", any(), any()) }
+
+        // A ranking of no income category ranks spending, whatever the words: its label says so.
+        coEvery { aiContext.topCategories(any(), any(), any(), any()) } returns TopCategories(ChatScope(nov), mapOf("INR" to listOf("طعام" to BigDecimal("120"))))
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("group_by" to "account")))
+        send("أي حساب استلمت فيه أكثر دخل؟")
+        coVerify(exactly = 1) { aiContext.topCategories(any(), any(), any(), any()) }
     }
 
     @Test

@@ -47,6 +47,12 @@ class ScopedSubscriptionsTest {
     }
 
     @Test
+    fun `a bill's bank is matched ignoring case and spaces`() {
+        val bill = subscription(4, "2222").copy(bankName = " test bank ")
+        assertEquals(listOf(4L), scopedSubscriptions(listOf(bill), emptySet(), business, balances).map { it.id })
+    }
+
+    @Test
     fun `a bill paid from an ignored account is left out`() {
         assertEquals(listOf(1L, 3L), scoped(null, ignored = setOf("Test Bank_2222")))
     }

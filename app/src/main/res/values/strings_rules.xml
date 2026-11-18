@@ -258,6 +258,8 @@
     <string name="chat_cancel">Cancel</string>
     <string name="chat_settings">Settings</string>
     <string name="chat_model_required_short">Model Required</string>
+    <string name="chat_draft_waiting">Kept for when the model is ready: “%1$s”</string>
+    <string name="chat_draft_after_screen">Your question will be in Chat when you\'re back on Home.</string>
     <string name="chat_model_size_hint">1.6 GB · use Wi-Fi</string>
     <string name="chat_initializing_model">Initializing AI Model...</string>
     <string name="chat_initializing_hint">This may take a few seconds</string>

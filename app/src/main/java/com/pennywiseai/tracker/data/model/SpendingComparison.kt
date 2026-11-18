@@ -33,10 +33,16 @@ object SpendingComparison {
         val current: Window
         val previous: Window
         val profile: ProfileEntity?
+        /**
+         * [currentSpentIn] and [previousSpentIn] are the currencies each window has spending
+         * transactions in: a forgiven loan alone has none to list.
+         */
         data class Rows(
             override val current: Window,
             override val previous: Window,
             val rows: List<Row>,
+            val currentSpentIn: Set<String> = rows.filter { it.current.signum() > 0 }.mapTo(mutableSetOf()) { it.currency },
+            val previousSpentIn: Set<String> = rows.filter { it.previous.signum() > 0 }.mapTo(mutableSetOf()) { it.currency },
             override val profile: ProfileEntity? = null,
         ) : Result
         /** No transactions at all in [missing]: the app can't tell "spent nothing" from "wasn't tracking". */
@@ -86,14 +92,16 @@ object SpendingComparison {
         // A loan forgiven in a window is activity there too, even with no transactions.
         if (previous.isEmpty() && previousLoss.values.none { it.signum() > 0 }) return Result.NoData(cw, pw, pw)
         if (current.isEmpty() && currentLoss.values.none { it.signum() > 0 }) return Result.NoData(cw, pw, cw)
-        val now = spend(current, categories, creditAsExpense).plusAmounts(currentLoss)
-        val before = spend(previous, categories, creditAsExpense).plusAmounts(previousLoss)
+        val spentNow = spend(current, categories, creditAsExpense)
+        val spentBefore = spend(previous, categories, creditAsExpense)
+        val now = spentNow.plusAmounts(currentLoss)
+        val before = spentBefore.plusAmounts(previousLoss)
         val rows = (now.keys + before.keys).sorted().map { currency ->
             val c = now[currency] ?: BigDecimal.ZERO
             val p = before[currency] ?: BigDecimal.ZERO
             Row(currency, c, p, change(c, p))
         }
-        return Result.Rows(cw, pw, rows)
+        return Result.Rows(cw, pw, rows, spentNow.keys, spentBefore.keys)
     }
 
     /**

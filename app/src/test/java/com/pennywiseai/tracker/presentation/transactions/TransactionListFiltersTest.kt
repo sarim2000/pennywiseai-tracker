@@ -74,6 +74,12 @@ class TransactionListFiltersTest {
     }
 
     @Test
+    fun `a category matches in any case, as a chat figure counts it`() {
+        val rows = listOf(tx(1, "food"), tx(2, "Others"), tx(3, "Others"))
+        assertEquals(listOf(1L, 2L), ids(filterByCategories(rows, setOf("Food"), listOf(split(2, "FOOD")))))
+    }
+
+    @Test
     fun `a category found only in a split matches`() {
         val rows = listOf(tx(1, "Others"), tx(2, "Others"))
         assertEquals(listOf(1L), ids(filterByCategories(rows, setOf("Groceries"), listOf(split(1, "Groceries")))))

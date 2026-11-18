@@ -107,6 +107,7 @@ class PennyWiseApplication : Application(), Configuration.Provider {
         // The weekend a last-working-day budget cycle rolls back over: the SIM country, kept once saved.
         com.pennywiseai.tracker.data.preferences.WeekendCountryStore.load(this)
         registerActivityLifecycleCallbacks(AppLockLifecycleObserver())
+        registerActivityLifecycleCallbacks(com.pennywiseai.tracker.utils.LatinDigitsDefaultKeeper)
         lastLocales = resources.configuration.locales
         com.pennywiseai.tracker.utils.useLatinDigitsByDefault()
 

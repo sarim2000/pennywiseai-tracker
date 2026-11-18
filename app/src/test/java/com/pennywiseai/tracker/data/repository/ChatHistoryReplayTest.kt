@@ -5,9 +5,9 @@ import com.pennywiseai.tracker.data.database.entity.ChatMessage
 import com.pennywiseai.tracker.domain.service.LlmEvent
 import com.pennywiseai.tracker.domain.service.LlmService
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
-import io.mockk.coVerify
 import io.mockk.slot
 import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.flow.flowOf
@@ -15,15 +15,17 @@ import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
 
-/** A rebuilt conversation replays the saved chat, but not the message that is being sent. */
+/** A rebuilt conversation replays the saved chat's answered exchanges, never a question left open. */
 class ChatHistoryReplayTest {
 
     @Test
-    fun `message being sent is not replayed as history`() = runTest {
+    fun `a question with no reply is not replayed, nor the one being sent`() = runTest {
         val saved = mutableListOf(
             ChatMessage(message = "system prompt", isUser = false, timestamp = 1, isSystemPrompt = true),
-            ChatMessage(message = "coffee 120", isUser = true, timestamp = 2),
-            ChatMessage(message = "Here's what I'll add", isUser = false, timestamp = 3)
+            // Its turn was stopped before any reply: left open, the model would answer it again.
+            ChatMessage(message = "taxi 45", isUser = true, timestamp = 2),
+            ChatMessage(message = "hi", isUser = true, timestamp = 3),
+            ChatMessage(id = LlmRepository.MODEL_ID + "1", message = "Hello!", isUser = false, timestamp = 4)
         )
         val chatDao = mockk<ChatDao>(relaxed = true) {
             coEvery { getAllMessagesForContext() } answers { saved.sortedBy { it.timestamp } }
@@ -55,7 +57,7 @@ class ChatHistoryReplayTest {
 
         repository.sendMessageStream("how much on food?").collect()
 
-        assertEquals(listOf("coffee 120" to true, "Here's what I'll add" to false), history.captured)
+        assertEquals(listOf("hi" to true, "Hello!" to false), history.captured)
     }
 
     @Test

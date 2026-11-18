@@ -168,6 +168,22 @@ internal fun checkSpot(shape: MascotShape): Offset = when (shape) {
     else -> Offset(64f, 66f)
 }
 
+/**
+ * A cue a morph cut into: [cue]'s moves as they stood [sinceMs] in, showing at [weight].
+ * They hold there and fade out as the morph runs, rather than jumping away.
+ */
+internal data class CutArrival(val cue: MascotCue, val sinceMs: Long, val weight: Float)
+
+/** How much of [cut] still shows [progress] into the morph that cut it: all at the start, none at the end. */
+internal fun cutWeight(cut: CutArrival, progress: Float): Float = cut.weight * (1 - progress.coerceIn(0f, 1f))
+
+/** [pose] with [cut]'s moves (a lean, a dip, a swing) fading out [progress] into the morph that cut it. */
+internal fun withCutArrival(pose: MascotPose, cut: CutArrival?, progress: Float): MascotPose {
+    if (cut == null) return pose
+    val w = cutWeight(cut, progress)
+    return if (w > 0f) blendPose(pose, arrived(pose, cut.cue, cut.sinceMs), w) else pose
+}
+
 /** A transfer's glance: from line start across to line end, a little low, at [t] 0..1. */
 internal fun walletGlance(t: Float): Offset = Offset(-GLANCE_REACH + 2 * GLANCE_REACH * smoothstep(0.12f, 0.55f, t), 0.15f)
 

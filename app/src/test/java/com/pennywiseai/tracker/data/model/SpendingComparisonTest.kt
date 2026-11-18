@@ -66,6 +66,18 @@ class SpendingComparisonTest {
     }
 
     @Test
+    fun `a month is Home's budget cycle, against the same point of the one before`() {
+        // A cycle from the 25th: 25 Oct–24 Nov, nine days and ten hours in on 3 Nov.
+        val (cur, prev) = SpendingComparison.windows(Period.MONTH, LocalDateTime.of(2026, 11, 3, 10, 0), DayOfWeek.MONDAY, cycleStartDay = 25)
+        assertEquals(LocalDateTime.of(2026, 10, 25, 0, 0), cur.start)
+        assertEquals(LocalDateTime.of(2026, 9, 25, 0, 0), prev.start)
+        assertEquals(LocalDateTime.of(2026, 10, 4, 10, 0), prev.end)
+        // Past the shorter previous cycle's length, the whole of it: 30 Jan–27 Feb, then 28 Feb–29 Mar.
+        val (_, short) = SpendingComparison.windows(Period.MONTH, LocalDateTime.of(2027, 3, 29, 12, 0), DayOfWeek.MONDAY, cycleStartDay = 30)
+        assertEquals(LocalDateTime.of(2027, 2, 27, 23, 59, 59, 999_999_999), short.end)
+    }
+
+    @Test
     fun `january compares with december of the year before`() {
         val (_, prev) = SpendingComparison.windows(Period.MONTH, LocalDateTime.of(2027, 1, 1, 8, 0), DayOfWeek.MONDAY)
         assertEquals(LocalDateTime.of(2026, 12, 1, 0, 0), prev.start)

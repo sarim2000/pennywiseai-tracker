@@ -43,16 +43,13 @@ private val EXPENSE = listOf(
 )
 private val INCOME = listOf("Salary", "Income")
 
-/** Same text as LlmRepository.composeSystemPrompt, with synthetic figures. */
-internal fun systemPrompt(base: String, hint: String): String {
-    // CurrencyFormatter's symbols: the prompt shows "SR 18,450", never naming the ISO code.
-    val symbol = mapOf("INR" to "₹", "SAR" to "SR ", "EGP" to "E£", "JOD" to "JD ")[base] ?: "$base "
+/** Same text as LlmRepository.composeSystemPrompt. */
+internal fun systemPrompt(hint: String): String {
     return """
     You are PennyWise AI, a friendly assistant inside an expense tracker. Today is $TODAY.
-    This month so far: ${symbol}18,450 spent, ${symbol}52,000 income, 37 transactions.
 
     When the user tells you about money they spent, paid, bought or received, call addTransaction. Use EXPENSE unless they clearly received money.
-    When the user asks how much they spent on something, call spendingByCategory; for this month's overall totals call monthSummary (the figures below are only a snapshot from when this chat started).
+    When the user asks how much they spent on something, call spendingByCategory; for this month's overall totals call monthSummary. Never state a spending or income total yourself: only the tools have the figures.
     If the user refers to something already recorded — "the tea from today", "that uber", "change", "should be", "was actually", "delete", "remove" — call updateTransaction or deleteTransaction with the words they used to identify it. Never call addTransaction for those.
     Otherwise answer briefly and helpfully. Never invent transactions or figures, and never say you added, changed or deleted anything yourself — only the tools do that, and the user confirms each one.
 
@@ -65,8 +62,8 @@ internal fun systemPrompt(base: String, hint: String): String {
 }
 
 /** The prompt the app sends today: LlmRepository.composeSystemPrompt names the array tool and adds these rules. */
-internal fun appSystemPrompt(base: String) =
-    systemPrompt(base, ONE_CALL_ITEMS + RULES).replace("call addTransaction.", "call addTransactions.").replace("Never call addTransaction for", "Never call addTransactions for")
+internal fun appSystemPrompt() =
+    systemPrompt(ONE_CALL_ITEMS + RULES).replace("call addTransaction.", "call addTransactions.").replace("Never call addTransaction for", "Never call addTransactions for")
 
 private const val ONE_CALL_EACH = "\nIf a message mentions several transactions, call addTransaction once for each of them."
 private const val RULES = """
@@ -209,17 +206,17 @@ fun main(argv: Array<String>) = runBlocking {
         when (shape) {
             "app" -> {
                 tools = listOf(tool(AddTransactionsTool()), tool(PennyWiseTools()))
-                system = appSystemPrompt(c.currency)
+                system = appSystemPrompt()
             }
-            "prod" -> { tools = listOf(tool(PennyWiseTools())); system = systemPrompt(c.currency, "") }
-            "prod_hint" -> { tools = listOf(tool(PennyWiseTools())); system = systemPrompt(c.currency, ONE_CALL_EACH) }
-            "ext_hint" -> { tools = listOf(tool(ExtendedTools()), tool(OtherTools())); system = systemPrompt(c.currency, ONE_CALL_EACH) }
-            "ext_few" -> { tools = listOf(tool(ExtendedTools()), tool(OtherTools())); system = systemPrompt(c.currency, ONE_CALL_EACH + EXAMPLES) }
-            "ext_rules" -> { tools = listOf(tool(ExtendedTools()), tool(OtherTools())); system = systemPrompt(c.currency, ONE_CALL_EACH + RULES) }
+            "prod" -> { tools = listOf(tool(PennyWiseTools())); system = systemPrompt("") }
+            "prod_hint" -> { tools = listOf(tool(PennyWiseTools())); system = systemPrompt(ONE_CALL_EACH) }
+            "ext_hint" -> { tools = listOf(tool(ExtendedTools()), tool(OtherTools())); system = systemPrompt(ONE_CALL_EACH) }
+            "ext_few" -> { tools = listOf(tool(ExtendedTools()), tool(OtherTools())); system = systemPrompt(ONE_CALL_EACH + EXAMPLES) }
+            "ext_rules" -> { tools = listOf(tool(ExtendedTools()), tool(OtherTools())); system = systemPrompt(ONE_CALL_EACH + RULES) }
             "array", "array_few", "array_rules" -> {
                 tools = listOf(tool(ArrayTool()), tool(OtherTools()))
                 val hint = ONE_CALL_ITEMS + when (shape) { "array_few" -> EXAMPLES; "array_rules" -> RULES; else -> "" }
-                system = systemPrompt(c.currency, hint).replace("call addTransaction.", "call addTransactions.").replace("Never call addTransaction for", "Never call addTransactions for")
+                system = systemPrompt(hint).replace("call addTransaction.", "call addTransactions.").replace("Never call addTransaction for", "Never call addTransactions for")
             }
             "json" -> { tools = emptyList(); system = extractionPrompt(c.currency) }
             else -> error("unknown shape $shape")

@@ -251,6 +251,7 @@
     <!-- Theme style -->
     <string name="appearance_style_dynamic">ไดนามิก</string>
     <string name="appearance_style_default">ค่าเริ่มต้น</string>
+    <!-- Fixed palettes ported from Mihon: proper names, not translated -->
     <!-- Toggles -->
     <string name="appearance_amoled_title">ดำ AMOLED</string>
     <string name="appearance_amoled_subtitle">ใช้พื้นหลังสีดำบริสุทธิ์เพื่อความคอนทราสต์ที่ลึกยิ่งขึ้น</string>

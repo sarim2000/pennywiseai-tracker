@@ -9,6 +9,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DragIndicator
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
@@ -53,6 +54,7 @@ internal fun HomeMenuSheet(
     onDismiss: () -> Unit,
     onOpenReview: () -> Unit,
     onOpenShareCard: () -> Unit,
+    onOpenAchievements: () -> Unit,
     onOpenSettings: () -> Unit,
     onEditHome: () -> Unit,
     onReadMessagesAgain: () -> Unit
@@ -90,6 +92,17 @@ internal fun HomeMenuSheet(
                 onClick = {
                     onDismiss()
                     onOpenReview()
+                }
+            )
+
+            // Achievements (Middle) — beside the share card, which they feed.
+            MenuListItem(
+                headline = stringResource(R.string.achievements_title),
+                icon = { Icon(Icons.Default.EmojiEvents, contentDescription = null) },
+                position = ListItemPosition.Middle,
+                onClick = {
+                    onDismiss()
+                    onOpenAchievements()
                 }
             )
 

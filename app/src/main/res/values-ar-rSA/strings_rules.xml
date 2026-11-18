@@ -448,6 +448,7 @@
     <string name="chat_done_added">تمت إضافة %1$s (%2$s).</string>
     <string name="chat_done_deleted">تم حذف %1$s.</string>
     <string name="chat_done_updated">تم تعديل %1$s.</string>
+    <!-- Under a chat answer: opens the transactions behind its figures. %1$s in _in is what they are, joined by " · ": a category name, a date range like "1 Nov–16 Nov" and/or a currency code like "USD" -->
     <string name="chat_link_transactions">عرض المعاملات</string>
     <string name="chat_link_transactions_in">عرض معاملات %1$s</string>
     <string name="chat_link_open">فتح %1$s</string>

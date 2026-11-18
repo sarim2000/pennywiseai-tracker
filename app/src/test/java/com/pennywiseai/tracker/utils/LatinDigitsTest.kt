@@ -19,4 +19,17 @@ class LatinDigitsTest {
         val english = Locale.US
         assertEquals(english, english.withLatinDigits())
     }
+
+    @Test
+    fun `a count keeps the language's grouping in Latin digits`() {
+        val before = Locale.getDefault()
+        try {
+            Locale.setDefault(Locale.forLanguageTag("ar-SA"))
+            assertEquals("1234", formatCount(1_234).filter(Char::isDigit))
+            Locale.setDefault(Locale.GERMANY)
+            assertEquals("1.234", formatCount(1_234))
+        } finally {
+            Locale.setDefault(before)
+        }
+    }
 }

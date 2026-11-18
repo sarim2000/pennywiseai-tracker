@@ -32,15 +32,27 @@ internal class ScanOutcomeRecorder(
     var fullWindow: Boolean = false
         private set
 
+    /**
+     * Earlier scans kept failing to save the same messages, past [SmsScanRecord.MAX_SAVE_RETRIES]
+     * retries: this scan moves the cursor on even if they fail again. Known once [run] starts.
+     */
+    var givesUpOnFailedSaves: Boolean = false
+        private set
+
     private var startedAt = 0L
     private var lastSucceededAt: Long? = null
+    private var priorFailedSaveStreak = 0
 
     /** Runs [scan] and rethrows whatever it throws, once the outcome is recorded. */
     suspend fun <T> run(isStopped: () -> Boolean, scan: suspend () -> T): T {
         startedAt = clock()
         val previous = previousRecord()
-        lastSucceededAt = previous?.lastSucceededAt
-        fullWindow = previous?.owesFullWindow == true
+        lastSucceededAt = previous.getOrNull()?.lastSucceededAt
+        // Unknown isn't "nothing owed": writing over an owed retry would let the next
+        // ordinary scan skip messages that failed, so read the whole window instead.
+        fullWindow = previous.getOrNull()?.owesFullWindow ?: previous.isFailure
+        priorFailedSaveStreak = previous.getOrNull()?.failedSaveStreak ?: 0
+        givesUpOnFailedSaves = priorFailedSaveStreak >= SmsScanRecord.MAX_SAVE_RETRIES
         record(running())
         val result = try {
             scan()
@@ -61,8 +73,13 @@ internal class ScanOutcomeRecorder(
         record(running())
     }
 
-    private fun running() =
-        SmsScanRecord(SmsScanState.RUNNING, startedAt, lastSucceededAt = lastSucceededAt, fullWindow = fullWindow)
+    private fun running() = SmsScanRecord(
+        SmsScanState.RUNNING,
+        startedAt,
+        lastSucceededAt = lastSucceededAt,
+        fullWindow = fullWindow,
+        failedSaveStreak = priorFailedSaveStreak,
+    )
 
     /**
      * A success with everything saved stamps its own finish time; anything else carries
@@ -79,15 +96,21 @@ internal class ScanOutcomeRecorder(
             counts = counts,
             lastSucceededAt = if (clean) finishedAt else lastSucceededAt,
             fullWindow = fullWindow,
+            failedSaveStreak = when {
+                counts.failed > 0 -> priorFailedSaveStreak + 1
+                clean -> 0
+                else -> priorFailedSaveStreak
+            },
         )
     }
 
-    private suspend fun previousRecord(): SmsScanRecord? = try {
-        preferences.lastScanRecord.first()
+    /** A failure when the record couldn't be read; success with null when there is none. */
+    private suspend fun previousRecord(): Result<SmsScanRecord?> = try {
+        Result.success(preferences.lastScanRecord.first())
     } catch (e: Exception) {
         if (e is CancellationException) throw e
         Log.e(TAG, "Couldn't read the last scan record", e)
-        null
+        Result.failure(e)
     }
 
     /** Best effort: the check-up's record must never fail the scan itself. */

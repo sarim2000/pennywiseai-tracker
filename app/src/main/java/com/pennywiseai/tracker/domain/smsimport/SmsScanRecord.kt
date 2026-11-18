@@ -53,14 +53,26 @@ data class SmsScanRecord(
      * scan ends without saving everything, the next scan has to read it all again.
      */
     val fullWindow: Boolean = false,
+    /** Scans in a row, up to this one, that ended with failed saves. A clean one resets it. */
+    val failedSaveStreak: Int = 0,
 ) {
+    /**
+     * Failed saves were retried [MAX_SAVE_RETRIES] times and still fail: the scans move on
+     * past them, or a save that always throws would re-read the window on every Sync and
+     * keep the warning up for good.
+     */
+    val gaveUpOnFailedSaves: Boolean get() = failedSaveStreak > MAX_SAVE_RETRIES
+
     /** The next scan must read the whole window: see [fullWindow]. */
     val owesFullWindow: Boolean
-        get() = fullWindow && (state != SmsScanState.SUCCEEDED || counts.failed > 0)
+        get() = fullWindow && (state != SmsScanState.SUCCEEDED || (counts.failed > 0 && !gaveUpOnFailedSaves))
 
     fun toJson(): String = json.encodeToString(serializer(), this)
 
     companion object {
+        /** How many scans after the first one try failed saves again before moving on. */
+        const val MAX_SAVE_RETRIES = 3
+
         private val json = Json { ignoreUnknownKeys = true }
 
         /** Null for nothing stored, or for a record this version can't read. */

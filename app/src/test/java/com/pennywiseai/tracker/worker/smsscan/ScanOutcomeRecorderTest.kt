@@ -12,6 +12,7 @@ import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.awaitCancellation
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
@@ -179,6 +180,40 @@ class ScanOutcomeRecorderTest {
         recorder.run(isStopped = { false }) {}
 
         assertFalse(recorder.fullWindow)
+    }
+
+    @Test
+    fun `saves that keep failing are retried a few times, then the scans move on`() = runTest {
+        val gaveUp = (0..SmsScanRecord.MAX_SAVE_RETRIES).map {
+            var givesUp = false
+            recorder.run(isStopped = { false }) {
+                givesUp = recorder.givesUpOnFailedSaves
+                recorder.markFullWindow()
+                recorder.stats = countedStats().apply { failed.set(1) }
+            }
+            givesUp
+        }
+
+        // Each retry reads them again; the last one moves the cursor on even if they fail again.
+        assertEquals(List(SmsScanRecord.MAX_SAVE_RETRIES + 1) { false } + true, gaveUp)
+        assertFalse("nor does it owe the whole window again", stored.value!!.owesFullWindow)
+
+        recorder.run(isStopped = { false }) { recorder.stats = countedStats() }
+        assertEquals("a clean scan starts the count again", 0, stored.value!!.failedSaveStreak)
+    }
+
+    @Test
+    fun `a last record that can't be read keeps a whole-window retry instead of dropping it`() = runTest {
+        recorder.run(isStopped = { false }) {
+            recorder.markFullWindow()
+            recorder.stats = countedStats().apply { failed.set(1) }
+        }
+        every { preferences.lastScanRecord } returns flow { throw IOException("datastore broken") }
+
+        recorder.run(isStopped = { false }) {}
+
+        assertTrue(recorder.fullWindow)
+        assertTrue("the next record still owes it", written[written.size - 2].owesFullWindow)
     }
 
     @Test

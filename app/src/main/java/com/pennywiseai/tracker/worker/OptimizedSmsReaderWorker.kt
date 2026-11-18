@@ -278,7 +278,8 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
                 val totalTime = measureTimeMillis {
                     pipeline.run(scanStartTime, stats)
-                    if (stats.mayAdvanceCursor()) {
+                    // Saves that kept failing over several scans don't hold the cursor any more.
+                    if (stats.mayAdvanceCursor() || recorder.givesUpOnFailedSaves) {
                         persistScanState(now, needsFullScan)
                     } else {
                         Log.w(TAG, "${stats.failed.get()} saves failed: scan cursor kept so the next scan reads them again")

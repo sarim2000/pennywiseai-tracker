@@ -49,7 +49,7 @@ data class BudgetStatus(
     /** A weekly budget's week 2 is news again after week 1 was dismissed. */
     internal val windowKey: String get() = "$id@$windowStart"
 
-    /** At or under an even pace, as the Budgets meter reads it: the rules and the score share this. */
+    /** At or under an even pace, as the Budgets meter reads it. */
     val isOnTrack: Boolean
         get() = budgetPace(spent, limit, daysElapsed, windowDays)?.let { !it.isOverBudget && it.daysOver < 1 } == true
 }
@@ -133,7 +133,7 @@ object InsightRules {
             }
         }.sortedByDescending { it.usedShare() }
 
-        // Only when every budget passes the score's test, early fast starts included.
+        // Only when every budget is on track, early fast starts included.
         val onTrack = running.groupBy { it.currency }
             .filter { (_, list) -> list.all { it.isOnTrack && !it.incomplete } }
             .map { (currency, list) ->

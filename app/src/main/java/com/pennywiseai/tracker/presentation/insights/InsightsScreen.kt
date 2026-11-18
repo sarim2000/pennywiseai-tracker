@@ -1,6 +1,5 @@
 package com.pennywiseai.tracker.presentation.insights
 
-import android.icu.text.ListFormatter
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
@@ -20,7 +19,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.TextAutoSize
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.CheckCircle
@@ -30,15 +28,12 @@ import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.WarningAmber
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SnackbarDuration
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.material3.SnackbarHostState
@@ -46,7 +41,6 @@ import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -58,7 +52,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
@@ -74,7 +67,6 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.domain.insights.Insight
 import com.pennywiseai.tracker.domain.insights.InsightAction
 import com.pennywiseai.tracker.domain.insights.InsightSeverity
-import com.pennywiseai.tracker.domain.insights.PeriodScore
 import com.pennywiseai.tracker.domain.review.CycleTotal
 import com.pennywiseai.tracker.domain.review.ReviewRange
 import com.pennywiseai.tracker.domain.review.isCalendarMonth
@@ -88,7 +80,6 @@ import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.success
 import com.pennywiseai.tracker.ui.theme.warning
-import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.DateRangeUtils
@@ -179,7 +170,6 @@ private fun InsightsContent(
 ) {
     var expanded by rememberSaveable { mutableStateOf<String?>(null) }
     var showDismissed by rememberSaveable { mutableStateOf(false) }
-    var showScore by rememberSaveable { mutableStateOf(false) }
     var showAllHeadsUp by rememberSaveable { mutableStateOf(false) }
     val sections = InsightSeverity.entries.mapNotNull { severity ->
         state.insights.filter { it.severity == severity }.takeIf { it.isNotEmpty() }?.let { severity to it }
@@ -206,9 +196,6 @@ private fun InsightsContent(
             }
         }
         item(key = "summary") { PeriodSummaryCard(state) }
-        state.score?.let { score ->
-            item(key = "score") { ScoreCard(score, onOpen = { showScore = true }) }
-        }
 
         if (sections.isEmpty()) {
             item(key = "clear") {
@@ -292,134 +279,6 @@ private fun InsightsContent(
                 modifier = Modifier.fillMaxWidth(),
             )
         }
-    }
-
-    state.score?.takeIf { showScore }?.let { score ->
-        ScoreBreakdownSheet(score, onDismiss = { showScore = false })
-    }
-}
-
-/** The 0–100 tracking health: one number, its parts a tap away. */
-@Composable
-private fun ScoreCard(score: PeriodScore, onOpen: () -> Unit) {
-    PennyWiseCardV2(modifier = Modifier.fillMaxWidth(), onClick = onOpen) {
-        Text(
-            text = stringResource(R.string.insights_score_title),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Row(verticalAlignment = Alignment.Bottom, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            Text(text = score.score.toString(), style = PennyWiseText.amountLarge)
-            Text(
-                text = stringResource(R.string.insights_score_out_of),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.padding(bottom = Spacing.xs),
-            )
-        }
-        LinearProgressIndicator(
-            progress = { score.score / 100f },
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(vertical = Spacing.sm)
-                .height(Dimensions.Component.progressBarHeight),
-            // A quiet track and no end dot, so a low score doesn't read as a nearly full bar.
-            trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-            drawStopIndicator = {},
-        )
-        // Only the parts this score is built from: one without data is left out.
-        val parts = listOfNotNull(
-            score.savings?.let { stringResource(R.string.insights_score_hint_savings) },
-            score.budgets?.let { stringResource(R.string.insights_score_hint_budgets) },
-            stringResource(R.string.insights_score_hint_categorised),
-        )
-        Text(
-            text = stringResource(
-                R.string.insights_score_hint,
-                ListFormatter.getInstance(LocalConfiguration.current.locales[0]).format(parts),
-            ),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-    }
-}
-
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-private fun ScoreBreakdownSheet(score: PeriodScore, onDismiss: () -> Unit) {
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState()) {
-        // Large text or landscape can make it taller than the sheet.
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = Dimensions.Padding.dialog)
-                .padding(bottom = Dimensions.Padding.dialog),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
-        ) {
-            Text(
-                text = stringResource(R.string.insights_score_breakdown_title),
-                style = MaterialTheme.typography.titleMedium,
-                modifier = Modifier.semantics { heading() },
-            )
-            score.savings?.let {
-                ScorePartRow(
-                    stringResource(R.string.insights_score_savings),
-                    when {
-                        // Hidden amounts hide the savings rate, and whether it's below zero too.
-                        AmountPrivacy.hidden -> stringResource(R.string.insights_score_savings_detail_hidden)
-                        it.percent < 0 -> stringResource(R.string.insights_score_savings_detail_negative, percent(-it.percent))
-                        else -> stringResource(R.string.insights_score_savings_detail, percent(it.percent))
-                    },
-                    score.shareOf(it),
-                    // Its points are the savings rate scaled, so they hide with it.
-                    if (AmountPrivacy.hidden) AmountPrivacy.MASK else stringResource(R.string.insights_score_points, it.points),
-                )
-            }
-            score.budgets?.let {
-                ScorePartRow(
-                    stringResource(R.string.insights_score_budgets),
-                    pluralStringResource(R.plurals.insights_score_budgets_detail, it.total, it.onTrack, it.total),
-                    score.shareOf(it),
-                    stringResource(R.string.insights_score_points, it.points),
-                )
-            }
-            score.categorised.let {
-                ScorePartRow(
-                    stringResource(R.string.insights_score_categorised),
-                    pluralStringResource(R.plurals.insights_score_categorised_detail, it.total, it.categorised, it.total),
-                    score.shareOf(it),
-                    stringResource(R.string.insights_score_points, it.points),
-                )
-            }
-            Text(
-                text = stringResource(R.string.insights_score_footnote),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-    }
-}
-
-/** One part: what it measures, how much it counts toward the score ([share] percent), and its points. */
-@Composable
-private fun ScorePartRow(title: String, detail: String, share: Int, points: String) {
-    Row(
-        modifier = Modifier.fillMaxWidth().semantics(mergeDescendants = true) {},
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-    ) {
-        Column(Modifier.weight(1f)) {
-            Text(text = title, style = PennyWiseText.rowTitle)
-            Text(text = detail, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            // A weight, not an amount: it shows with amounts hidden.
-            Text(
-                text = stringResource(R.string.insights_score_share, stringResource(R.string.insights_percent, share)),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-        }
-        Text(text = points, style = PennyWiseText.amountRow)
     }
 }
 

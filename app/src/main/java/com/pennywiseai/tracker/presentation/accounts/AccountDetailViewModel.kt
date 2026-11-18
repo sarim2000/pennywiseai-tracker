@@ -10,7 +10,6 @@ import com.pennywiseai.tracker.data.currency.CurrencyConversionService.Transacti
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
-import com.pennywiseai.tracker.data.preferences.RebuildAccountFieldsStore
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.spending.CardBillStatus
@@ -36,7 +35,6 @@ class AccountDetailViewModel @Inject constructor(
     private val currencyConversionService: CurrencyConversionService,
     private val userPreferencesRepository: CurrencyPreferences,
     private val cardBillsLoader: CardBillsLoader,
-    private val rebuildAccountFields: RebuildAccountFieldsStore,
 ) : ViewModel() {
 
     private val bankName: String = savedStateHandle.get<String>("bankName") ?: ""
@@ -92,10 +90,7 @@ class AccountDetailViewModel @Inject constructor(
 
     private fun writeCardBill(dueDay: Int?, amount: BigDecimal?, asOf: LocalDateTime?) {
         viewModelScope.launch {
-            // A rebuild still waiting to put the old bill back mustn't undo this edit.
-            rebuildAccountFields.editCardBill(bankName, accountLast4, dueDay, amount, asOf) {
-                accountBalanceRepository.setCardBill(bankName, accountLast4, dueDay, amount, asOf)
-            }
+            accountBalanceRepository.setCardBill(bankName, accountLast4, dueDay, amount, asOf)
         }
     }
 

@@ -122,6 +122,8 @@ class SpendingComparisonTest {
             currentLoss = mapOf("INR" to BigDecimal("400"), "USD" to BigDecimal("5"))
         )
         assertEquals(mapOf("INR" to Triple("1000", "500", 100), "USD" to Triple("5", "0", null)), rows(r))
+        // Only transactions are there to list: USD has none.
+        assertEquals(setOf("INR") to setOf("INR"), (r as Result.Rows).currentSpentIn to r.previousSpentIn)
     }
 
     @Test

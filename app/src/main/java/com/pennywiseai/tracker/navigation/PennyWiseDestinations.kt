@@ -32,6 +32,14 @@ data class Transactions(
     val endDate: Long? = null,
     val account: String? = null,
     val tag: String? = null,
+    /** Only rows written in [currency], even in unified mode: the list behind one currency's figure. */
+    val currencyOnly: Boolean = false,
+    /**
+     * Only [profileId]'s rows (null for all profiles), whatever profile is selected: the list
+     * behind a figure worked out in that profile. The selection itself is left as it is.
+     */
+    val profilePinned: Boolean = false,
+    val profileId: Long? = null,
     // Set by an explicit open from Home ("See all", search): a new entry, so the
     // list's ViewModel starts over instead of keeping filters picked in the tab.
     val openId: Long = 0L
@@ -183,6 +191,21 @@ data class TransactionsWithFilter(
  */
 @Serializable
 data class Review(val kind: String = "MONTH", val weekStart: String? = null) : NavKey
+
+/**
+ * The share studio. [kind] is a ShareKind name, the card it opens on. A review passes
+ * the period it shows as [reviewKind] (a ReviewKind name), [offset] and the epoch day
+ * [today] the offset counts from; a goal passes [goalId]. Without them it opens on the
+ * last finished cycle.
+ */
+@Serializable
+data class ShareStudio(
+    val kind: String? = null,
+    val reviewKind: String? = null,
+    val offset: Int = 0,
+    val goalId: Long = -1L,
+    val today: Long? = null,
+) : NavKey
 
 // Screens inside MainScreen's tab stacks (Settings, SettingsPage, Categories, Faq
 // and ImportStatement live only there; UnrecognizedSms also opens on the root stack).

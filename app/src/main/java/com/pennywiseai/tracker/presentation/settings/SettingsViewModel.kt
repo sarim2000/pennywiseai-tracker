@@ -4,6 +4,8 @@ import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Environment
+import android.provider.DocumentsContract
+import android.provider.OpenableColumns
 import android.util.Log
 import androidx.core.content.FileProvider
 import androidx.lifecycle.ViewModel
@@ -37,6 +39,7 @@ import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
 import com.pennywiseai.tracker.worker.ScheduledFolderBackupScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -53,6 +56,7 @@ import kotlinx.coroutines.isActive
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.sync.withLock
 import java.io.File
+import java.io.IOException
 import java.net.URLEncoder
 import javax.inject.Inject
 
@@ -596,23 +600,42 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun saveBackupToFile(uri: android.net.Uri) {
-        viewModelScope.launch {
+        // Copying a backup with receipts can take a while; keep it off the main thread.
+        viewModelScope.launch(Dispatchers.IO) {
+            var opened = false
             try {
-                _exportedBackupFile.value?.let { file ->
-                    context.contentResolver.openOutputStream(uri)?.use { outputStream ->
-                        file.inputStream().use { inputStream ->
-                            inputStream.copyTo(outputStream)
-                        }
+                // Gone when the app was killed while the picker was open.
+                val file = _exportedBackupFile.value
+                    ?: throw IOException("The backup is no longer available. Export it again")
+                // A provider can hand back no stream at all: nothing was written then.
+                val outputStream = context.contentResolver.openOutputStream(uri)
+                    ?: throw IOException("Couldn't open the chosen file")
+                opened = true
+                outputStream.use { out ->
+                    file.inputStream().use { inputStream ->
+                        inputStream.copyTo(out)
                     }
-                    _importExportMessage.value = UiText.Res(R.string.settings_backup_saved)
-                    _exportedBackupFile.value = null
                 }
+                _importExportMessage.value = UiText.Res(R.string.settings_backup_saved)
+                _exportedBackupFile.value = null
             } catch (e: Exception) {
+                // Drop the empty or half-written file so it isn't mistaken for a backup
+                // later. A file the user chose to replace keeps its old content if we never
+                // opened it, so leave a non-empty one alone.
+                if (opened || isEmptyDocument(uri)) {
+                    runCatching { DocumentsContract.deleteDocument(context.contentResolver, uri) }
+                }
                 _importExportMessage.value = UiText.Res(R.string.settings_backup_save_failed, listOf("${e.message}"))
                 Log.e("SettingsViewModel", "Error saving backup", e)
             }
         }
     }
+
+    private fun isEmptyDocument(uri: Uri): Boolean = runCatching {
+        context.contentResolver.query(uri, arrayOf(OpenableColumns.SIZE), null, null, null)?.use { cursor ->
+            cursor.moveToFirst() && !cursor.isNull(0) && cursor.getLong(0) == 0L
+        } ?: false
+    }.getOrDefault(false)
 
     fun shareBackup() {
         _exportedBackupFile.value?.let { file ->

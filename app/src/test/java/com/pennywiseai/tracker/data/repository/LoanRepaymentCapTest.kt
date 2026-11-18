@@ -168,8 +168,8 @@ class LoanRepaymentCapTest {
     fun `record payment offers every money-out type for a borrowed loan, income for a lent one`() {
         repo.getRecentUnlinkedRepayments(LoanDirection.BORROWED, "INR")
         repo.getRecentUnlinkedRepayments(LoanDirection.LENT, "INR")
-        coVerify { loanDao.getRecentUnlinkedTransactions(moneyIn = false, currency = "INR", limit = 20) }
-        coVerify { loanDao.getRecentUnlinkedTransactions(moneyIn = true, currency = "INR", limit = 20) }
+        coVerify { loanDao.getRecentUnlinkedTransactions(moneyIn = false, currency = "INR", limit = 100) }
+        coVerify { loanDao.getRecentUnlinkedTransactions(moneyIn = true, currency = "INR", limit = 100) }
     }
 
     @Test

@@ -4,7 +4,6 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
-import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.InsightPreferences
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
@@ -39,8 +38,6 @@ data class InsightsSnapshot(
     /** Every insight, dismissed ones included, most severe first. */
     val insights: List<Insight>,
     val dismissed: Set<String>,
-    /** Per currency; a currency with too little data has none. Dismissals don't touch it. */
-    val scores: Map<String, PeriodScore> = emptyMap(),
     /** What active subscriptions cost a month, per currency. */
     val subscriptionsMonthly: Map<String, Money> = emptyMap(),
     /** How long the money held would last, per currency with enough history. */
@@ -62,76 +59,66 @@ class InsightsLoader @Inject constructor(
     private val subscriptionRepository: SubscriptionRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
     private val goalAffordabilityLoader: GoalAffordabilityLoader,
-    private val ignoredAccountsStore: IgnoredAccountsStore,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val insightPreferences: InsightPreferences,
 ) {
-    fun observe(today: LocalDate = LocalDate.now()): Flow<InsightsSnapshot> = combine(
-        periodReviewLoader.observe(ReviewKind.MONTH, 0, today, detail = true),
-        budgets(today),
-        combine(subscriptions(), goalAffordabilityLoader.goalsToWeigh(today), ::Pair),
-        accounts(),
-        combine(insightPreferences.dismissedInsights, userPreferencesRepository.selectedProfileId, ::Pair),
-    ) { review, budgets, (subscriptions, goals), (accounts, unanchored), (dismissed, profileId) ->
-        val averages = CycleAverages.of(review.detail?.cycles.orEmpty())
-        val runways = Runway.calculate(accounts, averages, unanchored)
-        val inputs = InsightInputs(
-            today, review, budgets, subscriptions, accounts.filter { it.isCreditCard }, profileId,
-            runways = runways,
-            goals = GoalAffordabilityLoader.affordability(goals, review.detail),
-        )
-        InsightsSnapshot(
-            review, InsightRules.evaluate(inputs), dismissed, scores(review, budgets),
-            InsightRules.subscriptionsMonthly(subscriptions), runways.associateBy { it.currency },
-        )
-    }
-
-    private fun scores(review: PeriodReview, budgets: List<BudgetStatus>): Map<String, PeriodScore> {
-        val uncategorised = BuiltinCategoryNames.current("Others")
-        val spends = review.detail?.spendRows.orEmpty().map { it.transaction }
-            .filter { it.dateTime.toLocalDate() in review.range.start..review.range.end }
-            .groupBy { it.currency }
-        return review.currencies.mapNotNull { c ->
-            PeriodScore.of(c.currency, c.income, c.spent, budgets, spends[c.currency].orEmpty()) {
-                it.isBlank() || it == uncategorised
-            }
-        }.associateBy { it.currency }
-    }
-
     /**
-     * Budgets span every profile, so with one profile selected they'd sit beside
-     * spending they don't match: left out then, as the evening recap does.
+     * Rebuilt from scratch for each selected profile, so no snapshot ever pairs one
+     * profile's review with another's subscriptions or cards.
      */
-    private fun budgets(today: LocalDate): Flow<List<BudgetStatus>> =
+    fun observe(today: LocalDate = LocalDate.now()): Flow<InsightsSnapshot> =
         userPreferencesRepository.selectedProfileId.distinctUntilChanged().flatMapLatest { profileId ->
-            if (profileId != null) {
-                flowOf(emptyList())
-            } else {
-                budgetSummaryProvider.summary(YearMonth.from(today), flagUncounted = true)
-                    .map { budgetStatuses(it, today) }
-                    // Budget figures that can't load mustn't cost the user every other insight.
-                    .catch { emit(emptyList()) }
+            combine(
+                periodReviewLoader.observe(ReviewKind.MONTH, 0, today, detail = true),
+                budgets(today, profileId),
+                combine(subscriptions(profileId), goalAffordabilityLoader.goalsToWeigh(today), ::Pair),
+                accounts(profileId),
+                insightPreferences.dismissedInsights,
+            ) { review, budgets, (subscriptions, goals), (accounts, unanchored), dismissed ->
+                val averages = CycleAverages.of(review.detail?.cycles.orEmpty())
+                val runways = Runway.calculate(accounts, averages, unanchored)
+                val inputs = InsightInputs(
+                    today, review, budgets, subscriptions, accounts.filter { it.isCreditCard }, profileId,
+                    runways = runways,
+                    goals = GoalAffordabilityLoader.affordability(goals, review.detail),
+                )
+                InsightsSnapshot(
+                    review, InsightRules.evaluate(inputs), dismissed,
+                    InsightRules.subscriptionsMonthly(subscriptions), runways.associateBy { it.currency },
+                )
             }
         }
 
-    private fun subscriptions(): Flow<List<SubscriptionEntity>> = combine(
+    /**
+     * Budgets span every profile, so with one profile selected they'd sit beside
+     * spending they don't match: left out then.
+     */
+    private fun budgets(today: LocalDate, profileId: Long?): Flow<List<BudgetStatus>> =
+        if (profileId != null) {
+            flowOf(emptyList())
+        } else {
+            budgetSummaryProvider.summary(YearMonth.from(today), flagUncounted = true)
+                .map { budgetStatuses(it, today) }
+                // Budget figures that can't load mustn't cost the user every other insight.
+                .catch { emit(emptyList()) }
+        }
+
+    /** Ignored keys as the review rows use them: a card linked to an ignored account is ignored too. */
+    private fun subscriptions(profileId: Long?): Flow<List<SubscriptionEntity>> = combine(
         subscriptionRepository.getActiveSubscriptions(),
-        ignoredAccountsStore.keysFlow,
-        userPreferencesRepository.selectedProfileId,
+        periodReviewLoader.ignoredKeys(),
         accountBalanceRepository.getAllLatestBalances(),
-        ::scopedSubscriptions,
-    )
+    ) { subscriptions, ignored, balances -> scopedSubscriptions(subscriptions, ignored, profileId, balances) }
 
     /**
-     * The active profile's accounts the user hasn't ignored, with the (bank, last 4)
-     * keys of those whose balance is only an estimate.
+     * The profile's accounts the user hasn't ignored, with the (bank, last 4) keys of
+     * those whose balance is only an estimate.
      */
-    private fun accounts(): Flow<Pair<List<AccountBalanceEntity>, Set<Pair<String, String>>>> = combine(
+    private fun accounts(profileId: Long?): Flow<Pair<List<AccountBalanceEntity>, Set<Pair<String, String>>>> = combine(
         accountBalanceRepository.getAllLatestBalances(),
-        ignoredAccountsStore.keysFlow,
-        userPreferencesRepository.selectedProfileId,
+        periodReviewLoader.ignoredKeys(),
         accountBalanceRepository.getUnanchoredAccounts(),
-    ) { balances, ignored, profileId, unanchored ->
+    ) { balances, ignored, unanchored ->
         balances.filter {
             !IgnoredAccountsStore.isIgnored(ignored, it.bankName, it.accountLast4) &&
                 (profileId == null || it.profileId == profileId)

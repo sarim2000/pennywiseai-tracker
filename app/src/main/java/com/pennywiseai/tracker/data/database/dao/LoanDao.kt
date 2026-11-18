@@ -133,7 +133,7 @@ interface LoanDao {
         ORDER BY date_time DESC
         LIMIT :limit
     """)
-    fun getRecentUnlinkedTransactions(moneyIn: Boolean, currency: String, limit: Int = 20): Flow<List<TransactionEntity>>
+    fun getRecentUnlinkedTransactions(moneyIn: Boolean, currency: String, limit: Int = 100): Flow<List<TransactionEntity>>
 
     // Used by BackupImporter.replaceAllData to clear loans before re-import.
     @Query("DELETE FROM loans")

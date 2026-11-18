@@ -50,7 +50,9 @@ class BudgetSummaryProviderTest {
         unified: Boolean,
         budgets: List<BudgetWithCategories>,
         transactions: List<TransactionWithSplits>,
-        parentOf: Map<String, String> = emptyMap()
+        parentOf: Map<String, String> = emptyMap(),
+        // USD converts 1:1; XYZ has never had a rate.
+        rate: (amount: BigDecimal, from: String) -> BigDecimal? = { amount, from -> amount.takeIf { from != "XYZ" } }
     ): BudgetSummaryProvider {
         val prefs = mockk<CurrencyPreferences> {
             every { baseCurrency } returns flowOf("JOD")
@@ -88,11 +90,8 @@ class BudgetSummaryProviderTest {
             every { getGroupSpending(any(), any(), "JOD") } returns flowOf(baseSummary)
             coEvery { parentOf() } returns parentOf
         }
-        // USD converts 1:1; XYZ has never had a rate.
         val conversion = mockk<CurrencyConversionService> {
-            coEvery { convertAmountOrNull(any(), any(), any(), any()) } answers {
-                if (secondArg<String>() == "XYZ") null else firstArg()
-            }
+            coEvery { convertAmountOrNull(any(), any(), any(), any()) } answers { rate(firstArg(), secondArg()) }
         }
         return BudgetSummaryProvider(repo, prefs, conversion)
     }
@@ -152,5 +151,34 @@ class BudgetSummaryProviderTest {
             )
         )
         assertEquals(mapOf("Food" to true, "Fun" to false), flags)
+    }
+
+    @Test
+    fun `unified - a rate that turns up after the total was worked out still marks it incomplete`() {
+        // The first fetch fails and the next succeeds: the total left the row out, so the flag says so.
+        var calls = 0
+        val flags = flags(
+            provider(
+                unified = true,
+                budgets = listOf(budget(1, "Food", "Food")),
+                transactions = listOf(tx(1, "10", "Food", "USD")),
+                rate = { amount, _ -> amount.takeIf { calls++ > 0 } }
+            )
+        )
+        assertEquals(mapOf("Food" to true), flags)
+    }
+
+    @Test
+    fun `base currency only - a budget with no categories is incomplete for a card charge in another currency`() {
+        // The base-currency total counts every non-income, non-transfer row, credit included.
+        val all = budget(1, "Everything")
+        assertEquals(
+            mapOf("Everything" to true),
+            flags(provider(false, listOf(all), listOf(tx(1, "10", "Others", "USD", TransactionType.CREDIT))))
+        )
+        assertEquals(
+            mapOf("Everything" to false),
+            flags(provider(false, listOf(all), listOf(tx(1, "10", "Others", "USD", TransactionType.INCOME))))
+        )
     }
 }

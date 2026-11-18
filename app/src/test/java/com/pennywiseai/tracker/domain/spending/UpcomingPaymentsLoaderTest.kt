@@ -1,11 +1,14 @@
 package com.pennywiseai.tracker.domain.spending
 
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.database.entity.CardEntity
+import com.pennywiseai.tracker.data.database.entity.CardType
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
+import com.pennywiseai.tracker.data.repository.CardRepository
 import com.pennywiseai.tracker.data.repository.RecurringTransactionRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
@@ -37,7 +40,7 @@ class UpcomingPaymentsLoaderTest {
     private fun loader(profileId: Long?, ignoredKeys: Set<String> = emptySet()): UpcomingPaymentsLoader {
         val subscriptions = mockk<SubscriptionRepository>()
         every { subscriptions.getActiveSubscriptions() } returns
-            flowOf(listOf(subscription(1, "1111"), subscription(2, "2222"), subscription(3, null)))
+            flowOf(listOf(subscription(1, "1111"), subscription(2, "2222"), subscription(3, null), subscription(4, "9999")))
         val recurring = mockk<RecurringTransactionRepository>()
         every { recurring.getActive() } returns flowOf(emptyList())
         val accounts = mockk<AccountBalanceRepository>()
@@ -49,7 +52,11 @@ class UpcomingPaymentsLoaderTest {
         every { ignored.keysFlow } returns flowOf(ignoredKeys)
         val prefs = mockk<UserPreferencesRepository>()
         every { prefs.selectedProfileId } returns flowOf(profileId)
-        return UpcomingPaymentsLoader(subscriptions, recurring, accounts, CardBillsLoader(transactions), ignored, prefs)
+        // A debit card drawing on 2222: its charges are stored under the card's digits.
+        val cards = mockk<CardRepository>()
+        every { cards.getAllCards() } returns
+            flowOf(listOf(CardEntity(cardLast4 = "9999", cardType = CardType.DEBIT, bankName = "Test Bank", accountLast4 = "2222")))
+        return UpcomingPaymentsLoader(subscriptions, recurring, accounts, CardBillsLoader(transactions), ignored, prefs, cards)
     }
 
     private suspend fun names(profileId: Long?, ignoredKeys: Set<String> = emptySet()) =
@@ -57,13 +64,13 @@ class UpcomingPaymentsLoaderTest {
 
     @Test
     fun `a subscription with no known account shows only for Personal`() = runTest {
-        assertEquals(listOf("Bill 1", "Bill 3"), names(ProfileEntity.PERSONAL_ID))
+        assertEquals(listOf("Bill 1", "Bill 3", "Bill 4"), names(ProfileEntity.PERSONAL_ID))
         assertEquals(listOf("Bill 2"), names(business))
-        assertEquals(listOf("Bill 1", "Bill 2", "Bill 3"), names(null))
+        assertEquals(listOf("Bill 1", "Bill 2", "Bill 3", "Bill 4"), names(null))
     }
 
     @Test
-    fun `a subscription paid from an ignored account doesn't show`() = runTest {
+    fun `a subscription paid from an ignored account, or a card linked to it, doesn't show`() = runTest {
         assertEquals(listOf("Bill 1", "Bill 3"), names(null, setOf(IgnoredAccountsStore.keyFor("Test Bank", "2222"))))
     }
 }

@@ -4,6 +4,7 @@ import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
+import com.pennywiseai.tracker.data.repository.CardRepository
 import com.pennywiseai.tracker.data.repository.RecurringTransactionRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
@@ -16,7 +17,8 @@ import javax.inject.Inject
 
 /**
  * Loads [UpcomingPayments] in the active profile's scope: nothing paid from an ignored
- * account or one in another profile is shown, and no such card's bill. A subscription
+ * account (or a debit card linked to one, as spending hides it) or one in another
+ * profile is shown, and no such card's bill. A subscription
  * whose account isn't known is Personal's, as a transaction without one is
  * ([com.pennywiseai.tracker.domain.model.effectiveProfileId]).
  */
@@ -28,14 +30,17 @@ class UpcomingPaymentsLoader @Inject constructor(
     private val cardBillsLoader: CardBillsLoader,
     private val ignoredAccountsStore: IgnoredAccountsStore,
     private val userPreferencesRepository: UserPreferencesRepository,
+    private val cardRepository: CardRepository,
 ) {
     /** [from]: see [UpcomingPayments.of]. */
     fun observe(today: LocalDate, end: LocalDate, from: LocalDate = today): Flow<List<Bill>> = combine(
         accountBalanceRepository.getAllLatestBalances(),
         ignoredAccountsStore.keysFlow,
+        cardRepository.getAllCards(),
         userPreferencesRepository.selectedProfileId,
-        ::Triple,
-    ).flatMapLatest { (accounts, ignored, profileId) ->
+    ) { accounts, keys, linkedCards, profileId ->
+        Triple(accounts, IgnoredAccountsStore.withLinkedCards(keys, linkedCards, accounts), profileId)
+    }.flatMapLatest { (accounts, ignored, profileId) ->
         val byKey = accounts.associateBy { it.bankName.lowercase() to it.accountLast4 }
         fun excluded(bank: String?, last4: String?): Boolean {
             if (IgnoredAccountsStore.isIgnored(ignored, bank, last4)) return true

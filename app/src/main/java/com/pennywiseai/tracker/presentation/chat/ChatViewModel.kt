@@ -100,6 +100,9 @@ class ChatViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
+    /** Each reply's links to the transactions behind its figures, by message id. */
+    val links: StateFlow<Map<String, List<com.pennywiseai.tracker.data.model.ChatLink>>> = llmRepository.links
+
     private val _currentResponse = MutableStateFlow("")
     val currentResponse: StateFlow<String> = _currentResponse.asStateFlow()
 
@@ -333,7 +336,7 @@ class ChatViewModel @Inject constructor(
             val tap = System.nanoTime()
             var firstShown = false
             try {
-                // Use streaming for better UX
+                // The reply comes whole, once its tool calls are resolved: until then, the typing dots.
                 llmRepository.sendMessageStream(message)
                     .catch { error ->
                         val errorMessage = sendErrorText(error, R.string.chat_error_generate_failed)
@@ -347,7 +350,7 @@ class ChatViewModel @Inject constructor(
                             firstShown = true
                             android.util.Log.i(LlmRepository.TIMING, "first=${(System.nanoTime() - tap) / 1_000_000}ms")
                         }
-                        _currentResponse.value = if (partialResponse == LlmRepository.RESET_REPLY) "" else _currentResponse.value + partialResponse
+                        _currentResponse.value += partialResponse
                     }
                 android.util.Log.i(LlmRepository.TIMING, "reply=${(System.nanoTime() - tap) / 1_000_000}ms")
 

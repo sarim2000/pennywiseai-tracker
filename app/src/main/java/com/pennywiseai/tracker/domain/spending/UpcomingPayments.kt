@@ -67,7 +67,7 @@ object UpcomingPayments {
             .filter { it.state == SubscriptionState.ACTIVE && it.direction == SubscriptionDirection.EXPENSE }
             .flatMap { s ->
                 val scheduled = s.nextPaymentDate ?: return@flatMap emptyList()
-                generateSequence(0L) { it + 1 }.map { advance(scheduled, s.billingCycle, it) }
+                generateSequence(0L) { it + 1 }.map { RecurringCharge.advance(scheduled, s.billingCycle, it) }
                     .dropWhile { it.isBefore(start) }
                     .take(MAX_OCCURRENCES)
                     .takeWhile { !it.isAfter(end) }
@@ -96,21 +96,6 @@ object UpcomingPayments {
                     .map { Bill(t.merchantName, Money(t.amount, t.currency), it, source = BillSource.Recurring) }
                     .toList()
             }
-
-    /**
-     * [date] moved [times] billing cycles on. Months and years use calendar arithmetic,
-     * as [com.pennywiseai.tracker.data.repository.SubscriptionRepository.advance] does;
-     * an unknown cycle moves monthly.
-     */
-    private fun advance(date: LocalDate, billingCycle: String, times: Long): LocalDate =
-        when (billingCycle.uppercase()) {
-            "WEEKLY" -> date.plusWeeks(times)
-            "MONTHLY" -> date.plusMonths(times)
-            "QUARTERLY" -> date.plusMonths(3L * times)
-            "SEMI-ANNUAL", "SEMI ANNUAL", "SEMIANNUAL" -> date.plusMonths(6L * times)
-            "ANNUAL", "YEARLY" -> date.plusYears(times)
-            else -> date.plusMonths(times)
-        }
 
     /** A subscription and a template for the same payment: merchant, currency, amount and date all agree. */
     private fun Bill.sameOccurrence(other: Bill): Boolean =

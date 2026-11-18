@@ -51,7 +51,8 @@ private val readableCache = ConcurrentHashMap<List<ULong>, Color>()
  * This colour, moved toward black or white (in Oklab, so the hue holds) just far enough
  * to read at [minimum] on every one of [backgrounds]. Unchanged when it already does,
  * so a palette that passes keeps its exact colours. Pass [GRAPHIC_CONTRAST] for an icon
- * or chart mark, so it keeps more of its hue than text would.
+ * or chart mark, so it keeps more of its hue than text would. Results are cached, so
+ * nudge an animation's target, never its in-between frames.
  */
 fun Color.readableOn(backgrounds: List<Color>, minimum: Float = TEXT_CONTRAST): Color {
     fun minContrast(c: Color) = backgrounds.minOf { contrastRatio(c, it) }

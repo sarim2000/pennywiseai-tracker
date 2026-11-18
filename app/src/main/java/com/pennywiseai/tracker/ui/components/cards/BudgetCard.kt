@@ -109,16 +109,19 @@ fun BudgetCard(
     val onStatusColor = statusColor.bestInk()
     // The bar wears the budget's own color while it's healthy; the pill and
     // hero text stay semantic so a red budget at 36% doesn't read as danger.
-    val barColor by animateColorAsState(
-        if (pillPercent >= BUDGET_WARN_PERCENT) statusTarget else budgetColor,
-        colorSpec,
-        label = "budgetBarColor"
-    )
+    // A pale budget colour (preset yellow) vanished on the track. The fill also meets
+    // the card along its edges, so it must clear both. Nudge the target, then animate:
+    // checking each animation frame would cache every in-between colour.
+    val cardColor = budgetColor.tintedSurface()
+    val trackColor = MaterialTheme.colorScheme.surfaceVariant
+    val barTarget = (if (pillPercent >= BUDGET_WARN_PERCENT) statusTarget else budgetColor)
+        .readableOn(listOf(trackColor, cardColor), GRAPHIC_CONTRAST)
+    val barColor by animateColorAsState(barTarget, colorSpec, label = "budgetBarColor")
 
     PennyWiseCardV2(
         modifier = modifier,
         onClick = onClick,
-        containerColor = budgetColor.tintedSurface()
+        containerColor = cardColor
     ) {
         // Row 1: Cadence pill + budget name + percentage pill
         Row(
@@ -198,21 +201,14 @@ fun BudgetCard(
                         .fillMaxWidth()
                         .height(Dimensions.Component.progressBarHeight)
                         .clip(barShape)
-                        .background(MaterialTheme.colorScheme.surfaceVariant)
+                        .background(trackColor)
                 ) {
                     Box(
                         modifier = Modifier
                             .fillMaxWidth(fraction = barFraction)
                             .fillMaxHeight()
                             .clip(barShape)
-                            // A pale budget colour (preset yellow) vanished on the track. The fill
-                            // also meets the card along its edges, so it must clear both.
-                            .background(
-                                barColor.readableOn(
-                                    listOf(MaterialTheme.colorScheme.surfaceVariant, budgetColor.tintedSurface()),
-                                    GRAPHIC_CONTRAST
-                                )
-                            )
+                            .background(barColor)
                     )
                 }
             }

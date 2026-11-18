@@ -1,3 +1,4 @@
+# yaml-language-server: $schema=https://coderabbit.ai/integrations/schema.v2.json
 language: en-US
 
 reviews:
@@ -10,6 +11,15 @@ reviews:
     drafts: false
     ignore_title_keywords:
       - "i18n: new translations from Crowdin"
+  pre_merge_checks:
+    custom_checks:
+      - name: "API 26 migration evidence"
+        mode: warning
+        instructions: |
+          Pass if the PR changes no Room schema (app/schemas/**) and no migration code.
+          Otherwise require the PR description to report an old-install upgrade and launch
+          on the Api26_Migration AVD (docs/database-migrations.md). JVM tests alone do not
+          meet this requirement.
   path_instructions:
     - path: "parser-core/**"
       instructions: |
@@ -23,10 +33,26 @@ reviews:
         across currencies (use sumByCurrency). Every backup-serialized field (Room entities and
         BackupModels.kt) must keep a Kotlin default value. Room migrations must work on Android 8
         (minSdk 26) SQLite.
+    - path: "app/{schemas/**,src/**/data/database/**}"
+      instructions: |
+        Apply docs/database-migrations.md: SQL must run on SQLite 3.18 (no syntax newer than
+        that, e.g. HAVING without GROUP BY), migrations registered in ALL_MIGRATIONS, schema
+        JSON exported, no destructive fallback.
 
 knowledge_base:
   code_guidelines:
     enabled: true
+    # A plain string entry only applies to files in its own directory, so docs are mapped
+    # to the code they govern. AGENTS.md is also auto-detected; listed for clarity.
     filePatterns:
-      - "CLAUDE.md"
-      - "docs/*.md"
+      - "AGENTS.md"
+      - files: "docs/adding-bank-parsers.md"
+        applyTo: "parser-core/**,pennywise-web/server/**"
+      - files: "docs/parser-test-standards.md"
+        applyTo: "parser-core/src/test/**"
+      - files: "docs/backup-format.md"
+        applyTo: "app/src/**/data/{backup,database/entity}/**"
+      - files: "docs/database-migrations.md"
+        applyTo: "app/{schemas/**,src/**/data/database/**},app/src/main/java/com/pennywiseai/tracker/di/DatabaseModule.kt"
+      - files: "docs/design.md"
+        applyTo: "app/**/presentation/**,app/**/ui/**,app/**/widget/**,core/designsystem/**,feature/**"

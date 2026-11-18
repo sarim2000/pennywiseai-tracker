@@ -44,6 +44,13 @@ class GoalRepository @Inject constructor(
             goals.map { GoalRules.progress(it, byGoal[it.id].orEmpty(), today) }
         }
 
+    /** Every goal with its effective contributions, archived included, in no particular order. */
+    fun observeGoalDetails(today: LocalDate = LocalDate.now()): Flow<List<GoalDetail>> =
+        combine(goalDao.observeGoals(), goalDao.observeEffectiveContributions()) { goals, contributions ->
+            val byGoal = contributions.groupBy { it.goalId }
+            goals.map { GoalDetail(GoalRules.progress(it, byGoal[it.id].orEmpty(), today), byGoal[it.id].orEmpty()) }
+        }
+
     /** Non-archived goals, soonest due first, Reached last. */
     fun observeActiveGoals(today: LocalDate = LocalDate.now()): Flow<List<GoalProgress>> =
         observeGoals(today).map(GoalRules::orderForDisplay)

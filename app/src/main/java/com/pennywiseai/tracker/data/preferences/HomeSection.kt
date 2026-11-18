@@ -61,6 +61,13 @@ object HomeSectionLayout {
         else layout.toMutableList().also { java.util.Collections.swap(it, from, to) }
     }
 
+    /**
+     * [layout] put in [order] (a drag-and-drop result), each section keeping its own
+     * visibility. Sections missing from [order] keep their relative order at the end.
+     */
+    fun reorder(layout: List<Pair<HomeSection, Boolean>>, order: List<HomeSection>): List<Pair<HomeSection, Boolean>> =
+        layout.sortedBy { order.indexOf(it.first).takeIf { i -> i >= 0 } ?: Int.MAX_VALUE }
+
     /** [section] shown or hidden in place. */
     fun withVisibility(layout: List<Pair<HomeSection, Boolean>>, section: HomeSection, visible: Boolean): List<Pair<HomeSection, Boolean>> =
         layout.map { if (it.first == section) section to visible else it }

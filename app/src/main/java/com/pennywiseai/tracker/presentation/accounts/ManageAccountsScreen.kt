@@ -8,6 +8,8 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.material.icons.automirrored.filled.ShowChart
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Error
@@ -31,6 +33,7 @@ import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.SupportDevelopmentDialog
 import com.pennywiseai.tracker.ui.components.SupportNudgeCard
+import com.pennywiseai.tracker.ui.components.cards.ListItemCardV2
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.mascot.Mascot
 import com.pennywiseai.tracker.ui.components.mascot.MascotShape
@@ -48,6 +51,7 @@ fun ManageAccountsScreen(
     onNavigateBack: () -> Unit,
     onNavigateToAddAccount: () -> Unit,
     onNavigateToBalanceHistory: (bankName: String, accountLast4: String) -> Unit,
+    onNavigateToNetWorth: () -> Unit = {},
     viewModel: ManageAccountsViewModel = hiltViewModel()
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -289,6 +293,29 @@ fun ManageAccountsScreen(
                             }
                         }
                     }
+                }
+
+                item(key = "net_worth") {
+                    ListItemCardV2(
+                        title = stringResource(R.string.net_worth_title),
+                        subtitle = stringResource(R.string.net_worth_summary_hint),
+                        amount = "",
+                        leadingContent = {
+                            Icon(
+                                Icons.AutoMirrored.Filled.ShowChart,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        },
+                        trailingContent = {
+                            Icon(
+                                Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        onClick = onNavigateToNetWorth
+                    )
                 }
 
                 // Loan accounts (#792) get their own section; the rest split into

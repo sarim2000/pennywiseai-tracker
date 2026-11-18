@@ -361,13 +361,20 @@ object InsightRules {
                 exact.signum() < 0 -> InsightSeverity.WARNING
                 else -> return@mapNotNull null
             }
-            val percent = exact.max(BigDecimal(-MAX_SHOWN_PERCENT)).toInt()
+            val percent = shownPercent(exact)
             Insight(
                 id("savings_rate", period, c.currency, "cycle:${severity.name}"), severity, c.currency,
                 SavingsRate(Money(c.income, c.currency), Money(saved, c.currency), percent), null,
             )
         }
     }
+
+    /** [saved] as a whole percent of [income], as the savings-rate card shows it. */
+    fun savingsPercent(saved: BigDecimal, income: BigDecimal): Int =
+        shownPercent(saved.multiply(HUNDRED).divide(income, 0, RoundingMode.HALF_UP))
+
+    /** Floored before narrowing to Int, so a huge deficit can't wrap round into a gain. */
+    private fun shownPercent(exact: BigDecimal): Int = exact.max(BigDecimal(-MAX_SHOWN_PERCENT)).toInt()
 
     /**
      * What active subscriptions add up to a month, per currency: a running figure for

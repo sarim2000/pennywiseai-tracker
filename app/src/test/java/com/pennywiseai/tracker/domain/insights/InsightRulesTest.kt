@@ -266,6 +266,8 @@ class InsightRulesTest {
         val rate = evaluate(rows = rows).single { it.fact is SavingsRate }
         assertEquals(InsightSeverity.WARNING, rate.severity)
         assertEquals(-999, (rate.fact as SavingsRate).percent)
+        // The summary card's figure, which is worked out on its own.
+        assertEquals(-999, InsightRules.savingsPercent(BigDecimal("-299999.99"), BigDecimal("0.01")))
     }
 
     @Test

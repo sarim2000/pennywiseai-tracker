@@ -66,6 +66,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.domain.insights.Insight
 import com.pennywiseai.tracker.domain.insights.InsightAction
+import com.pennywiseai.tracker.domain.insights.InsightRules
 import com.pennywiseai.tracker.domain.insights.InsightSeverity
 import com.pennywiseai.tracker.domain.review.CycleTotal
 import com.pennywiseai.tracker.domain.review.ReviewRange
@@ -85,7 +86,6 @@ import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.DateRangeUtils
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
-import java.math.RoundingMode
 
 /**
  * What needs attention this cycle, why, and where to fix it, for one currency at a
@@ -323,7 +323,7 @@ private fun PeriodSummaryCard(state: InsightsUiState) {
                     Figure(stringResource(R.string.insights_saved), CurrencyFormatter.formatCurrency(saved, currency))
                     Figure(
                         stringResource(R.string.insights_savings_rate),
-                        percent(saved.multiply(BigDecimal(100)).divide(income, 0, RoundingMode.HALF_UP).toInt()),
+                        percent(InsightRules.savingsPercent(saved, income)),
                     )
                 }
                 subscriptions?.let {

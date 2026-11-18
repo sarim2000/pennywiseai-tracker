@@ -40,6 +40,7 @@ import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import java.math.BigDecimal
 import java.time.Duration
 import java.time.LocalTime
@@ -103,7 +104,8 @@ class DailySummaryWorker @AssistedInject constructor(
 
         // Something needing attention is worth the tap: open Insights rather than Home.
         val opensInsights = opensInsights(
-            runCatching { insightsLoader.observe(today).first() }
+            // The recap's own profile, not one the user switched to since.
+            runCatching { insightsLoader.observe(today, flowOf(profileId)).first() }
                 .onFailure {
                     if (it is CancellationException) throw it
                     Log.w(TAG, "Insights unavailable for the recap", it)

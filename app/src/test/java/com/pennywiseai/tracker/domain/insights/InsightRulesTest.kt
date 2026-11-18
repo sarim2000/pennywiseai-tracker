@@ -29,6 +29,7 @@ import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
@@ -257,6 +258,17 @@ class InsightRulesTest {
     }
 
     @Test
+    fun `a tiny income against huge spending is a warning, not a wrapped-around gain`() {
+        val rows = listOf(
+            tx("2026-11-01", "0.01", type = TransactionType.INCOME, category = "Salary"),
+            tx("2026-11-03", "300000"),
+        )
+        val rate = evaluate(rows = rows).single { it.fact is SavingsRate }
+        assertEquals(InsightSeverity.WARNING, rate.severity)
+        assertEquals(-999, (rate.fact as SavingsRate).percent)
+    }
+
+    @Test
     fun `no savings rate without income, or in the cycle's first days`() {
         assertTrue(evaluate(rows = listOf(tx("2026-11-03", "700"))).facts<SavingsRate>().isEmpty())
         assertTrue(evaluate(rows = salaryAndSpend("700"), on = LocalDate.parse("2026-11-04")).facts<SavingsRate>().isEmpty())
@@ -292,6 +304,15 @@ class InsightRulesTest {
             subscriptions = listOf(subscription(1, "450", "2026-12-12")),
         )
         assertTrue(insights.facts<LargeTransaction>().isEmpty())
+    }
+
+    @Test
+    fun `a subscription on another account doesn't explain a large spend`() {
+        val insights = evaluate(
+            rows = usualFood + tx("2026-11-12", "450", merchant = "Streamer", bank = "Bank B", account = "2222"),
+            subscriptions = listOf(subscription(1, "450", "2026-12-12", bank = "Bank A", last4 = "1111")),
+        )
+        assertEquals(1, insights.facts<LargeTransaction>().size)
     }
 
     @Test
@@ -438,7 +459,7 @@ class InsightRulesTest {
         val onA = subscription(1, "100", "2026-11-20", bank = "Bank A", last4 = "1111")
         val onB = subscription(2, "100", "2026-11-21", bank = "Bank B", last4 = "2222")
         fun dueAfter(vararg rows: TransactionWithSplits) =
-            evaluate(rows = rows.toList(), subscriptions = listOf(onB, onA)).facts<BillsDue>().singleOrNull()?.firstDue
+            evaluate(rows = rows.toList(), subscriptions = listOf(onB, onA)).facts<BillsDue>().let { assertTrue(it.size <= 1); it.singleOrNull()?.firstDue }
 
         // Paid from Bank A: Bank B's bill is still due.
         assertEquals(LocalDate.parse("2026-11-21"), dueAfter(tx("2026-11-19", "100", merchant = "Streamer", bank = "Bank A", account = "1111")))
@@ -448,7 +469,7 @@ class InsightRulesTest {
         assertEquals(2, dueCount(tx("2026-11-19", "100", merchant = "Streamer")))
         assertEquals(2, dueCount(tx("2026-11-19", "100", merchant = "Streamer", bank = "Bank A")))
         // A bill that names no account can be paid from any.
-        assertEquals(null, evaluate(rows = listOf(tx("2026-11-19", "100", merchant = "Streamer", bank = "Bank A", account = "1111")), subscriptions = listOf(subscription(3, "100", "2026-11-20"))).facts<BillsDue>().singleOrNull())
+        assertTrue(evaluate(rows = listOf(tx("2026-11-19", "100", merchant = "Streamer", bank = "Bank A", account = "1111")), subscriptions = listOf(subscription(3, "100", "2026-11-20"))).facts<BillsDue>().isEmpty())
         // One for each pays both.
         assertEquals(
             null,
@@ -572,6 +593,15 @@ class InsightRulesTest {
     }
 
     @Test
+    fun `a new price is checked against the payment around the charge, not a stale stored date`() {
+        val changes = evaluate(
+            rows = listOf(tx("2026-11-15", "130", merchant = "Streamer")),
+            subscriptions = listOf(subscription(1, "100", "2026-10-15")),
+        ).facts<PriceChange>()
+        assertEquals(Money(BigDecimal("130"), "INR"), changes.single().charged)
+    }
+
+    @Test
     fun `a new price is news only for the subscription on the charge's account`() {
         val changes = evaluate(
             rows = listOf(tx("2026-11-15", "649", merchant = "Streamer", bank = "Bank B", account = "2222")),
@@ -589,8 +619,16 @@ class InsightRulesTest {
         val subscriptions = listOf(subscription(1, "100", "2026-11-22"), subscription(2, "50", "2026-11-26"))
         val before = evaluate(subscriptions = subscriptions).single { it.fact is BillsDue }
         val after = evaluate(subscriptions = subscriptions.drop(1)).single { it.fact is BillsDue }
-        assertEquals("bills_due:v2:2026-11-01:all:INR:next7@2026-11-22", before.id)
+        assertEquals("bills_due:v2:2026-11-01:all:INR:next7@2026-11-22,2026-11-26", before.id)
         assertTrue(before.id != after.id)
+    }
+
+    @Test
+    fun `a bill newly due shows again after the others were dismissed`() {
+        val first = subscription(1, "100", "2026-11-22")
+        val before = evaluate(subscriptions = listOf(first)).single { it.fact is BillsDue }
+        val after = evaluate(subscriptions = listOf(first, subscription(2, "50", "2026-11-26"))).single { it.fact is BillsDue }
+        assertNotEquals(before.id, after.id)
     }
 
     // --- Cards
@@ -609,6 +647,14 @@ class InsightRulesTest {
         assertEquals(listOf(InsightSeverity.ALERT, InsightSeverity.WARNING), cards.map { it.severity })
         assertEquals(listOf(95, 60), cards.map { (it.fact as CardUtilisation).percent })
         assertEquals(InsightAction.OpenAccount("Test Bank", "1111"), cards.first().action)
+    }
+
+    @Test
+    fun `dismissing a warning leaves a later alert, for cards and savings rate`() {
+        fun cardId(balance: String) = evaluate(cards = listOf(card(balance, "1000"))).single { it.fact is CardUtilisation }.id
+        assertNotEquals(cardId("550"), cardId("900"))
+        fun rateId(spent: String) = evaluate(rows = salaryAndSpend(spent)).single { it.fact is SavingsRate }.id
+        assertNotEquals(rateId("700"), rateId("1200"))
     }
 
     // --- Ordering and ids
@@ -633,9 +679,9 @@ class InsightRulesTest {
         val cards = listOf(card("950", "1000"))
         fun idIn(profileId: Long?) =
             InsightRules.evaluate(InsightInputs(today, review(emptyList()), creditCards = cards, profileId = profileId)).single().id
-        assertEquals("card_use:v2:2026-11-01:all:INR:Test Bank_1111", idIn(null))
-        assertEquals("card_use:v2:2026-11-01:p1:INR:Test Bank_1111", idIn(1))
-        assertEquals("card_use:v2:2026-11-01:p2:INR:Test Bank_1111", idIn(2))
+        assertEquals("card_use:v2:2026-11-01:all:INR:Test Bank_1111:ALERT", idIn(null))
+        assertEquals("card_use:v2:2026-11-01:p1:INR:Test Bank_1111:ALERT", idIn(1))
+        assertEquals("card_use:v2:2026-11-01:p2:INR:Test Bank_1111:ALERT", idIn(2))
         assertEquals(setOf("2026-11-01"), listOf(idIn(null), idIn(1), idIn(2)).map(::insightCycleOf).toSet())
     }
 }

@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.domain.insights
 
+import android.util.Log
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
@@ -18,14 +19,16 @@ import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.domain.spending.CycleAverages
 import com.pennywiseai.tracker.domain.spending.Runway
 import com.pennywiseai.tracker.utils.Money
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.retryWhen
 import java.time.LocalDate
 import java.time.YearMonth
 import javax.inject.Inject
@@ -62,12 +65,13 @@ class InsightsLoader @Inject constructor(
 ) {
     /**
      * Rebuilt from scratch for each selected profile, so no snapshot ever pairs one
-     * profile's review with another's subscriptions or cards.
+     * profile's review with another's subscriptions or cards: the review is pinned to the
+     * branch's profile too. [profileIds] pins it for a caller holding one (the recap).
      */
-    fun observe(today: LocalDate = LocalDate.now()): Flow<InsightsSnapshot> =
-        userPreferencesRepository.selectedProfileId.distinctUntilChanged().flatMapLatest { profileId ->
+    fun observe(today: LocalDate = LocalDate.now(), profileIds: Flow<Long?>? = null): Flow<InsightsSnapshot> =
+        (profileIds ?: userPreferencesRepository.selectedProfileId).distinctUntilChanged().flatMapLatest { profileId ->
             combine(
-                periodReviewLoader.observe(ReviewKind.MONTH, 0, today, detail = true),
+                periodReviewLoader.observe(ReviewKind.MONTH, 0, today, detail = true, profileIds = flowOf(profileId)),
                 budgets(today, profileId),
                 subscriptions(profileId),
                 accounts(profileId),
@@ -96,8 +100,7 @@ class InsightsLoader @Inject constructor(
         } else {
             budgetSummaryProvider.summary(YearMonth.from(today), flagUncounted = true)
                 .map { budgetStatuses(it, today) }
-                // Budget figures that can't load mustn't cost the user every other insight.
-                .catch { emit(emptyList()) }
+                .emptyOnFailure()
         }
 
     /** Ignored keys as the review rows use them: a card linked to an ignored account is ignored too. */
@@ -124,6 +127,18 @@ class InsightsLoader @Inject constructor(
 }
 
 /**
+ * A failure shows nothing rather than ending the flow: budget figures that can't load
+ * mustn't cost the user every other insight, and they come back once a reload works.
+ */
+internal fun <T> Flow<List<T>>.emptyOnFailure(): Flow<List<T>> = retryWhen { cause, attempt ->
+    if (cause is CancellationException) return@retryWhen false
+    Log.w("InsightsLoader", "Budget insights failed to load", cause)
+    emit(emptyList())
+    delay(minOf(1_000L shl attempt.toInt().coerceAtMost(5), 30_000L))
+    true
+}
+
+/**
  * [subscriptions] as Insights sees spending: none paid from an ignored account, and
  * with a profile selected only those paid from one of its accounts. One whose
  * account isn't known counts as Personal, as a transaction without one does
@@ -138,7 +153,9 @@ internal fun scopedSubscriptions(
     val profileKeys = buildProfileAccountKeys(balances)
     return subscriptions.filter { sub ->
         val key = "${sub.bankName}_${sub.accountLast4}"
-        val profile = profileKeys.entries.firstOrNull { (_, keys) -> key in keys }?.key ?: ProfileEntity.PERSONAL_ID
+        // Bank names as the payment matcher compares them: a subscription may spell its bank another case.
+        val profile = profileKeys.entries.firstOrNull { (_, keys) -> keys.any { it.equals(key, ignoreCase = true) } }?.key
+            ?: ProfileEntity.PERSONAL_ID
         !IgnoredAccountsStore.isIgnored(ignored, sub.bankName, sub.accountLast4) &&
             (profileId == null || profile == profileId)
     }

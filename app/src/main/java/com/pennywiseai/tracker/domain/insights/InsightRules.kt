@@ -163,7 +163,8 @@ object InsightRules {
             }
             // The limit is the card's own, in the card's currency.
             Insight(
-                id("card_use", period, card.currency, "${card.bankName}_${card.accountLast4}"), severity, card.currency,
+                // The severity is in the id: dismissing a warning mustn't hide the later alert.
+                id("card_use", period, card.currency, "${card.bankName}_${card.accountLast4}:${severity.name}"), severity, card.currency,
                 CardUtilisation(card.displayLabel, Money(card.balance, card.currency), Money(limit, card.currency), percent),
                 InsightAction.OpenAccount(card.bankName, card.accountLast4),
             )
@@ -178,7 +179,8 @@ object InsightRules {
      * A charge pays at most one bill, and only one it [RecurringCharge.couldBePaidFrom];
      * charges at a bill's exact amount are placed before new prices, and one already
      * recorded against a subscription stays that one's ([withoutRecorded]).
-     * Keyed on the first due date, so a dismissal lasts until that payment has gone.
+     * Keyed on the due dates in the window, so a dismissal lasts while the same payments
+     * are due and a newly due one shows again.
      */
     internal fun billsDue(
         subscriptions: List<SubscriptionEntity>,
@@ -211,8 +213,9 @@ object InsightRules {
             .groupBy { it.amount.currency }
             .map { (currency, due) ->
                 val firstDue = due.minOf { it.dueDate }
+                val dueDates = due.map { it.dueDate }.sorted().joinToString(",")
                 Insight(
-                    id("bills_due", period, currency, "next$BILLS_DAYS@$firstDue"), InsightSeverity.WARNING, currency,
+                    id("bills_due", period, currency, "next$BILLS_DAYS@$dueDates"), InsightSeverity.WARNING, currency,
                     BillsDue(
                         count = due.size,
                         total = due.sumByCurrency({ it.amount.currency }, { it.amount.amount }).getValue(currency),
@@ -248,8 +251,12 @@ object InsightRules {
         }.toMutableList()
         val latestFirst = { _: SubscriptionEntity -> compareByDescending<TransactionEntity> { it.dateTime } }
         val repriced = claim(subscriptions, unclaimed, latestFirst) { sub, charge ->
-            canPay(sub, charge) &&
-                RecurringCharge.isPriceChange(sub.amount, sub.nextPaymentDate, charge.amount, charge.dateTime.toLocalDate())
+            val date = charge.dateTime.toLocalDate()
+            // The payment around the charge, not a stored date a cycle or more behind it.
+            val due = sub.nextPaymentDate?.let {
+                RecurringCharge.nextPaymentShown(it, sub.billingCycle, date.minusDays(RecurringCharge.DUE_WINDOW_DAYS))
+            }
+            canPay(sub, charge) && RecurringCharge.isPriceChange(sub.amount, due, charge.amount, date)
         }
         return subscriptions.mapNotNull { sub ->
             val charge = repriced[sub.id] ?: return@mapNotNull null
@@ -320,7 +327,7 @@ object InsightRules {
                     tx.dateTime.toLocalDate() in review.range.start..review.range.end &&
                         tx.amount > median.multiply(BigDecimal(LARGE_TIMES)) &&
                         !tx.isRecurring &&
-                        subscriptions.none { it.currency == currency && RecurringCharge.sameMerchant(it.merchantName, tx.merchantName) }
+                        subscriptions.none { canPay(it, tx) }
                 }.map { tx ->
                     Insight(
                         id("large_spend", period, currency, tx.id), InsightSeverity.WARNING, currency,
@@ -347,14 +354,16 @@ object InsightRules {
         return review.currencies.mapNotNull { c ->
             if (c.income.signum() <= 0) return@mapNotNull null
             val saved = c.income - c.spent
-            val percent = saved.multiply(HUNDRED).divide(c.income, 0, RoundingMode.HALF_UP).toInt()
+            // Classified before narrowing: a tiny income can put it past Int's range.
+            val exact = saved.multiply(HUNDRED).divide(c.income, 0, RoundingMode.HALF_UP)
             val severity = when {
-                percent >= GOOD_SAVINGS_PERCENT -> InsightSeverity.GOOD
-                percent < 0 -> InsightSeverity.WARNING
+                exact >= BigDecimal(GOOD_SAVINGS_PERCENT) -> InsightSeverity.GOOD
+                exact.signum() < 0 -> InsightSeverity.WARNING
                 else -> return@mapNotNull null
             }
+            val percent = exact.max(BigDecimal(-MAX_SHOWN_PERCENT)).toInt()
             Insight(
-                id("savings_rate", period, c.currency, "cycle"), severity, c.currency,
+                id("savings_rate", period, c.currency, "cycle:${severity.name}"), severity, c.currency,
                 SavingsRate(Money(c.income, c.currency), Money(saved, c.currency), percent), null,
             )
         }
@@ -493,6 +502,9 @@ object InsightRules {
     private const val BASELINE_CYCLES = 3
     private const val MIN_BASELINE = 2
     private const val MIN_SAMPLES = 5
+
+    /** A savings rate below this reads the same: income was a rounding error next to spending. */
+    private const val MAX_SHOWN_PERCENT = 999
     private const val LARGE_TIMES = 3
     private const val MAX_PER_RULE = 3
     private const val GOOD_SAVINGS_PERCENT = 20

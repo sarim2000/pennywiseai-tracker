@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.insights
 
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -129,15 +130,21 @@ class InsightsViewModel @Inject constructor(
         savedStateHandle[KEY_CURRENCY] = currency
     }
 
+    // A failed write (a full disk) leaves the card where it was; it mustn't crash the app.
     fun dismiss(id: String) {
-        viewModelScope.launch { insightPreferences.dismissInsight(id) }
+        viewModelScope.launch {
+            runCatching { insightPreferences.dismissInsight(id) }.onFailure { Log.w(TAG, "Couldn't dismiss $id", it) }
+        }
     }
 
     fun restore(id: String) {
-        viewModelScope.launch { insightPreferences.restoreInsight(id) }
+        viewModelScope.launch {
+            runCatching { insightPreferences.restoreInsight(id) }.onFailure { Log.w(TAG, "Couldn't restore $id", it) }
+        }
     }
 
     private companion object {
         const val KEY_CURRENCY = "insightsCurrency"
+        const val TAG = "InsightsViewModel"
     }
 }

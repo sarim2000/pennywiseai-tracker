@@ -44,13 +44,16 @@ class PeriodReviewLoader @Inject constructor(
 ) {
     /**
      * [detail] adds [PeriodReview.detail] for a cycle: the [DETAIL_CYCLES] cycles ending
-     * with it. Weeks and years don't carry it.
+     * with it. Weeks and years don't carry it. [profileIds] pins the profile, for a caller
+     * that pairs the review with other data of one profile; by default it follows the
+     * selected one.
      */
     fun observe(
         kind: ReviewKind,
         offset: Int,
         today: LocalDate = LocalDate.now(),
         detail: Boolean = false,
+        profileIds: Flow<Long?>? = null,
     ): Flow<PeriodReview> = flow {
         val cycleStartDay = userPreferencesRepository.getBudgetCycleStartDay()
         val range = reviewRange(kind, offset, today, cycleStartDay, localFirstDayOfWeek())
@@ -60,7 +63,7 @@ class PeriodReviewLoader @Inject constructor(
                 rowsIn(range.start, range.end),
                 rowsIn(range.previousStart, range.previousEnd),
                 ignoredKeys(),
-                userPreferencesRepository.selectedProfileId,
+                profileIds ?: userPreferencesRepository.selectedProfileId,
                 accountBalanceRepository.getAllLatestBalances(),
             ) { rows, previousRows, ignored, profileId, balances ->
                 val keep = scopeOf(ignored, profileId, balances)

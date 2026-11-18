@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.domain.insights
 
+import android.util.Log
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
@@ -16,7 +17,6 @@ import com.pennywiseai.tracker.domain.review.PeriodReview
 import com.pennywiseai.tracker.domain.review.PeriodReviewLoader
 import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.utils.Money
-import android.util.Log
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
@@ -61,12 +61,13 @@ class InsightsLoader @Inject constructor(
 ) {
     /**
      * Rebuilt from scratch for each selected profile, so no snapshot ever pairs one
-     * profile's review with another's subscriptions or cards.
+     * profile's review with another's subscriptions or cards: the review is pinned to the
+     * branch's profile too. [profileIds] pins it for a caller holding one (the recap).
      */
-    fun observe(today: LocalDate = LocalDate.now()): Flow<InsightsSnapshot> =
-        userPreferencesRepository.selectedProfileId.distinctUntilChanged().flatMapLatest { profileId ->
+    fun observe(today: LocalDate = LocalDate.now(), profileIds: Flow<Long?>? = null): Flow<InsightsSnapshot> =
+        (profileIds ?: userPreferencesRepository.selectedProfileId).distinctUntilChanged().flatMapLatest { profileId ->
             combine(
-                periodReviewLoader.observe(ReviewKind.MONTH, 0, today, detail = true),
+                periodReviewLoader.observe(ReviewKind.MONTH, 0, today, detail = true, profileIds = flowOf(profileId)),
                 budgets(today, profileId),
                 subscriptions(profileId),
                 creditCards(profileId),

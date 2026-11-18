@@ -45,9 +45,8 @@ class StandardCharteredBangladeshParser : BankParser() {
     override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {
         if (!canHandle(sender)) return null
         val body = smsBody.trim()
-        val lower = body.lowercase()
-        if (Regex("""\betac\b""").containsMatchIn(lower) || lower.contains("statement of your credit card") ||
-            lower.contains("nps transfer request") || lower.contains("online banking initiated")) return null
+        // No keyword exclusions: each pattern must match the whole SMS, so eTAC, statement
+        // and NPS messages fall through to null, and a merchant like "ETAC SHOP" still parses.
 
         fun build(amount: BigDecimal?, type: TransactionType, suffix: String,
             merchant: String?, availableCredit: BigDecimal? = null, balance: BigDecimal? = null,

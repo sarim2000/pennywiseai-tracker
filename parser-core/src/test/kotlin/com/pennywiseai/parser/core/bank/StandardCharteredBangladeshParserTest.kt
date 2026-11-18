@@ -111,6 +111,7 @@ class StandardCharteredBangladeshParserTest {
         },
         DynamicTest.dynamicTest("merchant containing \"etac\" is still a purchase") {
             assertEquals("METACAFE DHAKA BD", parser.parse(purchase(merchant = "METACAFE DHAKA BD"), "StanChartBD", 1L)?.merchant)
+            assertEquals("ETAC SHOP DHAKA BD", parser.parse(purchase(merchant = "ETAC SHOP DHAKA BD"), "StanChartBD", 1L)?.merchant)
         },
         DynamicTest.dynamicTest("factory parse routes StanChartBD to the Bangladesh parser") {
             assertEquals("Standard Chartered Bank (Bangladesh)", BankParserFactory.parse(purchase(), "StanChartBD", 1L)?.bankName)

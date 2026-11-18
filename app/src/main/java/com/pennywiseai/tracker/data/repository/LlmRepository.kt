@@ -10,6 +10,7 @@ import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.ledger.ConvertedEstimate
+import com.pennywiseai.tracker.data.model.ChatLink
 import com.pennywiseai.tracker.data.model.ChatMessageFacts
 import com.pennywiseai.tracker.data.model.ChatScope
 import com.pennywiseai.tracker.data.model.PendingChatAction
@@ -39,6 +40,7 @@ import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.sync.Mutex
 import kotlinx.coroutines.sync.withLock
 import kotlinx.serialization.json.JsonPrimitive
@@ -102,6 +104,14 @@ class LlmRepository @Inject constructor(
     // What the turn in progress answers so far: its last tool, with that tool's figure.
     private var turnSubject: ReplySubject? = null
 
+    // Each reply's links to the transactions behind its figures, by message id. Set before the
+    // reply is saved, so it lands with them. Never saved: a chat restored later is text.
+    private val _links = MutableStateFlow<Map<String, List<ChatLink>>>(emptyMap())
+    val links: StateFlow<Map<String, List<ChatLink>>> = _links.asStateFlow()
+
+    // The links the turn in progress has found so far.
+    private val turnLinks = mutableListOf<ChatLink>()
+
     private val _contextTokens = MutableStateFlow(0)
     /** Tokens the model's window holds, measured by LiteRT-LM (developer stats). */
     val contextTokens: StateFlow<Int> = _contextTokens.asStateFlow()
@@ -150,6 +160,7 @@ class LlmRepository @Inject constructor(
     fun sendMessageStream(userMessage: String): Flow<String> = flow {
         _lastReply.value = null
         turnSubject = null
+        turnLinks.clear()
         val existingMessages = chatDao.getAllMessagesForContext()
         val isNewChat = existingMessages.isEmpty()
 
@@ -198,7 +209,6 @@ class LlmRepository @Inject constructor(
 
         var unreadableToolCall = false
         var conversationBroken = false
-        var shownUpTo = 0
         var retried = false
         while (true) {
             try {
@@ -211,19 +221,10 @@ class LlmRepository @Inject constructor(
                     }
                     .collect { event ->
                         when (event) {
-                            is LlmEvent.Text -> {
-                                // The model can open with bare newlines before a tool call: no empty lines on top.
-                                val text = if (responseBuilder.isEmpty()) event.delta.trimStart() else event.delta
-                                if (text.isNotEmpty()) {
-                                    responseBuilder.append(text)
-                                    // A tool call the runtime didn't catch: never show its JSON, or the start of its tag.
-                                    val written = responseBuilder.toString()
-                                    if (!written.startsWith(TOOL_CALL_TAG) && !TOOL_CALL_TAG.startsWith(written)) {
-                                        emit(written.substring(shownUpTo))
-                                        shownUpTo = written.length
-                                    }
-                                }
-                            }
+                            // Held, not shown: a tool call can still come after it, and then the
+                            // figures or the card say what happened, not the model.
+                            // The model can open with bare newlines before a tool call: no empty lines on top.
+                            is LlmEvent.Text -> responseBuilder.append(if (responseBuilder.isEmpty()) event.delta.trimStart() else event.delta)
                             is LlmEvent.ToolCall -> toolCalls.add(event)
                         }
                     }
@@ -239,37 +240,38 @@ class LlmRepository @Inject constructor(
                 ensureConversation(incoming = prompt, shrink = true)
             }
         }
-        // A broken wrapper can also come through as plain text. It's no reply, so it isn't saved as one.
+        // A broken wrapper can also come through as plain text, after prose too: never shown, its
+        // JSON or the start of its tag. It's no reply, so it isn't saved as one; the prose before
+        // it is left for the check below, as beside any other call.
         val written = responseBuilder.toString()
-        if (written.startsWith(TOOL_CALL_TAG)) {
-            TransactionDraft.itemsInBrokenCall(written)?.let { toolCalls.add(addCall(it)) } ?: run {
+        val tag = written.indexOf(TOOL_CALL_TAG)
+        if (tag >= 0) {
+            TransactionDraft.itemsInBrokenCall(written.substring(tag))?.let { toolCalls.add(addCall(it)) } ?: run {
                 unreadableToolCall = true
                 conversationBroken = true
             }
-            responseBuilder.clear()
-        } else if (written.isNotEmpty() && TOOL_CALL_TAG.startsWith(written)) {
-            // Text held back in case it became a tag, and it didn't.
-            if (toolCalls.isEmpty()) emit(written) else responseBuilder.clear()
+            responseBuilder.setLength(tag)
         }
+        // A turn that called a tool, readably or not, is answered by the app alone: the
+        // repository's figures, or the card it proposes. Prose beside them could carry the
+        // model's own arithmetic, a figure from an earlier turn, or a claim that it saved
+        // something, and checking it for digits misses numbers in words.
+        val figures: (LlmEvent.ToolCall) -> Boolean = { it.isComparison(userMessage) || it.name in MONTH_LOOKUPS }
+        var prose = ""
+        if (toolCalls.isNotEmpty() || unreadableToolCall) {
+            prose = responseBuilder.toString()
+            responseBuilder.clear()
+        }
+        val cardBefore = _pendingAction.value
         // A reply holding any line the app wrote is never replayed to the model as it reads (see [MODEL_ID]).
         var appWrote = false
-        suspend fun addLine(line: String) {
+        fun addLine(line: String) {
             appWrote = true
-            if (responseBuilder.isNotEmpty() && !responseBuilder.endsWith("\n")) { responseBuilder.append("\n"); emit("\n") }
-            responseBuilder.append(line); emit(line)
+            if (responseBuilder.isNotEmpty() && !responseBuilder.endsWith("\n")) responseBuilder.append("\n")
+            responseBuilder.append(line)
         }
         // Everything to add in a turn shares one review card. Any other card stays one at a
         // time, since a second proposal would replace the first unseen.
-        // A comparison or a total is the code's figures alone: prose beside it could carry the
-        // model's own arithmetic, or a figure from an earlier turn.
-        val figures: (LlmEvent.ToolCall) -> Boolean = { it.isComparison(userMessage) || it.name in MONTH_LOOKUPS }
-        if (toolCalls.any(figures)) {
-            // The live conversation still holds that prose; the next turn rebuilds from what was saved.
-            if (responseBuilder.isNotEmpty()) conversationBroken = true
-            responseBuilder.clear()
-            // Off the screen too, before the figures land beside it.
-            if (shownUpTo > 0) emit(RESET_REPLY)
-        }
         val adds = toolCalls.filter { it.name == PennyWiseTools.ADD_TRANSACTIONS }
         var addsProposed = false
         var skippedCards = 0
@@ -285,6 +287,18 @@ class LlmRepository @Inject constructor(
             }
         }
         if (skippedCards > 0) addLine(context.getString(R.string.chat_reply_one_card_at_a_time))
+        // The live conversation still holds that prose; the next turn rebuilds from what was
+        // saved. A rebuild prefills the whole chat again, so prose beside a card stays when it
+        // can't mislead a later turn: a filler "Sure!", or "Adding ₹120." for the card's own
+        // ₹120. Prose beside figures (a rebuild replays only their call), with any other number,
+        // or with a claimed change, goes.
+        if (prose.isNotBlank()) {
+            val onCard = _pendingAction.value?.takeIf { it !== cardBefore }?.let(::amountsOf).orEmpty()
+            val numbers = ChatMessageFacts.numbersIn(prose)
+            // A digit it can't read as an amount ("12,50") is a number all the same.
+            val strayNumber = numbers.any { n -> onCard.none { it.compareTo(n) == 0 } } || (numbers.isEmpty() && prose.any(Char::isDigit))
+            if (toolCalls.any(figures) || strayNumber || claimsAChange(prose, emptyList())) conversationBroken = true
+        }
         // A small model sometimes narrates a change instead of calling the tool. Unless it's about
         // the card just saved, nothing happened: the facts replace the claim, or the user reads
         // "Yes, I added it" above the correction and walks away believing it (#1083).
@@ -296,7 +310,6 @@ class LlmRepository @Inject constructor(
             claimsAChange(reply, card?.takeIf { !it.saved }?.mentions.orEmpty())
         ) {
             responseBuilder.clear()
-            emit(RESET_REPLY)
             // The live conversation still holds the claim; the next turn rebuilds from the save.
             conversationBroken = true
             addLine(
@@ -304,29 +317,37 @@ class LlmRepository @Inject constructor(
                 else context.getString(R.string.chat_reply_nothing_changed)
             )
         }
-        // Its state after a failed turn is unknown; the next message rebuilds it from the saved chat.
-        if (conversationBroken) llmService.closeConversation()
         // Last, so the check above doesn't take this line's "Nothing was changed" for a claim.
         // Also when the model said nothing at all, rather than leaving an empty bubble.
         if (unreadableToolCall || responseBuilder.isBlank()) addLine(context.getString(R.string.chat_reply_unreadable))
 
         llmService.tokenCount()?.let { _contextTokens.value = it }
 
-        // Save the complete AI response
+        // Shown whole, once every check above has had its say.
         val finalResponse = responseBuilder.toString()
-        Log.d(TAG, "Saving AI response (${finalResponse.length} chars)")
-        val aiMessage = ChatMessage(
-            id = (if (appWrote) QUICK_ID else MODEL_ID) + UUID.randomUUID(),
-            message = finalResponse,
-            isUser = false
-        )
-        // Lookups only: a card's request replayed is one the model can propose again.
-        if (toolCalls.isNotEmpty() && !unreadableToolCall && toolCalls.none { it.name in CARD_TOOLS }) {
-            callsMade[aiMessage.id] = callsText(toolCalls)
+        try {
+            emit(finalResponse)
+            Log.d(TAG, "Saving AI response (${finalResponse.length} chars)")
+            val aiMessage = ChatMessage(
+                id = (if (appWrote) QUICK_ID else MODEL_ID) + UUID.randomUUID(),
+                message = finalResponse,
+                isUser = false
+            )
+            // Lookups only: a card's request replayed is one the model can propose again.
+            if (toolCalls.isNotEmpty() && !unreadableToolCall && toolCalls.none { it.name in CARD_TOOLS }) {
+                callsMade[aiMessage.id] = callsText(toolCalls)
+            }
+            _lastReply.value = (turnSubject ?: ReplySubject()).copy(messageId = aiMessage.id)
+            // A repeated call, or a total beside a comparison of the same days, opens the same list once.
+            addLinks(aiMessage.id, turnLinks.distinctBy { it.copy(label = "") })
+            chatDao.insertMessage(aiMessage)
+            Log.d(TAG, "AI response saved")
+        } finally {
+            // Its state after a failed turn is unknown; the next message rebuilds it from the saved
+            // chat. Only once the reply is saved: a warm-up rebuilding before that would replay this
+            // question as unanswered, so leave it out, and the next send would keep that window.
+            if (conversationBroken) llmService.closeConversation()
         }
-        _lastReply.value = (turnSubject ?: ReplySubject()).copy(messageId = aiMessage.id)
-        chatDao.insertMessage(aiMessage)
-        Log.d(TAG, "AI response saved")
     }
 
     // The chat screen the model is loaded for. A closed screen's late release must not
@@ -435,6 +456,7 @@ class LlmRepository @Inject constructor(
             lastCard = null
             callsMade.clear()
             _lastReply.value = null
+            _links.value = emptyMap()
             droppedIds.clear()
             _contextTokens.value = 0
         }
@@ -520,9 +542,16 @@ class LlmRepository @Inject constructor(
             val unknown = category != null && known == null && result is SpendingComparison.Result.Rows && result.rows.isEmpty()
             when {
                 unknown && SpendingComparison.meansAllSpending(asked) ->
-                    aiContextRepository.compareSpending(period, null, creditAsExpense()).let { comparisonText(it.alsoTrend(), null) }
+                    aiContextRepository.compareSpending(period, null, creditAsExpense()).let {
+                        turnLinks += comparisonLinks(it, null)
+                        comparisonText(it.alsoTrend(), null)
+                    }
                 unknown -> context.getString(R.string.chat_reply_unknown_category, asked)
-                else -> comparisonText(result.alsoTrend(), category)
+                else -> {
+                    // Only a name the category list spells opens the list on it.
+                    if (category == null || known != null) turnLinks += comparisonLinks(result, category)
+                    comparisonText(result.alsoTrend(), category)
+                }
             }
         }
     } else when (call.name) {
@@ -558,7 +587,10 @@ class LlmRepository @Inject constructor(
             }
         }
         // The same figures as the one-tap question, and as Home's "Spent this month".
-        PennyWiseTools.MONTH_SUMMARY -> spendingText(aiContextRepository.spending(), typed = true)
+        PennyWiseTools.MONTH_SUMMARY -> aiContextRepository.spending().let { p ->
+            turnLinks += spendingLinks(p)
+            spendingText(p, typed = true)
+        }
         PennyWiseTools.SPENDING_BY_CATEGORY -> {
             val wanted = (call.arguments["category"] as? String)?.trim().orEmpty()
             // Hidden categories still hold transactions, and a row can name a category that no
@@ -576,7 +608,11 @@ class LlmRepository @Inject constructor(
                     spend.category,
                     scopeLabel(spend.scope),
                     spend.transactionCount
-                ).also { turnSubject = turnSubject?.copy(share = spend.share) }
+                ).also {
+                    turnSubject = turnSubject?.copy(share = spend.share)
+                    // Only for a name the category list spells: "uber" isn't a category to open.
+                    if (category != null) turnLinks += linksTo(spend.scope, category, spend.byCurrency.keys)
+                }
             }
         }
         else -> null
@@ -608,20 +644,27 @@ class LlmRepository @Inject constructor(
         _lastReply.value = null
         // For the reply's mascot: the shape of the tool asked the same question, and its figure.
         var subject = ReplySubject(tool = action.tool)
+        var links = emptyList<ChatLink>()
         val answer = when (action) {
             QuickAction.COMPARE_MONTH -> aiContextRepository.compareSpending(SpendingComparison.Period.MONTH, null, creditAsExpense()).let {
                 subject = subject.copy(trend = SpendingComparison.direction(it))
+                links = comparisonLinks(it, null)
                 comparisonText(it, null)
             }
-            QuickAction.MONTH_SPEND -> spendingText(aiContextRepository.spending())
+            QuickAction.MONTH_SPEND -> aiContextRepository.spending().let { p ->
+                links = spendingLinks(p)
+                spendingText(p)
+            }
             QuickAction.TOP_CATEGORIES -> aiContextRepository.topCategories().let { top ->
                 subject = subject.copy(share = top.share)
+                links = linksTo(top.scope, null, top.ranking.keys)
                 topCategoriesText(top)
             }
         }
         val at = System.currentTimeMillis()
         val reply = ChatMessage(id = QUICK_ID + UUID.randomUUID(), message = answer, isUser = false, timestamp = at + 1)
         _lastReply.value = subject.copy(messageId = reply.id)
+        addLinks(reply.id, links)
         // The DAO orders by timestamp alone: the reply must sort after its question.
         chatDao.insertMessages(listOf(
             ChatMessage(id = QUICK_ID + UUID.randomUUID(), message = context.getString(action.label), isUser = true, timestamp = at),
@@ -654,6 +697,43 @@ class LlmRepository @Inject constructor(
             else if (typed) add(context.getString(R.string.chat_reply_received_nothing))
             if (typed) add(context.resources.getQuantityString(R.plurals.chat_reply_transaction_count, p.transactionCount, p.transactionCount))
         }.joinToString("\n")
+    }
+
+    private fun addLinks(messageId: String, links: List<ChatLink>) {
+        if (links.isNotEmpty()) _links.update { it + (messageId to links.toList()) }
+    }
+
+    /** The transactions behind a month's spending and income; forgiven loans have none. */
+    private suspend fun spendingLinks(p: PeriodSpending) = linksTo(p.scope, null, p.spent.keys + p.income.keys)
+
+    /**
+     * [scope]'s transactions in [category]: one link per currency of the answer, the user's own
+     * first, each pinned to it, and to the profile the figure counted. A link that leaves the
+     * currency to the list would open on the base currency alone, and could lose its category
+     * to the list's auto-clear. None when it had no figure. The label names the category, so
+     * two lookups in one reply aren't told apart by order alone; [dated] names the dates too,
+     * for a comparison's two periods.
+     */
+    private suspend fun linksTo(scope: ChatScope, category: String?, currencies: Set<String>, dated: Boolean = false): List<ChatLink> {
+        val window = scope.window
+        val (start, end) = window.start.toLocalDate() to window.end.toLocalDate()
+        val codes = ordered(currencies.associateWith { it }).map { it.first }
+        return codes.map { code ->
+            val names = listOfNotNull(category, range(window).takeIf { dated }, code.takeIf { codes.size > 1 })
+            val label = if (names.isEmpty()) context.getString(R.string.chat_link_transactions)
+            else context.getString(R.string.chat_link_transactions_in, names.joinToString(" · "))
+            ChatLink(label, start, end, category, code, scope.profile?.id)
+        }
+    }
+
+    /**
+     * Both periods of a comparison, each by its dates, per currency as [linksTo] gives them: only
+     * the currencies that period has transactions in, so no link opens on an empty list.
+     */
+    private suspend fun comparisonLinks(result: SpendingComparison.Result, category: String?): List<ChatLink> {
+        val rows = (result as? SpendingComparison.Result.Rows)?.takeIf { it.rows.isNotEmpty() } ?: return emptyList()
+        return linksTo(ChatScope(rows.current, rows.profile), category, rows.currentSpentIn, dated = true) +
+            linksTo(ChatScope(rows.previous, rows.profile), category, rows.previousSpentIn, dated = true)
     }
 
     /** Home's one converted figure, when it shows one, and what it had to leave out. */
@@ -738,6 +818,13 @@ class LlmRepository @Inject constructor(
         is PendingChatAction.Add -> card.rows.flatMap { listOf(it.draft.merchant, plain(it.draft.amount)) }
         is PendingChatAction.Delete -> listOf(card.transaction.merchantName, plain(card.transaction.amount))
         is PendingChatAction.Update -> listOfNotNull(card.transaction.merchantName, card.newMerchant, plain(card.transaction.amount))
+    }
+
+    /** The amounts a card shows. */
+    private fun amountsOf(card: PendingChatAction): List<BigDecimal> = when (card) {
+        is PendingChatAction.Add -> card.rows.map { it.draft.amount }
+        is PendingChatAction.Delete -> listOf(card.transaction.amount)
+        is PendingChatAction.Update -> listOf(card.transaction.amount)
     }
 
     private fun plain(amount: BigDecimal) = amount.stripTrailingZeros().toPlainString()
@@ -943,8 +1030,6 @@ class LlmRepository @Inject constructor(
         private val MONTH_LOOKUPS = setOf(PennyWiseTools.MONTH_SUMMARY, PennyWiseTools.SPENDING_BY_CATEGORY)
         private val CARD_TOOLS = setOf(PennyWiseTools.ADD_TRANSACTIONS, PennyWiseTools.DELETE_TRANSACTION, PennyWiseTools.UPDATE_TRANSACTION)
         private const val TOOL_CALL_TAG = "<tool_call>"
-        /** Emitted in place of text: drop what was streamed so far. */
-        internal const val RESET_REPLY = "\u0000reset"
         // Matched by ChatViewModel.sendErrorText: these exception messages are never shown.
         internal const val MESSAGE_TOO_LONG = "Message too long for the model"
         internal const val INTEGRITY_FAILED = "AI model failed its integrity check and was removed"

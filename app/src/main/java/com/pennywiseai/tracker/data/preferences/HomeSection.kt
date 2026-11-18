@@ -5,11 +5,14 @@ package com.pennywiseai.tracker.data.preferences
  * order is the default display order: decisions first (what can I spend, am I
  * over budget, did the app catch my spending), reference detail last. The fixed
  * header (balance card) is deliberately not here.
+ *
+ * [visibleByDefault] false: a new user and an existing layout both get the section
+ * hidden, for the user to turn on in Home's section settings.
  */
-enum class HomeSection(val label: String) {
+enum class HomeSection(val label: String, val visibleByDefault: Boolean = true) {
     SAFE_TO_SPEND("Safe to spend"),
     BUDGETS("Budgets"),
-    INSIGHTS("Insights"),
+    INSIGHTS("Insights", visibleByDefault = false),
     RECENT_TRANSACTIONS("Recent Transactions"),
     ACCOUNTS("Bank Accounts"),
     SUBSCRIPTIONS("Upcoming Subscriptions"),
@@ -27,15 +30,15 @@ enum class HomeSection(val label: String) {
  * Pure so it is unit-testable without DataStore.
  */
 object HomeSectionLayout {
-    val DEFAULT: List<Pair<HomeSection, Boolean>> = HomeSection.entries.map { it to true }
+    val DEFAULT: List<Pair<HomeSection, Boolean>> = HomeSection.entries.map { it to it.visibleByDefault }
 
     fun encode(layout: List<Pair<HomeSection, Boolean>>): String =
         layout.joinToString(",") { (section, visible) -> (if (visible) "" else "!") + section.name }
 
     /**
      * Unknown names are dropped; enum values absent from the string are inserted
-     * visible at their default position (clamped to the end), so a section added
-     * in a later version shows up where a new user would see it.
+     * at their default position (clamped to the end) and visibility, so a section
+     * added in a later version shows up where, and as, a new user would see it.
      */
     fun decode(raw: String?): List<Pair<HomeSection, Boolean>> {
         if (raw.isNullOrBlank()) return DEFAULT
@@ -47,7 +50,7 @@ object HomeSectionLayout {
         val seen = parsed.mapTo(HashSet()) { it.first }
         val layout = parsed.toMutableList()
         HomeSection.entries.filter { it !in seen }
-            .forEach { layout.add(it.ordinal.coerceAtMost(layout.size), it to true) }
+            .forEach { layout.add(it.ordinal.coerceAtMost(layout.size), it to it.visibleByDefault) }
         return layout
     }
 

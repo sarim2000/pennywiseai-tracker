@@ -97,9 +97,19 @@ class ReceiptManager @Inject constructor(
         }
         try {
             if (copyPdf(sourceUri, staged) != null) return null
-            val outputFile = File(receiptsDir, "receipt_${System.currentTimeMillis()}.pdf")
-            // Same filesystem, so a rename; copy if it ever isn't.
-            if (!staged.renameTo(outputFile)) staged.copyTo(outputFile, overwrite = true)
+            // Created atomically with a unique name, so two saves in one millisecond
+            // can't share a file.
+            val outputFile = File.createTempFile("receipt_${System.currentTimeMillis()}_", ".pdf", receiptsDir)
+            // Same filesystem, so a rename over that empty file; copy if it ever isn't,
+            // and leave nothing half-written behind when the copy fails.
+            if (!staged.renameTo(outputFile)) {
+                try {
+                    staged.copyTo(outputFile, overwrite = true)
+                } catch (e: Exception) {
+                    outputFile.delete()
+                    throw e
+                }
+            }
             return "receipts/${outputFile.name}"
         } catch (_: Exception) {
             return null

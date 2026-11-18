@@ -85,7 +85,7 @@ one file format and every v1.x app can read it (older apps ignore the key):
   manual export (pref `export_include_receipts`, default **on**) and for
   Automatic Folder Backup (pref `folder_backup_include_receipts`, default
   **off**: it runs daily). Missing/unreadable files are skipped and logged.
-  A receipt is a JPEG photo or a PDF (`receipts/receipt_<ms>.pdf`, copied as
+  A receipt is a JPEG photo or a PDF (`receipts/receipt_<ms>_<n>.pdf`, copied as
   is). Photos always go in, with no size cap, as before PDFs. A PDF over 5 MB
   (`ReceiptFiles.MAX_RECEIPT_BYTES`), or one that would take the backup past
   50 MB of PDFs (`BackupReceipts.MAX_TOTAL_BYTES`), is left out, and the export

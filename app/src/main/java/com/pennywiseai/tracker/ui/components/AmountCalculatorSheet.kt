@@ -47,6 +47,7 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import com.pennywiseai.tracker.ui.theme.money
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
 import java.text.DecimalFormatSymbols
 
@@ -114,7 +115,9 @@ fun AmountCalculatorSheet(
                     )
                     Text(
                         text = when {
-                            canApply -> "= " + shown(result.toPlainString())
+                            // With its currency, so it's clear what Apply writes. Not masked
+                            // when amounts are hidden: the sum being typed is on screen anyway.
+                            canApply -> "= " + CurrencyFormatter.formatCurrency(result, currency, maskIfHidden = false)
                             else -> problem ?: " "
                         },
                         style = MaterialTheme.typography.titleMedium.money(),

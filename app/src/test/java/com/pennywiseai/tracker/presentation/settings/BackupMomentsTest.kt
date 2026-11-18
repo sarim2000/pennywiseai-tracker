@@ -23,11 +23,14 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
+import kotlinx.coroutines.withTimeout
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Before
@@ -90,6 +93,11 @@ class BackupMomentsTest {
         )
     }
 
+    /** saveBackupToFile copies on Dispatchers.IO, which the test Main dispatcher doesn't run: wait for its message. */
+    private fun awaitSaveResult() = runBlocking {
+        withTimeout(5_000) { viewModel.importExportMessage.first { it != null } }
+    }
+
     @After
     fun tearDown() {
         listening.cancel()
@@ -123,7 +131,9 @@ class BackupMomentsTest {
         // Making the file isn't keeping it: only the copy the user chose counts.
         assertEquals(emptyList<MascotMoment>(), heard)
 
+        viewModel.clearImportExportMessage()
         viewModel.saveBackupToFile(mockk())
+        awaitSaveResult()
 
         assertEquals(listOf<MascotMoment>(MascotMoment.BackupSaved), heard)
     }
@@ -133,7 +143,9 @@ class BackupMomentsTest {
         every { context.contentResolver.openOutputStream(any<Uri>()) } returns null
         viewModel.exportBackup()
 
+        viewModel.clearImportExportMessage()
         viewModel.saveBackupToFile(mockk())
+        awaitSaveResult()
 
         assertEquals(emptyList<MascotMoment>(), heard)
     }

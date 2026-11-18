@@ -660,6 +660,9 @@ internal fun HomeInsightsSection(
                 .fillMaxWidth()
                 .padding(horizontal = Dimensions.Padding.content)
         ) {
+            // Titles like "Your money would last 4 months" don't name a currency, so say
+            // which each is once there's more than one.
+            val showCurrency = insights.distinctBy { it.currency }.size > 1
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.smd)) {
                 insights.forEach { insight ->
                     val (icon, color) = com.pennywiseai.tracker.presentation.insights.severityStyle(insight.severity)
@@ -680,6 +683,13 @@ internal fun HomeInsightsSection(
                             style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier.weight(1f)
                         )
+                        if (showCurrency) {
+                            Text(
+                                text = insight.currency,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }

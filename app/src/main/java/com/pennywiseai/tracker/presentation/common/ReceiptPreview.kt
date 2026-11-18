@@ -24,7 +24,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.produceState
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -83,10 +82,13 @@ fun ReceiptPreview(
         )
         return
     }
-    val page by produceState<ImageBitmap?>(null, uri) {
-        value = withContext(Dispatchers.IO) { renderFirstPage(context, uri) }
+    // Keyed on the file, as `type` is: produceState keeps its value across keys, so a new
+    // PDF showed the previous one's page until it rendered.
+    val page = remember(uri) { mutableStateOf<ImageBitmap?>(null) }
+    LaunchedEffect(uri) {
+        page.value = withContext(Dispatchers.IO) { renderFirstPage(context, uri) }
     }
-    val firstPage = page
+    val firstPage = page.value
     if (firstPage != null) {
         Box(modifier = modifier) {
             Image(

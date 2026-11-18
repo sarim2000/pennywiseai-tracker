@@ -22,15 +22,15 @@ Agreed with Codex (`gpt-6.1-sol`, high) over two rounds. Its objections that we 
 | Shape | Means | Used in | Notes |
 |---|---|---|---|
 | **Owl** | The assistant | Chat tab, chat hero, thinking indicator, model screen | The default form |
-| **Coin** | Income | Tab reaction, chat `month_summary` | |
+| **Coin** | Income | Tab reaction, chat `query_spending` total | |
 | **Receipt** | Expense and credit-card purchase | Tab reaction, chat add/update/delete card | `CREDIT` is a card *purchase*, not money in, so no separate card shape **(Codex)** |
 | **Wallet** | Transfer, accounts | Tab reaction, Accounts empty state | Arrow silhouettes with eyes read poorly **(Codex)** |
 | **Jar** | Investment, goals | Tab reaction, Goals empty state | Fill level = goal progress. Replaces the planned sprout **(Codex)** |
 | **SMS bubble** | SMS scan | Tab, while a user-started scan runs in the foreground | Eyes sweep left and right |
-| **Pie** | Categories | Chat `spending_by_category` / `TOP_CATEGORIES` | The cut-out slice = top category share |
+| **Pie** | Categories | Chat `query_spending` with a share (a category, or a ranking) / `TOP_CATEGORIES` | The cut-out slice = that share |
 | **Bars** | Month comparison | Chat `compare_spending` / `COMPARE_MONTH` | Eyes look up when spending rose and down when it fell, with no judgement |
-| **Bell** | Bills, subscriptions | Subscriptions / Recurring empty state | Swings if something is due within 3 days |
-| **Gauge** | Budget | Budgets empty state | Needle = share of the budget used |
+| **Bell** | Bills, subscriptions | Subscriptions / Recurring empty state, chat `planning_status` bills | Swings if something is due within 3 days |
+| **Gauge** | Budget | Budgets empty state, chat `planning_status` budgets | Needle = share of the budget used (in chat, the most used limit) |
 
 **Dropped:** heart / love, card, transfer arrows, sprout, loans, split. Add one only if users ask. Each shape costs about 10 lines.
 
@@ -237,7 +237,7 @@ The smallest visible win: the Chat tab becomes the owl that blinks.
 - [x] Transient `replyTopic` (shape + mood + value) in `ChatUiState`, set from `handleToolCall` and `QuickAction`. Not stored in Room or backup.
   - `LlmRepository.lastReply` (a `StateFlow<ReplySubject?>`, data-layer, no mascot enums) names the saved line and the tool behind it, set just before the line is saved so the screen knows its subject when it shows. `ReplyTopic.kt` maps it to shape, mood, value and whether it saved. Each `QuickAction` names the tool that answers the same question.
 - [x] `MascotShapes`: add `Pie` (slice = top category share) and `Bars` (gaze follows the direction of change)
-  - `spending_by_category` slices by the asked category's share of the month; `TOP_CATEGORIES` by the top one's share of its own currency. Drawn between 5% and 50%; the eyes move onto the rest of the pie.
+  - `query_spending` slices by the asked category's (or the biggest group's) share of its days' spending; `TOP_CATEGORIES` by the top one's share of its own currency. Drawn between 5% and 50%; the eyes move onto the rest of the pie.
   - Bars look up only when spending rose in every currency, down only when it fell in every one, ahead otherwise.
 - [x] 32dp mascot at the start of the **latest** assistant reply only. Space is reserved for the whole reply so the text does not reflow. It is removed when a new request starts.
   - The streamed reply keeps the slot empty; the saved one lands in place and its mascot fades in. When a new request starts, the slot closes toward the start on a spatial spec.

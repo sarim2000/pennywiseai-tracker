@@ -32,7 +32,6 @@ import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
 import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.presentation.review.ReviewPromptBanner
 import com.pennywiseai.tracker.presentation.settings.BackgroundAccessViewModel
-import com.pennywiseai.tracker.presentation.share.ShareCardSheet
 import com.pennywiseai.tracker.ui.animations.StaggeredEntrance
 import com.pennywiseai.tracker.ui.animations.rememberEntranceDone
 import com.pennywiseai.tracker.ui.animations.staggerDelayMs
@@ -76,6 +75,9 @@ fun HomeScreen(
     onNavigateToTransactionsWithSearch: () -> Unit = {},
     onNavigateToSubscriptions: () -> Unit = {},
     onNavigateToReview: (ReviewKind) -> Unit = {},
+    onNavigateToNetWorth: (currency: String) -> Unit = {},
+    onNavigateToShareStudio: () -> Unit = {},
+    onNavigateToAchievements: () -> Unit = {},
     onNavigateToBudgets: () -> Unit = {},
     onNavigateToLoans: () -> Unit = {},
     onNavigateToTransactionGroups: () -> Unit = {},
@@ -149,7 +151,6 @@ fun HomeScreen(
 
     // Bottom sheet menu state
     var showMenuSheet by remember { mutableStateOf(false) }
-    var showShareSheet by remember { mutableStateOf(false) }
     var showEditWidgetsSheet by remember { mutableStateOf(false) }
     val sheetState = rememberBottomSheetState(SheetValue.Hidden)
 
@@ -378,7 +379,8 @@ fun HomeScreen(
                                 creditCards = uiState.creditCards,
                                 totalAvailableCredit = uiState.totalAvailableCredit,
                                 forecast = uiState.spendForecast,
-                                onAccountClick = onAccountClick
+                                onAccountClick = onAccountClick,
+                                onOpenNetWorth = { onNavigateToNetWorth(uiState.selectedCurrency) }
                             )
                         }
                     }
@@ -768,18 +770,14 @@ fun HomeScreen(
             }
         }
 
-        // Share-card sheet, rendered at screen scope so dismissing the menu can't tear it down.
-        if (showShareSheet) {
-            ShareCardSheet(onDismiss = { showShareSheet = false })
-        }
-
         // Avatar menu bottom sheet
         if (showMenuSheet) {
             HomeMenuSheet(
                 sheetState = sheetState,
                 onDismiss = { showMenuSheet = false },
                 onOpenReview = { onNavigateToReview(ReviewKind.MONTH) },
-                onOpenShareCard = { showShareSheet = true },
+                onOpenShareCard = onNavigateToShareStudio,
+                onOpenAchievements = onNavigateToAchievements,
                 onOpenSettings = onNavigateToSettings,
                 onEditHome = { showEditWidgetsSheet = true },
                 onReadMessagesAgain = { showFullResyncDialog = true }
@@ -791,6 +789,10 @@ fun HomeScreen(
         SafeToSpendSheet(
             state = state,
             onSetIncluded = viewModel::setSafeToSpendAccountIncluded,
+            onOpenCard = { card ->
+                showSafeToSpendSheet = false
+                onAccountClick(card.bankName, card.accountLast4)
+            },
             onDismiss = { showSafeToSpendSheet = false }
         )
     }
@@ -801,6 +803,7 @@ fun HomeScreen(
             homeSectionLayout = homeSectionLayout,
             onDismiss = { showEditWidgetsSheet = false },
             onMoveSection = viewModel::moveHomeSection,
+            onReorderSections = viewModel::reorderHomeSections,
             onSetSectionVisible = viewModel::setHomeSectionVisible
         )
     }

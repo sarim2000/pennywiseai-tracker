@@ -38,6 +38,9 @@ data class ReviewRange(
     val isComplete: Boolean,
 )
 
+/** [offset] counts back from [today], the day it was chosen: a period can't turn into another while the screen waits. */
+data class ReviewSelection(val kind: ReviewKind, val offset: Int, val today: LocalDate)
+
 /** The newest period that can be reviewed: a week or cycle only once it has ended. */
 internal fun latestReviewOffset(kind: ReviewKind): Int = if (kind == ReviewKind.YEAR) 0 else -1
 
@@ -90,6 +93,9 @@ data class CategoryLine(val name: String, val amount: BigDecimal, val previous: 
 
 data class MonthPoint(val month: YearMonth, val spent: BigDecimal)
 
+/** Spent at one merchant, net of refunds that carry its name, as Analytics' merchant view. */
+data class MerchantLine(val name: String, val amount: BigDecimal)
+
 /** One currency's review. Amounts in different currencies never meet. */
 data class CurrencyReview(
     val currency: String,
@@ -99,12 +105,33 @@ data class CurrencyReview(
     val income: BigDecimal,
     /** Every row that counts toward any total: spend, income, refunds and transfers alike. */
     val transactionCount: Int,
+    /** Every category with spend in either period; the screen shows the first [REVIEW_CATEGORY_LINES]. */
     val categories: List<CategoryLine>,
+    /**
+     * The biggest categories by amount, whatever [categories] is sorted by: a week or
+     * cycle lists what changed most, which can leave out the largest steady category.
+     */
+    val topCategories: List<CategoryLine> = emptyList(),
+    /**
+     * The categories that moved most since the previous period, biggest move first, for
+     * every kind: a year's [categories] rank by amount, which can drop a category that
+     * fell to nothing. Empty without a fair comparison.
+     */
+    val changes: List<CategoryLine> = emptyList(),
     /** Year only. Months are net of refunds; a forgiven loan counts in [spent] alone. */
     val months: List<MonthPoint>,
+    /** The biggest [MERCHANT_LINES], largest first, leaving out names that carry account digits. */
+    val merchants: List<MerchantLine> = emptyList(),
 ) {
     /** False for a currency shown only because it fell to nothing since the previous period. */
     val hasActivity: Boolean get() = transactionCount > 0 || spent.signum() > 0
+
+    /**
+     * Whether [categories] read as "what changed", each with its change: a week or a cycle
+     * that compares fairly. A year reads as "where it went", without changes, on the
+     * screen and in the PDF report alike.
+     */
+    fun showsCategoryChange(kind: ReviewKind): Boolean = kind != ReviewKind.YEAR && previousSpent != null
 }
 
 data class PeriodReview(
@@ -151,6 +178,7 @@ private class Spend(
     val total: BigDecimal,
     val byCategory: Map<String, BigDecimal>,
     val byMonth: Map<YearMonth, BigDecimal>,
+    val byMerchant: Map<String, BigDecimal> = emptyMap(),
 )
 
 /** Analytics' spend definition for one currency: refunds netted, loans and exclusions out. */
@@ -164,10 +192,12 @@ private suspend fun spendOf(
 
     val categories = mutableMapOf<String, BigDecimal>()
     val months = mutableMapOf<YearMonth, BigDecimal>()
+    val merchants = mutableMapOf<String, BigDecimal>()
     var gross = BigDecimal.ZERO
     for (row in counted) {
         gross += row.transaction.amount
         months.merge(YearMonth.from(row.transaction.dateTime), row.transaction.amount, BigDecimal::add)
+        merchants.merge(row.transaction.merchantName, row.transaction.amount, BigDecimal::add)
         row.getAmountByCategory().forEach { (category, amount) ->
             categories.merge(category.ifEmpty { "Others" }.let { parentOf[it] ?: it }, amount, BigDecimal::add)
         }
@@ -178,6 +208,7 @@ private suspend fun spendOf(
         total = netOf(gross, refunds.total),
         byCategory = categories.mapValues { (name, amount) -> netOf(amount, refunds.byCategory[name]) },
         byMonth = months.mapValues { (month, amount) -> netOf(amount, monthRefunds[month]) },
+        byMerchant = merchants.mapValues { (name, amount) -> netOf(amount, refunds.byMerchant[name]) },
     )
 }
 
@@ -215,7 +246,14 @@ internal suspend fun buildPeriodReview(
             income = income,
             transactionCount = current[currency].orEmpty().forTotals().size,
             categories = categoryLines(range, spend, before),
+            topCategories = topCategoryLines(spend),
+            changes = if (before == null) emptyList() else changedCategoryLines(spend, before),
             months = if (range.kind == ReviewKind.YEAR) monthPoints(range, spend) else emptyList(),
+            merchants = spend.byMerchant
+                .filter { (name, amount) -> amount.signum() > 0 && !looksLikeAccountLabel(name) }
+                .map { (name, amount) -> MerchantLine(name, amount) }
+                .sortedWith(compareByDescending<MerchantLine> { it.amount }.thenBy { it.name })
+                .take(MERCHANT_LINES),
         )
     }
         .filter { it.hasActivity || (it.previousSpent?.signum() ?: 0) > 0 }
@@ -234,22 +272,32 @@ internal suspend fun buildPeriodReview(
 
 /** A year reads as "where it went"; a week or cycle as "what changed", when that's known. */
 private fun categoryLines(range: ReviewRange, spend: Spend, before: Spend?): List<CategoryLine> {
+    if (before != null && range.kind != ReviewKind.YEAR) return byChange(comparedLines(spend, before))
+    return comparedLines(spend, before).sortedByDescending { it.amount }
+}
+
+private fun changedCategoryLines(spend: Spend, before: Spend): List<CategoryLine> =
+    byChange(comparedLines(spend, before)).take(REVIEW_CATEGORY_LINES)
+
+private fun byChange(lines: List<CategoryLine>): List<CategoryLine> =
+    lines.sortedByDescending { (it.amount - (it.previous ?: BigDecimal.ZERO)).abs() }
+
+private fun comparedLines(spend: Spend, before: Spend?): List<CategoryLine> {
     val names = spend.byCategory.keys + before?.byCategory?.keys.orEmpty()
-    val lines = names.map { name ->
+    return names.map { name ->
         CategoryLine(
             name = name,
             amount = spend.byCategory[name] ?: BigDecimal.ZERO,
             previous = before?.let { it.byCategory[name] ?: BigDecimal.ZERO },
         )
     }.filter { it.amount.signum() > 0 || (it.previous?.signum() ?: 0) > 0 }
-
-    val sorted = if (before == null || range.kind == ReviewKind.YEAR) {
-        lines.sortedByDescending { it.amount }
-    } else {
-        lines.sortedByDescending { (it.amount - (it.previous ?: BigDecimal.ZERO)).abs() }
-    }
-    return sorted.take(CATEGORY_LINES)
 }
+
+private fun topCategoryLines(spend: Spend): List<CategoryLine> =
+    spend.byCategory.filterValues { it.signum() > 0 }
+        .map { (name, amount) -> CategoryLine(name, amount, previous = null) }
+        .sortedWith(compareByDescending<CategoryLine> { it.amount }.thenBy { it.name })
+        .take(REVIEW_CATEGORY_LINES)
 
 private fun monthPoints(range: ReviewRange, spend: Spend): List<MonthPoint> =
     generateSequence(YearMonth.from(range.start)) { it.plusMonths(1) }
@@ -257,7 +305,21 @@ private fun monthPoints(range: ReviewRange, spend: Spend): List<MonthPoint> =
         .map { MonthPoint(it, spend.byMonth[it] ?: BigDecimal.ZERO) }
         .toList()
 
-private const val CATEGORY_LINES = 5
+/** The categories the Review screen and the share cards list; the PDF report lists them all. */
+internal const val REVIEW_CATEGORY_LINES = 5
+
+private const val MERCHANT_LINES = 10
+
+/**
+ * A merchant name that carries an account or phone number, such as a parser's
+ * "UPI Transfer to A/C XX1234": kept out of the top merchants, which a PDF report
+ * prints and which must carry no account numbers. Left out before the list is cut
+ * to [MERCHANT_LINES], so it still holds ten names when there are ten.
+ */
+internal fun looksLikeAccountLabel(name: String): Boolean = ACCOUNT_DIGITS.containsMatchIn(name)
+
+/** Four or more digits in a row, or masked digits such as `XX12` / `**12`. */
+private val ACCOUNT_DIGITS = Regex("""\d{4,}|(?i)(?:x{2,}|\*{2,})\d{2,}""")
 
 /** Fewer rows than this and a period isn't worth a Home banner. */
 internal const val MIN_ROWS_FOR_REVIEW_PROMPT = 20

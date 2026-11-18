@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.data.model
 
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.ledger.breakdownByCurrency
@@ -33,10 +34,16 @@ object SpendingComparison {
         val current: Window
         val previous: Window
         val profile: ProfileEntity?
+        /**
+         * [currentSpentIn] and [previousSpentIn] are the currencies each window has spending
+         * transactions in: a forgiven loan alone has none to list.
+         */
         data class Rows(
             override val current: Window,
             override val previous: Window,
             val rows: List<Row>,
+            val currentSpentIn: Set<String> = rows.filter { it.current.signum() > 0 }.mapTo(mutableSetOf()) { it.currency },
+            val previousSpentIn: Set<String> = rows.filter { it.previous.signum() > 0 }.mapTo(mutableSetOf()) { it.currency },
             override val profile: ProfileEntity? = null,
         ) : Result
         /** No transactions at all in [missing]: the app can't tell "spent nothing" from "wasn't tracking". */
@@ -86,14 +93,16 @@ object SpendingComparison {
         // A loan forgiven in a window is activity there too, even with no transactions.
         if (previous.isEmpty() && previousLoss.values.none { it.signum() > 0 }) return Result.NoData(cw, pw, pw)
         if (current.isEmpty() && currentLoss.values.none { it.signum() > 0 }) return Result.NoData(cw, pw, cw)
-        val now = spend(current, categories, creditAsExpense).plusAmounts(currentLoss)
-        val before = spend(previous, categories, creditAsExpense).plusAmounts(previousLoss)
+        val spentNow = spend(current, categories, creditAsExpense)
+        val spentBefore = spend(previous, categories, creditAsExpense)
+        val now = spentNow.plusAmounts(currentLoss)
+        val before = spentBefore.plusAmounts(previousLoss)
         val rows = (now.keys + before.keys).sorted().map { currency ->
             val c = now[currency] ?: BigDecimal.ZERO
             val p = before[currency] ?: BigDecimal.ZERO
             Row(currency, c, p, change(c, p))
         }
-        return Result.Rows(cw, pw, rows)
+        return Result.Rows(cw, pw, rows, spentNow.keys, spentBefore.keys)
     }
 
     /**
@@ -141,6 +150,21 @@ object SpendingComparison {
         return grossSpend(rows, categories, creditAsExpense).mapValues { (currency, gross) -> (gross - (refunded[currency] ?: BigDecimal.ZERO)).max(BigDecimal.ZERO) }
     }
 
+    /**
+     * Money received in [categories] (its split shares), per currency, and the rows it came in, as
+     * Home's income counts it: a refund gives spending back, so it's no income.
+     */
+    fun received(rows: List<TransactionWithSplits>, categories: Set<String>): Pair<Map<String, BigDecimal>, Int> {
+        val parts = rows.forTotals()
+            .filter { it.transaction.transactionType == TransactionType.INCOME && it.transaction.budgetImpactType != BudgetImpactType.DEDUCT_SPENT }
+            .mapNotNull { row ->
+                row.getAmountByCategory().filterKeys { categories.includes(it) }.values.takeIf { it.isNotEmpty() }
+                    ?.let { row.transaction.currency to it.fold(BigDecimal.ZERO, BigDecimal::add) }
+            }
+        val byCurrency = parts.sumByCurrency({ it.first }, { it.second }).mapValues { it.value.amount }.filterValues { it.signum() > 0 }
+        return byCurrency to parts.size
+    }
+
     /** How many spending transactions [spend] counted for [categories]: a split row once. */
     fun transactionsIn(rows: List<TransactionWithSplits>, categories: Set<String>, creditAsExpense: Boolean = true): Int =
         spending(rows, creditAsExpense).count { row -> row.getAmountByCategory().keys.any { categories.includes(it) } }
@@ -159,11 +183,36 @@ object SpendingComparison {
      * Each currency's biggest categories, largest first: split shares in, refunds given back to a
      * category out (floored at zero, and a category refunded in full drops off). Never ranked across currencies.
      */
-    fun topCategories(rows: List<TransactionWithSplits>, limit: Int = 5, creditAsExpense: Boolean = true): Map<String, List<Pair<String, BigDecimal>>> {
-        val refunded = refunds(rows).groupBy({ it.first to it.second }, { it.third })
+    fun topCategories(rows: List<TransactionWithSplits>, limit: Int = 5, creditAsExpense: Boolean = true): Map<String, List<Pair<String, BigDecimal>>> =
+        ranking(rows, null, null, limit, creditAsExpense)
+
+    /**
+     * [topCategories] by any [key] of a transaction (its merchant, its account), or by category
+     * when [key] is null. With [categories], only their split shares count, and only refunds
+     * given back to them come off. A refund comes off the group its own row falls in.
+     */
+    fun ranking(
+        rows: List<TransactionWithSplits>,
+        key: ((TransactionEntity) -> String)?,
+        categories: Set<String>? = null,
+        limit: Int = 5,
+        creditAsExpense: Boolean = true,
+    ): Map<String, List<Pair<String, BigDecimal>>> {
+        val refunded = rows.forTotals()
+            .filter { it.transaction.transactionType == TransactionType.INCOME && it.transaction.budgetImpactType == BudgetImpactType.DEDUCT_SPENT }
+            .mapNotNull { row ->
+                val category = (row.transaction.budgetCategory ?: "").ifEmpty { "Others" }
+                if (categories != null && !categories.includes(category)) return@mapNotNull null
+                (row.transaction.currency to (key?.invoke(row.transaction) ?: category)) to row.transaction.amount
+            }
+            .groupBy({ it.first }, { it.second })
             .mapValues { (_, a) -> a.fold(BigDecimal.ZERO, BigDecimal::add) }
         return spending(rows, creditAsExpense)
-            .flatMap { row -> row.getAmountByCategory().map { (category, amount) -> Triple(row.transaction.currency, category, amount) } }
+            .flatMap { row ->
+                val parts = row.getAmountByCategory().filterKeys { categories == null || categories.includes(it) }
+                if (key == null) parts.map { (category, amount) -> Triple(row.transaction.currency, category, amount) }
+                else listOfNotNull(parts.takeIf { it.isNotEmpty() }?.let { Triple(row.transaction.currency, key(row.transaction), it.values.fold(BigDecimal.ZERO, BigDecimal::add)) })
+            }
             .groupBy { it.first }
             .mapValues { (currency, items) ->
                 items.groupBy({ it.second }, { it.third })

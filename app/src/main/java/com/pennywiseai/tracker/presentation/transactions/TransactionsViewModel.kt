@@ -115,6 +115,9 @@ class TransactionsViewModel @Inject constructor(
     private val _selectedProfileId = MutableStateFlow<Long?>(null)
     val selectedProfileId: StateFlow<Long?> = _selectedProfileId.asStateFlow()
 
+    // Set by a chat figure's link: the list stays on that figure's profile (see pinProfile).
+    private var profilePinned = false
+
     private val _ignoredAccountKeys = MutableStateFlow<Set<String>>(emptySet())
     private val _profileAccountKeys = MutableStateFlow<Map<Long, Set<String>>>(emptyMap())
     val profileAccountKeys: StateFlow<Map<Long, Set<String>>> = _profileAccountKeys.asStateFlow()
@@ -649,7 +652,8 @@ class TransactionsViewModel @Inject constructor(
         // Observe selected profile from preferences and cache profile account keys
         viewModelScope.launch {
             userPreferencesRepository.selectedProfileId.collect { profileId ->
-                _selectedProfileId.value = profileId
+                // A list pinned to a figure's profile keeps it while Home switches (pinProfile).
+                if (!profilePinned) _selectedProfileId.value = profileId
             }
         }
         viewModelScope.launch {
@@ -961,6 +965,18 @@ class TransactionsViewModel @Inject constructor(
     }
 
     /**
+     * Lists only [profileId]'s rows (null for all profiles), the profile a chat figure was
+     * worked out in, whatever profile Home selects meanwhile. The saved selection isn't
+     * touched. As with [pinCurrency], only the first call counts: the screen calls this on
+     * every return, and must not undo a profile the user has since picked here.
+     */
+    fun pinProfile(profileId: Long?) {
+        if (profilePinned) return
+        profilePinned = true
+        _selectedProfileId.value = profileId
+    }
+
+    /**
      * A pinned list stays on its currency even with no rows there, so it never shows another
      * currency under the card it opened from. A currency the user picked later can still fall back.
      */
@@ -1067,12 +1083,6 @@ class TransactionsViewModel @Inject constructor(
         TransactionTypeFilter.entries.firstOrNull { it.name == type && it.inTransactionsList }
             ?: TransactionTypeFilter.ALL
 
-    private fun decodeUrlParam(value: String): String {
-        return if (value.contains("+") || value.contains("%")) {
-            java.net.URLDecoder.decode(value, "UTF-8")
-        } else value
-    }
-
     fun applyInitialFilters(
         category: String?,
         merchant: String?,
@@ -1094,15 +1104,9 @@ class TransactionsViewModel @Inject constructor(
             setAccountFilter(account)
             setTagFilter(tag)
 
-            category?.let {
-                val decoded = decodeUrlParam(it)
-                setCategoryFilter(decoded)
-            }
-
-            merchant?.let {
-                val decoded = decodeUrlParam(it)
-                updateSearchQuery(decoded)
-            }
+            // Typed nav keys carry names as they are: "Savings 10%" isn't URL-encoded.
+            category?.let { setCategoryFilter(it) }
+            merchant?.let { updateSearchQuery(it) }
 
             period?.let { periodName ->
                 applyNavigatedPeriod(periodName, startDateEpochDay, endDateEpochDay)
@@ -1175,15 +1179,8 @@ class TransactionsViewModel @Inject constructor(
         setAccountFilter(account)
         setTagFilter(tag)
 
-        category?.let {
-            val decoded = decodeUrlParam(it)
-            setCategoryFilter(decoded)
-        }
-
-        merchant?.let {
-            val decoded = decodeUrlParam(it)
-            updateSearchQuery(decoded)
-        }
+        category?.let { setCategoryFilter(it) }
+        merchant?.let { updateSearchQuery(it) }
 
         period?.let { periodName ->
             applyNavigatedPeriod(periodName, startDateEpochDay, endDateEpochDay)
@@ -1244,9 +1241,7 @@ class TransactionsViewModel @Inject constructor(
 
         // Set multiple categories filter
         categories?.let { cats ->
-            val categoryList = cats.split(",").map { cat ->
-                decodeUrlParam(cat)
-            }.filter { it.isNotBlank() }
+            val categoryList = cats.split(",").filter { it.isNotBlank() }
 
             if (categoryList.isNotEmpty()) {
                 _categoriesFilter.value = categoryList

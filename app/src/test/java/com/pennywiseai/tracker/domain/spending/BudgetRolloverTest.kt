@@ -179,6 +179,13 @@ class BudgetRolloverTest {
     }
 
     @Test
+    fun `new categories start it again, since last period counted other spending`() {
+        val b = budget()
+        assertEquals(today, BudgetRollover.sinceAfterEdit(b, b, today, sameScope = false))
+        assertEquals(b.rolloverSince, BudgetRollover.sinceAfterEdit(b, b, today, sameScope = true))
+    }
+
+    @Test
     fun `a new limit starts it again, so last period's leftover isn't measured against it`() {
         val b = budget()
         assertEquals(today, BudgetRollover.sinceAfterEdit(b, b.copy(limitAmount = BigDecimal("150")), today))

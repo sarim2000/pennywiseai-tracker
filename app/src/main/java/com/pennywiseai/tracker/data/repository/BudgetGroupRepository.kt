@@ -262,7 +262,12 @@ class BudgetGroupRepository @Inject constructor(
             updatedAt = LocalDateTime.now(),
             rolloverEnabled = (rollover ?: existing.rolloverEnabled) && BudgetRollover.isAvailable(groupType, effectivePeriod)
         )
-        budgetDao.updateBudget(updated.copy(rolloverSince = BudgetRollover.sinceAfterEdit(existing, updated, now, globalStartDay)))
+        // New categories or type buckets: last period's spending isn't what this one counts.
+        val sameScope = budgetDao.getCategoriesForBudgetList(budgetId).map { it.categoryName to it.matchType }.toSet() ==
+            buckets.map { it.name to it.matchType }.toSet()
+        budgetDao.updateBudget(
+            updated.copy(rolloverSince = BudgetRollover.sinceAfterEdit(existing, updated, now, globalStartDay, sameScope))
+        )
 
         budgetDao.deleteCategoriesForBudget(budgetId)
         if (buckets.isNotEmpty()) {

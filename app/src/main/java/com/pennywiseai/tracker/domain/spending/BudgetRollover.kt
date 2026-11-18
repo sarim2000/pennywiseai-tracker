@@ -67,8 +67,9 @@ object BudgetRollover {
     /**
      * [BudgetEntity.rolloverSince] for [after], the budget as it's being saved on
      * [today] ([before]: as it was, null for a new one). Rollover turned on, or a
-     * change of limit, currency or period, starts it again today, since last period no
-     * longer measures this one; turned off, it's null; otherwise it stays.
+     * change of limit, currency, period or of what it counts ([sameScope] false: its
+     * categories or type buckets changed), starts it again today, since last period
+     * no longer measures this one; turned off, it's null; otherwise it stays.
      * Anchors are compared as the periods they resolve to ([globalStartDay] as
      * [resolveBudgetWindow] takes it), so a legacy null anchor saved as its default
      * isn't a new period.
@@ -77,10 +78,11 @@ object BudgetRollover {
         before: BudgetEntity?,
         after: BudgetEntity,
         today: LocalDate,
-        globalStartDay: Int = BudgetCycle.DEFAULT_START_DAY
+        globalStartDay: Int = BudgetCycle.DEFAULT_START_DAY,
+        sameScope: Boolean = true
     ): LocalDate? = when {
         !after.rolloverEnabled -> null
-        before == null || !before.rolloverEnabled || before.rolloverSince == null -> today
+        before == null || !before.rolloverEnabled || before.rolloverSince == null || !sameScope -> today
         // Last period's leftover is measured against the limit it had: a new limit
         // would rewrite it (₹10,000 → ₹15,000 turns +₹1,000 into +₹6,000).
         before.limitAmount.compareTo(after.limitAmount) != 0 ||

@@ -631,10 +631,14 @@ internal fun HomeActivitySection(
     }
 }
 
-/** The two insights that matter most; the card opens the Insights page. */
+/**
+ * The two insights that matter most, in any currency; the card opens the Insights page.
+ * [homeCurrency] is the one the rest of Home shows.
+ */
 @Composable
 internal fun HomeInsightsSection(
     insights: List<com.pennywiseai.tracker.domain.insights.Insight>,
+    homeCurrency: String,
     onNavigateToInsights: () -> Unit
 ) {
     Column(
@@ -661,8 +665,8 @@ internal fun HomeInsightsSection(
                 .padding(horizontal = Dimensions.Padding.content)
         ) {
             // Titles like "Your money would last 4 months" don't name a currency, so say
-            // which each is once there's more than one.
-            val showCurrency = insights.distinctBy { it.currency }.size > 1
+            // which each is once any isn't the one Home shows.
+            val showCurrency = insights.any { it.currency != homeCurrency }
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.smd)) {
                 insights.forEach { insight ->
                     val (icon, color) = com.pennywiseai.tracker.presentation.insights.severityStyle(insight.severity)

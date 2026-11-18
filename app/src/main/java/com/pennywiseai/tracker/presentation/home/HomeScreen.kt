@@ -545,6 +545,7 @@ fun HomeScreen(
                                     StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
                                         HomeInsightsSection(
                                             insights = topInsights,
+                                            homeCurrency = uiState.selectedCurrency,
                                             onNavigateToInsights = onNavigateToInsights
                                         )
                                     }

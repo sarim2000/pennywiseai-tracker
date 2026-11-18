@@ -246,8 +246,12 @@ object InsightRules {
         }.toMutableList()
         val latestFirst = { _: SubscriptionEntity -> compareByDescending<TransactionEntity> { it.dateTime } }
         val repriced = claim(subscriptions, unclaimed, latestFirst) { sub, charge ->
-            canPay(sub, charge) &&
-                RecurringCharge.isPriceChange(sub.amount, sub.nextPaymentDate, charge.amount, charge.dateTime.toLocalDate())
+            val date = charge.dateTime.toLocalDate()
+            // The payment around the charge, not a stored date a cycle or more behind it.
+            val due = sub.nextPaymentDate?.let {
+                RecurringCharge.nextPaymentShown(it, sub.billingCycle, date.minusDays(RecurringCharge.DUE_WINDOW_DAYS))
+            }
+            canPay(sub, charge) && RecurringCharge.isPriceChange(sub.amount, due, charge.amount, date)
         }
         return subscriptions.mapNotNull { sub ->
             val charge = repriced[sub.id] ?: return@mapNotNull null

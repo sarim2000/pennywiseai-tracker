@@ -573,6 +573,15 @@ class InsightRulesTest {
     }
 
     @Test
+    fun `a new price is checked against the payment around the charge, not a stale stored date`() {
+        val changes = evaluate(
+            rows = listOf(tx("2026-11-15", "130", merchant = "Streamer")),
+            subscriptions = listOf(subscription(1, "100", "2026-10-15")),
+        ).facts<PriceChange>()
+        assertEquals(Money(BigDecimal("130"), "INR"), changes.single().charged)
+    }
+
+    @Test
     fun `a new price is news only for the subscription on the charge's account`() {
         val changes = evaluate(
             rows = listOf(tx("2026-11-15", "649", merchant = "Streamer", bank = "Bank B", account = "2222")),

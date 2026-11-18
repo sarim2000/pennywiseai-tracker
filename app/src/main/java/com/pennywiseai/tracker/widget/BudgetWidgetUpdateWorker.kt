@@ -198,7 +198,7 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                 val totalLimitBudget = limitGroups.fold(BigDecimal.ZERO) { acc, g -> acc + g.totalBudget }
                 val totalLimitSpent = limitGroups.fold(BigDecimal.ZERO) { acc, g -> acc + g.totalActual }
                 val limitRemaining = totalLimitBudget - totalLimitSpent
-                val usage = widgetLimitUsage(groupSpendingList)
+                val usage = widgetLimitUsage(totalLimitBudget, totalLimitSpent, groupSpendingList)
                 val dailyAllowance = if (raw.daysRemaining > 0 && limitRemaining > BigDecimal.ZERO) {
                     limitRemaining.divide(BigDecimal(raw.daysRemaining), 0, RoundingMode.HALF_UP)
                 } else BigDecimal.ZERO
@@ -274,7 +274,7 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                 val savingsDelta = spending.netSavings - prevSpending.netSavings
 
                 val limitRemaining = spending.totalLimitBudget - spending.totalLimitSpent
-                val usage = widgetLimitUsage(spending.groups)
+                val usage = widgetLimitUsage(spending.totalLimitBudget, spending.totalLimitSpent, spending.groups)
 
                 BudgetWidgetData(
                     totalSpent = spending.totalLimitSpent,
@@ -306,13 +306,13 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
 internal data class WidgetLimitUsage(val percentageUsed: Float, val hasLimit: Boolean)
 
 /**
- * How much of the spending limits in [groups] is used. Rollover can carry every
- * limit down to 0: that's used up, not "no budget".
+ * How much of the page's spending limits ([budget] with every carry in it, [spent]:
+ * the totals the widget shows) is used. Rollover can carry every limit down to 0:
+ * that's used up, not "no budget". [groups] give the carries; a budget left out of
+ * the totals (a one-time budget that already ended) has no window and carries nothing.
  */
-internal fun widgetLimitUsage(groups: List<BudgetGroupSpending>): WidgetLimitUsage {
-    val limits = groups.filter { it.group.budget.groupType == BudgetGroupType.LIMIT }
-    val budget = limits.fold(BigDecimal.ZERO) { acc, g -> acc + g.totalBudget }
-    val spent = limits.fold(BigDecimal.ZERO) { acc, g -> acc + g.totalActual }
-    val carry = limits.fold(BigDecimal.ZERO) { acc, g -> acc + g.carry }
+internal fun widgetLimitUsage(budget: BigDecimal, spent: BigDecimal, groups: List<BudgetGroupSpending>): WidgetLimitUsage {
+    val carry = groups.filter { it.group.budget.groupType == BudgetGroupType.LIMIT }
+        .fold(BigDecimal.ZERO) { acc, g -> acc + g.carry }
     return WidgetLimitUsage(budgetPercentUsed(spent, budget, carry), (budget - carry).signum() > 0)
 }

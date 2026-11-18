@@ -220,10 +220,20 @@ class BudgetRolloverRoutingTest {
         for (unified in listOf(false, true)) {
             val overall = overall(repo, unified)
             // The widget shows it used up, not its "create a budget" empty state.
-            val widget = widgetLimitUsage(overall.groups)
+            val widget = widgetLimitUsage(overall.totalLimitBudget, overall.totalLimitSpent, overall.groups)
             assertTrue(widget.hasLimit)
             assertEquals(100f, widget.percentageUsed)
         }
+    }
+
+    @Test
+    fun `a budget left out of the page totals doesn't bring up the widget's overview`() {
+        // A one-time budget that ended last month keeps its card but adds nothing to the totals.
+        val ended = BudgetGroupSpending(
+            budget(rollover = false), emptyList(), BigDecimal("100"), BigDecimal.ZERO, BigDecimal("100"),
+            0f, BigDecimal.ZERO, 0, 0
+        )
+        assertFalse(widgetLimitUsage(BigDecimal.ZERO, BigDecimal.ZERO, listOf(ended)).hasLimit)
     }
 
     @Test

@@ -76,20 +76,8 @@ interface TransactionDao {
     @Query("SELECT * FROM transactions WHERE is_deleted = 0 ORDER BY date_time DESC")
     fun getAllTransactions(): Flow<List<TransactionEntity>>
 
-    /** Rows still to file, newest first: [TransactionEntity.needsCategory] in SQL. A split row is filed by its splits. */
-    @Query(
-        "SELECT * FROM transactions WHERE is_deleted = 0 AND excluded_from_analytics = 0 " +
-            "AND (TRIM(category) = '' OR category = :others) " +
-            "AND id NOT IN (SELECT transaction_id FROM transaction_splits) ORDER BY date_time DESC"
-    )
-    fun getUncategorized(others: String): Flow<List<TransactionEntity>>
-
     @Query("SELECT * FROM transactions WHERE id = :transactionId")
     suspend fun getTransactionById(transactionId: Long): TransactionEntity?
-
-    /** Rows by id, in no order; ids under SQLite's bind limit (the repository chunks). */
-    @Query("SELECT * FROM transactions WHERE id IN (:ids)")
-    suspend fun getTransactionsByIds(ids: List<Long>): List<TransactionEntity>
 
     @Query("""
         SELECT * FROM transactions

@@ -7,7 +7,6 @@ import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.database.entity.currentNameFor
-import com.pennywiseai.tracker.data.database.entity.nameForBuiltin
 import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.manager.TransactionDeduplication
 import com.pennywiseai.tracker.data.notification.BankNotificationConfig
@@ -16,7 +15,6 @@ import com.pennywiseai.tracker.data.statement.StatementTransactionEnricher
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
@@ -49,25 +47,8 @@ open class TransactionRepository @Inject constructor(
     fun getAllTransactions(): Flow<List<TransactionEntity>> =
         transactionDao.getAllTransactions()
 
-    /**
-     * Every row still to file ([needsCategory]), newest first, as it changes. "Others" is read
-     * from the categories table as it changes too, so a rename (or a cold start before
-     * BuiltinCategoryNames is filled) can't leave the query bound to a stale name.
-     */
-    fun observeUncategorized(): Flow<List<TransactionEntity>> =
-        categoryDao.getAllCategories()
-            .map { it.nameForBuiltin("Others") }
-            .distinctUntilChanged()
-            .flatMapLatest { transactionDao.getUncategorized(it) }
-
     open suspend fun getTransactionById(id: Long): TransactionEntity? =
         transactionDao.getTransactionById(id)
-
-    /** The rows for [ids] that exist, in [ids]' order: one read, chunked under SQLite's bind limit. */
-    suspend fun getTransactionsByIds(ids: List<Long>): List<TransactionEntity> {
-        val byId = ids.chunked(900).flatMap { transactionDao.getTransactionsByIds(it) }.associateBy { it.id }
-        return ids.mapNotNull(byId::get)
-    }
 
     fun getTransactionsBetweenDates(
         startDate: LocalDateTime,
@@ -611,9 +592,7 @@ open class TransactionRepository @Inject constructor(
     }
 
     suspend fun getUncategorizedTransactions(): List<TransactionEntity> {
-        // Without a category, or in "Others" under whatever name the user gave it. Rows kept out
-        // of totals stay in, unlike [needsCategory]: a rule run over them is still right, and
-        // files them for the day they're counted again; only the picker leaves them alone.
+        // Without a category, or in "Others" under whatever name the user gave it.
         val others = com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames.current("Others")
         return getAllTransactionsList().filter { transaction ->
             transaction.category.isNullOrBlank() || transaction.category == others
@@ -678,10 +657,6 @@ open class TransactionRepository @Inject constructor(
     suspend fun hasSplits(transactionId: Long): Boolean =
         transactionSplitDao.hasSplits(transactionId)
 
-    /** Which of [ids] have splits: one read, chunked under SQLite's bind limit. */
-    suspend fun getSplitTransactionIds(ids: List<Long>): Set<Long> =
-        ids.chunked(900).flatMap { transactionSplitDao.getSplitTransactionIds(it) }.toSet()
-
     /**
      * Saves splits for a transaction, replacing any existing splits.
      */
@@ -719,12 +694,3 @@ open class TransactionRepository @Inject constructor(
     suspend fun deleteSplit(split: TransactionSplitEntity) =
         transactionSplitDao.deleteSplit(split)
 }
-
-/**
- * A row still to file: no category, or "Others" under whatever name the user gave it ([others]).
- * Deleted rows and ones kept out of totals aren't waiting on anything, nor is one already
- * [split] across categories (its own category stays as it was). The chat's "N uncategorized"
- * counts these and the category picker walks them, so the two agree.
- */
-fun TransactionEntity.needsCategory(others: String, split: Boolean): Boolean =
-    !isDeleted && !excludedFromAnalytics && !split && (category.isBlank() || category == others)

@@ -208,19 +208,10 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
          * an Undo: a quick pick is one tap, and a mis-tap teaches the merchant
          * and moves its earlier rows. [learned] is [LearnCategoryUseCase]'s
          * result; null (the transaction is gone) just clears the alert.
-         * [replaceOnly]: a pick made inside the app posts no new note, it only
-         * replaces the row's alert if that is still in the shade, so the alert's
-         * bill answer and the pick's Undo aren't lost with it.
          */
-        fun showLearnedNotification(
-            context: Context,
-            notificationId: Int,
-            learned: LearnCategoryUseCase.Learned?,
-            replaceOnly: Boolean = false
-        ) {
+        fun showLearnedNotification(context: Context, notificationId: Int, learned: LearnCategoryUseCase.Learned?) {
             if (notificationId == -1) return
             val notificationManager = ensureChannel(context)
-            if (replaceOnly && notificationManager.activeNotifications.none { it.id == notificationId && it.tag == null }) return
             if (learned == null) {
                 notificationManager.cancel(notificationId)
             } else {

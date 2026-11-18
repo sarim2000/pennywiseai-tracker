@@ -26,7 +26,6 @@ import com.pennywiseai.tracker.data.repository.AppLockRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
-import com.pennywiseai.tracker.data.repository.needsCategory
 import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
 import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
 import com.pennywiseai.tracker.ui.components.forPicker
@@ -93,9 +92,6 @@ class QuickCategoryPickerActivity : FragmentActivity() {
     // and how many were already answered, for the "2 of 3".
     private var walkQueue: List<Long>? = null
     private val walked = mutableStateOf(0)
-    // Walk opened inside the app (the chat): no new "Saved as" notes. A row's alert still in the
-    // shade becomes its note (bill answer and Undo kept), or its buttons could re-file the row later.
-    private var quiet = false
     private var saving = false
     // Bumped by each (re)start: a walk's pending step must not steer a picker re-targeted meanwhile.
     private var walkGen = 0
@@ -118,7 +114,6 @@ class QuickCategoryPickerActivity : FragmentActivity() {
         savedInstanceState?.getLongArray(KEY_WALK_QUEUE)?.let { queue ->
             walkQueue = queue.toList()
             walked.value = savedInstanceState.getInt(KEY_WALKED)
-            quiet = savedInstanceState.getBoolean(KEY_QUIET)
             queue.firstOrNull()?.let { currentArgs.value = PickerArgs(it, it.toInt()) }
         }
 
@@ -146,7 +141,6 @@ class QuickCategoryPickerActivity : FragmentActivity() {
         walkQueue?.let {
             outState.putLongArray(KEY_WALK_QUEUE, it.toLongArray())
             outState.putInt(KEY_WALKED, walked.value)
-            outState.putBoolean(KEY_QUIET, quiet)
         }
     }
 
@@ -168,7 +162,6 @@ class QuickCategoryPickerActivity : FragmentActivity() {
 
     private fun startWalk(intent: Intent) {
         walkQueue = intent.getLongArrayExtra(EXTRA_WALK_IDS)?.toList()
-        quiet = intent.getBooleanExtra(EXTRA_QUIET, false)
         walked.value = 0
         saving = false
         walkGen++
@@ -211,7 +204,10 @@ class QuickCategoryPickerActivity : FragmentActivity() {
      */
     private suspend fun advance(gen: Int, txnId: Long, answered: Boolean) {
         val queue = walkQueue ?: return
-        val left = unsorted(transactionRepository.getTransactionsByIds(queue.filter { it != txnId }))
+        val left = stillUnsorted(
+            queue.filter { it != txnId }.mapNotNull { transactionRepository.getTransactionById(it) },
+            BuiltinCategoryNames.current("Others")
+        )
         // Re-targeted by another notification during the reads: the old walk stops here.
         if (gen != walkGen) return
         walkQueue = left.map { it.id }
@@ -226,9 +222,6 @@ class QuickCategoryPickerActivity : FragmentActivity() {
             currentArgs.value = PickerArgs(next.id, next.id.toInt())
         }
     }
-
-    private suspend fun unsorted(rows: List<TransactionEntity>): List<TransactionEntity> =
-        stillUnsorted(rows, BuiltinCategoryNames.current("Others"), transactionRepository.getSplitTransactionIds(rows.map { it.id }))
 
     /** Shows the sheet only once the app lock (if on) is satisfied; a cancel closes the picker. */
     private fun checkLock() {
@@ -269,7 +262,7 @@ class QuickCategoryPickerActivity : FragmentActivity() {
             val loaded = transactionRepository.getTransactionById(args.transactionId)
             // Walk: a row deleted, sorted or excluded since the recap (or answered just
             // before a rotation) is skipped, not shown, and a missing one doesn't end the walk.
-            if (walkQueue != null && unsorted(listOfNotNull(loaded)).isEmpty()) {
+            if (walkQueue != null && stillUnsorted(listOfNotNull(loaded), BuiltinCategoryNames.current("Others")).isEmpty()) {
                 advance(walkGen, args.transactionId, answered = false)
                 return@LaunchedEffect
             }
@@ -316,11 +309,9 @@ class QuickCategoryPickerActivity : FragmentActivity() {
                         if (walkQueue == null) finish() else answer(txn.id) {}
                         return@QuickCategoryPickerSheet
                     }
-                    val replaceOnly = quiet
                     answer(txn.id) {
                         learnCategory(txn.id, newCategory) { learned ->
-                            // Quiet: no new note, but an alert still in the shade becomes one, keeping its bill answer and the Undo.
-                            SmsBroadcastReceiver.showLearnedNotification(applicationContext, activeNotificationId, learned, replaceOnly)
+                            SmsBroadcastReceiver.showLearnedNotification(applicationContext, activeNotificationId, learned)
                         }
                         transactionWidgets.refresh()
                     }
@@ -370,19 +361,13 @@ class QuickCategoryPickerActivity : FragmentActivity() {
         const val EXTRA_NOTIFICATION_ID = "notification_id"
         /** Walk mode: the recap's unsorted transaction ids, newest first. */
         const val EXTRA_WALK_IDS = "walk_ids"
-        /** Walk mode: posts no new "Saved as" notes, only turns a row's alert still in the shade into one ([review]). */
-        const val EXTRA_QUIET = "quiet"
         private const val KEY_UNLOCKED = "unlocked"
         private const val KEY_WALK_QUEUE = "walk_queue"
         private const val KEY_WALKED = "walked"
-        private const val KEY_QUIET = "quiet"
 
-        /**
-         * The walk's rows still waiting, in order: sorted (perhaps by a merchant just learned),
-         * split ([splitIds]), excluded or deleted ones drop out.
-         */
-        internal fun stillUnsorted(rows: List<TransactionEntity>, others: String, splitIds: Set<Long>): List<TransactionEntity> =
-            rows.filter { it.needsCategory(others, split = it.id in splitIds) }
+        /** The walk's rows still waiting, in order: sorted (perhaps by a merchant just learned), excluded or deleted ones drop out. */
+        internal fun stillUnsorted(rows: List<TransactionEntity>, others: String): List<TransactionEntity> =
+            rows.filter { it.category == others && !it.excludedFromAnalytics && !it.isDeleted }
 
         /** Opens the picker on [ids]' first and walks the rest; each alert's id is its transaction's. */
         fun walkIntent(context: Context, ids: List<Long>, requestCode: Int): PendingIntent =
@@ -397,18 +382,5 @@ class QuickCategoryPickerActivity : FragmentActivity() {
                 },
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-
-        /**
-         * The walk over [ids] (non-empty), opened from inside the app: no new "Saved as" notes. A
-         * row's own alert, if still in the shade, becomes its note as it's answered, so its buttons
-         * can't re-file the row afterwards and a pending bill answer and the pick's Undo stay.
-         */
-        fun review(context: Context, ids: List<Long>): Intent =
-            Intent(context, QuickCategoryPickerActivity::class.java).apply {
-                putExtra(EXTRA_TRANSACTION_ID, ids.first())
-                putExtra(EXTRA_NOTIFICATION_ID, ids.first().toInt())
-                putExtra(EXTRA_WALK_IDS, ids.toLongArray())
-                putExtra(EXTRA_QUIET, true)
-            }
     }
 }

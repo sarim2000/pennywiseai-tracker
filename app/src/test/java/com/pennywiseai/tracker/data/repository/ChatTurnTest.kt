@@ -1249,7 +1249,7 @@ class ChatTurnTest {
         assertEquals(SpendingFilter(SpendingComparison.Window(oct1.atStartOfDay(), oct31.atTime(LocalTime.MAX))), filter.captured)
         // Another year's days say so: "1 Oct" alone would read as this October.
         assertTrue(reply, reply.startsWith("SPENT 1 Oct 2024–31 Oct 2024\n"))
-        assertEquals(listOf(oct1 to oct31), repository.links.value[saved.last().id]?.map { it.start to it.end })
+        assertEquals(listOf(oct1 to oct31), repository.links.value[saved.last().id]?.map { (it as ChatLink).start to it.end })
 
         // A merchant's figure, but no link: the list's search also reads notes and SMS text.
         events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("merchant" to "Starbucks", "category" to "all")))

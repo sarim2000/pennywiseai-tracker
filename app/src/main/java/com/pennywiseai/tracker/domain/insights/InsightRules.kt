@@ -174,8 +174,8 @@ object InsightRules {
      * A charge pays at most one bill, and only one it [RecurringCharge.couldBePaidFrom];
      * charges at a bill's exact amount are placed before new prices, and one already
      * recorded against a subscription stays that one's ([withoutRecorded]).
-     * Keyed on the due dates in the window, so a dismissal lasts while the same payments
-     * are due and a newly due one shows again.
+     * Keyed on each bill and its due date in the window, so a dismissal lasts while the
+     * same payments are due and a newly due one shows again.
      */
     internal fun billsDue(
         subscriptions: List<SubscriptionEntity>,
@@ -202,15 +202,20 @@ object InsightRules {
             canPay(sub, charge) && inWindow(sub, charge) &&
                 RecurringCharge.isPriceChange(sub.amount, dues.getValue(sub), charge.amount, charge.dateTime.toLocalDate())
         }.keys
+        // Each bill with its subscription, so the id can name which ones are due.
         val bills = dues.filterKeys { it.id !in paid && it.id !in repriced }
-            .map { (sub, due) -> Bill(sub.merchantName, Money(sub.amount, sub.currency), due) }
-        return SafeToSpend.billsInWindow(bills, today, today.plusDays(BILLS_DAYS))
-            .groupBy { it.amount.currency }
-            .map { (currency, due) ->
+            .map { (sub, due) -> sub.id to Bill(sub.merchantName, Money(sub.amount, sub.currency), due) }
+        val inWindow = SafeToSpend.billsInWindow(bills.map { it.second }, today, today.plusDays(BILLS_DAYS)).toSet()
+        return bills.filter { it.second in inWindow }
+            .groupBy({ it.second.amount.currency })
+            .map { (currency, entries) ->
+                val due = entries.map { it.second }
                 val firstDue = due.minOf { it.dueDate }
-                val dueDates = due.map { it.dueDate }.sorted().joinToString(",")
+                // Which bill is due when: another bill on a dismissed one's date is still news.
+                val dueKey = entries.sortedWith(compareBy({ it.second.dueDate }, { it.first }))
+                    .joinToString(",") { (subId, bill) -> "$subId@${bill.dueDate}" }
                 Insight(
-                    id("bills_due", period, currency, "next$BILLS_DAYS@$dueDates"), InsightSeverity.WARNING, currency,
+                    id("bills_due", period, currency, "next$BILLS_DAYS@$dueKey"), InsightSeverity.WARNING, currency,
                     BillsDue(
                         count = due.size,
                         total = due.sumByCurrency({ it.amount.currency }, { it.amount.amount }).getValue(currency),

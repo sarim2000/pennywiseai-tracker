@@ -42,7 +42,11 @@ import java.time.LocalDate
  * to spend can set it aside. A tap edits the due day and statement amount.
  */
 @Composable
-fun CardBillCard(status: CardBillStatus, onSave: (dueDay: Int?, amount: BigDecimal?) -> Unit) {
+fun CardBillCard(
+    status: CardBillStatus,
+    onSave: (dueDay: Int?, amount: BigDecimal?) -> Unit,
+    onClear: () -> Unit,
+) {
     var editing by rememberSaveable { mutableStateOf(false) }
     val card = status.card
     val bill = status.bill
@@ -122,6 +126,10 @@ fun CardBillCard(status: CardBillStatus, onSave: (dueDay: Int?, amount: BigDecim
             onSave = { day, amount ->
                 onSave(day, amount)
                 editing = false
+            },
+            onClear = {
+                onClear()
+                editing = false
             }
         )
     }
@@ -135,7 +143,8 @@ private fun CardBillDialog(
     forNewStatement: Boolean,
     currency: String,
     onDismiss: () -> Unit,
-    onSave: (Int?, BigDecimal?) -> Unit
+    onSave: (Int?, BigDecimal?) -> Unit,
+    onClear: () -> Unit
 ) {
     // No day until the user types one: a made-up due day could mark the bill overdue.
     var dayText by remember { mutableStateOf(dueDay?.toString().orEmpty()) }
@@ -155,7 +164,7 @@ private fun CardBillDialog(
             text = { Text(stringResource(R.string.card_bill_clear_message)) },
             confirmButton = {
                 TextButton(
-                    onClick = { onSave(null, null) },
+                    onClick = onClear,
                     colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error),
                     shapes = ButtonDefaults.shapes()
                 ) { Text(stringResource(R.string.manage_accounts_action_clear)) }

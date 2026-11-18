@@ -76,10 +76,17 @@ class AccountDetailViewModel @Inject constructor(
      */
     fun setCardBill(dueDay: Int?, amount: BigDecimal?) {
         val (billAmount, asOf) = CardBills.toSave(_uiState.value.cardBill, dueDay, amount, LocalDateTime.now())
+        writeCardBill(dueDay, billAmount, asOf)
+    }
+
+    /** Clears the card's due day and bill, whatever state the bill is in. */
+    fun clearCardBill() = writeCardBill(null, null, null)
+
+    private fun writeCardBill(dueDay: Int?, amount: BigDecimal?, asOf: LocalDateTime?) {
         viewModelScope.launch {
             // A rebuild still waiting to put the old bill back mustn't undo this edit.
             rebuildAccountFields.editCardBill(bankName, accountLast4) {
-                accountBalanceRepository.setCardBill(bankName, accountLast4, dueDay, billAmount, asOf)
+                accountBalanceRepository.setCardBill(bankName, accountLast4, dueDay, amount, asOf)
             }
         }
     }

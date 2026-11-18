@@ -118,7 +118,7 @@ fun AccountDetailScreen(
 
             uiState.cardBill?.let { status ->
                 item(key = "card_bill") {
-                    CardBillCard(status = status, onSave = viewModel::setCardBill)
+                    CardBillCard(status = status, onSave = viewModel::setCardBill, onClear = viewModel::clearCardBill)
                 }
             }
 

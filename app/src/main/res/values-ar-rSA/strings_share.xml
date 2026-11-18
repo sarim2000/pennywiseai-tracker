@@ -3,6 +3,7 @@
     <string name="share_studio_title">مشاركة</string>
     <string name="share_studio_back">رجوع</string>
     <string name="share_studio_share">مشاركة الصورة</string>
+    <string name="share_studio_failed">تعذّرت مشاركة الصورة. حاول مرة أخرى.</string>
     <string name="share_studio_section_card">البطاقة</string>
     <string name="share_studio_section_period">الفترة</string>
     <string name="share_studio_section_goal">الهدف</string>

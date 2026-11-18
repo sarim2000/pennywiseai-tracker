@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.presentation.share
 
 import android.content.Context
+import android.widget.Toast
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
@@ -34,6 +35,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -74,6 +76,7 @@ import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.DateRangeUtils
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.launch
 import kotlin.math.min
 
@@ -99,6 +102,7 @@ fun ShareStudioScreen(
     // With amounts hidden app-wide, previews stay covered until the user asks to see them.
     // Hiding amounts again covers them again.
     var revealed by rememberSaveable(AmountPrivacy.hidden) { mutableStateOf(false) }
+    var sharing by remember { mutableStateOf(false) }
 
     PennyWiseScaffold(
         title = stringResource(R.string.share_studio_title),
@@ -112,14 +116,26 @@ fun ShareStudioScreen(
                 Button(
                     // Only an image the user has seen goes out: with amounts hidden
                     // app-wide, that means after Show preview.
-                    enabled = card is ShareCardState.Ready && (revealed || !AmountPrivacy.hidden),
+                    enabled = card is ShareCardState.Ready && (revealed || !AmountPrivacy.hidden) && !sharing,
                     onClick = {
+                        // Set before the launch, so a second tap in the same frame is ignored.
+                        if (sharing) return@Button
+                        sharing = true
                         scope.launch {
-                            val bitmap = graphicsLayer.toImageBitmap().asAndroidBitmap()
-                            val uri = ShareCardExporter.writeCard(context, bitmap)
-                            context.startActivity(
-                                ShareCardExporter.shareIntent(uri, shareText(context, selection.kind))
-                            )
+                            try {
+                                val bitmap = graphicsLayer.toImageBitmap().asAndroidBitmap()
+                                val uri = ShareCardExporter.writeCard(context, bitmap)
+                                context.startActivity(
+                                    ShareCardExporter.shareIntent(uri, shareText(context, selection.kind))
+                                )
+                            } catch (e: CancellationException) {
+                                throw e
+                            } catch (e: Exception) {
+                                // A full disk, or nothing to share to: say so rather than crash.
+                                Toast.makeText(context, R.string.share_studio_failed, Toast.LENGTH_SHORT).show()
+                            } finally {
+                                sharing = false
+                            }
                         }
                     },
                     modifier = Modifier

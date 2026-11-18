@@ -583,25 +583,39 @@ class UserPreferencesStorageGoldenTest {
     @Test
     fun `dismissed insights last for their own cycle`() = runBlocking {
         val dismissed = stringSet("dismissed_insights")
+        val octBudget = "budget_over:v2:2026-10-01:all:INR:1@2026-10-01"
+        val octSavings = "savings_rate:v2:2026-10-01:all:INR:cycle:WARNING"
+        val novBudget = "budget_over:v2:2026-11-01:all:INR:1@2026-11-01"
 
-        repository.dismissInsight("budget_over:v1:2026-10-01:INR:1")
-        repository.dismissInsight("savings_rate:v1:2026-10-01:INR:cycle")
+        repository.dismissInsight(octBudget)
+        repository.dismissInsight(octSavings)
         assertEquals(2, stored()[dismissed]?.size)
 
         // A new cycle's dismissal drops the last cycle's: their ids can't come back anyway.
-        repository.dismissInsight("budget_over:v1:2026-11-01:INR:1")
-        assertEquals(setOf("budget_over:v1:2026-11-01:INR:1"), stored()[dismissed])
+        repository.dismissInsight(novBudget)
+        assertEquals(setOf(novBudget), stored()[dismissed])
 
         // A last-cycle card still on screen across the boundary doesn't drop this cycle's.
-        repository.dismissInsight("savings_rate:v1:2026-10-01:INR:cycle")
-        assertEquals(
-            setOf("budget_over:v1:2026-11-01:INR:1", "savings_rate:v1:2026-10-01:INR:cycle"),
-            stored()[dismissed],
-        )
-        repository.restoreInsight("savings_rate:v1:2026-10-01:INR:cycle")
+        repository.dismissInsight(octSavings)
+        assertEquals(setOf(novBudget, octSavings), stored()[dismissed])
+        repository.restoreInsight(octSavings)
 
-        repository.restoreInsight("budget_over:v1:2026-11-01:INR:1")
+        repository.restoreInsight(novBudget)
         assertEquals(emptySet<String>(), stored()[dismissed])
+    }
+
+    @Test
+    fun `one profile's dismissal is its own`() = runBlocking {
+        val dismissed = stringSet("dismissed_insights")
+        val personal = "card_use:v2:2026-11-01:p1:INR:Test Bank_1111:ALERT"
+        val business = "card_use:v2:2026-11-01:p2:INR:Test Bank_1111:ALERT"
+
+        repository.dismissInsight(personal)
+        repository.dismissInsight(business)
+        assertEquals(setOf(personal, business), stored()[dismissed])
+
+        repository.restoreInsight(personal)
+        assertEquals(setOf(business), stored()[dismissed])
     }
 
     @Test

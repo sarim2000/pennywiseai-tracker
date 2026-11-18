@@ -27,6 +27,14 @@ class ChatMessageFactsTest {
     }
 
     @Test
+    fun `a number it can't read is found beside ones it can`() {
+        assertTrue(ChatMessageFacts.hasUnreadNumber("Adding ₹120. Your balance is 12,50."))
+        assertTrue(ChatMessageFacts.hasUnreadNumber("12,50"))
+        assertFalse(ChatMessageFacts.hasUnreadNumber("Adding ₹1,200 and 1.5k, rs.500, on 12.50."))
+        assertFalse(ChatMessageFacts.hasUnreadNumber("Sure!"))
+    }
+
+    @Test
     fun `unusable amounts are refused rather than guessed`() {
         assertNull(ChatMessageFacts.parseAmount("12,50")) // 12.5 or 1250?
         assertNull(ChatMessageFacts.parseAmount("15 and 20"))

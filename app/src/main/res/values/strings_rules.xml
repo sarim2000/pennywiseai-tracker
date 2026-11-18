@@ -329,6 +329,12 @@
         <item quantity="other">%1$s on %2$s in %3$s, across %4$d transactions.</item>
     </plurals>
     <string name="chat_reply_nothing_spent">Nothing spent on %1$s in %2$s.</string>
+    <plurals name="chat_reply_category_income">
+        <item quantity="one">Received %1$s as %2$s in %3$s, across %4$d transaction.</item>
+        <item quantity="other">Received %1$s as %2$s in %3$s, across %4$d transactions.</item>
+    </plurals>
+    <string name="chat_reply_nothing_received_in">Nothing received as %1$s in %2$s.</string>
+    <string name="chat_reply_income_ranking_unsupported">I can total what came in, but not rank it yet. Try \"how much salary did I receive this month?\"</string>
     <string name="chat_reply_spent_with_forgiven">%1$s, including %2$s in forgiven loans</string>
     <string name="chat_reply_forgiven_loans">Forgiven loans: %1$s</string>
     <string name="chat_reply_received">Received: %1$s</string>
@@ -340,11 +346,30 @@
     <string name="chat_reply_converted_estimate">About %1$s in all: a converted estimate in %2$s</string>
     <string name="chat_reply_converted_left_out">Left out of the estimate, no exchange rate: %1$s</string>
     <string name="chat_reply_unknown_category">I don\'t have a category called %1$s.</string>
+    <string name="chat_reply_query_group_unknown">I can list your biggest categories, merchants or accounts.</string>
+    <string name="chat_reply_query_period_unknown">I can\'t look up those days. Try this month, last month, this week, last week, this year, last year, a month like 2026-10, or a start and end date.</string>
+    <string name="chat_reply_query_date_unreadable">I couldn\'t read the date %1$s. Try one like 2026-10-31.</string>
+    <string name="chat_reply_query_name_unreadable">I couldn\'t read which merchant or category to look up. Try naming it again.</string>
+    <string name="chat_reply_query_no_start">Which day should that start from?</string>
+    <string name="chat_reply_query_dates_reversed">%1$s comes after %2$s. Try the earlier date first.</string>
+    <string name="chat_reply_query_future">Those days haven\'t come yet. I can look up days up to today.</string>
     <string name="chat_quick_month_spend">Spending this month</string>
     <string name="chat_quick_top_categories">Top categories</string>
     <string name="chat_quick_compare_month">Compare with last month</string>
     <string name="chat_reply_month_spend">Spent %1$s:</string>
     <string name="chat_reply_top_categories">Top categories, %1$s:</string>
+    <string name="chat_reply_top_merchants">Top merchants, %1$s:</string>
+    <string name="chat_reply_top_accounts">Top accounts, %1$s:</string>
+    <string name="chat_group_no_account">No account</string>
+    <string name="chat_reply_planning_unknown">I can show how much is left of your budgets, or the bills due this week.</string>
+    <string name="chat_reply_budgets_title">Your budgets:</string>
+    <string name="chat_reply_budget_left">%1$s (%2$s): %3$s of %4$s spent, %5$s left</string>
+    <string name="chat_reply_budget_over">%1$s (%2$s): %3$s of %4$s spent, %5$s over</string>
+    <string name="chat_reply_budget_no_rate">%1$s (%2$s): %3$s spent. No exchange rate to show its limit in %4$s, so what\'s left can\'t be worked out.</string>
+    <string name="chat_reply_budgets_none">No budget limits are running today. You can set one up in Budgets.</string>
+    <string name="chat_reply_bills_none">No bills due by %1$s.</string>
+    <string name="chat_reply_bills_overdue">Overdue:</string>
+    <string name="chat_reply_bills_due">Due by %1$s:</string>
     <string name="chat_reply_quick_nothing">Nothing spent in %1$s.</string>
     <string name="chat_reply_compare_title">Spending, %1$s vs %2$s:</string>
     <string name="chat_reply_compare_title_category">%1$s, %2$s vs %3$s:</string>

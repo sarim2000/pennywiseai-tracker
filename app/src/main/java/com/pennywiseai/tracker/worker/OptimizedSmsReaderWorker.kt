@@ -169,6 +169,7 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
 
             var rebuildStartedAt: LocalDateTime? = null
             var accountsBeforeRebuild: Map<Pair<String, String>, AccountBalanceEntity> = emptyMap()
+            var latestBeforeRebuild: List<AccountBalanceEntity> = emptyList()
             if (forceResync) {
                 rebuildStartedAt = LocalDateTime.now()
                 Trace.beginSection("clearDatabase")
@@ -187,7 +188,8 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                     // never regenerate them (hash collision short-circuits
                     // processBalanceUpdate), leaving gaps in the balance
                     // time-series.
-                    accountsBeforeRebuild = accountBalanceRepository.getAllLatestBalancesOnce()
+                    latestBeforeRebuild = accountBalanceRepository.getAllLatestBalancesOnce()
+                    accountsBeforeRebuild = latestBeforeRebuild
                         .filter { it.accountType != null }
                         .associateBy { it.bankName to it.accountLast4 }
                     transactionRepository.deleteRebuildableSmsTransactions(
@@ -274,6 +276,8 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
             // Rows rebuilt from balance-only SMS don't pass through processBalanceUpdate,
             // so put each typed account's type back on the rows that lost it (#792).
             for (row in accountsBeforeRebuild.values) accountBalanceRepository.restoreAccountType(row)
+            // Likewise the statement and due day and card bill the user set.
+            for (row in latestBeforeRebuild) accountBalanceRepository.keepAccountFields(row)
             // A rebuild drops ATM transfers into Cash wallets (#1062) and may not route
             // them again (setting since turned off), so re-derive every Cash wallet.
             if (rebuildStartedAt != null) {

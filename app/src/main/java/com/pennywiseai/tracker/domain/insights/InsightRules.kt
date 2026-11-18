@@ -174,7 +174,8 @@ object InsightRules {
      * A charge pays at most one bill, and only one it [RecurringCharge.couldBePaidFrom];
      * charges at a bill's exact amount are placed before new prices, and one already
      * recorded against a subscription stays that one's ([withoutRecorded]).
-     * Keyed on the first due date, so a dismissal lasts until that payment has gone.
+     * Keyed on the due dates in the window, so a dismissal lasts while the same payments
+     * are due and a newly due one shows again.
      */
     internal fun billsDue(
         subscriptions: List<SubscriptionEntity>,
@@ -207,8 +208,9 @@ object InsightRules {
             .groupBy { it.amount.currency }
             .map { (currency, due) ->
                 val firstDue = due.minOf { it.dueDate }
+                val dueDates = due.map { it.dueDate }.sorted().joinToString(",")
                 Insight(
-                    id("bills_due", period, currency, "next$BILLS_DAYS@$firstDue"), InsightSeverity.WARNING, currency,
+                    id("bills_due", period, currency, "next$BILLS_DAYS@$dueDates"), InsightSeverity.WARNING, currency,
                     BillsDue(
                         count = due.size,
                         total = due.sumByCurrency({ it.amount.currency }, { it.amount.amount }).getValue(currency),

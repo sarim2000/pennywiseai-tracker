@@ -516,29 +516,36 @@ private fun RecordPaymentBottomSheet(
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                recentUnlinkedTransactions.take(5).forEach { txn ->
-                    PennyWiseCardV2(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = { onLinkTransaction(txn.id) }
-                    ) {
-                        Row(
+                // Every candidate, scrolling in its own window so older ones are reachable (#1308)
+                // and manual entry below stays in view.
+                LazyColumn(
+                    modifier = Modifier.heightIn(max = Dimensions.Component.dialogListMaxHeight),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.md)
+                ) {
+                    items(recentUnlinkedTransactions, key = { it.id }) { txn ->
+                        PennyWiseCardV2(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            onClick = { onLinkTransaction(txn.id) }
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(txn.merchantName, style = MaterialTheme.typography.bodyMedium)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(txn.merchantName, style = MaterialTheme.typography.bodyMedium)
+                                    Text(
+                                        txn.dateTime.format(AppDates.dayMonthFormatter()),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                                 Text(
-                                    txn.dateTime.format(AppDates.dayMonthFormatter()),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    CurrencyFormatter.formatCurrency(txn.amount, txn.currency),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold
                                 )
                             }
-                            Text(
-                                CurrencyFormatter.formatCurrency(txn.amount, txn.currency),
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
                         }
                     }
                 }

@@ -1366,9 +1366,10 @@ class TransactionDetailViewModel @Inject constructor(
 
     private suspend fun recordRepaymentOn(loanId: Long, transactionId: Long, contribution: BigDecimal, note: String?, overflow: LoanOverflow) {
         val paidOff = loanRepository.recordRepayment(loanId, transactionId, contribution, note, overflow)
+        // Before the reloads: leaving the screen cancels them, and the payment is already saved.
+        if (paidOff) mascotMoments.announce(MascotMoment.DebtPaidOff)
         _transaction.value = transactionRepository.getTransactionById(transactionId)
         _loan.value = loanRepository.getLoanById(loanId)
-        if (paidOff) mascotMoments.announce(MascotMoment.DebtPaidOff)
     }
 
     fun showMarkAsLoanSheet() { _showMarkAsLoanSheet.value = true }

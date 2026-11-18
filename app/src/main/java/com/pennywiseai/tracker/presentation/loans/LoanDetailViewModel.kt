@@ -148,8 +148,9 @@ class LoanDetailViewModel @Inject constructor(
             is PendingPayment.Manual ->
                 loanRepository.recordManualRepayment(loanId, payment.amount, loan.personName, loan.currency, overflow)?.paidOff == true
         }
-        refreshLoan()
+        // Before the refresh: leaving the screen cancels it, and the payment is already saved.
         if (paidOff) mascotMoments.announce(MascotMoment.DebtPaidOff)
+        refreshLoan()
     }
 
     fun showSettleDialog() { _uiState.value = _uiState.value.copy(showSettleDialog = true) }

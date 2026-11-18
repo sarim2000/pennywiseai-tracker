@@ -54,6 +54,22 @@ class BudgetCarryTest {
     ) = runBlocking { budgetCarry(group, previous, "JOD", "JOD", parentOf, sameCurrency) }
 
     @Test
+    fun `extra budget raises a category-limits budget's limit for the carry, as it does on its card`() {
+        // No overall limit: Food 1000, plus 500 of extra budget last period, 1400 spent.
+        val boost = TransactionWithSplits(
+            TransactionEntity(
+                id = id++, amount = BigDecimal("500"), merchantName = "M", category = "Food",
+                transactionType = TransactionType.INCOME, dateTime = day.atTime(9, 0), currency = "JOD",
+                transactionHash = "boost", budgetCategory = "Food", budgetImpactType = BudgetImpactType.ADD_TO_LIMIT
+            ),
+            emptyList()
+        )
+        assertEquals(Money(BigDecimal("100"), "JOD"), carry(group("0", "Food" to "1000"), listOf(boost, tx("1400"))).amount)
+        // With an overall limit the card ignores boosts, so the carry does too.
+        assertEquals(Money(BigDecimal("-400"), "JOD"), carry(group("1000", "Food" to "1000"), listOf(boost, tx("1400"))).amount)
+    }
+
+    @Test
     fun `no source period carries nothing`() {
         assertEquals(BudgetCarry.none("JOD"), carry(group("100"), null))
     }

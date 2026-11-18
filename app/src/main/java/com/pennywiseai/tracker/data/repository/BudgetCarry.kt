@@ -64,18 +64,23 @@ suspend fun budgetCarry(
 ): BudgetCarry {
     if (previous == null) return BudgetCarry.none(currency)
     val base = convert(baseCurrency, group.baseLimit()) ?: return BudgetCarry(Money.zero(currency), CarryGap.NO_RATE)
-    val spent = budgetSpend(group, previous, parentOf, convert).takeUnless { it.incomplete }?.amount
+    val spend = budgetSpend(group, previous, parentOf, convert)
+    val spent = spend.takeUnless { it.incomplete }?.amount
+    // Last period's limit as its card showed it: a budget made of category limits
+    // (no overall limit) adds its extra-budget boosts to them, so they count here too.
+    val limit = if (group.budget.limitAmount.signum() > 0) base else base + spend.boost
     return BudgetCarry(
-        BudgetRollover.carry(Money(base, currency), spent?.let { Money(it, currency) }),
+        BudgetRollover.carry(Money(limit, currency), spent?.let { Money(it, currency) }),
         CarryGap.NO_RATE.takeIf { spent == null }
     )
 }
 
 /**
  * What a budget spent, in [convert]'s currency. [incomplete]: some of it had no
- * rate, so [amount] leaves it out.
+ * rate, so [amount] leaves it out. [boost]: extra budget (ADD_TO_LIMIT income)
+ * that raised its category limits.
  */
-data class BudgetSpend(val amount: BigDecimal, val incomplete: Boolean = false)
+data class BudgetSpend(val amount: BigDecimal, val incomplete: Boolean = false, val boost: BigDecimal = BigDecimal.ZERO)
 
 /**
  * A budget's spending as its carry adds it up: every expense for a budget with no
@@ -115,6 +120,9 @@ internal suspend fun budgetSpend(
     return BudgetSpend(
         categories.fold(BigDecimal.ZERO) { sum, name -> sum + (agg.categoryAmounts[name] ?: BigDecimal.ZERO) } +
             types.fold(BigDecimal.ZERO) { sum, type -> sum + (agg.typeAmounts[type] ?: BigDecimal.ZERO) },
-        categories.any { it in agg.skippedCategories } || types.any { it in agg.skippedTypes }
+        categories.any { it in agg.skippedCategories } || types.any { it in agg.skippedTypes },
+        // Every category row's boost, as the card's per-category limits add them.
+        group.categories.filter { it.matchType == null }
+            .fold(BigDecimal.ZERO) { sum, c -> sum + (agg.categoryLimitBoosts[c.categoryName] ?: BigDecimal.ZERO) }
     )
 }

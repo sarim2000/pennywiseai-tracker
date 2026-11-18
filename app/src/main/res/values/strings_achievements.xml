@@ -2,6 +2,7 @@
 <resources>
     <!-- Achievements screen -->
     <string name="achievements_title">Achievements</string>
+    <string name="achievements_load_failed">Couldn\'t work out your achievements.</string>
     <string name="achievements_back">Back</string>
     <string name="achievements_share_all">Share all</string>
     <!-- %1$s = an achievement's name -->

@@ -39,6 +39,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.domain.achievements.Achievement
 import com.pennywiseai.tracker.ui.components.AchievementBadge
+import com.pennywiseai.tracker.ui.components.ErrorState
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.components.achievementDescription
 import com.pennywiseai.tracker.ui.components.achievementName
@@ -65,7 +66,8 @@ fun AchievementsScreen(
     viewModel: AchievementsViewModel = hiltViewModel(),
 ) {
     val achievements by viewModel.achievements.collectAsStateWithLifecycle()
-    val list = achievements
+    val result = achievements
+    val list = result?.getOrNull()
     val earned = list.orEmpty().filter { it.earned }
     val locked = list.orEmpty().filterNot { it.earned }
 
@@ -94,6 +96,12 @@ fun AchievementsScreen(
             }
         },
     ) { padding ->
+        if (result?.isFailure == true) {
+            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) {
+                ErrorState(message = stringResource(R.string.achievements_load_failed), onRetry = viewModel::retry)
+            }
+            return@PennyWiseScaffold
+        }
         if (list == null) {
             Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { LoadingIndicator() }
             return@PennyWiseScaffold

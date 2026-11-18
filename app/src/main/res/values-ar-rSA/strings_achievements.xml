@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="achievements_title">الإنجازات</string>
+    <string name="achievements_load_failed">تعذّر حساب إنجازاتك.</string>
     <string name="achievements_back">رجوع</string>
     <string name="achievements_share_all">مشاركة الكل</string>
     <string name="achievements_share_one">مشاركة %1$s</string>

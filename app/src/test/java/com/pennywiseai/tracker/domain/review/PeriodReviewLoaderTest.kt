@@ -97,20 +97,20 @@ class PeriodReviewLoaderTest {
     }
 
     @Test
-    fun `recorded dates stop at today by the parsed date, not the stored text`() = runTest {
-        val sql = DateTimeFormatter.ISO_LOCAL_DATE_TIME
-        val rows = mapOf(
-            // Reads as December 1, but its text sorts inside November 30.
-            "2026-11-30 24:00:00" to row(LocalDateTime.of(2026, 12, 1, 0, 0)).transaction,
-            // Today, but its text sorts after a 23:59:59 bound.
-            "2026-11-30T23:59:59.5" to row(LocalDateTime.of(2026, 11, 30, 23, 59, 59, 500_000_000)).transaction,
+    fun `recorded dates stop at today by the parsed date, and reach back past 2000`() = runTest {
+        every { transactions.getAllTransactions() } returns flowOf(
+            listOf(
+                // Reads as December 1, after today.
+                row(LocalDateTime.of(2026, 12, 1, 0, 0)).transaction,
+                row(LocalDateTime.of(2026, 11, 30, 23, 59, 59, 500_000_000)).transaction,
+                // An old import.
+                row(LocalDateTime.of(1999, 12, 31, 12, 0)).transaction,
+            )
         )
-        every { transactions.getTransactionsBetweenDates(any<LocalDate>(), any<LocalDate>()) } answers {
-            val from = firstArg<LocalDate>().atStartOfDay().format(sql)
-            val to = secondArg<LocalDate>().atTime(23, 59, 59).format(sql)
-            flowOf(rows.filterKeys { it >= from && it <= to }.values.toList())
-        }
-        assertEquals(listOf(LocalDate.of(2026, 11, 30)), loader.recordedDates(today = LocalDate.of(2026, 11, 30)))
+        assertEquals(
+            listOf(LocalDate.of(1999, 12, 31), LocalDate.of(2026, 11, 30)),
+            loader.recordedDates(today = LocalDate.of(2026, 11, 30)),
+        )
     }
 
     @Test

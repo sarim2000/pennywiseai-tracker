@@ -93,8 +93,9 @@ class PeriodReviewLoader @Inject constructor(
     /** The day of every transaction in scope, oldest first. */
     suspend fun recordedDates(today: LocalDate = LocalDate.now()): List<LocalDate> {
         val keep = currentScope()
-        // Asks SQL past today and cuts on the parsed date: see [dateQueryWindow].
-        return transactionRepository.getTransactionsBetweenDates(LocalDate.of(2000, 1, 1), today.plusDays(1)).first()
+        // Every active row, however old an import goes; cut at today on the parsed date
+        // rather than in SQL: see [dateQueryWindow].
+        return transactionRepository.getAllTransactions().first()
             .filter(keep).map { it.dateTime.toLocalDate() }.filter { !it.isAfter(today) }.sorted()
     }
 

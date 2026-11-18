@@ -412,9 +412,6 @@ fun MainScreen(
                 },
                 onNavigateToHome = {
                     selectTab(BottomNavItem.Home)
-                },
-                onNavigateToInsights = {
-                    openRoot(Insights)
                 }
             )
         }

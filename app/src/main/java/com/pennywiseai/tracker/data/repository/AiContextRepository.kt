@@ -101,7 +101,8 @@ class AiContextRepository @Inject constructor(
     private suspend fun rows(scope: Scope, filter: SpendingFilter = SpendingFilter()): List<TransactionWithSplits> {
         val aliases = if (filter.merchant == null) emptyMap() else aliases()
         return transactionSplitDao.getTransactionsWithSplitsAllCurrencies(scope.start, scope.end).first()
-            .filter { scope.keeps(it.transaction) && filter.keeps(it.transaction, aliases) }
+            .filter { scope.keeps(it.transaction) }
+            .let { filter.atMerchant(it, aliases) { row -> row.transaction.merchantName } }
     }
 
     private suspend fun aliases(): Map<String, String> = merchantAliasDao.getAllAliasesList().associate { it.merchantName to it.alias }

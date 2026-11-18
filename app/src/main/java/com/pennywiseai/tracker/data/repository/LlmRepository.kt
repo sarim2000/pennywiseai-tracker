@@ -677,9 +677,8 @@ class LlmRepository @Inject constructor(
         }
         fun named(key: String) = (args[key] as? String)?.trim()?.takeUnless { it.isEmpty() }
         val categories = categoryRepository.getAllCategories().first()
-        // "all" or "total" from the model means no filter. A merchant's name is matched within
-        // others' ("all" is in "Mall"), so it's never taken as one; a category saved under the
-        // name ("General") is that category.
+        // "all" or "total" from the model means no filter: as a merchant always, as a category
+        // unless one is saved under the name ("General").
         val merchant = named("merchant")?.takeUnless { SpendingComparison.meansAllSpending(it) }
         val asked = named("category")?.takeUnless { a -> SpendingComparison.meansAllSpending(a) && categories.none { it.name.equals(a, ignoreCase = true) } }
         // Hidden categories still hold transactions, and a row can name a category that no

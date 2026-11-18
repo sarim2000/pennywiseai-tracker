@@ -24,8 +24,19 @@ data class SpendingFilter(
     /** Narrowed to some rows: Home's figure, forgiven loans included, no longer applies. */
     val narrowed: Boolean get() = merchant != null
 
-    fun keeps(tx: TransactionEntity, aliases: Map<String, String>): Boolean =
-        merchant == null || tx.merchantName.contains(merchant, ignoreCase = true) || aliases[tx.merchantName]?.contains(merchant, ignoreCase = true) == true
+    /**
+     * [rows] at [merchant]: those it names exactly, as written or as the user aliased it; else
+     * those naming it as a whole word ("Ola Cabs"), never inside another ("Coca Cola", "Motorola").
+     */
+    // ponytail: exact-first is decided within these rows, so one period can match "Ola" alone and another "Ola Cabs" too; fine while a merchant figure covers one period.
+    fun <T> atMerchant(rows: List<T>, aliases: Map<String, String>, merchantOf: (T) -> String): List<T> {
+        val asked = merchant ?: return rows
+        fun names(row: T) = merchantOf(row).let { listOfNotNull(it, aliases[it]) }
+        val exact = rows.filter { row -> names(row).any { it.equals(asked, ignoreCase = true) } }
+        if (exact.isNotEmpty()) return exact
+        val word = Regex("(?<![\\p{L}\\p{N}])" + Regex.escape(asked) + "(?![\\p{L}\\p{N}])", RegexOption.IGNORE_CASE)
+        return rows.filter { row -> names(row).any(word::containsMatchIn) }
+    }
 
     companion object {
         /** The transaction list's account filter keys a row the same way (presentation/common/Filters.kt). */

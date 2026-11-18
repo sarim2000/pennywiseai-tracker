@@ -326,11 +326,13 @@ internal fun EditHomeSectionsSheet(
                                         onDragEnd = end@{
                                             if (dragged != section) return@end
                                             // Saves the order on screen, not a delta, so it can't drift
-                                            // from what the user sees. A drop back in place resyncs
-                                            // instead, picking up anything skipped mid-drag.
+                                            // from what the user sees. Always saved: the last emission
+                                            // can be older than a write still in flight, so comparing
+                                            // against it could drop this drop. DataStore skips a no-op
+                                            // write. The on/off state skipped mid-drag is picked up here.
                                             val order = items.map { it.first }
-                                            if (order != savedLayout.map { it.first }) reorderSections(order)
-                                            else items = savedLayout
+                                            items = HomeSectionLayout.reorder(savedLayout, order)
+                                            reorderSections(order)
                                             dragged = null
                                             dragOffset = 0f
                                         },

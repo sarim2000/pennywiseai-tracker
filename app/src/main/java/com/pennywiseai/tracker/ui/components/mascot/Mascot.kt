@@ -132,7 +132,7 @@ fun Mascot(
     // A change plays out with the motion in effect when it arrives, not the one at the last change.
     val currentMotion by rememberUpdatedState(motion)
     LaunchedEffect(mood) { state.changeMood(mood, currentMotion, blendSpec, lifecycle) }
-    LaunchedEffect(shape) { state.changeShape(shape, currentMotion, morphSpec) }
+    LaunchedEffect(shape) { state.changeShape(shape, { currentMotion }, morphSpec) }
 
     val colors = if (detailed) mascotColors(tint) else null
     // The artwork is symmetric and never mirrored; only where it looks and leans is.
@@ -412,10 +412,12 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
     /**
      * Bends the outline on screen into [target] on [spec], then plays [target]'s arrival.
      * A change that lands mid-morph starts from the outline as it is, so nothing jumps.
+     * [motion] is read again once the morph lands: "Remove animations" turned on during
+     * it lets the morph finish but plays no arrival.
      */
-    suspend fun changeShape(target: MascotShape, motion: MascotMotion, spec: FiniteAnimationSpec<Float>) {
+    suspend fun changeShape(target: MascotShape, motion: () -> MascotMotion, spec: FiniteAnimationSpec<Float>) {
         if (target == shape) return
-        if (motion == MascotMotion.Still) {
+        if (motion() == MascotMotion.Still) {
             arrival.snapTo(1f)
             morphFrom = null
             arrivedShape = null
@@ -430,6 +432,7 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
         morph.snapTo(0f)
         morph.animateTo(1f, spec)
         morphFrom = null
+        if (motion() == MascotMotion.Still) return
         arrivedShape = target
         // Only as long as the arrival moves: a settled shape asks for no more frames.
         val end = arrivalEnd(target)

@@ -5,6 +5,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.events.TransactionEvent
 import com.pennywiseai.tracker.data.events.TransactionEvents
 import com.pennywiseai.tracker.data.events.TransactionOrigin
+import com.pennywiseai.tracker.data.manager.ChatDraftInbox
 import com.pennywiseai.tracker.data.manager.ModelDownloader
 import com.pennywiseai.tracker.data.model.PendingChatAction
 import com.pennywiseai.tracker.data.model.ReviewRow
@@ -96,6 +97,7 @@ class ChatViewModelSettleTest {
         },
         transactionEvents = events,
         appScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined),
+        chatDrafts = ChatDraftInbox(),
     )
 
     @Test

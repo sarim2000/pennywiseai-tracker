@@ -29,6 +29,8 @@
         <item quantity="other">%1$s شهر</item>
     </plurals>
     <string name="insights_months_under_one">أقل من شهر</string>
+    <!-- Some balances are unknown, so the money held may last longer than this -->
+    <string name="insights_months_under_one_partial">أقل من شهر بحسب الأرصدة المعروفة</string>
     <string name="insights_last_cycles">الإنفاق حسب الدورة</string>
     <string name="insights_section_alert">يحتاج إلى انتباهك</string>
     <string name="insights_section_warning">تنبيه</string>

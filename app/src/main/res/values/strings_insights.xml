@@ -25,6 +25,8 @@
         <item quantity="other">%1$s months</item>
     </plurals>
     <string name="insights_months_under_one">under a month</string>
+    <!-- Some balances are unknown, so the money held may last longer than this -->
+    <string name="insights_months_under_one_partial">under a month, from the balances known</string>
     <string name="insights_last_cycles">Spending by cycle</string>
     <string name="insights_section_alert">Needs attention</string>
     <string name="insights_section_warning">Heads up</string>

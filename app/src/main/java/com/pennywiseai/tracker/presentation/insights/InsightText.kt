@@ -173,11 +173,17 @@ internal fun months(value: BigDecimal): String {
     else stringResource(R.string.insights_months_decimal, number)
 }
 
-/** [months], as "about 6.5 months" when some balances were left out of it ([lowConfidence]). */
+/**
+ * [months], qualified when some balances were left out of it ([lowConfidence]): "about
+ * 6.5 months", or "under a month, from the balances known", since unknown accounts may hold more.
+ */
 @Composable
 internal fun runwayLength(value: BigDecimal, lowConfidence: Boolean): String {
+    if (lowConfidence && !AmountPrivacy.hidden && value < BigDecimal.ONE) {
+        return stringResource(R.string.insights_months_under_one_partial)
+    }
     val lasts = months(value)
-    return if (lowConfidence && !AmountPrivacy.hidden && value >= BigDecimal.ONE) {
+    return if (lowConfidence && !AmountPrivacy.hidden) {
         stringResource(R.string.insights_runway_about, lasts)
     } else {
         lasts

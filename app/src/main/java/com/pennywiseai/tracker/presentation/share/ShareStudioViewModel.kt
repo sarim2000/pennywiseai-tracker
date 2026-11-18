@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.presentation.share
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.data.repository.BudgetSummaryProvider
 import com.pennywiseai.tracker.data.repository.GoalProgress
@@ -54,7 +55,8 @@ sealed interface ShareStudioData {
 
     data class Goals(val goals: List<GoalProgress>) : ShareStudioData
 
-    data class Budget(val summary: BudgetOverallSummary) : ShareStudioData
+    /** [converted]: the summary's amounts were converted into its currency (unified currency mode). */
+    data class Budget(val summary: BudgetOverallSummary, val converted: Boolean) : ShareStudioData
 }
 
 /** How far back the budget card can go; the summary can't say whether anything is older. */
@@ -69,6 +71,7 @@ class ShareStudioViewModel @Inject constructor(
     private val loader: PeriodReviewLoader,
     private val goalRepository: GoalRepository,
     private val budgetSummaryProvider: BudgetSummaryProvider,
+    private val currencyPreferences: CurrencyPreferences,
 ) : ViewModel() {
 
     private val _selection = MutableStateFlow(routeSelection(savedStateHandle, LocalDate.now()))
@@ -112,7 +115,10 @@ class ShareStudioViewModel @Inject constructor(
                 val opened = goals.filter { it.status == GoalStatus.ARCHIVED && it.goal.id == routeGoalId }
                 ShareStudioData.Goals(GoalRules.orderForDisplay(goals) + opened)
             }
-            Source.BUDGET -> budgetSummaryProvider.summary(budgetMonth(query.period)).map { ShareStudioData.Budget(it) }
+            Source.BUDGET -> combine(
+                budgetSummaryProvider.summary(budgetMonth(query.period)),
+                currencyPreferences.unifiedCurrencyMode,
+            ) { summary, unified -> ShareStudioData.Budget(summary, converted = unified) }
         }
     }
 

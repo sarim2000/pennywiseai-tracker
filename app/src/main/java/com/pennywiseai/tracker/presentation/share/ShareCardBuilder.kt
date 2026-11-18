@@ -78,7 +78,7 @@ fun shareCardState(selection: ShareStudioSelection, data: ShareStudioData): Shar
                 ?: return ShareCardState.Unavailable(stringResource(R.string.share_unavailable_goals))
             ShareCardState.Ready(goalCard(goal, details))
         }
-        is ShareStudioData.Budget -> budgetCard(data.summary, details)
+        is ShareStudioData.Budget -> budgetCard(data.summary, data.converted, details)
     }
 }
 
@@ -389,8 +389,8 @@ private fun goalCard(goal: GoalProgress, details: Set<ShareDetail>): ShareCardCo
 }
 
 @Composable
-private fun budgetCard(summary: BudgetOverallSummary, details: Set<ShareDetail>): ShareCardState {
-    val result = budgetResult(summary)
+private fun budgetCard(summary: BudgetOverallSummary, converted: Boolean, details: Set<ShareDetail>): ShareCardState {
+    val result = budgetResult(summary, converted)
         ?: return ShareCardState.Unavailable(stringResource(R.string.share_unavailable_budget))
     val amounts = ShareDetail.AMOUNTS in details
     val percents = ShareDetail.PERCENTAGES in details

@@ -572,13 +572,9 @@ class LlmRepository @Inject constructor(
                     }
                 unknown -> context.getString(R.string.chat_reply_unknown_category, asked)
                 else -> {
-                    // A name the category list doesn't spell matched the rows in any case; the
-                    // list matches exactly, so its link could open on nothing.
+                    // Only a name the category list spells opens the list on it.
                     if (category == null || known != null) turnLinks += comparisonLinks(result, category)
-                    comparisonText(result.alsoTrend(), category) +
-                        (result as? SpendingComparison.Result.Rows)?.takeIf { known != null }?.let {
-                            refundNote(it.currentRefunded, it.current) + refundNote(it.previousRefunded, it.previous)
-                        }.orEmpty()
+                    comparisonText(result.alsoTrend(), category)
                 }
             }
         }
@@ -614,7 +610,7 @@ class LlmRepository @Inject constructor(
                 }
             }
         }
-        PennyWiseTools.QUERY_SPENDING -> querySpending(call.arguments, userMessage)
+        PennyWiseTools.QUERY_SPENDING -> querySpending(call.arguments)
         PennyWiseTools.PLANNING_STATUS -> when (call.arguments["kind"]?.toString()?.trim()?.lowercase()?.removeSuffix("s")) {
             "budget", "limit" -> planningRepository.budgets().let { budgets ->
                 turnSubject = turnSubject?.copy(share = budgetShare(budgets))
@@ -692,18 +688,21 @@ class LlmRepository @Inject constructor(
      * biggest categories, merchants or accounts. The reply's label names what was looked up;
      * arguments it can't read are said, never answered with other days instead.
      */
-    private suspend fun querySpending(args: Map<String, Any?>, userMessage: String): String {
+    private suspend fun querySpending(args: Map<String, Any?>): String {
         val asGrouped = SpendingQuery.groupBy(args.arg("groupBy")) ?: return context.getString(R.string.chat_reply_query_group_unknown)
         val window = when (val dates = datesAsked(args)) {
             is SpendingQuery.Dates.Invalid -> return datesProblem(dates)
             is SpendingQuery.Dates.Of -> dates.window
             SpendingQuery.Dates.Home -> null
         }
+        // Absent or blank is no filter; anything but text (a number, a list) can't be read as one.
+        if (listOf("merchant", "category").any { args[it] != null && args[it] !is String }) {
+            return context.getString(R.string.chat_reply_query_name_unreadable)
+        }
         fun named(key: String) = (args[key] as? String)?.trim()?.takeUnless { it.isEmpty() }
         val categories = categoryRepository.getAllCategories().first()
-        // "all" or "total" from the model means no filter. A merchant's name is matched within
-        // others' ("all" is in "Mall"), so it's never taken as one; a category saved under the
-        // name ("General") is that category.
+        // "all" or "total" from the model means no filter: as a merchant always, as a category
+        // unless one is saved under the name ("General").
         val merchant = named("merchant")?.takeUnless { SpendingComparison.meansAllSpending(it) }
         val asked = named("category")?.takeUnless { a -> SpendingComparison.meansAllSpending(a) && categories.none { it.name.equals(a, ignoreCase = true) } }
         // Hidden categories still hold transactions, and a row can name a category that no
@@ -714,10 +713,11 @@ class LlmRepository @Inject constructor(
         val groupBy = SpendingQuery.grouping(asGrouped, category, merchant)
         val narrowed = merchant?.let { " · $it" }.orEmpty()
         // The list can't be narrowed to a merchant as the figure was (its search reads notes and
-        // SMS too), and matches a category's name exactly: "uber" would open on nothing.
+        // SMS too), and only a name the category list spells is a category to open: not "uber".
         val linked = merchant == null && (category == null || known != null)
-        // "How much salary did I receive?": what came in, never what was spent.
-        val incomeAsked = categories.any { it.isIncome && it.name == known } || SpendingComparison.asksAboutIncome(userMessage)
+        // "How much salary did I receive?": what came in, never what was spent. Decided by this
+        // call's category, not the message: "salary received and food spent" sends Food here too.
+        val incomeAsked = categories.any { it.isIncome && it.name == known }
         return when {
             // A ranking counts only what went out: "salary by account" would rank spending, or nothing.
             groupBy != SpendingQuery.GroupBy.NONE && incomeAsked -> context.getString(R.string.chat_reply_income_ranking_unsupported)
@@ -764,12 +764,10 @@ class LlmRepository @Inject constructor(
                         spend.category,
                         label,
                         spend.transactionCount
-                    ).plus(
-                        cardNote(spend.cardPurchases)
                     ).also {
                         turnSubject = turnSubject?.copy(share = spend.share)
                         if (linked) turnLinks += linksTo(spend.scope, category, spend.byCurrency.keys)
-                    }.let { if (known == null) it else it + refundNote(spend.refunded, spend.scope.window) }
+                    }
                 }
             }
             // The same figures as the one-tap question, and as Home's "Spent this month".
@@ -876,7 +874,6 @@ class LlmRepository @Inject constructor(
                     val forgiven = p.forgiven[c]?.takeIf { it.signum() > 0 }
                     add(if (forgiven == null) money(a, c) else context.getString(R.string.chat_reply_spent_with_forgiven, money(a, c), money(forgiven, c)))
                 }
-                if (p.cardPurchases) add(context.getString(R.string.chat_reply_card_purchases))
             }
             addAll(estimateLines(p.estimate))
             // Only currencies that received money: a zero in one with no activity isn't an answer.
@@ -886,29 +883,8 @@ class LlmRepository @Inject constructor(
         }.joinToString("\n")
     }
 
-    /**
-     * A line under a figure that counted card purchases (the user folds them into spending):
-     * the figure nets their refunds, the list its link opens totals them under Credit, before
-     * refunds, not Expenses. Empty when it didn't.
-     */
-    private fun cardNote(counted: Boolean): String =
-        if (counted) "\n" + context.getString(R.string.chat_reply_card_purchases) else ""
-
     private fun addLinks(messageId: String, links: List<ReplyLink>) {
         if (links.isNotEmpty()) _links.update { it + (messageId to links.toList()) }
-    }
-
-    /**
-     * Lines under a category's figure for the gap to the list its link opens in [window], per
-     * currency as [SpendingComparison.refundedOutside] gives it: refunds the figure took off that
-     * the list doesn't net (the list is higher), and another category's refund split partly into
-     * this one, which the list nets and the figure doesn't (the list is lower). Empty when none.
-     */
-    private suspend fun refundNote(gap: Map<String, BigDecimal>, window: SpendingComparison.Window): String {
-        val higher = gap.filterValues { it.signum() > 0 }
-        val lower = gap.filterValues { it.signum() < 0 }.mapValues { it.value.negate() }
-        return (if (higher.isEmpty()) "" else "\n" + context.getString(R.string.chat_reply_refunds_taken_off, range(window), amounts(higher))) +
-            (if (lower.isEmpty()) "" else "\n" + context.getString(R.string.chat_reply_refunds_list_lower, range(window), amounts(lower)))
     }
 
     /** The transactions behind a month's spending and income; forgiven loans have none. */
@@ -973,7 +949,6 @@ class LlmRepository @Inject constructor(
                 )
             )
             if (top.ranking.isNotEmpty()) add(ordered(top.ranking).joinToString("\n\n") { (c, groups) -> groups.joinToString("\n") { (n, a) -> "${name(n)}: ${money(a, c)}" } })
-            if (top.ranking.isNotEmpty() && top.cardPurchases) add(context.getString(R.string.chat_reply_card_purchases))
             if (forgiven.isNotEmpty()) add((if (top.ranking.isEmpty()) "" else "\n") + context.getString(R.string.chat_reply_forgiven_loans, amounts(forgiven)))
         }.joinToString("\n")
     }
@@ -1035,7 +1010,6 @@ class LlmRepository @Inject constructor(
                 }
                 add(if (change == null) pair else "$pair ($change)")
             }
-            if (result.cardPurchases) add(context.getString(R.string.chat_reply_card_purchases))
         }.joinToString("\n")
     }
 

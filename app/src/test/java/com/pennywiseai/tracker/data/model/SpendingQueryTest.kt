@@ -25,6 +25,17 @@ class SpendingQueryTest {
     private fun day(month: Int, day: Int, year: Int = 2026) = LocalDate.of(year, month, day)
 
     @Test
+    fun `a merchant matches exactly or by alias first, else as a whole word, never inside another`() {
+        val ola = SpendingFilter(merchant = "ola")
+        val names = listOf("Ola", "Coca Cola", "Motorola", "OLA CABS")
+        assertEquals(listOf("Ola"), ola.atMerchant(names, emptyMap()) { it })
+        assertEquals(listOf("OLA CABS"), ola.atMerchant(names - "Ola", emptyMap()) { it })
+        // The user's alias for a row's merchant is its name too.
+        assertEquals(listOf("ANI TECHNOLOGIES"), ola.atMerchant(listOf("Coca Cola", "ANI TECHNOLOGIES"), mapOf("ANI TECHNOLOGIES" to "Ola")) { it })
+        assertEquals(names, SpendingFilter().atMerchant(names, emptyMap()) { it })
+    }
+
+    @Test
     fun `this month, however the model spells it, is Home's period`() {
         listOf("", " ", "this_month", "This Month", "this-month", "month").forEach { assertEquals(it, Dates.Home, dates(it)) }
         assertTrue(SpendingQuery.defaultPeriod(null, null, null))

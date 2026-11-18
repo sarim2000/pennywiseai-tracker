@@ -339,10 +339,6 @@
     <string name="chat_reply_forgiven_loans">Forgiven loans: %1$s</string>
     <string name="chat_reply_received">Received: %1$s</string>
     <string name="chat_reply_received_nothing">Nothing received</string>
-    <string name="chat_reply_card_purchases">Includes card purchases net of refunds; the list totals them under Credit, before refunds.</string>
-    <string name="chat_reply_refunds_taken_off">Refunds taken off (%1$s): %2$s. The list shows them under their own category.</string>
-    <!-- %2$s = how much lower the list is than the figure, per currency -->
-    <string name="chat_reply_refunds_list_lower">The list is %2$s lower (%1$s): it takes off part of a refund filed under another category.</string>
     <plurals name="chat_reply_transaction_count">
         <item quantity="one">%1$d transaction</item>
         <item quantity="other">%1$d transactions</item>
@@ -353,6 +349,7 @@
     <string name="chat_reply_query_group_unknown">I can list your biggest categories, merchants or accounts.</string>
     <string name="chat_reply_query_period_unknown">I can\'t look up those days. Try this month, last month, this week, last week, this year, last year, a month like 2026-10, or a start and end date.</string>
     <string name="chat_reply_query_date_unreadable">I couldn\'t read the date %1$s. Try one like 2026-10-31.</string>
+    <string name="chat_reply_query_name_unreadable">I couldn\'t read which merchant or category to look up. Try naming it again.</string>
     <string name="chat_reply_query_no_start">Which day should that start from?</string>
     <string name="chat_reply_query_dates_reversed">%1$s comes after %2$s. Try the earlier date first.</string>
     <string name="chat_reply_query_future">Those days haven\'t come yet. I can look up days up to today.</string>

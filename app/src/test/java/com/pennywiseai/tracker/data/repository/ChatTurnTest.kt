@@ -706,63 +706,6 @@ class ChatTurnTest {
         assertEquals(listOf("SEE طعام", "SEE Hobbies", "SEE"), repository.links.value[saved.last().id]?.map { it.label })
     }
 
-    @Test
-    fun `a category figure that took refunds off says so, since its list doesn't hold them`() = runTest {
-        every { context.getString(R.string.chat_reply_refunds_taken_off, any(), any()) } answers { "REFUNDED ${(args[1] as Array<*>)[1]}" }
-        coEvery { aiContext.categorySpending(any(), any(), any()) } returns spent("120").copy(category = "طعام", refunded = mapOf("INR" to BigDecimal("30")))
-        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("category" to "طعام")))
-        assertEquals("SPEND\nREFUNDED ₹30", send("how much on food?"))
-
-        // No refunds, no line.
-        coEvery { aiContext.categorySpending(any(), any(), any()) } returns spent("120").copy(category = "طعام")
-        assertEquals("SPEND", send("how much on food?"))
-
-        // A category comparison notes each period's refunds.
-        val w = SpendingComparison.Window(LocalDateTime.of(2026, 11, 1, 0, 0), LocalDateTime.of(2026, 11, 16, 23, 59))
-        coEvery { aiContext.compareSpending(any(), "طعام", any(), any()) } returns SpendingComparison.Result.Rows(
-            w, w, listOf(SpendingComparison.Row("INR", BigDecimal("90"), BigDecimal("100"), BigDecimal("-10"))),
-            previousRefunded = mapOf("INR" to BigDecimal("5"))
-        )
-        events = listOf(LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "طعام")))
-        assertTrue(send("food this month vs last month?").endsWith("\nREFUNDED ₹5"))
-    }
-
-    @Test
-    fun `a category's list that nets another category's refund says it is lower, and by how much`() = runTest {
-        every { context.getString(R.string.chat_reply_refunds_taken_off, any(), any()) } answers { "REFUNDED ${(args[1] as Array<*>)[1]}" }
-        every { context.getString(R.string.chat_reply_refunds_list_lower, any(), any()) } answers { "LOWER ${(args[1] as Array<*>)[1]}" }
-        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("category" to "طعام")))
-        coEvery { aiContext.categorySpending(any(), any(), any()) } returns spent("100").copy(category = "طعام", refunded = mapOf("INR" to BigDecimal("-10")))
-        assertEquals("SPEND\nLOWER ₹10", send("how much on food?"))
-
-        // Both ways at once, one currency each: each its own line.
-        coEvery { aiContext.categorySpending(any(), any(), any()) } returns spent("100").copy(
-            category = "طعام",
-            byCurrency = mapOf("INR" to BigDecimal("100"), "USD" to BigDecimal("8")),
-            refunded = mapOf("INR" to BigDecimal("-10"), "USD" to BigDecimal("2")),
-        )
-        assertEquals("SPEND\nREFUNDED $2\nLOWER ₹10", send("how much on food?"))
-    }
-
-    @Test
-    fun `a figure that counted card purchases says the list totals them under Credit`() = runTest {
-        every { context.getString(R.string.chat_reply_card_purchases) } returns "CARD"
-        coEvery { aiContext.categorySpending(any(), any(), any()) } returns spent("120").copy(category = "طعام", cardPurchases = true)
-        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("category" to "طعام")))
-        assertEquals("SPEND\nCARD", send("how much on food?"))
-
-        every { context.getString(R.string.chat_reply_month_spend, any()) } returns "SPENT"
-        coEvery { aiContext.spending(any(), any()) } returns com.pennywiseai.tracker.data.model.PeriodSpending(
-            spent("1").scope, spent = mapOf("INR" to BigDecimal("60")), income = emptyMap(), cardPurchases = true,
-        )
-        repository.answerQuickAction(QuickAction.MONTH_SPEND)
-        assertTrue("CARD" in saved.last().message.lines())
-
-        // None counted, no line.
-        coEvery { aiContext.categorySpending(any(), any(), any()) } returns spent("120").copy(category = "طعام")
-        assertEquals("SPEND", send("how much on food?"))
-    }
-
     /** A category lookup's result: nothing spent, or [inr] rupees. */
     private fun spent(inr: String? = null) = com.pennywiseai.tracker.data.model.CategorySpend(
         com.pennywiseai.tracker.data.model.ChatScope(SpendingComparison.Window(LocalDateTime.of(2026, 11, 1, 0, 0), LocalDateTime.of(2026, 11, 16, 23, 59))),
@@ -1268,6 +1211,7 @@ class ChatTurnTest {
         every { context.getString(R.string.chat_reply_query_dates_reversed, any(), any()) } returns "REVERSED"
         every { context.getString(R.string.chat_reply_query_future) } returns "FUTURE"
         every { context.getString(R.string.chat_reply_query_group_unknown) } returns "GROUP"
+        every { context.getString(R.string.chat_reply_query_name_unreadable) } returns "NAME"
         answerSpending()
         suspend fun ask(args: Map<String, Any?>, message: String = "how much?"): String {
             events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, args))
@@ -1279,6 +1223,9 @@ class ChatTurnTest {
         assertEquals("REVERSED", ask(mapOf("from" to "2024-11-10", "to" to "2024-11-01")))
         assertEquals("FUTURE", ask(mapOf("period" to "2099-01")))
         assertEquals("GROUP", ask(mapOf("group_by" to "day")))
+        // A name that isn't text is said, never dropped into a figure of everything.
+        assertEquals("NAME", ask(mapOf("merchant" to 42)))
+        assertEquals("NAME", ask(mapOf("category" to listOf("Food"))))
         // A month by name is said, not guessed at: its year is the model's to write as YYYY-MM.
         assertEquals("PERIOD", ask(mapOf("period" to "October"), "how much did I spend in October?"))
         coVerify(exactly = 0) { aiContext.spending(any(), any()) }
@@ -1342,11 +1289,31 @@ class ChatTurnTest {
         every { context.getString(R.string.chat_reply_income_ranking_unsupported) } returns "NO_INCOME_RANKING"
         events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("category" to "Salary", "group_by" to "account")))
         assertEquals("NO_INCOME_RANKING", send("how much salary went into each account?"))
-        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("group_by" to "category")))
-        assertEquals("NO_INCOME_RANKING", send("which category did I receive the most income in?"))
-        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("group_by" to "account")))
-        assertEquals("NO_INCOME_RANKING", send("أي حساب استلمت فيه أكثر دخل؟"))
         coVerify(exactly = 0) { aiContext.topCategories(any(), any(), any(), any()) }
+    }
+
+    @Test
+    fun `income is decided per call, by its category, not by the message`() = runTest {
+        every { context.resources.getQuantityString(R.plurals.chat_reply_category_income, any(), any(), any(), any(), any()) } answers {
+            (args[2] as Array<*>).let { "RECEIVED ${it[0]} ${it[1]}" }
+        }
+        every { categories.getAllCategories() } returns flowOf(
+            listOf(CategoryEntity(id = 1, name = "طعام", color = "#000"), CategoryEntity(id = 3, name = "Salary", color = "#000", isIncome = true))
+        )
+        coEvery { aiContext.categoryIncome("Salary", any(), any()) } returns spent("500").copy(category = "Salary")
+        coEvery { aiContext.categorySpending("طعام", any(), any()) } returns spent("120").copy(category = "طعام")
+        events = listOf(
+            LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("category" to "Salary")),
+            LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("category" to "طعام")),
+        )
+        assertEquals("RECEIVED ₹500 Salary\nSPEND", send("How much salary did I receive and how much did I spend on food?"))
+        coVerify(exactly = 0) { aiContext.categoryIncome("طعام", any(), any()) }
+
+        // A ranking of no income category ranks spending, whatever the words: its label says so.
+        coEvery { aiContext.topCategories(any(), any(), any(), any()) } returns TopCategories(ChatScope(nov), mapOf("INR" to listOf("طعام" to BigDecimal("120"))))
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("group_by" to "account")))
+        send("أي حساب استلمت فيه أكثر دخل؟")
+        coVerify(exactly = 1) { aiContext.topCategories(any(), any(), any(), any()) }
     }
 
     @Test

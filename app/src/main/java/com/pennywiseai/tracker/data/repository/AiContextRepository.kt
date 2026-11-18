@@ -101,7 +101,8 @@ class AiContextRepository @Inject constructor(
     private suspend fun rows(scope: Scope, filter: SpendingFilter = SpendingFilter()): List<TransactionWithSplits> {
         val aliases = if (filter.merchant == null) emptyMap() else aliases()
         return transactionSplitDao.getTransactionsWithSplitsAllCurrencies(scope.start, scope.end).first()
-            .filter { scope.keeps(it.transaction) && filter.keeps(it.transaction, aliases) }
+            .filter { scope.keeps(it.transaction) }
+            .let { filter.atMerchant(it, aliases) { row -> row.transaction.merchantName } }
     }
 
     private suspend fun aliases(): Map<String, String> = merchantAliasDao.getAllAliasesList().associate { it.merchantName to it.alias }
@@ -145,7 +146,6 @@ class AiContextRepository @Inject constructor(
                 it.transactionType == TransactionType.INCOME || it.transactionType == TransactionType.EXPENSE ||
                     (credit && it.transactionType == TransactionType.CREDIT)
             },
-            cardPurchases = SpendingComparison.countsCardPurchases(rows, creditAsExpense = credit),
         )
         val spent = result.spentWithForgiven
         val display = userPreferencesRepository.displayCurrency.first()
@@ -166,7 +166,7 @@ class AiContextRepository @Inject constructor(
         val scope = scopeOf(filter, today)
         val rows = rows(scope, filter)
         val credit = creditAsExpense(filter)
-        val names = categoriesNamed(category, rows)
+        val names = categoriesNamed(category)
         // A currency refunded in full is nothing spent, as spending() leaves it out.
         val byCurrency = SpendingComparison.spend(rows, names, credit).filterValues { it.signum() > 0 }
         return CategorySpend(
@@ -175,8 +175,6 @@ class AiContextRepository @Inject constructor(
             byCurrency = byCurrency,
             transactionCount = SpendingComparison.transactionsIn(rows, names, credit),
             share = shareOfSpending(rows, credit, byCurrency),
-            refunded = SpendingComparison.refundedOutside(rows, names, credit).filterKeys { it in byCurrency },
-            cardPurchases = SpendingComparison.countsCardPurchases(rows, names, credit),
         )
     }
 
@@ -187,7 +185,7 @@ class AiContextRepository @Inject constructor(
     suspend fun categoryIncome(category: String, today: LocalDate = LocalDate.now(), filter: SpendingFilter = SpendingFilter()): CategorySpend {
         val scope = scopeOf(filter, today)
         val rows = rows(scope, filter)
-        val (byCurrency, count) = SpendingComparison.received(rows, categoriesNamed(category, rows))
+        val (byCurrency, count) = SpendingComparison.received(rows, categoriesNamed(category))
         return CategorySpend(scope = scope.chat, category = category, byCurrency = byCurrency, transactionCount = count)
     }
 
@@ -208,16 +206,33 @@ class AiContextRepository @Inject constructor(
         val credit = creditAsExpense(filter, byAccount = by == SpendingQuery.GroupBy.ACCOUNT)
         val key: ((TransactionEntity) -> String)? = when (by) {
             SpendingQuery.GroupBy.MERCHANT -> aliases().let { aliases -> { tx: TransactionEntity -> aliases[tx.merchantName] ?: tx.merchantName } }
-            SpendingQuery.GroupBy.ACCOUNT -> accountBalanceDao.getAllLatestBalancesOnce().associateBy { SpendingFilter.accountKey(it) }.let { accounts ->
-                { tx: TransactionEntity -> accounts[SpendingFilter.accountKey(tx)]?.displayLabel ?: tx.bankName?.let { AccountBalanceEntity.accountLabel(it, tx.accountNumber) } ?: NO_ACCOUNT }
-            }
+            // By the account itself: two accounts aliased alike are still two (see [accountLabels]).
+            SpendingQuery.GroupBy.ACCOUNT -> { tx: TransactionEntity -> if (tx.bankName == null) NO_ACCOUNT else SpendingFilter.accountKey(tx) }
             else -> null
         }
-        val names = category?.let { categoriesNamed(it, rows) }
+        val names = category?.let { categoriesNamed(it) }
         val ranking = SpendingComparison.ranking(rows, key, names, creditAsExpense = credit)
+            .let { if (by == SpendingQuery.GroupBy.ACCOUNT) accountLabels(it, rows) else it }
         val top = ranking.mapValues { (_, cats) -> cats.first().second }
         val forgiven = if (key == null && category == null && !filter.narrowed) forgiven(scope) else emptyMap()
-        return TopCategories(scope.chat, ranking, forgiven, shareOfSpending(rows, credit, top), SpendingComparison.countsCardPurchases(rows, names, credit))
+        return TopCategories(scope.chat, ranking, forgiven, shareOfSpending(rows, credit, top))
+    }
+
+    /**
+     * A ranking by account key, named as the user knows each account: its alias, or bank and
+     * digits. Two accounts ranked under the same name are told apart by bank and digits.
+     */
+    private suspend fun accountLabels(
+        ranking: Map<String, List<Pair<String, BigDecimal>>>,
+        rows: List<TransactionWithSplits>,
+    ): Map<String, List<Pair<String, BigDecimal>>> {
+        val accounts = accountBalanceDao.getAllLatestBalancesOnce().associateBy { SpendingFilter.accountKey(it) }
+        val plain = rows.map { it.transaction }.mapNotNull { tx -> tx.bankName?.let { SpendingFilter.accountKey(tx) to AccountBalanceEntity.accountLabel(it, tx.accountNumber) } }.toMap()
+        val label = plain.mapValues { (key, bankAndDigits) -> accounts[key]?.displayLabel ?: bankAndDigits }
+        val ranked = ranking.values.flatten().map { it.first }.toSet()
+        val shared = ranked.mapNotNull { label[it] }.groupingBy { it }.eachCount().filterValues { it > 1 }.keys
+        fun name(key: String) = label[key]?.let { if (it in shared) plain.getValue(key) else it } ?: key
+        return ranking.mapValues { (_, list) -> list.map { (key, amount) -> name(key) to amount } }
     }
 
     /**
@@ -239,27 +254,16 @@ class AiContextRepository @Inject constructor(
         val (current, previous) = windows.toList().map { scope(it, shown) }
         // Forgiven loan balances count as spent, as on Home (#938); a category comparison leaves them out.
         val (currentLoss, previousLoss) = if (category == null) forgiven(current) to forgiven(previous) else emptyMap<String, BigDecimal>() to emptyMap()
-        val (rowsNow, rowsBefore) = rows(current) to rows(previous)
-        val names = category?.let { categoriesNamed(it, rowsNow + rowsBefore) }
-        return when (val result = SpendingComparison.compare(windows, rowsNow, rowsBefore, names, currentLoss, previousLoss, creditAsExpense)) {
+        return when (val result = SpendingComparison.compare(windows, rows(current), rows(previous), category?.let { categoriesNamed(it) }, currentLoss, previousLoss, creditAsExpense)) {
             is SpendingComparison.Result.Rows -> result.copy(profile = shown.profile)
             is SpendingComparison.Result.NoData -> result.copy(profile = shown.profile)
         }
     }
 
-    /**
-     * The category names a figure for [asked] counts, matched against [rows] exactly. A saved
-     * category (the model's casing isn't the saved name's) counts its children, as the category
-     * filters do, and only the rows spelled as saved: the Transactions list a figure links to and
-     * Analytics match exactly, so a CSV row filed under "food" isn't "Food" there either. A name
-     * no category is saved under (one deleted while rows still carry it) has no link, so it
-     * takes every spelling of it in [rows].
-     */
-    private suspend fun categoriesNamed(asked: String, rows: List<TransactionWithSplits>): Set<String> {
+    /** A parent counts its children, as the category filters do. The model's casing isn't the saved name's. */
+    private suspend fun categoriesNamed(asked: String): Set<String> {
         val all = categoryDao.getAllCategoriesList()
-        val saved = all.firstOrNull { it.name.equals(asked, ignoreCase = true) }?.name
-            ?: return SpendingComparison.categoryNames(rows).filterTo(mutableSetOf(asked)) { it.equals(asked, ignoreCase = true) }
-        return all.expandWithChildren(listOf(saved))
+        return all.expandWithChildren(listOf(all.firstOrNull { it.name.equals(asked, ignoreCase = true) }?.name ?: asked))
     }
 
     companion object {

@@ -376,9 +376,6 @@
     <string name="chat_reply_forgiven_loans">قروض متنازَل عنها: %1$s</string>
     <string name="chat_reply_received">المبالغ المستلَمة: %1$s</string>
     <string name="chat_reply_received_nothing">لم تستلم أي مبالغ</string>
-    <string name="chat_reply_card_purchases">يشمل مشتريات البطاقة بعد خصم المبالغ المستردة؛ وتجمعها القائمة تحت «ائتمان» قبل خصمها.</string>
-    <string name="chat_reply_refunds_taken_off">المبالغ المستردة المخصومة (%1$s): %2$s. تظهر في القائمة تحت فئتها الخاصة.</string>
-    <string name="chat_reply_refunds_list_lower">القائمة أقل بمقدار %2$s (%1$s): فهي تخصم جزءًا من مبلغ مسترد مسجَّل تحت فئة أخرى.</string>
     <plurals name="chat_reply_transaction_count">
         <item quantity="zero">لا معاملات</item>
         <item quantity="one">%1$d معاملة</item>
@@ -393,6 +390,7 @@
     <string name="chat_reply_query_group_unknown">يمكنني عرض الفئات أو التجار أو الحسابات الأعلى إنفاقًا.</string>
     <string name="chat_reply_query_period_unknown">لا يمكنني البحث في هذه الأيام. جرّب هذا الشهر أو الشهر الماضي أو هذا الأسبوع أو الأسبوع الماضي أو هذه السنة أو السنة الماضية أو شهرًا مثل 2026-10 أو تاريخ بداية ونهاية.</string>
     <string name="chat_reply_query_date_unreadable">لم أستطع قراءة التاريخ %1$s. جرّب تاريخًا مثل 2026-10-31.</string>
+    <string name="chat_reply_query_name_unreadable">لم أستطع قراءة التاجر أو الفئة المطلوبة. جرّب ذكر الاسم مرة أخرى.</string>
     <string name="chat_reply_query_no_start">من أي يوم تبدأ هذه الفترة؟</string>
     <string name="chat_reply_query_dates_reversed">%1$s يأتي بعد %2$s. ابدأ بالتاريخ الأقدم.</string>
     <string name="chat_reply_query_future">هذه الأيام لم تأتِ بعد. يمكنني البحث حتى اليوم فقط.</string>

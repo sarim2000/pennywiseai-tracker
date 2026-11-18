@@ -207,17 +207,11 @@ class AiContextRepositoryTest {
         val home = breakdownByCurrency(rows.map { it.transaction }.forTotals())
         assertEquals(home.mapValues { it.value.expenses.stripTrailingZeros().toPlainString() }, amounts(off.spent))
         assertNull(off.estimate)
-        assertTrue(!off.cardPurchases)
 
         preferences.setCountCreditCardAsExpense(true)
         val on = repository.spending(today)
         assertEquals(mapOf("INR" to "900", "USD" to "5"), amounts(on.spent))
         assertEquals(6, on.transactionCount)
-        // The list behind it totals the card purchase under Credit: the answer says so.
-        assertTrue(on.cardPurchases)
-        assertTrue(repository.topCategories(today).cardPurchases)
-        assertTrue(repository.categorySpending("Food", today).cardPurchases)
-        assertTrue(!repository.categorySpending("Travel", today).cardPurchases)
     }
 
     @Test
@@ -336,6 +330,7 @@ class AiContextRepositoryTest {
         tx("50", category = "Travel", account = "9999", profileId = ProfileEntity.BUSINESS_ID) // an ignored account's
         tx("30", category = "Travel") // Personal's
         tx("7", category = "Travel", currency = "USD", account = "1111")
+        tx("15", category = "travel", account = "1111") // an import's spelling: Home counts it as Travel
         val travel = repository.categorySpending("Travel", today)
 
         // What the Transactions list shows behind those links: the category, the profile's
@@ -349,7 +344,7 @@ class AiContextRepositoryTest {
             buildProfileAccountKeys(accounts),
         )
         val totals = calculateCurrencyGroupedTotals(listed.mapNotNull(CategorySplitShares(setOf("Travel"), splits)::forTotals))
-        assertEquals(mapOf("INR" to "120", "USD" to "7"), amounts(travel.byCurrency))
+        assertEquals(mapOf("INR" to "135", "USD" to "7"), amounts(travel.byCurrency))
         assertEquals(amounts(travel.byCurrency), amounts(totals.totalsByCurrency.mapValues { it.value.expenses }))
         assertEquals(travel.transactionCount, listed.size)
     }
@@ -404,20 +399,6 @@ class AiContextRepositoryTest {
         // ₹3,150 of the ₹10,550 spent in rupees.
         assertEquals(3150f / 10550f, food.share!!, 0.0001f)
         assertTrue(repository.categorySpending("Pets", today).byCurrency.isEmpty())
-    }
-
-    @Test
-    fun `a saved category counts only the rows spelled as saved, as the list it links to`() = runBlocking {
-        tx("100")
-        // A CSV import keeps the cell as written: the Transactions list and Analytics file it apart.
-        tx("40", category = "food")
-        tx("30", category = "pets")
-        tx("5", category = "Pets", splits = listOf("PETS" to "5"))
-        val food = repository.categorySpending("FOOD", today)
-        assertEquals(mapOf("INR" to "100"), amounts(food.byCurrency))
-        assertEquals(1, food.transactionCount)
-        // No category is saved as Pets, so no link: every spelling the rows use counts.
-        assertEquals(mapOf("INR" to "35"), amounts(repository.categorySpending("Pets", today).byCurrency))
     }
 
     @Test
@@ -511,6 +492,22 @@ class AiContextRepositoryTest {
         assertEquals(october, p.scope.window)
         assertEquals(mapOf("INR" to "110"), amounts(p.spent))
         assertEquals(mapOf("INR" to "100"), amounts(repository.categorySpending("food", today, SpendingFilter(window = october)).byCurrency))
+    }
+
+    @Test
+    fun `two accounts with the same name rank apart, told apart by bank and digits`() = runBlocking {
+        for (digits in listOf("1234", "5678")) {
+            accounts += AccountBalanceEntity(bankName = "Bank", accountLast4 = digits, balance = BigDecimal.ZERO, timestamp = today.atStartOfDay(), alias = "Daily")
+        }
+        accounts += AccountBalanceEntity(bankName = "Bank", accountLast4 = "9999", balance = BigDecimal.ZERO, timestamp = today.atStartOfDay(), alias = "Card")
+        tx("300", account = "1234")
+        tx("200", account = "5678")
+        tx("100", account = "9999")
+        val byAccount = repository.topCategories(today, by = SpendingQuery.GroupBy.ACCOUNT)
+        assertEquals(
+            listOf("Bank ••1234" to "300", "Bank ••5678" to "200", "Card" to "100"),
+            byAccount.ranking.getValue("INR").map { it.first to it.second.toPlainString() }
+        )
     }
 
     @Test

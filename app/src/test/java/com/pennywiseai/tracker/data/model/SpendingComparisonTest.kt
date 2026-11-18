@@ -6,9 +6,6 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.model.SpendingComparison.Period
 import com.pennywiseai.tracker.data.model.SpendingComparison.Result
-import com.pennywiseai.tracker.presentation.transactions.CategorySplitShares
-import com.pennywiseai.tracker.presentation.transactions.calculateCurrencyGroupedTotals
-import com.pennywiseai.tracker.presentation.transactions.filterByCategories
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
@@ -155,7 +152,7 @@ class SpendingComparisonTest {
     fun `a category counts its share of split transactions`() {
         val current = listOf(tx("100", category = "Food & Dining", splits = listOf("Food & Dining" to "60", "Transportation" to "40")))
         val previous = listOf(tx("50", category = "Transportation"))
-        assertEquals(mapOf("INR" to Triple("40", "50", -20)), rows(SpendingComparison.compare(windows, current, previous, setOf("Transportation"))))
+        assertEquals(mapOf("INR" to Triple("40", "50", -20)), rows(SpendingComparison.compare(windows, current, previous, setOf("transportation"))))
         assertEquals(mapOf("INR" to Triple("60", "0", null)), rows(SpendingComparison.compare(windows, current, previous, setOf("Food & Dining"))))
         assertEquals(mapOf("INR" to Triple("100", "50", 100)), rows(SpendingComparison.compare(windows, current, previous)))
     }
@@ -324,59 +321,6 @@ class SpendingComparisonTest {
     }
 
     @Test
-    fun `a comparison notes only the refunds its category list doesn't hold, and no more than it took off`() {
-        val prev = listOf(tx("300", category = "Shopping"))
-        // ₹100 spent and a ₹150 refund for an earlier purchase: the figure is ₹0, so only ₹100 came off.
-        val over = SpendingComparison.compare(windows, listOf(tx("100", category = "Shopping"), tx("150", type = TransactionType.INCOME, category = "Refund", refundTo = "Shopping")), prev, setOf("Shopping")) as Result.Rows
-        assertEquals(BigDecimal.ZERO, over.rows.single().current)
-        assertEquals(mapOf("INR" to BigDecimal("100")), over.currentRefunded)
-        // A refund filed under Shopping itself is in Shopping's list, which nets it already.
-        val own = SpendingComparison.compare(windows, listOf(tx("100", category = "Shopping"), tx("40", type = TransactionType.INCOME, category = "Shopping", refundTo = "Shopping")), prev, setOf("Shopping")) as Result.Rows
-        assertEquals(BigDecimal("60"), own.rows.single().current)
-        assertEquals(emptyMap<String, BigDecimal>(), own.currentRefunded)
-        // Both kinds: the list shows ₹100 − ₹70 = ₹30, the figure ₹0, so ₹30 of the outside ₹50 came off.
-        val both = listOf(
-            tx("100", category = "Shopping"),
-            tx("70", type = TransactionType.INCOME, category = "Shopping", refundTo = "Shopping"),
-            tx("50", type = TransactionType.INCOME, category = "Refund", refundTo = "Shopping")
-        )
-        assertEquals(mapOf("INR" to BigDecimal("30")), SpendingComparison.refundedOutside(both, setOf("Shopping")))
-    }
-
-    @Test
-    fun `a refund split partly into the category notes the part its list doesn't net`() {
-        // A ₹40 refund given back to Food, split ₹10 Food and ₹30 Others: the figure takes off
-        // ₹40, the Food list holds the row and nets its ₹10 share only.
-        val rows = listOf(
-            tx("100", category = "Food"),
-            tx("40", type = TransactionType.INCOME, category = "Food", refundTo = "Food", splits = listOf("Food" to "10", "Others" to "30"))
-        )
-        val food = setOf("Food")
-        assertEquals(mapOf("INR" to BigDecimal("60")), SpendingComparison.spend(rows, food))
-        assertEquals(mapOf("INR" to BigDecimal("30")), SpendingComparison.refundedOutside(rows, food))
-        // The list behind the figure: ₹90, the figure and the note's gap together.
-        val splits = rows.flatMap { it.splits }
-        val listed = filterByCategories(rows.map { it.transaction }, food, splits).mapNotNull(CategorySplitShares(food, splits)::forTotals)
-        assertEquals(BigDecimal("90"), calculateCurrencyGroupedTotals(listed).getTotalsForCurrency("INR").expenses)
-    }
-
-    @Test
-    fun `another category's refund split partly into the category leaves its list lower`() {
-        // A ₹40 refund given back to Others, split ₹10 Food and ₹30 Others: the Food figure takes
-        // nothing off, the Food list holds the row and nets its ₹10 share.
-        val rows = listOf(
-            tx("100", category = "Food"),
-            tx("40", type = TransactionType.INCOME, category = "Others", refundTo = "Others", splits = listOf("Food" to "10", "Others" to "30"))
-        )
-        val food = setOf("Food")
-        assertEquals(mapOf("INR" to BigDecimal("100")), SpendingComparison.spend(rows, food))
-        assertEquals(mapOf("INR" to BigDecimal("-10")), SpendingComparison.refundedOutside(rows, food))
-        val splits = rows.flatMap { it.splits }
-        val listed = filterByCategories(rows.map { it.transaction }, food, splits).mapNotNull(CategorySplitShares(food, splits)::forTotals)
-        assertEquals(BigDecimal("90"), calculateCurrencyGroupedTotals(listed).getTotalsForCurrency("INR").expenses)
-    }
-
-    @Test
     fun `card purchases count only when the user folds them into spending`() {
         val mixed = listOf(tx("100"), tx("40", type = TransactionType.CREDIT, category = "Shopping"))
         assertEquals(mapOf("INR" to BigDecimal("100")), SpendingComparison.spend(mixed, creditAsExpense = false))
@@ -387,26 +331,9 @@ class SpendingComparisonTest {
     }
 
     @Test
-    fun `a figure says when it counted card purchases, which the list totals under Credit`() {
-        val mixed = listOf(tx("100"), tx("40", type = TransactionType.CREDIT, category = "Shopping"))
-        assertTrue(SpendingComparison.countsCardPurchases(mixed, creditAsExpense = true))
-        assertTrue(!SpendingComparison.countsCardPurchases(mixed, creditAsExpense = false))
-        // Only the category's own card purchases.
-        assertTrue(SpendingComparison.countsCardPurchases(mixed, setOf("Shopping")))
-        assertTrue(!SpendingComparison.countsCardPurchases(mixed, setOf("Food & Dining")))
-        // A comparison, in either period.
-        assertTrue((SpendingComparison.compare(windows, listOf(tx("10")), mixed) as Result.Rows).cardPurchases)
-        assertTrue(!(SpendingComparison.compare(windows, listOf(tx("10")), mixed, creditAsExpense = false) as Result.Rows).cardPurchases)
-    }
-
-    @Test
     fun `a category set rolls in every name it holds, refunds included`() {
         val cur = listOf(tx("60", category = "Food"), tx("30", category = "Coffee"), tx("9", category = "Travel"), tx("10", type = TransactionType.INCOME, refundTo = "Coffee"))
-        assertEquals(mapOf("INR" to BigDecimal("80")), SpendingComparison.spend(cur, setOf("Food", "Coffee")))
-        // Names match as written, as the Transactions list's category filter does: the caller
-        // resolves a name to its saved spelling (see categoryNames for one that isn't saved).
-        assertEquals(mapOf("INR" to BigDecimal("60")), SpendingComparison.spend(cur + tx("40", category = "food"), setOf("Food")))
-        assertEquals(setOf("Food", "Coffee", "Travel", "Food & Dining", "food"), SpendingComparison.categoryNames(cur + tx("40", category = "food")))
+        assertEquals(mapOf("INR" to BigDecimal("80")), SpendingComparison.spend(cur, setOf("food", "coffee")))
     }
 
     @Test

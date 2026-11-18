@@ -101,13 +101,14 @@ def pair(want, got, typ=lambda g: str(g.get("type", "")).strip().upper(), base="
     return best
 
 
-# Keys the app reads whole, so a case lists every value it accepts: "last" is in "last_week" too.
-# Normalized as SpendingQuery reads a period. Other keys (a merchant's name) match within the value.
-EXACT = {"period"}
+# Keys the app reads whole, so a case lists every value it accepts: "last" is in "last_week" too,
+# "categor" in "category". Normalized as SpendingQuery reads a period (trimmed first). Other keys
+# (a merchant's name) match within the value.
+EXACT = {"period", "group_by"}
 
 
 def _norm(v):
-    return re.sub(r"[\s-]+", "_", v.lower())
+    return re.sub(r"[\s-]+", "_", v.strip().lower())
 
 
 def args_ok(case, calls):

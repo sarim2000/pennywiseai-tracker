@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.presentation.common
 
 import android.content.Context
+import android.graphics.Matrix
 import android.graphics.pdf.PdfRenderer
 import android.net.Uri
 import androidx.compose.foundation.Image
@@ -147,7 +148,10 @@ fun ReceiptPreview(
 
 private const val THUMBNAIL_WIDTH_PX = 720
 
-/** The first page drawn at [THUMBNAIL_WIDTH_PX] wide, or null when the PDF won't open. */
+/**
+ * The first page drawn at [THUMBNAIL_WIDTH_PX] wide (and at most twice as tall), or null
+ * when the PDF won't open.
+ */
 private fun renderFirstPage(context: Context, uri: Uri): ImageBitmap? = try {
     // The renderer closes the descriptor too; closing it twice is harmless.
     context.contentResolver.openFileDescriptor(uri, "r")?.use { fd ->
@@ -157,7 +161,11 @@ private fun renderFirstPage(context: Context, uri: Uri): ImageBitmap? = try {
                     .toInt().coerceIn(1, THUMBNAIL_WIDTH_PX * 2)
                 val bitmap = createBitmap(THUMBNAIL_WIDTH_PX, height)
                 bitmap.eraseColor(android.graphics.Color.WHITE)
-                page.render(bitmap, null, null, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
+                // Scale by width only, so a page taller than the cap keeps its proportions
+                // and its bottom is cropped rather than squashed into the bitmap.
+                val scale = THUMBNAIL_WIDTH_PX.toFloat() / page.width.coerceAtLeast(1)
+                val transform = Matrix().apply { setScale(scale, scale) }
+                page.render(bitmap, null, transform, PdfRenderer.Page.RENDER_MODE_FOR_DISPLAY)
                 bitmap.asImageBitmap()
             }
         }

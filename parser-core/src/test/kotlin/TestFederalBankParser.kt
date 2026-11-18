@@ -3,10 +3,10 @@ package com.pennywiseai.parser.core.bank
 import com.pennywiseai.parser.core.test.ExpectedTransaction
 import com.pennywiseai.parser.core.test.ParserTestCase
 import com.pennywiseai.parser.core.test.ParserTestUtils
+import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertNotNull
 import org.junit.jupiter.api.Assertions.assertNull
-import org.junit.jupiter.api.*
 import java.math.BigDecimal
 
 class FederalBankParserTest {
@@ -22,6 +22,31 @@ class FederalBankParserTest {
 
         val testCases = listOf(
             // UPI Debit Transactions
+            ParserTestCase(
+                name = "UPI debit names the payee VPA, not the user's own account",
+                message = "Debited Rs 123.45 from a/c X9999 on 10Jan26 12:34 via UPI to sampleshop@o. Ref 123456789012.Bal Rs 1245.46. Not you?Call 0000000000 -Federal Bank",
+                sender = "JK-FEDBNK-T",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("123.45"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
+                    merchant = "sampleshop@o",
+                    accountLast4 = "9999",
+                    balance = BigDecimal("1245.46")
+                )
+            ),
+            ParserTestCase(
+                name = "UPI payee VPA containing \"vi\" isn't read as Vi",
+                message = "Debited Rs 99.00 from a/c X9999 on 10Jan26 12:34 via UPI to sample.services@o. Ref 123456789013.Bal Rs 1146.46. Not you?Call 0000000000 -Federal Bank",
+                sender = "JK-FEDBNK-T",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("99.00"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.EXPENSE,
+                    merchant = "sample.services@o",
+                    accountLast4 = "9999"
+                )
+            ),
             ParserTestCase(
                 name = "UPI Debit to Individual VPA",
                 message = "Rs 150.00 debited via UPI on 15-08-2024 10:30:25 to VPA john.doe123@okbank.Ref No 987654321098.Small txns?Use UPI Lite!-Federal Bank",
@@ -463,9 +488,7 @@ class FederalBankParserTest {
             handleCases,
             "Federal Bank Parser Tests"
         )
-
     }
-
 
     @Test
     fun `test Federal Bank mandate parsing`() {

@@ -296,10 +296,7 @@ interface AccountBalanceDao {
             statement_day = COALESCE(statement_day, :statementDay),
             card_due_day = COALESCE(card_due_day, :dueDay),
             card_bill_amount = COALESCE(card_bill_amount, CASE WHEN currency = :billCurrency THEN :billAmount END),
-            card_bill_as_of = COALESCE(card_bill_as_of, CASE WHEN currency = :billCurrency THEN :billAsOf END),
-            anchor_amount = COALESCE(anchor_amount, :anchorAmount),
-            anchor_at = COALESCE(anchor_at, :anchorAt),
-            anchor_source = COALESCE(anchor_source, :anchorSource)
+            card_bill_as_of = COALESCE(card_bill_as_of, CASE WHEN currency = :billCurrency THEN :billAsOf END)
         WHERE bank_name = :bankName AND account_last4 = :accountLast4
     """)
     suspend fun fillMissingAccountFields(
@@ -310,9 +307,6 @@ interface AccountBalanceDao {
         billAmount: BigDecimal?,
         billAsOf: LocalDateTime?,
         billCurrency: String,
-        anchorAmount: BigDecimal?,
-        anchorAt: LocalDateTime?,
-        anchorSource: String?,
     ): Int
 
     @Query("UPDATE account_balances SET profile_id = :profileId WHERE bank_name = :bankName AND account_last4 = :accountLast4")

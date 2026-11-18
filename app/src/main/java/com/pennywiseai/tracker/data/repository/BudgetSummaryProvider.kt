@@ -34,13 +34,7 @@ class BudgetSummaryProvider @Inject constructor(
     private val userPreferencesRepository: CurrencyPreferences,
     private val currencyConversionService: CurrencyConversionService
 ) {
-    /**
-     * [flagUncounted]: outside unified mode, also set
-     * [BudgetGroupSpending.hasUnconvertedSpend] for spending in other currencies,
-     * which the base-currency figures leave out. It costs a second, all-currency
-     * query, so only a caller that shows the flag asks for it.
-     */
-    fun summary(yearMonth: YearMonth, flagUncounted: Boolean = false): Flow<BudgetOverallSummary> =
+    fun summary(yearMonth: YearMonth): Flow<BudgetOverallSummary> =
         combine(
             userPreferencesRepository.baseCurrency,
             userPreferencesRepository.unifiedCurrencyMode,
@@ -51,30 +45,6 @@ class BudgetSummaryProvider @Inject constructor(
             if (unifiedMode) {
                 budgetGroupRepository.getGroupSpendingAllCurrencies(yearMonth.year, yearMonth.monthValue)
                     .map { raw -> convertRawToSummary(raw, displayCurrency, baseCurrency) }
-            } else if (flagUncounted) {
-                combine(
-                    budgetGroupRepository.getGroupSpending(yearMonth.year, yearMonth.monthValue, baseCurrency),
-                    budgetGroupRepository.getGroupSpendingAllCurrencies(yearMonth.year, yearMonth.monthValue)
-                ) { summary, raw ->
-                    val windowedByBudget = raw.windowedSpend.groupBy { it.budgetId }
-                    // The base-currency figures credit a sub-category's spend to its parent too.
-                    val parentOf = budgetGroupRepository.parentOf()
-                    summary.copy(
-                        groups = summary.groups.map { g ->
-                            val txs = transactionsInWindow(
-                                g.group.budget.id,
-                                windowedByBudget[g.group.budget.id].orEmpty(),
-                                BudgetWindow(g.windowStart, g.windowEnd, g.windowDays)
-                            )
-                            // Same match as the base-currency query: anything else isn't counted.
-                            g.copy(
-                                hasUnconvertedSpend = budgetSpend(g.group, txs, parentOf) { fromCurrency, amount ->
-                                    amount.takeIf { fromCurrency == baseCurrency }
-                                }.incomplete
-                            )
-                        }
-                    )
-                }
             } else {
                 budgetGroupRepository.getGroupSpending(yearMonth.year, yearMonth.monthValue, baseCurrency)
             }
@@ -283,11 +253,9 @@ class BudgetSummaryProvider @Inject constructor(
         val convert: suspend (String, BigDecimal) -> BigDecimal? = { fromCurrency, amount ->
             currencyConversionService.convertAmountOrNull(amount, fromCurrency, displayCurrency)
         }
-        // Added up as the carry is; spending with no rate is left out (not counted at
-        // face value, #670) and flagged.
-        val spend = budgetSpend(group, txsInDisplay, parentOf, convert)
-        val convertedTotalActual = spend.amount
-        val hasUnconvertedSpend = spend.incomplete
+        // Added up as the carry is; spending with no rate is left out, not counted at
+        // face value (#670).
+        val convertedTotalActual = budgetSpend(group, txsInDisplay, parentOf, convert).amount
 
         // previousWindows: Weekly historical only. The displayed window
         // is the budget's own current window; older per-week windows
@@ -478,7 +446,6 @@ class BudgetSummaryProvider @Inject constructor(
             displayedIsLive = isCurrentMonth,
             periodType = budget.periodType,
             previousWindows = previous,
-            hasUnconvertedSpend = hasUnconvertedSpend,
             carry = carry.amount.amount,
             carryGap = carry.gap
         )

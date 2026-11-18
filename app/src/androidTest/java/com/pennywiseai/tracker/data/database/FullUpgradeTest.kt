@@ -123,9 +123,6 @@ class FullUpgradeTest {
             assertNull(card.cardDueDay)
             assertNull(card.cardBillAmount)
             assertNull(card.cardBillAsOf)
-            assertNull(card.anchorAmount)
-            assertNull(card.anchorAt)
-            assertNull(card.anchorSource)
         } finally { db.close() }
     }
 

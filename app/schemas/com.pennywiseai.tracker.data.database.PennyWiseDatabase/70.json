@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 70,
-    "identityHash": "d913f1a7af8c43a40150d126f82dcbf9",
+    "identityHash": "46280b950583905af3d25c8e89cbf0ef",
     "entities": [
       {
         "tableName": "transactions",
@@ -535,7 +535,7 @@
       },
       {
         "tableName": "account_balances",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `bank_name` TEXT NOT NULL, `account_last4` TEXT NOT NULL, `balance` TEXT NOT NULL, `timestamp` TEXT NOT NULL, `transaction_id` INTEGER, `credit_limit` TEXT, `is_credit_card` INTEGER NOT NULL DEFAULT 0, `sms_source` TEXT, `source_type` TEXT, `account_type` TEXT, `created_at` TEXT NOT NULL, `currency` TEXT NOT NULL DEFAULT 'INR', `statement_day` INTEGER DEFAULT NULL, `profile_id` INTEGER NOT NULL DEFAULT 1, `alias` TEXT, `lowBalanceThreshold` TEXT, `card_due_day` INTEGER DEFAULT NULL, `card_bill_amount` TEXT DEFAULT NULL, `card_bill_as_of` TEXT DEFAULT NULL, `anchor_amount` TEXT DEFAULT NULL, `anchor_at` TEXT DEFAULT NULL, `anchor_source` TEXT DEFAULT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `bank_name` TEXT NOT NULL, `account_last4` TEXT NOT NULL, `balance` TEXT NOT NULL, `timestamp` TEXT NOT NULL, `transaction_id` INTEGER, `credit_limit` TEXT, `is_credit_card` INTEGER NOT NULL DEFAULT 0, `sms_source` TEXT, `source_type` TEXT, `account_type` TEXT, `created_at` TEXT NOT NULL, `currency` TEXT NOT NULL DEFAULT 'INR', `statement_day` INTEGER DEFAULT NULL, `profile_id` INTEGER NOT NULL DEFAULT 1, `alias` TEXT, `lowBalanceThreshold` TEXT, `card_due_day` INTEGER DEFAULT NULL, `card_bill_amount` TEXT DEFAULT NULL, `card_bill_as_of` TEXT DEFAULT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -650,24 +650,6 @@
           {
             "fieldPath": "cardBillAsOf",
             "columnName": "card_bill_as_of",
-            "affinity": "TEXT",
-            "defaultValue": "NULL"
-          },
-          {
-            "fieldPath": "anchorAmount",
-            "columnName": "anchor_amount",
-            "affinity": "TEXT",
-            "defaultValue": "NULL"
-          },
-          {
-            "fieldPath": "anchorAt",
-            "columnName": "anchor_at",
-            "affinity": "TEXT",
-            "defaultValue": "NULL"
-          },
-          {
-            "fieldPath": "anchorSource",
-            "columnName": "anchor_source",
             "affinity": "TEXT",
             "defaultValue": "NULL"
           }
@@ -2756,7 +2738,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'd913f1a7af8c43a40150d126f82dcbf9')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '46280b950583905af3d25c8e89cbf0ef')"
     ]
   }
 }

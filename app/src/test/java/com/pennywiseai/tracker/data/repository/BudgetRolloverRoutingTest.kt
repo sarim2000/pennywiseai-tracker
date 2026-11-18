@@ -15,16 +15,12 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.preferences.BudgetPreferences
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
-import com.pennywiseai.tracker.domain.insights.InsightFact
-import com.pennywiseai.tracker.domain.insights.InsightRules
-import com.pennywiseai.tracker.domain.insights.budgetStatuses
 import com.pennywiseai.tracker.domain.spending.BudgetAlertTier
 import com.pennywiseai.tracker.domain.spending.MoneyAlertRules
 import com.pennywiseai.tracker.presentation.budgetgroups.historyBudgetTotal
 import com.pennywiseai.tracker.presentation.home.homeBudgetSummary
 import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.widget.budgetWidgetData
-import com.pennywiseai.tracker.worker.DailySummaryWorker
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -50,7 +46,7 @@ import java.time.YearMonth
 
 /**
  * Every figure a rolled-over budget feeds (the Budgets screen in both currency
- * modes, Home, the widget, alerts, the digest, Insights, Budget History) gets
+ * modes, Home, the widget, alerts, Budget History) gets
  * the same carry from last week.
  */
 class BudgetRolloverRoutingTest {
@@ -196,11 +192,6 @@ class BudgetRolloverRoutingTest {
         }
         for (unified in listOf(false, true)) {
             val overall = overall(repo, unified)
-            assertEquals(
-                listOf(DailySummaryWorker.BudgetLeft("Food", BigDecimal("-30"), incomplete = false)),
-                DailySummaryWorker.budgetsLeft(overall, today)
-            )
-            assertTrue(InsightRules.budgets(budgetStatuses(overall, today), "p").single().fact is InsightFact.BudgetOver)
             // The widget shows it used up, not its "create a budget" empty state.
             val widget = budgetWidgetData(overall, overall)
             assertTrue(widget.hasLimit)

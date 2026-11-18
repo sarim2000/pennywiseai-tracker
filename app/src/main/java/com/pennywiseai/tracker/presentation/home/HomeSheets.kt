@@ -7,7 +7,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
@@ -39,7 +38,6 @@ import com.pennywiseai.tracker.ui.theme.*
 internal fun HomeMenuSheet(
     sheetState: SheetState,
     onDismiss: () -> Unit,
-    onOpenInsights: () -> Unit,
     onOpenReview: () -> Unit,
     onOpenShareCard: () -> Unit,
     onOpenSettings: () -> Unit,
@@ -71,22 +69,11 @@ internal fun HomeMenuSheet(
                     .fillMaxWidth()
             )
 
-            // Insights (Top) — what needs attention this cycle.
-            MenuListItem(
-                headline = stringResource(R.string.insights_title),
-                icon = { Icon(Icons.Default.Insights, contentDescription = null) },
-                position = ListItemPosition.Top,
-                onClick = {
-                    onDismiss()
-                    onOpenInsights()
-                }
-            )
-
-            // Reviews (Middle) — week, cycle and year, whatever the Home banner is offering.
+            // Reviews (Top) — week, cycle and year, whatever the Home banner is offering.
             MenuListItem(
                 headline = stringResource(R.string.review_title),
-                icon = { Icon(Icons.Default.DateRange, contentDescription = null) },
-                position = ListItemPosition.Middle,
+                icon = { Icon(Icons.Default.Insights, contentDescription = null) },
+                position = ListItemPosition.Top,
                 onClick = {
                     onDismiss()
                     onOpenReview()
@@ -301,7 +288,6 @@ internal fun EditHomeSectionsSheet(
 private fun HomeSection.titleRes(): Int = when (this) {
     HomeSection.SAFE_TO_SPEND -> R.string.home_section_safe_to_spend
     HomeSection.BUDGETS -> R.string.home_section_budgets
-    HomeSection.INSIGHTS -> R.string.home_section_insights
     HomeSection.GOALS -> R.string.home_section_goals
     HomeSection.LOANS -> R.string.home_section_loans
     HomeSection.GROUPS -> R.string.home_section_groups

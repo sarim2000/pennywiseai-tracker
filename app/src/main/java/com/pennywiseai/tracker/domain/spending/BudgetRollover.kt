@@ -5,6 +5,8 @@ import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.repository.BudgetWindow
 import com.pennywiseai.tracker.data.repository.previousBudgetWindow
+import com.pennywiseai.tracker.data.repository.resolveBudgetWindow
+import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.utils.Money
 import java.time.LocalDate
 
@@ -63,14 +65,21 @@ object BudgetRollover {
      * [today] ([before]: as it was, null for a new one). Rollover turned on, or a
      * change of currency or period, starts it again today, since last period no
      * longer measures this one; turned off, it's null; otherwise it stays.
+     * Anchors are compared as the periods they resolve to ([globalStartDay] as
+     * [resolveBudgetWindow] takes it), so a legacy null anchor saved as its default
+     * isn't a new period.
      */
-    fun sinceAfterEdit(before: BudgetEntity?, after: BudgetEntity, today: LocalDate): LocalDate? = when {
+    fun sinceAfterEdit(
+        before: BudgetEntity?,
+        after: BudgetEntity,
+        today: LocalDate,
+        globalStartDay: Int = BudgetCycle.DEFAULT_START_DAY
+    ): LocalDate? = when {
         !after.rolloverEnabled -> null
         before == null || !before.rolloverEnabled || before.rolloverSince == null -> today
         !before.currency.equals(after.currency, ignoreCase = true) ||
             before.periodType != after.periodType ||
-            before.weekStartDay != after.weekStartDay ||
-            before.monthStartDay != after.monthStartDay -> today
+            resolveBudgetWindow(before, today, globalStartDay) != resolveBudgetWindow(after, today, globalStartDay) -> today
         else -> before.rolloverSince
     }
 }

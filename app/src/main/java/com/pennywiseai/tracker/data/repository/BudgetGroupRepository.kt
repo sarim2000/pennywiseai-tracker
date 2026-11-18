@@ -237,7 +237,7 @@ class BudgetGroupRepository @Inject constructor(
             updatedAt = LocalDateTime.now(),
             rolloverEnabled = (rollover ?: existing.rolloverEnabled) && BudgetRollover.isAvailable(groupType, effectivePeriod)
         )
-        budgetDao.updateBudget(updated.copy(rolloverSince = BudgetRollover.sinceAfterEdit(existing, updated, now)))
+        budgetDao.updateBudget(updated.copy(rolloverSince = BudgetRollover.sinceAfterEdit(existing, updated, now, globalStartDay)))
 
         budgetDao.deleteCategoriesForBudget(budgetId)
         if (buckets.isNotEmpty()) {

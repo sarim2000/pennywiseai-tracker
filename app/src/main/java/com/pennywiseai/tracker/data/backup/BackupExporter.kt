@@ -66,7 +66,7 @@ class BackupExporter @Inject constructor(
         }
     }
 
-    /** Creates the backup, and counts the receipts too large to go in it. */
+    /** Creates the backup, and counts the PDF receipts too large to go in it. */
     private suspend fun createBackup(privacy: ExportPrivacy, includeReceipts: Boolean): Pair<PennyWiseBackup, Int> {
         // Get all database data
         val transactions = database.transactionDao().getAllTransactions().first()

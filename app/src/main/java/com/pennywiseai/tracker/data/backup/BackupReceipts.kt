@@ -14,7 +14,7 @@ object BackupReceipts {
     private const val TAG = "BackupReceipts"
     private const val RECEIPTS_DIR = "receipts"
 
-    /** All receipts in one backup together, before encoding (Base64 adds a third). */
+    /** All PDF receipts in one backup together, before encoding (Base64 adds a third). */
     const val MAX_TOTAL_BYTES: Long = 50L * 1024 * 1024
 
     /**
@@ -38,15 +38,15 @@ object BackupReceipts {
         }
     }
 
-    /** Receipts read for a backup, and how many were left out for being too large. */
+    /** Receipts read for a backup, and how many PDFs were left out for being too large. */
     data class Collected(val receipts: List<BackupReceipt>, val skipped: Int)
 
     /**
      * Reads and encodes each receipt file one at a time. Missing, unsafe or
      * unreadable files are skipped (and logged) — a bad file never fails the
-     * backup. A file over [maxFileBytes], or one that would take the backup past
-     * [maxTotalBytes], is left out and counted in [Collected.skipped], so the
-     * caller can say so.
+     * backup. Photos always go in, as before PDFs could be attached. A PDF over
+     * [maxFileBytes], or one that would take the backup's PDFs past [maxTotalBytes],
+     * is left out and counted in [Collected.skipped], so the caller can say so.
      *
      * ponytail: every encoded file is held in memory until the JSON is written;
      * the size caps keep that bounded. Move to a streaming encoder if users ask
@@ -58,19 +58,21 @@ object BackupReceipts {
         maxFileBytes: Long = ReceiptFiles.MAX_RECEIPT_BYTES,
         maxTotalBytes: Long = MAX_TOTAL_BYTES
     ): Collected {
-        var total = 0L
+        var pdfTotal = 0L
         var skipped = 0
         val receipts = paths.distinct().mapNotNull { path ->
             val file = safeReceiptFile(filesDir, path) ?: return@mapNotNull null
             if (!file.isFile) return@mapNotNull null
             val size = file.length()
-            if (size > maxFileBytes || total + size > maxTotalBytes) {
-                Log.w(TAG, "Left a receipt out of the backup: ${if (size > maxFileBytes) "file" else "backup"} too large")
+            val isPdf = ReceiptFiles.isPdfPath(path)
+            if (isPdf && (size > maxFileBytes || pdfTotal + size > maxTotalBytes)) {
+                Log.w(TAG, "Left a PDF receipt out of the backup: ${if (size > maxFileBytes) "file" else "backup"} too large")
                 skipped++
                 return@mapNotNull null
             }
             try {
-                BackupReceipt(path, Base64.getEncoder().encodeToString(file.readBytes())).also { total += size }
+                BackupReceipt(path, Base64.getEncoder().encodeToString(file.readBytes()))
+                    .also { if (isPdf) pdfTotal += size }
             } catch (e: Exception) {
                 Log.w(TAG, "Skipped unreadable receipt: ${e.message}")
                 null
@@ -79,17 +81,18 @@ object BackupReceipts {
         return Collected(receipts, skipped)
     }
 
-    /** Receipts written by a restore, and how many were left out for being too large. */
+    /** Receipts written by a restore, and how many PDFs were left out for being too large. */
     data class Restored(val written: Int, val skipped: Int)
 
     /**
      * Writes receipts back under `filesDir`, but only those whose path a
      * transaction in the DB still points at ([referencedPaths]) — so a merge
      * restores exactly the photos of the rows it kept. An existing file is
-     * never overwritten. A receipt whose Base64 text is longer than [maxFileBytes]
+     * never overwritten. A PDF whose Base64 text is longer than [maxFileBytes]
      * encodes to is skipped before it's decoded, so a hostile backup can't make
      * the restore allocate a huge array; one that decodes to more than
-     * [maxFileBytes] anyway is skipped too.
+     * [maxFileBytes] anyway is skipped too. Photos restore whatever their size,
+     * as they always have.
      */
     fun restore(
         filesDir: File,
@@ -106,7 +109,8 @@ object BackupReceipts {
                 Log.w(TAG, "Rejected unsafe receipt path in backup")
                 continue
             }
-            if (receipt.dataBase64.length > encodedLength(maxFileBytes)) {
+            val capped = ReceiptFiles.isPdfPath(receipt.path)
+            if (capped && receipt.dataBase64.length > encodedLength(maxFileBytes)) {
                 Log.w(TAG, "Skipped an oversized receipt in backup")
                 skipped++
                 continue
@@ -116,7 +120,7 @@ object BackupReceipts {
                 if (bytes.isEmpty()) continue
                 // The length check above allows a byte or two over when the cap isn't
                 // a multiple of 3 and the text drops its padding.
-                if (bytes.size > maxFileBytes) {
+                if (capped && bytes.size > maxFileBytes) {
                     Log.w(TAG, "Skipped an oversized receipt in backup")
                     skipped++
                     continue

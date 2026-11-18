@@ -87,38 +87,53 @@ class BackupReceiptsTest {
     }
 
     @Test
-    fun collect_leavesOutAFileOverThePerFileLimit() {
+    fun collect_leavesOutAPdfOverThePerFileLimit_butNotAPhoto() {
         val source = tmp.newFolder("src")
         File(source, "receipts").mkdirs()
-        File(source, "receipts/small.jpg").writeBytes(ByteArray(10))
+        File(source, "receipts/big.jpg").writeBytes(ByteArray(11))
         File(source, "receipts/big.pdf").writeBytes(ByteArray(11))
 
         val collected = BackupReceipts.collect(
             source,
-            listOf("receipts/small.jpg", "receipts/big.pdf"),
+            listOf("receipts/big.jpg", "receipts/big.pdf"),
             maxFileBytes = 10
         )
 
-        assertEquals(listOf("receipts/small.jpg"), collected.receipts.map { it.path })
+        assertEquals(listOf("receipts/big.jpg"), collected.receipts.map { it.path })
         assertEquals(1, collected.skipped)
     }
 
     @Test
-    fun collect_stopsAddingOnceTheBackupIsFull_butKeepsSmallerFilesThatFit() {
+    fun collect_stopsAddingPdfsOnceTheirTotalIsFull_butKeepsSmallerPdfsThatFit() {
         val source = tmp.newFolder("src")
         File(source, "receipts").mkdirs()
-        File(source, "receipts/a.jpg").writeBytes(ByteArray(6))
-        File(source, "receipts/b.jpg").writeBytes(ByteArray(6))
-        File(source, "receipts/c.jpg").writeBytes(ByteArray(4))
+        File(source, "receipts/a.pdf").writeBytes(ByteArray(6))
+        File(source, "receipts/b.pdf").writeBytes(ByteArray(6))
+        File(source, "receipts/c.pdf").writeBytes(ByteArray(4))
 
         val collected = BackupReceipts.collect(
             source,
-            listOf("receipts/a.jpg", "receipts/b.jpg", "receipts/c.jpg"),
+            listOf("receipts/a.pdf", "receipts/b.pdf", "receipts/c.pdf"),
             maxTotalBytes = 10
         )
 
-        assertEquals(listOf("receipts/a.jpg", "receipts/c.jpg"), collected.receipts.map { it.path })
+        assertEquals(listOf("receipts/a.pdf", "receipts/c.pdf"), collected.receipts.map { it.path })
         assertEquals(1, collected.skipped)
+    }
+
+    /** Photos backed up without a cap before PDFs came; they still do, and don't use the PDFs' room. */
+    @Test
+    fun collect_keepsEveryPhotoWhateverTheTotal() {
+        val source = tmp.newFolder("src")
+        File(source, "receipts").mkdirs()
+        val photos = (1..5).map { "receipts/p$it.jpg" }
+        photos.forEach { File(source, it).writeBytes(ByteArray(6)) }
+        File(source, "receipts/a.pdf").writeBytes(ByteArray(10))
+
+        val collected = BackupReceipts.collect(source, photos + "receipts/a.pdf", maxTotalBytes = 10)
+
+        assertEquals(photos + "receipts/a.pdf", collected.receipts.map { it.path })
+        assertEquals(0, collected.skipped)
     }
 
     @Test
@@ -140,6 +155,17 @@ class BackupReceiptsTest {
 
         assertEquals(BackupReceipts.Restored(written = 1, skipped = 1), restored)
         assertFalse(File(filesDir, "receipts/huge.pdf").exists())
+    }
+
+    @Test
+    fun restore_keepsAPhotoOverTheLimit_asBeforePdfs() {
+        val filesDir = tmp.newFolder("files")
+        val path = "receipts/old.jpg"
+
+        val restored = BackupReceipts.restore(filesDir, listOf(BackupReceipt(path, b64(ByteArray(12) { 4 }))), setOf(path), maxFileBytes = 8)
+
+        assertEquals(BackupReceipts.Restored(written = 1, skipped = 0), restored)
+        assertEquals(12L, File(filesDir, path).length())
     }
 
     /** A file exactly at the limit still restores: the length check matches Base64 padding. */

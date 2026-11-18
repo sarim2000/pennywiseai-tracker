@@ -496,7 +496,7 @@ sealed class ImportResult {
         val importedCategories: Int,
         val skippedDuplicates: Int,
         val skippedRows: Int = 0,
-        /** Receipts in the backup too large to restore; their transactions keep the link. */
+        /** PDF receipts in the backup too large to restore; their transactions keep the link. */
         val skippedReceipts: Int = 0
     ) : ImportResult()
 
@@ -507,7 +507,7 @@ sealed class ImportResult {
  * Export result.
  */
 sealed class ExportResult {
-    /** [skippedReceipts] were too large to include, so the backup holds the rest. */
+    /** [skippedReceipts] PDFs were too large to include, so the backup holds the rest. */
     data class Success(val file: java.io.File, val skippedReceipts: Int = 0) : ExportResult()
     data class Error(val message: String) : ExportResult()
 }

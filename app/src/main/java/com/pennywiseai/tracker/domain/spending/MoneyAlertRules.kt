@@ -14,8 +14,7 @@ object MoneyAlertRules {
      * [BudgetAlertTier.OVER] once [spent] passes [limit]; exactly the limit is
      * used up, not exceeded. [BudgetAlertTier.WARNING] at 80% of the limit, but
      * only while under 80% of the window has gone: 82% on day 28 of 30 is on
-     * plan, not news. Null outside the window or without a limit. A limit that
-     * rollover carried down to 0 still is one ([hasLimit]): any spending is over it.
+     * plan, not news. Null outside the window or without a positive limit.
      */
     // ponytail: a budget holding rent can reach 80% on day 1. One alert per window, so left alone.
     fun budgetTier(
@@ -23,12 +22,10 @@ object MoneyAlertRules {
         limit: BigDecimal,
         windowStart: LocalDate,
         windowEnd: LocalDate,
-        today: LocalDate,
-        hasLimit: Boolean = limit.signum() > 0
+        today: LocalDate
     ): BudgetAlertTier? {
-        if (!hasLimit || limit.signum() < 0 || today.isBefore(windowStart) || today.isAfter(windowEnd)) return null
+        if (limit.signum() <= 0 || today.isBefore(windowStart) || today.isAfter(windowEnd)) return null
         if (spent > limit) return BudgetAlertTier.OVER
-        if (limit.signum() == 0) return null
         val windowDays = ChronoUnit.DAYS.between(windowStart, windowEnd) + 1
         val daysElapsed = ChronoUnit.DAYS.between(windowStart, today) + 1
         val nearLimit = spent.multiply(BigDecimal(5)) >= limit.multiply(BigDecimal(4))

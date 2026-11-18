@@ -10,24 +10,31 @@ import androidx.work.OneTimeWorkRequestBuilder
 import androidx.work.PeriodicWorkRequestBuilder
 import androidx.work.WorkManager
 import androidx.work.WorkerParameters
+import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
+import com.pennywiseai.tracker.data.database.entity.BudgetWithCategories
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
+import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
-import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
-import com.pennywiseai.tracker.data.repository.BudgetSummaryProvider
-import com.pennywiseai.tracker.data.repository.budgetPercentUsed
+import com.pennywiseai.tracker.data.repository.BudgetCategorySpending
+import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
+import com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending
+import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.domain.model.BudgetCycle
+import java.math.BigDecimal
+import java.math.RoundingMode
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
-import java.math.BigDecimal
 import java.util.concurrent.TimeUnit
 
 @HiltWorker
 class BudgetWidgetUpdateWorker @AssistedInject constructor(
     @Assisted appContext: Context,
     @Assisted workerParams: WorkerParameters,
-    private val budgetSummaryProvider: BudgetSummaryProvider,
-    private val userPreferencesRepository: UserPreferencesRepository
+    private val budgetGroupRepository: BudgetGroupRepository,
+    private val userPreferencesRepository: UserPreferencesRepository,
+    private val currencyConversionService: CurrencyConversionService
 ) : CoroutineWorker(appContext, workerParams) {
 
     companion object {
@@ -59,6 +66,11 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
 
     override suspend fun doWork(): Result {
         return try {
+            val isUnifiedMode = userPreferencesRepository.unifiedCurrencyMode.first()
+            val baseCurrency = userPreferencesRepository.baseCurrency.first()
+            val displayCurrency = userPreferencesRepository.displayCurrency.first()
+            val currency = if (isUnifiedMode) displayCurrency else baseCurrency
+
             val today = java.time.LocalDate.now()
             val startDay = userPreferencesRepository.getBudgetCycleStartDay()
             // Use today's calendar month, not the cycle's start month —
@@ -81,12 +93,191 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
             // resolves to May 25–Jun 24.
             val prevCycleStartYm = java.time.YearMonth.from(prevCycle.second)
 
-            // The Budgets screen's own figures in either currency mode, so the widget
-            // can't disagree with the cards (Refunds, Extra budget, rollover, #670).
-            val summary = budgetWidgetData(
-                current = budgetSummaryProvider.summary(todayYm).first(),
-                previous = budgetSummaryProvider.summary(prevCycleStartYm).first()
-            )
+            val summary = if (isUnifiedMode) {
+                val raw = budgetGroupRepository.getGroupSpendingAllCurrencies(
+                    todayYm.year, todayYm.monthValue
+                ).first()
+
+                // Reuse the same aggregator the Budgets screen uses so the widget
+                // applies Refund (DEDUCT_SPENT) and Extra budget (ADD_TO_LIMIT)
+                // identically. Refunds shrink categoryAmounts (floored at zero) and
+                // are excluded from totalIncome; Extra budget bumps the displayed
+                // category budget via categoryLimitBoosts and stays in income.
+                // Null = no rate for this pair; the aggregator leaves the row out
+                // rather than counting a face-value foreign amount (#670).
+                val convertSplit: suspend (String, BigDecimal) -> BigDecimal? =
+                    { fromCurrency, amount ->
+                        currencyConversionService.convertAmountOrNull(amount, fromCurrency, displayCurrency)
+                    }
+                val (categoryAmounts, categoryLimitBoosts, typeAmounts) = aggregateBudgetCategorySpending(
+                    transactions = raw.allTransactions,
+                    convertSplit = convertSplit,
+                    convertIncome = { tx ->
+                        currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
+                    }
+                )
+
+                var totalIncome = BigDecimal.ZERO
+                for (txWithSplits in raw.allTransactions) {
+                    val tx = txWithSplits.transaction
+                    if (tx.transactionType != TransactionType.INCOME) continue
+                    // Only exclude a Refund from income when it's actually being
+                    // deducted from a category by aggregateBudgetCategorySpending
+                    // (i.e. budgetCategory is set). An "orphaned" DEDUCT_SPENT
+                    // with no category isn't subtracted from spend, so dropping it
+                    // from income too would understate netSavings.
+                    if (tx.budgetImpactType == BudgetImpactType.DEDUCT_SPENT &&
+                        tx.budgetCategory != null
+                    ) continue
+                    // Skip unconvertible income so it doesn't inflate netSavings
+                    // at face value (#670).
+                    totalIncome += currencyConversionService.convertAmountOrNull(
+                        tx.amount, tx.currency, displayCurrency
+                    ) ?: continue
+                }
+
+                val groupSpendingList = raw.budgetsWithCategories.map { group ->
+                    val isTrackingAll = group.categories.isEmpty()
+                    val catSpending = group.categories.map { cat ->
+                        val actual = if (cat.matchType != null) {
+                            typeAmounts[cat.matchType] ?: BigDecimal.ZERO
+                        } else {
+                            categoryAmounts[cat.categoryName] ?: BigDecimal.ZERO
+                        }
+                        val convertedBudget = currencyConversionService.convertAmount(cat.budgetAmount, baseCurrency, displayCurrency)
+                        val boost = if (cat.matchType != null) BigDecimal.ZERO
+                            else categoryLimitBoosts[cat.categoryName] ?: BigDecimal.ZERO
+                        BudgetCategorySpending(cat.categoryName, convertedBudget + boost, actual, 0f, BigDecimal.ZERO)
+                    }
+                    val convertedGroupLimit = currencyConversionService.convertAmount(
+                        group.budget.limitAmount, baseCurrency, displayCurrency
+                    )
+                    // "Category Limits" are optional — the group-level limit
+                    // is the source of truth when set (including when
+                    // isTrackingAll), with the per-cat sum as a fallback for
+                    // budgets that only define per-cat amounts.
+                    val totalBudget = if (convertedGroupLimit > BigDecimal.ZERO) {
+                        convertedGroupLimit
+                    } else {
+                        catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
+                    }
+                    val totalActual = if (isTrackingAll) {
+                        categoryAmounts.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
+                    } else {
+                        catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
+                    }
+                    BudgetGroupSpending(
+                        group,
+                        if (isTrackingAll) emptyList() else catSpending,
+                        totalBudget,
+                        totalActual,
+                        totalBudget - totalActual,
+                        0f,
+                        BigDecimal.ZERO,
+                        raw.daysRemaining,
+                        raw.daysElapsed,
+                        isTrackingAllExpenses = isTrackingAll
+                    )
+                }
+
+                val limitGroups = groupSpendingList.filter { it.group.budget.groupType == BudgetGroupType.LIMIT }
+                val totalLimitBudget = limitGroups.fold(BigDecimal.ZERO) { acc, g -> acc + g.totalBudget }
+                val totalLimitSpent = limitGroups.fold(BigDecimal.ZERO) { acc, g -> acc + g.totalActual }
+                val limitRemaining = totalLimitBudget - totalLimitSpent
+                val pctUsed = if (totalLimitBudget > BigDecimal.ZERO) {
+                    (totalLimitSpent.toFloat() / totalLimitBudget.toFloat() * 100f).coerceAtLeast(0f)
+                } else 0f
+                val dailyAllowance = if (raw.daysRemaining > 0 && limitRemaining > BigDecimal.ZERO) {
+                    limitRemaining.divide(BigDecimal(raw.daysRemaining), 0, RoundingMode.HALF_UP)
+                } else BigDecimal.ZERO
+                val netSavings = totalIncome - totalLimitSpent
+                val savingsRate = if (totalIncome > BigDecimal.ZERO) {
+                    (netSavings.toFloat() / totalIncome.toFloat() * 100f)
+                } else 0f
+
+                // Previous month savings for delta — same aggregator, same currency
+                // converters, so the delta isn't skewed by stale logic on either side.
+                val (prevCategoryAmounts, _, prevTypeAmounts) = aggregateBudgetCategorySpending(
+                    transactions = raw.prevCycleTransactions,
+                    convertSplit = convertSplit,
+                    convertIncome = { tx ->
+                        currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, displayCurrency)
+                    }
+                )
+
+                // Split LIMIT-group buckets into category vs type buckets so the
+                // previous-month spend picks up type-bucket amounts too (they live
+                // in prevTypeAmounts, not prevCategoryAmounts).
+                val limitBuckets = raw.budgetsWithCategories
+                    .filter { it.budget.groupType == BudgetGroupType.LIMIT }
+                    .flatMap { it.categories }
+                val limitCategoryNames = limitBuckets.filter { it.matchType == null }
+                    .map { it.categoryName }.toSet()
+                val limitMatchTypes = limitBuckets.mapNotNull { it.matchType }.toSet()
+
+                val prevLimitSpent = limitCategoryNames.fold(BigDecimal.ZERO) { acc, catName ->
+                    acc + (prevCategoryAmounts[catName] ?: BigDecimal.ZERO)
+                } + limitMatchTypes.fold(BigDecimal.ZERO) { acc, t ->
+                    acc + (prevTypeAmounts[t] ?: BigDecimal.ZERO)
+                }
+
+                var prevIncome = BigDecimal.ZERO
+                for (txWithSplits in raw.prevCycleTransactions) {
+                    val tx = txWithSplits.transaction
+                    if (tx.transactionType != TransactionType.INCOME) continue
+                    if (tx.budgetImpactType == BudgetImpactType.DEDUCT_SPENT &&
+                        tx.budgetCategory != null
+                    ) continue
+                    prevIncome += currencyConversionService.convertAmountOrNull(
+                        tx.amount, tx.currency, displayCurrency
+                    ) ?: continue
+                }
+
+                val prevSavings = prevIncome - prevLimitSpent
+                val savingsDelta = netSavings - prevSavings
+
+                BudgetWidgetData(
+                    totalSpent = totalLimitSpent,
+                    totalLimit = totalLimitBudget,
+                    remaining = limitRemaining,
+                    percentageUsed = pctUsed,
+                    dailyAllowance = dailyAllowance,
+                    totalIncome = totalIncome,
+                    netSavings = netSavings,
+                    savingsRate = savingsRate,
+                    savingsDelta = savingsDelta,
+                    currency = currency
+                )
+            } else {
+                val spending = budgetGroupRepository.getGroupSpending(
+                    todayYm.year, todayYm.monthValue, currency
+                ).first()
+
+                // Get previous month spending for delta calculation
+                val prevSpending = budgetGroupRepository.getGroupSpending(
+                    prevCycleStartYm.year, prevCycleStartYm.monthValue, currency
+                ).first()
+
+                val savingsDelta = spending.netSavings - prevSpending.netSavings
+
+                val limitRemaining = spending.totalLimitBudget - spending.totalLimitSpent
+                val pctUsed = if (spending.totalLimitBudget > java.math.BigDecimal.ZERO) {
+                    (spending.totalLimitSpent.toFloat() / spending.totalLimitBudget.toFloat() * 100f).coerceAtLeast(0f)
+                } else 0f
+
+                BudgetWidgetData(
+                    totalSpent = spending.totalLimitSpent,
+                    totalLimit = spending.totalLimitBudget,
+                    remaining = limitRemaining,
+                    percentageUsed = pctUsed,
+                    dailyAllowance = spending.dailyAllowance,
+                    totalIncome = spending.totalIncome,
+                    netSavings = spending.netSavings,
+                    savingsRate = spending.savingsRate,
+                    savingsDelta = savingsDelta,
+                    currency = currency
+                )
+            }
 
             BudgetWidgetDataStore.update(applicationContext, summary)
             BudgetWidget().updateAll(applicationContext)
@@ -98,27 +289,4 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
             Result.retry()
         }
     }
-}
-
-/**
- * The budget widget's figures: every spending limit in [current] (the Budgets
- * screen's summary) together, and how savings moved since [previous].
- */
-internal fun budgetWidgetData(current: BudgetOverallSummary, previous: BudgetOverallSummary): BudgetWidgetData {
-    // Rollover can carry every limit down to 0: that's used up, not "no budget".
-    val carry = current.groups.filter { it.group.budget.groupType == BudgetGroupType.LIMIT }
-        .fold(BigDecimal.ZERO) { acc, g -> acc + g.carry }
-    return BudgetWidgetData(
-        totalSpent = current.totalLimitSpent,
-        totalLimit = current.totalLimitBudget,
-        hasLimit = current.totalLimitBudget.signum() > 0 || carry.signum() < 0,
-        remaining = current.totalLimitBudget - current.totalLimitSpent,
-        percentageUsed = budgetPercentUsed(current.totalLimitSpent, current.totalLimitBudget, carry),
-        dailyAllowance = current.dailyAllowance,
-        totalIncome = current.totalIncome,
-        netSavings = current.netSavings,
-        savingsRate = current.savingsRate,
-        savingsDelta = current.netSavings - previous.netSavings,
-        currency = current.currency
-    )
 }

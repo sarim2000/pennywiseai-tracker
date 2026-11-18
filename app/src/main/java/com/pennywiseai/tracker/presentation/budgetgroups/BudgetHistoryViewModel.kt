@@ -3,10 +3,8 @@ package com.pennywiseai.tracker.presentation.budgetgroups
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.BudgetEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
-import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.data.repository.BudgetWindow
@@ -15,6 +13,7 @@ import com.pennywiseai.tracker.data.repository.WindowBreakdown
 import com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.resolveBudgetWindow
 import com.pennywiseai.tracker.data.repository.windowsForMonth
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -61,8 +60,7 @@ data class BudgetHistoryUiState(
 class BudgetHistoryViewModel @Inject constructor(
     savedStateHandle: SavedStateHandle,
     private val budgetGroupRepository: BudgetGroupRepository,
-    private val userPreferencesRepository: UserPreferencesRepository,
-    private val currencyConversionService: CurrencyConversionService
+    private val userPreferencesRepository: UserPreferencesRepository
 ) : ViewModel() {
 
     private val groupId: Long = savedStateHandle.get<Long>("groupId") ?: -1L
@@ -76,10 +74,6 @@ class BudgetHistoryViewModel @Inject constructor(
     )
     val uiState: StateFlow<BudgetHistoryUiState> = _uiState.asStateFlow()
 
-    // Unified mode converts every currency's spending, and last period's for the
-    // carry, as the Budgets card does; otherwise it counts the history's own currency only.
-    private var convert: (suspend (String, BigDecimal) -> BigDecimal?)? = null
-
     init {
         loadHistory()
     }
@@ -90,9 +84,6 @@ class BudgetHistoryViewModel @Inject constructor(
             val startDay = userPreferencesRepository.getBudgetCycleStartDay()
             val baseCurrency = userPreferencesRepository.baseCurrency.first()
             val displayCurrency = baseCurrency
-            convert = if (userPreferencesRepository.unifiedCurrencyMode.first()) {
-                { fromCurrency, amount -> currencyConversionService.convertAmountOrNull(amount, fromCurrency, displayCurrency) }
-            } else null
             val budget = budgetGroupRepository.getGroupById(groupId) ?: run {
                 _uiState.value = _uiState.value.copy(isLoading = false)
                 return@launch
@@ -101,8 +92,7 @@ class BudgetHistoryViewModel @Inject constructor(
                 budget = budget,
                 year = yearMonth.year,
                 month = yearMonth.monthValue,
-                currency = displayCurrency,
-                convert = convert
+                currency = displayCurrency
             )
             val totalSpent = history.fold(BigDecimal.ZERO) { acc, w -> acc + w.spent }
             val isCurrentMonth = yearMonth == YearMonth.now()
@@ -136,7 +126,9 @@ class BudgetHistoryViewModel @Inject constructor(
                 totalSpent = totalSpent,
                 currency = displayCurrency,
                 baseCurrency = baseCurrency,
-                budgetAmount = historyBudgetTotal(budget, history)
+                budgetAmount = if (budget.periodType == com.pennywiseai.tracker.data.database.entity.BudgetPeriodType.WEEKLY) {
+                    budget.limitAmount.multiply(BigDecimal(history.size))
+                } else budget.limitAmount
             )
         }
     }
@@ -159,8 +151,7 @@ class BudgetHistoryViewModel @Inject constructor(
             val breakdown = budgetGroupRepository.getBudgetWindowBreakdown(
                 budget = budget,
                 window = window,
-                currency = currency,
-                convert = convert
+                currency = currency
             )
             _uiState.value = _uiState.value.copy(
                 breakdown = breakdown,
@@ -173,18 +164,4 @@ class BudgetHistoryViewModel @Inject constructor(
     fun dismissBreakdown() {
         _uiState.value = _uiState.value.copy(breakdown = null, isLoadingBreakdown = false)
     }
-}
-
-/**
- * The month's budget on the Budget History header: the base limit for each window,
- * plus what the month's first window carried in from before the month. A later
- * window's carry is an earlier window's leftover (or overspend) of this same month,
- * already counted in that window's limit, so adding it again would count it twice.
- */
-internal fun historyBudgetTotal(budget: BudgetEntity, history: List<PastWindowSpending>): BigDecimal {
-    val base = if (budget.periodType == com.pennywiseai.tracker.data.database.entity.BudgetPeriodType.WEEKLY) {
-        budget.limitAmount.multiply(BigDecimal(history.size))
-    } else budget.limitAmount
-    // Rollover: the carry is in the history's own currency.
-    return base + (history.firstOrNull()?.carry?.amount?.amount ?: BigDecimal.ZERO)
 }

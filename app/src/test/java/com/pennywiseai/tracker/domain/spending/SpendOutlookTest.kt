@@ -183,18 +183,4 @@ class SpendOutlookTest {
         )
         assertEquals(listOf("Netflix"), bills.map { it.name })
     }
-
-    @Test
-    fun `an overdue card bill stays reserved, other overdue bills don't`() {
-        val r = SafeToSpend.calculate(
-            listOf(Money(d("10000"), "INR")),
-            listOf(
-                Bill("Card", Money(d("2500"), "INR"), LocalDate.of(2026, 10, 20), isCardBill = true),
-                Bill("Old", Money(d("500"), "INR"), LocalDate.of(2026, 10, 20)),
-            ),
-            today, end,
-        ).single()
-        assertEquals(d("2500"), r.bills)
-        assertEquals(d("7500"), r.amount)
-    }
 }

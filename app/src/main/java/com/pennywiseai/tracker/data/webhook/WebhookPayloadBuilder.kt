@@ -144,8 +144,6 @@ class WebhookPayloadBuilder @Inject constructor(
             val categories = budgets.getCategoriesForBudget(budget.id).first().map {
                 WebhookBudgetCategoryPayload(it.categoryName, it.budgetAmount.asPlainStringSafe())
             }
-            // `amount` is the budget's own base limit: it leaves out rollover's carry from
-            // last period, so it can differ from the limit the app shows for this window.
             WebhookBudgetPayload("budget_${budget.id}", budget.name, budget.limitAmount.asPlainStringSafe(),
                 budget.currency, budget.periodType.name, budget.groupType.name, window.start.toString(),
                 window.end.toString(), spending.asPlainStringSafe(), categories)

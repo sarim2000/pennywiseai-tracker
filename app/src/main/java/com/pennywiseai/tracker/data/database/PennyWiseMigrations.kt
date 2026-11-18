@@ -580,40 +580,6 @@ object PennyWiseMigrations {
     }
 
     /**
-     * A credit card's bill (due day, statement amount, when it was entered) on
-     * `account_balances`. Plain ADD COLUMNs that SQLite 3.18 runs; existing rows stay
-     * null, "unknown", never a made-up value.
-     */
-    val MIGRATION_68_69 = object : Migration(68, 69) {
-        override suspend fun migrate(db: SQLiteConnection) {
-            for ((column, type) in listOf(
-                "card_due_day" to "INTEGER",
-                "card_bill_amount" to "TEXT",
-                "card_bill_as_of" to "TEXT",
-            )) {
-                if (!db.hasColumn("account_balances", column)) {
-                    db.execSQL("ALTER TABLE account_balances ADD COLUMN $column $type DEFAULT NULL")
-                }
-            }
-        }
-    }
-
-    /**
-     * A budget's rollover setting on `budgets`: off for every existing budget. Plain
-     * ADD COLUMNs that SQLite 3.18 runs.
-     */
-    val MIGRATION_69_70 = object : Migration(69, 70) {
-        override suspend fun migrate(db: SQLiteConnection) {
-            if (!db.hasColumn("budgets", "rollover_enabled")) {
-                db.execSQL("ALTER TABLE budgets ADD COLUMN rollover_enabled INTEGER NOT NULL DEFAULT 0")
-            }
-            if (!db.hasColumn("budgets", "rollover_since")) {
-                db.execSQL("ALTER TABLE budgets ADD COLUMN rollover_since TEXT DEFAULT NULL")
-            }
-        }
-    }
-
-    /**
      * Single source of truth for the migration list. Both the Hilt-built
      * database (DatabaseModule.providePennyWiseDatabase) and the
      * BroadcastReceiver fallback path (PennyWiseDatabase.getInstance) reference this
@@ -649,8 +615,6 @@ object PennyWiseMigrations {
         MIGRATION_63_64,
         MIGRATION_64_65,
         MIGRATION_67_68,
-        MIGRATION_68_69,
-        MIGRATION_69_70,
     )
 }
 

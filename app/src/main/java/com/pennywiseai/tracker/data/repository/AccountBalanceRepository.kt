@@ -178,21 +178,17 @@ open class AccountBalanceRepository @Inject constructor(
                 creditLimit = creditLimit,
                 isCreditCard = isCreditCard,
                 accountType = BalanceCalculator.preservedAccountType(existing),
-                // Nothing here says the currency: the account keeps its own.
-                currency = existing?.currency ?: "INR",
                 profileId = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
                 alias = existing?.alias,
                 lowBalanceThreshold = existing?.lowBalanceThreshold
-            ).withAccountFieldsOf(existing)
+            )
             insertBalance(balanceEntity)
         }
     }
 
     /**
      * Inserts a balance update from a balance notification SMS.
-     * Preserves the existing account's profileId if one exists. Without a
-     * [currency] (a card link), the account keeps its own: a row in another
-     * currency would read as a change of currency and drop the card's bill.
+     * Preserves the existing account's profileId if one exists.
      */
     suspend fun insertBalanceUpdate(
         bankName: String,
@@ -201,7 +197,7 @@ open class AccountBalanceRepository @Inject constructor(
         timestamp: LocalDateTime,
         smsSource: String? = null,
         sourceType: String? = null,
-        currency: String? = null
+        currency: String = "INR"
     ): Long {
         val existing = getLatestBalance(bankName, accountLast4)
         val balanceEntity = AccountBalanceEntity(
@@ -218,11 +214,11 @@ open class AccountBalanceRepository @Inject constructor(
             isCreditCard = existing?.isCreditCard ?: false,
             creditLimit = existing?.creditLimit,
             accountType = BalanceCalculator.preservedAccountType(existing),
-            currency = currency ?: existing?.currency ?: "INR",
+            currency = currency,
             profileId = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
             alias = existing?.alias,
             lowBalanceThreshold = existing?.lowBalanceThreshold
-        ).withAccountFieldsOf(existing)
+        )
         return insertBalance(balanceEntity)
     }
 
@@ -337,35 +333,6 @@ open class AccountBalanceRepository @Inject constructor(
         val type = snapshot.accountType ?: return 0
         return accountBalanceDao.fillMissingAccountType(snapshot.bankName, snapshot.accountLast4, type, snapshot.isCreditCard)
     }
-
-    /** Sets (or, with nulls, clears) a credit card's bill on all of its rows. */
-    suspend fun setCardBill(
-        bankName: String,
-        accountLast4: String,
-        dueDay: Int?,
-        amount: BigDecimal?,
-        asOf: LocalDateTime? = amount?.let { LocalDateTime.now() },
-    ): Int = accountBalanceDao.setCardBill(bankName, accountLast4, dueDay, amount, asOf)
-
-    /**
-     * Puts [snapshot]'s account-level fields (statement and due day, card bill) back
-     * on the rows of [bankName]/[accountLast4] that don't have them. A force resync rebuilds an
-     * account's rows and a merge moves it, and neither may lose what the user set.
-     * The bill amount goes only onto rows in [snapshot]'s currency.
-     */
-    suspend fun keepAccountFields(
-        snapshot: AccountBalanceEntity,
-        bankName: String = snapshot.bankName,
-        accountLast4: String = snapshot.accountLast4,
-    ): Int = accountBalanceDao.fillMissingAccountFields(
-        bankName = bankName,
-        accountLast4 = accountLast4,
-        statementDay = snapshot.statementDay,
-        dueDay = snapshot.cardDueDay,
-        billAmount = snapshot.cardBillAmount,
-        billAsOf = snapshot.cardBillAsOf,
-        billCurrency = snapshot.currency,
-    )
 
     /**
      * Sets (or clears, with null) the per-account low-balance alert threshold
@@ -871,7 +838,7 @@ open class AccountBalanceRepository @Inject constructor(
                 lowBalanceThreshold = latestBalance?.lowBalanceThreshold,
                 sourceType = SOURCE_MANUAL,
                 timestamp = at
-            ).withAccountFieldsOf(latestBalance)
+            )
         )
     }
 

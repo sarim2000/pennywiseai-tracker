@@ -50,9 +50,7 @@ data class PastWindowSpending(
     val window: BudgetWindow,
     val spent: BigDecimal,
     val capDate: LocalDate = window.end,
-    val isLive: Boolean = false,
-    /** Carried into this window from the one before, when rollover is on (Budget History only). */
-    val carry: BudgetCarry? = null
+    val isLive: Boolean = false
 )
 
 /**
@@ -67,13 +65,8 @@ data class WindowBreakdown(
     val categorySpending: List<BudgetCategorySpending>,
     val totalBudget: BigDecimal,
     val totalActual: BigDecimal,
-    val isTrackingAll: Boolean = false,
-    /** Rollover: what this window carried in, already in [totalBudget]; null when it carries nothing. */
-    val carry: BudgetCarry? = null
-) {
-    /** A limit is set, even if rollover carried [totalBudget] down to 0. */
-    val hasLimit: Boolean get() = (totalBudget - (carry?.amount?.amount ?: BigDecimal.ZERO)).signum() > 0
-}
+    val isTrackingAll: Boolean = false
+)
 
 data class BudgetGroupSpending(
     val group: BudgetWithCategories,
@@ -118,26 +111,8 @@ data class BudgetGroupSpending(
      * True when the displayed window is the current week in the current
      * month and its cap is `today` (live, still accumulating).
      */
-    val displayedIsLive: Boolean = false,
-    /**
-     * Rollover: what last period left (or overspent) that [totalBudget] already
-     * includes, so the budget's own limit is `totalBudget − carry`. Zero when
-     * rollover is off. [carryGap]: last period couldn't all be counted, so nothing carried.
-     */
-    val carry: BigDecimal = BigDecimal.ZERO,
-    val carryGap: CarryGap? = null
-) {
-    val carryIncomplete: Boolean get() = carryGap != null
-
-    /** The budget's own limit, before rollover's [carry]. */
-    val baseBudget: BigDecimal get() = totalBudget - carry
-
-    /**
-     * There's a limit to measure against. Rollover can carry a real limit down to
-     * exactly 0: that limit is used up, not missing, so check this, not [totalBudget].
-     */
-    val hasLimit: Boolean get() = baseBudget.signum() > 0
-}
+    val displayedIsLive: Boolean = false
+)
 
 data class BudgetOverallSummary(
     val groups: List<BudgetGroupSpending>,
@@ -173,7 +148,7 @@ data class BudgetOverallSummary(
 data class WindowSpending(
     val budgetId: Long,
     val window: BudgetWindow,
-    val transactions: List<TransactionWithSplits>
+    val transactions: List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>
 )
 
 data class BudgetGroupSpendingRaw(
@@ -191,7 +166,7 @@ data class BudgetGroupSpendingRaw(
      * its native currency — the viewmodel converts per-transaction
      * before aggregating.
      */
-    val prevCycleTransactions: List<TransactionWithSplits> = emptyList(),
+    val prevCycleTransactions: List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits> = emptyList(),
     /**
      * Legacy: flat list of all transactions in the displayed windows for
      * the current month. Kept for the home / widget which still build
@@ -199,7 +174,7 @@ data class BudgetGroupSpendingRaw(
      * repo populates it for the unified path so the home carousel can
      * show per-category spend without re-querying.
      */
-    val allTransactions: List<TransactionWithSplits> = emptyList(),
+    val allTransactions: List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits> = emptyList(),
     /**
      * The per-budget *current* window (the budget's own cycle for the
      * current month, the most-recent window in the list for a historical
@@ -209,21 +184,5 @@ data class BudgetGroupSpendingRaw(
      * a Weekly budget straddling a month boundary, where the same
      * window shows in both June and July views.
      */
-    val currentWindows: Map<Long, BudgetWindow> = emptyMap(),
-    /**
-     * Rollover: for each budget that carries into its current window, the
-     * transactions (every currency) of the period it carries from. Pass to
-     * [budgetCarry] with [parentOf].
-     */
-    val carrySources: Map<Long, List<TransactionWithSplits>> = emptyMap(),
-    /** Sub-category → parent name, for [budgetSpend]: live totals and [budgetCarry] alike. */
-    val parentOf: Map<String, String> = emptyMap()
-) {
-    /** What [group] carries into its current window, in [currency]; see [budgetCarry]. */
-    suspend fun carryFor(
-        group: BudgetWithCategories,
-        currency: String,
-        baseCurrency: String,
-        convert: suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?
-    ): BudgetCarry = budgetCarry(group, carrySources[group.budget.id], currency, baseCurrency, parentOf, convert)
-}
+    val currentWindows: Map<Long, BudgetWindow> = emptyMap()
+)

@@ -45,8 +45,7 @@ class MoneyAlertChecker @Inject constructor(
             val budget = spending.group.budget
             if (budget.groupType != BudgetGroupType.LIMIT) continue
             val tier = MoneyAlertRules.budgetTier(
-                spending.totalActual, spending.totalBudget, spending.windowStart, spending.windowEnd, today,
-                hasLimit = spending.hasLimit
+                spending.totalActual, spending.totalBudget, spending.windowStart, spending.windowEnd, today
             ) ?: continue
             val window = "${spending.windowStart}|${spending.windowEnd}|${budget.limitAmount.stripTrailingZeros().toPlainString()}"
             if (userPreferencesRepository.claimBudgetAlert(budget.id, window, tier) && notify) {

@@ -2,8 +2,8 @@ package com.pennywiseai.tracker.data.backup
 
 import com.pennywiseai.tracker.data.database.SCHEMA_VERSION
 import com.pennywiseai.tracker.data.database.entity.*
-import com.pennywiseai.tracker.data.database.entity.builtinKey
 import kotlinx.serialization.decodeFromString
+import com.pennywiseai.tracker.data.database.entity.builtinKey
 import kotlinx.serialization.encodeToString
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -48,6 +48,7 @@ class BackupModelsTest {
         val restored = backupJson.decodeFromString<TransactionEntity>(backupJson.encodeToString(leg))
         assertEquals("synthetic-pair", restored.transferPairId)
     }
+
 
     @Test
     fun backupSerializationRoundtripWithAllFields() {
@@ -616,99 +617,6 @@ class BackupModelsTest {
         // Newer row carrying the key round-trips its BigDecimal value.
         val withThreshold = balances.first { it.id == 2L }
         assertEquals(BigDecimal("500.00"), withThreshold.lowBalanceThreshold)
-    }
-
-    /** A backup from before schema 69 has no card bill: all unknown. */
-    @Test
-    fun oldBackupMissingCardBill_defaultsToNull() {
-        val json = """
-        {
-          "database": {
-            "account_balances": [
-              {
-                "id": 1,
-                "bankName": "Test Bank",
-                "accountLast4": "1234",
-                "balance": "1500.00",
-                "timestamp": "2024-01-01T10:00:00",
-                "isCreditCard": true,
-                "statementDay": 12
-              }
-            ]
-          }
-        }
-        """.trimIndent()
-
-        val legacy = backupJson.decodeFromString<PennyWiseBackup>(json).database.accountBalances.single()
-
-        assertEquals(12, legacy.statementDay)
-        assertNull(legacy.cardDueDay)
-        assertNull(legacy.cardBillAmount)
-        assertNull(legacy.cardBillAsOf)
-    }
-
-    @Test
-    fun cardBillSurvivesBackupRoundtrip() {
-        val card = AccountBalanceEntity(
-            bankName = "Test Bank",
-            accountLast4 = "1234",
-            balance = BigDecimal("4200.00"),
-            timestamp = LocalDateTime.of(2024, 3, 1, 9, 0),
-            isCreditCard = true,
-            cardDueDay = 31,
-            cardBillAmount = BigDecimal("3900.50"),
-            cardBillAsOf = LocalDateTime.of(2024, 2, 20, 8, 30),
-        )
-
-        val restored = backupJson.decodeFromString<AccountBalanceEntity>(backupJson.encodeToString(card))
-
-        assertEquals(card, restored)
-    }
-
-    /** A backup from before schema 70 has no rollover: the budget restores with it off. */
-    @Test
-    fun oldBackupMissingRollover_defaultsToOff() {
-        val json = """
-        {
-          "database": {
-            "budgets": [
-              {
-                "id": 1,
-                "name": "Groceries",
-                "limitAmount": "500",
-                "periodType": "WEEKLY",
-                "startDate": "2024-01-01",
-                "endDate": "2024-01-07"
-              }
-            ]
-          }
-        }
-        """.trimIndent()
-
-        val legacy = backupJson.decodeFromString<PennyWiseBackup>(json).database.budgets.single()
-
-        assertFalse(legacy.rolloverEnabled)
-        assertNull(legacy.rolloverSince)
-    }
-
-    @Test
-    fun rolloverSurvivesBackupRoundtrip() {
-        val budget = BudgetEntity(
-            name = "Groceries",
-            limitAmount = BigDecimal("500"),
-            periodType = BudgetPeriodType.MONTHLY,
-            startDate = LocalDate.of(2024, 2, 1),
-            endDate = LocalDate.of(2024, 2, 29),
-            monthStartDay = 1,
-            createdAt = LocalDateTime.of(2024, 1, 1, 9, 0),
-            updatedAt = LocalDateTime.of(2024, 1, 1, 9, 0),
-            rolloverEnabled = true,
-            rolloverSince = LocalDate.of(2024, 2, 10),
-        )
-
-        val restored = backupJson.decodeFromString<BudgetEntity>(backupJson.encodeToString(budget))
-
-        assertEquals(budget, restored)
     }
 
     /**

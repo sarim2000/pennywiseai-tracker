@@ -4,11 +4,11 @@ import androidx.room3.ColumnInfo
 import androidx.room3.Entity
 import androidx.room3.Index
 import androidx.room3.PrimaryKey
-import kotlinx.serialization.Contextual
-import kotlinx.serialization.Serializable
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
+import kotlinx.serialization.Contextual
+import kotlinx.serialization.Serializable
 
 @Entity(
     tableName = "budgets",
@@ -84,22 +84,7 @@ data class BudgetEntity(
 
     @ColumnInfo(name = "updated_at")
     @Contextual
-    val updatedAt: LocalDateTime = LocalDateTime.now(),
-
-    /**
-     * A weekly or monthly LIMIT budget only: what was left of (or spent past) the
-     * last period's limit carries into this one, at most one limit either way.
-     */
-    @ColumnInfo(name = "rollover_enabled", defaultValue = "0")
-    val rolloverEnabled: Boolean = false,
-
-    /**
-     * The day rollover was turned on, or last restarted by a change of currency or
-     * period. The period holding this day carries nothing in. Null while it's off.
-     */
-    @ColumnInfo(name = "rollover_since", defaultValue = "NULL")
-    @Contextual
-    val rolloverSince: LocalDate? = null
+    val updatedAt: LocalDateTime = LocalDateTime.now()
 )
 
 @Serializable

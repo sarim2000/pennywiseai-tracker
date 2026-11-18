@@ -400,6 +400,8 @@
     <string name="quick_add_from">De: %1$s</string>
     <!-- %1$s amount with currency, %2$s category -->
     <string name="quick_add_saved">Guardado: %1$s · %2$s</string>
+    <!-- The sheet filled from the voice mic (Home, the cash widget) -->
+    <!-- Clears a day said out loud ("yesterday") back to today -->
     <string name="date_range_title">Selecione Intervalo de Datas</string>
     <string name="date_range_ok">Certo</string>
     <string name="date_range_cancel">cancelar</string>

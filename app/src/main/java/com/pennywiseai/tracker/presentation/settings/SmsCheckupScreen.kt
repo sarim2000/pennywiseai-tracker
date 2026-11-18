@@ -59,6 +59,9 @@ import com.pennywiseai.tracker.ui.theme.success
 import com.pennywiseai.tracker.ui.theme.warning
 import com.pennywiseai.tracker.utils.canReceiveSms
 import com.pennywiseai.tracker.utils.trackingProblem
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flow
 import java.text.NumberFormat
 
 /** One place that answers "why didn't my transaction show up?". */
@@ -85,6 +88,8 @@ fun SmsCheckupScreen(
         canReceiveSms = context.canReceiveSms()
         onPauseOrDispose {}
     }
+    // Relative times ("5 minutes ago") tick each minute while the screen is started.
+    val now by remember { minuteTicks() }.collectAsStateWithLifecycle(System.currentTimeMillis())
     val notificationAccessLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.StartActivityForResult()
     ) { permissionViewModel.refreshNotificationAccess() }
@@ -175,6 +180,7 @@ fun SmsCheckupScreen(
             SectionHeaderV2(title = stringResource(R.string.sms_checkup_section_scan))
             LastScanCard(
                 scan,
+                now = now,
                 canScan = smsAccess.granted,
                 accessInSettings = smsAccess.blocked,
                 onRescan = viewModel::rescan
@@ -187,9 +193,15 @@ fun SmsCheckupScreen(
 }
 
 @Composable
-private fun LastScanCard(scan: SmsCheckupState, canScan: Boolean, accessInSettings: Boolean, onRescan: () -> Unit) {
+private fun LastScanCard(
+    scan: SmsCheckupState,
+    now: Long,
+    canScan: Boolean,
+    accessInSettings: Boolean,
+    onRescan: () -> Unit
+) {
     val record = scan.record
-    val ended = record?.finishedAt?.let { relativeTime(it) }.orEmpty()
+    val ended = record?.finishedAt?.let { relativeTime(it, now) }.orEmpty()
     val (icon, color) = when {
         scan.status == LastScanStatus.SUCCEEDED -> Icons.Default.Check to MaterialTheme.colorScheme.success
         scan.status == LastScanStatus.RUNNING -> Icons.Default.Sync to MaterialTheme.colorScheme.primary
@@ -218,10 +230,10 @@ private fun LastScanCard(scan: SmsCheckupState, canScan: Boolean, accessInSettin
         if (scan.status.needsAttention || scan.status == LastScanStatus.RUNNING) {
             // From the record, not the incremental cursor: a scan-window change resets
             // that to 0, and a restore brings it back without this record.
-            record?.lastSucceededAt?.let { add(stringResource(R.string.sms_checkup_last_success, relativeTime(it))) }
+            record?.lastSucceededAt?.let { add(stringResource(R.string.sms_checkup_last_success, relativeTime(it, now))) }
         }
         if (counts != null) add(scanSummary(counts, stoppedEarly = scan.status.endedEarly))
-        scan.lastLiveSmsAt?.let { add(stringResource(R.string.sms_checkup_live_sms, relativeTime(it))) }
+        scan.lastLiveSmsAt?.let { add(stringResource(R.string.sms_checkup_live_sms, relativeTime(it, now))) }
         // The way to fix it is further up; say why the button is off right next to it,
         // naming the button the SMS access row shows.
         if (!canScan) {
@@ -377,9 +389,15 @@ private fun StatusHeader(icon: ImageVector, color: Color, title: String) {
     }
 }
 
+private fun minuteTicks(): Flow<Long> = flow {
+    while (true) {
+        emit(System.currentTimeMillis())
+        delay(DateUtils.MINUTE_IN_MILLIS)
+    }
+}
+
 @Composable
-private fun relativeTime(millis: Long): String {
-    val now = System.currentTimeMillis()
+private fun relativeTime(millis: Long, now: Long): String {
     // DateUtils says "0 minutes ago" for the first minute.
     return if (now - millis < DateUtils.MINUTE_IN_MILLIS) {
         stringResource(R.string.sms_checkup_just_now)

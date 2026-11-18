@@ -90,8 +90,11 @@ fun topCategoryShares(review: CurrencyReview, limit: Int = 4): List<CategoryShar
     val total = review.spent
     return review.topCategories.take(limit).map { line ->
         val share = if (total.signum() <= 0) 0
-        else line.amount.multiply(BigDecimal(100)).divide(total, 0, RoundingMode.HALF_UP).toInt()
-        CategoryShare(line.name, line.amount, share.coerceIn(0, 100))
+        // Clamped before toInt(): a refund elsewhere can shrink the total far below one
+        // category, and toInt() would wrap that huge share into a negative one.
+        else line.amount.multiply(BigDecimal(100)).divide(total, 0, RoundingMode.HALF_UP)
+            .max(BigDecimal.ZERO).min(BigDecimal(100)).toInt()
+        CategoryShare(line.name, line.amount, share)
     }
 }
 

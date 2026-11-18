@@ -134,6 +134,13 @@ class ShareMathTest {
         assertEquals(listOf(50, 33), topCategoryShares(review).map { it.sharePercent })
     }
 
+    @Test
+    fun `a share far past 100 percent stays 100, not a wrapped negative`() {
+        // Food 300,000 against a net total of 0.01 (a refund elsewhere): the raw share wraps an Int.
+        val review = currency(spent = "0.01", top = listOf(CategoryLine("Food", bd("300000"), null)))
+        assertEquals(listOf(100), topCategoryShares(review).map { it.sharePercent })
+    }
+
     // --- Budget
 
     private fun limit(

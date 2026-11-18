@@ -121,7 +121,6 @@
     <string name="txn_detail_label_to">Кому</string>
     <string name="txn_detail_label_balance">Баланс</string>
     <string name="txn_detail_label_balance_mismatch">Несоответствие баланса</string>
-    <string name="txn_detail_balance_mismatch_value">Выключен %1$s · ожидается %2$s</string>
     <string name="txn_detail_add_untracked_expense">Добавить неотслеживаемые расходы %1$s</string>
     <string name="txn_detail_add_untracked_income">Добавить неотслеживаемый доход %1$s</string>
     <string name="txn_detail_adjustment_title_expense">Неучтенный расход</string>

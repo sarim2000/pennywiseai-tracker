@@ -71,7 +71,11 @@ fun AmountCalculatorSheet(
     val result = (outcome as? AmountExpression.Outcome.Amount)?.value
     val canApply = result != null && result.signum() > 0
     // Why there's nothing to use, when it's worth saying; null shows the result.
+    // A key the length limit turned away; any edit that goes through clears it.
+    var full by rememberSaveable { mutableStateOf(false) }
+    val tooLong = full || expression.length > AmountExpression.MAX_LENGTH
     val problem = when {
+        tooLong -> stringResource(R.string.calculator_too_long)
         canApply -> null
         result != null -> stringResource(R.string.calculator_must_be_positive)
         outcome == AmountExpression.Outcome.DividesByZero -> stringResource(R.string.calculator_divide_by_zero)
@@ -83,7 +87,8 @@ fun AmountCalculatorSheet(
     val point = remember(locale) { DecimalFormatSymbols.getInstance(locale).decimalSeparator }
     fun shown(text: String) = text.replace('.', point)
     fun type(key: String) {
-        if (expression.length + key.length <= AmountExpression.MAX_LENGTH) expression += key
+        full = expression.length + key.length > AmountExpression.MAX_LENGTH
+        if (!full) expression += key
     }
 
     ModalBottomSheet(
@@ -116,12 +121,12 @@ fun AmountCalculatorSheet(
                         text = when {
                             // With its currency, so it's clear what Apply writes. Not masked
                             // when amounts are hidden: the sum being typed is on screen anyway.
-                            canApply -> "= " + CurrencyFormatter.formatCurrency(result, currency, maskIfHidden = false)
+                            !tooLong && canApply -> "= " + CurrencyFormatter.formatCurrency(result, currency, maskIfHidden = false)
                             else -> problem ?: " "
                         },
                         style = MaterialTheme.typography.titleMedium.money(),
                         // A sum still being typed isn't a mistake, so it isn't red.
-                        color = if (problem != null && outcome != AmountExpression.Outcome.Unfinished) {
+                        color = if (tooLong || (problem != null && outcome != AmountExpression.Outcome.Unfinished)) {
                             MaterialTheme.colorScheme.error
                         } else {
                             MaterialTheme.colorScheme.onSurfaceVariant
@@ -134,10 +139,21 @@ fun AmountCalculatorSheet(
                     Keypad(
                         point = point,
                         onKey = ::type,
-                        onClear = { expression = "" },
-                        onBackspace = { expression = expression.dropLast(1) },
+                        onClear = {
+                            expression = ""
+                            full = false
+                        },
+                        onBackspace = {
+                            expression = expression.dropLast(1)
+                            full = false
+                        },
                         // "=" folds the sum into its result, to keep going from there.
-                        onEquals = { result?.let { expression = it.toPlainString() } }
+                        onEquals = {
+                            result?.let {
+                                expression = it.toPlainString()
+                                full = false
+                            }
+                        }
                     )
                 }
             }
@@ -150,7 +166,8 @@ fun AmountCalculatorSheet(
                 }
                 Button(
                     onClick = { result?.let(onApply) },
-                    enabled = canApply,
+                    // Not while a key was turned away: the result isn't the sum the user typed.
+                    enabled = canApply && !tooLong,
                     shapes = ButtonDefaults.shapes()
                 ) {
                     Text(stringResource(R.string.calculator_apply))

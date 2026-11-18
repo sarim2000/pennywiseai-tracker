@@ -465,6 +465,7 @@
     <string name="calculator_divide_by_zero">Can\'t divide by zero</string>
     <string name="calculator_too_large">That amount is too large</string>
     <!-- The sum is unfinished or doesn't make sense yet, e.g. "12+" or "1..2" -->
+    <string name="calculator_too_long">That sum is too long. Shorten it or press =</string>
     <string name="calculator_unfinished">Finish the sum to use it</string>
     <string name="calculator_clear">Clear</string>
     <string name="calculator_divide">Divide</string>

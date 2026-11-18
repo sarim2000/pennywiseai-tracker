@@ -7,6 +7,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.onStart
+import java.math.BigDecimal
 import java.time.LocalDate
 import javax.inject.Inject
 import javax.inject.Singleton
@@ -16,9 +17,9 @@ data class ChatSuggestion(val action: QuickAction, val overdue: Int = 0)
 
 /**
  * The chat's suggested prompts, as they apply right now: what needs doing first (bills due,
- * limits running), then the standing questions, capped so they don't crowd the composer. All
- * answered by code, so they work without the model. Changes as the bills and budgets behind
- * them do.
+ * budgets over or nearly spent), then the standing questions, capped so they don't crowd the
+ * composer. All answered by code, so they work without the model. Changes as the bills and
+ * budgets behind them do.
  */
 @Singleton
 class ChatSuggestions @Inject constructor(
@@ -40,6 +41,19 @@ class ChatSuggestions @Inject constructor(
     }
 
     companion object {
+        /** Under this share of its limit left, a budget is worth a look. */
+        private val LOW_LEFT = BigDecimal("0.2")
+
+        /**
+         * Over its limit or under [LOW_LEFT] of it left, like a bill that's due: a budget with
+         * plenty left, or with no rate to show its limit, isn't "what needs doing now".
+         */
+        internal fun BudgetStatus.needsAttention(): Boolean {
+            val left = remaining ?: return false
+            val limit = limit ?: return false
+            return left < limit * LOW_LEFT
+        }
+
         /** More than this and they compete instead of suggesting. */
         const val MAX_SHOWN = 4
 
@@ -54,7 +68,7 @@ class ChatSuggestions @Inject constructor(
             if (bills.overdue.isNotEmpty() || bills.upcoming.isNotEmpty()) {
                 add(ChatSuggestion(QuickAction.BILLS, overdue = bills.overdue.size))
             }
-            if (budgets.isNotEmpty()) add(ChatSuggestion(QuickAction.BUDGETS))
+            if (budgets.any { it.needsAttention() }) add(ChatSuggestion(QuickAction.BUDGETS))
             addAll(STANDING)
         }.take(MAX_SHOWN)
     }

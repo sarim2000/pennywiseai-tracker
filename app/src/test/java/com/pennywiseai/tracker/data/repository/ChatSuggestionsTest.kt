@@ -38,7 +38,7 @@ class ChatSuggestionsTest {
 
     @Test
     fun `what needs doing comes first, and never more than four compete`() {
-        val all = ChatSuggestions.pick(BillsDue(today.plusDays(7), emptyList(), listOf(bill(today.plusDays(2)))), listOf(budget("500")))
+        val all = ChatSuggestions.pick(BillsDue(today.plusDays(7), emptyList(), listOf(bill(today.plusDays(2)))), listOf(budget("1700")))
         assertEquals(
             listOf(
                 ChatSuggestion(QuickAction.BILLS),
@@ -60,10 +60,14 @@ class ChatSuggestionsTest {
     }
 
     @Test
-    fun `a spent limit still has something to say`() {
-        // Over its limit, or without a rate to show it in: the answer says so, so the prompt stays.
+    fun `the budgets prompt shows only for a budget that's over or nearly spent`() {
+        // Over its limit, or under a fifth of 2000 left: worth a look now.
         assertEquals(ChatSuggestion(QuickAction.BUDGETS), ChatSuggestions.pick(noBills, listOf(budget("2500"))).first())
-        assertEquals(ChatSuggestion(QuickAction.BUDGETS), ChatSuggestions.pick(noBills, listOf(budget("10").copy(limit = null))).first())
+        assertEquals(ChatSuggestion(QuickAction.BUDGETS), ChatSuggestions.pick(noBills, listOf(budget("500"), budget("1700"))).first())
+        // Plenty left (exactly a fifth counts as plenty), or no rate to tell: Compare keeps its place.
+        assertEquals(standing, ChatSuggestions.pick(noBills, listOf(budget("500"))))
+        assertEquals(standing, ChatSuggestions.pick(noBills, listOf(budget("1600"))))
+        assertEquals(standing, ChatSuggestions.pick(noBills, listOf(budget("1900").copy(limit = null))))
     }
 
     private fun suggestions(

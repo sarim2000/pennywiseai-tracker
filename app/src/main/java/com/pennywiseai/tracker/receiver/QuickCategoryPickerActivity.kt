@@ -59,7 +59,8 @@ import javax.inject.Inject
  * keeps the row but drops it from totals, like the detail screen's toggle
  * (#451) — never a delete, which would shift the balance ledger.
  *
- * From the evening recap it walks the day's unsorted rows ([EXTRA_WALK_IDS]):
+ * From the evening recap it walks the day's unsorted rows ([EXTRA_WALK_IDS]),
+ * and from Home's "Needs a category" card this month's oldest ones:
  * each pick shows the next one still unsorted (re-read, since learning a
  * merchant can sort others) until none are left or the user dismisses.
  *
@@ -359,7 +360,7 @@ class QuickCategoryPickerActivity : FragmentActivity() {
         private const val TAG = "QuickCategoryPicker"
         const val EXTRA_TRANSACTION_ID = "transaction_id"
         const val EXTRA_NOTIFICATION_ID = "notification_id"
-        /** Walk mode: the recap's unsorted transaction ids, newest first. */
+        /** Walk mode: the unsorted transaction ids in walk order (the recap's newest first, Home's oldest first). */
         const val EXTRA_WALK_IDS = "walk_ids"
         private const val KEY_UNLOCKED = "unlocked"
         private const val KEY_WALK_QUEUE = "walk_queue"
@@ -370,16 +371,20 @@ class QuickCategoryPickerActivity : FragmentActivity() {
             rows.filter { it.category == others && !it.excludedFromAnalytics && !it.isDeleted }
 
         /** Opens the picker on [ids]' first and walks the rest; each alert's id is its transaction's. */
+        fun walk(context: Context, ids: List<Long>): Intent =
+            Intent(context, QuickCategoryPickerActivity::class.java).apply {
+                putExtra(EXTRA_TRANSACTION_ID, ids.first())
+                putExtra(EXTRA_NOTIFICATION_ID, ids.first().toInt())
+                putExtra(EXTRA_WALK_IDS, ids.toLongArray())
+                addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+            }
+
+        /** [walk] for a notification action. */
         fun walkIntent(context: Context, ids: List<Long>, requestCode: Int): PendingIntent =
             PendingIntent.getActivity(
                 context,
                 requestCode,
-                Intent(context, QuickCategoryPickerActivity::class.java).apply {
-                    putExtra(EXTRA_TRANSACTION_ID, ids.first())
-                    putExtra(EXTRA_NOTIFICATION_ID, ids.first().toInt())
-                    putExtra(EXTRA_WALK_IDS, ids.toLongArray())
-                    addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
-                },
+                walk(context, ids),
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
     }

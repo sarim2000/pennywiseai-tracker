@@ -1560,15 +1560,11 @@ open class UserPreferencesRepository internal constructor(
         }
     }
 
-    override suspend fun setScheduledFolderBackupLastTimestamp(timestamp: Long) {
+    override suspend fun recordScheduledFolderBackup(timestamp: Long, skippedReceipts: Int) {
+        // One edit, so "Last backup" never pairs a new time with the previous backup's count.
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_LAST_TIMESTAMP] = timestamp
-        }
-    }
-
-    override suspend fun setScheduledFolderBackupLastSkippedReceipts(count: Int) {
-        dataStore.edit { preferences ->
-            preferences[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_LAST_SKIPPED_RECEIPTS] = count
+            preferences[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_LAST_SKIPPED_RECEIPTS] = skippedReceipts
         }
     }
 

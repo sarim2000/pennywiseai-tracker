@@ -829,10 +829,10 @@ class SettingsViewModel @Inject constructor(
                 }
                 when (writeResult) {
                     is FolderBackupWriter.Result.Success -> {
-                        userPreferencesRepository.setScheduledFolderBackupLastTimestamp(
-                            System.currentTimeMillis()
+                        userPreferencesRepository.recordScheduledFolderBackup(
+                            System.currentTimeMillis(),
+                            exportResult.skippedReceipts
                         )
-                        userPreferencesRepository.setScheduledFolderBackupLastSkippedReceipts(exportResult.skippedReceipts)
                         if (showSuccessMessage) {
                             _importExportMessage.value = if (exportResult.skippedReceipts > 0) {
                                 UiText.Plural(R.plurals.settings_folder_backup_saved_skipped_receipts, exportResult.skippedReceipts)

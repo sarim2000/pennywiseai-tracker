@@ -130,7 +130,11 @@ class ReceiptManager @Inject constructor(
     }
 
     private fun opensAsPdf(file: File): Boolean = try {
-        PdfRenderer(ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY)).use { it.pageCount > 0 }
+        // The outer use closes the descriptor when PdfRenderer's constructor throws; the
+        // renderer closes it too on success, and closing it twice is harmless.
+        ParcelFileDescriptor.open(file, ParcelFileDescriptor.MODE_READ_ONLY).use { fd ->
+            PdfRenderer(fd).use { it.pageCount > 0 }
+        }
     } catch (_: Exception) {
         // IOException for a damaged file, SecurityException for a password-protected one.
         false

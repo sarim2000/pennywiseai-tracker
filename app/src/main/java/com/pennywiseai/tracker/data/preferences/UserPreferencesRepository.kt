@@ -22,7 +22,6 @@ import com.pennywiseai.tracker.data.share.SharePeriod
 import com.pennywiseai.tracker.domain.conscience.ConscienceCadence
 import com.pennywiseai.tracker.domain.conscience.ConscienceCandidate
 import com.pennywiseai.tracker.domain.conscience.ConscienceChoice
-import com.pennywiseai.tracker.domain.insights.insightCycleOf
 import com.pennywiseai.tracker.domain.spending.BudgetAlertTier
 import com.pennywiseai.tracker.domain.spending.MoneyAlertRules
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -82,8 +81,7 @@ open class UserPreferencesRepository internal constructor(
     NotificationPreferences,
     BackupPreferences,
     BillingPreferences,
-    RecurringSuggestionPreferences,
-    InsightPreferences {
+    RecurringSuggestionPreferences {
     // Production always takes the delegate: a second DataStore on the same file throws.
     // The internal constructor exists so tests can give each case its own empty file.
     @Inject
@@ -146,8 +144,6 @@ open class UserPreferencesRepository internal constructor(
         // "Track as … bill" on transaction alerts: "key|epochDay" per merchant
         // offered, to cap how often it's offered. Device-local.
         val RECURRING_OFFER_LOG = stringSetPreferencesKey("recurring_offer_log")
-        // Insight ids dismissed this cycle (Insight.id names the cycle). Device-local.
-        val DISMISSED_INSIGHTS = stringSetPreferencesKey("dismissed_insights")
 
         // App Lock preferences
         val APP_LOCK_ENABLED = booleanPreferencesKey("app_lock_enabled")
@@ -234,9 +230,6 @@ open class UserPreferencesRepository internal constructor(
         // Accounts left out of Home's "Safe to spend", as "bankName_last4" keys
         val SAFE_TO_SPEND_EXCLUDED = stringSetPreferencesKey("safe_to_spend_excluded_accounts")
 
-        // Safe to spend sets goal savings aside too (off by default)
-        val RESERVE_GOAL_SAVINGS = booleanPreferencesKey("reserve_goal_savings")
-
         // Profile & Onboarding
         val USER_NAME = stringPreferencesKey("user_name")
         val PROFILE_IMAGE_URI = stringPreferencesKey("profile_image_uri")
@@ -278,7 +271,7 @@ open class UserPreferencesRepository internal constructor(
             K.WEEKLY_SUMMARY_ENABLED, K.CONSCIENCE_ENABLED, K.SMS_SCAN_ALL_TIME, K.SMS_SCAN_USE_CUSTOM_DATE,
             K.UNIFIED_CURRENCY_MODE, K.BALANCE_HIDDEN, K.SHAKE_TO_HIDE_AMOUNTS, K.BLUR_EFFECTS_ENABLED, K.RED_SPENDING,
             K.BASE_CURRENCY_USER_SET, K.USE_CONTACTS_FOR_VPA, K.EXPORT_INCLUDE_RECEIPTS,
-            K.FOLDER_BACKUP_INCLUDE_RECEIPTS, K.RESERVE_GOAL_SAVINGS
+            K.FOLDER_BACKUP_INCLUDE_RECEIPTS
         )
         val INTS = listOf(K.SMS_SCAN_MONTHS, K.BUDGET_CYCLE_START_DAY, K.PROFILE_BACKGROUND_COLOR)
         val LONGS = listOf(K.SMS_SCAN_CUSTOM_DATE, K.SELECTED_PROFILE_ID)
@@ -314,7 +307,7 @@ open class UserPreferencesRepository internal constructor(
             K.BACKGROUND_OEM_STEP_CONFIRMED_ON, K.WEEKLY_SUMMARY_LAST_WEEK, K.REVIEW_PROMPT_HANDLED_YEAR,
             K.CONSCIENCE_LOG, K.ACTIVE_DOWNLOAD_ID, K.SHARE_PROMPT_HANDLED_MONTH, K.PRO_HOME_CARD_HANDLED,
             K.PAYDAY_SUGGESTION_HANDLED, K.RECURRING_HOME_CARD_SEEN, K.RECURRING_HOME_CARD_DISMISSED_AT,
-            K.TRACKING_CARD_SNOOZED_UNTIL, K.RECURRING_OFFER_LOG, K.DISMISSED_INSIGHTS, K.APP_LOCK_ENABLED, K.APP_LOCK_TIMEOUT_MINUTES,
+            K.TRACKING_CARD_SNOOZED_UNTIL, K.RECURRING_OFFER_LOG, K.APP_LOCK_ENABLED, K.APP_LOCK_TIMEOUT_MINUTES,
             K.LAST_AUTH_TIMESTAMP, K.APP_LOCK_NO_SCREEN_LOCK_NOTICE_SHOWN, K.HAS_USED_FULL_RESYNC,
             K.PRO_CACHED_IS_PRO, K.LICENSE_VALIDATED_AT, K.LICENSE_PRODUCT_NAME, K.SUPPORT_NUDGE_LAST_SHOWN_DAY,
             K.LAST_STATEMENT_IMPORT_AT, K.LAST_SEEN_APP_VERSION, K.MONTHLY_BUDGET_LIMIT,
@@ -885,23 +878,6 @@ open class UserPreferencesRepository internal constructor(
         dataStore.edit {
             it[PreferencesKeys.DISMISSED_RECURRING_SUGGESTIONS] =
                 (it[PreferencesKeys.DISMISSED_RECURRING_SUGGESTIONS] ?: emptySet()) - key
-        }
-    }
-
-    override val dismissedInsights: Flow<Set<String>> = dataStore.data
-        .map { it[PreferencesKeys.DISMISSED_INSIGHTS] ?: emptySet() }
-
-    override suspend fun dismissInsight(id: String) {
-        val cycle = insightCycleOf(id)
-        dataStore.edit {
-            val kept = (it[PreferencesKeys.DISMISSED_INSIGHTS] ?: emptySet()).filter { old -> insightCycleOf(old) == cycle }
-            it[PreferencesKeys.DISMISSED_INSIGHTS] = kept.toSet() + id
-        }
-    }
-
-    override suspend fun restoreInsight(id: String) {
-        dataStore.edit {
-            it[PreferencesKeys.DISMISSED_INSIGHTS] = (it[PreferencesKeys.DISMISSED_INSIGHTS] ?: emptySet()) - id
         }
     }
 
@@ -1530,14 +1506,6 @@ open class UserPreferencesRepository internal constructor(
             val current = preferences[PreferencesKeys.SAFE_TO_SPEND_EXCLUDED] ?: emptySet()
             preferences[PreferencesKeys.SAFE_TO_SPEND_EXCLUDED] = if (included) current - key else current + key
         }
-    }
-
-    /** Safe to spend also sets aside what goals need this cycle. Off by default. */
-    val reserveGoalSavings: Flow<Boolean> = dataStore.data
-        .map { preferences -> preferences[PreferencesKeys.RESERVE_GOAL_SAVINGS] ?: false }
-
-    suspend fun setReserveGoalSavings(enabled: Boolean) {
-        dataStore.edit { preferences -> preferences[PreferencesKeys.RESERVE_GOAL_SAVINGS] = enabled }
     }
 
     // Profile & Onboarding

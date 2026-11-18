@@ -333,48 +333,4 @@
     <string name="net_worth_assets">الحسابات</string>
     <string name="net_worth_cards">البطاقات الائتمانية</string>
     <string name="net_worth_loans">القروض</string>
-    <string name="net_worth_includes_estimates">يشمل أرصدة مقدّرة من المعاملات.</string>
-    <!-- %1$s = what people owe you. Person-to-person loans are shown but not counted. -->
-    <string name="net_worth_people_owe_you">غير محتسب: يدين لك الآخرون بـ %1$s</string>
-    <string name="net_worth_you_owe_people">غير محتسب: تدين للآخرين بـ %1$s</string>
-    <!-- %1$s = what people owe you, %2$s = what you owe people -->
-    <string name="net_worth_people_both">غير محتسب: يدين لك الآخرون بـ %1$s، وتدين للآخرين بـ %2$s</string>
-    <string name="net_worth_trend">الاتجاه</string>
-    <string name="net_worth_range_month">شهر</string>
-    <string name="net_worth_range_quarter">3 أشهر</string>
-    <string name="net_worth_range_half_year">6 أشهر</string>
-    <string name="net_worth_range_year">سنة</string>
-    <!-- Read aloud by a screen reader for the 1M / 3M / 6M / 1Y choices -->
-    <string name="net_worth_range_month_spoken">شهر واحد</string>
-    <string name="net_worth_range_quarter_spoken">3 أشهر</string>
-    <string name="net_worth_range_half_year_spoken">6 أشهر</string>
-    <string name="net_worth_range_year_spoken">سنة واحدة</string>
-    <!-- Read aloud for the trend chart. %1$s = first amount, %2$s = its date, %3$s = last amount, %4$s = its date -->
-    <string name="net_worth_trend_description">تغيّر صافي الثروة من %1$s في %2$s إلى %3$s في %4$s</string>
-    <string name="net_worth_trend_empty">لا يوجد سجل أرصدة كافٍ لهذه الفترة بعد.</string>
-    <string name="net_worth_trend_empty_cash">لا يوجد سجل أرصدة كافٍ لهذه الفترة بعد. يدخل الحساب النقدي في الاتجاه بعد أن تحدّث رصيده.</string>
-    <!-- %1$s = amount, %2$s = date -->
-    <string name="net_worth_source_entered">أدخلت %1$s في %2$s</string>
-    <string name="net_worth_source_statement">من كشف حسابك: %1$s في %2$s</string>
-    <!-- %1$s = date -->
-    <string name="net_worth_source_reported">أبلغ عنه بنكك في %1$s</string>
-    <string name="net_worth_source_estimated">مقدّر من المعاملات</string>
-    <!-- %1$s = where the balance comes from, %2$s = "+ 2 transactions since" -->
-    <string name="net_worth_source_with_since">%1$s %2$s</string>
-    <plurals name="net_worth_source_since">
-        <item quantity="zero">+ %1$d معاملة منذ ذلك الحين</item>
-        <item quantity="one">+ %1$d معاملة منذ ذلك الحين</item>
-        <item quantity="two">+ معاملتان منذ ذلك الحين</item>
-        <item quantity="few">+ %1$d معاملات منذ ذلك الحين</item>
-        <item quantity="many">+ %1$d معاملة منذ ذلك الحين</item>
-        <item quantity="other">+ %1$d معاملة منذ ذلك الحين</item>
-    </plurals>
-    <plurals name="net_worth_stale">
-        <item quantity="zero">لم يُحدَّث منذ %1$d يوم</item>
-        <item quantity="one">لم يُحدَّث منذ %1$d يوم</item>
-        <item quantity="two">لم يُحدَّث منذ يومين</item>
-        <item quantity="few">لم يُحدَّث منذ %1$d أيام</item>
-        <item quantity="many">لم يُحدَّث منذ %1$d يومًا</item>
-        <item quantity="other">لم يُحدَّث منذ %1$d يوم</item>
-    </plurals>
 </resources>

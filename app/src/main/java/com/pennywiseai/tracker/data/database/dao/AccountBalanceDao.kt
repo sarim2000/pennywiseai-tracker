@@ -268,63 +268,6 @@ interface AccountBalanceDao {
     @Query("UPDATE account_balances SET statement_day = :statementDay WHERE bank_name = :bankName AND account_last4 = :accountLast4")
     suspend fun updateStatementDay(bankName: String, accountLast4: String, statementDay: Int?): Int
 
-    /**
-     * Sets a credit card's bill on every row of the account (account-level, like
-     * the alias). Null clears that part.
-     */
-    @Query("""
-        UPDATE account_balances
-        SET card_due_day = :dueDay, card_bill_amount = :amount, card_bill_as_of = :asOf
-        WHERE bank_name = :bankName AND account_last4 = :accountLast4
-    """)
-    suspend fun setCardBill(
-        bankName: String,
-        accountLast4: String,
-        dueDay: Int?,
-        amount: BigDecimal?,
-        asOf: LocalDateTime?,
-    ): Int
-
-    /**
-     * Puts the given account-level fields back on the rows of an account that lost
-     * them, leaving any a row already has. Used after a rebuild or merge rewrote
-     * the account's rows. The bill amount is in [billCurrency], so only a row in that
-     * currency takes it (and its date): INR 4000 isn't USD 4000.
-     */
-    @Query("""
-        UPDATE account_balances SET
-            statement_day = COALESCE(statement_day, :statementDay),
-            card_due_day = COALESCE(card_due_day, :dueDay),
-            card_bill_amount = COALESCE(card_bill_amount, CASE WHEN currency = :billCurrency THEN :billAmount END),
-            card_bill_as_of = COALESCE(card_bill_as_of, CASE WHEN currency = :billCurrency THEN :billAsOf END),
-            anchor_amount = COALESCE(anchor_amount, :anchorAmount),
-            anchor_at = COALESCE(anchor_at, :anchorAt),
-            anchor_source = COALESCE(anchor_source, :anchorSource)
-        WHERE bank_name = :bankName AND account_last4 = :accountLast4
-    """)
-    suspend fun fillMissingAccountFields(
-        bankName: String,
-        accountLast4: String,
-        statementDay: Int?,
-        dueDay: Int?,
-        billAmount: BigDecimal?,
-        billAsOf: LocalDateTime?,
-        billCurrency: String,
-        anchorAmount: BigDecimal?,
-        anchorAt: LocalDateTime?,
-        anchorSource: String?,
-    ): Int
-
-    /**
-     * Pins the account's balance to a figure the user gave, on every row of the
-     * account (account-level, like the alias): [amount] as of [at], from [source].
-     */
-    @Query("""
-        UPDATE account_balances SET anchor_amount = :amount, anchor_at = :at, anchor_source = :source
-        WHERE bank_name = :bankName AND account_last4 = :accountLast4
-    """)
-    suspend fun setAnchor(bankName: String, accountLast4: String, amount: BigDecimal, at: LocalDateTime, source: String): Int
-
     @Query("UPDATE account_balances SET profile_id = :profileId WHERE bank_name = :bankName AND account_last4 = :accountLast4")
     suspend fun setAccountProfile(bankName: String, accountLast4: String, profileId: Long): Int
 
@@ -443,59 +386,7 @@ interface AccountBalanceDao {
         LEFT JOIN transactions t ON t.id = ab.transaction_id
     """)
     fun getBalanceSourceRows(): Flow<List<BalanceSourceRow>>
-
-    /**
-     * Per account, the newest balance the bank stated (`reportedAt`: an SMS whose
-     * transaction carried a balance, a balance notice, a linked card's balance) and the
-     * newest row not derived from a transaction (`fixedAt`: those, plus MANUAL rows).
-     * OPENING rows are left out; their timestamp is set early on purpose.
-     */
-    @Query("""
-        SELECT ab.bank_name AS bankName, ab.account_last4 AS accountLast4,
-            MAX(CASE WHEN """ + BANK_STATED + """ THEN ab.timestamp END) AS reportedAt,
-            MAX(CASE WHEN """ + BANK_STATED + """
-                OR ab.source_type IS NULL OR ab.source_type NOT IN ('TRANSACTION', 'OPENING')
-                THEN ab.timestamp END) AS fixedAt
-        FROM account_balances ab
-        LEFT JOIN transactions t ON t.id = ab.transaction_id
-        GROUP BY ab.bank_name, ab.account_last4
-    """)
-    fun getBalanceEvidence(): Flow<List<BalanceEvidenceRow>>
-
-    /**
-     * Balance rows from [start] on, plus each account's newest row before it, so a
-     * trend can carry every balance into its first day. OPENING rows are left out.
-     */
-    @Query("""
-        SELECT * FROM account_balances
-        WHERE timestamp >= :start AND (source_type IS NULL OR source_type != 'OPENING')
-        UNION ALL
-        SELECT ab1.* FROM account_balances ab1
-        INNER JOIN (
-            SELECT bank_name, account_last4, MAX(timestamp) AS max_timestamp
-            FROM account_balances
-            WHERE timestamp < :start AND (source_type IS NULL OR source_type != 'OPENING')
-            GROUP BY bank_name, account_last4
-        ) ab2
-        ON ab1.bank_name = ab2.bank_name
-        AND ab1.account_last4 = ab2.account_last4
-        AND ab1.timestamp = ab2.max_timestamp
-    """)
-    fun getTrendRows(start: LocalDateTime): Flow<List<AccountBalanceEntity>>
 }
-
-/** A row whose figure the bank gave; see [AccountBalanceDao.getBalanceEvidence]. */
-private const val BANK_STATED = """(ab.source_type = 'CARD_LINK'
-    OR (ab.source_type IS NULL AND ab.transaction_id IS NULL)
-    OR (ab.source_type = 'TRANSACTION' AND ab.sms_source IS NOT NULL AND t.balance_after IS NOT NULL))"""
-
-/** See [AccountBalanceDao.getBalanceEvidence]. */
-data class BalanceEvidenceRow(
-    val bankName: String,
-    val accountLast4: String,
-    val reportedAt: LocalDateTime?,
-    val fixedAt: LocalDateTime?
-)
 
 /** See [AccountBalanceDao.getBalanceRowsAfter]. */
 data class BalanceRowAfter(val id: Long, val balance: BigDecimal, val creditLimit: BigDecimal?, val derived: Boolean)

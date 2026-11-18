@@ -290,9 +290,6 @@ fun MainScreen(
                 onNavigateToReview = { kind ->
                     openRoot(com.pennywiseai.tracker.navigation.Review(kind.name))
                 },
-                onNavigateToInsights = {
-                    openRoot(Insights)
-                },
                 onNavigateToNetWorth = {
                     openRoot(NetWorth)
                 },
@@ -404,9 +401,6 @@ fun MainScreen(
                 },
                 onNavigateToHome = {
                     selectTab(BottomNavItem.Home)
-                },
-                onNavigateToInsights = {
-                    openRoot(Insights)
                 }
             )
         }

@@ -1,11 +1,9 @@
 package com.pennywiseai.tracker.domain.review
 
-import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
-import com.pennywiseai.tracker.domain.spending.RecurringCharge
 import com.pennywiseai.tracker.domain.spending.analyticsRowsFor
 import com.pennywiseai.tracker.domain.spending.defaultTypeFilter
 import com.pennywiseai.tracker.domain.spending.netOf
@@ -117,81 +115,7 @@ data class PeriodReview(
     val lastRecorded: LocalDate?,
     /** Anything recorded before this period, so going further back can show something. */
     val hasOlder: Boolean,
-    /** Only when asked for: the cycles leading up to this one and their rows. */
-    val detail: PeriodDetail? = null,
 )
-
-/** One cycle in one currency, by the same definitions as [CurrencyReview]. */
-data class CycleTotal(
-    val start: LocalDate,
-    val end: LocalDate,
-    val income: BigDecimal,
-    val spent: BigDecimal,
-    /** Net of refunds, rolled up to parent categories. */
-    val byCategory: Map<String, BigDecimal>,
-) {
-    val hasActivity: Boolean get() = income.signum() > 0 || spent.signum() > 0
-}
-
-/**
- * What a review doesn't keep: every cycle of the last few, oldest first and ending
- * with the reviewed one, and the spending rows behind them. Same scope as the review.
- */
-data class PeriodDetail(
-    /** Per currency, one entry for every cycle, zero when nothing was recorded in it. */
-    val cycles: Map<String, List<CycleTotal>>,
-    /** Rows that count as spending across those cycles, every currency: for medians and merchants. */
-    val spendRows: List<TransactionWithSplits>,
-    /**
-     * Every charge across those cycles that could pay a bill ([RecurringCharge.SPEND_TYPES]),
-     * at its full amount and whatever counts as spending: a card charge pays its
-     * subscription even with card spending left out of expenses.
-     */
-    val paymentRows: List<TransactionEntity> = emptyList(),
-)
-
-/** The [count] cycles ending with [range]'s, oldest first. */
-internal fun cyclesEndingWith(range: ReviewRange, cycleStartDay: Int, count: Int): List<Pair<LocalDate, LocalDate>> =
-    generateSequence(range.start to range.end) { BudgetCycle.previousCycle(it, cycleStartDay) }
-        .take(count)
-        .toList()
-        .reversed()
-
-/**
- * [rows] already scoped and covering every one of [cycles]. [settlementLoss] holds each
- * cycle's forgiven-loan loss, in the same order, which counts as spent as in the review.
- */
-internal suspend fun buildPeriodDetail(
-    cycles: List<Pair<LocalDate, LocalDate>>,
-    rows: List<TransactionWithSplits>,
-    creditAsExpense: Boolean,
-    parentOf: Map<String, String>,
-    settlementLoss: List<Map<String, BigDecimal>> = emptyList(),
-): PeriodDetail {
-    val filter = defaultTypeFilter(creditAsExpense)
-    val byCurrency = rows.groupBy { it.transaction.currency }
-    val currencies = byCurrency.keys + settlementLoss.flatMap { it.keys }
-    val totals = currencies.associateWith { currency ->
-        cycles.mapIndexed { index, (start, end) ->
-            val inCycle = byCurrency[currency].orEmpty()
-                .filter { it.transaction.dateTime.toLocalDate() in start..end }
-            val spend = spendOf(inCycle, filter, parentOf)
-            CycleTotal(
-                start = start,
-                end = end,
-                income = analyticsRowsFor(inCycle, TransactionTypeFilter.INCOME)
-                    .fold(BigDecimal.ZERO) { sum, row -> sum + row.transaction.amount },
-                spent = spend.total + (settlementLoss.getOrNull(index)?.get(currency) ?: BigDecimal.ZERO),
-                byCategory = spend.byCategory,
-            )
-        }
-    }
-    return PeriodDetail(
-        cycles = totals,
-        spendRows = analyticsRowsFor(rows, filter),
-        paymentRows = rows.map { it.transaction }.filter { it.transactionType in RecurringCharge.SPEND_TYPES },
-    )
-}
 
 /** Whole-percent change, or null when there is nothing to compare against. */
 internal fun percentChange(current: BigDecimal, previous: BigDecimal?): Int? {

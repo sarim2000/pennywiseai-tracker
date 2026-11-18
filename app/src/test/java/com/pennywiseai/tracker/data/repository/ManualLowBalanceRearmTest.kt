@@ -89,7 +89,6 @@ class ManualLowBalanceRearmTest {
             every { transactionType } returns TransactionType.INCOME
             every { amount } returns BigDecimal("500")
             every { dateTime } returns now
-            every { currency } returns "INR"
         }
         coEvery { transactionDao.getTransactionsForAccountStrict(BANK, ACCT) } returns listOf(income)
         repo.recomputeManualBalance(BANK, ACCT)

@@ -2,16 +2,16 @@ package com.pennywiseai.tracker.data.statement
 
 import android.content.Context
 import android.net.Uri
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.core.ResText
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
-import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.core.ResText
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
@@ -198,9 +198,7 @@ class ImportStatementUseCase @Inject constructor(
                 // Dated at the statement's end (never in the future) so a later
                 // bank balance still wins; a manual account derives its own.
                 val at = minOf(check.asOf.atTime(LocalTime.MAX), LocalDateTime.now())
-                accountBalanceRepository.setCurrentBalance(
-                    check.bankName, check.accountLast4, target, at, AccountBalanceRepository.ANCHOR_STATEMENT
-                )
+                accountBalanceRepository.setCurrentBalance(check.bankName, check.accountLast4, target, at)
                 check
             }
         }

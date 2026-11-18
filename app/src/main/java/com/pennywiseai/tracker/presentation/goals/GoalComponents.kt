@@ -17,10 +17,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Archive
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Savings
-import androidx.compose.material.icons.filled.WarningAmber
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -49,12 +46,10 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
-import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.repository.GoalProgress
 import com.pennywiseai.tracker.data.repository.GoalStatus
-import com.pennywiseai.tracker.domain.goals.GoalAffordability
 import com.pennywiseai.tracker.domain.goals.GoalPill
 import com.pennywiseai.tracker.domain.goals.GoalTone
 import com.pennywiseai.tracker.domain.goals.percent
@@ -231,11 +226,6 @@ fun GoalsSection(
 ) {
     val goals by viewModel.activeGoals.collectAsStateWithLifecycle()
     val archived by viewModel.archivedGoals.collectAsStateWithLifecycle()
-    val affordability by viewModel.affordability.collectAsStateWithLifecycle()
-    LifecycleResumeEffect(Unit) {
-        viewModel.refreshDate()
-        onPauseOrDispose { }
-    }
     var showUpgrade by rememberSaveable { mutableStateOf(false) }
     var showArchived by rememberSaveable { mutableStateOf(false) }
     val active = goals ?: return
@@ -262,7 +252,6 @@ fun GoalsSection(
         if (active.isEmpty()) {
             GoalsEmptyCard(onCreate = create, mascot = mascot)
         } else {
-            if (affordability.isNotEmpty()) GoalAffordabilityRows(affordability)
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 active.forEach { GoalCard(it, onClick = { onOpenGoal(it.goal.id) }) }
             }
@@ -323,42 +312,6 @@ fun GoalsSection(
     }
 
     if (showUpgrade) UpgradeSheet(onDismiss = { showUpgrade = false })
-}
-
-/** One line per goal currency: what the goals need a month, and whether a usual month covers it. */
-@Composable
-private fun GoalAffordabilityRows(rows: List<GoalAffordability>) {
-    GroupedList {
-        rows.forEachIndexed { i, row ->
-            val (icon, tint) = when (row.fits) {
-                true -> Icons.Default.CheckCircle to MaterialTheme.colorScheme.success
-                false -> Icons.Default.WarningAmber to MaterialTheme.colorScheme.warning
-                null -> Icons.Outlined.Info to MaterialTheme.colorScheme.onSurfaceVariant
-            }
-            val surplus = row.surplus
-            val shortBy = row.shortBy
-            GroupedRow(position = ListItemPosition.from(i, rows.size)) {
-                Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(Dimensions.Icon.medium))
-                RowLabels(
-                    title = stringResource(
-                        R.string.goals_need_per_month,
-                        CurrencyFormatter.formatCurrency(row.needed, row.currency),
-                    ),
-                    subtitle = when {
-                        surplus == null -> stringResource(R.string.goals_fit_no_data)
-                        shortBy == null -> stringResource(
-                            R.string.goals_fit,
-                            CurrencyFormatter.formatCurrency(surplus, row.currency),
-                        )
-                        surplus.signum() <= 0 -> stringResource(R.string.goals_no_surplus)
-                        else -> stringResource(R.string.goals_short, CurrencyFormatter.formatCurrency(shortBy, row.currency))
-                    },
-                    titleMaxLines = 2,
-                    subtitleMaxLines = 3,
-                )
-            }
-        }
-    }
 }
 
 @Composable

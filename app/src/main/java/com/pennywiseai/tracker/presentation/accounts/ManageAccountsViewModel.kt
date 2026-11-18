@@ -1,29 +1,29 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
+import com.pennywiseai.tracker.domain.model.AccountType
+import kotlinx.coroutines.sync.withLock
+
+import com.pennywiseai.tracker.ui.UiText
+import com.pennywiseai.tracker.R
 import android.content.Context
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
-import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.CardEntity
 import com.pennywiseai.tracker.data.database.entity.CardType
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
-import com.pennywiseai.tracker.data.database.withTransaction
-import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
-import com.pennywiseai.tracker.data.preferences.RebuildAccountFieldsStore
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CardRepository
-import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.domain.model.getAccountType
 import com.pennywiseai.tracker.domain.model.toDatabaseString
-import com.pennywiseai.tracker.ui.UiText
-import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
-import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
-import kotlinx.coroutines.sync.withLock
+import kotlinx.coroutines.delay
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
 import java.time.LocalDateTime
 import javax.inject.Inject
@@ -74,7 +74,6 @@ class ManageAccountsViewModel @Inject constructor(
     private val ignoredAccountsStore: com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore,
 ) : ViewModel() {
     private val bankAccountMerges = BankAccountMergeStore(context)
-    private val rebuildAccountFields = RebuildAccountFieldsStore(context)
 
     /**
      * Drives the Merge-accounts action — Pro-only gate. Free users still
@@ -82,19 +81,19 @@ class ManageAccountsViewModel @Inject constructor(
      * the paywall instead of the merge sheet.
      */
     val isProEntitled: StateFlow<Boolean> = entitlementGate.isProEntitled
-
+    
     // Reads/writes go through the shared store so the ingestion gate, the
     // transaction list and the backup all see the same set (#826).
-
+    
     private val _uiState = MutableStateFlow(ManageAccountsUiState())
     val uiState: StateFlow<ManageAccountsUiState> = _uiState.asStateFlow()
-
+    
     private val _formState = MutableStateFlow(AccountFormState())
     val formState: StateFlow<AccountFormState> = _formState.asStateFlow()
 
     private val _pendingProfileReassign = MutableStateFlow<PendingProfileReassign?>(null)
     val pendingProfileReassign: StateFlow<PendingProfileReassign?> = _pendingProfileReassign.asStateFlow()
-
+    
     /** User's base currency — the default for a new manual account. */
     private var baseCurrency: String = "INR"
 
@@ -117,7 +116,7 @@ class ManageAccountsViewModel @Inject constructor(
     fun updateCurrency(currency: String) {
         _formState.update { it.copy(currency = currency) }
     }
-
+    
     private fun loadAccounts() {
         viewModelScope.launch {
             accountBalanceRepository.getAllLatestBalances()
@@ -126,14 +125,14 @@ class ManageAccountsViewModel @Inject constructor(
                 }
         }
     }
-
+    
     private fun loadCards() {
         viewModelScope.launch {
             cardRepository.getAllCards().collect { allCards ->
                 // Group cards by linked account
                 val linkedCardsMap = mutableMapOf<String, MutableList<CardEntity>>()
                 val orphaned = mutableListOf<CardEntity>()
-
+                
                 for (card in allCards) {
                     when {
                         card.cardType == CardType.DEBIT && card.accountLast4 != null -> {
@@ -145,8 +144,8 @@ class ManageAccountsViewModel @Inject constructor(
                         // Credit cards are not orphaned, they're standalone
                     }
                 }
-
-                _uiState.update {
+                
+                _uiState.update { 
                     it.copy(
                         linkedCards = linkedCardsMap,
                         orphanedCards = orphaned
@@ -155,11 +154,11 @@ class ManageAccountsViewModel @Inject constructor(
             }
         }
     }
-
+    
     private fun loadHiddenAccounts() {
         _uiState.update { it.copy(hiddenAccounts = ignoredAccountsStore.keys()) }
     }
-
+    
     fun updateBankName(name: String) {
         _formState.update {
             it.copy(
@@ -168,7 +167,7 @@ class ManageAccountsViewModel @Inject constructor(
             )
         }
     }
-
+    
     fun updateAccountLast4(last4: String) {
         val isCash = _formState.value.accountType == AccountType.CASH
         // Allow empty for CASH, or up to 4 chars for others
@@ -181,7 +180,7 @@ class ManageAccountsViewModel @Inject constructor(
             }
         }
     }
-
+    
     fun updateBalance(balance: String) {
         // Only allow valid numeric input
         if (balance.isEmpty() || balance.matches(Regex("^\\d*\\.?\\d*$"))) {
@@ -193,47 +192,47 @@ class ManageAccountsViewModel @Inject constructor(
             }
         }
     }
-
+    
     fun updateCreditLimit(limit: String) {
         // Only allow valid numeric input
         if (limit.isEmpty() || limit.matches(Regex("^\\d*\\.?\\d*$"))) {
             _formState.update { it.copy(creditLimit = limit) }
         }
     }
-
+    
     fun updateAccountType(type: AccountType) {
         _formState.update { it.copy(accountType = type) }
     }
-
+    
     private fun validateForm(bankName: String, last4: String, balance: String, accountType: AccountType = AccountType.SAVINGS): Boolean {
         val isCash = accountType == AccountType.CASH
         return bankName.isNotBlank() &&
-            (isCash || last4.length == 4) &&  // CASH accounts: last4 can be "CASH" default
-            balance.isNotBlank() &&
-            balance.toDoubleOrNull() != null
+               (isCash || last4.length == 4) &&  // CASH accounts: last4 can be "CASH" default
+               balance.isNotBlank() &&
+               balance.toDoubleOrNull() != null
     }
-
+    
     fun addAccount() {
         val state = _formState.value
         if (!state.isValid) return
-
+        
         viewModelScope.launch {
             // Check for duplicates
             val existingAccount = accountBalanceRepository.getLatestBalance(
-                state.bankName,
+                state.bankName, 
                 state.accountLast4
             )
-
+            
             if (existingAccount != null) {
                 _formState.update { it.copy(errorMessage = UiText.Res(R.string.manage_accounts_msg_account_exists)) }
                 return@launch
             }
-
+            
             // Add the account
             val creditLimit = if (state.accountType == AccountType.CREDIT && state.creditLimit.isNotBlank()) {
                 BigDecimal(state.creditLimit)
             } else null
-
+            
             val isCredit = state.accountType == AccountType.CREDIT
             val template = AccountBalanceEntity(
                 bankName = state.bankName,
@@ -251,7 +250,6 @@ class ManageAccountsViewModel @Inject constructor(
                 // owed, which the income-positive recompute would get backwards) —
                 // single snapshot as before.
                 accountBalanceRepository.insertBalance(template)
-                accountBalanceRepository.setAnchor(template.bankName, template.accountLast4, template.balance, template.timestamp)
             } else {
                 // Cash/regular manual account: seed an OPENING anchor + current row so
                 // its balance derives from opening + Σ(transactions) going forward.
@@ -262,7 +260,7 @@ class ManageAccountsViewModel @Inject constructor(
             _formState.value = AccountFormState(currency = baseCurrency)
         }
     }
-
+    
     fun updateAccountBalance(bankName: String, accountLast4: String, newBalance: BigDecimal) {
         viewModelScope.launch {
             accountBalanceRepository.setCurrentBalance(bankName, accountLast4, newBalance)
@@ -293,54 +291,50 @@ class ManageAccountsViewModel @Inject constructor(
                     alias = latestBalance?.alias,
                     lowBalanceThreshold = latestBalance?.lowBalanceThreshold,
                     sourceType = "MANUAL"
-                ).withAccountFieldsOf(latestBalance)
+                )
             )
-            accountBalanceRepository.setAnchor(bankName, accountLast4, newBalance)
         }
     }
-
+    
     fun setStatementDay(bankName: String, accountLast4: String, day: Int?) {
         viewModelScope.launch {
-            // A rebuild still waiting to put the old day back mustn't undo this edit.
-            rebuildAccountFields.editStatementDay(bankName, accountLast4) {
-                accountBalanceRepository.updateStatementDay(bankName, accountLast4, day)
-            }
+            accountBalanceRepository.updateStatementDay(bankName, accountLast4, day)
         }
     }
 
     fun toggleAccountVisibility(bankName: String, accountLast4: String) {
         val key = com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore.keyFor(bankName, accountLast4)
         val hidden = _uiState.value.hiddenAccounts.toMutableSet()
-
+        
         if (hidden.contains(key)) {
             hidden.remove(key)
         } else {
             hidden.add(key)
         }
-
+        
         ignoredAccountsStore.replaceAll(hidden)
-
+        
         // Update UI state
         _uiState.update { it.copy(hiddenAccounts = hidden) }
     }
-
+    
     fun isAccountHidden(bankName: String, accountLast4: String): Boolean {
-        val key = "${bankName}_$accountLast4"
+        val key = "${bankName}_${accountLast4}"
         return _uiState.value.hiddenAccounts.contains(key)
     }
-
+    
     fun clearError() {
         _formState.update { it.copy(errorMessage = null) }
         _uiState.update { it.copy(errorMessage = null) }
     }
-
+    
     fun loadBalanceHistory(bankName: String, accountLast4: String) {
         viewModelScope.launch {
             val history = accountBalanceRepository.getBalanceHistoryForAccount(bankName, accountLast4)
             _uiState.update { it.copy(balanceHistory = history) }
         }
     }
-
+    
     fun deleteBalanceRecord(id: Long, bankName: String, accountLast4: String) {
         viewModelScope.launch {
             // Check if this is the only record
@@ -353,7 +347,7 @@ class ManageAccountsViewModel @Inject constructor(
             }
         }
     }
-
+    
     fun updateBalanceRecord(id: Long, newBalance: BigDecimal, bankName: String, accountLast4: String) {
         viewModelScope.launch {
             accountBalanceRepository.updateBalanceById(id, newBalance)
@@ -362,23 +356,23 @@ class ManageAccountsViewModel @Inject constructor(
             loadAccounts()
         }
     }
-
+    
     fun clearBalanceHistory() {
         _uiState.update { it.copy(balanceHistory = emptyList()) }
     }
-
+    
     fun linkCardToAccount(cardId: Long, accountLast4: String) {
         viewModelScope.launch {
             try {
                 android.util.Log.d("ManageAccountsViewModel", "Starting to link card $cardId to account $accountLast4")
-
+                
                 // Get card info first to know if there's a balance to copy
                 val card = cardRepository.getCardById(cardId)
                 val hasBalance = card?.lastBalance != null
-
+                
                 // Link the card to the account
                 cardRepository.linkCardToAccount(cardId, accountLast4)
-
+                
                 // If card had a balance, copy it to the account
                 if (card != null && hasBalance) {
                     try {
@@ -391,7 +385,7 @@ class ManageAccountsViewModel @Inject constructor(
                             sourceType = "CARD_LINK"
                         )
                         android.util.Log.d("ManageAccountsViewModel", "Balance copied to account. Insert ID: $insertedId")
-
+                        
                         // Show success message with balance
                         val message = UiText.Res(R.string.manage_accounts_msg_card_linked_balance, listOf(CurrencyFormatter.formatCurrency(card.lastBalance, card.currency)))
                         _uiState.update { it.copy(successMessage = message) }
@@ -404,50 +398,50 @@ class ManageAccountsViewModel @Inject constructor(
                     // No balance to copy, just show link success
                     _uiState.update { it.copy(successMessage = UiText.Res(R.string.manage_accounts_msg_card_linked)) }
                 }
-
+                
                 // Clear message after delay
                 delay(3000)
                 _uiState.update { it.copy(successMessage = null) }
-
+                
                 loadCards() // Reload cards to update UI
                 loadAccounts() // Reload accounts to show new balance
             } catch (e: Exception) {
                 android.util.Log.e("ManageAccountsViewModel", "Failed to link card", e)
-                _uiState.update {
+                _uiState.update { 
                     it.copy(errorMessage = UiText.Res(R.string.manage_accounts_msg_link_card_failed, listOf("${e.message}")))
                 }
             }
         }
     }
-
+    
     fun unlinkCard(cardId: Long) {
         viewModelScope.launch {
             cardRepository.unlinkCard(cardId)
             loadCards() // Reload cards to update UI
         }
     }
-
+    
     fun deleteCard(cardId: Long) {
         viewModelScope.launch {
             try {
                 android.util.Log.d("ManageAccountsViewModel", "Deleting card with ID: $cardId")
                 cardRepository.deleteCard(cardId)
                 _uiState.update { it.copy(successMessage = UiText.Res(R.string.manage_accounts_msg_card_deleted)) }
-
+                
                 // Clear message after delay
                 delay(2000)
                 _uiState.update { it.copy(successMessage = null) }
-
+                
                 loadCards() // Reload cards to update UI
             } catch (e: Exception) {
                 android.util.Log.e("ManageAccountsViewModel", "Failed to delete card", e)
-                _uiState.update {
+                _uiState.update { 
                     it.copy(errorMessage = UiText.Res(R.string.manage_accounts_msg_delete_card_failed, listOf("${e.message}")))
                 }
             }
         }
     }
-
+    
     fun setCardActive(cardId: Long, isActive: Boolean) {
         viewModelScope.launch {
             cardRepository.setCardActive(cardId, isActive)
@@ -522,7 +516,7 @@ class ManageAccountsViewModel @Inject constructor(
                 }
 
                 // Remove from hidden accounts if present
-                val key = "${bankName}_$accountLast4"
+                val key = "${bankName}_${accountLast4}"
                 val hidden = _uiState.value.hiddenAccounts.toMutableSet()
                 hidden.remove(key)
                 ignoredAccountsStore.replaceAll(hidden)
@@ -644,11 +638,6 @@ class ManageAccountsViewModel @Inject constructor(
                         // option; the merged transactions appear on the target
                         // without a historical balance trace.
                         accountBalanceRepository.deleteAccount(source.bankName, source.accountLast4)
-                        // The card's bill and statement day carry over when the target has none.
-                        // Not the balance anchor: the source's balance is dropped with it.
-                        accountBalanceRepository.keepAccountFields(
-                            source, target.bankName, target.accountLast4, withAnchor = false
-                        )
                         rows
                     }
 
@@ -781,8 +770,8 @@ class ManageAccountsViewModel @Inject constructor(
                     }
 
                     // Update hidden accounts preference if bank name changed
-                    val oldKey = "${oldBankName}_$accountLast4"
-                    val newKey = "${newBankName}_$accountLast4"
+                    val oldKey = "${oldBankName}_${accountLast4}"
+                    val newKey = "${newBankName}_${accountLast4}"
                     val hidden = _uiState.value.hiddenAccounts.toMutableSet()
                     if (hidden.contains(oldKey)) {
                         hidden.remove(oldKey)
@@ -808,16 +797,6 @@ class ManageAccountsViewModel @Inject constructor(
                     bankName = newBankName
                 )
 
-                val oldCurrency = latestBalance?.let {
-                    CurrencyFormatter.resolveAccountCurrency(it.sourceType, it.currency, oldBankName)
-                }
-                val balanceChanged = restatesBalance(
-                    oldBalance = latestBalance?.balance,
-                    oldCurrency = oldCurrency,
-                    newBalance = newBalance,
-                    newCurrency = resolvedCurrency,
-                )
-                val anchorSource = anchorSourceFor(oldCurrency, resolvedCurrency)
                 if (latestBalance?.isLiability != true && accountBalanceRepository.isManualAccount(newBankName, accountLast4)) {
                     // Manual/cash account: balance is derived. Atomically update the
                     // currency on its anchor rows and back-solve the opening from the
@@ -829,9 +808,6 @@ class ManageAccountsViewModel @Inject constructor(
                         currency = resolvedCurrency,
                         targetBalance = newBalance
                     )
-                    if (balanceChanged) {
-                        accountBalanceRepository.setAnchor(newBankName, accountLast4, newBalance, source = anchorSource)
-                    }
                 } else if (latestBalance == null || !latestBalance.matches(newBalance, newCreditLimit, resolvedCurrency)) {
                     // Insert new balance record with updated values. Skipped when only the
                     // name or type changed: a MANUAL row would make an SMS account look
@@ -854,11 +830,8 @@ class ManageAccountsViewModel @Inject constructor(
                             alias = latestBalance?.alias,
                             lowBalanceThreshold = latestBalance?.lowBalanceThreshold,
                             sourceType = "MANUAL"
-                        ).withAccountFieldsOf(latestBalance)
+                        )
                     )
-                    if (balanceChanged) {
-                        accountBalanceRepository.setAnchor(newBankName, accountLast4, newBalance, source = anchorSource)
-                    }
                 }
 
                 _uiState.update {
@@ -868,6 +841,7 @@ class ManageAccountsViewModel @Inject constructor(
                 // Clear message after delay
                 delay(3000)
                 _uiState.update { it.copy(successMessage = null) }
+
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(errorMessage = UiText.Res(R.string.manage_accounts_msg_update_account_failed, listOf("${e.message}")))
@@ -882,26 +856,3 @@ class ManageAccountsViewModel @Inject constructor(
         return same(this.balance, balance) && same(this.creditLimit, creditLimit) && this.currency == currency
     }
 }
-
-/**
- * Whether an edit gives the account's balance afresh, so the anchor moves to it: a
- * changed figure, or the same figure in another currency (the old anchor's amount was
- * in the old one). A rename or a type change alone leaves the anchor alone.
- */
-internal fun restatesBalance(
-    oldBalance: BigDecimal?,
-    oldCurrency: String?,
-    newBalance: BigDecimal,
-    newCurrency: String,
-): Boolean = oldBalance == null || oldBalance.compareTo(newBalance) != 0 || oldCurrency != newCurrency
-
-/**
- * How an edit's anchor is recorded: as a currency change when the account had another
- * currency (so its derived past starts there), else as a balance the user entered.
- */
-internal fun anchorSourceFor(oldCurrency: String?, newCurrency: String): String =
-    if (oldCurrency != null && oldCurrency != newCurrency) {
-        AccountBalanceRepository.ANCHOR_CURRENCY_CHANGE
-    } else {
-        AccountBalanceRepository.ANCHOR_ENTERED
-    }

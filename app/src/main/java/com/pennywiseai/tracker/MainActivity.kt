@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker
 
+import com.pennywiseai.tracker.utils.withLatinDigits
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -19,7 +20,6 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import com.pennywiseai.tracker.data.repository.AppLockRepository
 import com.pennywiseai.tracker.receiver.SmsBroadcastReceiver
-import com.pennywiseai.tracker.utils.withLatinDigits
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
@@ -49,8 +49,6 @@ class MainActivity : FragmentActivity() {
         const val EXTRA_OPEN_GOAL_ID = "com.pennywiseai.tracker.OPEN_GOAL_ID"
         const val EXTRA_OPEN_REVIEW = "com.pennywiseai.tracker.OPEN_REVIEW"
         const val EXTRA_REVIEW_WEEK_START = "com.pennywiseai.tracker.REVIEW_WEEK_START"
-        // Set by the evening recap when Insights has an alert.
-        const val EXTRA_OPEN_INSIGHTS = "com.pennywiseai.tracker.OPEN_INSIGHTS"
         private const val KEY_LAUNCH_PENDING = "launch_request_pending"
         const val EXTRA_OPEN_BUDGETS = "com.pennywiseai.tracker.OPEN_BUDGETS"
         const val EXTRA_CREATE_GOAL = "com.pennywiseai.tracker.CREATE_GOAL"
@@ -184,8 +182,6 @@ class MainActivity : FragmentActivity() {
                     kind = intent.getStringExtra(EXTRA_OPEN_REVIEW) ?: "WEEK",
                     weekStart = intent.getStringExtra(EXTRA_REVIEW_WEEK_START),
                 )
-            intent.getBooleanExtra(EXTRA_OPEN_INSIGHTS, false) ->
-                com.pennywiseai.tracker.navigation.Insights
             intent.getBooleanExtra(EXTRA_OPEN_BUDGETS, false) ->
                 com.pennywiseai.tracker.navigation.BudgetGroups(
                     createGoal = intent.getBooleanExtra(EXTRA_CREATE_GOAL, false),

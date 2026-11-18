@@ -14,8 +14,6 @@ import com.pennywiseai.tracker.data.ledger.ledgerType
 import com.pennywiseai.tracker.data.preferences.NotificationPreferences
 import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.domain.model.toDatabaseString
-import com.pennywiseai.tracker.domain.spending.BalanceEffect
-import com.pennywiseai.tracker.domain.spending.BalanceEvidence
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
@@ -34,46 +32,6 @@ open class AccountBalanceRepository @Inject constructor(
     companion object {
         const val SOURCE_OPENING = "OPENING"
         const val SOURCE_MANUAL = "MANUAL"
-
-        /** `anchor_source` of a balance the user typed. */
-        const val ANCHOR_ENTERED = "MANUAL"
-
-        /** `anchor_source` of a balance set from an imported statement. */
-        const val ANCHOR_STATEMENT = "STATEMENT"
-
-        /**
-         * `anchor_source` of a balance the user gave with a new currency. It's entered
-         * like [ANCHOR_ENTERED]; it also marks when the currency changed, which a manual
-         * account's derived past mustn't reach back over. A balance entered later keeps
-         * it (see [anchorSourceAfter]), so that past never reaches back over the change.
-         */
-        const val ANCHOR_CURRENCY_CHANGE = "CURRENCY_CHANGE"
-
-        /**
-         * The source an anchor from [requested] is stored with, given the account's
-         * [current] one. A balance entered after a currency change keeps the change's
-         * mark: the newer anchor is no earlier than the change, so the account's past
-         * still can't cross it, at the cost of the days between the two. It still
-         * reads as entered.
-         */
-        fun anchorSourceAfter(current: String?, requested: String): String =
-            if (current == ANCHOR_CURRENCY_CHANGE && requested == ANCHOR_ENTERED) ANCHOR_CURRENCY_CHANGE else requested
-    }
-
-    /**
-     * Records that the user gave [amount] as the account's balance at [at]. Net worth
-     * shows it as where the balance comes from; a MANUAL row can't say, because
-     * those rows are refreshed and their timestamp moves.
-     */
-    suspend fun setAnchor(
-        bankName: String,
-        accountLast4: String,
-        amount: BigDecimal,
-        at: LocalDateTime = LocalDateTime.now(),
-        source: String = ANCHOR_ENTERED,
-    ): Int {
-        val current = accountBalanceDao.getLatestBalance(bankName, accountLast4)?.anchorSource
-        return accountBalanceDao.setAnchor(bankName, accountLast4, amount, at, anchorSourceAfter(current, source))
     }
 
     suspend fun insertBalance(balance: AccountBalanceEntity): Long {
@@ -220,21 +178,17 @@ open class AccountBalanceRepository @Inject constructor(
                 creditLimit = creditLimit,
                 isCreditCard = isCreditCard,
                 accountType = BalanceCalculator.preservedAccountType(existing),
-                // Nothing here says the currency: the account keeps its own.
-                currency = existing?.currency ?: "INR",
                 profileId = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
                 alias = existing?.alias,
                 lowBalanceThreshold = existing?.lowBalanceThreshold
-            ).withAccountFieldsOf(existing)
+            )
             insertBalance(balanceEntity)
         }
     }
 
     /**
      * Inserts a balance update from a balance notification SMS.
-     * Preserves the existing account's profileId if one exists. Without a
-     * [currency] (a card link), the account keeps its own: a row in another
-     * currency would read as a change of currency and drop the card's bill.
+     * Preserves the existing account's profileId if one exists.
      */
     suspend fun insertBalanceUpdate(
         bankName: String,
@@ -243,7 +197,7 @@ open class AccountBalanceRepository @Inject constructor(
         timestamp: LocalDateTime,
         smsSource: String? = null,
         sourceType: String? = null,
-        currency: String? = null
+        currency: String = "INR"
     ): Long {
         val existing = getLatestBalance(bankName, accountLast4)
         val balanceEntity = AccountBalanceEntity(
@@ -260,11 +214,11 @@ open class AccountBalanceRepository @Inject constructor(
             isCreditCard = existing?.isCreditCard ?: false,
             creditLimit = existing?.creditLimit,
             accountType = BalanceCalculator.preservedAccountType(existing),
-            currency = currency ?: existing?.currency ?: "INR",
+            currency = currency,
             profileId = existing?.profileId ?: ProfileEntity.PERSONAL_ID,
             alias = existing?.alias,
             lowBalanceThreshold = existing?.lowBalanceThreshold
-        ).withAccountFieldsOf(existing)
+        )
         return insertBalance(balanceEntity)
     }
 
@@ -379,40 +333,6 @@ open class AccountBalanceRepository @Inject constructor(
         val type = snapshot.accountType ?: return 0
         return accountBalanceDao.fillMissingAccountType(snapshot.bankName, snapshot.accountLast4, type, snapshot.isCreditCard)
     }
-
-    /** Sets (or, with nulls, clears) a credit card's bill on all of its rows. */
-    suspend fun setCardBill(
-        bankName: String,
-        accountLast4: String,
-        dueDay: Int?,
-        amount: BigDecimal?,
-        asOf: LocalDateTime? = amount?.let { LocalDateTime.now() },
-    ): Int = accountBalanceDao.setCardBill(bankName, accountLast4, dueDay, amount, asOf)
-
-    /**
-     * Puts [snapshot]'s account-level fields (statement and due day, card bill and,
-     * unless [withAnchor] is false, the balance anchor) back on the rows of
-     * [bankName]/[accountLast4] that don't have them. A force resync rebuilds an
-     * account's rows and a merge moves it, and neither may lose what the user set.
-     * The bill amount goes only onto rows in [snapshot]'s currency.
-     */
-    suspend fun keepAccountFields(
-        snapshot: AccountBalanceEntity,
-        bankName: String = snapshot.bankName,
-        accountLast4: String = snapshot.accountLast4,
-        withAnchor: Boolean = true,
-    ): Int = accountBalanceDao.fillMissingAccountFields(
-        bankName = bankName,
-        accountLast4 = accountLast4,
-        statementDay = snapshot.statementDay,
-        dueDay = snapshot.cardDueDay,
-        billAmount = snapshot.cardBillAmount,
-        billAsOf = snapshot.cardBillAsOf,
-        billCurrency = snapshot.currency,
-        anchorAmount = snapshot.anchorAmount.takeIf { withAnchor },
-        anchorAt = snapshot.anchorAt.takeIf { withAnchor },
-        anchorSource = snapshot.anchorSource.takeIf { withAnchor },
-    )
 
     /**
      * Sets (or clears, with null) the per-account low-balance alert threshold
@@ -837,58 +757,29 @@ open class AccountBalanceRepository @Inject constructor(
         bankName: String,
         accountLast4: String,
         after: LocalDateTime? = null
-    ): BigDecimal = manualBalanceEffects(bankName, accountLast4)
-        .filter { (at, _) -> after == null || at > after }
-        .fold(BigDecimal.ZERO) { acc, (_, effect) -> acc + effect }
-
-    /**
-     * What each of a manual account's transactions moved its balance by, signed as in
-     * [signedTransactionSum], with when it happened and in which currency: the account's
-     * past, which its one refreshed MANUAL row doesn't keep.
-     */
-    suspend fun manualBalanceEffects(bankName: String, accountLast4: String): List<BalanceEffect> {
-        val effects = transactionDao.getTransactionsForAccountStrict(bankName, accountLast4)
-            .filter { it.transactionType != TransactionType.TRANSFER }
-            .mapTo(mutableListOf()) { tx ->
-                BalanceEffect(tx.dateTime, if (tx.transactionType == TransactionType.INCOME) tx.amount else tx.amount.negate(), tx.currency)
+    ): BigDecimal {
+        fun inWindow(tx: TransactionEntity) = after == null || tx.dateTime > after
+        var sum = transactionDao.getTransactionsForAccountStrict(bankName, accountLast4)
+            .filter { it.transactionType != TransactionType.TRANSFER && inWindow(it) }
+            .fold(BigDecimal.ZERO) { acc, tx ->
+                if (tx.transactionType == TransactionType.INCOME) acc + tx.amount else acc - tx.amount
             }
-        for (tx in transactionDao.getTransfersForAccount(accountLast4)) {
+        for (tx in transactionDao.getTransfersForAccount(accountLast4).filter(::inWindow)) {
             if (tx.isPairedTransferLeg) {
                 if (tx.bankName == bankName && tx.accountNumber == accountLast4) {
                     when (tx.ledgerType()) {
-                        TransactionType.INCOME -> effects += BalanceEffect(tx.dateTime, tx.amount, tx.currency)
-                        TransactionType.EXPENSE -> effects += BalanceEffect(tx.dateTime, tx.amount.negate(), tx.currency)
+                        TransactionType.INCOME -> sum += tx.amount
+                        TransactionType.EXPENSE -> sum -= tx.amount
                         else -> Unit
                     }
                 }
                 continue
             }
-            if (tx.toAccount == accountLast4 && (tx.toBankName == null || tx.toBankName == bankName)) {
-                effects += BalanceEffect(tx.dateTime, tx.amount, tx.currency)
-            }
-            if (tx.fromAccount == accountLast4 && (tx.fromBankName == null || tx.fromBankName == bankName)) {
-                effects += BalanceEffect(tx.dateTime, tx.amount.negate(), tx.currency)
-            }
+            if (tx.toAccount == accountLast4 && (tx.toBankName == null || tx.toBankName == bankName)) sum += tx.amount
+            if (tx.fromAccount == accountLast4 && (tx.fromBankName == null || tx.fromBankName == bankName)) sum -= tx.amount
         }
-        return effects
+        return sum
     }
-
-    /** See [TransactionDao.countTransactionsOnAccountSince]. */
-    suspend fun countTransactionsSince(bankName: String, accountLast4: String, after: LocalDateTime): Int =
-        transactionDao.countTransactionsOnAccountSince(bankName, accountLast4, after)
-
-    /** Per account, what its rows prove about where its balance came from; see [AccountBalanceDao.getBalanceEvidence]. */
-    fun getBalanceEvidence(): Flow<Map<Pair<String, String>, BalanceEvidence>> =
-        accountBalanceDao.getBalanceEvidence().map { rows ->
-            rows.associate { (it.bankName to it.accountLast4) to BalanceEvidence(it.reportedAt, it.fixedAt) }
-        }
-
-    /** When the account's first balance row is dated (a manual account's OPENING row). */
-    suspend fun getEarliestBalanceTimestamp(bankName: String, accountLast4: String): LocalDateTime? =
-        accountBalanceDao.getEarliestBalanceTimestamp(bankName, accountLast4)
-
-    /** See [AccountBalanceDao.getTrendRows]. */
-    fun getTrendRows(start: LocalDateTime): Flow<List<AccountBalanceEntity>> = accountBalanceDao.getTrendRows(start)
 
     /**
      * The account's balance at [end], as well as the ledger knows it (#13). A
@@ -917,14 +808,10 @@ open class AccountBalanceRepository @Inject constructor(
         accountLast4: String,
         newBalance: BigDecimal,
         // When the figure was true (a statement's end); a manual account's row is always "now".
-        at: LocalDateTime = LocalDateTime.now(),
-        anchorSource: String = ANCHOR_ENTERED,
+        at: LocalDateTime = LocalDateTime.now()
     ) {
         if (isManualAccount(bankName, accountLast4)) {
             setManualCurrentBalance(bankName, accountLast4, newBalance)
-            // Today's figure, shifted to agree with any statement: neither its amount nor
-            // its date is the statement's, so it's never claimed as one.
-            setAnchor(bankName, accountLast4, newBalance, LocalDateTime.now(), ANCHOR_ENTERED)
             return
         }
         val latestBalance = getLatestBalance(bankName, accountLast4)
@@ -951,9 +838,8 @@ open class AccountBalanceRepository @Inject constructor(
                 lowBalanceThreshold = latestBalance?.lowBalanceThreshold,
                 sourceType = SOURCE_MANUAL,
                 timestamp = at
-            ).withAccountFieldsOf(latestBalance)
+            )
         )
-        setAnchor(bankName, accountLast4, newBalance, at, anchorSource)
     }
 
     /** One-shot account list; see [AccountBalanceDao.getAllLatestBalancesOnce]. */
@@ -1141,10 +1027,9 @@ open class AccountBalanceRepository @Inject constructor(
      */
     suspend fun seedManualAccount(template: AccountBalanceEntity, openingBalance: BigDecimal) {
         val now = LocalDateTime.now()
-        val anchored = template.copy(anchorAmount = openingBalance, anchorAt = now, anchorSource = ANCHOR_ENTERED)
         database.withTransaction {
             accountBalanceDao.insertBalance(
-                anchored.copy(
+                template.copy(
                     id = 0,
                     balance = openingBalance,
                     timestamp = now.minusSeconds(1),
@@ -1154,7 +1039,7 @@ open class AccountBalanceRepository @Inject constructor(
                 )
             )
             accountBalanceDao.insertBalance(
-                anchored.copy(
+                template.copy(
                     id = 0,
                     balance = openingBalance,
                     timestamp = now,

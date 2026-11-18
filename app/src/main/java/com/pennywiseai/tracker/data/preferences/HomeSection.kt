@@ -9,7 +9,6 @@ package com.pennywiseai.tracker.data.preferences
 enum class HomeSection(val label: String) {
     SAFE_TO_SPEND("Safe to spend"),
     BUDGETS("Budgets"),
-    INSIGHTS("Insights"),
     RECENT_TRANSACTIONS("Recent Transactions"),
     ACCOUNTS("Bank Accounts"),
     SUBSCRIPTIONS("Upcoming Subscriptions"),

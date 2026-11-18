@@ -1,5 +1,8 @@
 package com.pennywiseai.tracker.domain.spending
 
+import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
+import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
+import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.utils.Money
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -39,7 +42,7 @@ data class SpendForecast(
     companion object {
         /** Early-period pace is noise (one rent payment on day 2), so wait a week. */
         const val MIN_DAYS = 7
-        const val USUAL_PERIODS = CycleAverages.CYCLES
+        const val USUAL_PERIODS = 3
 
         /**
          * @param previousPeriods spend of the periods before this one, most recent
@@ -59,22 +62,23 @@ data class SpendForecast(
             if (elapsed < MIN_DAYS) return null
             val total = ChronoUnit.DAYS.between(periodStart, periodEnd) + 1
             val projected = spent.multiply(BigDecimal(total)).divide(BigDecimal(elapsed), 0, RoundingMode.HALF_UP)
-            val usual = CycleAverages.mean(previousPeriods)
+            val history = previousPeriods.take(USUAL_PERIODS)
+            val usual = if (history.size == USUAL_PERIODS && history.all { it != null }) {
+                history.fold(BigDecimal.ZERO) { acc, v -> acc + v!! }
+                    .divide(BigDecimal(USUAL_PERIODS), 0, RoundingMode.HALF_UP)
+            } else null
             return SpendForecast(currency, spent, projected, periodEnd, (total - elapsed).toInt(), usual)
         }
     }
 }
 
-/**
- * A payment due on [dueDate], in its own currency. A card bill ([isCardBill]) past
- * its due date is still owed, so it stays in the window ([SafeToSpend.billsInWindow]).
- */
-data class Bill(val name: String, val amount: Money, val dueDate: LocalDate, val isCardBill: Boolean = false)
+/** A payment due on [dueDate], in its own currency. */
+data class Bill(val name: String, val amount: Money, val dueDate: LocalDate)
 
 /**
  * Money free to spend in one currency until the period ends: spendable balance
- * minus the bills due before then and the [goalReserve] the user asked to keep,
- * and never more than [budgetLeft]. [amount] can be negative (bills exceed balance).
+ * minus the bills due before then, and never more than [budgetLeft]. [amount] can
+ * be negative (bills exceed balance).
  */
 data class SafeToSpend(
     val currency: String,
@@ -84,15 +88,11 @@ data class SafeToSpend(
     val days: Int,
     /** What's left in the user's overall budget, never below 0; null when there's none. */
     val budgetLeft: BigDecimal? = null,
-    /** Set aside for goals; zero unless the user opted in. */
-    val goalReserve: BigDecimal = BigDecimal.ZERO,
 ) {
-    private val afterReserves: BigDecimal get() = balance - bills - goalReserve
-
     /** True when the budget, not the balance, sets [amount]. */
-    val isCapped: Boolean get() = budgetLeft != null && budgetLeft < afterReserves
+    val isCapped: Boolean get() = budgetLeft != null && budgetLeft < balance - bills
 
-    val amount: BigDecimal get() = budgetLeft?.let { minOf(it, afterReserves) } ?: afterReserves
+    val amount: BigDecimal get() = budgetLeft?.let { minOf(it, balance - bills) } ?: (balance - bills)
 
     /** Even daily share of [amount]; null when nothing is left. Rounded down, so it never overstates. */
     val perDay: BigDecimal?
@@ -101,11 +101,8 @@ data class SafeToSpend(
     companion object {
         /**
          * One result per currency: amounts are only ever netted within a currency.
-         * Bills outside today..[periodEnd] are ignored, except overdue card bills.
-         * [budgetLeft] caps only the result in its own currency; a negative one caps
-         * at 0. A [goalReserves] amount comes off its own currency's figure, and only
-         * where there's money or a bill in it: a goal alone doesn't open a line.
-         * Card purchases aren't here at all: they're inside the card's bill.
+         * Bills outside today..[periodEnd] are ignored. [budgetLeft] caps only the
+         * result in its own currency; a negative one caps at 0.
          */
         fun calculate(
             balances: List<Money>,
@@ -113,7 +110,6 @@ data class SafeToSpend(
             today: LocalDate,
             periodEnd: LocalDate,
             budgetLeft: Money? = null,
-            goalReserves: List<Money> = emptyList(),
         ): List<SafeToSpend> {
             val days = (ChronoUnit.DAYS.between(today, periodEnd) + 1).toInt().coerceAtLeast(1)
             val due = billsInWindow(bills, today, periodEnd)
@@ -125,27 +121,22 @@ data class SafeToSpend(
                     bills = due.filter { it.amount.currency == c }.fold(BigDecimal.ZERO) { a, b -> a + b.amount.amount },
                     days = days,
                     budgetLeft = budgetLeft?.takeIf { it.currency == c }?.amount?.max(BigDecimal.ZERO),
-                    goalReserve = goalReserves.filter { it.currency == c }.fold(BigDecimal.ZERO) { a, m -> a + m.amount },
                 )
             }
         }
 
-        /**
-         * Unified mode: [money] in [display], or as it is when there's no rate
-         * ([convert] returns null), so it stays a line of its own rather than being
-         * added in (#670). A converted amount is an estimate at today's rate, so it's
-         * whole units, like the per-day figure: no paise from a rate in the total.
-         */
-        suspend fun inDisplay(
-            money: Money,
-            display: String,
-            convert: suspend (amount: BigDecimal, from: String, to: String) -> BigDecimal?,
-        ): Money =
-            if (money.currency == display) money
-            else convert(money.amount, money.currency, display)?.let { Money(it.setScale(0, RoundingMode.HALF_UP), display) } ?: money
-
-        /** Bills due today..[periodEnd], and overdue card bills: those are still owed. */
         fun billsInWindow(bills: List<Bill>, today: LocalDate, periodEnd: LocalDate): List<Bill> =
-            bills.filter { (it.isCardBill || !it.dueDate.isBefore(today)) && !it.dueDate.isAfter(periodEnd) }
+            bills.filter { !it.dueDate.isBefore(today) && !it.dueDate.isAfter(periodEnd) }
+
+        /**
+         * Bills from active expense subscriptions (EMIs tracked as subscriptions
+         * included). Only the next payment counts; a weekly one due twice in the
+         * window is counted once.
+         */
+        // ponytail: next payment only; expand recurrences if weekly bills turn out to matter.
+        fun billsFrom(subscriptions: List<SubscriptionEntity>): List<Bill> =
+            subscriptions
+                .filter { it.state == SubscriptionState.ACTIVE && it.direction == SubscriptionDirection.EXPENSE }
+                .mapNotNull { s -> s.nextPaymentDate?.let { Bill(s.merchantName, Money(s.amount, s.currency), it) } }
     }
 }

@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.components
 
+import android.content.Context
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
@@ -16,6 +17,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -71,14 +73,17 @@ internal fun PeriodSwitcher(
 
 /** What a period is compared with, as it reads after "more than": "September", "the week before". */
 @Composable
-internal fun comparisonTarget(range: ReviewRange): String = when (range.kind) {
-    ReviewKind.WEEK -> stringResource(R.string.review_target_week)
+internal fun comparisonTarget(range: ReviewRange): String = comparisonTarget(LocalContext.current, range)
+
+/** [comparisonTarget] outside composition, for the PDF report. */
+internal fun comparisonTarget(context: Context, range: ReviewRange): String = when (range.kind) {
+    ReviewKind.WEEK -> context.getString(R.string.review_target_week)
     ReviewKind.MONTH ->
         if (range.isCalendarMonth()) range.previousStart.format(AppDates.pattern("MMMM"))
-        else stringResource(R.string.review_target_cycle)
+        else context.getString(R.string.review_target_cycle)
     ReviewKind.YEAR ->
         if (range.isComplete) range.previousStart.year.toString()
-        else stringResource(R.string.review_target_same_span, range.previousStart.year)
+        else context.getString(R.string.review_target_same_span, range.previousStart.year)
 }
 
 /** Explicit dates on a non-calendar cycle: "October" would be wrong for 25 Sep – 24 Oct. */

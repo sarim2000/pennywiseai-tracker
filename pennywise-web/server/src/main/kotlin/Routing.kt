@@ -45,6 +45,8 @@ fun Application.configureRouting() {
             NDBBankParser(),
             // ComBank (Sri Lanka, #848) — the web tester advertises its sample too.
             ComBankParser(),
+            // Standard Chartered Bangladesh (#1280) — the web tester advertises its sample too.
+            StandardCharteredBangladeshParser(),
             // Ethiopia (#716) — Bank of Abyssinia.
             BankOfAbyssiniaParser(),
             // ZamZam Bank (Ethiopia) (#720)

@@ -1409,8 +1409,9 @@ class HomeViewModel @Inject constructor(
     /** "Start on day N" on the payday card: the budget cycle moves to payday, and the card never comes back. */
     fun acceptPaydaySuggestion(day: Int) {
         viewModelScope.launch {
-            userPreferencesRepository.markPaydaySuggestionHandled()
+            // The new day hides the card; marked only once it's saved, so a failed move keeps the offer.
             budgetGroupRepository.updateBudgetCycleStartDay(day)
+            userPreferencesRepository.markPaydaySuggestionHandled()
         }
     }
 

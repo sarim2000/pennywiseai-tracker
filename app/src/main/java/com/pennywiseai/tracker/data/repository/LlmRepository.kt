@@ -309,8 +309,8 @@ class LlmRepository @Inject constructor(
         if (prose.isNotBlank()) {
             val onCard = _pendingAction.value?.takeIf { it !== cardBefore }?.let(::amountsOf).orEmpty()
             val numbers = ChatMessageFacts.numbersIn(prose)
-            // A digit it can't read as an amount ("12,50") is a number all the same.
-            val strayNumber = numbers.any { n -> onCard.none { it.compareTo(n) == 0 } } || (numbers.isEmpty() && prose.any(Char::isDigit))
+            // A digit it can't read as an amount ("12,50") is a number all the same, beside one it can or not.
+            val strayNumber = numbers.any { n -> onCard.none { it.compareTo(n) == 0 } } || ChatMessageFacts.hasUnreadNumber(prose)
             if (toolCalls.any(figures) || strayNumber || claimsAChange(prose, emptyList())) conversationBroken = true
         }
         // A small model sometimes narrates a change instead of calling the tool. Unless it's about

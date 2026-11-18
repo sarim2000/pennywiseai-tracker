@@ -204,6 +204,12 @@ class ChatTurnTest {
         events = listOf(LlmEvent.Text("Adding ₹150 for coffee. "), add(120.0))
         assertEquals("CARD", send("coffee 120"))
         coVerify(exactly = 2) { llmService.closeConversation() }
+
+        // A number it can't read is one all the same, beside the card's own amount too.
+        repository.clearPendingAction()
+        events = listOf(LlmEvent.Text("Adding ₹120. Your balance is 12,50. "), add(120.0))
+        assertEquals("CARD", send("coffee 120"))
+        coVerify(exactly = 3) { llmService.closeConversation() }
     }
 
     @Test

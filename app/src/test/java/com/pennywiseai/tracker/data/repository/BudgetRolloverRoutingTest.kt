@@ -133,13 +133,17 @@ class BudgetRolloverRoutingTest {
         }
     }
 
-    private fun overall(repo: BudgetGroupRepository, unified: Boolean): BudgetOverallSummary = runBlocking {
+    private fun overall(
+        repo: BudgetGroupRepository,
+        unified: Boolean,
+        month: YearMonth = YearMonth.from(today)
+    ): BudgetOverallSummary = runBlocking {
         val prefs = mockk<CurrencyPreferences> {
             every { baseCurrency } returns flowOf("JOD")
             every { unifiedCurrencyMode } returns flowOf(unified)
             every { displayCurrency } returns flowOf("JOD")
         }
-        BudgetSummaryProvider(repo, prefs, conversion).summary(YearMonth.from(today)).first()
+        BudgetSummaryProvider(repo, prefs, conversion).summary(month).first()
     }
 
     private fun summary(repo: BudgetGroupRepository, unified: Boolean): BudgetGroupSpending =
@@ -184,6 +188,16 @@ class BudgetRolloverRoutingTest {
         for (g in listOf(summary(repo, unified = false), summary(repo, unified = true), home(repo))) {
             assertFigures(g, carry = "-200", limit = "0", remaining = "0")
             assertTrue(g.hasLimit)
+        }
+    }
+
+    @Test
+    fun `next month's budgets carry nothing while this period is still running`() {
+        val repo = repository(budget(), listOf(spend("30")))
+        for (unified in listOf(false, true)) {
+            val g = overall(repo, unified, YearMonth.from(today).plusMonths(1)).groups.single()
+            assertEquals(0, BigDecimal.ZERO.compareTo(g.carry))
+            assertEquals(0, BigDecimal("100").compareTo(g.totalBudget))
         }
     }
 

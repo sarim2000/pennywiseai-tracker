@@ -25,16 +25,19 @@ class ReplyTopicTest {
         assertEquals(MascotShape.Receipt, replyShape(PennyWiseTools.ADD_TRANSACTIONS))
         assertEquals(MascotShape.Receipt, replyShape(PennyWiseTools.DELETE_TRANSACTION))
         assertEquals(MascotShape.Receipt, replyShape(PennyWiseTools.UPDATE_TRANSACTION))
-        assertEquals(MascotShape.Pie, replyShape(PennyWiseTools.SPENDING_BY_CATEGORY))
+        assertEquals(MascotShape.Coin, replyShape(PennyWiseTools.QUERY_SPENDING))
+        assertEquals(MascotShape.Pie, replyShape(PennyWiseTools.QUERY_SPENDING, share = 0.3f))
         assertEquals(MascotShape.Bars, replyShape(PennyWiseTools.COMPARE_SPENDING))
-        assertEquals(MascotShape.Coin, replyShape(PennyWiseTools.MONTH_SUMMARY))
+        assertEquals(MascotShape.Bell, replyShape(PennyWiseTools.PLANNING_STATUS))
+        assertEquals(MascotShape.Gauge, replyShape(PennyWiseTools.PLANNING_STATUS, share = 0f))
     }
 
     @Test
     fun `every quick action maps to the shape of the tool that answers the same question`() {
         QuickAction.entries.forEach { assertTrue(it.name, it.tool in tools) }
         assertEquals(MascotShape.Coin, replyShape(QuickAction.MONTH_SPEND.tool))
-        assertEquals(MascotShape.Pie, replyShape(QuickAction.TOP_CATEGORIES.tool))
+        // The top category's share makes the same tool's answer a pie.
+        assertEquals(MascotShape.Pie, replyShape(QuickAction.TOP_CATEGORIES.tool, share = 0.5f))
         assertEquals(MascotShape.Bars, replyShape(QuickAction.COMPARE_MONTH.tool))
     }
 
@@ -59,16 +62,17 @@ class ReplyTopicTest {
 
     @Test
     fun `a month summary is a coin without a badge, its text already has the figure`() {
-        val topic = replyTopic(ReplySubject(tool = PennyWiseTools.MONTH_SUMMARY))
+        val topic = replyTopic(ReplySubject(tool = PennyWiseTools.QUERY_SPENDING))
         assertEquals(MascotShape.Coin, topic.shape)
         assertFalse(topic.saved)
     }
 
     @Test
     fun `pie and bars carry their figure`() {
-        assertEquals(0.4f, replyTopic(ReplySubject(tool = PennyWiseTools.SPENDING_BY_CATEGORY, share = 0.4f)).value)
+        assertEquals(0.4f, replyTopic(ReplySubject(tool = PennyWiseTools.QUERY_SPENDING, share = 0.4f)).value)
         assertEquals(-1f, replyTopic(ReplySubject(tool = PennyWiseTools.COMPARE_SPENDING, trend = -1)).value)
         assertEquals(1f, replyTopic(ReplySubject(tool = PennyWiseTools.COMPARE_SPENDING, trend = 1)).value)
-        assertEquals(0f, replyTopic(ReplySubject(tool = PennyWiseTools.MONTH_SUMMARY, share = 0.4f)).value)
+        assertEquals(0f, replyTopic(ReplySubject(tool = PennyWiseTools.QUERY_SPENDING)).value)
+        assertEquals(0.75f, replyTopic(ReplySubject(tool = PennyWiseTools.PLANNING_STATUS, share = 0.75f)).value)
     }
 }

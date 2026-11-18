@@ -75,7 +75,9 @@ fun HomeScreen(
     onNavigateToTransactionsWithSearch: () -> Unit = {},
     onNavigateToSubscriptions: () -> Unit = {},
     onNavigateToReview: (ReviewKind) -> Unit = {},
+    onNavigateToNetWorth: (currency: String) -> Unit = {},
     onNavigateToShareStudio: () -> Unit = {},
+    onNavigateToAchievements: () -> Unit = {},
     onNavigateToBudgets: () -> Unit = {},
     onNavigateToLoans: () -> Unit = {},
     onNavigateToTransactionGroups: () -> Unit = {},
@@ -378,7 +380,8 @@ fun HomeScreen(
                                 creditCards = uiState.creditCards,
                                 totalAvailableCredit = uiState.totalAvailableCredit,
                                 forecast = uiState.spendForecast,
-                                onAccountClick = onAccountClick
+                                onAccountClick = onAccountClick,
+                                onOpenNetWorth = { onNavigateToNetWorth(uiState.selectedCurrency) }
                             )
                         }
                     }
@@ -776,6 +779,7 @@ fun HomeScreen(
                 onDismiss = { showMenuSheet = false },
                 onOpenReview = { onNavigateToReview(ReviewKind.MONTH) },
                 onOpenShareCard = onNavigateToShareStudio,
+                onOpenAchievements = onNavigateToAchievements,
                 onOpenSettings = onNavigateToSettings,
                 onEditHome = { showEditWidgetsSheet = true },
                 onReadMessagesAgain = { showFullResyncDialog = true }
@@ -787,6 +791,10 @@ fun HomeScreen(
         SafeToSpendSheet(
             state = state,
             onSetIncluded = viewModel::setSafeToSpendAccountIncluded,
+            onOpenCard = { card ->
+                showSafeToSpendSheet = false
+                onAccountClick(card.bankName, card.accountLast4)
+            },
             onDismiss = { showSafeToSpendSheet = false }
         )
     }

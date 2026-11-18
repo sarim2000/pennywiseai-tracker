@@ -4,6 +4,12 @@
     <string name="review_title">Reviews</string>
     <string name="review_back">Back</string>
     <string name="review_share">Share</string>
+    <string name="review_export_pdf">Export PDF</string>
+    <!-- Paywall list of what Pro includes -->
+    <string name="upgrade_feature_pdf_reports">Monthly and yearly PDF reports</string>
+    <string name="review_export_pdf_failed">Couldn\'t create the PDF. Try again.</string>
+    <!-- Shown instead of a PDF while the user hides amounts in the app: the report prints them -->
+    <string name="review_export_pdf_amounts_hidden">Show amounts to export a PDF report.</string>
     <string name="review_kind_week">Week</string>
     <string name="review_kind_month">Month</string>
     <string name="review_kind_year">Year</string>
@@ -30,6 +36,23 @@
     <string name="review_coverage">Based on recorded transactions. Cash you didn\'t add isn\'t included.</string>
     <!-- %1$s, %2$s = first and last recorded dates -->
     <string name="review_coverage_span">Based on transactions recorded from %1$s to %2$s. Cash you didn\'t add isn\'t included.</string>
+
+    <!-- PDF report: printed, so worded for paper rather than the screen -->
+    <string name="review_pdf_title">PennyWise report</string>
+    <!-- %1$s = profile name, or "All profiles" -->
+    <string name="review_pdf_profile">Profile: %1$s</string>
+    <!-- %1$s = date the report was made -->
+    <string name="review_pdf_created">Created %1$s</string>
+    <string name="review_pdf_net">Net</string>
+    <string name="review_pdf_category">Category</string>
+    <string name="review_pdf_amount">Amount</string>
+    <!-- Column heading. %1$s = what it is compared with, e.g. "September" or "the previous cycle" -->
+    <string name="review_pdf_change">Change from %1$s</string>
+    <string name="review_pdf_merchants">Top merchants</string>
+    <string name="review_pdf_merchant">Merchant</string>
+    <string name="review_pdf_month">Month</string>
+    <!-- %1$d = this page, %2$d = number of pages -->
+    <string name="review_pdf_page">Page %1$d of %2$d</string>
 
     <!-- Home -->
     <string name="home_menu_share_card">Share card</string>

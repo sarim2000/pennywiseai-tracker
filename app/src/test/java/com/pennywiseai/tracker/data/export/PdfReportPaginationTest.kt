@@ -1,0 +1,76 @@
+package com.pennywiseai.tracker.data.export
+
+import com.pennywiseai.tracker.domain.review.CategoryLine
+import com.pennywiseai.tracker.domain.review.ReviewKind
+import com.pennywiseai.tracker.domain.review.ReviewRange
+import org.junit.Assert.assertEquals
+import org.junit.Test
+import java.math.BigDecimal
+import java.time.LocalDate
+
+class PdfReportPaginationTest {
+    private fun blocks(vararg heights: Float) = heights.map { ReportBlock(it) }
+
+    @Test
+    fun `what fits stays on one page`() {
+        assertEquals(listOf(0), pageStarts(blocks(30f, 30f, 40f), pageHeight = 100f))
+    }
+
+    @Test
+    fun `a block that doesn't fit starts the next page, never split`() {
+        assertEquals(listOf(0, 2, 4), pageStarts(blocks(40f, 40f, 40f, 40f, 40f), pageHeight = 100f))
+    }
+
+    @Test
+    fun `a heading moves with the block after it`() {
+        val heading = ReportBlock(20f, keepWithNext = true)
+        val pages = pageStarts(listOf(ReportBlock(70f), heading, ReportBlock(20f)), pageHeight = 100f)
+        assertEquals(listOf(0, 1), pages)
+    }
+
+    @Test
+    fun `a title and a table's column names move together with the first row`() {
+        val title = ReportBlock(20f, keepWithNext = true)
+        val columns = ReportBlock(20f, keepWithNext = true)
+        val pages = pageStarts(listOf(ReportBlock(50f), title, columns, ReportBlock(20f)), pageHeight = 100f)
+        assertEquals(listOf(0, 1), pages)
+    }
+
+    @Test
+    fun `an oversized block gets a page to itself, and no page starts empty`() {
+        assertEquals(listOf(0, 1, 2), pageStarts(blocks(10f, 250f, 10f), pageHeight = 100f))
+        assertEquals(listOf(0), pageStarts(blocks(250f), pageHeight = 100f))
+    }
+
+    @Test
+    fun `an empty report is still one page`() {
+        assertEquals(listOf(0), pageStarts(emptyList(), pageHeight = 100f))
+    }
+
+    @Test
+    fun `a table that runs onto the next page leaves room for its column names there`() {
+        val columns = ReportBlock(20f, keepWithNext = true)
+        val rows = List(5) { ReportBlock(30f, header = columns) }
+        // Page 1: columns + 2 rows (80). Page 2 repeats the columns: 20 + 2 rows, then 20 + the last.
+        assertEquals(listOf(0, 3, 5), pageStarts(listOf(columns) + rows, pageHeight = 85f))
+    }
+
+    @Test
+    fun `the file name says which period it covers`() {
+        fun range(kind: ReviewKind, start: LocalDate, end: LocalDate) =
+            ReviewRange(kind, start, end, start, end, isComplete = true)
+        assertEquals("2026", reportSlug(range(ReviewKind.YEAR, LocalDate.of(2026, 1, 1), LocalDate.of(2026, 12, 31))))
+        assertEquals("2026-10", reportSlug(range(ReviewKind.MONTH, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31))))
+        assertEquals("2026-10-25", reportSlug(range(ReviewKind.MONTH, LocalDate.of(2026, 10, 25), LocalDate.of(2026, 11, 24))))
+        val october = range(ReviewKind.MONTH, LocalDate.of(2026, 10, 1), LocalDate.of(2026, 10, 31))
+        assertEquals("pennywise-report-2026-10.pdf", reportFileName(october))
+    }
+
+    @Test
+    fun `a category that didn't change prints a dash, not a blank cell`() {
+        fun line(amount: Int, previous: Int) = CategoryLine("Food", BigDecimal(amount), BigDecimal(previous))
+        assertEquals("—", categoryChange(line(500, 500), "USD"))
+        assertEquals("+", categoryChange(line(700, 500), "USD").take(1))
+        assertEquals("−", categoryChange(line(300, 500), "USD").take(1))
+    }
+}

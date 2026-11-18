@@ -467,7 +467,7 @@ class SmsTransactionProcessor @Inject constructor(
                     profileId = existingAccount?.profileId ?: ProfileEntity.PERSONAL_ID,
                     alias = existingAccount?.alias,
                     lowBalanceThreshold = existingAccount?.lowBalanceThreshold
-                )
+                ).withAccountFieldsOf(existingAccount)
             }
             notifyIfBalanceFellLow(parsedTransaction.balance, existingAccount, balanceBefore, savedBalance)
             Log.d(TAG, "Saved balance update for ${parsedTransaction.bankName} **$targetAccountLast4")
@@ -508,7 +508,7 @@ class SmsTransactionProcessor @Inject constructor(
             profileId = existingAccount?.profileId ?: ProfileEntity.PERSONAL_ID,
             alias = existingAccount?.alias,
             lowBalanceThreshold = existingAccount?.lowBalanceThreshold
-        )
+        ).withAccountFieldsOf(existingAccount)
 
         accountBalanceRepository.insertBalance(balanceEntity)
         notifyIfBalanceFellLow(balance, existingAccount, existingAccount?.balance, balanceEntity)

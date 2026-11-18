@@ -787,6 +787,10 @@ fun HomeScreen(
         SafeToSpendSheet(
             state = state,
             onSetIncluded = viewModel::setSafeToSpendAccountIncluded,
+            onOpenCard = { card ->
+                showSafeToSpendSheet = false
+                onAccountClick(card.bankName, card.accountLast4)
+            },
             onDismiss = { showSafeToSpendSheet = false }
         )
     }

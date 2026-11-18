@@ -86,8 +86,20 @@ object BudgetRollover {
         before.limitAmount.compareTo(after.limitAmount) != 0 ||
             !before.currency.equals(after.currency, ignoreCase = true) ||
             before.periodType != after.periodType ||
-            resolveBudgetWindow(before, today, globalStartDay) != resolveBudgetWindow(after, today, globalStartDay) -> today
+            !samePeriods(before, globalStartDay, after, globalStartDay, today) -> today
         else -> before.rolloverSince
+    }
+
+    /**
+     * [before] and [after] put [today] in the same period and the same last period,
+     * the one a carry is measured from. Two rules can agree on this period alone (day
+     * 31 and the last working day both start on Monday 30 November) yet not on the
+     * last one (31 and 30 October).
+     */
+    private fun samePeriods(before: BudgetEntity, beforeStartDay: Int, after: BudgetEntity, afterStartDay: Int, today: LocalDate): Boolean {
+        val current = resolveBudgetWindow(before, today, beforeStartDay)
+        return current == resolveBudgetWindow(after, today, afterStartDay) &&
+            previousBudgetWindow(before, current, beforeStartDay) == previousBudgetWindow(after, current, afterStartDay)
     }
 
     /**
@@ -96,7 +108,9 @@ object BudgetRollover {
      * own) starts again [today]: its last period isn't the one it measured.
      */
     fun sinceAfterCycleStartDayChange(budget: BudgetEntity, today: LocalDate, before: Int, after: Int): LocalDate? =
-        if (budget.rolloverEnabled && budget.rolloverSince != null &&
-            resolveBudgetWindow(budget, today, before) != resolveBudgetWindow(budget, today, after)
-        ) today else budget.rolloverSince
+        if (budget.rolloverEnabled && budget.rolloverSince != null && !samePeriods(budget, before, budget, after, today)) {
+            today
+        } else {
+            budget.rolloverSince
+        }
 }

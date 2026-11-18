@@ -5,6 +5,7 @@ import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.repository.BudgetWindow
 import com.pennywiseai.tracker.data.repository.resolveBudgetWindow
+import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.utils.Money
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -195,6 +196,22 @@ class BudgetRolloverTest {
             BudgetRollover.sinceAfterEdit(monthly, monthly.copy(monthStartDay = 5), today, globalStartDay = 5)
         )
         assertEquals(today, BudgetRollover.sinceAfterEdit(monthly, monthly.copy(monthStartDay = 5), today, globalStartDay = 1))
+    }
+
+    @Test
+    fun `an anchor that starts this period on the same day but last period on another starts it again`() {
+        // 5 Dec 2026: day 31 and the last working day both start on Mon 30 Nov, but
+        // October's cycle starts on the 31st (a Saturday) for one and earlier for the other.
+        val december = LocalDate.of(2026, 12, 5)
+        val day31 = budget(periodType = BudgetPeriodType.MONTHLY, monthStartDay = 31)
+        val lastWorkingDay = day31.copy(monthStartDay = BudgetCycle.LAST_WORKING_DAY)
+        assertEquals(resolveBudgetWindow(day31, december), resolveBudgetWindow(lastWorkingDay, december))
+        assertEquals(december, BudgetRollover.sinceAfterEdit(day31, lastWorkingDay, december))
+        val followsGlobal = budget(periodType = BudgetPeriodType.MONTHLY)
+        assertEquals(
+            december,
+            BudgetRollover.sinceAfterCycleStartDayChange(followsGlobal, december, before = 31, after = BudgetCycle.LAST_WORKING_DAY)
+        )
     }
 
     @Test

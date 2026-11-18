@@ -158,7 +158,8 @@ object InsightRules {
             }
             // The limit is the card's own, in the card's currency.
             Insight(
-                id("card_use", period, card.currency, "${card.bankName}_${card.accountLast4}"), severity, card.currency,
+                // The severity is in the id: dismissing a warning mustn't hide the later alert.
+                id("card_use", period, card.currency, "${card.bankName}_${card.accountLast4}:${severity.name}"), severity, card.currency,
                 CardUtilisation(card.displayLabel, Money(card.balance, card.currency), Money(limit, card.currency), percent),
                 InsightAction.OpenAccount(card.bankName, card.accountLast4),
             )
@@ -349,7 +350,7 @@ object InsightRules {
                 else -> return@mapNotNull null
             }
             Insight(
-                id("savings_rate", period, c.currency, "cycle"), severity, c.currency,
+                id("savings_rate", period, c.currency, "cycle:${severity.name}"), severity, c.currency,
                 SavingsRate(Money(c.income, c.currency), Money(saved, c.currency), percent), null,
             )
         }

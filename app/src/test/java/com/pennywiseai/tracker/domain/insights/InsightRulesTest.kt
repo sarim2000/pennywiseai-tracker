@@ -29,6 +29,7 @@ import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
@@ -611,6 +612,14 @@ class InsightRulesTest {
         assertEquals(InsightAction.OpenAccount("Test Bank", "1111"), cards.first().action)
     }
 
+    @Test
+    fun `dismissing a warning leaves a later alert, for cards and savings rate`() {
+        fun cardId(balance: String) = evaluate(cards = listOf(card(balance, "1000"))).single { it.fact is CardUtilisation }.id
+        assertNotEquals(cardId("550"), cardId("900"))
+        fun rateId(spent: String) = evaluate(rows = salaryAndSpend(spent)).single { it.fact is SavingsRate }.id
+        assertNotEquals(rateId("700"), rateId("1200"))
+    }
+
     // --- Ordering and ids
 
     @Test
@@ -633,9 +642,9 @@ class InsightRulesTest {
         val cards = listOf(card("950", "1000"))
         fun idIn(profileId: Long?) =
             InsightRules.evaluate(InsightInputs(today, review(emptyList()), creditCards = cards, profileId = profileId)).single().id
-        assertEquals("card_use:v2:2026-11-01:all:INR:Test Bank_1111", idIn(null))
-        assertEquals("card_use:v2:2026-11-01:p1:INR:Test Bank_1111", idIn(1))
-        assertEquals("card_use:v2:2026-11-01:p2:INR:Test Bank_1111", idIn(2))
+        assertEquals("card_use:v2:2026-11-01:all:INR:Test Bank_1111:ALERT", idIn(null))
+        assertEquals("card_use:v2:2026-11-01:p1:INR:Test Bank_1111:ALERT", idIn(1))
+        assertEquals("card_use:v2:2026-11-01:p2:INR:Test Bank_1111:ALERT", idIn(2))
         assertEquals(setOf("2026-11-01"), listOf(idIn(null), idIn(1), idIn(2)).map(::insightCycleOf).toSet())
     }
 }

@@ -127,8 +127,6 @@
     <!-- Runway. %1$s = how long, e.g. "2.4 months", "about 2.4 months" (some balances unknown) or "under a month" -->
     <string name="insights_runway_title">Your money would last %1$s</string>
     <!-- Under the runway's Held and Usual month figures. %1$d = months many aim for -->
-    <string name="insights_runway_low_body">Many people aim for %1$d months.</string>
-    <!-- Under the runway's Held and Usual month figures. %1$d = months many aim for -->
     <string name="insights_runway_good_body">That\'s past the %1$d months many people aim for.</string>
     <string name="insights_runway_estimate">Some accounts are left out because their balance isn\'t known yet. Update them in Accounts for a truer figure.</string>
 

@@ -27,8 +27,7 @@ class RunwayTest {
         timestamp = LocalDateTime.of(2026, 11, 1, 9, 0), isCreditCard = card, accountType = type, currency = currency,
     )
 
-    private fun usual(currency: String, spent: String, income: String = "0") =
-        currency to CycleAverages(currency, d(income), d(spent))
+    private fun usual(currency: String, spent: String) = currency to CycleAverages(currency, d(spent))
 
     @Test
     fun `adds up savings, current and cash, never cards or loans`() {
@@ -99,27 +98,27 @@ class RunwayTest {
     }
 
     @Test
-    fun `insight warns under three months and cheers from six`() {
+    fun `insight cheers from six months and is silent below`() {
         fun severityFor(balance: String) = InsightRules.runway(
             listOf(Runway("INR", d(balance), d("1000"), lowConfidence = false)),
             "2026-11-01:all",
         ).singleOrNull()?.severity
 
-        assertEquals(InsightSeverity.WARNING, severityFor("2400"))
-        assertEquals(InsightSeverity.WARNING, severityFor("0"))
+        assertEquals(null, severityFor("2400"))
+        assertEquals(null, severityFor("0"))
         assertEquals(null, severityFor("4000"))
         assertEquals(InsightSeverity.GOOD, severityFor("6000"))
 
-        val insight = InsightRules.runway(listOf(Runway("INR", d("2400"), d("1000"), false)), "2026-11-01:all").single()
-        assertEquals("runway:v2:2026-11-01:all:INR:held", insight.id)
+        val insight = InsightRules.runway(listOf(Runway("INR", d("6500"), d("1000"), false)), "2026-11-01:all").single()
+        assertEquals("runway:v2:2026-11-01:all:INR:held:GOOD", insight.id)
         val fact = insight.fact as MoneyLasts
-        assertEquals(d("2.4"), fact.months)
+        assertEquals(d("6.5"), fact.months)
         assertEquals("INR", fact.balance.currency)
         assertFalse(fact.lowConfidence)
     }
 
     @Test
-    fun `a low figure that leaves accounts out is never a warning`() {
+    fun `a low figure that leaves accounts out is no card either`() {
         val partial = { balance: String -> Runway("INR", d(balance), d("1000"), lowConfidence = true) }
         assertTrue(InsightRules.runway(listOf(partial("500")), "2026-11-01").isEmpty())
         val good = InsightRules.runway(listOf(partial("7000")), "2026-11-01").single()

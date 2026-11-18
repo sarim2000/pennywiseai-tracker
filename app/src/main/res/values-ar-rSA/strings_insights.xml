@@ -143,8 +143,6 @@
     <!-- Runway. %1$s = how long, e.g. "2.4 months" or "under a month" -->
     <string name="insights_runway_title">تكفي أموالك %1$s</string>
     <!-- Under the runway's Held and Usual month figures. %1$d = months many aim for -->
-    <string name="insights_runway_low_body">يسعى كثيرون إلى ما يكفي %1$d أشهر.</string>
-    <!-- Under the runway's Held and Usual month figures. %1$d = months many aim for -->
     <string name="insights_runway_good_body">أي أكثر من %1$d أشهر يسعى إليها كثيرون.</string>
     <string name="insights_runway_estimate">بعض الحسابات غير محسوبة لأن رصيدها غير معروف بعد. حدّثها من الحسابات لرقم أدق.</string>
 

@@ -11,7 +11,6 @@ import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
 import com.pennywiseai.tracker.domain.insights.Insight
 import com.pennywiseai.tracker.domain.insights.InsightAction
 import com.pennywiseai.tracker.domain.insights.InsightFact
-import com.pennywiseai.tracker.domain.insights.InsightSeverity
 import com.pennywiseai.tracker.domain.spending.Runway
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.utils.AmountPrivacy
@@ -120,11 +119,7 @@ internal fun insightText(insight: Insight): InsightText = when (val f = insight.
     )
     is InsightFact.MoneyLasts -> InsightText(
         title = stringResource(R.string.insights_runway_title, runwayLength(f.months, f.lowConfidence)),
-        body = stringResource(
-            if (insight.severity == InsightSeverity.GOOD) R.string.insights_runway_good_body
-            else R.string.insights_runway_low_body,
-            Runway.TARGET_MONTHS,
-        ),
+        body = stringResource(R.string.insights_runway_good_body, Runway.TARGET_MONTHS),
         metrics = listOf(
             stringResource(R.string.insights_metric_held) to f.balance.format(),
             stringResource(R.string.insights_metric_usual_month) to f.monthlySpend.format(),

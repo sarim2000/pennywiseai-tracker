@@ -370,20 +370,18 @@ object InsightRules {
     }
 
     /**
-     * How long the money held would last at a usual month's spending: worth a word
-     * below [LOW_RUNWAY_MONTHS], and as good news from [Runway.TARGET_MONTHS]. In
-     * between, the Insights summary still shows it. A low figure that leaves some
-     * accounts out may only be low because of them, so it isn't a warning; it opens
-     * Accounts, where their balances can be set.
+     * How long the money held would last at a usual month's spending, as good news from
+     * [Runway.TARGET_MONTHS]. Below that the Insights summary still shows the figure, but
+     * not as a card: a salaried month rarely holds that much, and a warning every cycle
+     * would have nothing to act on. One that leaves some accounts out opens Accounts,
+     * where their balances can be set.
      */
     internal fun runway(runways: List<Runway>, period: String): List<Insight> = runways.mapNotNull { r ->
-        val severity = when {
-            r.months < BigDecimal(LOW_RUNWAY_MONTHS) && !r.lowConfidence -> InsightSeverity.WARNING
-            r.months >= BigDecimal(Runway.TARGET_MONTHS) -> InsightSeverity.GOOD
-            else -> return@mapNotNull null
-        }
+        if (r.months < BigDecimal(Runway.TARGET_MONTHS)) return@mapNotNull null
+        val severity = InsightSeverity.GOOD
         Insight(
-            id("runway", period, r.currency, "held"), severity, r.currency,
+            // The severity is in the id, as on every rule with more than one.
+            id("runway", period, r.currency, "held:${severity.name}"), severity, r.currency,
             MoneyLasts(r.months, Money(r.balance, r.currency), Money(r.monthlySpend, r.currency), r.lowConfidence),
             InsightAction.OpenAccounts.takeIf { r.lowConfidence },
         )
@@ -510,6 +508,5 @@ object InsightRules {
     private const val GOOD_SAVINGS_PERCENT = 20
     private const val CARD_WARNING_PERCENT = 50
     private const val CARD_ALERT_PERCENT = 90
-    private const val LOW_RUNWAY_MONTHS = 3
     internal const val BILLS_DAYS = 7L
 }

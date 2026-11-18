@@ -315,6 +315,9 @@ fun MainScreen(
                 onNavigateToReview = { kind ->
                     openRoot(com.pennywiseai.tracker.navigation.Review(kind.name))
                 },
+                onNavigateToShareStudio = {
+                    openRoot(ShareStudio())
+                },
                 onNavigateToSubscriptions = {
                     open(tab, Subscriptions)
                 },

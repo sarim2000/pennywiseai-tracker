@@ -1,229 +1,682 @@
 package com.pennywiseai.tracker.presentation.share
 
+import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.Immutable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
+import androidx.compose.ui.geometry.CornerRadius
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.geometry.Size
+import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.StrokeJoin
+import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.layout.Layout
+import androidx.compose.ui.layout.Placeable
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
+import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.tooling.preview.Preview
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Density
+import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
+import androidx.compose.ui.unit.TextUnit
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.share.SHARE_CARD_URL
-import com.pennywiseai.tracker.data.share.ShareCardConfig
-import com.pennywiseai.tracker.data.share.ShareHero
+import com.pennywiseai.tracker.ui.theme.GoogleSansFlexFamily
+import com.pennywiseai.tracker.ui.theme.GoogleSansFlexHeadingFamily
+import kotlin.math.abs
+import kotlin.math.max
+import kotlin.math.min
+import kotlin.math.roundToInt
 
-/**
+/*
  * The image users send to WhatsApp.
  *
- * Designed at ~260px chat-thumbnail scale and scaled up, not the other way round. The
- * previous version was calibrated against the in-app preview — the one context where this
- * card is never actually consumed — and when downscaled to a chat bubble almost nothing on
- * it was legible, the URL included. Everything here is sized to survive that reduction,
- * which is why there is so little of it.
+ * Designed at ~260px chat-thumbnail scale and scaled up, not the other way round. An early
+ * version was calibrated against the in-app preview — the one context where the card is
+ * never actually consumed — and downscaled to a chat bubble almost nothing on it was
+ * legible, the URL included. So: one huge figure, a chart with chunky marks, at most three
+ * stats, and the URL at a size that survives the same reduction as the hero.
  *
  * Two constraints carried over deliberately:
  *
- * 1. **Fixed palette, not Material You.** This is seen mostly by people who don't have the
- *    app; a card that looks different on every sender's phone isn't recognisable as
- *    anything.
- * 2. **No amounts, anywhere.** Counts only — which is also why nothing here touches
- *    CurrencyFormatter.
+ * 1. **Fixed palettes, not Material You** (see [ShareTheme]). The card is a fixed artboard,
+ *    which is also why its sizes are its own and not the app's spacing tokens: it is
+ *    drawn at one size and exported as an image, never laid out to a screen.
+ * 2. **Only [ShareCardContent].** Nothing here formats a number or reads a setting, so the
+ *    card can never show something the studio didn't offer the user to switch off.
  */
-object ShareCardColors {
-    val Ink = Color(0xFF0B0E13)
-    val Redaction = Color(0xFF1A222C)
-    val Text = Color(0xFFEAF0F6)
-    val Muted = Color(0xFF8894A4)
-    val Amber = Color(0xFFFFB74D)
-}
 
 /** 4:5 — the aspect WhatsApp and Instagram both render without cropping. */
 val ShareCardWidth = 360.dp
 val ShareCardHeight = 450.dp
 
-@Composable
-fun ShareCard(
-    config: ShareCardConfig,
-    data: ShareCardData,
-    modifier: Modifier = Modifier,
-) {
-    val hero = config.effectiveHero(data.subscriptionCount, data.merchantCount)
+/**
+ * Draws a fixed artboard at [scale] and reports the scaled size to the layout, so a
+ * preview takes only the room it shows. What the artboard draws is unchanged, so an
+ * export recorded inside it stays full size.
+ */
+fun Modifier.scaleTo(scale: Float): Modifier = layout { measurable, _ ->
+    val placeable = measurable.measure(Constraints())
+    val width = (placeable.width * scale).roundToInt()
+    val height = (placeable.height * scale).roundToInt()
+    layout(width, height) {
+        placeable.placeWithLayer((width - placeable.width) / 2, (height - placeable.height) / 2) {
+            scaleX = scale
+            scaleY = scale
+        }
+    }
+}
 
-    val value = data.countFor(hero)
-    val caption = when (hero) {
-        // "bank texts" carries the product. Without it the card says "15 — tracked" to
-        // someone who has never heard of PennyWise, and the only line explaining what was
-        // tracked is the smallest text on the image. The zero stays: the effort that
-        // wasn't spent is the surprising half, and it still reads at thumbnail size.
-        ShareHero.TRANSACTIONS -> stringResource(R.string.share_card_caption_transactions)
-        ShareHero.SUBSCRIPTIONS ->
-            pluralStringResource(R.plurals.share_card_caption_subscriptions, value)
-        ShareHero.MERCHANTS ->
-            pluralStringResource(R.plurals.share_card_caption_merchants, value)
+@Immutable
+data class SharePalette(
+    val top: Color,
+    val bottom: Color,
+    val glow: Color,
+    val glowSecondary: Color,
+    val text: Color,
+    val muted: Color,
+    val accent: Color,
+    val good: Color,
+    val bad: Color,
+    val track: Color,
+)
+
+fun ShareTheme.palette(): SharePalette = when (this) {
+    ShareTheme.MIDNIGHT -> SharePalette(
+        top = Color(0xFF0B0E13), bottom = Color(0xFF141B26),
+        glow = Color(0x40FFB74D), glowSecondary = Color(0x00000000),
+        text = Color(0xFFEFF3F8), muted = Color(0xFF8D99AA),
+        accent = Color(0xFFFFB74D), good = Color(0xFF7FE0A7), bad = Color(0xFFFF8F87),
+        track = Color(0xFF222B37),
+    )
+    ShareTheme.AURORA -> SharePalette(
+        top = Color(0xFF081A2B), bottom = Color(0xFF1C1140),
+        glow = Color(0x5530D5C8), glowSecondary = Color(0x55A78BFA),
+        text = Color(0xFFF2F5FF), muted = Color(0xFFA3AECB),
+        accent = Color(0xFF5EEAD4), good = Color(0xFFA7F3D0), bad = Color(0xFFFDA4AF),
+        track = Color(0xFF26304F),
+    )
+    ShareTheme.PAPER -> SharePalette(
+        top = Color(0xFFF8F3EA), bottom = Color(0xFFEDE3D2),
+        glow = Color(0x33E8590C), glowSecondary = Color(0x00000000),
+        text = Color(0xFF1E1B17), muted = Color(0xFF6B6358),
+        accent = Color(0xFFC2410C), good = Color(0xFF2E7A4E), bad = Color(0xFFB42330),
+        track = Color(0xFFE0D5C2),
+    )
+}
+
+private fun SharePalette.colorFor(sentiment: Sentiment): Color = when (sentiment) {
+    Sentiment.GOOD -> good
+    Sentiment.BAD -> bad
+    Sentiment.NEUTRAL -> accent
+}
+
+// Headings take the rounded cut, figures the crisp one with tabular digits; both fall
+// back per glyph (Arabic included) to the system font.
+private val Figures = TextStyle(fontFamily = GoogleSansFlexFamily, fontFeatureSettings = "tnum")
+private val Heading = TextStyle(fontFamily = GoogleSansFlexHeadingFamily)
+private val Body = TextStyle(fontFamily = GoogleSansFlexFamily)
+
+/** Background: a two-stop gradient lit by one or two soft glows, fixed per theme. */
+private fun Modifier.cardBackground(p: SharePalette): Modifier = this
+    .background(Brush.verticalGradient(listOf(p.top, p.bottom)))
+    .drawBehind {
+        drawCircle(
+            brush = Brush.radialGradient(listOf(p.glow, Color.Transparent), center = Offset(size.width, 0f), radius = size.width * 0.9f),
+            radius = size.width * 0.9f,
+            center = Offset(size.width, 0f),
+        )
+        if (p.glowSecondary.alpha > 0f) {
+            drawCircle(
+                brush = Brush.radialGradient(
+                    listOf(p.glowSecondary, Color.Transparent),
+                    center = Offset(0f, size.height), radius = size.width * 0.8f,
+                ),
+                radius = size.width * 0.8f,
+                center = Offset(0f, size.height),
+            )
+        }
     }
 
+/**
+ * The card's text ignores the phone's font size: the card is a fixed 360×450 image, and a
+ * larger setting would only push figures past the room it has, and send a different
+ * picture from every phone. The export is recorded from this same node, so the preview
+ * and the shared image both get it.
+ */
+@Composable
+fun ShareCard(content: ShareCardContent, theme: ShareTheme, modifier: Modifier = Modifier) {
+    val density = LocalDensity.current
+    CompositionLocalProvider(LocalDensity provides Density(density.density, fontScale = 1f)) {
+        ShareCardLayout(content, theme, modifier)
+    }
+}
+
+@Composable
+private fun ShareCardLayout(content: ShareCardContent, theme: ShareTheme, modifier: Modifier) {
+    val p = theme.palette()
+    val ringHero = content.chart?.type == ShareChartType.RING && content.hero != null
     Column(
         modifier = modifier
-            .width(ShareCardWidth)
-            .height(ShareCardHeight)
-            .background(ShareCardColors.Ink)
-            .padding(horizontal = 26.dp, vertical = 24.dp),
+            .size(ShareCardWidth, ShareCardHeight)
+            .cardBackground(p)
+            .padding(horizontal = 24.dp, vertical = 22.dp),
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                // A raster copy of the launcher icon, NOT R.mipmap.ic_launcher: that
-                // resolves to an <adaptive-icon> XML on API 26+, and painterResource only
-                // accepts VectorDrawables or rasters — it throws at composition time, which
-                // a green build will not tell you. The mark itself is the right one: on a
-                // card seen mostly by people who don't have the app, what's worth showing is
-                // exactly what they'd tap on the Play Store listing, and it matches the
-                // website header's treatment.
-                Image(
-                    painter = painterResource(id = R.drawable.share_card_logo),
-                    contentDescription = null,
-                    modifier = Modifier
-                        .size(26.dp)
-                        .clip(RoundedCornerShape(7.dp)),
-                )
-                Spacer(Modifier.width(9.dp))
-                Text(
-                    text = "PENNYWISE",
-                    style = TextStyle(
-                        fontSize = 13.sp,
-                        fontWeight = FontWeight.Bold,
-                        letterSpacing = 2.sp,
-                        color = ShareCardColors.Text,
-                    ),
-                )
-            }
+        BrandRow(p, content.periodLabel)
+        Spacer(Modifier.height(20.dp))
+        Text(
+            text = content.title,
+            style = Heading.copy(fontSize = 22.sp, lineHeight = 26.sp, fontWeight = FontWeight.SemiBold, color = p.text),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+        )
+        content.subtitle?.let {
+            Spacer(Modifier.height(4.dp))
             Text(
-                text = data.periodLabel ?: stringResource(R.string.share_card_period_all_time),
-                style = TextStyle(
-                    fontSize = 13.sp,
-                    fontWeight = FontWeight.Medium,
-                    letterSpacing = 1.sp,
-                    color = ShareCardColors.Muted,
-                ),
+                text = it,
+                style = Body.copy(fontSize = 14.sp, lineHeight = 18.sp, fontWeight = FontWeight.Medium, color = p.muted),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
         }
 
-        Spacer(Modifier.weight(0.9f))
+        if (ringHero) {
+            Box(Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.Center) {
+                RingHero(content.hero!!, content.chart!!, p, diameter = 188.dp, valueSize = 46.sp)
+            }
+        } else {
+            // With a chart, every spare dp goes to it; without one, the hero sits mid-card.
+            if (content.chart != null) Spacer(Modifier.height(12.dp)) else Spacer(Modifier.weight(1f))
+            content.hero?.let {
+                val maxSize = when {
+                    content.chart == null -> 96.sp
+                    content.stats.isEmpty() -> 76.sp
+                    else -> 64.sp
+                }
+                HeroBlock(it, p, maxSize)
+            }
+            // The chart takes what the rest leaves, up to its own height, so a card with
+            // every detail on still fits instead of pushing the stats into it.
+            val chart = content.chart
+            if (chart != null) {
+                Box(
+                    Modifier.weight(1f).fillMaxWidth().padding(vertical = 12.dp),
+                    contentAlignment = Alignment.Center,
+                ) { ChartBlock(chart, p, Modifier.fillMaxWidth().heightIn(max = chartHeight(chart))) }
+            } else {
+                Spacer(Modifier.weight(1f))
+            }
+        }
 
-        Text(
-            text = value.toString(),
-            style = TextStyle(
-                // Deliberately enormous: at thumbnail scale this is the only element
-                // guaranteed to read, so it carries the whole card. A year runs to
-                // four or five digits, which at the full size would wrap off the card.
-                fontSize = when (value.toString().length) {
-                    in 0..3 -> 140.sp
-                    4 -> 104.sp
-                    else -> 84.sp
-                },
-                lineHeight = 132.sp,
-                fontWeight = FontWeight.Black,
-                letterSpacing = (-8).sp,
-                color = ShareCardColors.Amber,
-            ),
-        )
-        Spacer(Modifier.height(2.dp))
-        Text(
-            text = caption,
-            style = TextStyle(
-                fontSize = 25.sp,
-                fontWeight = FontWeight.SemiBold,
-                letterSpacing = (-0.4).sp,
-                color = ShareCardColors.Text,
-            ),
-        )
+        if (content.stats.isNotEmpty()) {
+            StatsRow(content.stats.take(3), p)
+            Spacer(Modifier.height(16.dp))
+        }
+        Footer(p)
+    }
+}
 
+@Composable
+private fun BrandRow(p: SharePalette, periodLabel: String?) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        // A raster copy of the launcher icon, NOT R.mipmap.ic_launcher: that resolves to
+        // an <adaptive-icon> XML on API 26+, and painterResource only accepts
+        // VectorDrawables or rasters — it throws at composition time, which a green build
+        // will not tell you.
+        Image(
+            painter = painterResource(id = R.drawable.share_card_logo),
+            contentDescription = null,
+            modifier = Modifier.size(24.dp).clip(RoundedCornerShape(7.dp)),
+        )
+        Spacer(Modifier.width(8.dp))
+        Text(
+            text = "PENNYWISE",
+            style = Heading.copy(fontSize = 12.sp, fontWeight = FontWeight.Bold, letterSpacing = 2.sp, color = p.text),
+        )
         Spacer(Modifier.weight(1f))
+        periodLabel?.let { PeriodText(it, p) }
+    }
+}
 
-        // One row per real category, each bar sized from the length of the name it hides.
-        // An earlier version drew a fixed three-row pattern, which looked the same whether
-        // you had two categories or forty — decoration imitating data. That's the one thing
-        // this card cannot afford: its whole claim is that the structure is real and only
-        // the values are withheld. Nothing to hide means no band, rather than a fake one.
-        RedactionBand(data.topCategories)
+@Composable
+private fun PeriodText(label: String, p: SharePalette) {
+    Text(
+        text = label,
+        style = Body.copy(fontSize = 12.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 1.sp, color = p.accent),
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+    )
+}
 
-        Spacer(Modifier.height(18.dp))
+@Composable
+private fun HeroBlock(hero: ShareCardHero, p: SharePalette, maxSize: TextUnit) {
+    Column {
+        Text(
+            text = hero.value,
+            style = Heading.copy(
+                fontWeight = FontWeight.Black,
+                letterSpacing = (-2).sp,
+                color = p.colorFor(hero.sentiment),
+                fontFeatureSettings = "tnum",
+            ),
+            maxLines = 1,
+            // Deliberately enormous: at thumbnail scale this is the one element certain
+            // to read. A long amount shrinks to fit rather than wrapping mid-number.
+            autoSize = TextAutoSize.StepBased(minFontSize = 34.sp, maxFontSize = maxSize),
+        )
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = hero.label,
+                style = Body.copy(fontSize = 16.sp, lineHeight = 20.sp, fontWeight = FontWeight.Medium, color = p.text.copy(alpha = 0.82f)),
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f, fill = false),
+            )
+            hero.delta?.let {
+                Spacer(Modifier.width(10.dp))
+                DeltaPill(it, p.colorFor(hero.sentiment))
+            }
+        }
+    }
+}
 
+@Composable
+private fun DeltaPill(text: String, color: Color) {
+    Text(
+        text = text,
+        style = Figures.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = color),
+        maxLines = 1,
+        modifier = Modifier
+            .clip(RoundedCornerShape(50))
+            .background(color.copy(alpha = 0.16f))
+            .padding(horizontal = 10.dp, vertical = 3.dp),
+    )
+}
+
+@Composable
+private fun RingHero(hero: ShareCardHero, chart: ShareChart, p: SharePalette, diameter: Dp, valueSize: TextUnit) {
+    val fraction = chart.points.firstOrNull()?.value?.toFloat()?.coerceIn(0f, 1f) ?: 0f
+    val color = p.colorFor(hero.sentiment)
+    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+        Box(Modifier.size(diameter), contentAlignment = Alignment.Center) {
+            Canvas(Modifier.fillMaxSize()) {
+                val stroke = size.minDimension * 0.085f
+                val inset = stroke / 2
+                val arcSize = Size(size.width - stroke, size.height - stroke)
+                drawArc(p.track, 0f, 360f, false, Offset(inset, inset), arcSize, style = Stroke(stroke))
+                if (fraction > 0f) {
+                    drawArc(
+                        color, -90f, 360f * fraction, false, Offset(inset, inset), arcSize,
+                        style = Stroke(stroke, cap = StrokeCap.Round),
+                    )
+                }
+            }
+            Column(
+                horizontalAlignment = Alignment.CenterHorizontally,
+                modifier = Modifier.padding(horizontal = diameter * 0.16f),
+            ) {
+                Text(
+                    text = hero.value,
+                    style = Heading.copy(fontWeight = FontWeight.Black, letterSpacing = (-1).sp, color = p.text, fontFeatureSettings = "tnum"),
+                    maxLines = 1,
+                    autoSize = TextAutoSize.StepBased(minFontSize = 20.sp, maxFontSize = valueSize),
+                )
+                Text(
+                    text = hero.label,
+                    style = Body.copy(fontSize = 13.sp, lineHeight = 16.sp, fontWeight = FontWeight.Medium, color = p.muted, textAlign = TextAlign.Center),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+            }
+        }
+        hero.delta?.let {
+            Spacer(Modifier.height(10.dp))
+            DeltaPill(it, color)
+        }
+    }
+}
+
+@Composable
+private fun StatsRow(stats: List<ShareCardStat>, p: SharePalette) {
+    Row(Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(12.dp)) {
+        stats.forEach { stat ->
+            Column(
+                Modifier
+                    .weight(1f)
+                    .drawBehind {
+                        // A short accent rule above each figure, on the reading-start side.
+                        val w = 18.dp.toPx()
+                        val x = if (layoutDirection == LayoutDirection.Rtl) size.width - w else 0f
+                        drawRoundRect(p.track, Offset(x, 0f), Size(w, 3.dp.toPx()), CornerRadius(2.dp.toPx()))
+                    }
+                    .padding(top = 9.dp),
+            ) {
+                Text(
+                    text = stat.label,
+                    style = Body.copy(fontSize = 11.sp, fontWeight = FontWeight.SemiBold, letterSpacing = 0.4.sp, color = p.muted),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                // Shrinks rather than cuts: "₹12,34,5…" in three columns would be a wrong figure.
+                Text(
+                    text = stat.value,
+                    style = Figures.copy(
+                        fontWeight = FontWeight.Bold,
+                        color = if (stat.sentiment == Sentiment.NEUTRAL) p.text else p.colorFor(stat.sentiment),
+                    ),
+                    maxLines = 1,
+                    autoSize = TextAutoSize.StepBased(minFontSize = 10.sp, maxFontSize = 17.sp),
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun Footer(p: SharePalette) {
+    Row(Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
         Text(
             text = stringResource(R.string.share_card_tagline),
-            style = TextStyle(
-                fontSize = 14.sp,
-                fontWeight = FontWeight.Medium,
-                color = ShareCardColors.Muted,
-            ),
+            style = Body.copy(fontSize = 12.sp, lineHeight = 15.sp, fontWeight = FontWeight.Medium, color = p.muted),
+            maxLines = 2,
+            overflow = TextOverflow.Ellipsis,
+            modifier = Modifier.weight(1f),
         )
-        Spacer(Modifier.height(8.dp))
-        Text(
-            text = SHARE_CARD_URL,
-            style = TextStyle(
-                // The only element that brings anyone back, so it gets a size and contrast
-                // that survive the same reduction as the hero instead of muted grey.
-                fontSize = 20.sp,
-                fontWeight = FontWeight.Bold,
-                letterSpacing = (-0.3).sp,
-                color = ShareCardColors.Text,
-            ),
-        )
+        Spacer(Modifier.width(12.dp))
+        // The only element that brings anyone back, so it gets a size and contrast that
+        // survive the same reduction as the hero instead of muted grey.
+        Text(text = SHARE_CARD_URL, style = Heading.copy(fontSize = 17.sp, fontWeight = FontWeight.Bold, color = p.text))
+    }
+}
+
+private fun chartHeight(chart: ShareChart): Dp = when (chart.type) {
+    ShareChartType.LINE -> 112.dp
+    ShareChartType.RING -> 120.dp
+    ShareChartType.BARS, ShareChartType.DIVERGING ->
+        (chart.points.take(MAX_BAR_ROWS).size * 36).dp
+}
+
+private const val MAX_BAR_ROWS = 4
+
+@Composable
+private fun ChartBlock(chart: ShareChart, p: SharePalette, modifier: Modifier) {
+    when (chart.type) {
+        ShareChartType.BARS -> BarsChart(chart, p, modifier)
+        ShareChartType.DIVERGING -> DivergingChart(chart, p, modifier)
+        ShareChartType.LINE -> LineChart(chart, p, modifier)
+        // Without a hero to sit in it, a ring still says how full: draw it on its own.
+        ShareChartType.RING -> Box(modifier, contentAlignment = Alignment.Center) {
+            RingHero(ShareCardHero(label = "", value = chart.points.firstOrNull()?.display.orEmpty()), chart, p, 110.dp, 26.sp)
+        }
+    }
+}
+
+// Bar rows are one line of text tall, set explicitly: the app's body style would make
+// each 24dp.
+private val ChartRowHeight = 17.sp
+private val ChartLabel = Body.copy(fontSize = 13.sp, lineHeight = ChartRowHeight, fontWeight = FontWeight.SemiBold)
+
+/**
+ * Chart rows stacked [gap] apart, as many as fit whole. A card with every detail on has
+ * little height left for its chart, and Arabic lines run taller than Latin ones; a row
+ * squeezed into what's left would be cut through its text, so it is left off instead.
+ */
+@Composable
+private fun WholeRows(modifier: Modifier, gap: Dp = 8.dp, content: @Composable () -> Unit) {
+    Layout(content, modifier) { measurables, constraints ->
+        val gapPx = gap.roundToPx()
+        val row = Constraints(minWidth = constraints.maxWidth, maxWidth = constraints.maxWidth)
+        val placeables = mutableListOf<Placeable>()
+        var height = 0
+        for (measurable in measurables) {
+            val placeable = measurable.measure(row)
+            val next = if (placeables.isEmpty()) placeable.height else height + gapPx + placeable.height
+            if (placeables.isNotEmpty() && next > constraints.maxHeight) break
+            placeables += placeable
+            height = next
+        }
+        val layoutHeight = height.coerceIn(constraints.minHeight, constraints.maxHeight)
+        layout(constraints.maxWidth, layoutHeight) {
+            var y = (layoutHeight - height) / 2
+            placeables.forEach {
+                it.place(0, y)
+                y += it.height + gapPx
+            }
+        }
+    }
+}
+
+/** One row per point: name and figure over a thick bar sized against the largest. */
+@Composable
+private fun BarsChart(chart: ShareChart, p: SharePalette, modifier: Modifier) {
+    val points = chart.points.take(MAX_BAR_ROWS)
+    val max = points.maxOfOrNull { it.value }?.takeIf { it > 0 } ?: 1.0
+    val valueStyle = Figures.copy(fontSize = 13.sp, lineHeight = ChartRowHeight, fontWeight = FontWeight.Bold, color = p.text, textAlign = TextAlign.End)
+    val valueWidth = valueColumnWidth(points, valueStyle)
+    WholeRows(modifier) {
+        points.forEachIndexed { i, point ->
+            val highlighted = i == (chart.highlightIndex ?: 0)
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = point.label,
+                    style = ChartLabel.copy(color = p.text),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.width(104.dp),
+                )
+                Box(
+                    Modifier
+                        .weight(1f)
+                        .height(12.dp)
+                        .clip(RoundedCornerShape(50))
+                        .background(p.track),
+                ) {
+                    Box(
+                        Modifier
+                            .fillMaxWidth((point.value / max).toFloat().coerceIn(0.03f, 1f))
+                            .fillMaxHeight()
+                            .clip(RoundedCornerShape(50))
+                            .background(if (highlighted) p.accent else p.accent.copy(alpha = 0.55f)),
+                    )
+                }
+                point.display?.let { ChartValue(it, valueStyle, Modifier.padding(start = 10.dp).width(valueWidth)) }
+            }
+        }
     }
 }
 
 /**
- * One redacted row per [categories] entry. The bar is sized from the length of the name it
- * covers, so the block genuinely varies with the user's own data rather than being a
- * decorative constant — the same relationship the app's masked account tails have to the
- * numbers behind them.
+ * Change either side of a centre line: growth toward the end edge in the accent, a drop
+ * toward the start edge in the "good" colour. Rows mirror on their own in RTL.
  */
 @Composable
-private fun RedactionBand(categories: List<String>) {
-    if (categories.isEmpty()) return
-
-    Column(verticalArrangement = Arrangement.spacedBy(9.dp)) {
-        categories.take(3).forEach { name ->
-            // Map name length onto a readable span. Clamped at both ends so a one-word
-            // category still reads as a bar and a long one can't run to the edge.
-            val width = (0.26f + name.length * 0.028f).coerceIn(0.26f, 0.62f)
-            Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth(width)
-                        .height(14.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(ShareCardColors.Redaction),
+private fun DivergingChart(chart: ShareChart, p: SharePalette, modifier: Modifier) {
+    val points = chart.points.take(MAX_BAR_ROWS)
+    val max = points.maxOfOrNull { abs(it.value) }?.takeIf { it > 0 } ?: 1.0
+    val valueStyle = Figures.copy(fontSize = 13.sp, lineHeight = ChartRowHeight, fontWeight = FontWeight.Bold, textAlign = TextAlign.End)
+    val valueWidth = valueColumnWidth(points, valueStyle)
+    WholeRows(modifier) {
+        points.forEach { point ->
+            val fraction = (abs(point.value) / max).toFloat().coerceIn(0.04f, 1f)
+            val positive = point.value >= 0
+            val color = if (positive) p.accent else p.good
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = point.label,
+                    style = ChartLabel.copy(color = p.text),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.width(98.dp),
                 )
-                Box(
-                    modifier = Modifier
-                        .width(46.dp)
-                        .height(14.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(ShareCardColors.Redaction),
+                Row(Modifier.weight(1f).height(14.dp), verticalAlignment = Alignment.CenterVertically) {
+                    Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.CenterEnd) {
+                        if (!positive) Bar(fraction, color)
+                    }
+                    Box(Modifier.width(2.dp).height(20.dp).background(p.muted.copy(alpha = 0.5f)))
+                    Box(Modifier.weight(1f).fillMaxHeight(), contentAlignment = Alignment.CenterStart) {
+                        if (positive) Bar(fraction, color)
+                    }
+                }
+                point.display?.let {
+                    ChartValue(it, valueStyle.copy(color = color), Modifier.padding(start = 8.dp).width(valueWidth))
+                }
+            }
+        }
+    }
+}
+
+/**
+ * One width for every row's figure, so the bars all end on the same line: as wide as the
+ * longest figure, up to [MaxValueWidth]. A figure is never cut ("+₹1,23,4"): past that
+ * width [ChartValue] shrinks it instead.
+ */
+@Composable
+private fun valueColumnWidth(points: List<ShareChartPoint>, style: TextStyle): Dp {
+    val measurer = rememberTextMeasurer()
+    val widest = points.maxOfOrNull { point ->
+        point.display?.let { measurer.measure(it, style, maxLines = 1).size.width } ?: 0
+    } ?: 0
+    // A dp over, so rounding never makes an exact fit step the font down.
+    return with(LocalDensity.current) { widest.toDp() + 1.dp }.coerceAtMost(MaxValueWidth)
+}
+
+private val MaxValueWidth = 104.dp
+
+@Composable
+private fun ChartValue(text: String, style: TextStyle, modifier: Modifier) {
+    Text(
+        text = text,
+        style = style,
+        maxLines = 1,
+        autoSize = TextAutoSize.StepBased(minFontSize = 8.sp, maxFontSize = style.fontSize),
+        modifier = modifier,
+    )
+}
+
+@Composable
+private fun BoxScope.Bar(fraction: Float, color: Color) {
+    Box(
+        Modifier
+            .fillMaxWidth(fraction)
+            .fillMaxHeight()
+            .clip(RoundedCornerShape(50))
+            .background(color),
+    )
+}
+
+/**
+ * Oldest to newest along the reading direction (mirrored in RTL), with the area under
+ * the line washed in the accent. Below-zero values get a dashed zero line, so a period
+ * that spent beyond its income reads as under it rather than as a low point.
+ */
+@Composable
+private fun LineChart(chart: ShareChart, p: SharePalette, modifier: Modifier) {
+    val points = chart.points
+    if (points.size < 2) return
+    val measurer = rememberTextMeasurer()
+    val rtl = LocalLayoutDirection.current == LayoutDirection.Rtl
+    val highlight = chart.highlightIndex ?: points.lastIndex
+    val valueStyle = Figures.copy(fontSize = 13.sp, fontWeight = FontWeight.Bold, color = p.text)
+    Column(modifier) {
+        Canvas(Modifier.fillMaxWidth().weight(1f)) {
+            val top = 22.dp.toPx()
+            val bottom = size.height - 6.dp.toPx()
+            // Scaled to the data, so a move from 50% to 43% reads as a move; a dip below
+            // zero keeps zero in view.
+            val lowest = points.minOf { it.value }
+            val highest = points.maxOf { it.value }
+            val low = if (lowest < 0) lowest else lowest - max(highest - lowest, 0.1) * 0.8
+            val high = max(highest, 0.0) // all-negative rates still keep the zero line inside the plot
+            val span = (high - low).takeIf { it > 0 } ?: 1.0
+            val cell = size.width / points.size
+            fun x(i: Int) = if (rtl) size.width - cell * (i + 0.5f) else cell * (i + 0.5f)
+            fun y(v: Double) = (bottom - (v - low) / span * (bottom - top)).toFloat()
+            val line = Path().apply {
+                points.forEachIndexed { i, point -> if (i == 0) moveTo(x(i), y(point.value)) else lineTo(x(i), y(point.value)) }
+            }
+            val area = Path().apply {
+                addPath(line)
+                lineTo(x(points.lastIndex), bottom)
+                lineTo(x(0), bottom)
+                close()
+            }
+            drawPath(area, Brush.verticalGradient(listOf(p.accent.copy(alpha = 0.32f), Color.Transparent), startY = top, endY = bottom))
+            if (low < 0) {
+                drawLine(
+                    p.muted.copy(alpha = 0.6f), Offset(0f, y(0.0)), Offset(size.width, y(0.0)), 1.5.dp.toPx(),
+                    pathEffect = PathEffect.dashPathEffect(floatArrayOf(6.dp.toPx(), 5.dp.toPx())),
+                )
+            }
+            drawPath(line, p.accent, style = Stroke(3.dp.toPx(), cap = StrokeCap.Round, join = StrokeJoin.Round))
+            points.forEachIndexed { i, point ->
+                val center = Offset(x(i), y(point.value))
+                if (i == highlight) {
+                    drawCircle(p.accent.copy(alpha = 0.25f), 10.dp.toPx(), center)
+                    drawCircle(p.accent, 6.dp.toPx(), center)
+                } else {
+                    drawCircle(p.bottom, 4.5.dp.toPx(), center)
+                    drawCircle(p.accent, 4.5.dp.toPx(), center, style = Stroke(2.dp.toPx()))
+                }
+            }
+            points[highlight].display?.let { text ->
+                val layout = measurer.measure(text, valueStyle)
+                val center = Offset(x(highlight), y(points[highlight].value))
+                val left = (center.x - layout.size.width / 2f).coerceIn(0f, size.width - layout.size.width)
+                drawText(layout, topLeft = Offset(left, max(0f, center.y - layout.size.height - 12.dp.toPx())))
+            }
+        }
+        Row(Modifier.fillMaxWidth().padding(top = 4.dp)) {
+            points.forEachIndexed { i, point ->
+                Text(
+                    text = point.label,
+                    style = Body.copy(
+                        fontSize = 11.sp,
+                        fontWeight = if (i == highlight) FontWeight.Bold else FontWeight.Medium,
+                        color = if (i == highlight) p.text else p.muted,
+                        textAlign = TextAlign.Center,
+                    ),
+                    maxLines = 1,
+                    overflow = TextOverflow.Clip,
+                    modifier = Modifier.weight(1f),
                 )
             }
         }
@@ -233,28 +686,86 @@ private fun RedactionBand(categories: List<String>) {
 // --- Previews. The thumbnail one is the size that matters: if it fails there it fails in
 // --- a chat, however good it looks in the app.
 
-private val previewData = ShareCardData(
-    transactionCount = 312,
-    topCategories = listOf("Food & Dining", "Shopping", "Transport"),
-    subscriptionCount = 4,
-    merchantCount = 86,
-    periodLabel = "JULY 2026",
+internal val previewSpending = ShareCardContent(
+    kind = ShareKind.SPENDING,
+    title = "My spending",
+    subtitle = "Biggest changes: Travel, Food & Dining",
+    periodLabel = "OCTOBER 2026",
+    hero = ShareCardHero(label = "more than September", value = "+12%", delta = "+₹4,120"),
+    stats = listOf(ShareCardStat("Spent", "₹38,420"), ShareCardStat("September", "₹34,300")),
+    chart = ShareChart(
+        ShareChartType.DIVERGING,
+        listOf(
+            ShareChartPoint("Travel", 3200.0, "+₹3,200"),
+            ShareChartPoint("Food & Dining", 1400.0, "+₹1,400"),
+            ShareChartPoint("Shopping", -900.0, "−₹900"),
+        ),
+    ),
 )
 
-@Preview(name = "Transactions", widthDp = 400, heightDp = 500)
+internal val previewSavings = ShareCardContent(
+    kind = ShareKind.SAVINGS,
+    title = "My savings rate",
+    subtitle = "Up from September",
+    periodLabel = "OCTOBER 2026",
+    hero = ShareCardHero(label = "of income saved", value = "24%", delta = "+6 pts", sentiment = Sentiment.GOOD),
+    stats = emptyList(),
+    chart = ShareChart(
+        ShareChartType.LINE,
+        listOf("May" to 12.0, "Jun" to 9.0, "Jul" to 15.0, "Aug" to -4.0, "Sep" to 18.0, "Oct" to 24.0)
+            .map { (m, v) -> ShareChartPoint(m, v, "${v.toInt()}%") },
+        highlightIndex = 5,
+    ),
+)
+
+internal val previewGoal = ShareCardContent(
+    kind = ShareKind.GOAL,
+    title = "Emergency fund",
+    periodLabel = "BY MAR 2027",
+    hero = ShareCardHero(label = "saved", value = "68%"),
+    stats = listOf(ShareCardStat("Pace", "On track", Sentiment.GOOD)),
+    chart = ShareChart(ShareChartType.RING, listOf(ShareChartPoint("", 0.68, "68%"))),
+)
+
+internal val previewRecap = ShareCardContent(
+    kind = ShareKind.RECAP,
+    title = "My month, tracked",
+    periodLabel = "OCTOBER 2026",
+    hero = ShareCardHero(label = "transactions tracked", value = "312"),
+    stats = listOf(ShareCardStat("Change", "+12%")),
+    chart = ShareChart(
+        ShareChartType.BARS,
+        listOf(
+            ShareChartPoint("Food & Dining", 40.0, "40%"),
+            ShareChartPoint("Shopping", 22.0, "22%"),
+            ShareChartPoint("Transport", 14.0, "14%"),
+        ),
+        highlightIndex = 0,
+    ),
+)
+
+@Preview(name = "Spending", widthDp = 400, heightDp = 490)
 @Composable
-private fun ShareCardTransactionsPreview() {
-    Box(Modifier.background(Color(0xFF303030)).padding(20.dp)) {
-        ShareCard(ShareCardConfig(hero = ShareHero.TRANSACTIONS), previewData)
-    }
+private fun ShareCardSpendingPreview() {
+    Box(Modifier.background(Color(0xFF303030)).padding(20.dp)) { ShareCard(previewSpending, ShareTheme.MIDNIGHT) }
 }
 
-@Preview(name = "Subscriptions", widthDp = 400, heightDp = 500)
+@Preview(name = "Savings", widthDp = 400, heightDp = 490)
 @Composable
-private fun ShareCardSubscriptionsPreview() {
-    Box(Modifier.background(Color(0xFF303030)).padding(20.dp)) {
-        ShareCard(ShareCardConfig(hero = ShareHero.SUBSCRIPTIONS), previewData)
-    }
+private fun ShareCardSavingsPreview() {
+    Box(Modifier.background(Color(0xFF303030)).padding(20.dp)) { ShareCard(previewSavings, ShareTheme.AURORA) }
+}
+
+@Preview(name = "Goal", widthDp = 400, heightDp = 490)
+@Composable
+private fun ShareCardGoalPreview() {
+    Box(Modifier.background(Color(0xFF303030)).padding(20.dp)) { ShareCard(previewGoal, ShareTheme.PAPER) }
+}
+
+@Preview(name = "Recap, Arabic", widthDp = 400, heightDp = 490, locale = "ar")
+@Composable
+private fun ShareCardRecapRtlPreview() {
+    Box(Modifier.background(Color(0xFF303030)).padding(20.dp)) { ShareCard(previewRecap, ShareTheme.MIDNIGHT) }
 }
 
 /** Chat-thumbnail scale — the size this card is genuinely read at. */
@@ -262,6 +773,6 @@ private fun ShareCardSubscriptionsPreview() {
 @Composable
 private fun ShareCardThumbnailPreview() {
     Box(Modifier.background(Color(0xFF303030))) {
-        ShareCard(ShareCardConfig(), previewData)
+        ShareCard(previewSpending, ShareTheme.MIDNIGHT, Modifier.scaleTo(130.dp / ShareCardWidth))
     }
 }

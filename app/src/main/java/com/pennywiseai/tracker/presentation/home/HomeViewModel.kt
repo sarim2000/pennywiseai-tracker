@@ -331,24 +331,15 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Where each card Home shows stands with its bill, and what to set aside for it in
-     * this cycle ([com.pennywiseai.tracker.domain.spending.CardBills.reserve]).
-     */
-    private val cardBills = combine(
-        cardsRaw,
-        _currentCycleWindow,
-        today,
-        userPreferencesRepository.countCreditCardAsExpense,
-        ::Quad,
-    ).distinctUntilChanged()
-        .flatMapLatest { (cards, window, day, counted) -> cardBillsLoader.observeReserves(cards, day, window.first, counted) }
+    /** Where each card Home shows stands with its bill. */
+    private val cardBills = combine(cardsRaw, today, ::Pair)
+        .distinctUntilChanged()
+        .flatMapLatest { (cards, day) -> cardBillsLoader.observe(cards, day) }
 
     /**
      * Home's "Safe to spend": visible spendable accounts (minus the ones the user left
-     * out) less active subscriptions due before the cycle ends and the card bills
-     * still to pay by then (overdue ones too, less the purchases this cycle's
-     * spending already counts), capped at what's left in the overall budget
+     * out) less active subscriptions due before the cycle ends and the unpaid part of
+     * each card bill due by then (overdue ones too), capped at what's left in the overall budget
      * ([safeToSpendCap]). Netted per currency;
      * in unified mode each figure is converted to the display currency first, and one
      * with no rate stays in its own currency as a separate line. Null hides the card.
@@ -374,9 +365,10 @@ class HomeViewModel @Inject constructor(
             if (!unified || currency == primaryCurrency) this
             else currencyConversionService.convertAmountOrNull(amount, currency, primaryCurrency)
                 ?.let { Money(it, primaryCurrency) } ?: this // no rate: keep it apart (#670)
-        // A bill this cycle's spending already covers in full has nothing left to set aside.
-        val cardBills = cards.filter { it.amount.signum() > 0 }.mapNotNull { (status, amount) ->
-            status.bill?.let { Bill(it.label, Money(amount, it.currency), it.dueDate, source = BillSource.Card(it.bankName, it.accountLast4)) }
+        // The whole unpaid bill: card purchases never touched the bank balance, so all of
+        // it still leaves the bank, whatever this cycle's spending already counts.
+        val cardBills = cards.mapNotNull { status ->
+            status.bill?.let { Bill(it.label, Money(it.remaining, it.currency), it.dueDate, source = BillSource.Card(it.bankName, it.accountLast4)) }
         }
         val bills = SafeToSpend.billsInWindow(SafeToSpend.billsFrom(subscriptions) + cardBills, today, periodEnd)
         val results = SafeToSpend.calculate(
@@ -390,7 +382,7 @@ class HomeViewModel @Inject constructor(
             ?: SafeToSpend.calculate(listOf(Money.zero(primaryCurrency)), emptyList(), today, periodEnd).single()
         SafeToSpendUi(
             primary, results - primary, periodEnd, accounts, excluded, bills,
-            cardsNeedingBill = cards.map { it.status }.filter { it.needsBill }.map { it.card },
+            cardsNeedingBill = cards.filter { it.needsBill }.map { it.card },
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
 

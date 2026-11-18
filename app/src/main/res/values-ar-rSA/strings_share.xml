@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+    <!-- Share studio: the screen -->
     <string name="share_studio_title">مشاركة</string>
     <string name="share_studio_back">رجوع</string>
     <string name="share_studio_share">مشاركة الصورة</string>
@@ -14,13 +15,11 @@
     <string name="share_studio_preview_description">معاينة البطاقة التي ستُشارك</string>
     <string name="share_studio_hidden">المبالغ مخفية. تعرض البطاقة ما تختاره أدناه.</string>
     <string name="share_studio_hidden_reveal">إظهار المعاينة</string>
-
     <string name="share_kind_recap">ملخص</string>
     <string name="share_kind_spending">تغيّر الإنفاق</string>
     <string name="share_kind_savings">نسبة الادخار</string>
     <string name="share_kind_goal">هدف</string>
     <string name="share_kind_budget">الميزانية</string>
-
     <string name="share_detail_amounts">المبالغ</string>
     <string name="share_detail_amounts_hint">الأرقام المالية الدقيقة</string>
     <string name="share_detail_percentages">النسب المئوية</string>
@@ -32,23 +31,22 @@
     <string name="share_detail_period">الفترة</string>
     <string name="share_detail_due_date">الموعد المستهدف</string>
     <string name="share_detail_need_figure">تحتاج هذه البطاقة إلى المبالغ أو النسب المئوية</string>
-
     <string name="share_theme_midnight">منتصف الليل</string>
     <string name="share_theme_aurora">شفق</string>
     <string name="share_theme_paper">ورق</string>
-
     <string name="share_unavailable_empty">لم يُسجَّل شيء في هذه الفترة.</string>
     <string name="share_unavailable_compare">لا توجد فترة سابقة فيها سجلات كافية للمقارنة.</string>
     <string name="share_unavailable_income">لم يُسجَّل دخل بهذه العملة في هذه الفترة.</string>
     <string name="share_unavailable_overspent">تجاوز الإنفاق 100 ضعف الدخل بهذه العملة، فلن تعني نسبة الادخار شيئًا يُذكر.</string>
     <string name="share_unavailable_goals">ليست لديك أهداف بعد.</string>
     <string name="share_unavailable_budget">لم تُحدَّد حدود إنفاق لهذا الشهر.</string>
-
+    <!-- Share studio: text drawn on the card -->
     <string name="share_card_tagline">تتبّعتها بخصوصية على هاتفي</string>
-    <string name="share_percent">%1$d%%</string>
+    <!-- %1$d = a whole percent -->
+    <!-- Percentage points. %1$s = a signed whole number, e.g. "+6" -->
     <string name="share_card_points">%1$s نقاط</string>
+    <!-- Joins two category names -->
     <string name="share_list_separator">"، "</string>
-
     <string name="share_card_stat_spent">الإنفاق</string>
     <string name="share_card_stat_income">الدخل</string>
     <string name="share_card_stat_change">التغيّر</string>
@@ -58,8 +56,8 @@
     <string name="share_card_stat_left">المتبقي</string>
     <string name="share_card_stat_over">التجاوز</string>
     <string name="share_card_stat_kept">حدود التُزم بها</string>
+    <!-- %1$d = limits kept, %2$d = all limits -->
     <string name="share_card_kept">%1$d من %2$d</string>
-
     <string name="share_card_recap_title_week">أسبوعي بالأرقام</string>
     <string name="share_card_recap_title_month">شهري بالأرقام</string>
     <string name="share_card_recap_title_year">سنتي بالأرقام</string>
@@ -71,40 +69,47 @@
         <item quantity="many">معاملة مُتتبَّعة</item>
         <item quantity="other">معاملة مُتتبَّعة</item>
     </plurals>
-
     <string name="share_card_spending_title">إنفاقي</string>
+    <!-- %1$s = what it is compared with: "September", "the week before" -->
     <string name="share_card_spending_more">أكثر من %1$s</string>
     <string name="share_card_spending_less">أقل من %1$s</string>
     <string name="share_card_spending_same">مثل %1$s</string>
+    <!-- %1$s = one or two category names -->
     <string name="share_card_spending_drivers">أكبر التغيّرات: %1$s</string>
+    <!-- A category with nothing in the previous period -->
     <string name="share_card_category_new">جديدة</string>
-
     <string name="share_card_savings_title">نسبة ادخاري</string>
     <string name="share_card_savings_hero">من الدخل</string>
     <string name="share_card_savings_hero_amount">مدَّخرة من الدخل</string>
     <string name="share_card_savings_negative">إنفاق فوق الدخل</string>
+    <!-- %1$s = the previous period: "September", "the week before", "2025" -->
     <string name="share_card_savings_up">أعلى من %1$s</string>
     <string name="share_card_savings_down">أقل من %1$s</string>
     <string name="share_card_savings_same">مثل %1$s</string>
-
     <string name="share_card_goal_title">هدف ادخاري</string>
     <string name="share_card_goal_saved">مدَّخرة</string>
+    <!-- %1$s = the goal's target amount -->
     <string name="share_card_goal_of">من %1$s</string>
+    <!-- %1$s = month and year, e.g. "Mar 2027" -->
     <string name="share_card_goal_due">بحلول %1$s</string>
     <string name="share_card_pace_reached">تحقّق</string>
     <string name="share_card_pace_missed">فات موعده</string>
     <string name="share_card_pace_behind">متأخر عن الوتيرة</string>
     <string name="share_card_pace_on_track">على المسار</string>
+    <!-- %1$s = amount -->
     <string name="share_card_pace_behind_by">متأخر بـ %1$s</string>
+    <!-- %1$s = amount -->
     <string name="share_card_pace_per_month">%1$s شهريًا</string>
-
     <string name="share_card_budget_title">ميزانيتي</string>
     <string name="share_card_budget_under">ضمن الحد الإجمالي</string>
     <string name="share_card_budget_over">فوق الحد الإجمالي</string>
     <string name="share_card_budget_used">مستخدمة من الحد</string>
+    <!-- %1$s = the limit amount -->
     <string name="share_card_budget_used_of">مستخدمة من %1$s</string>
+    <!-- %1$s = the limit amount -->
     <string name="share_card_budget_spent_of">أُنفقت من %1$s</string>
-
+    <!-- The message sent with the image, in the sharer's voice. It never carries a figure:
+         those stay on the image, where the user chose them. %1$s = the app's website -->
     <string name="share_text_recap">ملخصي من PennyWise، يتتبّع الإنفاق من رسائل البنك على الهاتف نفسه. https://%1$s</string>
     <string name="share_text_spending">كيف تغيّر إنفاقي، من PennyWise، يتتبّع الإنفاق من رسائل البنك على الهاتف نفسه. https://%1$s</string>
     <string name="share_text_savings">نسبة ادخاري، من PennyWise، يتتبّع الإنفاق من رسائل البنك على الهاتف نفسه. https://%1$s</string>

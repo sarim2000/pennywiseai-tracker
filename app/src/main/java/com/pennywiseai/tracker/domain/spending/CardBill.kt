@@ -125,40 +125,6 @@ object CardBills {
             .fold(BigDecimal.ZERO) { sum, t -> sum + t.amount }
 
     /**
-     * What Safe to spend sets aside for [bill], [card]'s bill: what's still to pay,
-     * less the bill's purchases dated in the current period, from [periodStart] on,
-     * when card spending counts as an expense ([purchasesCounted]). This period's
-     * spending already has those, so taking the whole bill off would count them
-     * twice. Never below zero; with card spending not counted, all that's left.
-     */
-    fun reserve(
-        card: AccountBalanceEntity,
-        bill: CardBill,
-        transactions: List<TransactionEntity>,
-        periodStart: LocalDate,
-        purchasesCounted: Boolean,
-    ): BigDecimal {
-        if (!purchasesCounted) return bill.remaining
-        val from = maxOf(previousStatement(card, bill.statementDate).plusDays(1), periodStart)
-        val counted = transactions.asSequence()
-            .filter { isPurchase(card, it) && it.dateTime.toLocalDate().let { d -> !d.isBefore(from) && !d.isAfter(bill.statementDate) } }
-            .fold(BigDecimal.ZERO) { sum, t -> sum + t.amount }
-        return (bill.remaining - counted).max(BigDecimal.ZERO)
-    }
-
-    /**
-     * When the statement before the one closing on [statement] closed: that bill's
-     * purchases are those after it. Without a statement day, a month before.
-     */
-    fun previousStatement(card: AccountBalanceEntity, statement: LocalDate): LocalDate =
-        card.statementDay?.let { statementDate(it, statement.minusDays(1)) } ?: statement.minusMonths(1)
-
-    /** Spending on [card] in its currency: what card spending counts as an expense. */
-    private fun isPurchase(card: AccountBalanceEntity, t: TransactionEntity): Boolean =
-        !t.isDeleted && t.transactionType == TransactionType.CREDIT && t.currency == card.currency &&
-            t.bankName.equals(card.bankName, ignoreCase = true) && t.accountNumber == card.accountLast4
-
-    /**
      * Where [card]'s bill stands on [today]. The bill the user entered belongs to the
      * statement closed by the time they entered it. Without a statement day that date
      * is a guess, so the bill dates from the day it was entered and falls due on the

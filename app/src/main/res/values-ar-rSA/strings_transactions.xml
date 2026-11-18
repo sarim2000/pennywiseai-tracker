@@ -457,6 +457,8 @@
     <string name="quick_add_voice_unclear">لم أجد مبلغًا واحدًا. حاول مرة أخرى أو اكتبه.</string>
     <string name="quick_add_voice_chat_hidden">الأسئلة تذهب إلى الدردشة، وهي مخفية. أظهرها من إعدادات المظهر، أو قل مصروفًا.</string>
     <string name="quick_add_voice_type">اكتب بدلًا من ذلك</string>
+    <!-- Amount calculator: a keypad sheet opened from the amount field -->
+    <!-- The sum is unfinished or doesn't make sense yet, e.g. "12+" or "1..2" -->
     <string name="date_range_title">اختر الفترة</string>
     <string name="date_range_ok">موافق</string>
     <string name="date_range_cancel">إلغاء</string>

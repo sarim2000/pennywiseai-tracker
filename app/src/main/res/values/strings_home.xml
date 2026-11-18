@@ -404,7 +404,7 @@
     <string name="safe_to_spend_no_bills">No bills due</string>
     <string name="safe_to_spend_choose_accounts">Choose accounts</string>
     <string name="safe_to_spend_done">Done</string>
-    <string name="safe_to_spend_footnote">Bills are your active subscriptions and the card bills you entered. When card spending counts as an expense, a card bill leaves out the purchases this period already counted. Credit cards and loans don\'t count as spendable money.</string>
+    <string name="safe_to_spend_footnote">Bills are your active subscriptions and the card bills you entered. Credit cards and loans don\'t count as spendable money.</string>
     <string name="safe_to_spend_overdue">Overdue, was due %1$s</string>
     <string name="safe_to_spend_card_bill">Card bill · %1$s</string>
     <string name="safe_to_spend_cards_incomplete">Not set aside yet: %1$s. Tap to add its due day and statement amount.</string>

@@ -1210,6 +1210,7 @@ class ChatTurnTest {
         every { context.getString(R.string.chat_reply_query_dates_reversed, any(), any()) } returns "REVERSED"
         every { context.getString(R.string.chat_reply_query_future) } returns "FUTURE"
         every { context.getString(R.string.chat_reply_query_group_unknown) } returns "GROUP"
+        every { context.getString(R.string.chat_reply_query_name_unreadable) } returns "NAME"
         answerSpending()
         suspend fun ask(args: Map<String, Any?>, message: String = "how much?"): String {
             events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, args))
@@ -1221,6 +1222,9 @@ class ChatTurnTest {
         assertEquals("REVERSED", ask(mapOf("from" to "2024-11-10", "to" to "2024-11-01")))
         assertEquals("FUTURE", ask(mapOf("period" to "2099-01")))
         assertEquals("GROUP", ask(mapOf("group_by" to "day")))
+        // A name that isn't text is said, never dropped into a figure of everything.
+        assertEquals("NAME", ask(mapOf("merchant" to 42)))
+        assertEquals("NAME", ask(mapOf("category" to listOf("Food"))))
         // A month by name is said, not guessed at: its year is the model's to write as YYYY-MM.
         assertEquals("PERIOD", ask(mapOf("period" to "October"), "how much did I spend in October?"))
         coVerify(exactly = 0) { aiContext.spending(any(), any()) }

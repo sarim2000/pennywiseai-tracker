@@ -675,6 +675,10 @@ class LlmRepository @Inject constructor(
             is SpendingQuery.Dates.Of -> dates.window
             SpendingQuery.Dates.Home -> null
         }
+        // Absent or blank is no filter; anything but text (a number, a list) can't be read as one.
+        if (listOf("merchant", "category").any { args[it] != null && args[it] !is String }) {
+            return context.getString(R.string.chat_reply_query_name_unreadable)
+        }
         fun named(key: String) = (args[key] as? String)?.trim()?.takeUnless { it.isEmpty() }
         val categories = categoryRepository.getAllCategories().first()
         // "all" or "total" from the model means no filter: as a merchant always, as a category

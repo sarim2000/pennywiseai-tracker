@@ -43,12 +43,13 @@ class PlanningRepository @Inject constructor(
         /**
          * LIMIT groups live today with something to spend against. Targets and expected
          * amounts aren't limits: "left" means nothing for them. A limit the screen shows as
-         * zero for want of an exchange rate is still a limit: kept, without a figure for it.
+         * zero for want of an exchange rate is still a limit, an overall one or the sum of its
+         * categories' allocations: kept, without a figure for it.
          */
         internal fun budgetStatuses(summary: BudgetOverallSummary, today: LocalDate): List<BudgetStatus> = summary.groups
             .filter { g ->
                 g.group.budget.groupType == BudgetGroupType.LIMIT &&
-                    (g.totalBudget.signum() > 0 || g.group.budget.limitAmount.signum() > 0) &&
+                    (g.totalBudget.signum() > 0 || g.group.totalBudgetAmount.signum() > 0) &&
                     !today.isBefore(g.windowStart) && !today.isAfter(g.windowEnd)
             }
             .map { g ->

@@ -14,7 +14,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 /**
- * Parses PennyWise's own CSV export format (the 12 columns [CsvExporter] writes)
+ * Parses PennyWise's own CSV export format (the columns [CsvExporter] writes)
  * back into [TransactionEntity] rows, so historical data can be re-imported and
  * an export can round-trip.
  *

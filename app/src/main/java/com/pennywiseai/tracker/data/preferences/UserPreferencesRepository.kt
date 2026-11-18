@@ -16,9 +16,6 @@ import com.pennywiseai.tracker.core.TransactionWidgets
 import com.pennywiseai.tracker.data.backup.SettingsSnapshot
 import com.pennywiseai.tracker.data.preferences.HomeSection
 import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
-import com.pennywiseai.tracker.data.share.ShareCardConfig
-import com.pennywiseai.tracker.data.share.ShareHero
-import com.pennywiseai.tracker.data.share.SharePeriod
 import com.pennywiseai.tracker.domain.conscience.ConscienceCadence
 import com.pennywiseai.tracker.domain.conscience.ConscienceCandidate
 import com.pennywiseai.tracker.domain.conscience.ConscienceChoice
@@ -126,9 +123,6 @@ open class UserPreferencesRepository internal constructor(
         val LAST_LIVE_SMS_AT = longPreferencesKey("last_live_sms_at")
         val BASE_CURRENCY = stringPreferencesKey("base_currency")
 
-        // Share card — which single figure the card leads with, and over what window
-        val SHARE_CARD_HERO = stringPreferencesKey("share_card_hero")
-        val SHARE_CARD_PERIOD = stringPreferencesKey("share_card_period")
         // Calendar month ("2026-07") the monthly share prompt was last acted on or
         // dismissed. A month string rather than a day count: "30 days" drifts off the
         // month boundary this prompt is entirely about.
@@ -281,8 +275,8 @@ open class UserPreferencesRepository internal constructor(
         val INTS = listOf(K.SMS_SCAN_MONTHS, K.BUDGET_CYCLE_START_DAY, K.PROFILE_BACKGROUND_COLOR)
         val LONGS = listOf(K.SMS_SCAN_CUSTOM_DATE, K.SELECTED_PROFILE_ID)
         val STRINGS = listOf(
-            K.THEME_STYLE, K.ACCENT_COLOR, K.APP_FONT, K.SYSTEM_PROMPT, K.BASE_CURRENCY, K.SHARE_CARD_HERO,
-            K.SHARE_CARD_PERIOD, K.STATEMENT_COLUMN_MAPPINGS, K.DISPLAY_CURRENCY, K.NAV_BAR_STYLE,
+            K.THEME_STYLE, K.ACCENT_COLOR, K.APP_FONT, K.SYSTEM_PROMPT, K.BASE_CURRENCY,
+            K.STATEMENT_COLUMN_MAPPINGS, K.DISPLAY_CURRENCY, K.NAV_BAR_STYLE,
             K.NUMBER_FORMAT_STYLE, K.DATE_FORMAT_STYLE, K.ANALYTICS_CHART_TYPE, K.ANALYTICS_GROUP_BY,
             K.COVER_STYLE, K.HOME_SECTIONS, K.USER_NAME, K.PROFILE_IMAGE_URI, K.MAIN_ACCOUNT_KEY
         )
@@ -801,19 +795,6 @@ open class UserPreferencesRepository internal constructor(
     }
 
     /**
-     * The user's saved share-card layout. Defaults have every section on: the preview
-     * shows exactly what will be sent, so an opinionated default is safe and means the
-     * first share is two taps rather than a configuration exercise.
-     */
-    val shareCardConfig: Flow<ShareCardConfig> = dataStore.data
-        .map { preferences ->
-            ShareCardConfig(
-                hero = ShareHero.fromName(preferences[PreferencesKeys.SHARE_CARD_HERO]),
-                period = SharePeriod.fromName(preferences[PreferencesKeys.SHARE_CARD_PERIOD]),
-            )
-        }
-
-    /**
      * The month ("2026-07") whose share prompt the user has already dismissed or acted
      * on, or null if they never have.
      */
@@ -948,13 +929,6 @@ open class UserPreferencesRepository internal constructor(
         dataStore.edit { prefs ->
             prefs[PreferencesKeys.RECURRING_OFFER_LOG] =
                 (prefs[PreferencesKeys.RECURRING_OFFER_LOG] ?: emptySet()) - "$key|${today.toEpochDay()}"
-        }
-    }
-
-    suspend fun setShareCardConfig(config: ShareCardConfig) {
-        dataStore.edit { preferences ->
-            preferences[PreferencesKeys.SHARE_CARD_HERO] = config.hero.name
-            preferences[PreferencesKeys.SHARE_CARD_PERIOD] = config.period.name
         }
     }
 

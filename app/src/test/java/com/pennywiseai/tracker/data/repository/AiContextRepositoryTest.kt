@@ -22,7 +22,11 @@ import com.pennywiseai.tracker.data.model.SpendingComparison
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
 import com.pennywiseai.tracker.domain.model.filterTrackedByProfile
+import com.pennywiseai.tracker.presentation.transactions.CategorySplitShares
+import com.pennywiseai.tracker.presentation.transactions.calculateCurrencyGroupedTotals
+import com.pennywiseai.tracker.presentation.transactions.filterByCategories
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -292,6 +296,35 @@ class AiContextRepositoryTest {
         // The rows the Transactions list shows add up to the same.
         val listed = filterTrackedByProfile(rows.map { it.transaction }, null, IgnoredAccountsStore.withLinkedCards(ignored, cards, accounts), emptyMap())
         assertEquals(amounts(p.spent), amounts(breakdownByCurrency(listed).mapValues { it.value.expenses }))
+    }
+
+    @Test
+    fun `a category's figure is the rows its links list, in the profile and without ignored accounts`() = runBlocking {
+        preferences.updateSelectedProfileId(ProfileEntity.BUSINESS_ID)
+        accounts += AccountBalanceEntity(bankName = "Bank", accountLast4 = "1111", balance = BigDecimal.ZERO, timestamp = today.atStartOfDay(), profileId = ProfileEntity.BUSINESS_ID)
+        ignored = setOf("Bank_9999")
+        tx("100", category = "Travel", account = "1111")
+        tx("60", category = "Others", splits = listOf("Others" to "40", "Travel" to "20"), account = "1111")
+        tx("50", category = "Travel", account = "9999", profileId = ProfileEntity.BUSINESS_ID) // an ignored account's
+        tx("30", category = "Travel") // Personal's
+        tx("7", category = "Travel", currency = "USD", account = "1111")
+        tx("15", category = "travel", account = "1111") // an import's spelling: Home counts it as Travel
+        val travel = repository.categorySpending("Travel", today)
+
+        // What the Transactions list shows behind those links: the category, the profile's
+        // tracked rows, split shares, each currency on its own.
+        val all = rows.map { it.transaction }
+        val splits = rows.flatMap { it.splits }
+        val listed = filterTrackedByProfile(
+            filterByCategories(all, setOf("Travel"), splits),
+            ProfileEntity.BUSINESS_ID,
+            IgnoredAccountsStore.withLinkedCards(ignored, cards, accounts),
+            buildProfileAccountKeys(accounts),
+        )
+        val totals = calculateCurrencyGroupedTotals(listed.mapNotNull(CategorySplitShares(setOf("Travel"), splits)::forTotals))
+        assertEquals(mapOf("INR" to "135", "USD" to "7"), amounts(travel.byCurrency))
+        assertEquals(amounts(travel.byCurrency), amounts(totals.totalsByCurrency.mapValues { it.value.expenses }))
+        assertEquals(travel.transactionCount, listed.size)
     }
 
     @Test

@@ -8,9 +8,6 @@
     <!-- %1$s, %2$s = first and last recorded dates -->
     <!-- Home -->
     <!-- %1$s = year -->
-    <!-- Share card -->
-    <!-- The message sent with the image, in the sharer's voice. %1$d = count -->
-    <!-- %1$s = the app's website -->
     <!-- Weekly recap -->
     <!-- %1$s = amount -->
 </resources>

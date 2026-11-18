@@ -39,6 +39,7 @@ import com.pennywiseai.tracker.utils.SmsReportUrlBuilder
 import com.pennywiseai.tracker.worker.ScheduledFolderBackupScheduler
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -593,7 +594,8 @@ class SettingsViewModel @Inject constructor(
     }
 
     fun saveBackupToFile(uri: android.net.Uri) {
-        viewModelScope.launch {
+        // Copying a backup with receipts can take a while; keep it off the main thread.
+        viewModelScope.launch(Dispatchers.IO) {
             var opened = false
             try {
                 // Gone when the app was killed while the picker was open.

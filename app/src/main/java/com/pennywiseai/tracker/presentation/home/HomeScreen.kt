@@ -75,6 +75,7 @@ fun HomeScreen(
     onNavigateToTransactionsWithSearch: () -> Unit = {},
     onNavigateToSubscriptions: () -> Unit = {},
     onNavigateToReview: (ReviewKind) -> Unit = {},
+    onNavigateToNetWorth: (currency: String) -> Unit = {},
     onNavigateToShareStudio: () -> Unit = {},
     onNavigateToBudgets: () -> Unit = {},
     onNavigateToLoans: () -> Unit = {},
@@ -377,7 +378,8 @@ fun HomeScreen(
                                 creditCards = uiState.creditCards,
                                 totalAvailableCredit = uiState.totalAvailableCredit,
                                 forecast = uiState.spendForecast,
-                                onAccountClick = onAccountClick
+                                onAccountClick = onAccountClick,
+                                onOpenNetWorth = { onNavigateToNetWorth(uiState.selectedCurrency) }
                             )
                         }
                     }

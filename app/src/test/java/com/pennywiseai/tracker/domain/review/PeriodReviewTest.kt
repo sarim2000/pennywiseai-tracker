@@ -227,6 +227,62 @@ class PeriodReviewTest {
     }
 
     @Test
+    fun `every category is kept, the screen's five first`() {
+        val rows = (1..7).map { tx("2026-10-0$it", "${it * 10}", category = "C$it") }
+        val cycle = review(range(ReviewKind.MONTH, -1, "2026-11-04"), rows).currencies.single()
+        assertEquals(7, cycle.categories.size)
+        assertEquals(listOf("C7", "C6", "C5", "C4", "C3"), cycle.categories.take(REVIEW_CATEGORY_LINES).map { it.name })
+    }
+
+    @Test
+    fun `merchants are per currency, net of their refunds, largest first`() {
+        fun at(merchant: String, row: TransactionWithSplits) = row.copy(transaction = row.transaction.copy(merchantName = merchant))
+        val rows = listOf(
+            at("Cafe", tx("2026-10-02", "30")),
+            at("Cafe", tx("2026-10-03", "20")),
+            at("Books", tx("2026-10-04", "80")),
+            // Half of Books comes back, so Cafe leads.
+            at("Books", tx("2026-10-05", "40", type = TransactionType.INCOME, impact = BudgetImpactType.DEDUCT_SPENT)),
+            at("Gift", tx("2026-10-06", "10", type = TransactionType.INCOME)),
+            at("Hidden", tx("2026-10-07", "999", excluded = true)),
+            at("Cafe", tx("2026-10-08", "7", currency = "USD")),
+        )
+        val r = review(range(ReviewKind.MONTH, -1, "2026-11-04"), rows)
+        val jod = r.currencies.first { it.currency == "JOD" }
+        assertEquals(listOf(MerchantLine("Cafe", BigDecimal("50")), MerchantLine("Books", BigDecimal("40"))), jod.merchants)
+        assertEquals(listOf(MerchantLine("Cafe", BigDecimal("7"))), r.currencies.first { it.currency == "USD" }.merchants)
+    }
+
+    @Test
+    fun `a merchant refunded in full drops out, and the list stops at ten`() {
+        fun at(merchant: String, row: TransactionWithSplits) = row.copy(transaction = row.transaction.copy(merchantName = merchant))
+        val rows = (1..12).map { at("M$it", tx("2026-10-0${it % 9 + 1}", "${it * 10}")) } + listOf(
+            at("M12", tx("2026-10-09", "120", type = TransactionType.INCOME, impact = BudgetImpactType.DEDUCT_SPENT)),
+        )
+        val merchants = review(range(ReviewKind.MONTH, -1, "2026-11-04"), rows).currencies.single().merchants
+        assertEquals(10, merchants.size)
+        assertEquals("M11", merchants.first().name)
+        assertFalse(merchants.any { it.name == "M12" })
+    }
+
+    @Test
+    fun `merchant names built from account digits stay out, and ten names still show`() {
+        assertTrue(looksLikeAccountLabel("UPI Transfer to A/C XX1234"))
+        assertTrue(looksLikeAccountLabel("UPI Transfer to 001234567890"))
+        assertTrue(looksLikeAccountLabel("Card **42"))
+        assertFalse(looksLikeAccountLabel("Swiggy"))
+        assertFalse(looksLikeAccountLabel("7-Eleven"))
+        assertFalse(looksLikeAccountLabel("Coffee 24"))
+
+        fun at(merchant: String, row: TransactionWithSplits) = row.copy(transaction = row.transaction.copy(merchantName = merchant))
+        // The biggest spend went to an account label; the ten named merchants after it all show.
+        val rows = (1..10).map { at("M$it", tx("2026-10-0${it % 9 + 1}", "${it * 10}")) } +
+            at("A/c XX1234", tx("2026-10-09", "500"))
+        val merchants = review(range(ReviewKind.MONTH, -1, "2026-11-04"), rows).currencies.single().merchants
+        assertEquals((10 downTo 1).map { "M$it" }, merchants.map { it.name })
+    }
+
+    @Test
     fun `a year has every month, net of that month's refunds`() {
         val year = review(
             range(ReviewKind.YEAR, -1, "2026-11-04"),
@@ -311,13 +367,13 @@ class PeriodReviewTest {
     @Test
     fun `a year's changes include a category that fell to nothing`() {
         val year = range(ReviewKind.YEAR, -1, "2026-11-04")
-        // Travel was the biggest move but is gone this year, so a list by amount drops it.
+        // Travel was the biggest move but is gone this year, so the screen's list by amount drops it.
         val current = listOf("Rent", "Food", "Fuel", "Gifts", "Health", "Books").mapIndexed { i, c ->
             tx("2025-06-10", (900 - i * 100).toString(), category = c)
         }
         val previous = listOf("Rent" to "900", "Food" to "800", "Travel" to "5000").map { (c, a) -> tx("2024-01-05", a, category = c) }
         val jod = review(year, current, previous).currencies.single()
-        assertTrue(jod.categories.none { it.name == "Travel" })
+        assertTrue(jod.categories.take(REVIEW_CATEGORY_LINES).none { it.name == "Travel" })
         assertEquals("Travel", jod.changes.first().name)
     }
 }

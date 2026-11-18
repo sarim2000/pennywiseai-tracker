@@ -330,4 +330,14 @@
     <string name="card_bill_amount_new_hint">The total on your new statement. Left blank, the last bill stays as it is.</string>
     <string name="card_bill_clear_title">Clear card bill?</string>
     <string name="card_bill_clear_message">The due day and statement amount are removed, and Safe to spend stops setting this bill aside.</string>
+
+    <!-- Net worth: what you own minus what you owe, per currency -->
+    <string name="net_worth_title">Net worth</string>
+    <string name="net_worth_back">Back</string>
+    <string name="net_worth_empty_headline">No accounts yet</string>
+    <string name="net_worth_empty_body">Add an account, or let PennyWise read your bank SMS, to see what you own minus what you owe.</string>
+    <string name="net_worth_summary_hint">What you own minus what you owe</string>
+    <string name="net_worth_assets">Accounts</string>
+    <string name="net_worth_cards">Credit cards</string>
+    <string name="net_worth_loans">Loans</string>
 </resources>

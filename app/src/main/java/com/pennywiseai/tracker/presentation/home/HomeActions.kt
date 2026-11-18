@@ -139,7 +139,7 @@ internal fun HomeTopBarActions(
                 Icon(
                     imageVector = Icons.Default.Mic,
                     contentDescription = stringResource(R.string.quick_add_voice_title),
-                    tint = MaterialTheme.colorScheme.inverseSurface,
+                    tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(Dimensions.Icon.medium)
                 )
             }

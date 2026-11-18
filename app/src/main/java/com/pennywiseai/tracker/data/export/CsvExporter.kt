@@ -6,12 +6,12 @@ import androidx.core.content.FileProvider
 import com.opencsv.CSVWriter
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.repository.MerchantAliasRepository
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOn
-import kotlinx.coroutines.withContext
 import java.io.File
 import java.io.FileWriter
 import java.time.LocalDateTime
@@ -21,12 +21,13 @@ import javax.inject.Singleton
 
 @Singleton
 class CsvExporter @Inject constructor(
-    @param:ApplicationContext private val context: Context
+    @param:ApplicationContext private val context: Context,
+    private val merchantAliasRepository: MerchantAliasRepository
 ) {
     companion object {
         private const val PROVIDER_AUTHORITY = ".fileprovider"
         private const val EXPORT_DIR = "exports"
-        private val CSV_HEADER = arrayOf(
+        internal val CSV_HEADER = arrayOf(
             "Date",
             "Time",
             "Merchant",
@@ -38,15 +39,18 @@ class CsvExporter @Inject constructor(
             "Account",
             "Balance After",
             "Description",
-            "SMS Body"
+            "SMS Body",
+            // Appended, not inserted, so spreadsheets built on the older column positions keep working.
+            "Display Alias",
+            "Reference"
         )
-        
+
         // Date and time formatters
         private val dateFormatter = DateTimeFormatter.ofPattern("yyyy-MM-dd")
         private val timeFormatter = DateTimeFormatter.ofPattern("HH:mm:ss")
         private val fileNameFormatter = DateTimeFormatter.ofPattern("yyyyMMdd_HHmmss")
     }
-    
+
     /**
      * Exports transactions to CSV file with progress updates
      * @param transactions List of transactions to export
@@ -58,24 +62,27 @@ class CsvExporter @Inject constructor(
         fileName: String? = null
     ): Flow<ExportResult> = flow {
         emit(ExportResult.Progress(0f, "Preparing export..."))
-        
+
         try {
             // Prepare export directory
             val exportDir = File(context.cacheDir, EXPORT_DIR)
             if (!exportDir.exists()) {
                 exportDir.mkdirs()
             }
-            
+
             // Clean up old export files (older than 24 hours)
             cleanOldExports(exportDir)
-            
+
             // Generate filename
             val timestamp = LocalDateTime.now().format(fileNameFormatter)
             val finalFileName = fileName ?: "transactions_$timestamp"
             val file = File(exportDir, "$finalFileName.csv")
-            
+
             emit(ExportResult.Progress(0.1f, "Creating CSV file..."))
-            
+
+            // One read for all rows: the alias is set per merchant, not stored on the transaction.
+            val aliases = merchantAliasRepository.getAllAliasesAsMap()
+
             // Write CSV using OpenCSV for proper escaping
             FileWriter(file).use { fileWriter ->
                 CSVWriter(fileWriter).use { csvWriter ->
@@ -84,8 +91,8 @@ class CsvExporter @Inject constructor(
                     // Write transactions with progress updates
                     val totalTransactions = transactions.size
                     transactions.forEachIndexed { index, transaction ->
-                        csvWriter.writeNext(transaction.toCsvRow())
-                        
+                        csvWriter.writeNext(csvRow(transaction, aliases))
+
                         // Update progress (10% to 90% for writing)
                         val progress = 0.1f + (0.8f * (index + 1) / totalTransactions)
                         if (index % 100 == 0 || index == totalTransactions - 1) {
@@ -97,16 +104,16 @@ class CsvExporter @Inject constructor(
                     }
                 }
             }
-            
+
             emit(ExportResult.Progress(0.95f, "Finalizing export..."))
-            
+
             // Generate content URI for sharing
             val uri = FileProvider.getUriForFile(
                 context,
                 "${context.packageName}$PROVIDER_AUTHORITY",
                 file
             )
-            
+
             emit(ExportResult.Progress(1.0f, "Export complete!"))
             emit(ExportResult.Success(
                 uri = uri,
@@ -114,7 +121,6 @@ class CsvExporter @Inject constructor(
                 transactionCount = transactions.size,
                 fileSizeBytes = file.length()
             ))
-            
         } catch (e: Exception) {
             emit(ExportResult.Error(
                 message = "Failed to export transactions: ${e.message}",
@@ -122,41 +128,7 @@ class CsvExporter @Inject constructor(
             ))
         }
     }.flowOn(Dispatchers.IO)
-    
-    /**
-     * Exports transactions directly to file (blocking version for simple use cases)
-     */
-    suspend fun exportTransactionsToFile(
-        transactions: List<TransactionEntity>,
-        fileName: String? = null
-    ): Uri = withContext(Dispatchers.IO) {
-        val exportDir = File(context.cacheDir, EXPORT_DIR)
-        if (!exportDir.exists()) {
-            exportDir.mkdirs()
-        }
-        
-        val timestamp = LocalDateTime.now().format(fileNameFormatter)
-        val finalFileName = fileName ?: "transactions_$timestamp"
-        val file = File(exportDir, "$finalFileName.csv")
-        
-        FileWriter(file).use { fileWriter ->
-            CSVWriter(fileWriter).use { csvWriter ->
-                csvWriter.writeNext(CSV_HEADER)
 
-                // Write transactions
-                transactions.forEach { transaction ->
-                    csvWriter.writeNext(transaction.toCsvRow())
-                }
-            }
-        }
-        
-        FileProvider.getUriForFile(
-            context,
-            "${context.packageName}$PROVIDER_AUTHORITY",
-            file
-        )
-    }
-    
     /**
      * Cleans up old export files older than 24 hours
      */
@@ -169,8 +141,9 @@ class CsvExporter @Inject constructor(
         }
     }
 
-    private fun TransactionEntity.toCsvRow(): Array<String> {
-        return arrayOf(
+    /** One CSV row; [aliases] maps a merchant name to the display alias the user set for it. */
+    internal fun csvRow(transaction: TransactionEntity, aliases: Map<String, String>): Array<String> = with(transaction) {
+        arrayOf(
             dateTime.format(dateFormatter),
             dateTime.format(timeFormatter),
             merchantName,
@@ -182,7 +155,9 @@ class CsvExporter @Inject constructor(
             accountNumber ?: "",
             balanceAfter?.toString() ?: "",
             description ?: "",
-            smsBody ?: ""
+            smsBody ?: "",
+            aliases[merchantName] ?: "",
+            reference ?: ""
         )
     }
 
@@ -203,14 +178,14 @@ sealed class ExportResult {
         val progress: Float, // 0.0 to 1.0
         val message: String
     ) : ExportResult()
-    
+
     data class Success(
         val uri: Uri,
         val fileName: String,
         val transactionCount: Int,
         val fileSizeBytes: Long
     ) : ExportResult()
-    
+
     data class Error(
         val message: String,
         val exception: Exception? = null

@@ -83,6 +83,10 @@ data class BudgetGroupEditUiState(
     val groupType: BudgetGroupType = BudgetGroupType.LIMIT,
     /** The budget as stored; null for a new one. */
     val saved: BudgetEntity? = null,
+    /** [saved]'s categories and type buckets, as (name, match type). */
+    val savedScope: Set<Pair<String, String?>> = emptySet(),
+    /** The global budget cycle start day a monthly budget without its own anchor follows. */
+    val globalStartDay: Int = BudgetCycle.DEFAULT_START_DAY,
     val isLoading: Boolean = true,
     val isSaving: Boolean = false,
     val saveComplete: Boolean = false
@@ -99,13 +103,15 @@ data class BudgetGroupEditUiState(
         if (!rolloverEnabled || !rolloverAvailable) return false
         val before = saved ?: return true
         val after = before.copy(
+            limitAmount = overallAmount.toBigDecimalOrNull() ?: before.limitAmount,
             currency = currency,
             periodType = periodType,
             weekStartDay = weekStartDay.coerceIn(1, 7).takeIf { periodType == BudgetPeriodType.WEEKLY },
             monthStartDay = BudgetCycle.clampStartDay(monthStartDay).takeIf { periodType == BudgetPeriodType.MONTHLY },
             rolloverEnabled = true
         )
-        val since = BudgetRollover.sinceAfterEdit(before, after, today) ?: return false
+        val sameScope = savedScope == categories.map { it.categoryName to it.matchType }.toSet()
+        val since = BudgetRollover.sinceAfterEdit(before, after, today, globalStartDay, sameScope) ?: return false
         return !since.isBefore(startDate)
     }
 }
@@ -209,6 +215,8 @@ class BudgetGroupEditViewModel @Inject constructor(
                         rolloverEnabled = b.rolloverEnabled,
                         groupType = b.groupType,
                         saved = b,
+                        savedScope = group.categories.map { it.categoryName to it.matchType }.toSet(),
+                        globalStartDay = userPreferencesRepository.getBudgetCycleStartDay(),
                         isLoading = false
                     )
                 }

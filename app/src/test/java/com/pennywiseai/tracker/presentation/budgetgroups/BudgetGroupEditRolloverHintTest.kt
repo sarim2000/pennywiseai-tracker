@@ -22,9 +22,12 @@ class BudgetGroupEditRolloverHintTest {
         groupType = BudgetGroupType.LIMIT, rolloverEnabled = enabled, rolloverSince = since
     )
 
+    private val food = CategoryBudgetItem(categoryName = "Food", amount = BigDecimal("100"), currentSpending = BigDecimal.ZERO)
+
     private fun state(saved: BudgetEntity?, rollover: Boolean = true) = BudgetGroupEditUiState(
         groupId = saved?.id, currency = "JOD", periodType = BudgetPeriodType.WEEKLY, weekStartDay = 1,
-        startDate = weekStart, endDate = weekStart.plusDays(6), rolloverEnabled = rollover, saved = saved
+        startDate = weekStart, endDate = weekStart.plusDays(6), rolloverEnabled = rollover, saved = saved,
+        overallAmount = "100", categories = listOf(food), savedScope = setOf("Food" to null)
     )
 
     @Test
@@ -48,6 +51,16 @@ class BudgetGroupEditRolloverHintTest {
         val running = saved(enabled = true, since = LocalDate.of(2026, 10, 1))
         assertTrue(state(running).copy(weekStartDay = 3, startDate = LocalDate.of(2026, 11, 11)).rolloverStartsNextPeriod(today))
         assertTrue(state(running).copy(currency = "USD").rolloverStartsNextPeriod(today))
+    }
+
+    @Test
+    fun `a new limit or new categories restart it`() {
+        val running = saved(enabled = true, since = LocalDate.of(2026, 10, 1))
+        assertFalse(state(running).copy(overallAmount = "100.00").rolloverStartsNextPeriod(today))
+        assertTrue(state(running).copy(overallAmount = "150").rolloverStartsNextPeriod(today))
+        assertTrue(state(running).copy(categories = listOf(food.copy(categoryName = "Fuel"))).rolloverStartsNextPeriod(today))
+        // A category's own amount isn't what it counts.
+        assertFalse(state(running).copy(categories = listOf(food.copy(amount = BigDecimal("60")))).rolloverStartsNextPeriod(today))
     }
 
     @Test

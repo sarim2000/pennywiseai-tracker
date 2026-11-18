@@ -53,6 +53,9 @@ private val readableCache = ConcurrentHashMap<List<ULong>, Color>()
  * so a palette that passes keeps its exact colours. Pass [GRAPHIC_CONTRAST] for an icon
  * or chart mark, so it keeps more of its hue than text would. Results are cached, so
  * nudge an animation's target, never its in-between frames.
+ *
+ * Meant for [backgrounds] of one tone (a surface and washes over it). If they straddle
+ * mid-grey so that not even pure black or white reaches [minimum], it gives the better of the two.
  */
 fun Color.readableOn(backgrounds: List<Color>, minimum: Float = TEXT_CONTRAST): Color {
     fun minContrast(c: Color) = backgrounds.minOf { contrastRatio(c, it) }

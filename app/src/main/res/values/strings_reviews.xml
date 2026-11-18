@@ -37,28 +37,6 @@
     <string name="review_banner_year_title">Your %1$s in review</string>
     <string name="review_banner_year_subtitle">Where the year went, from what you recorded</string>
 
-    <!-- Share card -->
-    <plurals name="share_card_caption_merchants">
-        <item quantity="one">merchant paid</item>
-        <item quantity="other">merchants paid</item>
-    </plurals>
-    <string name="share_sheet_merchants">Merchants</string>
-    <!-- The message sent with the image, in the sharer's voice. %1$d = count -->
-    <plurals name="share_text_transactions">
-        <item quantity="one">PennyWise tracked %1$d transaction for me from my bank texts.</item>
-        <item quantity="other">PennyWise tracked %1$d transactions for me from my bank texts.</item>
-    </plurals>
-    <plurals name="share_text_subscriptions">
-        <item quantity="one">PennyWise found %1$d subscription I\'d forgotten I was paying for.</item>
-        <item quantity="other">PennyWise found %1$d subscriptions I\'d forgotten I was paying for.</item>
-    </plurals>
-    <plurals name="share_text_merchants">
-        <item quantity="one">PennyWise kept track of the %1$d merchant I paid.</item>
-        <item quantity="other">PennyWise kept track of the %1$d merchants I paid.</item>
-    </plurals>
-    <!-- %1$s = the app's website -->
-    <string name="share_text_suffix">It reads bank SMS on your phone, and nothing gets uploaded. https://%1$s</string>
-
     <!-- Weekly recap -->
     <string name="settings_weekly_summary_title">Weekly recap</string>
     <string name="settings_weekly_summary_subtitle">Last week\'s spending compared with the week before</string>

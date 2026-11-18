@@ -398,28 +398,6 @@
     <string name="recurring_day_of_week_any">Любы</string>
     <string name="recurring_field_note">Нататка (неабавязкова)</string>
     <string name="recurring_field_active">Актыўная</string>
-    <!-- Share card, sheet and banner -->
-    <string name="share_card_caption_transactions">банкаўскіх SMS улічана. 0 уведзена ўручную.</string>
-    <plurals name="share_card_caption_subscriptions">
-        <item quantity="one">забытая падпіска</item>
-        <item quantity="few">забытыя падпіскі</item>
-        <item quantity="many">забытых падпісак</item>
-        <item quantity="other">забытай падпіскі</item>
-    </plurals>
-    <string name="share_card_period_all_time">УВЕСЬ ЧАС</string>
-    <string name="share_card_tagline">З маіх банкаўскіх SMS. Нічога не выйшла за межы майго тэлефона.</string>
-    <string name="share_sheet_no_amounts">Сумы не паказваюцца.</string>
-    <string name="share_sheet_share">Абагуліць</string>
-    <string name="share_sheet_done">Гатова</string>
-    <string name="share_sheet_customise">Наладзіць</string>
-    <string name="share_sheet_show">Паказаць</string>
-    <string name="share_sheet_transactions">Транзакцыі</string>
-    <string name="share_sheet_subscriptions">Падпіскі</string>
-    <string name="share_sheet_no_subscriptions">Падпісак пакуль не знойдзена — PennyWise знаходзіць іх па паўтаральных плацяжах у вашых SMS.</string>
-    <string name="share_sheet_period">Перыяд</string>
-    <string name="share_sheet_this_month">Гэты месяц</string>
-    <string name="share_sheet_last_month">Мінулы месяц</string>
-    <string name="share_sheet_all_time">Увесь час</string>
     <!-- %1$s = month name -->
     <string name="share_banner_title">%1$s: вынікі</string>
     <string name="share_banner_subtitle">Паглядзіце, што PennyWise улічыў для вас</string>

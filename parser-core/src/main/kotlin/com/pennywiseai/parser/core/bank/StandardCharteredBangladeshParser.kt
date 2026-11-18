@@ -36,7 +36,7 @@ class StandardCharteredBangladeshParser : BankParser() {
     override fun getCurrency(): String = "BDT"
     override fun canHandle(sender: String): Boolean =
         // Strip a DLT-style wrapper ("VM-StanChartBD-S") before the exact match.
-        sender.uppercase().replace(Regex("""^[A-Z]{2}-|-[A-Z]$"""), "")
+        sender.trim().uppercase().replace(Regex("""^[A-Z]{2}-|-[A-Z]$"""), "")
             .replace(Regex("""[\s_-]"""), "") == "STANCHARTBD"
 
     private fun money(raw: String): BigDecimal? =

@@ -36,7 +36,6 @@ class PennyWiseTools : ToolSet {
         @ToolParam(description = "Last day as YYYY-MM-DD, or empty for today") to: String,
         @ToolParam(description = "One of the known category names, or empty for all spending") category: String,
         @ToolParam(description = "Merchant or shop name the user asked about, or empty") merchant: String,
-        @ToolParam(description = "One of the accounts if the user named one, else empty") account: String,
         @ToolParam(description = "none for a total, or category, merchant or account for the biggest ones") groupBy: String
     ): String = ""
 

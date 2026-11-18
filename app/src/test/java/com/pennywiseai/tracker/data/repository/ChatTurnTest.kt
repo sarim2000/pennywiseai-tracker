@@ -3,14 +3,12 @@ package com.pennywiseai.tracker.data.repository
 import android.content.Context
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.dao.ChatDao
-import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.ChatMessage
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
 import com.pennywiseai.tracker.data.model.BillsDue
 import com.pennywiseai.tracker.data.model.BudgetStatus
 import com.pennywiseai.tracker.data.model.ChatLink
@@ -207,6 +205,12 @@ class ChatTurnTest {
         events = listOf(LlmEvent.Text("Adding ₹150 for coffee. "), add(120.0))
         assertEquals("CARD", send("coffee 120"))
         coVerify(exactly = 2) { llmService.closeConversation() }
+
+        // A number it can't read is one all the same, beside the card's own amount too.
+        repository.clearPendingAction()
+        events = listOf(LlmEvent.Text("Adding ₹120. Your balance is 12,50. "), add(120.0))
+        assertEquals("CARD", send("coffee 120"))
+        coVerify(exactly = 3) { llmService.closeConversation() }
     }
 
     @Test
@@ -289,83 +293,6 @@ class ChatTurnTest {
         assertEquals(listOf(0, 0), card.rows.zip(listOf("120", "300")).map { (row, want) -> BigDecimal(want).compareTo(row.draft.amount) })
         assertTrue(card.rows.all { it.selected })
         assertFalse(reply, reply.contains("ONE_CARD"))
-    }
-
-    @Test
-    fun `a question's add call proposes nothing, and looks up what it named`() = runTest {
-        every { context.getString(R.string.chat_reply_add, any()) } returns "CARD"
-        every { context.getString(R.string.chat_reply_month_spend, any()) } returns "SPENT"
-        val filter = answerSpending()
-        fun income(merchant: String?) = LlmEvent.ToolCall(
-            PennyWiseTools.ADD_TRANSACTIONS,
-            mapOf("items" to listOf(mapOf("amount" to 25.0, "merchant" to merchant, "type" to "INCOME")))
-        )
-        // What Qwen2.5 sent for it in 2 runs of 3.
-        events = listOf(income("ستاربكس"))
-        assertTrue(send("كم صرفت في ستاربكس هالشهر؟").startsWith("SPENT"))
-        assertEquals(null, repository.pendingAction.value)
-        assertEquals("ستاربكس", filter.captured.merchant)
-        events = listOf(income("Starbucks"))
-        assertTrue(send("how much did I spend at Starbucks").startsWith("SPENT"))
-        assertEquals(null, repository.pendingAction.value)
-        // Nothing to look up: the usual "couldn't read" reply, still no card.
-        events = listOf(income(null))
-        assertEquals("UNREADABLE", send("what did I spend this month?"))
-        assertEquals(null, repository.pendingAction.value)
-
-        // A year (or any number) in a question opening with "how much" or "كم" is no amount to add:
-        // it's looked up, and a numeric year is days the lookup says it can't read.
-        every { context.getString(R.string.chat_reply_query_period_unknown) } returns "PERIOD"
-        fun spentIn(amount: Double, account: String? = null) = LlmEvent.ToolCall(
-            PennyWiseTools.ADD_TRANSACTIONS,
-            mapOf("items" to listOf(mapOf("amount" to amount, "merchant" to "Starbucks", "account" to account)))
-        )
-        events = listOf(spentIn(2026.0))
-        assertEquals("PERIOD", send("how much did I spend at Starbucks in 2026"))
-        assertEquals(null, repository.pendingAction.value)
-        events = listOf(spentIn(2026.0))
-        assertEquals("PERIOD", send("كم صرفت في ستاربكس في 2026"))
-        assertEquals(null, repository.pendingAction.value)
-
-        // The account the user named stays on the lookup: one account's figure, not all of them.
-        coEvery { accountBalances.getAllLatestBalancesOnce() } returns listOf(account("HDFC", "1234"), account("SBI", "5678"))
-        events = listOf(spentIn(1234.0, account = "HDFC 1234"))
-        assertTrue(send("how much coffee spending at Starbucks on HDFC 1234?").startsWith("SPENT"))
-        assertEquals(SpendingFilter(merchant = "Starbucks", account = "HDFC_1234"), filter.captured)
-        events = listOf(spentIn(1234.0, account = "بطاقة 1234"))
-        assertTrue(send("كم صرفت في ستاربكس على بطاقة 1234؟").startsWith("SPENT"))
-        assertEquals("HDFC_1234", filter.captured.account)
-        // One it can't find is said, not answered across every account.
-        every { context.getString(R.string.chat_reply_unknown_account, any()) } returns "NO_ACCOUNT"
-        events = listOf(spentIn(9999.0, account = "ICICI 9999"))
-        assertEquals("NO_ACCOUNT", send("how much at Starbucks on ICICI 9999?"))
-        // One only the model named restricts nothing the user asked.
-        events = listOf(spentIn(25.0, account = "SBI 5678"))
-        assertTrue(send("how much at Starbucks?").startsWith("SPENT"))
-        assertEquals(null, filter.captured.account)
-        assertEquals(null, repository.pendingAction.value)
-        // The user's words pick the account, never the model's: both cards end in 1234, and
-        // "SBI 1234" for "on HDFC 1234?" is still HDFC's figure.
-        coEvery { accountBalances.getAllLatestBalancesOnce() } returns listOf(account("HDFC", "1234"), account("SBI", "1234"))
-        events = listOf(spentIn(25.0, account = "SBI 1234"))
-        assertTrue(send("how much at Starbucks on HDFC 1234?").startsWith("SPENT"))
-        assertEquals("HDFC_1234", filter.captured.account)
-        // The bank the user named wins over the model's digits.
-        events = listOf(spentIn(25.0, account = "HDFC 5678"))
-        assertTrue(send("how much at Starbucks on my HDFC card?").startsWith("SPENT"))
-        assertEquals("HDFC_1234", filter.captured.account)
-        // Digits both cards end in are a question, whichever bank the model put beside them.
-        every { context.getString(R.string.chat_reply_account_ambiguous, "1234", "HDFC ••1234, SBI ••1234") } returns "WHICH"
-        events = listOf(spentIn(25.0, account = "SBI 1234"))
-        assertEquals("WHICH", send("how much at Starbucks on 1234?"))
-        assertEquals(null, repository.pendingAction.value)
-
-        // Asked to add, or stating the amount, it's still a card.
-        events = listOf(income("Starbucks"))
-        assertEquals("CARD", send("can you add 25 from Starbucks?"))
-        repository.clearPendingAction()
-        events = listOf(income("Starbucks"))
-        assertEquals("CARD", send("got 25 back from Starbucks?"))
     }
 
     @Test
@@ -857,6 +784,25 @@ class ChatTurnTest {
     }
 
     @Test
+    fun `a category saved as General is that category, a model's general is all spending`() = runTest {
+        coEvery { aiContext.categorySpending(any(), any(), any()) } returns spent("40")
+        coEvery { aiContext.spending(any(), any()) } returns com.pennywiseai.tracker.data.model.PeriodSpending(
+            spent("1").scope,
+            spent = mapOf("INR" to BigDecimal("700")),
+            income = emptyMap(),
+        )
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("category" to "general")))
+        send("how much in all?")
+        coVerify(exactly = 0) { aiContext.categorySpending(any(), any(), any()) }
+        coVerify(exactly = 1) { aiContext.spending(any(), any()) }
+
+        every { categories.getAllCategories() } returns flowOf(listOf(CategoryEntity(id = 4, name = "General", color = "#000")))
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("category" to "general")))
+        assertEquals("SPEND", send("how much on general?"))
+        coVerify(exactly = 1) { aiContext.categorySpending("General", any(), any()) }
+    }
+
+    @Test
     fun `a category lookup reads hidden categories and names only found on transactions`() = runTest {
         coEvery { aiContext.categorySpending(any(), any(), any()) } returns spent()
         suspend fun lookup(category: String): String {
@@ -1292,26 +1238,21 @@ class ChatTurnTest {
         return filter
     }
 
-    private fun account(bank: String, last4: String) =
-        AccountBalanceEntity(bankName = bank, accountLast4 = last4, balance = BigDecimal.ZERO, timestamp = LocalDateTime.of(2026, 11, 1, 0, 0))
-
     @Test
-    fun `a spending query takes its days and account, and links what the list can show`() = runTest {
+    fun `a spending query takes the days the model passed, and links what the list can show`() = runTest {
         every { context.getString(R.string.chat_reply_month_spend, any()) } answers { "SPENT ${(args[1] as Array<*>)[0]}" }
-        every { context.getString(R.string.chat_link_transactions_in, any()) } answers { "SEE ${(args[1] as Array<*>)[0]}" }
-        coEvery { accountBalances.getAllLatestBalancesOnce() } returns listOf(account("HDFC", "1234"), account("SBI", "9876"))
         val filter = answerSpending()
         val (oct1, oct31) = LocalDate.of(2024, 10, 1) to LocalDate.of(2024, 10, 31)
 
-        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("period" to "2024-10", "account" to "hdfc 1234", "group_by" to "none")))
-        val reply = send("how much from my HDFC card in October 2024?")
-        assertEquals(SpendingFilter(SpendingComparison.Window(oct1.atStartOfDay(), oct31.atTime(LocalTime.MAX)), null, "HDFC_1234"), filter.captured)
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("period" to "2024-10", "group_by" to "none")))
+        val reply = send("how much did I spend in October 2024?")
+        assertEquals(SpendingFilter(SpendingComparison.Window(oct1.atStartOfDay(), oct31.atTime(LocalTime.MAX))), filter.captured)
         // Another year's days say so: "1 Oct" alone would read as this October.
-        assertTrue(reply, reply.startsWith("SPENT 1 Oct 2024–31 Oct 2024 · HDFC ••1234\n"))
-        assertEquals(listOf(ChatLink("SEE HDFC ••1234", oct1, oct31, null, "INR", null, "HDFC_1234")), repository.links.value[saved.last().id])
+        assertTrue(reply, reply.startsWith("SPENT 1 Oct 2024–31 Oct 2024\n"))
+        assertEquals(listOf(oct1 to oct31), repository.links.value[saved.last().id]?.map { it.start to it.end })
 
         // A merchant's figure, but no link: the list's search also reads notes and SMS text.
-        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("merchant" to "Starbucks", "account" to "", "category" to "all")))
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("merchant" to "Starbucks", "category" to "all")))
         assertTrue(send("how much at starbucks?").startsWith("SPENT 1 Nov–16 Nov · Starbucks\n"))
         assertEquals(SpendingFilter(merchant = "Starbucks"), filter.captured)
         assertEquals(null, repository.links.value[saved.last().id])
@@ -1327,9 +1268,6 @@ class ChatTurnTest {
         every { context.getString(R.string.chat_reply_query_dates_reversed, any(), any()) } returns "REVERSED"
         every { context.getString(R.string.chat_reply_query_future) } returns "FUTURE"
         every { context.getString(R.string.chat_reply_query_group_unknown) } returns "GROUP"
-        every { context.getString(R.string.chat_reply_unknown_account, any()) } returns "NO_ACCOUNT"
-        every { context.getString(R.string.chat_reply_account_ambiguous, "1234", "HDFC ••1234, SBI ••1234") } returns "WHICH"
-        coEvery { accountBalances.getAllLatestBalancesOnce() } returns listOf(account("HDFC", "1234"), account("SBI", "1234"))
         answerSpending()
         suspend fun ask(args: Map<String, Any?>, message: String = "how much?"): String {
             events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, args))
@@ -1341,51 +1279,32 @@ class ChatTurnTest {
         assertEquals("REVERSED", ask(mapOf("from" to "2024-11-10", "to" to "2024-11-01")))
         assertEquals("FUTURE", ask(mapOf("period" to "2099-01")))
         assertEquals("GROUP", ask(mapOf("group_by" to "day")))
-        assertEquals("NO_ACCOUNT", ask(mapOf("account" to "Barclays")))
-        // Two cards end in 1234: the user says which, the app doesn't add them up.
-        assertEquals("WHICH", ask(mapOf("account" to "1234")))
-        // Left at this month while the user named two months, or a day in one: not this month's figure under them.
-        assertEquals("PERIOD", ask(emptyMap(), "how much did I spend in September and October?"))
-        assertEquals("PERIOD", ask(emptyMap(), "how much did I spend on 15 September?"))
+        // A month by name is said, not guessed at: its year is the model's to write as YYYY-MM.
+        assertEquals("PERIOD", ask(mapOf("period" to "October"), "how much did I spend in October?"))
         coVerify(exactly = 0) { aiContext.spending(any(), any()) }
         coVerify(exactly = 0) { aiContext.topCategories(any(), any(), any(), any()) }
-
-        // An ignored account is hidden everywhere, so it's no candidate: the other card answers.
-        ignored = setOf("SBI_1234")
-        every { context.getString(R.string.chat_reply_month_spend, any()) } returns "SPENT"
-        assertTrue(ask(mapOf("account" to "1234")).startsWith("SPENT"))
-        // Named, the ignored card isn't swapped for the other one ending the same.
-        assertEquals("NO_ACCOUNT", ask(mapOf("account" to "SBI 1234")))
     }
 
     @Test
-    fun `the user's last month or week beats a period the model left at this month`() = runTest {
+    fun `a plain lookup naming last month is a comparison, any other takes the model's period`() = runTest {
         every { context.getString(R.string.chat_reply_compare_no_data, any()) } returns "NO_DATA"
         coEvery { aiContext.compareSpending(any(), any(), any(), any()) } returns SpendingComparison.Result.NoData(nov, nov, nov)
         val filter = answerSpending()
         fun asked(period: String) = (SpendingQuery.dates(period, null, null, LocalDateTime.of(2026, 11, 16, 12, 0), WeekFields.of(Locale.getDefault()).firstDayOfWeek, 1) as SpendingQuery.Dates.Of).window
 
-        // Narrowed to a merchant it can't be a comparison: the figure covers the days named.
-        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("merchant" to "Uber", "period" to "this_month")))
-        send("how much on uber last week?")
-        assertEquals(asked("last_week"), filter.captured.window)
-        // Income isn't compared: last month's own figures.
-        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, emptyMap()))
-        send("how much income did I get last month?")
-        assertEquals(asked("last_month"), filter.captured.window)
         // A plain lookup naming last month is still the comparison the Hinglish question wants.
         events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("category" to "طعام")))
         assertEquals("NO_DATA", send("pichle mahine se zyada khana kharcha?"))
         coVerify(exactly = 1) { aiContext.compareSpending(SpendingComparison.Period.MONTH, "طعام", any(), any()) }
         assertEquals(PennyWiseTools.COMPARE_SPENDING, repository.lastReply.value?.tool)
+        // Narrowed to a merchant it can't be a comparison: the figure covers the days passed.
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("merchant" to "Uber", "period" to "last_week")))
+        send("how much on uber last week?")
+        assertEquals(asked("last_week"), filter.captured.window)
         // Asked for by the model, last month is last month's figure.
         events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("period" to "last_month")))
         send("and how much last month?")
         assertEquals(asked("last_month"), filter.captured.window)
-        // A day the user named, not this month's figure under it.
-        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("period" to "")))
-        send("how much did I spend yesterday?")
-        assertEquals(asked("yesterday"), filter.captured.window)
     }
 
     @Test
@@ -1406,12 +1325,14 @@ class ChatTurnTest {
         // An income category is income without the word for it too.
         assertEquals("RECEIVED ₹500 Salary", send("salary?"))
         // Named with last month, it's last month's salary, not a comparison of spending in it.
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("category" to "Salary", "period" to "last_month")))
         send("how much salary did I get last month?")
         coVerify(exactly = 0) { aiContext.compareSpending(any(), any(), any(), any()) }
         assertEquals(LocalDate.of(2026, 10, 1), filter.captured.window?.start?.toLocalDate())
         coVerify(exactly = 0) { aiContext.categorySpending(any(), any(), any()) }
 
         coEvery { aiContext.categoryIncome("Salary", any(), any()) } returns spent().copy(category = "Salary")
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("category" to "Salary")))
         assertEquals("NOTHING_RECEIVED", send("how much salary this month?"))
         // A spending category is still what was spent in it.
         events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("category" to "طعام")))
@@ -1443,94 +1364,20 @@ class ChatTurnTest {
     }
 
     @Test
-    fun `a merchant or account the call names is no date, and a year named is that year`() = runTest {
-        every { context.getString(R.string.chat_reply_query_period_unknown) } returns "PERIOD"
-        every { context.getString(R.string.chat_reply_month_spend, any()) } returns "SPENT"
-        coEvery { accountBalances.getAllLatestBalancesOnce() } returns listOf(account("HDFC", "2019"))
-        val filter = answerSpending()
-        fun asked(period: String) = (SpendingQuery.dates(period, null, null, LocalDateTime.of(2026, 11, 16, 12, 0), WeekFields.of(Locale.getDefault()).firstDayOfWeek, 1) as SpendingQuery.Dates.Of).window
-        suspend fun ask(args: Map<String, Any?>, message: String): String {
-            events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, args))
-            return send(message)
-        }
-
-        // "24/7" reads as a date, "in 2019" as a year: here they're the shop and the card.
-        assertTrue(ask(mapOf("merchant" to "24/7"), "how much did I spend at 24/7 this month?").startsWith("SPENT"))
-        assertEquals(SpendingFilter(merchant = "24/7"), filter.captured)
-        assertTrue(ask(mapOf("account" to "2019"), "how much on the card ending in 2019?").startsWith("SPENT"))
-        assertEquals(SpendingFilter(account = "HDFC_2019"), filter.captured)
-        // A shop named for a day is no day.
-        assertTrue(ask(mapOf("merchant" to "Today Mart"), "how much at today mart?").startsWith("SPENT"))
-        assertEquals(null, filter.captured.window)
-        // This year or last, left at this month by the model: the year, not "can't look up".
-        ask(mapOf("period" to "this_month"), "how much did I spend this year?")
-        assertEquals(asked("this_year"), filter.captured.window)
-        ask(emptyMap(), "كم صرفت السنة الماضية؟")
-        assertEquals(asked("last_year"), filter.captured.window)
-        // A month within it is that month, not the whole year.
-        ask(emptyMap(), "how much in March this year?")
-        assertEquals(asked("2026-03"), filter.captured.window)
-        // Named alone (seen on the emulator as "I can't look up those days"), the latest October begun.
-        ask(mapOf("period" to "this_month"), "How much did I spend in October?")
-        assertEquals(asked("2026-10"), filter.captured.window)
-        ask(emptyMap(), "كم صرفت في أكتوبر؟")
-        assertEquals(asked("2026-10"), filter.captured.window)
-        // The model's "October" keeps the year and the days the user's words give it.
-        ask(mapOf("period" to "October"), "How much did I spend in October last year?")
-        assertEquals(asked("2025-10"), filter.captured.window)
-        ask(mapOf("period" to "November"), "how much did I spend last November?")
-        assertEquals(asked("2025-11"), filter.captured.window)
-        assertEquals("PERIOD", ask(mapOf("period" to "October"), "How much have I spent since October?"))
-        assertEquals("PERIOD", ask(emptyMap(), "how much did I spend in the first week of October?"))
-        assertEquals("PERIOD", ask(emptyMap(), "كم صرفت منذ أكتوبر؟"))
-    }
-
-    @Test
-    fun `a lookup that asks which one keeps the live conversation, and is never replayed`() = runTest {
-        every { context.getString(R.string.chat_reply_account_ambiguous, any(), any()) } returns "WHICH"
-        every { context.getString(R.string.chat_reply_month_spend, any()) } returns "SPENT"
-        coEvery { accountBalances.getAllLatestBalancesOnce() } returns listOf(account("HDFC", "1234"), account("HDFC", "5678"))
-        answerSpending()
-        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("account" to "HDFC")))
-        assertEquals("WHICH", send("how much on my HDFC card?"))
-        // The app's line: a rebuilt window leaves it out, as any other, so it can't be written back.
-        assertTrue(saved.last().id.startsWith(LlmRepository.QUICK_ID))
-        // The live conversation holds the call the model made, so "the 5678 one" follows it there.
-        coVerify(exactly = 0) { llmService.closeConversation() }
-        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("account" to "HDFC 5678")))
-        assertTrue(send("the 5678 one").startsWith("SPENT"))
-        coVerify(exactly = 0) { llmService.createConversation(any(), any(), any()) }
-    }
-
-    @Test
-    fun `a merchant's figure isn't narrowed or ranked by what the model guessed beside it`() = runTest {
+    fun `a lookup is narrowed by the arguments the model passed, and its label says so`() = runTest {
         every { context.getString(R.string.chat_reply_month_spend, any()) } answers { "SPENT ${(args[1] as Array<*>)[0]}" }
-        coEvery { accountBalances.getAllLatestBalancesOnce() } returns listOf(account("Emirates NBD", "1234"))
+        coEvery { aiContext.categorySpending(any(), any(), any()) } returns spent("120")
         val filter = answerSpending()
 
-        // Seen on the emulator: "Nothing spent … · Shopping · Swiggy" for "how much at Swiggy?".
-        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("period" to "this_month", "category" to "Shopping", "merchant" to "Swiggy", "group_by" to "category")))
+        // A ranking of the one merchant asked about is its total.
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("merchant" to "Swiggy", "group_by" to "merchant")))
         assertTrue(send("Swiggy spending this month?").startsWith("SPENT 1 Nov–16 Nov · Swiggy\n"))
         assertEquals(SpendingFilter(merchant = "Swiggy"), filter.captured)
-        // And "Nothing spent … · Others · Emirates NBD ••1234": a category's name put in as the merchant.
-        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("account" to "Emirates NBD", "merchant" to "Hobbies")))
-        assertTrue(send("How much did I spend from my Emirates NBD account this month?").startsWith("SPENT 1 Nov–16 Nov · Emirates NBD ••1234\n"))
-        assertEquals(SpendingFilter(account = "Emirates NBD_1234"), filter.captured)
-        // And "Top accounts … Emirates NBD: Emirates NBD: AED127" for one account's spending.
-        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("account" to "Emirates NBD", "group_by" to "account")))
-        assertTrue(send("How much did I spend from my Emirates NBD account this month?").startsWith("SPENT 1 Nov–16 Nov · Emirates NBD ••1234\n"))
         coVerify(exactly = 0) { aiContext.topCategories(any(), any(), any(), any()) }
-        // A built-in category is kept in English and asked about in the app's language.
-        val shown = BuiltinCategoryNames.shown
-        BuiltinCategoryNames.shown = { name, _ -> "طعام ومطاعم".takeIf { name == "Food & Dining" } }
-        try {
-            coEvery { aiContext.categorySpending(any(), any(), any()) } returns spent("120")
-            events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("category" to "Food & Dining", "merchant" to "Starbucks")))
-            assertEquals("SPEND", send("كم صرفت على الطعام في ستاربكس؟"))
-            coVerify { aiContext.categorySpending("Food & Dining", any(), SpendingFilter(merchant = "Starbucks")) }
-        } finally {
-            BuiltinCategoryNames.shown = shown
-        }
+        // A category beside a merchant narrows it: the model's arguments are what was looked up.
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("category" to "Shopping", "merchant" to "Swiggy", "group_by" to "category")))
+        assertEquals("SPEND", send("Swiggy spending this month?"))
+        coVerify { aiContext.categorySpending("Shopping", any(), SpendingFilter(merchant = "Swiggy")) }
     }
 
     @Test
@@ -1626,31 +1473,13 @@ class ChatTurnTest {
     }
 
     @Test
-    fun `a money-in question sent to the plans is looked up instead`() = runTest {
+    fun `a planning kind the app doesn't know is said, and nothing is looked up`() = runTest {
         every { context.getString(R.string.chat_reply_planning_unknown) } returns "UNKNOWN"
-        every { context.resources.getQuantityString(R.plurals.chat_reply_category_income, any(), any(), any(), any(), any()) } answers {
-            (args[2] as Array<*>).let { "RECEIVED ${it[0]} ${it[1]}" }
-        }
-        every { categories.getAllCategories() } returns flowOf(listOf(CategoryEntity(id = 3, name = "Salary", color = "#000", isIncome = true)))
-        coEvery { aiContext.categoryIncome("Salary", any(), any()) } returns spent("500").copy(category = "Salary")
-        // What Qwen2.5 sent for it on device.
+        // What Qwen2.5 sent for "How much salary did I receive?" on device.
         events = listOf(LlmEvent.ToolCall(PennyWiseTools.PLANNING_STATUS, mapOf("kind" to "salary")))
-        assertEquals("RECEIVED ₹500 Salary", send("How much salary did I receive this month?"))
-        assertEquals(PennyWiseTools.QUERY_SPENDING, repository.lastReply.value?.tool)
-        // A kind that names no category: the user's words name it, in either language.
-        events = listOf(LlmEvent.ToolCall(PennyWiseTools.PLANNING_STATUS, mapOf("kind" to "status")))
-        assertEquals("RECEIVED ₹500 Salary", send("How much salary did I receive?"))
-        every { categories.getAllCategories() } returns flowOf(
-            listOf(CategoryEntity(id = 1, name = "طعام", color = "#000"), CategoryEntity(id = 3, name = "راتب", color = "#000", isIncome = true))
-        )
-        coEvery { aiContext.categoryIncome("راتب", any(), any()) } returns spent("500").copy(category = "راتب")
-        events = listOf(LlmEvent.ToolCall(PennyWiseTools.PLANNING_STATUS, mapOf("kind" to "status")))
-        assertEquals("RECEIVED ₹500 راتب", send("كم استلمت من الراتب هذا الشهر؟"))
-        // Nothing names one: said, not all money in (salary and the rest) in its place.
-        every { context.getString(R.string.chat_reply_income_category_unclear) } returns "WHICH_INCOME"
-        events = listOf(LlmEvent.ToolCall(PennyWiseTools.PLANNING_STATUS, mapOf("kind" to "status")))
-        assertEquals("WHICH_INCOME", send("How much bonus did I receive?"))
+        assertEquals("UNKNOWN", send("How much salary did I receive this month?"))
         coVerify(exactly = 0) { aiContext.spending(any(), any()) }
+        coVerify(exactly = 0) { aiContext.categoryIncome(any(), any(), any()) }
     }
 
     @Test

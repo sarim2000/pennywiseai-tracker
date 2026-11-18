@@ -13,6 +13,7 @@ import androidx.datastore.preferences.preferencesDataStore
 import com.pennywiseai.tracker.core.DateFormatStyle
 import com.pennywiseai.tracker.core.NumberFormatStyle
 import com.pennywiseai.tracker.core.TransactionWidgets
+import com.pennywiseai.tracker.data.backup.SettingsSnapshot
 import com.pennywiseai.tracker.data.preferences.HomeSection
 import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
 import com.pennywiseai.tracker.data.share.ShareCardConfig
@@ -204,6 +205,7 @@ open class UserPreferencesRepository internal constructor(
 
         // Blur Effects
         val BLUR_EFFECTS_ENABLED = booleanPreferencesKey("blur_effects_enabled")
+        val RED_SPENDING = booleanPreferencesKey("red_spending")
 
         // Navigation Bar Style
         val NAV_BAR_STYLE = stringPreferencesKey("nav_bar_style")
@@ -255,6 +257,120 @@ open class UserPreferencesRepository internal constructor(
         val FOLDER_BACKUP_INCLUDE_RECEIPTS = booleanPreferencesKey("folder_backup_include_receipts")
     }
 
+    /**
+     * Which keys a backup carries in [SettingsSnapshot] and restores. Every key in
+     * [PreferencesKeys] sits in exactly one bucket (SettingsBackupTest checks), so a
+     * new setting has to decide whether it travels.
+     */
+    internal object SettingsBackup {
+        private val K = PreferencesKeys
+
+        val BOOLEANS = listOf(
+            K.DARK_THEME_ENABLED, K.DYNAMIC_COLOR_ENABLED, K.IS_AMOLED_MODE, K.DEVELOPER_MODE_ENABLED,
+            K.COUNT_CREDIT_AS_EXPENSE, K.ATM_CASH_TO_WALLET, K.DAILY_SUMMARY_ENABLED, K.BUDGET_ALERTS_ENABLED,
+            K.WEEKLY_SUMMARY_ENABLED, K.CONSCIENCE_ENABLED, K.SMS_SCAN_ALL_TIME, K.SMS_SCAN_USE_CUSTOM_DATE,
+            K.UNIFIED_CURRENCY_MODE, K.BALANCE_HIDDEN, K.SHAKE_TO_HIDE_AMOUNTS, K.BLUR_EFFECTS_ENABLED, K.RED_SPENDING,
+            K.BASE_CURRENCY_USER_SET, K.USE_CONTACTS_FOR_VPA, K.EXPORT_INCLUDE_RECEIPTS,
+            K.FOLDER_BACKUP_INCLUDE_RECEIPTS
+        )
+        val INTS = listOf(K.SMS_SCAN_MONTHS, K.BUDGET_CYCLE_START_DAY, K.PROFILE_BACKGROUND_COLOR)
+        val LONGS = listOf(K.SMS_SCAN_CUSTOM_DATE, K.SELECTED_PROFILE_ID)
+        val STRINGS = listOf(
+            K.THEME_STYLE, K.ACCENT_COLOR, K.APP_FONT, K.SYSTEM_PROMPT, K.BASE_CURRENCY, K.SHARE_CARD_HERO,
+            K.SHARE_CARD_PERIOD, K.STATEMENT_COLUMN_MAPPINGS, K.DISPLAY_CURRENCY, K.NAV_BAR_STYLE,
+            K.NUMBER_FORMAT_STYLE, K.DATE_FORMAT_STYLE, K.ANALYTICS_CHART_TYPE, K.ANALYTICS_GROUP_BY,
+            K.COVER_STYLE, K.HOME_SECTIONS, K.USER_NAME, K.PROFILE_IMAGE_URI, K.MAIN_ACCOUNT_KEY
+        )
+        val STRING_SETS = listOf(K.CONSCIENCE_RETIRED_LINES, K.HIDDEN_NAV_TABS, K.SAFE_TO_SPEND_EXCLUDED)
+
+        /** User text or account identifiers: only in FULL exports, like the rest of the PII. */
+        val FULL_ONLY = setOf(
+            K.SYSTEM_PROMPT, K.STATEMENT_COLUMN_MAPPINGS, K.USER_NAME, K.MAIN_ACCOUNT_KEY, K.SAFE_TO_SPEND_EXCLUDED
+        ).map { it.name }.toSet()
+
+        /**
+         * Still carried, by the older explicit sections of PreferencesSnapshot, with their
+         * own merge rules (additive lists; UPI and license only fill an empty slot).
+         */
+        val IN_LEGACY_SECTIONS = setOf(
+            K.DISMISSED_RECURRING_SUGGESTIONS, K.UPI_ID, K.LICENSE_KEY, K.LICENSE_INSTANCE_ID, K.HAS_SKIPPED_SMS_PERMISSION,
+            K.HAS_SHOWN_SCAN_TUTORIAL, K.LAST_SCAN_TIMESTAMP, K.LAST_SCAN_PERIOD, K.FIRST_LAUNCH_TIME,
+            K.HAS_SHOWN_REVIEW_PROMPT, K.LAST_REVIEW_PROMPT_TIME
+        ).map { it.name }.toSet()
+
+        /**
+         * Stays on this device: delivery watermarks, nudge/"seen" flags, caches, one-shot
+         * migrations, the SAF folder grant, App Lock (a security choice the new device's
+         * owner makes) and onboarding (a restore always runs after it).
+         */
+        val DEVICE_ONLY = setOf(
+            K.BACKGROUND_OEM_STEP_CONFIRMED_ON, K.WEEKLY_SUMMARY_LAST_WEEK, K.REVIEW_PROMPT_HANDLED_YEAR,
+            K.CONSCIENCE_LOG, K.ACTIVE_DOWNLOAD_ID, K.SHARE_PROMPT_HANDLED_MONTH, K.PRO_HOME_CARD_HANDLED,
+            K.PAYDAY_SUGGESTION_HANDLED, K.RECURRING_HOME_CARD_SEEN, K.RECURRING_HOME_CARD_DISMISSED_AT,
+            K.TRACKING_CARD_SNOOZED_UNTIL, K.RECURRING_OFFER_LOG, K.APP_LOCK_ENABLED, K.APP_LOCK_TIMEOUT_MINUTES,
+            K.LAST_AUTH_TIMESTAMP, K.APP_LOCK_NO_SCREEN_LOCK_NOTICE_SHOWN, K.HAS_USED_FULL_RESYNC,
+            K.PRO_CACHED_IS_PRO, K.LICENSE_VALIDATED_AT, K.LICENSE_PRODUCT_NAME, K.SUPPORT_NUDGE_LAST_SHOWN_DAY,
+            K.LAST_STATEMENT_IMPORT_AT, K.LAST_SEEN_APP_VERSION, K.MONTHLY_BUDGET_LIMIT,
+            K.HAS_MIGRATED_TO_BUDGET_GROUPS, K.SHAKE_TO_HIDE_HINT_SHOWN, K.HAS_COMPLETED_ONBOARDING,
+            K.SCHEDULED_FOLDER_BACKUP_ENABLED, K.SCHEDULED_FOLDER_BACKUP_TREE_URI,
+            K.SCHEDULED_FOLDER_BACKUP_LAST_TIMESTAMP
+        ).map { it.name }.toSet()
+
+        // A photo is a file on the old phone; only a built-in avatar means anything elsewhere.
+        const val AVATAR_SCHEME = "avatar://"
+    }
+
+    /**
+     * The backed-up settings as they are now; an unset key travels as null so a restore
+     * resets it. [full] adds [SettingsBackup.FULL_ONLY].
+     */
+    suspend fun exportSettings(full: Boolean): SettingsSnapshot {
+        val prefs = dataStore.data.first()
+        fun <T> List<Preferences.Key<T>>.snapshot(): Map<String, T?> =
+            filter { full || it.name !in SettingsBackup.FULL_ONLY }.associate { it.name to prefs[it] }
+        val strings = SettingsBackup.STRINGS.snapshot().toMutableMap()
+        val image = strings[PreferencesKeys.PROFILE_IMAGE_URI.name]
+        if (image != null && !image.startsWith(SettingsBackup.AVATAR_SCHEME)) {
+            strings.remove(PreferencesKeys.PROFILE_IMAGE_URI.name)
+        }
+        return SettingsSnapshot(
+            booleans = SettingsBackup.BOOLEANS.snapshot(),
+            ints = SettingsBackup.INTS.snapshot(),
+            longs = SettingsBackup.LONGS.snapshot(),
+            strings = strings,
+            stringSets = SettingsBackup.STRING_SETS.snapshot().mapValues { (_, v) -> v?.sorted() }
+        )
+    }
+
+    /**
+     * Writes the snapshot's settings in one edit: a present value wins, a present null
+     * resets, a missing key is left alone. Only allowlisted keys of the right type are
+     * read. [profileId] maps the backup's profile id to this device's (null = gone).
+     */
+    suspend fun restoreSettings(snapshot: SettingsSnapshot, profileId: (Long) -> Long?) {
+        dataStore.edit { prefs ->
+            fun <T : Any> List<Preferences.Key<T>>.restore(values: Map<String, T?>, accept: (Preferences.Key<T>, T) -> T? = { _, v -> v }) {
+                for (key in this) {
+                    if (key.name !in values) continue
+                    val value = values[key.name]?.let { accept(key, it) }
+                    if (value == null) prefs.remove(key) else prefs[key] = value
+                }
+            }
+            SettingsBackup.BOOLEANS.restore(snapshot.booleans)
+            SettingsBackup.INTS.restore(snapshot.ints)
+            SettingsBackup.LONGS.restore(snapshot.longs) { key, v ->
+                if (key == PreferencesKeys.SELECTED_PROFILE_ID) profileId(v) else v
+            }
+            // Not an avatar = a photo path from another phone: skip it, keep this one's.
+            SettingsBackup.STRINGS.restore(
+                snapshot.strings.filter { (name, v) ->
+                    name != PreferencesKeys.PROFILE_IMAGE_URI.name || v == null || v.startsWith(SettingsBackup.AVATAR_SCHEME)
+                }
+            )
+            SettingsBackup.STRING_SETS.restore(snapshot.stringSets.mapValues { (_, v) -> v?.toSet() })
+        }
+    }
+
     private companion object {
         // F-Droid support nudge: at most one contextual prompt per this many days.
         const val SUPPORT_NUDGE_COOLDOWN_DAYS = 30L
@@ -286,6 +402,7 @@ open class UserPreferencesRepository internal constructor(
                 displayCurrency = preferences[PreferencesKeys.DISPLAY_CURRENCY]
                     ?: preferences[PreferencesKeys.BASE_CURRENCY] ?: "INR",
                 blurEffectsEnabled = preferences[PreferencesKeys.BLUR_EFFECTS_ENABLED] ?: true,
+                redSpending = preferences[PreferencesKeys.RED_SPENDING] ?: true,
                 navBarStyle = preferences[PreferencesKeys.NAV_BAR_STYLE]?.let {
                     try { NavBarStyle.valueOf(it) } catch (_: Exception) { NavBarStyle.FLOATING }
                 } ?: NavBarStyle.FLOATING,
@@ -1311,6 +1428,12 @@ open class UserPreferencesRepository internal constructor(
         }
     }
 
+    suspend fun updateRedSpending(enabled: Boolean) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.RED_SPENDING] = enabled
+        }
+    }
+
     // Navigation Bar Style
     suspend fun updateNavBarStyle(style: NavBarStyle) {
         dataStore.edit { preferences ->
@@ -1496,6 +1619,7 @@ data class UserPreferences(
     val unifiedCurrencyMode: Boolean = false,
     val displayCurrency: String = "INR",
     val blurEffectsEnabled: Boolean = true,
+    val redSpending: Boolean = true,
     val navBarStyle: NavBarStyle = NavBarStyle.FLOATING,
     val hiddenNavTabs: Set<String> = emptySet(),
     val coverStyle: CoverStyle = CoverStyle.AURORA,

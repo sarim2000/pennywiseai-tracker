@@ -101,6 +101,15 @@ def pair(want, got, typ=lambda g: str(g.get("type", "")).strip().upper(), base="
     return best
 
 
+# Keys the app reads whole, so a case lists every value it accepts: "last" is in "last_week" too.
+# Normalized as SpendingQuery reads a period. Other keys (a merchant's name) match within the value.
+EXACT = {"period"}
+
+
+def _norm(v):
+    return re.sub(r"[\s-]+", "_", v.lower())
+
+
 def args_ok(case, calls):
     want = case.get("args")
     if not want:
@@ -109,7 +118,10 @@ def args_ok(case, calls):
         a = c.get("args") or {}
         for k, accepted in want.items():
             v = str(a.get(k, a.get(re.sub("_(.)", lambda m: m[1].upper(), k), ""))).lower()
-            if not any(x.lower() in v for x in accepted):
+            if k in EXACT:
+                if _norm(v) not in {_norm(x) for x in accepted}:
+                    return False
+            elif not any(x.lower() in v for x in accepted):
                 return False
     return True
 

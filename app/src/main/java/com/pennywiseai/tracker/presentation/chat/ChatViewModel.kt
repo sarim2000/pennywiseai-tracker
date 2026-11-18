@@ -9,6 +9,7 @@ import com.pennywiseai.tracker.data.database.entity.ChatMessage
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.events.TransactionEvents
 import com.pennywiseai.tracker.data.events.TransactionOrigin
+import com.pennywiseai.tracker.data.manager.ChatDraftInbox
 import com.pennywiseai.tracker.data.manager.ModelDownloader
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.LlmRepository
@@ -50,7 +51,13 @@ class ChatViewModel @Inject constructor(
     private val transactionEvents: TransactionEvents,
     private val chatSuggestions: com.pennywiseai.tracker.data.repository.ChatSuggestions,
     @com.pennywiseai.tracker.core.ApplicationScope private val appScope: kotlinx.coroutines.CoroutineScope,
+    private val chatDrafts: ChatDraftInbox,
 ) : ViewModel() {
+
+    /** A question asked from the quick add mic, for the message box. */
+    val chatDraft: StateFlow<ChatDraftInbox.Draft?> = chatDrafts.draft
+
+    fun takeChatDraft(draft: ChatDraftInbox.Draft) = chatDrafts.take(draft)
 
     val downloadProgress: StateFlow<Int> = modelDownloader.progress
         .map { (it.downloadedBytes * 100 / it.totalBytes.coerceAtLeast(1)).toInt() }

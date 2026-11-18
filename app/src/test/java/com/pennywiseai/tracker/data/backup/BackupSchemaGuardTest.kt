@@ -44,6 +44,7 @@ class BackupSchemaGuardTest {
         serializer<TaughtTemplate>().descriptor,
         serializer<TaughtTemplatePart>().descriptor,
         serializer<BackupReceipt>().descriptor,
+        serializer<SettingsSnapshot>().descriptor,
     )
 
     /**

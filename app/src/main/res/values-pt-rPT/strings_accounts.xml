@@ -263,6 +263,11 @@
     <string name="loan_detail_settle_message">Marcar este empréstimo como liquidado? Qualquer saldo remanescente será perdoado.</string>
     <string name="loan_detail_expected_return_title">Retorno esperado</string>
     <string name="loan_detail_expected_return_label">Valor esperado para trás</string>
+    <!-- A repayment larger than what's left on the loan. %1$s = formatted extra amount -->
+    <!-- %1$s = person name, %2$s = formatted extra amount -->
+    <!-- %1$s = person name, %2$s = formatted extra amount -->
+    <!-- %1$s = person name -->
+    <!-- %1$s = person name -->
     <string name="loan_detail_delete_title">Excluir empréstimo</string>
     <string name="loan_detail_delete_message">Excluir este empréstimo? Transações vinculadas serão desvinculadas, mas não excluídas.</string>
     <string name="loan_detail_original_chip">Montante inicial</string>

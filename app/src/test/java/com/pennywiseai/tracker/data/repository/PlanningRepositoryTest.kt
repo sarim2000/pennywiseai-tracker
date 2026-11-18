@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.data.repository
 
 import com.pennywiseai.tracker.data.database.dao.CategoryDao
 import com.pennywiseai.tracker.data.database.dao.SubscriptionDao
+import com.pennywiseai.tracker.data.database.entity.BudgetCategoryEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
@@ -36,10 +37,11 @@ class PlanningRepositoryTest {
         end: LocalDate = LocalDate.of(2026, 11, 30),
         type: BudgetGroupType = BudgetGroupType.LIMIT,
         shown: String = limit,
+        allocations: List<String> = emptyList(),
     ) = BudgetGroupSpending(
         group = BudgetWithCategories(
             BudgetEntity(name = name, limitAmount = BigDecimal(limit), periodType = BudgetPeriodType.MONTHLY, startDate = start, endDate = end, groupType = type),
-            emptyList()
+            allocations.mapIndexed { i, amount -> BudgetCategoryEntity(budgetId = 0, categoryName = "Category $i", budgetAmount = BigDecimal(amount)) }
         ),
         categorySpending = emptyList(),
         totalBudget = BigDecimal(shown),
@@ -98,6 +100,17 @@ class PlanningRepositoryTest {
         assertEquals(listOf("Food"), statuses.map { it.name })
         assertEquals(null, statuses.single().limit)
         assertEquals(null, statuses.single().remaining)
+    }
+
+    @Test
+    fun `a limit set per category the screen can't convert is kept, without a figure`() {
+        // No overall limit, only allocations, and no cached rate: the screen sums them to zero.
+        val statuses = PlanningRepository.budgetStatuses(
+            summary(group("Food", "0", "150", shown = "0", allocations = listOf("400", "600"))),
+            today
+        )
+        assertEquals(listOf("Food"), statuses.map { it.name })
+        assertEquals(null, statuses.single().limit)
     }
 
     @Test

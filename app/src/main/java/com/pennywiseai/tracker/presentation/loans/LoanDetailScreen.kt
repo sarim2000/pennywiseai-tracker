@@ -40,6 +40,7 @@ import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.spending
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
@@ -119,7 +120,9 @@ fun LoanDetailScreen(
             if (loan?.status == LoanStatus.ACTIVE) {
                 FloatingActionButton(
                     onClick = { viewModel.showRecordPayment() },
-                    containerColor = MaterialTheme.colorScheme.loan
+                    containerColor = MaterialTheme.colorScheme.loan,
+                    // contentColorFor() can't infer ink for a custom role.
+                    contentColor = MaterialTheme.colorScheme.loan.bestInk()
                 ) {
                     Icon(Icons.Default.Add, contentDescription = stringResource(R.string.loan_detail_record_payment))
                 }
@@ -397,13 +400,13 @@ private fun LoanTransactionItem(
     modifier: Modifier = Modifier
 ) {
     // Sign and colour follow the actual money flow: "+" in the income colour for
-    // money in, "-" in ink for money out (red is kept for problems).
+    // money in, "-" in the spending colour for money out.
     // Every type but INCOME is money out, as in the loan's own math (#876).
     val moneyIn = transaction.transactionType == TransactionType.INCOME
     val color = if (moneyIn) {
         MaterialTheme.colorScheme.income
     } else {
-        MaterialTheme.colorScheme.onSurface
+        MaterialTheme.colorScheme.spending
     }
     val sign = if (moneyIn) "+" else "-"
 
@@ -513,29 +516,36 @@ private fun RecordPaymentBottomSheet(
                     style = MaterialTheme.typography.labelMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                recentUnlinkedTransactions.take(5).forEach { txn ->
-                    PennyWiseCardV2(
-                        modifier = Modifier.fillMaxWidth(),
-                        onClick = { onLinkTransaction(txn.id) }
-                    ) {
-                        Row(
+                // Every candidate, scrolling in its own window so older ones are reachable (#1308)
+                // and manual entry below stays in view.
+                LazyColumn(
+                    modifier = Modifier.heightIn(max = Dimensions.Component.dialogListMaxHeight),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.md)
+                ) {
+                    items(recentUnlinkedTransactions, key = { it.id }) { txn ->
+                        PennyWiseCardV2(
                             modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                            onClick = { onLinkTransaction(txn.id) }
                         ) {
-                            Column(modifier = Modifier.weight(1f)) {
-                                Text(txn.merchantName, style = MaterialTheme.typography.bodyMedium)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Column(modifier = Modifier.weight(1f)) {
+                                    Text(txn.merchantName, style = MaterialTheme.typography.bodyMedium)
+                                    Text(
+                                        txn.dateTime.format(AppDates.dayMonthFormatter()),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                                 Text(
-                                    txn.dateTime.format(AppDates.dayMonthFormatter()),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    CurrencyFormatter.formatCurrency(txn.amount, txn.currency),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    fontWeight = FontWeight.SemiBold
                                 )
                             }
-                            Text(
-                                CurrencyFormatter.formatCurrency(txn.amount, txn.currency),
-                                style = MaterialTheme.typography.bodyMedium,
-                                fontWeight = FontWeight.SemiBold
-                            )
                         }
                     }
                 }

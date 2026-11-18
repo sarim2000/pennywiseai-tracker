@@ -147,18 +147,18 @@ class ICICIBankParser : BaseIndianBankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("ICICI") ||
-                normalizedSender.contains("ICICIB") ||
-                // DLT patterns for transactions (-S suffix)
-                normalizedSender.matches(Regex("^[A-Z]{2}-ICICIB-S$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-ICICI-S$")) ||
-                // Other DLT patterns
-                normalizedSender.matches(Regex("^[A-Z]{2}-ICICIB-[TPG]$")) ||
-                // Legacy patterns
-                normalizedSender.matches(Regex("^[A-Z]{2}-ICICIB$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-ICICI$")) ||
-                // Direct sender IDs
-                normalizedSender == "ICICIB" ||
-                normalizedSender == "ICICIBANK"
+            normalizedSender.contains("ICICIB") ||
+            // DLT patterns for transactions (-S suffix)
+            normalizedSender.matches(Regex("^[A-Z]{2}-ICICIB-S$")) ||
+            normalizedSender.matches(Regex("^[A-Z]{2}-ICICI-S$")) ||
+            // Other DLT patterns
+            normalizedSender.matches(Regex("^[A-Z]{2}-ICICIB-[TPG]$")) ||
+            // Legacy patterns
+            normalizedSender.matches(Regex("^[A-Z]{2}-ICICIB$")) ||
+            normalizedSender.matches(Regex("^[A-Z]{2}-ICICI$")) ||
+            // Direct sender IDs
+            normalizedSender == "ICICIB" ||
+            normalizedSender == "ICICIBANK"
     }
 
     override fun extractAmount(message: String): BigDecimal? {
@@ -259,7 +259,8 @@ class ICICIBankParser : BaseIndianBankParser() {
         // Info: Amazon. Available Limit: …" (#887). Ends at the trailer clause, not
         // the first period, so "WWW.AMAZON.IN" stays whole.
         Regex(
-            """\bInfo:\s+(.+?)\.\s+(?:Available|Avl|Call|Not\s+you)\b""",
+            // Prepaid card writes "Info- MERCHANT. The Available Balance is …".
+            """\bInfo[:\-]\s*(.+?)\.\s+(?:The\s+)?(?:Available|Avl|Call|Not\s+you)\b""",
             RegexOption.IGNORE_CASE
         ).find(message)?.let { match ->
             val merchant = cleanMerchantName(match.groupValues[1].trim())
@@ -659,7 +660,7 @@ class ICICIBankParser : BaseIndianBankParser() {
 
         // Credit card transactions - both "ICICI Bank Credit Card" and "ICICI Bank Card" with spent
         if ((lowerMessage.contains("icici bank credit card") ||
-                    (lowerMessage.contains("icici bank card") && lowerMessage.contains("spent"))) &&
+                (lowerMessage.contains("icici bank card") && lowerMessage.contains("spent"))) &&
             (lowerMessage.contains("spent") || lowerMessage.contains("debited"))
         ) {
             return TransactionType.CREDIT

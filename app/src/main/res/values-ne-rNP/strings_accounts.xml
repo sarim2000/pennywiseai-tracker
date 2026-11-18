@@ -262,6 +262,11 @@
     <string name="loan_detail_settle_message">यो ऋण मिलान भएको भनी मार्क गर्ने? बाँकी रकम माफ गरिनेछ।</string>
     <string name="loan_detail_expected_return_title">अपेक्षित फिर्ता</string>
     <string name="loan_detail_expected_return_label">फिर्ता आउने अपेक्षित रकम</string>
+    <!-- A repayment larger than what's left on the loan. %1$s = formatted extra amount -->
+    <!-- %1$s = person name, %2$s = formatted extra amount -->
+    <!-- %1$s = person name, %2$s = formatted extra amount -->
+    <!-- %1$s = person name -->
+    <!-- %1$s = person name -->
     <string name="loan_detail_delete_title">ऋण मेटाउनुहोस्</string>
     <string name="loan_detail_delete_message">यो ऋण मेटाउने? लिंक गरिएका लेनदेन अनलिंक हुन्छन् तर मेटाइँदैनन्।</string>
     <string name="loan_detail_original_chip">अभिलेख</string>

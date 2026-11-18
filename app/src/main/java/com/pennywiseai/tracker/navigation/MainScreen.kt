@@ -90,10 +90,9 @@ private fun rootOf(tab: BottomNavItem): NavKey = when (tab) {
     BottomNavItem.Chat -> Chat
 }
 
-/** The list behind a chat figure: its days, its category and account, its profile, and only its currency. */
+/** The list behind a chat figure: its days, its category, its profile, and only its currency. */
 internal fun transactionsFor(link: ChatLink) = Transactions(
     category = link.category,
-    account = link.account,
     period = TimePeriod.CUSTOM.name,
     currency = link.currency,
     startDate = link.start.toEpochDay(),
@@ -273,6 +272,17 @@ fun MainScreen(
             selectTab(BottomNavItem.Home)
             if (left != BottomNavItem.Home) tabStacks.getValue(left).resetTo(rootOf(left))
         }
+    }
+
+    // A question said to the quick add mic: once the app is unlocked and back on Home
+    // (PennyWiseApp), Chat shows, once; Chat puts the question in its box when the box is there.
+    val openChat by mainViewModel.openChat.collectAsStateWithLifecycle()
+    LaunchedEffect(openChat, themeState.isLoading) {
+        if (!openChat || themeState.isLoading) return@LaunchedEffect
+        mainViewModel.chatOpened()
+        if (BottomNavItem.Chat.route in hiddenTabs) return@LaunchedEffect
+        tabStacks.getValue(BottomNavItem.Chat).resetTo(Chat)
+        selectTab(BottomNavItem.Chat)
     }
 
     // Home's scan, for the Spotlight tutorial drawn over the bar (set by Home's entry).

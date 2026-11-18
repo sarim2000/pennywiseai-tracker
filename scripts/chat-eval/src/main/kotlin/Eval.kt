@@ -70,7 +70,7 @@ private const val OLD_LOOKUPS =
     "When the user asks how much they spent on something, call spendingByCategory; for this month's overall totals call monthSummary."
 private const val APP_LOOKUPS = """When the user asks to compare spending with last month or last week, call compareSpending.
 When the user asks about their budgets or bills due, call planningStatus.
-When the user asks how much they spent or received, in all, on a category, at a merchant or from an account, call querySpending with the period or dates they named."""
+When the user asks how much they spent or received, in all, on a category or at a merchant, call querySpending with the period or dates they named."""
 
 private const val ONE_CALL_EACH = "\nIf a message mentions several transactions, call addTransaction once for each of them."
 private const val RULES = """

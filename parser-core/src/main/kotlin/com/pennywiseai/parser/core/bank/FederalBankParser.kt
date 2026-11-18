@@ -23,19 +23,19 @@ class FederalBankParser : BaseIndianBankParser() {
     override fun canHandle(sender: String): Boolean {
         val normalizedSender = sender.uppercase()
         return normalizedSender.contains("FEDBNK") ||
-                normalizedSender.contains("FEDERAL") ||
-                normalizedSender.contains("FEDFIB") ||
-                normalizedSender.contains("FEDSMS") ||
-                normalizedSender.contains("FEDSCP") ||
-                // DLT patterns for transactions (-S suffix)
-                normalizedSender.matches(Regex("^[A-Z]{2}-FEDBNK-S$")) ||
-                normalizedSender.matches(Regex("^[A-Z]{2}-FEDSCP-S$")) ||
-                // FedFiB patterns
-                normalizedSender.matches(Regex("^[A-Z]{2}-FedFiB-[A-Z]$")) ||
-                // Other DLT patterns
-                normalizedSender.matches(Regex("^[A-Z]{2}-FEDBNK-[TPG]$")) ||
-                // Legacy patterns
-                normalizedSender.matches(Regex("^[A-Z]{2}-FEDBNK$"))
+            normalizedSender.contains("FEDERAL") ||
+            normalizedSender.contains("FEDFIB") ||
+            normalizedSender.contains("FEDSMS") ||
+            normalizedSender.contains("FEDSCP") ||
+            // DLT patterns for transactions (-S suffix)
+            normalizedSender.matches(Regex("^[A-Z]{2}-FEDBNK-S$")) ||
+            normalizedSender.matches(Regex("^[A-Z]{2}-FEDSCP-S$")) ||
+            // FedFiB patterns
+            normalizedSender.matches(Regex("^[A-Z]{2}-FedFiB-[A-Z]$")) ||
+            // Other DLT patterns
+            normalizedSender.matches(Regex("^[A-Z]{2}-FEDBNK-[TPG]$")) ||
+            // Legacy patterns
+            normalizedSender.matches(Regex("^[A-Z]{2}-FEDBNK$"))
     }
 
     override fun parse(smsBody: String, sender: String, timestamp: Long): ParsedTransaction? {
@@ -130,12 +130,12 @@ class FederalBankParser : BaseIndianBankParser() {
 
             // "at <merchant> on <date>" pattern (credit card transactions)
             lowerMessage.contains(" spent ") && lowerMessage.contains(" at ") &&
-                    lowerMessage.contains(" on ") -> true
+                lowerMessage.contains(" on ") -> true
 
             // E-mandate on card patterns
             (lowerMessage.contains("e-mandate") || lowerMessage.contains("payment of")) &&
-                    (lowerMessage.contains("federal bank debit card") ||
-                            lowerMessage.contains("federal bank credit card")) -> true
+                (lowerMessage.contains("federal bank debit card") ||
+                    lowerMessage.contains("federal bank credit card")) -> true
 
             // Exclude UPI transactions (these are not card transactions)
             lowerMessage.contains("via upi") -> false
@@ -388,6 +388,11 @@ class FederalBankParser : BaseIndianBankParser() {
             }
         }
 
+        // Priority 4b: "via UPI to abcdefg@okaxis. Ref …" — the payee is the VPA, not
+        // the "from a/c X9999" (the user's own account) a later fallback would pick.
+        Regex("""\bvia\s+UPI\s+to\s+(\S+@\S*?)\.?\s+Ref\b""", RegexOption.IGNORE_CASE)
+            .find(message)?.let { return parseUPIMerchant(it.groupValues[1]) }
+
         // Priority 5: "to <merchant name>" (general)
         val toPattern = Regex(
             """to\s+([^.\n]+?)(?:\.\s*Ref|Ref\s+No|$)""",
@@ -488,7 +493,8 @@ class FederalBankParser : BaseIndianBankParser() {
             // Telecom
             cleanVPA.contains("jio") -> "Jio"
             cleanVPA.contains("airtel") -> "Airtel"
-            cleanVPA.contains("vodafone") || cleanVPA.contains("vi") -> "Vi"
+            // "vi" only as a whole segment, so "sample.services" isn't read as Vi
+            cleanVPA.contains("vodafone") || "vi" in cleanVPA.split('.', '-', '_') -> "Vi"
             cleanVPA.contains("bsnl") -> "BSNL"
 
             // Travel
@@ -662,7 +668,7 @@ class FederalBankParser : BaseIndianBankParser() {
 
             // E-mandate payments (only successful ones)
             (lowerMessage.contains("e-mandate") || lowerMessage.contains("payment of")) &&
-                    lowerMessage.contains("processed successfully") -> TransactionType.EXPENSE
+                lowerMessage.contains("processed successfully") -> TransactionType.EXPENSE
 
             // Expense keywords
             lowerMessage.contains("sent via upi") -> TransactionType.EXPENSE
@@ -697,18 +703,18 @@ class FederalBankParser : BaseIndianBankParser() {
         val lowerMessage = message.lowercase()
 
         return (lowerMessage.contains("mandate") || lowerMessage.contains("e-mandate")) &&
-                (lowerMessage.contains("successfully created a mandate") ||
-                        lowerMessage.contains("you have successfully created") ||
-                        lowerMessage.contains("successfully created") ||
-                        lowerMessage.contains("has been initiated") ||
-                        lowerMessage.contains("registration has been initiated"))
+            (lowerMessage.contains("successfully created a mandate") ||
+                lowerMessage.contains("you have successfully created") ||
+                lowerMessage.contains("successfully created") ||
+                lowerMessage.contains("has been initiated") ||
+                lowerMessage.contains("registration has been initiated"))
     }
 
     fun isDeclinedMandatePayment(message: String): Boolean {
         val lowerMessage = message.lowercase()
 
         return (lowerMessage.contains("e-mandate") || lowerMessage.contains("payment of")) &&
-                lowerMessage.contains("declined")
+            lowerMessage.contains("declined")
     }
 
     fun parseEMandateSubscription(message: String): EMandateInfo? {

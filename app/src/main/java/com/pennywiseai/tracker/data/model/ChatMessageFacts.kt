@@ -10,6 +10,17 @@ import java.math.BigDecimal
  * the JVM and Android's ICU regex.
  */
 internal object ChatMessageFacts {
+    /**
+     * Lowercased, with Arabic folded so spellings meet: no short vowels, "أ", "إ" and "آ" as
+     * "ا", "ة" as "ه", "ى" as "ي". "إيجار" equals "ايجار".
+     */
+    fun foldSpelling(text: String): String = text.lowercase()
+        .replace(ARABIC_SHORT_VOWELS, "")
+        .replace(ALEF_WITH_HAMZA, "ا").replace('ة', 'ه').replace('ى', 'ي')
+
+    private val ARABIC_SHORT_VOWELS = Regex("[\\u064B-\\u0652]")
+    private val ALEF_WITH_HAMZA = Regex("[أإآ]")
+
     private fun word(alternatives: String) = "(?<![\\p{L}\\p{M}])(?:$alternatives)(?![\\p{L}\\p{M}])"
     private fun regex(pattern: String) = Regex(pattern, RegexOption.IGNORE_CASE)
 
@@ -61,6 +72,9 @@ internal object ChatMessageFacts {
 
     /** Every usable number in [text], scale included. */
     fun numbersIn(text: String): List<BigDecimal> = statedNumbers(latin(text)).map { it.second }
+
+    /** Whether [text] holds a number [numbersIn] can't read, such as an ambiguous "12,50". */
+    fun hasUnreadNumber(text: String): Boolean = latin(text).let { NUMBER.findAll(it).count() > statedNumbers(it).size }
 
     /** Every usable number in [text], scale included, with where it stands. */
     private fun statedNumbers(text: String): List<Pair<IntRange, BigDecimal>> = NUMBER.findAll(text).mapNotNull { m ->
@@ -181,29 +195,6 @@ internal object ChatMessageFacts {
     private fun isCurrencyCode(code: String) =
         code.length == 3 && code.all { it in 'A'..'Z' } && runCatching { java.util.Currency.getInstance(code) }.isSuccess
 
-    // Questions
-
-    private val QUESTION_START = regex(
-        "^\\s*(?:${word("how much|how many|what|which|did i|kitna|kitne|kya|ب?كم|ايش|إيش|شو|وش|هل|कितना|कितने|क्या")})"
-    )
-    private val ADD_WORD = regex(
-        word("add|log|record|save|note down|track|سجل|سجّل|اضف|أضف|ضيف|اضيف|أضيف|احفظ|دون|دوّن|اكتب|जोड़|लिख")
-    )
-
-    /**
-     * Whether [message] only asks something ("كم صرفت في ستاربكس هالشهر؟", "how much at
-     * Starbucks"), with no word asking to add. Qwen2.5 answers some with an add call; a question
-     * records nothing. Opening with a question word ("how much", "كم") it asks whatever numbers
-     * it holds: "in 2026", "on HDFC 1234". A question by its mark alone stops asking when it
-     * states one of [amounts] ("got 25 back from Starbucks?").
-     */
-    fun asksOnly(message: String, amounts: List<BigDecimal>): Boolean {
-        val text = message.trim()
-        if (ADD_WORD.containsMatchIn(text)) return false
-        if (QUESTION_START.containsMatchIn(text)) return true
-        return (text.endsWith("?") || text.endsWith("؟")) && amounts.none { statesAmount(text, it) }
-    }
-
     // Received money
 
     private val MONEY_MARK = "(?:[₹$€£]|rs\\.?|sr|jd|dhs?|rupees?|rupaye|रुपये|रुपए|रुपया|dollars?|डॉलर|euros?|pounds?|riyals?|dirhams?|dinars?|" +
@@ -264,7 +255,7 @@ internal object ChatMessageFacts {
     )
 
     /** Days ago the message states, as numbers. */
-    fun statedDays(message: String): Set<Int> {
+    private fun statedDays(message: String): Set<Int> {
         val text = latin(message)
         val days = mutableSetOf<Int>()
         // Longest phrases first, each removed so "day before yesterday" can't also read as yesterday.
@@ -293,6 +284,48 @@ internal object ChatMessageFacts {
     /** A day the code can't count. A number it refused ("60 weeks ago") isn't one. */
     private fun namesOtherDay(message: String) =
         OTHER_DAY.containsMatchIn(N_DAYS_AGO.replace(N_WEEKS_AGO.replace(latin(message), " "), " "))
+
+    /**
+     * The one day a spoken entry names, as days ago: 0 when it names none, null when it
+     * names two, or one this code can't count ("last Monday").
+     */
+    fun spokenDaysAgo(message: String): Int? {
+        if (namesOtherDay(message) || refusesACount(message)) return null
+        return statedDays(message).let { if (it.size > 1) null else it.singleOrNull() ?: 0 }
+    }
+
+    /** A count [statedDays] drops ("400 days ago"): a day, just not one it can count. */
+    private fun refusesACount(message: String): Boolean {
+        val text = latin(message)
+        return listOf(N_WEEKS_AGO to 7L, N_DAYS_AGO to 1L).any { (pattern, daysEach) ->
+            pattern.findAll(text).any { m ->
+                val count = m.groupValues[1].ifEmpty { m.groupValues[2] }.toLongOrNull()
+                count == null || count > MAX_DAYS_AGO / daysEach
+            }
+        }
+    }
+
+    private val DAY_WORDS = listOf(DAY_BEFORE_YESTERDAY, TWO_DAYS_AGO, TWO_WEEKS_AGO, WEEK_AGO, N_WEEKS_AGO, N_DAYS_AGO, YESTERDAY, TODAY)
+
+    // Spoken entries
+
+    /** Every amount [message] states, in order, scale included: "15k" is 15000. A day's count ("3 days ago") is one too. */
+    fun statedAmounts(message: String): List<BigDecimal> = statedNumbers(latin(message)).map { it.second }
+
+    /** [message] in Latin digits without its day words: what's left of "taxi 30 3 days ago" states one amount. */
+    fun withoutDays(message: String): String = DAY_WORDS.fold(latin(message)) { text, words -> words.replace(text, " ") }
+
+    /**
+     * [message] without its day words, currency words and amounts, each left as a space:
+     * the words left say what it was for.
+     */
+    fun withoutFacts(message: String): String {
+        // Currencies before amounts: "sr" and "jd" count only beside a number.
+        var text = (CURRENCY_MARKS.map { it.first } + CURRENCY_WORDS.map { it.first })
+            .fold(withoutDays(message)) { rest, words -> words.replace(rest, " ") }
+        statedNumbers(text).asReversed().forEach { (range, _) -> text = text.replaceRange(range, " ") }
+        return text
+    }
 
     /** Whether the message names a particular day at all. */
     fun statesADay(message: String): Boolean = statedDays(message).isNotEmpty() || namesOtherDay(message)

@@ -282,6 +282,8 @@
     <string name="chat_cancel">إلغاء</string>
     <string name="chat_settings">الإعدادات</string>
     <string name="chat_model_required_short">النموذج مطلوب</string>
+    <string name="chat_draft_waiting">محفوظ لحين جاهزية النموذج: «%1$s»</string>
+    <string name="chat_draft_after_screen">سيكون سؤالك في الدردشة عند عودتك إلى الرئيسية.</string>
     <string name="chat_model_size_hint">1.6 GB · استخدم Wi-Fi</string>
     <string name="chat_initializing_model">جارٍ تهيئة نموذج الذكاء الاصطناعي...</string>
     <string name="chat_initializing_hint">قد يستغرق هذا بضع ثوانٍ</string>
@@ -369,7 +371,6 @@
         <item quantity="other">استلمت %1$s من %2$s خلال %3$s، في %4$d معاملة.</item>
     </plurals>
     <string name="chat_reply_nothing_received_in">لم تستلم شيئًا من %1$s خلال %2$s.</string>
-    <string name="chat_reply_income_category_unclear">لم أعرف أي دخل تقصد. جرّب ذكر فئته، مثل \"الراتب هذا الشهر\".</string>
     <string name="chat_reply_income_ranking_unsupported">أستطيع جمع المبالغ المستلَمة، لكن لا أستطيع ترتيبها بعد. جرّب \"كم استلمت من الراتب هذا الشهر؟\"</string>
     <string name="chat_reply_spent_with_forgiven">%1$s، منها %2$s قروض متنازَل عنها</string>
     <string name="chat_reply_forgiven_loans">قروض متنازَل عنها: %1$s</string>
@@ -389,8 +390,6 @@
     <string name="chat_reply_converted_estimate">نحو %1$s إجمالًا: تقدير محوَّل إلى %2$s</string>
     <string name="chat_reply_converted_left_out">خارج التقدير لعدم توفر سعر صرف: %1$s</string>
     <string name="chat_reply_unknown_category">لا توجد لديك فئة باسم %1$s.</string>
-    <string name="chat_reply_unknown_account">لا يوجد لديك حساب باسم %1$s.</string>
-    <string name="chat_reply_account_ambiguous">قد يكون %1$s أيًّا من: %2$s. أيّها تقصد؟</string>
     <string name="chat_reply_query_group_unknown">يمكنني عرض الفئات أو التجار أو الحسابات الأعلى إنفاقًا.</string>
     <string name="chat_reply_query_period_unknown">لا يمكنني البحث في هذه الأيام. جرّب هذا الشهر أو الشهر الماضي أو هذا الأسبوع أو الأسبوع الماضي أو هذه السنة أو السنة الماضية أو شهرًا مثل 2026-10 أو تاريخ بداية ونهاية.</string>
     <string name="chat_reply_query_date_unreadable">لم أستطع قراءة التاريخ %1$s. جرّب تاريخًا مثل 2026-10-31.</string>

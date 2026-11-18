@@ -27,6 +27,14 @@ class ChatMessageFactsTest {
     }
 
     @Test
+    fun `a number it can't read is found beside ones it can`() {
+        assertTrue(ChatMessageFacts.hasUnreadNumber("Adding ₹120. Your balance is 12,50."))
+        assertTrue(ChatMessageFacts.hasUnreadNumber("12,50"))
+        assertFalse(ChatMessageFacts.hasUnreadNumber("Adding ₹1,200 and 1.5k, rs.500, on 12.50."))
+        assertFalse(ChatMessageFacts.hasUnreadNumber("Sure!"))
+    }
+
+    @Test
     fun `unusable amounts are refused rather than guessed`() {
         assertNull(ChatMessageFacts.parseAmount("12,50")) // 12.5 or 1250?
         assertNull(ChatMessageFacts.parseAmount("15 and 20"))
@@ -269,22 +277,5 @@ class ChatMessageFactsTest {
         // Which 450 is which depends on the model's order, so neither says anything.
         assertEquals(null, clauses("received 450 refund, then paid 450 for haircut", 450, 450))
         assertEquals(null, clauses("paid 450 for haircut and 200 at Shop 450", 450, 200))
-    }
-
-    @Test
-    fun `a question by its first word asks whatever numbers it holds`() {
-        fun asks(message: String, vararg amounts: Int) = ChatMessageFacts.asksOnly(message, amounts.map { BigDecimal(it) })
-        // A year, an account's digits or a figure the model read as the amount: still a question.
-        assertTrue(asks("how much did I spend at Starbucks in 2026", 2026))
-        assertTrue(asks("how much coffee spending on HDFC 1234?", 1234))
-        assertTrue(asks("did I pay 500 at Starbucks?", 500))
-        assertTrue(asks("كم صرفت في ستاربكس في 2026؟", 2026))
-        assertTrue(asks("كم صرفت على بطاقة 1234", 1234))
-        // Asked to add, it isn't one, whatever its form.
-        assertFalse(asks("how much is it? add coffee 120", 120))
-        assertFalse(asks("كم؟ سجل قهوة 120", 120))
-        // A question by its mark alone that states the amount reports it.
-        assertFalse(asks("got 25 back from Starbucks?", 25))
-        assertTrue(asks("coffee at Starbucks this month?"))
     }
 }

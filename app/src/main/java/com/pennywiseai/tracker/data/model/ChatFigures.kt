@@ -79,11 +79,10 @@ sealed interface ReplyLink {
 
 /**
  * A way from a chat figure to the transactions behind it: [start] to [end] (whole days), in
- * [category] and its subcategories when set, on [account] (a "bank_last4" key) when set, and
- * only rows written in [currency]: the list left to its own currency would open on the base
- * one alone. [profileId] is the profile the figure counted (null for all), whatever Home shows
- * by the time it's opened. Forgiven loans aren't transactions: the answer names them in its own
- * text.
+ * [category] and its subcategories when set, and only rows written in [currency]: the list
+ * left to its own currency would open on the base one alone. [profileId] is the profile the
+ * figure counted (null for all), whatever Home shows by the time it's opened. Forgiven loans
+ * aren't transactions: the answer names them in its own text.
  */
 data class ChatLink(
     override val label: String,
@@ -92,7 +91,6 @@ data class ChatLink(
     val category: String?,
     val currency: String,
     val profileId: Long?,
-    val account: String? = null,
 ) : ReplyLink
 
 /** A way from a budgets or bills answer to the screen that shows them. */

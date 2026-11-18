@@ -54,9 +54,7 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.TextStyle
-import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
@@ -107,7 +105,7 @@ fun BalanceCard(
     totalAvailableCredit: BigDecimal = BigDecimal.ZERO,
     forecast: SpendForecast? = null,
     onAccountClick: (String, String) -> Unit = { _, _ -> },
-    /** Opens Net worth from the balance line; null leaves the line as plain text. */
+    /** Opens Net worth from a labelled link in the expanded card; null hides the link. */
     onOpenNetWorth: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
     blurEffects: Boolean = false,
@@ -203,31 +201,24 @@ fun BalanceCard(
                         if (accountBalances.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(Spacing.sm))
                             Row(
-                                modifier = Modifier.netWorthLink(onOpenNetWorth),
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                val balanceText = if (isBalanceHidden) {
-                                    stringResource(R.string.balance_card_balance, "••••••")
-                                } else {
-                                    stringResource(R.string.balance_card_balance, "${CurrencyFormatter.formatCurrency(totalBalance, currency)}${if (isApproximate) "*" else ""}")
-                                }
-                                val countText = if (accountBalances.size > 1) {
-                                    pluralStringResource(R.plurals.balance_card_account_count, accountBalances.size, accountBalances.size)
-                                } else {
-                                    null
-                                }
-                                val countStyle = MaterialTheme.typography.bodySmall.toSpanStyle()
-                                // One text that wraps as a whole and leaves the chevron its room at large font sizes.
                                 Text(
-                                    text = buildAnnotatedString {
-                                        append(balanceText)
-                                        if (countText != null) withStyle(countStyle) { append(countText) }
+                                    text = if (isBalanceHidden) {
+                                        stringResource(R.string.balance_card_balance, "••••••")
+                                    } else {
+                                        stringResource(R.string.balance_card_balance, "${CurrencyFormatter.formatCurrency(totalBalance, currency)}${if (isApproximate) "*" else ""}")
                                     },
                                     style = PennyWiseText.amountSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.weight(1f, fill = false)
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                if (onOpenNetWorth != null) NetWorthChevron()
+                                if (accountBalances.size > 1) {
+                                    Text(
+                                        text = pluralStringResource(R.plurals.balance_card_account_count, accountBalances.size, accountBalances.size),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
                             }
                         }
                     }
@@ -497,20 +488,30 @@ fun BalanceCard(
                                     modifier = Modifier.fillMaxWidth()
                                 )
                             }
-                            // Named for where it goes: Net worth takes off cards and loans, so
-                            // its figure isn't this total, and a chevron on the total implied it was.
+                            // Named for where it goes: Net worth takes off cards and loans,
+                            // so its figure isn't this total.
                             if (onOpenNetWorth != null) {
+                                val netWorthLabel = stringResource(R.string.net_worth_title)
                                 Row(
-                                    modifier = Modifier.fillMaxWidth().netWorthLink(onOpenNetWorth),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clip(RoundedCornerShape(Dimensions.CornerRadius.medium))
+                                        .clickable(onClickLabel = netWorthLabel, role = Role.Button, onClick = onOpenNetWorth)
+                                        .defaultMinSize(minHeight = Dimensions.Component.minTouchTarget),
                                     horizontalArrangement = Arrangement.End,
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
                                     Text(
-                                        text = stringResource(R.string.net_worth_title),
+                                        text = netWorthLabel,
                                         style = MaterialTheme.typography.labelLarge,
                                         color = MaterialTheme.colorScheme.primary
                                     )
-                                    NetWorthChevron(tint = MaterialTheme.colorScheme.primary)
+                                    Icon(
+                                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(Dimensions.Icon.small)
+                                    )
                                 }
                             }
                         }
@@ -531,27 +532,6 @@ fun BalanceCard(
             }
         }
     }
-}
-
-/** The balance line opens Net worth, with a 48dp target and a label TalkBack reads. */
-@Composable
-private fun Modifier.netWorthLink(onOpen: (() -> Unit)?): Modifier {
-    if (onOpen == null) return this
-    val label = stringResource(R.string.net_worth_title)
-    return this
-        .clip(RoundedCornerShape(Dimensions.CornerRadius.medium))
-        .clickable(onClickLabel = label, role = Role.Button, onClick = onOpen)
-        .defaultMinSize(minHeight = Dimensions.Component.minTouchTarget)
-}
-
-@Composable
-private fun NetWorthChevron(tint: Color = MaterialTheme.colorScheme.onSurfaceVariant) {
-    Icon(
-        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-        contentDescription = null,
-        tint = tint,
-        modifier = Modifier.size(Dimensions.Icon.small)
-    )
 }
 
 @Composable

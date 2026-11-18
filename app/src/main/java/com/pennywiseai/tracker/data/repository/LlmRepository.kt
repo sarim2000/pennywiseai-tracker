@@ -570,13 +570,9 @@ class LlmRepository @Inject constructor(
                     }
                 unknown -> context.getString(R.string.chat_reply_unknown_category, asked)
                 else -> {
-                    // A name the category list doesn't spell matched the rows in any case; the
-                    // list matches exactly, so its link could open on nothing.
+                    // Only a name the category list spells opens the list on it.
                     if (category == null || known != null) turnLinks += comparisonLinks(result, category)
-                    comparisonText(result.alsoTrend(), category) +
-                        (result as? SpendingComparison.Result.Rows)?.takeIf { known != null }?.let {
-                            refundNote(it.currentRefunded, it.current) + refundNote(it.previousRefunded, it.previous)
-                        }.orEmpty()
+                    comparisonText(result.alsoTrend(), category)
                 }
             }
         }
@@ -694,7 +690,7 @@ class LlmRepository @Inject constructor(
         val groupBy = SpendingQuery.grouping(asGrouped, category, merchant)
         val narrowed = merchant?.let { " · $it" }.orEmpty()
         // The list can't be narrowed to a merchant as the figure was (its search reads notes and
-        // SMS too), and matches a category's name exactly: "uber" would open on nothing.
+        // SMS too), and only a name the category list spells is a category to open: not "uber".
         val linked = merchant == null && (category == null || known != null)
         // "How much salary did I receive?": what came in, never what was spent.
         val incomeAsked = categories.any { it.isIncome && it.name == known } || SpendingComparison.asksAboutIncome(userMessage)
@@ -744,12 +740,10 @@ class LlmRepository @Inject constructor(
                         spend.category,
                         label,
                         spend.transactionCount
-                    ).plus(
-                        cardNote(spend.cardPurchases)
                     ).also {
                         turnSubject = turnSubject?.copy(share = spend.share)
                         if (linked) turnLinks += linksTo(spend.scope, category, spend.byCurrency.keys)
-                    }.let { if (known == null) it else it + refundNote(spend.refunded, spend.scope.window) }
+                    }
                 }
             }
             // The same figures as the one-tap question, and as Home's "Spent this month".
@@ -847,7 +841,6 @@ class LlmRepository @Inject constructor(
                     val forgiven = p.forgiven[c]?.takeIf { it.signum() > 0 }
                     add(if (forgiven == null) money(a, c) else context.getString(R.string.chat_reply_spent_with_forgiven, money(a, c), money(forgiven, c)))
                 }
-                if (p.cardPurchases) add(context.getString(R.string.chat_reply_card_purchases))
             }
             addAll(estimateLines(p.estimate))
             // Only currencies that received money: a zero in one with no activity isn't an answer.
@@ -857,29 +850,8 @@ class LlmRepository @Inject constructor(
         }.joinToString("\n")
     }
 
-    /**
-     * A line under a figure that counted card purchases (the user folds them into spending):
-     * the figure nets their refunds, the list its link opens totals them under Credit, before
-     * refunds, not Expenses. Empty when it didn't.
-     */
-    private fun cardNote(counted: Boolean): String =
-        if (counted) "\n" + context.getString(R.string.chat_reply_card_purchases) else ""
-
     private fun addLinks(messageId: String, links: List<ChatLink>) {
         if (links.isNotEmpty()) _links.update { it + (messageId to links.toList()) }
-    }
-
-    /**
-     * Lines under a category's figure for the gap to the list its link opens in [window], per
-     * currency as [SpendingComparison.refundedOutside] gives it: refunds the figure took off that
-     * the list doesn't net (the list is higher), and another category's refund split partly into
-     * this one, which the list nets and the figure doesn't (the list is lower). Empty when none.
-     */
-    private suspend fun refundNote(gap: Map<String, BigDecimal>, window: SpendingComparison.Window): String {
-        val higher = gap.filterValues { it.signum() > 0 }
-        val lower = gap.filterValues { it.signum() < 0 }.mapValues { it.value.negate() }
-        return (if (higher.isEmpty()) "" else "\n" + context.getString(R.string.chat_reply_refunds_taken_off, range(window), amounts(higher))) +
-            (if (lower.isEmpty()) "" else "\n" + context.getString(R.string.chat_reply_refunds_list_lower, range(window), amounts(lower)))
     }
 
     /** The transactions behind a month's spending and income; forgiven loans have none. */
@@ -944,7 +916,6 @@ class LlmRepository @Inject constructor(
                 )
             )
             if (top.ranking.isNotEmpty()) add(ordered(top.ranking).joinToString("\n\n") { (c, groups) -> groups.joinToString("\n") { (n, a) -> "${name(n)}: ${money(a, c)}" } })
-            if (top.ranking.isNotEmpty() && top.cardPurchases) add(context.getString(R.string.chat_reply_card_purchases))
             if (forgiven.isNotEmpty()) add((if (top.ranking.isEmpty()) "" else "\n") + context.getString(R.string.chat_reply_forgiven_loans, amounts(forgiven)))
         }.joinToString("\n")
     }
@@ -1006,7 +977,6 @@ class LlmRepository @Inject constructor(
                 }
                 add(if (change == null) pair else "$pair ($change)")
             }
-            if (result.cardPurchases) add(context.getString(R.string.chat_reply_card_purchases))
         }.joinToString("\n")
     }
 

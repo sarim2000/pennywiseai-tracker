@@ -339,10 +339,6 @@
     <string name="chat_reply_forgiven_loans">Forgiven loans: %1$s</string>
     <string name="chat_reply_received">Received: %1$s</string>
     <string name="chat_reply_received_nothing">Nothing received</string>
-    <string name="chat_reply_card_purchases">Includes card purchases net of refunds; the list totals them under Credit, before refunds.</string>
-    <string name="chat_reply_refunds_taken_off">Refunds taken off (%1$s): %2$s. The list shows them under their own category.</string>
-    <!-- %2$s = how much lower the list is than the figure, per currency -->
-    <string name="chat_reply_refunds_list_lower">The list is %2$s lower (%1$s): it takes off part of a refund filed under another category.</string>
     <plurals name="chat_reply_transaction_count">
         <item quantity="one">%1$d transaction</item>
         <item quantity="other">%1$d transactions</item>

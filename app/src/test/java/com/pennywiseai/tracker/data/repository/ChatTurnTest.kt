@@ -705,63 +705,6 @@ class ChatTurnTest {
         assertEquals(listOf("SEE طعام", "SEE Hobbies", "SEE"), repository.links.value[saved.last().id]?.map { it.label })
     }
 
-    @Test
-    fun `a category figure that took refunds off says so, since its list doesn't hold them`() = runTest {
-        every { context.getString(R.string.chat_reply_refunds_taken_off, any(), any()) } answers { "REFUNDED ${(args[1] as Array<*>)[1]}" }
-        coEvery { aiContext.categorySpending(any(), any(), any()) } returns spent("120").copy(category = "طعام", refunded = mapOf("INR" to BigDecimal("30")))
-        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("category" to "طعام")))
-        assertEquals("SPEND\nREFUNDED ₹30", send("how much on food?"))
-
-        // No refunds, no line.
-        coEvery { aiContext.categorySpending(any(), any(), any()) } returns spent("120").copy(category = "طعام")
-        assertEquals("SPEND", send("how much on food?"))
-
-        // A category comparison notes each period's refunds.
-        val w = SpendingComparison.Window(LocalDateTime.of(2026, 11, 1, 0, 0), LocalDateTime.of(2026, 11, 16, 23, 59))
-        coEvery { aiContext.compareSpending(any(), "طعام", any(), any()) } returns SpendingComparison.Result.Rows(
-            w, w, listOf(SpendingComparison.Row("INR", BigDecimal("90"), BigDecimal("100"), BigDecimal("-10"))),
-            previousRefunded = mapOf("INR" to BigDecimal("5"))
-        )
-        events = listOf(LlmEvent.ToolCall(PennyWiseTools.COMPARE_SPENDING, mapOf("period" to "month", "category" to "طعام")))
-        assertTrue(send("food this month vs last month?").endsWith("\nREFUNDED ₹5"))
-    }
-
-    @Test
-    fun `a category's list that nets another category's refund says it is lower, and by how much`() = runTest {
-        every { context.getString(R.string.chat_reply_refunds_taken_off, any(), any()) } answers { "REFUNDED ${(args[1] as Array<*>)[1]}" }
-        every { context.getString(R.string.chat_reply_refunds_list_lower, any(), any()) } answers { "LOWER ${(args[1] as Array<*>)[1]}" }
-        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("category" to "طعام")))
-        coEvery { aiContext.categorySpending(any(), any(), any()) } returns spent("100").copy(category = "طعام", refunded = mapOf("INR" to BigDecimal("-10")))
-        assertEquals("SPEND\nLOWER ₹10", send("how much on food?"))
-
-        // Both ways at once, one currency each: each its own line.
-        coEvery { aiContext.categorySpending(any(), any(), any()) } returns spent("100").copy(
-            category = "طعام",
-            byCurrency = mapOf("INR" to BigDecimal("100"), "USD" to BigDecimal("8")),
-            refunded = mapOf("INR" to BigDecimal("-10"), "USD" to BigDecimal("2")),
-        )
-        assertEquals("SPEND\nREFUNDED $2\nLOWER ₹10", send("how much on food?"))
-    }
-
-    @Test
-    fun `a figure that counted card purchases says the list totals them under Credit`() = runTest {
-        every { context.getString(R.string.chat_reply_card_purchases) } returns "CARD"
-        coEvery { aiContext.categorySpending(any(), any(), any()) } returns spent("120").copy(category = "طعام", cardPurchases = true)
-        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("category" to "طعام")))
-        assertEquals("SPEND\nCARD", send("how much on food?"))
-
-        every { context.getString(R.string.chat_reply_month_spend, any()) } returns "SPENT"
-        coEvery { aiContext.spending(any(), any()) } returns com.pennywiseai.tracker.data.model.PeriodSpending(
-            spent("1").scope, spent = mapOf("INR" to BigDecimal("60")), income = emptyMap(), cardPurchases = true,
-        )
-        repository.answerQuickAction(QuickAction.MONTH_SPEND)
-        assertTrue("CARD" in saved.last().message.lines())
-
-        // None counted, no line.
-        coEvery { aiContext.categorySpending(any(), any(), any()) } returns spent("120").copy(category = "طعام")
-        assertEquals("SPEND", send("how much on food?"))
-    }
-
     /** A category lookup's result: nothing spent, or [inr] rupees. */
     private fun spent(inr: String? = null) = com.pennywiseai.tracker.data.model.CategorySpend(
         com.pennywiseai.tracker.data.model.ChatScope(SpendingComparison.Window(LocalDateTime.of(2026, 11, 1, 0, 0), LocalDateTime.of(2026, 11, 16, 23, 59))),

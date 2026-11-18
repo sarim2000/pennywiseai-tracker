@@ -16,6 +16,12 @@ import java.time.LocalDate
  */
 
 /**
+ * Whether [name] is one of these categories, in any case: a chat figure counts a row filed as
+ * "food" under "Food", and the list its link opens has to show that row too.
+ */
+private fun Set<String>.hasCategory(name: String) = any { it.equals(name, ignoreCase = true) }
+
+/**
  * Rows in [categories]: a split row by its splits' categories, any other by its own, the same
  * match Analytics makes through [TransactionWithSplits.getAmountByCategory].
  */
@@ -26,7 +32,7 @@ internal fun filterByCategories(
 ): List<TransactionEntity> {
     val splitsByTxId = splits.groupBy { it.transactionId }
     return transactions.filter { tx ->
-        splitsByTxId[tx.id]?.any { it.category in categories } ?: (tx.category in categories)
+        splitsByTxId[tx.id]?.any { categories.hasCategory(it.category) } ?: categories.hasCategory(tx.category)
     }
 }
 
@@ -43,7 +49,7 @@ class CategorySplitShares(
 
     /** The amount of [tx]'s splits in the filter, or null when [tx] isn't split. For display. */
     fun shareOf(tx: TransactionEntity): BigDecimal? =
-        splitsByTxId[tx.id]?.filter { it.category in categories }?.sumOf { it.amount }
+        splitsByTxId[tx.id]?.filter { categories.hasCategory(it.category) }?.sumOf { it.amount }
 
     /** The amount [tx] shows: its share when split, else its own amount. */
     fun shownAmount(tx: TransactionEntity): BigDecimal = shareOf(tx) ?: tx.amount
@@ -55,7 +61,7 @@ class CategorySplitShares(
     fun forTotals(tx: TransactionEntity): TransactionEntity? {
         val splits = splitsByTxId[tx.id] ?: return tx.forTotals()
         val counted = TransactionWithSplits(tx, splits).forTotals() ?: return null
-        val share = counted.splits.filter { it.category in categories }.sumOf { it.amount }
+        val share = counted.splits.filter { categories.hasCategory(it.category) }.sumOf { it.amount }
         return tx.copy(amount = share, loanId = null, loanContribution = null, lentSharesTotal = null).forTotals()
     }
 }

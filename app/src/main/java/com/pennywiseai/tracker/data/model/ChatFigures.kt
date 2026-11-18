@@ -27,8 +27,6 @@ data class PeriodSpending(
     val forgiven: Map<String, BigDecimal> = emptyMap(),
     val estimate: ConvertedEstimate? = null,
     val transactionCount: Int = 0,
-    /** [spent] counted card purchases, which the Transactions list totals under Credit. */
-    val cardPurchases: Boolean = false,
 ) {
     /** Home's "Spent": [spent] plus [forgiven], per currency; currencies at zero left out. */
     val spentWithForgiven: Map<String, BigDecimal>
@@ -46,14 +44,6 @@ data class CategorySpend(
     val byCurrency: Map<String, BigDecimal>,
     val transactionCount: Int,
     val share: Float? = null,
-    /**
-     * How much more its transaction list adds up to than [byCurrency], in its currencies:
-     * refunds the figure took off that the list doesn't net, or (negative) refunds the list nets
-     * that the figure didn't take off. See [SpendingComparison.refundedOutside].
-     */
-    val refunded: Map<String, BigDecimal> = emptyMap(),
-    /** [byCurrency] counted card purchases, which the Transactions list totals under Credit. */
-    val cardPurchases: Boolean = false,
 )
 
 /**
@@ -65,8 +55,6 @@ data class TopCategories(
     val ranking: Map<String, List<Pair<String, BigDecimal>>>,
     val forgiven: Map<String, BigDecimal> = emptyMap(),
     val share: Float? = null,
-    /** [ranking] counted card purchases, which the Transactions list totals under Credit. */
-    val cardPurchases: Boolean = false,
 )
 
 /**

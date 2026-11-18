@@ -1,20 +1,14 @@
 package com.pennywiseai.tracker.presentation.accounts
 
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
-import com.pennywiseai.tracker.domain.model.AccountType
-import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.rounded.KeyboardArrowDown
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,16 +17,21 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
-import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 
@@ -105,7 +104,7 @@ fun AddAccountScreen(
                     )
                 }
             }
-            
+
             // Error Message
             formState.errorMessage?.let { error ->
                 PennyWiseCardV2(
@@ -132,7 +131,7 @@ fun AddAccountScreen(
                     }
                 }
             }
-            
+
             val acctFullShape = RoundedCornerShape(16.dp)
             val acctTopShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
             val acctMiddleShape = RoundedCornerShape(4.dp)
@@ -278,8 +277,14 @@ fun AddAccountScreen(
                     onValueChange = viewModel::updateBalance,
                     label = {
                         Text(
-                            if (formState.accountType == AccountType.LOAN) stringResource(R.string.manage_accounts_outstanding_balance)
-                            else stringResource(R.string.add_account_balance_label),
+                            // A card's balance is what's owed on it, like a loan's; never the credit left.
+                            stringResource(
+                                if (formState.accountType == AccountType.LOAN || formState.accountType == AccountType.CREDIT) {
+                                    R.string.manage_accounts_outstanding_balance
+                                } else {
+                                    R.string.add_account_balance_label
+                                }
+                            ),
                             fontWeight = FontWeight.SemiBold
                         )
                     },

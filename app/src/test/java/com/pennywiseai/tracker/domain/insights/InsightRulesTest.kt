@@ -296,6 +296,15 @@ class InsightRulesTest {
     }
 
     @Test
+    fun `a subscription on another account doesn't explain a large spend`() {
+        val insights = evaluate(
+            rows = usualFood + tx("2026-11-12", "450", merchant = "Streamer", bank = "Bank B", account = "2222"),
+            subscriptions = listOf(subscription(1, "450", "2026-12-12", bank = "Bank A", last4 = "1111")),
+        )
+        assertEquals(1, insights.facts<LargeTransaction>().size)
+    }
+
+    @Test
     fun `a category's median stays within its currency`() {
         val usd = usualFood.map { tx(it.transaction.dateTime.toLocalDate().toString(), "100", currency = "USD") }
         val insights = evaluate(

@@ -322,7 +322,7 @@ object InsightRules {
                     tx.dateTime.toLocalDate() in review.range.start..review.range.end &&
                         tx.amount > median.multiply(BigDecimal(LARGE_TIMES)) &&
                         !tx.isRecurring &&
-                        subscriptions.none { it.currency == currency && RecurringCharge.sameMerchant(it.merchantName, tx.merchantName) }
+                        subscriptions.none { canPay(it, tx) }
                 }.map { tx ->
                     Insight(
                         id("large_spend", period, currency, tx.id), InsightSeverity.WARNING, currency,

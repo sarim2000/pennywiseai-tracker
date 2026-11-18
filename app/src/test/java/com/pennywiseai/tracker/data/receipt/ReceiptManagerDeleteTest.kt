@@ -31,6 +31,8 @@ class ReceiptManagerDeleteTest {
             writeText("db")
         }
         val sibling = File(filesDir, "settings.json").apply { writeText("{}") }
+        // Present, so `receipts/../…` resolves: the guard is tested, not a missing directory.
+        File(filesDir, "receipts").mkdirs()
         val manager = manager(filesDir)
 
         listOf(

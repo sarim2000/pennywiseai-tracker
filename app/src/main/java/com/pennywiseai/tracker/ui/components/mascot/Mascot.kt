@@ -427,6 +427,9 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
         }
         // Before the arrival stops: a check half stamped is caught half stamped.
         morphFrom = outlineOnScreen()
+        // The old arrival now lives in morphFrom. Left set, a morph back to a receipt that
+        // lands with "Remove animations" on would show the old check without its arrival.
+        arrivedShape = null
         arrival.snapTo(1f)
         shape = target
         morph.snapTo(0f)

@@ -86,6 +86,7 @@ import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.CurrencyUtils
 import java.time.LocalDate
+import java.time.YearMonth
 import java.time.format.TextStyle
 
 /**
@@ -104,6 +105,9 @@ fun SpendingCalendarScreen(
     // Deliberately not saved: restored after a recreation, it named a day whose sheet was no
     // longer on screen, and tapping that day again set the same value, so nothing opened.
     var selectedDay by remember { mutableStateOf<LocalDate?>(null) }
+    // The days of the month the sheet was opened for: a month that finishes loading
+    // while it's open replaces the state, and its days aren't this sheet's.
+    var sheetDays by remember { mutableStateOf<Map<LocalDate, CalendarDay>>(emptyMap()) }
     LifecycleResumeEffect(Unit) {
         viewModel.refreshDate()
         onPauseOrDispose { }
@@ -138,13 +142,16 @@ fun SpendingCalendarScreen(
                     state = loaded,
                     onMonth = viewModel::showMonth,
                     onSelectCurrency = viewModel::selectCurrency,
-                    onDay = { selectedDay = it },
+                    onDay = {
+                        selectedDay = it
+                        sheetDays = loaded.days
+                    },
                 )
                 selectedDay?.let { day ->
                     DaySheet(
                         day = day,
                         today = loaded.today,
-                        content = loaded.days[day] ?: CalendarDay(),
+                        content = (if (YearMonth.from(day) == loaded.month) loaded.days else sheetDays)[day] ?: CalendarDay(),
                         selectedCurrency = loaded.currency,
                         onDismiss = { selectedDay = null },
                         onOpenTransactions = { currency ->

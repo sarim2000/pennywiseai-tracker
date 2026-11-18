@@ -370,25 +370,6 @@
     <string name="recurring_day_of_week_any">วันไหนก็ได้</string>
     <string name="recurring_field_note">หมายเหตุ (ไม่บังคับ)</string>
     <string name="recurring_field_active">ใช้งานอยู่</string>
-    <!-- Share card, sheet and banner -->
-    <string name="share_card_caption_transactions">ข้อความธนาคารที่บันทึกให้ พิมพ์เอง 0 รายการ</string>
-    <plurals name="share_card_caption_subscriptions">
-        <item quantity="other">การสมัครสมาชิกที่ฉันลืมไป</item>
-    </plurals>
-    <string name="share_card_period_all_time">ตลอดเวลา</string>
-    <string name="share_card_tagline">อ่านจาก SMS ธนาคารของฉัน ไม่มีข้อมูลออกจากโทรศัพท์เลย</string>
-    <string name="share_sheet_no_amounts">ไม่มีการแสดงจำนวนเงิน</string>
-    <string name="share_sheet_share">แชร์</string>
-    <string name="share_sheet_done">เสร็จสิ้น</string>
-    <string name="share_sheet_customise">ปรับแต่ง</string>
-    <string name="share_sheet_show">แสดง</string>
-    <string name="share_sheet_transactions">ไทม์ไลน์</string>
-    <string name="share_sheet_subscriptions">การสมัครสมาชิก</string>
-    <string name="share_sheet_no_subscriptions">ยังไม่พบการสมัครสมาชิก PennyWise จะหาจากการชำระเงินที่เกิดซ้ำใน SMS ของคุณ</string>
-    <string name="share_sheet_period">ช่วงเวลา</string>
-    <string name="share_sheet_this_month">เดือนนี้</string>
-    <string name="share_sheet_last_month">เดือนที่แล้ว</string>
-    <string name="share_sheet_all_time">ตลอดเวลา</string>
     <!-- %1$s = month name -->
     <string name="share_banner_title">สรุป %1$s</string>
     <string name="share_banner_subtitle">ดูว่า PennyWise บันทึกอะไรให้คุณบ้าง</string>

@@ -422,30 +422,6 @@
     <string name="recurring_day_of_week_any">أي يوم</string>
     <string name="recurring_field_note">ملاحظة (اختياري)</string>
     <string name="recurring_field_active">نشطة</string>
-    <!-- Share card, sheet and banner -->
-    <string name="share_card_caption_transactions">من رسائل البنك. 0 إدخال يدوي.</string>
-    <plurals name="share_card_caption_subscriptions">
-        <item quantity="zero">اشتراك نسيته</item>
-        <item quantity="one">اشتراك نسيته</item>
-        <item quantity="two">اشتراكان نسيتهما</item>
-        <item quantity="few">اشتراكات نسيتها</item>
-        <item quantity="many">اشتراكًا نسيته</item>
-        <item quantity="other">اشتراك نسيته</item>
-    </plurals>
-    <string name="share_card_period_all_time">منذ البداية</string>
-    <string name="share_card_tagline">قُرئت من رسائل البنك على هاتفي، ولم يغادره شيء.</string>
-    <string name="share_sheet_no_amounts">لا تتضمن البطاقة أي مبالغ.</string>
-    <string name="share_sheet_share">مشاركة</string>
-    <string name="share_sheet_done">تم</string>
-    <string name="share_sheet_customise">تخصيص</string>
-    <string name="share_sheet_show">عرض</string>
-    <string name="share_sheet_transactions">المعاملات</string>
-    <string name="share_sheet_subscriptions">الاشتراكات</string>
-    <string name="share_sheet_no_subscriptions">لم نجد اشتراكات بعد. يكتشفها PennyWise من الدفعات المتكررة في رسائلك.</string>
-    <string name="share_sheet_period">الفترة</string>
-    <string name="share_sheet_this_month">هذا الشهر</string>
-    <string name="share_sheet_last_month">الشهر الماضي</string>
-    <string name="share_sheet_all_time">كل الفترات</string>
     <!-- %1$s = month name -->
     <string name="share_banner_title">ملخص %1$s</string>
     <string name="share_banner_subtitle">راجع ما تغيّر وأين ذهب مصروفك</string>

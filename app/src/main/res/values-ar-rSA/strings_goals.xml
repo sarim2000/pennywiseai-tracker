@@ -31,6 +31,7 @@
     <string name="goal_edit_title_new">هدف جديد</string>
     <string name="goal_edit_title_edit">تعديل الهدف</string>
     <string name="goal_back">رجوع</string>
+    <string name="goal_share">مشاركة التقدّم</string>
     <string name="goal_edit_name">الاسم</string>
     <string name="goal_edit_name_hint">مثلًا: تأمين السيارة</string>
     <string name="goal_edit_target">المبلغ المستهدف</string>

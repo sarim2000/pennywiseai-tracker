@@ -71,9 +71,34 @@ class BudgetGroupRepository @Inject constructor(
         )
     }
 
+    /**
+     * Sets the global budget cycle start day. A rollover budget whose period follows
+     * it starts its rollover again, as a change of its own period would.
+     */
+    suspend fun updateBudgetCycleStartDay(day: Int) {
+        val before = userPreferencesRepository.getBudgetCycleStartDay()
+        userPreferencesRepository.updateBudgetCycleStartDay(day)
+        val today = LocalDate.now()
+        budgetDao.getAllBudgets().first().forEach { budget ->
+            val since = BudgetRollover.sinceAfterCycleStartDayChange(budget, today, before, day)
+            if (since != budget.rolloverSince) budgetDao.updateBudget(budget.copy(rolloverSince = since))
+        }
+    }
+
     private suspend fun parentOf(): Map<String, String> = categoryDao.getAllCategoriesList().parentNameOf()
+
     private suspend fun expandWithChildren(names: Set<String>): Set<String> =
         categoryDao.getAllCategoriesList().expandWithChildren(names)
+
+    /**
+     * Rows to sum for a group total. A parent row already includes its
+     * children's spend, so a child listed alongside its parent is dropped here
+     * (not from the per-row display) to avoid counting it twice.
+     */
+    private fun List<BudgetCategoryEntity>.withoutCoveredChildren(parentOf: Map<String, String>): List<BudgetCategoryEntity> {
+        val names = map { it.categoryName }.toSet()
+        return filter { parentOf[it.categoryName] !in names }
+    }
 
     /**
      * Resolves the actual [start, end] window for the budget cycle that begins

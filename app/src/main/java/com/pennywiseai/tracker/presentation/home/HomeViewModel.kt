@@ -1388,7 +1388,7 @@ class HomeViewModel @Inject constructor(
     fun acceptPaydaySuggestion(day: Int) {
         viewModelScope.launch {
             userPreferencesRepository.markPaydaySuggestionHandled()
-            userPreferencesRepository.updateBudgetCycleStartDay(day)
+            budgetGroupRepository.updateBudgetCycleStartDay(day)
         }
     }
 

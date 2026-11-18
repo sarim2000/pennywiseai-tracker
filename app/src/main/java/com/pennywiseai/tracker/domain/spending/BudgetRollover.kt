@@ -63,7 +63,7 @@ object BudgetRollover {
     /**
      * [BudgetEntity.rolloverSince] for [after], the budget as it's being saved on
      * [today] ([before]: as it was, null for a new one). Rollover turned on, or a
-     * change of currency or period, starts it again today, since last period no
+     * change of limit, currency or period, starts it again today, since last period no
      * longer measures this one; turned off, it's null; otherwise it stays.
      * Anchors are compared as the periods they resolve to ([globalStartDay] as
      * [resolveBudgetWindow] takes it), so a legacy null anchor saved as its default
@@ -77,9 +77,22 @@ object BudgetRollover {
     ): LocalDate? = when {
         !after.rolloverEnabled -> null
         before == null || !before.rolloverEnabled || before.rolloverSince == null -> today
-        !before.currency.equals(after.currency, ignoreCase = true) ||
+        // Last period's leftover is measured against the limit it had: a new limit
+        // would rewrite it (₹10,000 → ₹15,000 turns +₹1,000 into +₹6,000).
+        before.limitAmount.compareTo(after.limitAmount) != 0 ||
+            !before.currency.equals(after.currency, ignoreCase = true) ||
             before.periodType != after.periodType ||
             resolveBudgetWindow(before, today, globalStartDay) != resolveBudgetWindow(after, today, globalStartDay) -> today
         else -> before.rolloverSince
     }
+
+    /**
+     * [BudgetEntity.rolloverSince] once the global cycle start day moves from [before]
+     * to [after]. A budget whose period follows it (a monthly one with no anchor of its
+     * own) starts again [today]: its last period isn't the one it measured.
+     */
+    fun sinceAfterCycleStartDayChange(budget: BudgetEntity, today: LocalDate, before: Int, after: Int): LocalDate? =
+        if (budget.rolloverEnabled && budget.rolloverSince != null &&
+            resolveBudgetWindow(budget, today, before) != resolveBudgetWindow(budget, today, after)
+        ) today else budget.rolloverSince
 }

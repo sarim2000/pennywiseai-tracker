@@ -170,9 +170,18 @@ class BudgetRolloverTest {
     }
 
     @Test
-    fun `renaming or a new limit keeps the start`() {
+    fun `renaming keeps the start`() {
         val b = budget()
-        assertEquals(b.rolloverSince, BudgetRollover.sinceAfterEdit(b, b.copy(name = "Food", limitAmount = BigDecimal("150")), today))
+        assertEquals(b.rolloverSince, BudgetRollover.sinceAfterEdit(b, b.copy(name = "Food"), today))
+        // The same limit written another way isn't a new one.
+        assertEquals(b.rolloverSince, BudgetRollover.sinceAfterEdit(b, b.copy(limitAmount = b.limitAmount.setScale(2)), today))
+    }
+
+    @Test
+    fun `a new limit starts it again, so last period's leftover isn't measured against it`() {
+        val b = budget()
+        assertEquals(today, BudgetRollover.sinceAfterEdit(b, b.copy(limitAmount = BigDecimal("150")), today))
+        assertEquals(today, BudgetRollover.sinceAfterEdit(b, b.copy(limitAmount = BigDecimal("50")), today))
     }
 
     @Test
@@ -186,6 +195,17 @@ class BudgetRolloverTest {
             BudgetRollover.sinceAfterEdit(monthly, monthly.copy(monthStartDay = 5), today, globalStartDay = 5)
         )
         assertEquals(today, BudgetRollover.sinceAfterEdit(monthly, monthly.copy(monthStartDay = 5), today, globalStartDay = 1))
+    }
+
+    @Test
+    fun `a new global cycle start day restarts a monthly budget that follows it`() {
+        val follows = budget(periodType = BudgetPeriodType.MONTHLY)
+        assertEquals(today, BudgetRollover.sinceAfterCycleStartDayChange(follows, today, before = 1, after = 25))
+        // Its own anchor, a weekly budget, or rollover off: nothing changes.
+        val anchored = budget(periodType = BudgetPeriodType.MONTHLY, monthStartDay = 10)
+        assertEquals(anchored.rolloverSince, BudgetRollover.sinceAfterCycleStartDayChange(anchored, today, before = 1, after = 25))
+        assertEquals(budget().rolloverSince, BudgetRollover.sinceAfterCycleStartDayChange(budget(), today, before = 1, after = 25))
+        assertNull(BudgetRollover.sinceAfterCycleStartDayChange(budget(enabled = false, since = null), today, before = 1, after = 25))
     }
 
     @Test

@@ -459,7 +459,7 @@ class InsightRulesTest {
         val onA = subscription(1, "100", "2026-11-20", bank = "Bank A", last4 = "1111")
         val onB = subscription(2, "100", "2026-11-21", bank = "Bank B", last4 = "2222")
         fun dueAfter(vararg rows: TransactionWithSplits) =
-            evaluate(rows = rows.toList(), subscriptions = listOf(onB, onA)).facts<BillsDue>().singleOrNull()?.firstDue
+            evaluate(rows = rows.toList(), subscriptions = listOf(onB, onA)).facts<BillsDue>().let { assertTrue(it.size <= 1); it.singleOrNull()?.firstDue }
 
         // Paid from Bank A: Bank B's bill is still due.
         assertEquals(LocalDate.parse("2026-11-21"), dueAfter(tx("2026-11-19", "100", merchant = "Streamer", bank = "Bank A", account = "1111")))
@@ -469,7 +469,7 @@ class InsightRulesTest {
         assertEquals(2, dueCount(tx("2026-11-19", "100", merchant = "Streamer")))
         assertEquals(2, dueCount(tx("2026-11-19", "100", merchant = "Streamer", bank = "Bank A")))
         // A bill that names no account can be paid from any.
-        assertEquals(null, evaluate(rows = listOf(tx("2026-11-19", "100", merchant = "Streamer", bank = "Bank A", account = "1111")), subscriptions = listOf(subscription(3, "100", "2026-11-20"))).facts<BillsDue>().singleOrNull())
+        assertTrue(evaluate(rows = listOf(tx("2026-11-19", "100", merchant = "Streamer", bank = "Bank A", account = "1111")), subscriptions = listOf(subscription(3, "100", "2026-11-20"))).facts<BillsDue>().isEmpty())
         // One for each pays both.
         assertEquals(
             null,

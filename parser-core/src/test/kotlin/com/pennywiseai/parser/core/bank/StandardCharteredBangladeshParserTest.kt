@@ -19,19 +19,19 @@ class StandardCharteredBangladeshParserTest {
     private fun purchase(amount: String = "1,234.50", merchant: String = "DEMO ELECTRONICS DHAKA BD",
         credit: String = "50,000.00", intl: Boolean = false): String =
         "${if (intl) "Intl. e-trxn of " else ""}BDT $amount ${if (intl) "was made" else "transaction was made"} " +
-            "on card ending 1234 at $merchant on 18-Sep-26. Available credit: BDT $credit. Enquiries:16233"
+            "on card ending 1234 at $merchant on 18-Sep-26. Available credit: BDT $credit. Enquiries:12345"
 
     private fun account(amount: String, movement: String, balance: String): String =
         "Dear Client, BDT $amount was $movement Acc. ending xxxxxxx5678 on 02-Nov-26. " +
-            "Available balance is now BDT $balance. For enquiries, please call 16233."
+            "Available balance is now BDT $balance. For enquiries, please call 12345."
 
     private fun payment(): String =
         "Dear Client, BDT 25,000.00 has been credited to card ending 1234 on 08-Sep-26 " +
-            "pertaining to PAYMENT RECD.-CASH. Available Credit: BDT 75,000.00. Enquiries:16233"
+            "pertaining to PAYMENT RECD.-CASH. Available Credit: BDT 75,000.00. Enquiries:12345"
 
     private fun charge(): String =
         "Dear Client, BDT 347.89 has been debited from card ending 1234 on 02-Nov-26 " +
-            "pertaining to FINANCE CHARGES.. Available Credit: BDT 49,654.44. Enquiries:16233"
+            "pertaining to FINANCE CHARGES.. Available Credit: BDT 49,654.44. Enquiries:12345"
 
     @TestFactory
     fun `supported transaction formats and exclusions`(): List<DynamicTest> =
@@ -44,7 +44,7 @@ class StandardCharteredBangladeshParserTest {
                         accountLast4 = "1234", isFromCard = true)),
                 ParserTestCase(
                     name = "POS merchant with DISCOUNT in name", sender = "StanChartBD",
-                    message = "BDT 1234.50 transaction was made on card ending 1234 at DISCOUNT STORE DHAKA BD on 18-Sep-26. Available credit: BDT 50,000.00. Enquiries:16233",
+                    message = "BDT 1234.50 transaction was made on card ending 1234 at DISCOUNT STORE DHAKA BD on 18-Sep-26. Available credit: BDT 50,000.00. Enquiries:12345",
                     expected = ExpectedTransaction(
                         amount = BigDecimal("1234.50"), type = TransactionType.CREDIT,
                         merchant = "DISCOUNT STORE DHAKA BD", currency = "BDT",
@@ -96,7 +96,7 @@ class StandardCharteredBangladeshParserTest {
                 ParserTestCase(name = "reject zero purchase", sender = "StanChartBD", message = purchase("0.00"), shouldParse = false),
                 ParserTestCase(name = "reject other bank sender", sender = "SCBANK", message = purchase(), shouldParse = false)
             ),
-            handleCases = listOf("StanChartBD" to true, "stanchartbd" to true,
+            handleCases = listOf("StanChartBD" to true, "stanchartbd" to true, "VM-StanChartBD-S" to true,
                 "SCBANK" to false, "StanChart" to false, "IFIC BANK" to false)
         )
 
@@ -108,6 +108,12 @@ class StandardCharteredBangladeshParserTest {
             assertNull(actual?.balance)
             assertEquals(BigDecimal("50000.00"), actual?.creditLimit)
             assertEquals(12345L, actual?.timestamp)
+        },
+        DynamicTest.dynamicTest("merchant containing \"etac\" is still a purchase") {
+            assertEquals("METACAFE DHAKA BD", parser.parse(purchase(merchant = "METACAFE DHAKA BD"), "StanChartBD", 1L)?.merchant)
+        },
+        DynamicTest.dynamicTest("factory parse routes StanChartBD to the Bangladesh parser") {
+            assertEquals("Standard Chartered Bank (Bangladesh)", BankParserFactory.parse(purchase(), "StanChartBD", 1L)?.bankName)
         },
         DynamicTest.dynamicTest("card repayment is excluded until debt adjustment is supported") {
             assertNull(parser.parse(payment(), "StanChartBD", 12345L))

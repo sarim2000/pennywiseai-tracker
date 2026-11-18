@@ -35,7 +35,9 @@ class StandardCharteredBangladeshParser : BankParser() {
     override fun getBankName(): String = "Standard Chartered Bank (Bangladesh)"
     override fun getCurrency(): String = "BDT"
     override fun canHandle(sender: String): Boolean =
-        sender.uppercase().replace(Regex("""[\s_-]"""), "") == "STANCHARTBD"
+        // Strip a DLT-style wrapper ("VM-StanChartBD-S") before the exact match.
+        sender.uppercase().replace(Regex("""^[A-Z]{2}-|-[A-Z]$"""), "")
+            .replace(Regex("""[\s_-]"""), "") == "STANCHARTBD"
 
     private fun money(raw: String): BigDecimal? =
         if (VALID_MONEY.matches(raw)) raw.replace(",", "").toBigDecimalOrNull() else null
@@ -44,7 +46,7 @@ class StandardCharteredBangladeshParser : BankParser() {
         if (!canHandle(sender)) return null
         val body = smsBody.trim()
         val lower = body.lowercase()
-        if (lower.contains("etac") || lower.contains("statement of your credit card") ||
+        if (Regex("""\betac\b""").containsMatchIn(lower) || lower.contains("statement of your credit card") ||
             lower.contains("nps transfer request") || lower.contains("online banking initiated")) return null
 
         fun build(amount: BigDecimal?, type: TransactionType, suffix: String,

@@ -19,6 +19,7 @@ import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.collectLatest
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
@@ -81,64 +82,68 @@ class BudgetHistoryViewModel @Inject constructor(
     private var convert: (suspend (String, BigDecimal) -> BigDecimal?)? = null
 
     init {
-        loadHistory()
+        // Loaded again when a rate changes: unified mode converts at today's rates, and
+        // the breakdown's missing-rate link comes back here once one is added.
+        viewModelScope.launch {
+            currencyConversionService.getAllRatesFlow().collectLatest { loadHistory() }
+        }
     }
 
-    private fun loadHistory() {
-        viewModelScope.launch {
-            val yearMonth = _uiState.value.yearMonth
-            val startDay = userPreferencesRepository.getBudgetCycleStartDay()
-            val baseCurrency = userPreferencesRepository.baseCurrency.first()
-            val displayCurrency = baseCurrency
-            convert = if (userPreferencesRepository.unifiedCurrencyMode.first()) {
-                { fromCurrency, amount -> currencyConversionService.convertAmountOrNull(amount, fromCurrency, displayCurrency) }
-            } else null
-            val budget = budgetGroupRepository.getGroupById(groupId) ?: run {
-                _uiState.value = _uiState.value.copy(isLoading = false)
-                return@launch
-            }
-            val history = budgetGroupRepository.getBudgetHistoryForMonth(
-                budget = budget,
-                year = yearMonth.year,
-                month = yearMonth.monthValue,
-                currency = displayCurrency,
-                convert = convert
-            )
-            val totalSpent = history.fold(BigDecimal.ZERO) { acc, w -> acc + w.spent }
-            val isCurrentMonth = yearMonth == YearMonth.now()
-            val today = java.time.LocalDate.now()
-            val displayedWindow = if (isCurrentMonth) {
-                resolveBudgetWindow(budget, today, startDay)
-            } else {
-                history.lastOrNull()?.window
-                    ?: windowsForMonth(budget, yearMonth.year, yearMonth.monthValue, startDay)
-                        .lastOrNull()
-                    ?: com.pennywiseai.tracker.data.repository.BudgetWindow(
-                        yearMonth.atDay(1), yearMonth.atEndOfMonth(), yearMonth.lengthOfMonth()
-                    )
-            }
-            val monthEnd = yearMonth.atEndOfMonth()
-            val displayedCap = if (isCurrentMonth &&
-                !today.isBefore(displayedWindow.start) && !today.isAfter(displayedWindow.end)
-            ) today else monthEnd
-            val displayedIsLive = isCurrentMonth &&
-                !today.isBefore(displayedWindow.start) && !today.isAfter(displayedWindow.end)
-
-            _uiState.value = BudgetHistoryUiState(
-                isLoading = false,
-                budget = budget,
-                yearMonth = yearMonth,
-                windowHistory = history,
-                displayedWindowStart = displayedWindow.start,
-                displayedWindowEnd = displayedWindow.end,
-                displayedCapDate = displayedCap,
-                displayedIsLive = displayedIsLive,
-                totalSpent = totalSpent,
-                currency = displayCurrency,
-                baseCurrency = baseCurrency,
-                budgetAmount = historyBudgetTotal(budget, history)
-            )
+    private suspend fun loadHistory() {
+        val yearMonth = _uiState.value.yearMonth
+        val startDay = userPreferencesRepository.getBudgetCycleStartDay()
+        val baseCurrency = userPreferencesRepository.baseCurrency.first()
+        val displayCurrency = baseCurrency
+        convert = if (userPreferencesRepository.unifiedCurrencyMode.first()) {
+            { fromCurrency, amount -> currencyConversionService.convertAmountOrNull(amount, fromCurrency, displayCurrency) }
+        } else null
+        val budget = budgetGroupRepository.getGroupById(groupId) ?: run {
+            _uiState.value = _uiState.value.copy(isLoading = false)
+            return
         }
+        val history = budgetGroupRepository.getBudgetHistoryForMonth(
+            budget = budget,
+            year = yearMonth.year,
+            month = yearMonth.monthValue,
+            currency = displayCurrency,
+            convert = convert
+        )
+        val totalSpent = history.fold(BigDecimal.ZERO) { acc, w -> acc + w.spent }
+        val isCurrentMonth = yearMonth == YearMonth.now()
+        val today = java.time.LocalDate.now()
+        val displayedWindow = if (isCurrentMonth) {
+            resolveBudgetWindow(budget, today, startDay)
+        } else {
+            history.lastOrNull()?.window
+                ?: windowsForMonth(budget, yearMonth.year, yearMonth.monthValue, startDay)
+                    .lastOrNull()
+                ?: com.pennywiseai.tracker.data.repository.BudgetWindow(
+                    yearMonth.atDay(1), yearMonth.atEndOfMonth(), yearMonth.lengthOfMonth()
+                )
+        }
+        val monthEnd = yearMonth.atEndOfMonth()
+        val displayedCap = if (isCurrentMonth &&
+            !today.isBefore(displayedWindow.start) && !today.isAfter(displayedWindow.end)
+        ) today else monthEnd
+        val displayedIsLive = isCurrentMonth &&
+            !today.isBefore(displayedWindow.start) && !today.isAfter(displayedWindow.end)
+
+        val openBreakdown = _uiState.value.breakdown?.window
+        _uiState.value = BudgetHistoryUiState(
+            isLoading = false,
+            budget = budget,
+            yearMonth = yearMonth,
+            windowHistory = history,
+            displayedWindowStart = displayedWindow.start,
+            displayedWindowEnd = displayedWindow.end,
+            displayedCapDate = displayedCap,
+            displayedIsLive = displayedIsLive,
+            totalSpent = totalSpent,
+            currency = displayCurrency,
+            baseCurrency = baseCurrency,
+            budgetAmount = historyBudgetTotal(budget, history)
+        )
+        openBreakdown?.let(::loadBreakdown)
     }
 
     /**

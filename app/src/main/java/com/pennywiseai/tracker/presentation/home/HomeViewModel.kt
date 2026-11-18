@@ -1045,7 +1045,11 @@ class HomeViewModel @Inject constructor(
                 val today = LocalDate.now()
                 val todayYm = YearMonth.of(today.year, today.monthValue)
                 if (unifiedMode) {
-                    budgetGroupRepository.getGroupSpendingAllCurrencies(todayYm.year, todayYm.monthValue)
+                    // Recounted when a rate changes too, as the Budgets screen is.
+                    combine(
+                        budgetGroupRepository.getGroupSpendingAllCurrencies(todayYm.year, todayYm.monthValue),
+                        currencyConversionService.getAllRatesFlow()
+                    ) { raw, _ -> raw }
                         .map { raw ->
                             homeBudgetSummary(raw, displayCurrency, baseCurrency, convert)
                         }

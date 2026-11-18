@@ -131,6 +131,7 @@ class BudgetRolloverRoutingTest {
                 else -> firstArg()
             }
         }
+        every { getAllRatesFlow() } returns flowOf(emptyList())
     }
 
     private fun overall(

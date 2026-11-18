@@ -43,7 +43,12 @@ class BudgetSummaryProvider @Inject constructor(
             Triple(baseCurrency, unifiedMode, displayCurrency)
         }.flatMapLatest { (baseCurrency, unifiedMode, displayCurrency) ->
             if (unifiedMode) {
-                budgetGroupRepository.getGroupSpendingAllCurrencies(yearMonth.year, yearMonth.monthValue)
+                // Recounted when a rate changes too: a rate added from a budget's missing-rate
+                // link shows on return, its carry included.
+                combine(
+                    budgetGroupRepository.getGroupSpendingAllCurrencies(yearMonth.year, yearMonth.monthValue),
+                    currencyConversionService.getAllRatesFlow()
+                ) { raw, _ -> raw }
                     .map { raw -> convertRawToSummary(raw, displayCurrency, baseCurrency) }
             } else {
                 budgetGroupRepository.getGroupSpending(yearMonth.year, yearMonth.monthValue, baseCurrency)

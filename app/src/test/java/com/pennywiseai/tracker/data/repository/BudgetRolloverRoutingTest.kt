@@ -20,7 +20,7 @@ import com.pennywiseai.tracker.domain.spending.MoneyAlertRules
 import com.pennywiseai.tracker.presentation.budgetgroups.historyBudgetTotal
 import com.pennywiseai.tracker.presentation.home.homeBudgetSummary
 import com.pennywiseai.tracker.utils.Money
-import com.pennywiseai.tracker.widget.budgetWidgetData
+import com.pennywiseai.tracker.widget.widgetLimitUsage
 import io.mockk.coEvery
 import io.mockk.every
 import io.mockk.mockk
@@ -167,11 +167,6 @@ class BudgetRolloverRoutingTest {
         assertFigures(summary(repo, unified = false), carry = "40", limit = "140", remaining = "110")
         assertFigures(summary(repo, unified = true), carry = "40", limit = "140", remaining = "110")
         assertFigures(home(repo), carry = "40", limit = "140", remaining = "110")
-        for (unified in listOf(false, true)) {
-            val widget = budgetWidgetData(overall(repo, unified), overall(repo, unified))
-            assertEquals(0, BigDecimal("140").compareTo(widget.totalLimit))
-            assertEquals(0, BigDecimal("110").compareTo(widget.remaining))
-        }
     }
 
     @Test
@@ -224,7 +219,7 @@ class BudgetRolloverRoutingTest {
         for (unified in listOf(false, true)) {
             val overall = overall(repo, unified)
             // The widget shows it used up, not its "create a budget" empty state.
-            val widget = budgetWidgetData(overall, overall)
+            val widget = widgetLimitUsage(overall.groups)
             assertTrue(widget.hasLimit)
             assertEquals(100f, widget.percentageUsed)
         }

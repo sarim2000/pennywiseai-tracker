@@ -112,7 +112,8 @@ object BackupReceipts {
             val capped = ReceiptFiles.isPdfPath(receipt.path)
             if (capped && receipt.dataBase64.length > encodedLength(maxFileBytes)) {
                 Log.w(TAG, "Skipped an oversized receipt in backup")
-                skipped++
+                // A copy already on the device still opens, so it isn't reported as missing.
+                if (!target.exists()) skipped++
                 continue
             }
             try {
@@ -122,7 +123,7 @@ object BackupReceipts {
                 // a multiple of 3 and the text drops its padding.
                 if (capped && bytes.size > maxFileBytes) {
                     Log.w(TAG, "Skipped an oversized receipt in backup")
-                    skipped++
+                    if (!target.exists()) skipped++
                     continue
                 }
                 if (target.exists()) {

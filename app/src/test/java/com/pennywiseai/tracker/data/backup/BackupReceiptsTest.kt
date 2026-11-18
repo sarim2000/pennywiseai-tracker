@@ -168,6 +168,18 @@ class BackupReceiptsTest {
         assertEquals(12L, File(filesDir, path).length())
     }
 
+    @Test
+    fun restore_doesNotReportAnOversizedPdfThatIsAlreadyOnTheDevice() {
+        val filesDir = tmp.newFolder("files")
+        val path = "receipts/kept.pdf"
+        File(filesDir, "receipts").mkdirs()
+        File(filesDir, path).writeBytes(ByteArray(12) { 5 })
+
+        val restored = BackupReceipts.restore(filesDir, listOf(BackupReceipt(path, b64(ByteArray(12) { 5 }))), setOf(path), maxFileBytes = 8)
+
+        assertEquals(BackupReceipts.Restored(written = 0, skipped = 0), restored)
+    }
+
     /** A file exactly at the limit still restores: the length check matches Base64 padding. */
     @Test
     fun restore_acceptsAFileExactlyAtTheLimit() {

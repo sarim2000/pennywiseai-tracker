@@ -35,8 +35,9 @@ internal const val COVER_TEXT_TARGET = TEXT_CONTRAST + 0.1f
  * [style]'s gradient stops for Home, each moved toward black or white (in Oklab, so the
  * hue holds) just far enough that the header's inks read on it at 4.5:1 once drawn at
  * [COVER_ALPHA] over [ColorScheme.background]. Stops that already pass keep their exact
- * colour. Midpoints become stops too, since a blend of two stops can dip under either;
- * they're taken in sRGB, as the brush draws, so a gradient that passes renders unchanged.
+ * colour, and a gradient that passes everywhere comes back as is. Otherwise midpoints become
+ * stops too, since a blend of two stops can dip under either; they're taken in sRGB, as the
+ * brush draws.
  *
  * The banner adapts rather than the inks: a pale stop on a dark theme (Lavender Mist,
  * Rose Gold) is too light for even pure white, but darkening the stop always works.
@@ -54,7 +55,9 @@ fun ColorScheme.readableCoverStops(style: CoverStyle, forPreview: Boolean = fals
     fun drawn(c: Color) = c.copy(alpha = COVER_ALPHA).compositeOver(background)
     fun reads(c: Color) = inks.minOf { contrastRatio(it, drawn(c)) } >= COVER_TEXT_TARGET
     val withMids = raw.zipWithNext { a, b -> listOf(a, srgbMidpoint(a, b)) }.flatten() + raw.last()
-    val stops = withMids.map { stop ->
+    // A gradient that reads everywhere keeps its own stops: a midpoint stored in 8 bits can sit
+    // half a step off the brush's blend.
+    val stops = if (withMids.all(::reads)) raw else withMids.map { stop ->
         if (reads(stop)) return@map stop
         var lo = 0f
         var hi = 1f

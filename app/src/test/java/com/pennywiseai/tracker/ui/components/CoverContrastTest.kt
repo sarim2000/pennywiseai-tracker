@@ -67,8 +67,8 @@ class CoverContrastTest {
 
     @Test
     fun aGradientThatAlreadyPasses_rendersExactlyAsBefore() {
-        // Inserting a stop at the sRGB midpoint is a no-op for a linear brush, so wherever no
-        // stop needed nudging, the drawn gradient must be the original one, byte for byte.
+        // A gradient whose stops and midpoints all pass comes back as the original stops, byte
+        // for byte; in one that doesn't, every stop that already passed keeps its colour.
         // Which stops pass is decided from the input, independently of readableCoverStops.
         var untouchedGradients = 0
         schemes.forEach { (name, scheme) ->
@@ -81,13 +81,14 @@ class CoverContrastTest {
                 val raw = getCoverGradientColors(cover, scheme.isDark)
                 val asDrawn = raw.zipWithNext { a, b -> listOf(a, srgbMidpoint(a, b)) }.flatten() + raw.last()
                 val result = scheme.readableCoverStops(cover)
+                if (asDrawn.all(::reads)) {
+                    assertEquals("$name/$cover already passed", raw, result)
+                    untouchedGradients++
+                    return@forEach
+                }
                 assertEquals("$name/$cover", asDrawn.size, result.size)
                 asDrawn.zip(result).forEachIndexed { i, (before, after) ->
                     if (reads(before)) assertEquals("$name/$cover stop $i already passed", before, after)
-                }
-                if (asDrawn.all(::reads)) {
-                    assertEquals("$name/$cover already passed", asDrawn, result)
-                    untouchedGradients++
                 }
             }
         }

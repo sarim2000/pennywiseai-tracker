@@ -777,6 +777,25 @@ class ChatTurnTest {
     }
 
     @Test
+    fun `a category saved as General is that category, a model's general is all spending`() = runTest {
+        coEvery { aiContext.categorySpending(any(), any(), any()) } returns spent("40")
+        coEvery { aiContext.spending(any(), any()) } returns com.pennywiseai.tracker.data.model.PeriodSpending(
+            spent("1").scope,
+            spent = mapOf("INR" to BigDecimal("700")),
+            income = emptyMap(),
+        )
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("category" to "general")))
+        send("how much in all?")
+        coVerify(exactly = 0) { aiContext.categorySpending(any(), any(), any()) }
+        coVerify(exactly = 1) { aiContext.spending(any(), any()) }
+
+        every { categories.getAllCategories() } returns flowOf(listOf(CategoryEntity(id = 4, name = "General", color = "#000")))
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("category" to "general")))
+        assertEquals("SPEND", send("how much on general?"))
+        coVerify(exactly = 1) { aiContext.categorySpending("General", any(), any()) }
+    }
+
+    @Test
     fun `a category lookup reads hidden categories and names only found on transactions`() = runTest {
         coEvery { aiContext.categorySpending(any(), any(), any()) } returns spent()
         suspend fun lookup(category: String): String {

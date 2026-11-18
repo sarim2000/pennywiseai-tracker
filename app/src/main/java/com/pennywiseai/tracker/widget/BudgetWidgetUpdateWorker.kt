@@ -21,6 +21,7 @@ import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.budgetPercentUsed
+import com.pennywiseai.tracker.data.repository.budgetSpend
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -168,7 +169,11 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                             catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
                         }
                     )
-                    val totalActual = if (isTrackingAll) {
+                    // A rollover budget counts its own window, as on Budgets, so the carry
+                    // isn't set against a month of a weekly budget's spending.
+                    val totalActual = if (group.budget.rolloverEnabled) {
+                        budgetSpend(group, raw.currentWindowTransactions(group.budget.id).orEmpty(), raw.parentOf, convertSplit).amount
+                    } else if (isTrackingAll) {
                         categoryAmounts.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
                     } else {
                         catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }

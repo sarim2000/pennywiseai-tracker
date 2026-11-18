@@ -219,6 +219,15 @@ data class BudgetGroupSpendingRaw(
     /** Sub-category → parent name, for [budgetSpend]: live totals and [budgetCarry] alike. */
     val parentOf: Map<String, String> = emptyMap()
 ) {
+    /**
+     * The transactions in [budgetId]'s current window as the Budgets screen counts
+     * them (up to today), or null without one.
+     */
+    fun currentWindowTransactions(budgetId: Long): List<TransactionWithSplits>? =
+        currentWindows[budgetId]?.let { window ->
+            windowedSpend.firstOrNull { it.budgetId == budgetId && it.window == window }?.transactions
+        }
+
     /** What [group] carries into its current window, in [currency]; see [budgetCarry]. */
     suspend fun carryFor(
         group: BudgetWithCategories,

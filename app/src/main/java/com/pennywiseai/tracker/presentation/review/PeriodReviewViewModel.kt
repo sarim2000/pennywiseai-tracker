@@ -7,6 +7,7 @@ import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.data.export.PdfReportExporter
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.ProfileRepository
@@ -50,7 +51,11 @@ class PeriodReviewViewModel @Inject constructor(
     private val profileRepository: ProfileRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
     @param:ApplicationContext private val context: Context,
+    entitlementGate: EntitlementGate,
 ) : ViewModel() {
+
+    /** A PDF report is data going out, Pro as CSV export is; the screen offers the upgrade instead. */
+    val isProEntitled: StateFlow<Boolean> = entitlementGate.isProEntitled
 
     // The route says which tab to open on; once chosen, the choice survives process death.
     private val _selection = MutableStateFlow(
@@ -87,7 +92,7 @@ class PeriodReviewViewModel @Inject constructor(
      */
     fun exportPdf(title: String) {
         val shown = review.value ?: return
-        if (_exportingPdf.value) return
+        if (_exportingPdf.value || !isProEntitled.value) return
         _exportingPdf.value = true
         viewModelScope.launch {
             val uri = try {

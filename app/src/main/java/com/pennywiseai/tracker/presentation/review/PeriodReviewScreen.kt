@@ -75,6 +75,7 @@ import com.pennywiseai.tracker.domain.review.isCalendarMonth
 import com.pennywiseai.tracker.domain.review.latestReviewOffset
 import com.pennywiseai.tracker.domain.review.partialYearSpan
 import com.pennywiseai.tracker.domain.review.percentChange
+import com.pennywiseai.tracker.presentation.paywall.UpgradeSheet
 import com.pennywiseai.tracker.presentation.share.ShareCardSheet
 import com.pennywiseai.tracker.ui.components.CategoryIcon
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
@@ -113,6 +114,8 @@ fun PeriodReviewScreen(
     val loaded = review
     val shareLabel = loaded?.let { shareLabel(it) }
     val exportingPdf by viewModel.exportingPdf.collectAsStateWithLifecycle()
+    val isProEntitled by viewModel.isProEntitled.collectAsStateWithLifecycle()
+    var showUpgradeSheet by remember { mutableStateOf(false) }
     val context = LocalContext.current
 
     // For its result alone: it says when the share sheet has closed.
@@ -148,7 +151,10 @@ fun PeriodReviewScreen(
                 val label = stringResource(R.string.review_export_pdf)
                 NamedAction(label) {
                     IconButton(
-                        onClick = { viewModel.exportPdf(title) },
+                        onClick = {
+                            // Data going out is Pro, as CSV export is.
+                            if (isProEntitled) viewModel.exportPdf(title) else showUpgradeSheet = true
+                        },
                         enabled = !exportingPdf,
                         shapes = IconButtonDefaults.shapes(),
                     ) {
@@ -215,6 +221,9 @@ fun PeriodReviewScreen(
 
     shareWindow?.let { window ->
         ShareCardSheet(window = window, onDismiss = { shareWindow = null })
+    }
+    if (showUpgradeSheet) {
+        UpgradeSheet(onDismiss = { showUpgradeSheet = false })
     }
 }
 

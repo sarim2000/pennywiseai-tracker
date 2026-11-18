@@ -5,6 +5,8 @@
     <string name="review_back">Back</string>
     <string name="review_share">Share</string>
     <string name="review_export_pdf">Export PDF</string>
+    <!-- Paywall list of what Pro includes -->
+    <string name="upgrade_feature_pdf_reports">Monthly and yearly PDF reports</string>
     <string name="review_export_pdf_failed">Couldn\'t create the PDF. Try again.</string>
     <!-- Shown as a PDF is shared while the user hides amounts in the app -->
     <string name="review_export_pdf_shows_amounts">The PDF shows amounts, even while they\'re hidden in the app.</string>

@@ -5,6 +5,8 @@
     <string name="review_back">رجوع</string>
     <string name="review_share">مشاركة</string>
     <string name="review_export_pdf">تصدير PDF</string>
+    <!-- Paywall list of what Pro includes -->
+    <string name="upgrade_feature_pdf_reports">تقارير PDF شهرية وسنوية</string>
     <string name="review_export_pdf_failed">تعذّر إنشاء ملف PDF. حاول مرة أخرى.</string>
     <!-- Shown as a PDF is shared while the user hides amounts in the app -->
     <string name="review_export_pdf_shows_amounts">يعرض ملف PDF المبالغ، حتى وهي مخفية في التطبيق.</string>

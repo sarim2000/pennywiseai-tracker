@@ -5,7 +5,7 @@ import java.math.BigDecimal
 import java.math.RoundingMode
 
 /**
- * A usual cycle in one currency: the average income and spending of the [CYCLES]
+ * A usual cycle in one currency: the average spending of the [CYCLES]
  * complete cycles before the current one, by Period Review's definitions (spending
  * net of refunds). The runway reads it through [of].
  *
@@ -13,10 +13,7 @@ import java.math.RoundingMode
  * under its headline spend rules (any recorded row makes a cycle count), so the two
  * figures can differ for the same months.
  */
-data class CycleAverages(val currency: String, val income: BigDecimal, val spent: BigDecimal) {
-    /** What a usual cycle leaves over; negative when more goes out than comes in. */
-    val surplus: BigDecimal get() = income - spent
-
+data class CycleAverages(val currency: String, val spent: BigDecimal) {
     companion object {
         const val CYCLES = 3
 
@@ -40,9 +37,8 @@ data class CycleAverages(val currency: String, val income: BigDecimal, val spent
         fun of(cycles: Map<String, List<CycleTotal>>): Map<String, CycleAverages> =
             cycles.mapNotNull { (currency, list) ->
                 val previous = list.dropLast(1).asReversed().map { cycle -> cycle.takeIf { it.hasActivity } }
-                val income = mean(previous.map { it?.income }, scale = 2) ?: return@mapNotNull null
                 val spent = mean(previous.map { it?.spent }, scale = 2) ?: return@mapNotNull null
-                currency to CycleAverages(currency, income, spent)
+                currency to CycleAverages(currency, spent)
             }.toMap()
     }
 }

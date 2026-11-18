@@ -69,9 +69,7 @@ class CycleAveragesTest {
             )
         )
         val inr = averages.getValue("INR")
-        assertEquals(d("52000.00"), inr.income)
         assertEquals(d("33000.00"), inr.spent)
-        assertEquals(d("19000.00"), inr.surplus)
         assertTrue("USD" !in averages)
     }
 
@@ -81,13 +79,5 @@ class CycleAveragesTest {
             mapOf("INR" to listOf(cycle(8, "100", "50"), cycle(9, "0", "0"), cycle(10, "100", "50"), cycle(11, "0", "0")))
         )
         assertTrue(averages.isEmpty())
-    }
-
-    @Test
-    fun `spending more than earning gives a negative surplus`() {
-        val inr = CycleAverages.of(
-            mapOf("INR" to listOf(cycle(8, "100", "150"), cycle(9, "100", "150"), cycle(10, "100", "150"), cycle(11, "0", "0")))
-        ).getValue("INR")
-        assertEquals(d("-50.00"), inr.surplus)
     }
 }

@@ -349,12 +349,14 @@ object InsightRules {
         return review.currencies.mapNotNull { c ->
             if (c.income.signum() <= 0) return@mapNotNull null
             val saved = c.income - c.spent
-            val percent = saved.multiply(HUNDRED).divide(c.income, 0, RoundingMode.HALF_UP).toInt()
+            // Classified before narrowing: a tiny income can put it past Int's range.
+            val exact = saved.multiply(HUNDRED).divide(c.income, 0, RoundingMode.HALF_UP)
             val severity = when {
-                percent >= GOOD_SAVINGS_PERCENT -> InsightSeverity.GOOD
-                percent < 0 -> InsightSeverity.WARNING
+                exact >= BigDecimal(GOOD_SAVINGS_PERCENT) -> InsightSeverity.GOOD
+                exact.signum() < 0 -> InsightSeverity.WARNING
                 else -> return@mapNotNull null
             }
+            val percent = exact.max(BigDecimal(-MAX_SHOWN_PERCENT)).toInt()
             Insight(
                 id("savings_rate", period, c.currency, "cycle:${severity.name}"), severity, c.currency,
                 SavingsRate(Money(c.income, c.currency), Money(saved, c.currency), percent), null,
@@ -475,6 +477,9 @@ object InsightRules {
     private const val BASELINE_CYCLES = 3
     private const val MIN_BASELINE = 2
     private const val MIN_SAMPLES = 5
+
+    /** A savings rate below this reads the same: income was a rounding error next to spending. */
+    private const val MAX_SHOWN_PERCENT = 999
     private const val LARGE_TIMES = 3
     private const val MAX_PER_RULE = 3
     private const val GOOD_SAVINGS_PERCENT = 20

@@ -258,6 +258,17 @@ class InsightRulesTest {
     }
 
     @Test
+    fun `a tiny income against huge spending is a warning, not a wrapped-around gain`() {
+        val rows = listOf(
+            tx("2026-11-01", "0.01", type = TransactionType.INCOME, category = "Salary"),
+            tx("2026-11-03", "300000"),
+        )
+        val rate = evaluate(rows = rows).single { it.fact is SavingsRate }
+        assertEquals(InsightSeverity.WARNING, rate.severity)
+        assertEquals(-999, (rate.fact as SavingsRate).percent)
+    }
+
+    @Test
     fun `no savings rate without income, or in the cycle's first days`() {
         assertTrue(evaluate(rows = listOf(tx("2026-11-03", "700"))).facts<SavingsRate>().isEmpty())
         assertTrue(evaluate(rows = salaryAndSpend("700"), on = LocalDate.parse("2026-11-04")).facts<SavingsRate>().isEmpty())

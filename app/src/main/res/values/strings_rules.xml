@@ -356,7 +356,11 @@
     <string name="chat_quick_month_spend">Spending this month</string>
     <string name="chat_quick_top_categories">Top categories</string>
     <string name="chat_quick_compare_month">Compare with last month</string>
-    <string name="chat_quick_bills">Bills due next 7 days</string>
+    <!-- Chat prompt: bills due within the next %d days (PlanningRepository.BILLS_AHEAD_DAYS) -->
+    <plurals name="chat_quick_bills">
+        <item quantity="one">Bills due next %d day</item>
+        <item quantity="other">Bills due next %d days</item>
+    </plurals>
     <string name="chat_quick_budgets">Budget remaining</string>
     <!-- Chat prompt shown while bills wait past their date; tapping it lists them -->
     <plurals name="chat_quick_bills_overdue">

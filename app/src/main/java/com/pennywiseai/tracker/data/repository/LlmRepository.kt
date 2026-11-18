@@ -814,7 +814,7 @@ class LlmRepository @Inject constructor(
      */
     private suspend fun creditAsExpense() = userPreferencesRepository.countCreditCardAsExpense.first()
 
-    suspend fun answerQuickAction(action: QuickAction, question: String = context.getString(action.label)) {
+    suspend fun answerQuickAction(action: QuickAction, question: String = action.text(context)) {
         _lastReply.value = null
         // For the reply's mascot: the shape of the tool asked the same question, and its figure.
         var subject = ReplySubject(tool = action.tool)
@@ -1253,10 +1253,21 @@ class LlmRepository @Inject constructor(
  * the tool that answers the same question, whose shape its reply's mascot takes. [BUDGETS]
  * and [BILLS] are offered only while they have something to say (ChatSuggestions).
  */
-enum class QuickAction(@androidx.annotation.StringRes val label: Int, val tool: String) {
+enum class QuickAction(private val label: Int, val tool: String) {
     MONTH_SPEND(R.string.chat_quick_month_spend, PennyWiseTools.QUERY_SPENDING),
     TOP_CATEGORIES(R.string.chat_quick_top_categories, PennyWiseTools.QUERY_SPENDING),
     COMPARE_MONTH(R.string.chat_quick_compare_month, PennyWiseTools.COMPARE_SPENDING),
-    BILLS(R.string.chat_quick_bills, PennyWiseTools.PLANNING_STATUS),
+
+    /** Its label is a plural: it names how many days ahead the answer looks. */
+    BILLS(R.plurals.chat_quick_bills, PennyWiseTools.PLANNING_STATUS),
     BUDGETS(R.string.chat_quick_budgets, PennyWiseTools.PLANNING_STATUS),
+    ;
+
+    /** The prompt as the chip shows it and the chat records the question. */
+    fun text(context: Context): String = if (this == BILLS) {
+        val days = PlanningRepository.BILLS_AHEAD_DAYS.toInt()
+        context.resources.getQuantityString(label, days, days)
+    } else {
+        context.getString(label)
+    }
 }

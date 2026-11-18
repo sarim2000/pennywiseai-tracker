@@ -26,6 +26,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -1123,7 +1124,7 @@ private fun QuickActionChips(
             val label = if (suggestion.overdue > 0) {
                 pluralStringResource(R.plurals.chat_quick_bills_overdue, suggestion.overdue, suggestion.overdue)
             } else {
-                stringResource(suggestion.action.label)
+                suggestion.action.text(LocalContext.current)
             }
             SuggestionChip(
                 onClick = { onAsk(suggestion.action, label) },

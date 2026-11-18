@@ -397,7 +397,14 @@
     <string name="chat_quick_month_spend">الإنفاق هذا الشهر</string>
     <string name="chat_quick_top_categories">الفئات الأعلى إنفاقًا</string>
     <string name="chat_quick_compare_month">قارن بالشهر الماضي</string>
-    <string name="chat_quick_bills">الفواتير المستحقة خلال 7 أيام</string>
+    <plurals name="chat_quick_bills">
+        <item quantity="zero">الفواتير المستحقة اليوم</item>
+        <item quantity="one">الفواتير المستحقة خلال %d يوم</item>
+        <item quantity="two">الفواتير المستحقة خلال يومين</item>
+        <item quantity="few">الفواتير المستحقة خلال %d أيام</item>
+        <item quantity="many">الفواتير المستحقة خلال %d يومًا</item>
+        <item quantity="other">الفواتير المستحقة خلال %d يوم</item>
+    </plurals>
     <string name="chat_quick_budgets">المتبقي من الميزانية</string>
     <plurals name="chat_quick_bills_overdue">
         <item quantity="zero">لا فواتير متأخرة</item>

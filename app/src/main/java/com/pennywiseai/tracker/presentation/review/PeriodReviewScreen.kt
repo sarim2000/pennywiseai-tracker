@@ -1,5 +1,8 @@
 package com.pennywiseai.tracker.presentation.review
 
+import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.core.MutableTransitionState
+import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
@@ -18,8 +21,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Share
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.HorizontalDivider
@@ -29,9 +30,6 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.core.MutableTransitionState
-import androidx.compose.animation.fadeIn
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -52,21 +50,20 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.data.share.ShareWindow
 import com.pennywiseai.tracker.domain.review.CategoryLine
 import com.pennywiseai.tracker.domain.review.CurrencyReview
 import com.pennywiseai.tracker.domain.review.PeriodReview
 import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.domain.review.ReviewRange
-import com.pennywiseai.tracker.domain.review.isCalendarMonth
 import com.pennywiseai.tracker.domain.review.latestReviewOffset
-import com.pennywiseai.tracker.domain.review.partialYearSpan
 import com.pennywiseai.tracker.domain.review.percentChange
-import com.pennywiseai.tracker.presentation.share.ShareCardSheet
 import com.pennywiseai.tracker.ui.components.CategoryIcon
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
+import com.pennywiseai.tracker.ui.components.PeriodSwitcher
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.comparisonTarget
+import com.pennywiseai.tracker.ui.components.periodLabel
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
@@ -74,11 +71,9 @@ import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
-import com.pennywiseai.tracker.utils.DateRangeUtils
 import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.changeText
 import java.time.LocalDate
-import java.util.Locale
 
 /**
  * What changed in a finished week or cycle, and where a year went. Neutral on purpose:
@@ -91,14 +86,13 @@ import java.util.Locale
 fun PeriodReviewScreen(
     onNavigateBack: () -> Unit,
     onOpenCategory: (category: String, currency: String, start: LocalDate, end: LocalDate) -> Unit,
+    onShare: (ReviewKind, offset: Int, today: LocalDate) -> Unit = { _, _, _ -> },
     viewModel: PeriodReviewViewModel = hiltViewModel(),
 ) {
     val selection by viewModel.selection.collectAsStateWithLifecycle()
     val review by viewModel.review.collectAsStateWithLifecycle()
-    var shareWindow by remember { mutableStateOf<ShareWindow?>(null) }
     var hasAnimated by rememberSaveable { mutableStateOf(false) }
     val loaded = review
-    val shareLabel = loaded?.let { shareLabel(it) }
 
     PennyWiseScaffold(
         title = stringResource(R.string.review_title),
@@ -108,9 +102,10 @@ fun PeriodReviewScreen(
             }
         },
         actions = {
-            if (loaded != null && shareLabel != null && loaded.firstRecorded != null) {
+            if (loaded != null && loaded.firstRecorded != null) {
                 IconButton(
-                    onClick = { shareWindow = ShareWindow(loaded.range.start, loaded.range.end, shareLabel) },
+                    // The studio opens on the period shown here, built from the same review.
+                    onClick = { onShare(selection.kind, selection.offset, selection.today) },
                     shapes = IconButtonDefaults.shapes(),
                 ) {
                     Icon(Icons.Default.Share, contentDescription = stringResource(R.string.review_share))
@@ -161,10 +156,6 @@ fun PeriodReviewScreen(
             }
         }
     }
-
-    shareWindow?.let { window ->
-        ShareCardSheet(window = window, onDismiss = { shareWindow = null })
-    }
 }
 
 @Composable
@@ -197,44 +188,6 @@ private fun ReviewContent(
                 )
             }
             item { CoverageNote(loaded) }
-        }
-    }
-}
-
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
-@Composable
-private fun PeriodSwitcher(
-    label: String,
-    canGoOlder: Boolean,
-    canGoNewer: Boolean,
-    onOlder: () -> Unit,
-    onNewer: () -> Unit,
-) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(vertical = Spacing.xs),
-        verticalAlignment = Alignment.CenterVertically,
-    ) {
-        IconButton(onClick = onOlder, enabled = canGoOlder, shapes = IconButtonDefaults.shapes()) {
-            Icon(
-                Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                contentDescription = stringResource(R.string.review_older),
-            )
-        }
-        Text(
-            text = label,
-            style = MaterialTheme.typography.titleMedium,
-            textAlign = TextAlign.Center,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
-        )
-        IconButton(onClick = onNewer, enabled = canGoNewer, shapes = IconButtonDefaults.shapes()) {
-            Icon(
-                Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = stringResource(R.string.review_newer),
-            )
         }
     }
 }
@@ -437,41 +390,8 @@ private fun comparisonText(review: CurrencyReview, range: ReviewRange): String? 
     // A percent says how the amounts relate, so it hides with them, as on Home.
     if (AmountPrivacy.hidden) return null
     val change = percentChange(review.spent, review.previousSpent) ?: return null
-    val target = when (range.kind) {
-        ReviewKind.WEEK -> stringResource(R.string.review_target_week)
-        ReviewKind.MONTH ->
-            if (range.isCalendarMonth()) range.previousStart.format(AppDates.pattern("MMMM"))
-            else stringResource(R.string.review_target_cycle)
-        ReviewKind.YEAR ->
-            if (range.isComplete) range.previousStart.year.toString()
-            else stringResource(R.string.review_target_same_span, range.previousStart.year)
-    }
-    return changeText(LocalContext.current, change, target)
+    return changeText(LocalContext.current, change, comparisonTarget(range))
 }
-
-/** Explicit dates on a non-calendar cycle: "October" would be wrong for 25 Sep – 24 Oct. */
-@Composable
-private fun periodLabel(range: ReviewRange): String = when (range.kind) {
-    ReviewKind.WEEK -> DateRangeUtils.formatDateRange(range.start, range.end)
-    ReviewKind.MONTH ->
-        if (range.isCalendarMonth()) range.start.format(AppDates.pattern("MMMM yyyy"))
-        else DateRangeUtils.formatDateRange(range.start, range.end)
-    ReviewKind.YEAR ->
-        if (range.isComplete) range.start.year.toString()
-        else stringResource(R.string.review_year_so_far, range.start.year)
-}
-
-@Composable
-private fun shareLabel(review: PeriodReview): String {
-    if (review.range.kind != ReviewKind.YEAR) return periodLabel(review.range).uppercase(Locale.getDefault())
-    val span = partialYearSpan(review.firstRecorded, review.lastRecorded)
-        ?: return review.range.start.year.toString()
-    val months = AppDates.pattern("MMM")
-    return "${span.first.format(months)} – ${span.second.format(months)} ${span.first.year}"
-        .uppercase(Locale.getDefault())
-}
-
-private fun ReviewRange.isCalendarMonth(): Boolean = isCalendarMonth(start, end)
 
 /** A month with almost nothing still shows a sliver, so it doesn't read as missing data. */
 private const val MIN_BAR_FRACTION = 0.02f

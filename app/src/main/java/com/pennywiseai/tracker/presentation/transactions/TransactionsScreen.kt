@@ -68,6 +68,9 @@ fun TransactionsScreen(
     initialCustomStartEpochDay: Long? = null,
     initialCustomEndEpochDay: Long? = null,
     currencyOnly: Boolean = false,
+    // Only initialProfileId's rows (null for all), leaving the selected profile as it is
+    profilePinned: Boolean = false,
+    initialProfileId: Long? = null,
     // Account key / tag carried by an analytics group drill-down (#422)
     initialAccount: String? = null,
     initialTag: String? = null,
@@ -202,6 +205,7 @@ fun TransactionsScreen(
             initialTransactionType
         )
         if (currencyOnly) initialCurrency?.let(viewModel::pinCurrency)
+        if (profilePinned) viewModel.pinProfile(initialProfileId)
     }
 
     // Track if we've already processed these specific nav params

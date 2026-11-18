@@ -11,9 +11,6 @@ import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.core.stringSetPreferencesKey
 import com.pennywiseai.tracker.core.DateFormatStyle
 import com.pennywiseai.tracker.core.NumberFormatStyle
-import com.pennywiseai.tracker.data.share.ShareCardConfig
-import com.pennywiseai.tracker.data.share.ShareHero
-import com.pennywiseai.tracker.data.share.SharePeriod
 import com.pennywiseai.tracker.domain.spending.BudgetAlertTier
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -155,10 +152,7 @@ class UserPreferencesStorageGoldenTest {
         assertNull(repository.lastStatementImportAt.first())
         assertNull(repository.getStatementColumnMappings())
 
-        // Home, share card and recurring suggestions.
-        val share = repository.shareCardConfig.first()
-        assertEquals("TRANSACTIONS", share.hero.name)
-        assertEquals("THIS_MONTH", share.period.name)
+        // Home and recurring suggestions.
         assertEquals(
             listOf(
                 "SAFE_TO_SPEND", "BUDGETS", "INSIGHTS", "RECENT_TRANSACTIONS", "ACCOUNTS", "SUBSCRIPTIONS",
@@ -264,8 +258,6 @@ class UserPreferencesStorageGoldenTest {
             it[long("last_statement_import_at")] = 5_000L
             it[string("statement_column_mappings")] = "{}"
 
-            it[string("share_card_hero")] = "MERCHANTS"
-            it[string("share_card_period")] = "ALL_TIME"
             it[string("home_sections")] = "BUDGETS,!GROUPS"
             it[stringSet("safe_to_spend_excluded_accounts")] = setOf("TestBank_0000")
             it[stringSet("dismissed_recurring_suggestions")] = setOf("suggestion-1")
@@ -369,9 +361,6 @@ class UserPreferencesStorageGoldenTest {
         assertEquals(5_000L, repository.lastStatementImportAt.first())
         assertEquals("{}", repository.getStatementColumnMappings())
 
-        val share = repository.shareCardConfig.first()
-        assertEquals("MERCHANTS", share.hero.name)
-        assertEquals("ALL_TIME", share.period.name)
         val layout = repository.homeSectionLayout.first().associate { (section, visible) -> section.name to visible }
         assertEquals(true, layout["BUDGETS"])
         assertEquals(false, layout["GROUPS"])
@@ -451,9 +440,6 @@ class UserPreferencesStorageGoldenTest {
         assertEquals("INTERNATIONAL", stored()[string("number_format_style")])
         repository.updateDateFormatStyle(DateFormatStyle.DMY_NUMERIC)
         assertEquals("DMY_NUMERIC", stored()[string("date_format_style")])
-        repository.setShareCardConfig(ShareCardConfig(hero = ShareHero.SUBSCRIPTIONS, period = SharePeriod.LAST_MONTH))
-        assertEquals("SUBSCRIPTIONS", stored()[string("share_card_hero")])
-        assertEquals("LAST_MONTH", stored()[string("share_card_period")])
 
         repository.updateDarkThemeEnabled(true)
         assertEquals(true, stored()[bool("dark_theme_enabled")])

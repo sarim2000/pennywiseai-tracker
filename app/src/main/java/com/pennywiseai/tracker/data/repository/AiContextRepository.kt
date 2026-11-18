@@ -166,7 +166,7 @@ class AiContextRepository @Inject constructor(
         val scope = scopeOf(filter, today)
         val rows = rows(scope, filter)
         val credit = creditAsExpense(filter)
-        val names = categoriesNamed(category)
+        val names = categoriesNamed(category, rows)
         // A currency refunded in full is nothing spent, as spending() leaves it out.
         val byCurrency = SpendingComparison.spend(rows, names, credit).filterValues { it.signum() > 0 }
         return CategorySpend(
@@ -186,7 +186,8 @@ class AiContextRepository @Inject constructor(
      */
     suspend fun categoryIncome(category: String, today: LocalDate = LocalDate.now(), filter: SpendingFilter = SpendingFilter()): CategorySpend {
         val scope = scopeOf(filter, today)
-        val (byCurrency, count) = SpendingComparison.received(rows(scope, filter), categoriesNamed(category))
+        val rows = rows(scope, filter)
+        val (byCurrency, count) = SpendingComparison.received(rows, categoriesNamed(category, rows))
         return CategorySpend(scope = scope.chat, category = category, byCurrency = byCurrency, transactionCount = count)
     }
 
@@ -212,7 +213,7 @@ class AiContextRepository @Inject constructor(
             }
             else -> null
         }
-        val names = category?.let { categoriesNamed(it) }
+        val names = category?.let { categoriesNamed(it, rows) }
         val ranking = SpendingComparison.ranking(rows, key, names, creditAsExpense = credit)
         val top = ranking.mapValues { (_, cats) -> cats.first().second }
         val forgiven = if (key == null && category == null && !filter.narrowed) forgiven(scope) else emptyMap()
@@ -238,16 +239,27 @@ class AiContextRepository @Inject constructor(
         val (current, previous) = windows.toList().map { scope(it, shown) }
         // Forgiven loan balances count as spent, as on Home (#938); a category comparison leaves them out.
         val (currentLoss, previousLoss) = if (category == null) forgiven(current) to forgiven(previous) else emptyMap<String, BigDecimal>() to emptyMap()
-        return when (val result = SpendingComparison.compare(windows, rows(current), rows(previous), category?.let { categoriesNamed(it) }, currentLoss, previousLoss, creditAsExpense)) {
+        val (rowsNow, rowsBefore) = rows(current) to rows(previous)
+        val names = category?.let { categoriesNamed(it, rowsNow + rowsBefore) }
+        return when (val result = SpendingComparison.compare(windows, rowsNow, rowsBefore, names, currentLoss, previousLoss, creditAsExpense)) {
             is SpendingComparison.Result.Rows -> result.copy(profile = shown.profile)
             is SpendingComparison.Result.NoData -> result.copy(profile = shown.profile)
         }
     }
 
-    /** A parent counts its children, as the category filters do. The model's casing isn't the saved name's. */
-    private suspend fun categoriesNamed(asked: String): Set<String> {
+    /**
+     * The category names a figure for [asked] counts, matched against [rows] exactly. A saved
+     * category (the model's casing isn't the saved name's) counts its children, as the category
+     * filters do, and only the rows spelled as saved: the Transactions list a figure links to and
+     * Analytics match exactly, so a CSV row filed under "food" isn't "Food" there either. A name
+     * no category is saved under (one deleted while rows still carry it) has no link, so it
+     * takes every spelling of it in [rows].
+     */
+    private suspend fun categoriesNamed(asked: String, rows: List<TransactionWithSplits>): Set<String> {
         val all = categoryDao.getAllCategoriesList()
-        return all.expandWithChildren(listOf(all.firstOrNull { it.name.equals(asked, ignoreCase = true) }?.name ?: asked))
+        val saved = all.firstOrNull { it.name.equals(asked, ignoreCase = true) }?.name
+            ?: return SpendingComparison.categoryNames(rows).filterTo(mutableSetOf(asked)) { it.equals(asked, ignoreCase = true) }
+        return all.expandWithChildren(listOf(saved))
     }
 
     companion object {

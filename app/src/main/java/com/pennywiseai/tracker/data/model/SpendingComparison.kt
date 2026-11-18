@@ -131,7 +131,12 @@ object SpendingComparison {
     private fun spending(rows: List<TransactionWithSplits>, creditAsExpense: Boolean) = rows.forTotals()
         .filter { it.transaction.transactionType == TransactionType.EXPENSE || (creditAsExpense && it.transaction.transactionType == TransactionType.CREDIT) }
 
-    private fun Set<String>.includes(name: String) = any { it.equals(name, ignoreCase = true) }
+    /** Exact, as the Transactions list and Analytics match a category: see [categoryNames]. */
+    private fun Set<String>.includes(name: String) = name in this
+
+    /** Every category [rows] are filed under: their own or their splits', and the ones refunds give back to. */
+    fun categoryNames(rows: List<TransactionWithSplits>): Set<String> =
+        rows.flatMapTo(mutableSetOf()) { it.getAmountByCategory().keys } + refunds(rows).map { it.second }
 
     /**
      * Refunds (INCOME + DEDUCT_SPENT) as (currency, category, amount): they come off spending, as on

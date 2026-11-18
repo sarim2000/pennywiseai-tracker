@@ -570,8 +570,8 @@ class LlmRepository @Inject constructor(
                     }
                 unknown -> context.getString(R.string.chat_reply_unknown_category, asked)
                 else -> {
-                    // The figure matched the rows' category in any case; the list matches exactly,
-                    // so a name the category list doesn't spell would open on nothing.
+                    // A name the category list doesn't spell matched the rows in any case; the
+                    // list matches exactly, so its link could open on nothing.
                     if (category == null || known != null) turnLinks += comparisonLinks(result, category)
                     comparisonText(result.alsoTrend(), category) +
                         (result as? SpendingComparison.Result.Rows)?.takeIf { known != null }?.let {

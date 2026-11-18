@@ -310,6 +310,7 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
         if (arrivedAt == shape && morphFrom == null && arrival.value < 1f) {
             pose = arrived(pose, shape, (arrival.value * ARRIVAL_MS).toLong())
         }
+        morphFrom?.let { pose = withCutArrival(pose, it.moves, morph.value) }
         val w = blend.value
         from?.let { if (w < 1f) pose = blendPose(it, pose, w) }
         val target = dragLook ?: look
@@ -439,7 +440,13 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
         val g = shape.geometry(value)
         val here = profileOf(shape, value)
         val stamped = if (arrivedShape == MascotShape.Receipt && shape == MascotShape.Receipt) stampAlpha(arrival.value) else 0f
-        val from = morphFrom ?: return MorphFrom(here, g.eyes, g.pivot, shape, stamp = stamped)
+        // A jar mid-dip or a wallet mid-lean keeps that pose and lets it go through the morph.
+        val moving = if (arrivedShape == shape && arrival.value < 1f) {
+            CutArrival(shape, (arrival.value * ARRIVAL_MS).toLong(), 1f)
+        } else {
+            null
+        }
+        val from = morphFrom ?: return MorphFrom(here, g.eyes, g.pivot, shape, stamp = stamped, moves = moving)
         val p = morph.value
         val w = p.coerceIn(0f, 1f)
         val early = w < 0.5f
@@ -453,6 +460,7 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
             owl = lerp(from.owl, owlness(shape), w),
             stamp = fromStampAlpha(from, w),
             squint = morphEyes(from, p),
+            moves = from.moves?.let { it.copy(weight = cutWeight(it, p)) }?.takeIf { it.weight > 0f },
         )
     }
 

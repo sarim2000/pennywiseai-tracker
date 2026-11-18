@@ -497,15 +497,6 @@ internal fun TransactionReceipt(
                 }
             }
 
-            transaction.warrantyUntil?.let { until ->
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                DetailInfoRow(
-                    icon = Icons.Default.VerifiedUser,
-                    label = stringResource(R.string.warranty_field_label),
-                    value = until.format(AppDates.dateFormatter())
-                )
-            }
-
             // Reference number (prefer extracted reference, fallback to SMS sender)
             val referenceValue = transaction.reference ?: transaction.smsSender
             referenceValue?.let {

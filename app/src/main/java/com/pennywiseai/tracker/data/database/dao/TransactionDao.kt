@@ -5,7 +5,6 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import kotlinx.coroutines.flow.Flow
 import java.math.BigDecimal
-import java.time.LocalDate
 import java.time.LocalDateTime
 
 @Dao
@@ -732,10 +731,6 @@ interface TransactionDao {
      */
     @Query("SELECT DISTINCT merchant_name FROM transactions WHERE is_deleted = 0 AND is_recurring = 1 AND sms_body IS NOT NULL AND currency = :currency")
     suspend fun getBankChargedRecurringMerchants(currency: String): List<String>
-
-    /** Purchases with a warranty that hasn't ended before [today] (ISO dates compare as text). */
-    @Query("SELECT * FROM transactions WHERE is_deleted = 0 AND warranty_until IS NOT NULL AND warranty_until >= :today")
-    suspend fun getWithWarrantyFrom(today: LocalDate): List<TransactionEntity>
 }
 
 private const val RECATEGORIZABLE_FOR_MERCHANT = """

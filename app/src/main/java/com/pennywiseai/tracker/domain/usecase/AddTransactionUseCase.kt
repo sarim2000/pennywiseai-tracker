@@ -16,7 +16,6 @@ import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TagRepository
 import java.math.BigDecimal
 import java.security.MessageDigest
-import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.LocalTime
 import javax.inject.Inject
@@ -43,8 +42,7 @@ class AddTransactionUseCase @Inject constructor(
         currency: String = "INR",
         receiptPath: String? = null,
         budgetCategory: String? = null,
-        budgetImpactType: BudgetImpactType? = null,
-        warrantyUntil: LocalDate? = null
+        budgetImpactType: BudgetImpactType? = null
     ): Long = insert(
         amount = amount,
         merchant = merchant,
@@ -60,8 +58,7 @@ class AddTransactionUseCase @Inject constructor(
         currency = currency,
         receiptPath = receiptPath,
         budgetCategory = budgetCategory,
-        budgetImpactType = budgetImpactType,
-        warrantyUntil = warrantyUntil
+        budgetImpactType = budgetImpactType
     ).also { if (it != -1L) transactionEvents.onSaved(type, TransactionOrigin.MANUAL) }
 
     /** [execute] without the announcement, for [executeAll], whose caller announces the card once it commits. */
@@ -80,8 +77,7 @@ class AddTransactionUseCase @Inject constructor(
         currency: String = "INR",
         receiptPath: String? = null,
         budgetCategory: String? = null,
-        budgetImpactType: BudgetImpactType? = null,
-        warrantyUntil: LocalDate? = null
+        budgetImpactType: BudgetImpactType? = null
     ): Long {
         // Generate a unique hash for manual transactions
         val transactionHash = generateManualTransactionHash(
@@ -111,8 +107,7 @@ class AddTransactionUseCase @Inject constructor(
             updatedAt = LocalDateTime.now(),
             receiptPath = receiptPath,
             budgetCategory = budgetCategory,
-            budgetImpactType = budgetImpactType,
-            warrantyUntil = warrantyUntil
+            budgetImpactType = budgetImpactType
         )
 
         // Insert the transaction, its tags, and any recurring subscription as a

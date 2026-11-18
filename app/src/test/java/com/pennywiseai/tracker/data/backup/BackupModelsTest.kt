@@ -665,52 +665,6 @@ class BackupModelsTest {
         assertEquals(card, restored)
     }
 
-    /** A backup from before schema 71 has no warranty: the transaction restores without one. */
-    @Test
-    fun oldBackupMissingWarranty_defaultsToNone() {
-        val json = """
-        {
-          "database": {
-            "transactions": [
-              {
-                "id": 1,
-                "amount": "899",
-                "merchantName": "Synthetic electronics",
-                "category": "Shopping",
-                "transactionType": "EXPENSE",
-                "dateTime": "2025-01-01T10:00:00",
-                "transactionHash": "synthetic-w1",
-                "receiptPath": "receipts/receipt_1.jpg"
-              }
-            ]
-          }
-        }
-        """.trimIndent()
-
-        val legacy = backupJson.decodeFromString<PennyWiseBackup>(json).database.transactions.single()
-
-        assertNull(legacy.warrantyUntil)
-        assertEquals("receipts/receipt_1.jpg", legacy.receiptPath)
-    }
-
-    @Test
-    fun warrantySurvivesBackupRoundtrip() {
-        val txn = TransactionEntity(
-            amount = BigDecimal("899"),
-            merchantName = "Synthetic electronics",
-            category = "Shopping",
-            transactionType = TransactionType.EXPENSE,
-            dateTime = LocalDateTime.of(2025, 1, 1, 10, 0),
-            transactionHash = "synthetic-w1",
-            receiptPath = "receipts/receipt_1.pdf",
-            warrantyUntil = LocalDate.of(2027, 1, 1),
-        )
-
-        val restored = backupJson.decodeFromString<TransactionEntity>(backupJson.encodeToString(txn))
-
-        assertEquals(txn, restored)
-    }
-
     /** A backup from before schema 70 has no rollover: the budget restores with it off. */
     @Test
     fun oldBackupMissingRollover_defaultsToOff() {

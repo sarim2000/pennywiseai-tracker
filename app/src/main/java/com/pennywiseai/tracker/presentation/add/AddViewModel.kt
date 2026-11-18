@@ -25,7 +25,6 @@ import com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository
 import com.pennywiseai.tracker.domain.usecase.AddSubscriptionUseCase
 import com.pennywiseai.tracker.domain.usecase.AddTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.GetCategoriesUseCase
-import com.pennywiseai.tracker.domain.warranty.canHaveWarranty
 import com.pennywiseai.tracker.presentation.transactions.normalizeReference
 import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.ui.components.pickerDefault
@@ -468,10 +467,6 @@ class AddViewModel @Inject constructor(
         }
     }
 
-    fun updateWarrantyUntil(date: LocalDate?) {
-        _transactionUiState.update { it.copy(warrantyUntil = date) }
-    }
-
     // The check of the receipt last picked; a newer pick or a removal cancels it.
     private var receiptCheck: Job? = null
 
@@ -578,9 +573,7 @@ class AddViewModel @Inject constructor(
                     currency = state.currency,
                     receiptPath = receiptPath,
                     budgetCategory = state.budgetCategory,
-                    budgetImpactType = state.budgetImpactType,
-                    // Only a purchase carries one; a date left over from a type switch is dropped.
-                    warrantyUntil = state.warrantyUntil?.takeIf { state.transactionType.canHaveWarranty() }
+                    budgetImpactType = state.budgetImpactType
                 )
 
                 com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(appContext)
@@ -869,8 +862,6 @@ data class TransactionUiState(
     val receiptError: UiText? = null,
     // A picked receipt is still being checked; Save waits for it.
     val checkingReceipt: Boolean = false,
-    // The purchase's last day under warranty; WarrantyReminderWorker warns ahead of it.
-    val warrantyUntil: LocalDate? = null,
     val budgetImpactType: BudgetImpactType? = null,
     val budgetCategory: String? = null,
     // False until a Duplicate/shared/voice draft has been copied in, so the

@@ -128,8 +128,6 @@ class PennyWiseApplication : Application(), Configuration.Provider {
             com.pennywiseai.tracker.worker.RecurringTransactionWorker.enqueueOneShotCatchUp(this@PennyWiseApplication)
             // "Bill due tomorrow" reminders, each morning at 9.
             com.pennywiseai.tracker.worker.BillReminderWorker.enqueuePeriodic(this@PennyWiseApplication)
-            // "Warranty ends soon" reminders, alongside them.
-            com.pennywiseai.tracker.worker.WarrantyReminderWorker.enqueuePeriodic(this@PennyWiseApplication)
         }
         // The evening recap is opt-in: scheduled only while its switch is on.
         applicationScope.launch {

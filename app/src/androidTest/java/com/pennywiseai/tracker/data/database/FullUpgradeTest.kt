@@ -146,25 +146,5 @@ class FullUpgradeTest {
         } finally { db.close() }
     }
 
-    @Test fun upgradeFrom70LeavesWarrantyUnset() = runBlocking {
-        helper.createDatabase(70).apply {
-            execSQL("""INSERT INTO transactions (id, amount, merchant_name, category, transaction_type, date_time,
-                transaction_hash, is_recurring, created_at, updated_at, receipt_path) VALUES
-                (1, '899', 'Synthetic electronics', 'Shopping', 'EXPENSE', '2026-01-01T10:00:00', 'synthetic-w1', 0,
-                '2026-01-01T10:00:00', '2026-01-01T10:00:00', 'receipts/receipt_1.pdf')""")
-            close()
-        }
-
-        val db = Room.databaseBuilder(instrumentation.targetContext, PennyWiseDatabase::class.java, NAME)
-            .addMigrations(*PennyWiseMigrations.ALL_MIGRATIONS)
-            .setDriver(AndroidSQLiteDriver())
-            .build()
-        try {
-            val txn = db.transactionDao().getTransactionById(1)!!
-            assertEquals("receipts/receipt_1.pdf", txn.receiptPath)
-            assertNull(txn.warrantyUntil)
-        } finally { db.close() }
-    }
-
     private companion object { const val NAME = "full-upgrade-test" }
 }

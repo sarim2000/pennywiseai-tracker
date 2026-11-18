@@ -25,7 +25,6 @@ import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
-import com.pennywiseai.tracker.domain.warranty.canHaveWarranty
 import com.pennywiseai.tracker.presentation.add.ReceiptPickerSection
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
@@ -445,14 +444,6 @@ internal fun EditableExtractedInfoCard(
             receiptError = viewModel.receiptError.collectAsStateWithLifecycle().value?.asString(),
             checking = viewModel.checkingReceipt.collectAsStateWithLifecycle().value
         )
-
-        // Warranty: for things bought; still shown if one was set before a type change, so it can be cleared.
-        if (transaction.transactionType.canHaveWarranty() || transaction.warrantyUntil != null) {
-            WarrantyField(
-                warrantyUntil = transaction.warrantyUntil,
-                onWarrantyChange = { viewModel.updateWarrantyUntil(it) }
-            )
-        }
 
         // Bank (read-only)
         transaction.bankName?.let {

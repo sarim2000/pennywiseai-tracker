@@ -7,13 +7,11 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.outlined.Shield
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
@@ -30,10 +28,7 @@ import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.CurrencyUtils
-import java.time.Instant
-import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.ZoneOffset
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -489,143 +484,4 @@ internal fun List<TransactionDetailViewModel.AccountInfo>.matchFor(
             (it.accountLast4.length >= 4 && accountNumber.endsWith(it.accountLast4))
     }
     return bankName?.let { bank -> sameNumber.find { it.bankName == bank } } ?: sameNumber.singleOrNull()
-}
-
-/**
- * The last day a purchase is under warranty. Tapping opens a date picker; the
- * clear button removes it. Setting one turns on the reminders 30 days and 1 day ahead.
- */
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-internal fun WarrantyField(
-    warrantyUntil: LocalDate?,
-    onWarrantyChange: (LocalDate?) -> Unit
-) {
-    var showDatePicker by remember { mutableStateOf(false) }
-
-    // Only the date part opens the picker, so the clear button stays a separate element
-    // for TalkBack instead of being folded into one row-wide button.
-    Surface(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 56.dp),
-        shape = editFullShape,
-        color = MaterialTheme.colorScheme.surfaceContainerLow
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Row(
-                modifier = Modifier
-                    .weight(1f)
-                    .heightIn(min = 56.dp)
-                    .clickable(role = Role.Button) { showDatePicker = true }
-                    .padding(start = Spacing.md, end = Spacing.sm, top = Spacing.sm, bottom = Spacing.sm),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-            ) {
-                Icon(
-                    // An outline until a date is set, so an empty row doesn't look already covered.
-                    if (warrantyUntil != null) Icons.Default.VerifiedUser else Icons.Outlined.Shield,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.warranty_field_label),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                    if (warrantyUntil != null) {
-                        Text(
-                            text = warrantyUntil.format(AppDates.dateFormatter()),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                    } else {
-                        Text(
-                            text = stringResource(R.string.warranty_field_empty),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            }
-            if (warrantyUntil != null) {
-                IconButton(
-                    onClick = { onWarrantyChange(null) },
-                    modifier = Modifier.padding(end = Spacing.xs),
-                    shapes = IconButtonDefaults.shapes()
-                ) {
-                    Icon(Icons.Default.Close, contentDescription = stringResource(R.string.warranty_field_clear))
-                }
-            }
-        }
-    }
-
-    if (showDatePicker) {
-        // DatePicker works in UTC midnights. A warranty that has already ended has nothing to remind about.
-        val today = remember { LocalDate.now() }
-        val pickerState = rememberDatePickerState(
-            initialSelectedDateMillis = warrantyUntil?.atStartOfDay(ZoneOffset.UTC)?.toInstant()?.toEpochMilli(),
-            selectableDates = remember(today) {
-                object : SelectableDates {
-                    override fun isSelectableDate(utcTimeMillis: Long) =
-                        !Instant.ofEpochMilli(utcTimeMillis).atZone(ZoneOffset.UTC).toLocalDate().isBefore(today)
-
-                    override fun isSelectableYear(year: Int) = year >= today.year
-                }
-            }
-        )
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                // Nothing to save until a day is picked (a new warranty opens with none).
-                TextButton(
-                    onClick = {
-                        pickerState.selectedDateMillis?.let { millis ->
-                            onWarrantyChange(Instant.ofEpochMilli(millis).atZone(ZoneOffset.UTC).toLocalDate())
-                        }
-                        showDatePicker = false
-                    },
-                    enabled = pickerState.selectedDateMillis != null,
-                    shapes = ButtonDefaults.shapes()
-                ) {
-                    Text(stringResource(R.string.txn_detail_action_ok))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }, shapes = ButtonDefaults.shapes()) {
-                    Text(stringResource(R.string.txn_detail_action_cancel))
-                }
-            }
-        ) {
-            DatePicker(
-                state = pickerState,
-                title = {
-                    Text(
-                        text = stringResource(R.string.warranty_field_label),
-                        // DatePicker's own title padding.
-                        modifier = Modifier.padding(start = 24.dp, end = 12.dp, top = 16.dp)
-                    )
-                },
-                headline = {
-                    // The default headline reads "Selected date" before anything is picked.
-                    if (pickerState.selectedDateMillis == null) {
-                        Text(
-                            text = stringResource(R.string.warranty_picker_no_date),
-                            style = MaterialTheme.typography.headlineLarge,
-                            // DatePicker's own headline padding.
-                            modifier = Modifier.padding(start = 24.dp, end = 12.dp, bottom = 12.dp)
-                        )
-                    } else {
-                        DatePickerDefaults.DatePickerHeadline(
-                            selectedDateMillis = pickerState.selectedDateMillis,
-                            displayMode = pickerState.displayMode,
-                            dateFormatter = remember { DatePickerDefaults.dateFormatter() },
-                            modifier = Modifier.padding(start = 24.dp, end = 12.dp, bottom = 12.dp)
-                        )
-                    }
-                }
-            )
-        }
-    }
 }

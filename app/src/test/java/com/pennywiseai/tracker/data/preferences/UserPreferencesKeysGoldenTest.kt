@@ -168,7 +168,6 @@ class UserPreferencesKeysGoldenTest {
             "upi_id" to "String",
             "use_contacts_for_vpa" to "Boolean",
             "user_name" to "String",
-            "warranty_reminder_last_day" to "String",
             "weekly_summary_enabled" to "Boolean",
             "weekly_summary_last_week" to "String",
         )

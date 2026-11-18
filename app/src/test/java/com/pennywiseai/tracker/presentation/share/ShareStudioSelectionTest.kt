@@ -118,4 +118,15 @@ class ShareStudioSelectionTest {
         assertFalse(ShareKind.ACHIEVEMENTS.needsFigure)
         assertEquals(setOf(ShareDetail.PERIOD), effectiveDetails(ShareKind.ACHIEVEMENTS, ShareDetail.entries.toSet()))
     }
+
+    @Test
+    fun `the budget card never goes further back than it reaches`() {
+        val oldest = ShareStudioSelection(kind = ShareKind.BUDGET, period = ReviewSelection(ReviewKind.MONTH, -BUDGET_MONTHS_BACK, today))
+        assertEquals(-BUDGET_MONTHS_BACK, oldest.older().period.offset)
+        // A review opened further back than that comes in at the oldest month.
+        val review = ShareStudioSelection(kind = ShareKind.RECAP, period = ReviewSelection(ReviewKind.MONTH, -15, today))
+        assertEquals(-BUDGET_MONTHS_BACK, review.withKind(ShareKind.BUDGET, today).period.offset)
+        // Other cards go back as far as the history does.
+        assertEquals(-16, review.older().period.offset)
+    }
 }

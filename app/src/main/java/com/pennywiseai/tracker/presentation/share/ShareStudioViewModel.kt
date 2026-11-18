@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.presentation.share
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.data.repository.BudgetSummaryProvider
 import com.pennywiseai.tracker.data.repository.GoalProgress
@@ -60,7 +61,8 @@ sealed interface ShareStudioData {
 
     data class Goals(val goals: List<GoalProgress>) : ShareStudioData
 
-    data class Budget(val summary: BudgetOverallSummary) : ShareStudioData
+    /** [converted]: the summary's amounts were converted into its currency (unified currency mode). */
+    data class Budget(val summary: BudgetOverallSummary, val converted: Boolean) : ShareStudioData
 
     /** The achievements earned, newest first. */
     data class Achievements(val earned: List<Achievement>) : ShareStudioData
@@ -78,6 +80,7 @@ class ShareStudioViewModel @Inject constructor(
     private val loader: PeriodReviewLoader,
     private val goalRepository: GoalRepository,
     private val budgetSummaryProvider: BudgetSummaryProvider,
+    private val currencyPreferences: CurrencyPreferences,
     private val achievementLoader: AchievementLoader,
 ) : ViewModel() {
 
@@ -126,7 +129,10 @@ class ShareStudioViewModel @Inject constructor(
                 val opened = goals.filter { it.status == GoalStatus.ARCHIVED && it.goal.id == routeGoalId }
                 ShareStudioData.Goals(GoalRules.orderForDisplay(goals) + opened)
             }
-            Source.BUDGET -> budgetSummaryProvider.summary(budgetMonth(period)).map { ShareStudioData.Budget(it) }
+            Source.BUDGET -> combine(
+                budgetSummaryProvider.summary(budgetMonth(period)),
+                currencyPreferences.unifiedCurrencyMode,
+            ) { summary, unified -> ShareStudioData.Budget(summary, converted = unified) }
             // Loaded above: achievements have no period.
             Source.ACHIEVEMENTS -> error("unreachable")
         }
@@ -136,7 +142,7 @@ class ShareStudioViewModel @Inject constructor(
 
     fun selectPeriodKind(kind: ReviewKind) = _selection.update { it.withPeriodKind(kind, LocalDate.now()) }
 
-    fun older() = _selection.update { it.copy(period = it.period.copy(offset = it.period.offset - 1)) }
+    fun older() = _selection.update { it.older() }
 
     fun newer() = _selection.update {
         val latest = latestReviewOffset(it.period.kind)
@@ -164,8 +170,19 @@ class ShareStudioViewModel @Inject constructor(
  * default month as of [today], not as of the day the review was opened.
  */
 internal fun ShareStudioSelection.withKind(kind: ShareKind, today: LocalDate): ShareStudioSelection {
-    val period = if (kind == ShareKind.BUDGET && period.kind != ReviewKind.MONTH) defaultSelection(ReviewKind.MONTH, today) else period
+    val period = when {
+        kind != ShareKind.BUDGET -> period
+        period.kind != ReviewKind.MONTH -> defaultSelection(ReviewKind.MONTH, today)
+        // A review can be further back than the budget card reaches.
+        else -> period.copy(offset = period.offset.coerceAtLeast(-BUDGET_MONTHS_BACK))
+    }
     return copy(kind = kind, period = period)
+}
+
+/** One period back; the budget card stops at [BUDGET_MONTHS_BACK]. Other periods stop where the history does (the screen disables the button there). */
+internal fun ShareStudioSelection.older(): ShareStudioSelection {
+    val offset = period.offset - 1
+    return copy(period = period.copy(offset = if (kind == ShareKind.BUDGET) offset.coerceAtLeast(-BUDGET_MONTHS_BACK) else offset))
 }
 
 /** A new kind of period starts at its default as of [today]; the review's own day only fixes the period it opened on. */

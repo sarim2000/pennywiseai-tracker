@@ -90,8 +90,11 @@ fun topCategoryShares(review: CurrencyReview, limit: Int = 4): List<CategoryShar
     val total = review.spent
     return review.topCategories.take(limit).map { line ->
         val share = if (total.signum() <= 0) 0
-        else line.amount.multiply(BigDecimal(100)).divide(total, 0, RoundingMode.HALF_UP).toInt()
-        CategoryShare(line.name, line.amount, share.coerceIn(0, 100))
+        // Clamped before toInt(): a refund elsewhere can shrink the total far below one
+        // category, and toInt() would wrap that huge share into a negative one.
+        else line.amount.multiply(BigDecimal(100)).divide(total, 0, RoundingMode.HALF_UP)
+            .max(BigDecimal.ZERO).min(BigDecimal(100)).toInt()
+        CategoryShare(line.name, line.amount, share)
     }
 }
 
@@ -116,10 +119,14 @@ data class BudgetResult(
  * Null when the month has no spending limit to report against. A limit with no window in
  * the month (a one-time limit that ended before it) is left out, as the Budgets screen's
  * totals leave it out.
+ *
+ * Unless the summary's amounts were [converted] into its currency (unified currency), a
+ * limit set in another currency is left out too: its amount isn't in [BudgetOverallSummary.currency].
  */
-fun budgetResult(summary: BudgetOverallSummary): BudgetResult? {
+fun budgetResult(summary: BudgetOverallSummary, converted: Boolean): BudgetResult? {
     val limits = summary.groups.filter {
-        it.group.budget.groupType == BudgetGroupType.LIMIT && it.totalBudget.signum() > 0 && it.windowDays > 0
+        it.group.budget.groupType == BudgetGroupType.LIMIT && it.totalBudget.signum() > 0 && it.windowDays > 0 &&
+            (converted || it.group.budget.currency == summary.currency)
     }
     if (limits.isEmpty()) return null
     val limit = limits.fold(BigDecimal.ZERO) { sum, it -> sum + it.totalBudget }

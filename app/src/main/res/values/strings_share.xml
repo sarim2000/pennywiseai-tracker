@@ -4,6 +4,7 @@
     <string name="share_studio_title">Share</string>
     <string name="share_studio_back">Back</string>
     <string name="share_studio_share">Share image</string>
+    <string name="share_studio_failed">Couldn\'t share the image. Try again.</string>
     <string name="share_studio_section_card">Card</string>
     <string name="share_studio_section_period">Period</string>
     <string name="share_studio_section_goal">Goal</string>

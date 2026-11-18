@@ -134,6 +134,13 @@ class ShareMathTest {
         assertEquals(listOf(50, 33), topCategoryShares(review).map { it.sharePercent })
     }
 
+    @Test
+    fun `a share far past 100 percent stays 100, not a wrapped negative`() {
+        // Food 300,000 against a net total of 0.01 (a refund elsewhere): the raw share wraps an Int.
+        val review = currency(spent = "0.01", top = listOf(CategoryLine("Food", bd("300000"), null)))
+        assertEquals(listOf(100), topCategoryShares(review).map { it.sharePercent })
+    }
+
     // --- Budget
 
     private fun limit(
@@ -141,11 +148,13 @@ class ShareMathTest {
         actual: String,
         type: BudgetGroupType = BudgetGroupType.LIMIT,
         windowDays: Int = 31,
+        currency: String = "JOD",
     ) = BudgetGroupSpending(
         group = BudgetWithCategories(
             BudgetEntity(
                 name = "Budget", limitAmount = bd(budget), periodType = BudgetPeriodType.MONTHLY,
                 startDate = LocalDate.parse("2026-10-01"), endDate = LocalDate.parse("2026-10-31"), groupType = type,
+                currency = currency,
             ),
             emptyList(),
         ),
@@ -170,7 +179,8 @@ class ShareMathTest {
     @Test
     fun `a budget result sums spending limits only, and counts the ones kept`() {
         val result = budgetResult(
-            summary(
+            converted = false,
+            summary = summary(
                 limit("500", "400"),
                 limit("300", "350"),
                 limit("200", "200"),
@@ -190,7 +200,7 @@ class ShareMathTest {
 
     @Test
     fun `going over is reported as over, by how much`() {
-        val result = budgetResult(summary(limit("500", "650")))!!
+        val result = budgetResult(converted = false, summary = summary(limit("500", "650")))!!
         assertTrue(result.isOver)
         assertEquals(130, result.usedPercent)
         assertEquals(bd("150"), result.difference)
@@ -198,24 +208,36 @@ class ShareMathTest {
 
     @Test
     fun `a huge overspend of a tiny limit stays a large percent, not a wrapped negative one`() {
-        val result = budgetResult(summary(limit("0.01", "300000")))!!
+        val result = budgetResult(converted = false, summary = summary(limit("0.01", "300000")))!!
         assertEquals(Int.MAX_VALUE, result.usedPercent)
     }
 
     @Test
     fun `a limit with no window in the month counts toward nothing`() {
         // A one-time limit that ended last month: the repository gives it an empty window.
-        val result = budgetResult(summary(limit("500", "400"), limit("300", "0", windowDays = 0)))!!
+        val result = budgetResult(converted = false, summary = summary(limit("500", "400"), limit("300", "0", windowDays = 0)))!!
         assertEquals(bd("500"), result.limit)
         assertEquals(bd("400"), result.spent)
         assertEquals(1, result.total)
-        assertNull(budgetResult(summary(limit("300", "0", windowDays = 0))))
+        assertNull(budgetResult(converted = false, summary = summary(limit("300", "0", windowDays = 0))))
+    }
+
+    @Test
+    fun `a limit in another currency is left out, unless the summary converted it`() {
+        val mixed = summary(limit("500", "400"), limit("300", "100", currency = "USD"))
+        val own = budgetResult(mixed, converted = false)!!
+        assertEquals(bd("500"), own.limit)
+        assertEquals(bd("400"), own.spent)
+        assertEquals(1, own.total)
+        assertNull(budgetResult(summary(limit("300", "100", currency = "USD")), converted = false))
+        // Unified currency: every group's figures are already in the summary's currency.
+        assertEquals(bd("800"), budgetResult(mixed, converted = true)!!.limit)
     }
 
     @Test
     fun `no spending limit means no budget card`() {
-        assertNull(budgetResult(summary()))
-        assertNull(budgetResult(summary(limit("0", "40"), limit("100", "10", BudgetGroupType.TARGET))))
+        assertNull(budgetResult(converted = false, summary = summary()))
+        assertNull(budgetResult(converted = false, summary = summary(limit("0", "40"), limit("100", "10", BudgetGroupType.TARGET))))
     }
 
     @Test

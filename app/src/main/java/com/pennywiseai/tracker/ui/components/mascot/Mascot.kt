@@ -121,7 +121,7 @@ fun Mascot(
     LaunchedEffect(motion, lifecycle, thinking) { state.runClock(motion, lifecycle, thinking) }
     SideEffect {
         state.look = look
-        state.value = value
+        state.setFigure(value, shape)
     }
     val motionScheme = MaterialTheme.motionScheme
     val blendSpec = motionScheme.defaultEffectsSpec<Float>()
@@ -153,7 +153,7 @@ fun Mascot(
                 val morph = from?.let {
                     MorphDrawing(
                         from = it,
-                        fromGeometry = it.shape.geometry(state.value),
+                        fromGeometry = it.shape.geometry(it.value),
                         target = state.profileOf(current, state.value),
                     )
                 }
@@ -267,8 +267,22 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
     /** The pose last drawn: where a mood change blends from. */
     private var shown = MascotPose()
 
-    /** The shape's figure (see [Mascot]). */
+    /** [shape]'s figure (see [Mascot]). */
     var value by mutableFloatStateOf(0f)
+        private set
+
+    /** The figure last passed in: [value], or the one that came with a shape still to morph in. */
+    private var latestValue = 0f
+
+    /**
+     * Takes the figure the caller passed with [forShape]. One that comes with a new shape
+     * waits for the morph to start, so the old shape keeps its own figure as it bends
+     * away: a gauge's needle, a pie's slice, Bars' gaze.
+     */
+    fun setFigure(figure: Float, forShape: MascotShape) {
+        latestValue = figure
+        if (forShape == shape) value = figure
+    }
 
     private val lookState = mutableStateOf<Offset?>(null)
     private val dragLookState = mutableStateOf<Offset?>(null)
@@ -422,6 +436,7 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
             morphFrom = null
             arrivedShape = null
             shape = target
+            value = latestValue
             morph.snapTo(1f)
             return
         }
@@ -432,6 +447,7 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
         arrivedShape = null
         arrival.snapTo(1f)
         shape = target
+        value = latestValue
         morph.snapTo(0f)
         morph.animateTo(1f, spec)
         morphFrom = null
@@ -457,7 +473,7 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
             null
         }
         val gaze = if (shape == MascotShape.Bars && value != 0f) trendGaze(value) else null
-        val from = morphFrom ?: return MorphFrom(here, g.eyes, g.pivot, shape, stamp = stamped, moves = moving, gaze = gaze)
+        val from = morphFrom ?: return MorphFrom(here, g.eyes, g.pivot, shape, value, stamp = stamped, moves = moving, gaze = gaze)
         val p = morph.value
         val w = p.coerceIn(0f, 1f)
         val early = w < 0.5f
@@ -467,6 +483,7 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
             pivot = lerp(from.pivot, g.pivot, p),
             // The face that shows most, and how much of it, as drawMorph draws them.
             shape = if (early) from.shape else shape,
+            value = if (early) from.value else value,
             faceAlpha = if (early) fromFaceAlpha(from, w) else fadeAt(1f - FACE_FADE, 1f, w),
             owl = lerp(from.owl, owlness(shape), w),
             stamp = fromStampAlpha(from, w),

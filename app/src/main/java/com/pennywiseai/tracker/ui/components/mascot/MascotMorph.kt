@@ -172,8 +172,9 @@ internal class MorphFrom(
     val profile: MascotProfile,
     val eyes: EyeSpec,
     val pivot: Offset,
-    /** The shape whose face showed, and how much of it showed (at the detailed size). */
+    /** The shape whose face showed, its figure, and how much of it showed (at the detailed size). */
     val shape: MascotShape,
+    val value: Float,
     val faceAlpha: Float = 1f,
     /**
      * How far the colours were the owl's (1) rather than an object's (0), at the detailed

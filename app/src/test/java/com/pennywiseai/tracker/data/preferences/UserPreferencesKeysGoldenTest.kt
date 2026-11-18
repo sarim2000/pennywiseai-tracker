@@ -147,6 +147,7 @@ class UserPreferencesKeysGoldenTest {
             "review_prompt_handled_year" to "String",
             "safe_to_spend_excluded_accounts" to "Set<String>",
             "scheduled_folder_backup_enabled" to "Boolean",
+            "scheduled_folder_backup_last_skipped_receipts" to "Int",
             "scheduled_folder_backup_last_timestamp" to "Long",
             "scheduled_folder_backup_tree_uri" to "String",
             "selected_profile_id" to "Long",

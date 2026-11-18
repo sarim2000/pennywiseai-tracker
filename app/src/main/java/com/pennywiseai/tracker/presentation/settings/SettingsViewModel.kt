@@ -147,6 +147,7 @@ class SettingsViewModel @Inject constructor(
 
     val scheduledFolderBackupEnabled = userPreferencesRepository.scheduledFolderBackupEnabled
     val scheduledFolderBackupLastTimestamp = userPreferencesRepository.scheduledFolderBackupLastTimestamp
+    val scheduledFolderBackupLastSkippedReceipts = userPreferencesRepository.scheduledFolderBackupLastSkippedReceipts
     val exportIncludeReceipts = userPreferencesRepository.exportIncludeReceipts
     val folderBackupIncludeReceipts = userPreferencesRepository.folderBackupIncludeReceipts
 
@@ -831,6 +832,7 @@ class SettingsViewModel @Inject constructor(
                         userPreferencesRepository.setScheduledFolderBackupLastTimestamp(
                             System.currentTimeMillis()
                         )
+                        userPreferencesRepository.setScheduledFolderBackupLastSkippedReceipts(exportResult.skippedReceipts)
                         if (showSuccessMessage) {
                             _importExportMessage.value = if (exportResult.skippedReceipts > 0) {
                                 UiText.Plural(R.plurals.settings_folder_backup_saved_skipped_receipts, exportResult.skippedReceipts)

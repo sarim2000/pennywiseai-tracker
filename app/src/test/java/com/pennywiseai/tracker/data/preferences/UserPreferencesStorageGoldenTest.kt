@@ -491,6 +491,8 @@ class UserPreferencesStorageGoldenTest {
         assertEquals("content://test/tree", stored()[string("scheduled_folder_backup_tree_uri")])
         repository.setScheduledFolderBackupLastTimestamp(7_500L)
         assertEquals(7_500L, stored()[long("scheduled_folder_backup_last_timestamp")])
+        repository.setScheduledFolderBackupLastSkippedReceipts(2)
+        assertEquals(2, stored()[int("scheduled_folder_backup_last_skipped_receipts")])
         repository.setExportIncludeReceipts(false)
         assertEquals(false, stored()[bool("export_include_receipts")])
         repository.setFolderBackupIncludeReceipts(true)

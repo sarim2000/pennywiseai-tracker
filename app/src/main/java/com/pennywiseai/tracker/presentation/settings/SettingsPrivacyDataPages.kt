@@ -142,6 +142,7 @@ internal fun DataPage(
     val deleteAllTransactionsResult by settingsViewModel.deleteAllTransactionsResult.collectAsStateWithLifecycle()
     val scheduledFolderBackupEnabled by settingsViewModel.scheduledFolderBackupEnabled.collectAsStateWithLifecycle(initialValue = false)
     val scheduledFolderBackupLastTimestamp by settingsViewModel.scheduledFolderBackupLastTimestamp.collectAsStateWithLifecycle(initialValue = null)
+    val scheduledFolderBackupLastSkippedReceipts by settingsViewModel.scheduledFolderBackupLastSkippedReceipts.collectAsStateWithLifecycle(initialValue = 0)
     val exportIncludeReceipts by settingsViewModel.exportIncludeReceipts.collectAsStateWithLifecycle(initialValue = true)
     val folderBackupIncludeReceipts by settingsViewModel.folderBackupIncludeReceipts.collectAsStateWithLifecycle(initialValue = false)
     val requestFolderPicker by settingsViewModel.requestFolderPicker.collectAsStateWithLifecycle()
@@ -261,7 +262,16 @@ internal fun DataPage(
                     val formatted = java.time.Instant.ofEpochMilli(timestamp)
                         .atZone(java.time.ZoneId.systemDefault())
                         .format(AppDates.dateTimeFormatter())
-                    stringResource(R.string.settings_backup_now_last_backup, formatted)
+                    if (scheduledFolderBackupLastSkippedReceipts > 0) {
+                        pluralStringResource(
+                            R.plurals.settings_backup_now_last_backup_skipped_receipts,
+                            scheduledFolderBackupLastSkippedReceipts,
+                            formatted,
+                            scheduledFolderBackupLastSkippedReceipts
+                        )
+                    } else {
+                        stringResource(R.string.settings_backup_now_last_backup, formatted)
+                    }
                 } ?: stringResource(R.string.settings_backup_now_subtitle),
                 onClick = { settingsViewModel.backupToFolderNow() },
                 position = ListItemPosition.Middle

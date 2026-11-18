@@ -114,6 +114,11 @@
     <string name="settings_backup_now_title">Back Up Now</string>
     <!-- %1$s = date and time of the last backup -->
     <string name="settings_backup_now_last_backup">Last backup: %1$s</string>
+    <!-- %1$s = date and time of the last backup, %2$d = PDF receipts it left out -->
+    <plurals name="settings_backup_now_last_backup_skipped_receipts">
+        <item quantity="one">Last backup: %1$s. %2$d PDF receipt was too large and was left out.</item>
+        <item quantity="other">Last backup: %1$s. %2$d PDF receipts were too large and were left out.</item>
+    </plurals>
     <string name="settings_backup_now_subtitle">Run a backup to your folder now</string>
     <string name="settings_change_backup_folder_title">Change Backup Folder</string>
     <string name="settings_change_backup_folder_subtitle">Pick a different folder for automatic backups</string>

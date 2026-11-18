@@ -244,6 +244,7 @@ open class UserPreferencesRepository internal constructor(
         val SCHEDULED_FOLDER_BACKUP_ENABLED = booleanPreferencesKey("scheduled_folder_backup_enabled")
         val SCHEDULED_FOLDER_BACKUP_TREE_URI = stringPreferencesKey("scheduled_folder_backup_tree_uri")
         val SCHEDULED_FOLDER_BACKUP_LAST_TIMESTAMP = longPreferencesKey("scheduled_folder_backup_last_timestamp")
+        val SCHEDULED_FOLDER_BACKUP_LAST_SKIPPED_RECEIPTS = intPreferencesKey("scheduled_folder_backup_last_skipped_receipts")
 
         // Embed receipt photos in backups (#839). Manual export defaults ON;
         // the daily folder backup defaults OFF (photos make every copy large).
@@ -307,7 +308,7 @@ open class UserPreferencesRepository internal constructor(
             K.LAST_STATEMENT_IMPORT_AT, K.LAST_SEEN_APP_VERSION, K.MONTHLY_BUDGET_LIMIT,
             K.HAS_MIGRATED_TO_BUDGET_GROUPS, K.SHAKE_TO_HIDE_HINT_SHOWN, K.HAS_COMPLETED_ONBOARDING,
             K.SCHEDULED_FOLDER_BACKUP_ENABLED, K.SCHEDULED_FOLDER_BACKUP_TREE_URI,
-            K.SCHEDULED_FOLDER_BACKUP_LAST_TIMESTAMP
+            K.SCHEDULED_FOLDER_BACKUP_LAST_TIMESTAMP, K.SCHEDULED_FOLDER_BACKUP_LAST_SKIPPED_RECEIPTS
         ).map { it.name }.toSet()
 
         // A photo is a file on the old phone; only a built-in avatar means anything elsewhere.
@@ -1536,6 +1537,9 @@ open class UserPreferencesRepository internal constructor(
             preferences[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_LAST_TIMESTAMP]
         }
 
+    override val scheduledFolderBackupLastSkippedReceipts: Flow<Int> = dataStore.data
+        .map { it[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_LAST_SKIPPED_RECEIPTS] ?: 0 }
+
     override suspend fun isScheduledFolderBackupEnabled(): Boolean {
         return scheduledFolderBackupEnabled.first()
     }
@@ -1559,6 +1563,12 @@ open class UserPreferencesRepository internal constructor(
     override suspend fun setScheduledFolderBackupLastTimestamp(timestamp: Long) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_LAST_TIMESTAMP] = timestamp
+        }
+    }
+
+    override suspend fun setScheduledFolderBackupLastSkippedReceipts(count: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_LAST_SKIPPED_RECEIPTS] = count
         }
     }
 

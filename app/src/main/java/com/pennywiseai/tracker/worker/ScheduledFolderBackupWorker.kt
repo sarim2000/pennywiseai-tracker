@@ -51,10 +51,9 @@ class ScheduledFolderBackupWorker @AssistedInject constructor(
                         userPreferencesRepository.setScheduledFolderBackupLastTimestamp(
                             System.currentTimeMillis()
                         )
+                        // Settings' "Last backup" line names them: nobody reads a log at 2 AM.
+                        userPreferencesRepository.setScheduledFolderBackupLastSkippedReceipts(exportResult.skippedReceipts)
                         Log.i(TAG, "Scheduled folder backup completed")
-                        if (exportResult.skippedReceipts > 0) {
-                            Log.w(TAG, "Left ${exportResult.skippedReceipts} oversized receipts out of the backup")
-                        }
                         Result.success()
                     }
                     is FolderBackupWriter.Result.Failure -> {

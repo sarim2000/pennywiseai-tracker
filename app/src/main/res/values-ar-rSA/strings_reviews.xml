@@ -4,6 +4,12 @@
     <string name="review_title">المراجعات</string>
     <string name="review_back">رجوع</string>
     <string name="review_share">مشاركة</string>
+    <string name="review_export_pdf">تصدير PDF</string>
+    <!-- Paywall list of what Pro includes -->
+    <string name="upgrade_feature_pdf_reports">تقارير PDF شهرية وسنوية</string>
+    <string name="review_export_pdf_failed">تعذّر إنشاء ملف PDF. حاول مرة أخرى.</string>
+    <!-- Shown instead of a PDF while the user hides amounts in the app: the report prints them -->
+    <string name="review_export_pdf_amounts_hidden">أظهِر المبالغ لتصدير تقرير PDF.</string>
     <string name="review_kind_week">أسبوع</string>
     <string name="review_kind_month">شهر</string>
     <string name="review_kind_year">سنة</string>
@@ -30,48 +36,28 @@
     <string name="review_coverage">مبني على المعاملات المسجّلة، ولا يشمل الدفع النقدي الذي لم تضفه.</string>
     <!-- %1$s, %2$s = first and last recorded dates -->
     <string name="review_coverage_span">مبني على المعاملات المسجّلة من %1$s إلى %2$s، ولا يشمل الدفع النقدي الذي لم تضفه.</string>
+
+    <!-- PDF report -->
+    <string name="review_pdf_title">تقرير PennyWise</string>
+    <!-- %1$s = profile name, or "All profiles" -->
+    <string name="review_pdf_profile">الملف الشخصي: %1$s</string>
+    <!-- %1$s = date the report was made -->
+    <string name="review_pdf_created">أُنشئ في %1$s</string>
+    <string name="review_pdf_net">الصافي</string>
+    <string name="review_pdf_category">الفئة</string>
+    <string name="review_pdf_amount">المبلغ</string>
+    <!-- Column heading. %1$s = what it is compared with, e.g. "September" or "the previous cycle" -->
+    <string name="review_pdf_change">التغيّر عن %1$s</string>
+    <string name="review_pdf_merchants">أعلى التجار</string>
+    <string name="review_pdf_merchant">التاجر</string>
+    <string name="review_pdf_month">الشهر</string>
+    <!-- %1$d = this page, %2$d = number of pages -->
+    <string name="review_pdf_page">صفحة %1$d من %2$d</string>
     <!-- Home -->
     <string name="home_menu_share_card">بطاقة مشاركة</string>
     <!-- %1$s = year -->
     <string name="review_banner_year_title">حصاد %1$s</string>
     <string name="review_banner_year_subtitle">أين ذهب مصروف عامك، بحسب ما سجّلته</string>
-    <!-- Share card -->
-    <plurals name="share_card_caption_merchants">
-        <item quantity="zero">تاجر دفعت له</item>
-        <item quantity="one">تاجر دفعت له</item>
-        <item quantity="two">تاجران دفعت لهما</item>
-        <item quantity="few">تجار دفعت لهم</item>
-        <item quantity="many">تاجرًا دفعت لهم</item>
-        <item quantity="other">تاجر دفعت لهم</item>
-    </plurals>
-    <string name="share_sheet_merchants">التجار</string>
-    <!-- The message sent with the image, in the sharer's voice. %1$d = count -->
-    <plurals name="share_text_transactions">
-        <item quantity="zero">تتبّع لي PennyWise %1$d معاملة من رسائل البنك.</item>
-        <item quantity="one">تتبّع لي PennyWise %1$d معاملة من رسائل البنك.</item>
-        <item quantity="two">تتبّع لي PennyWise معاملتين من رسائل البنك.</item>
-        <item quantity="few">تتبّع لي PennyWise %1$d معاملات من رسائل البنك.</item>
-        <item quantity="many">تتبّع لي PennyWise %1$d معاملة من رسائل البنك.</item>
-        <item quantity="other">تتبّع لي PennyWise %1$d معاملة من رسائل البنك.</item>
-    </plurals>
-    <plurals name="share_text_subscriptions">
-        <item quantity="zero">وجد PennyWise %1$d اشتراك نسيت أنني أدفع له.</item>
-        <item quantity="one">وجد PennyWise %1$d اشتراك نسيت أنني أدفع له.</item>
-        <item quantity="two">وجد PennyWise اشتراكين نسيت أنني أدفع لهما.</item>
-        <item quantity="few">وجد PennyWise %1$d اشتراكات نسيت أنني أدفع لها.</item>
-        <item quantity="many">وجد PennyWise %1$d اشتراكًا نسيت أنني أدفع له.</item>
-        <item quantity="other">وجد PennyWise %1$d اشتراك نسيت أنني أدفع له.</item>
-    </plurals>
-    <plurals name="share_text_merchants">
-        <item quantity="zero">تابع PennyWise التجار الذين دفعت لهم.</item>
-        <item quantity="one">تابع PennyWise %1$d تاجر دفعت له.</item>
-        <item quantity="two">تابع PennyWise التاجرين اللذين دفعت لهما.</item>
-        <item quantity="few">تابع PennyWise %1$d تجار دفعت لهم.</item>
-        <item quantity="many">تابع PennyWise %1$d تاجرًا دفعت لهم.</item>
-        <item quantity="other">تابع PennyWise %1$d تاجر دفعت لهم.</item>
-    </plurals>
-    <!-- %1$s = the app's website -->
-    <string name="share_text_suffix">يقرأ رسائل البنك على هاتفك، ولا يُرفع منها شيء. https://%1$s</string>
     <!-- Weekly recap -->
     <string name="settings_weekly_summary_title">الملخص الأسبوعي</string>
     <string name="settings_weekly_summary_subtitle">مصروف الأسبوع الماضي مقارنة بالأسبوع الذي قبله</string>

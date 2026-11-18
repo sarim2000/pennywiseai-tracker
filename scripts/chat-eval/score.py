@@ -28,8 +28,10 @@ SPEND = re.compile(r"\b(spent|spend|paid|pay|bought|buy|purchased|gave|sent|orde
 INCOME = re.compile(r"\b(received|got|salary|refund|refunded|cashback|credited|sold|bonus|interest|income|won|earned|reimburse\w*)\b", re.I)
 INCOME_ONLY = {"salary", "income"}
 EASTERN = str.maketrans("٠١٢٣٤٥٦٧٨٩۰۱۲۳۴۵۶۷۸۹०१२३४५६७८९", "012345678901234567890123456789")
+# month_summary and spending_by_category were query_spending's job before it replaced them.
 FAMILY = {"add_transaction": "add", "add_transactions": "add", "delete_transaction": "delete",
-          "update_transaction": "update", "month_summary": "summary", "spending_by_category": "category", "compare_spending": "compare"}
+          "update_transaction": "update", "month_summary": "query", "spending_by_category": "query",
+          "query_spending": "query", "planning_status": "planning", "compare_spending": "compare"}
 ACCOUNT_WORDS = re.compile(r"hdfc|card|cash|wallet|account|upi|1234", re.I)
 
 
@@ -99,6 +101,16 @@ def pair(want, got, typ=lambda g: str(g.get("type", "")).strip().upper(), base="
     return best
 
 
+# Keys the app reads whole, so a case lists every value it accepts: "last" is in "last_week" too,
+# "categor" in "category". Normalized as SpendingQuery reads a period (trimmed first). Other keys
+# (a merchant's name) match within the value.
+EXACT = {"period", "group_by"}
+
+
+def _norm(v):
+    return re.sub(r"[\s-]+", "_", v.strip().lower())
+
+
 def args_ok(case, calls):
     want = case.get("args")
     if not want:
@@ -107,7 +119,10 @@ def args_ok(case, calls):
         a = c.get("args") or {}
         for k, accepted in want.items():
             v = str(a.get(k, a.get(re.sub("_(.)", lambda m: m[1].upper(), k), ""))).lower()
-            if not any(x.lower() in v for x in accepted):
+            if k in EXACT:
+                if _norm(v) not in {_norm(x) for x in accepted}:
+                    return False
+            elif not any(x.lower() in v for x in accepted):
                 return False
     return True
 

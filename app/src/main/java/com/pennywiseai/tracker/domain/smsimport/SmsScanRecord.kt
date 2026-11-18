@@ -45,7 +45,17 @@ data class SmsScanRecord(
     val counts: SmsScanCounts = SmsScanCounts(),
     /** When a scan last finished with everything saved: this one, or an earlier one. */
     val lastSucceededAt: Long? = null,
+    /**
+     * This scan read the whole scan window, or owed it to an earlier one that didn't
+     * finish clean. The incremental cursor doesn't cover that window, so while such a
+     * scan ends without saving everything, the next scan has to read it all again.
+     */
+    val fullWindow: Boolean = false,
 ) {
+    /** The next scan must read the whole window: see [fullWindow]. */
+    val owesFullWindow: Boolean
+        get() = fullWindow && (state != SmsScanState.SUCCEEDED || counts.failed > 0)
+
     fun toJson(): String = json.encodeToString(serializer(), this)
 
     companion object {

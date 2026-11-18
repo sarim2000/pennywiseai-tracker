@@ -15,6 +15,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertSame
 import org.junit.Assert.assertTrue
 import org.junit.Test
@@ -135,6 +136,49 @@ class ScanOutcomeRecorderTest {
         assertEquals(SmsScanState.SUCCEEDED, written.last().state)
         assertEquals(1, written.last().counts.failed)
         assertEquals("not a clean success, so it can't be the last one", 2_000L, written.last().lastSucceededAt)
+    }
+
+    @Test
+    fun `a whole-window scan that lost saves makes every next scan read the window, until one is clean`() = runTest {
+        recorder.run(isStopped = { false }) {
+            recorder.markFullWindow()
+            recorder.stats = countedStats().apply { failed.set(1) }
+        }
+
+        // An ordinary scan started next (the receiver, Home) still owes the window...
+        runCatching { recorder.run(isStopped = { false }) { error("no inbox") } }
+        assertTrue(recorder.fullWindow)
+        // ...and the one after that reads it, and clears the debt by finishing clean.
+        recorder.run(isStopped = { false }) {
+            assertTrue(recorder.fullWindow)
+            recorder.stats = countedStats()
+        }
+        recorder.run(isStopped = { false }) {}
+
+        assertFalse(recorder.fullWindow)
+    }
+
+    @Test
+    fun `a whole-window scan that dies mid-way leaves the window owed`() = runTest {
+        recorder.run(isStopped = { false }) {
+            recorder.markFullWindow()
+            assertTrue("the running record says so before any work", stored.value!!.owesFullWindow)
+            recorder.stats = countedStats()
+        }
+        stored.value = written[written.size - 2] // the process died: the RUNNING record stays
+
+        recorder.run(isStopped = { false }) {}
+
+        assertTrue(recorder.fullWindow)
+    }
+
+    @Test
+    fun `an incremental scan that fails owes no whole window`() = runTest {
+        runCatching { recorder.run(isStopped = { false }) { error("no inbox") } }
+
+        recorder.run(isStopped = { false }) {}
+
+        assertFalse(recorder.fullWindow)
     }
 
     @Test

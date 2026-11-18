@@ -169,11 +169,15 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 if (!applicationContext.canReadSms()) throw SecurityException("READ_SMS not granted")
                 val forceResync = inputData.getBoolean(INPUT_FORCE_RESYNC, false)
                 val rescanAll = inputData.getBoolean(INPUT_RESCAN_ALL, false)
-                Log.i(TAG, "Starting SMS worker (forceResync=$forceResync, rescanAll=$rescanAll)")
+                // A whole-window scan that didn't finish clean kept the cursor, but the cursor
+                // only reaches back 3 days: read its window again, whoever starts this scan.
+                val retryWindow = recorder.fullWindow
+                Log.i(TAG, "Starting SMS worker (forceResync=$forceResync, rescanAll=$rescanAll, retryWindow=$retryWindow)")
 
                 // The window is computed before any delete: a rebuild may only drop
                 // rows it will re-read.
-                val (scanStartTime, needsFullScan) = computeScanParams(forceResync || rescanAll)
+                val (scanStartTime, needsFullScan) = computeScanParams(forceResync || rescanAll || retryWindow)
+                if (needsFullScan) recorder.markFullWindow()
 
                 var rebuildStartedAt: LocalDateTime? = null
                 var accountsBeforeRebuild: Map<Pair<String, String>, AccountBalanceEntity> = emptyMap()

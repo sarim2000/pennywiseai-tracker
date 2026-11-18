@@ -7,6 +7,7 @@ import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.LoanStatus
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.preferences.DAILY_SUMMARY_DEFAULT
 import com.pennywiseai.tracker.data.repository.LoanRepository
 import com.pennywiseai.tracker.domain.insights.Insight
 import com.pennywiseai.tracker.domain.insights.InsightFact
@@ -19,7 +20,6 @@ import com.pennywiseai.tracker.utils.Money
 import io.mockk.coEvery
 import io.mockk.mockk
 import kotlinx.coroutines.runBlocking
-import com.pennywiseai.tracker.data.preferences.DAILY_SUMMARY_DEFAULT
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull

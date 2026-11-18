@@ -199,15 +199,6 @@ class BudgetSummaryProvider @Inject constructor(
      * per-week breakdown.
      */
     /**
-     * Fallback: when the repo's windowedSpend list doesn't contain a
-     * window that matches the displayed window's exact bounds (e.g. a
-     * Monthly budget with monthStartDay=25 — the displayed window is
-     * the full 30-day cycle but the repo clips to calendar months), sum
-     * the spend of every windowed entry whose [start, end] range
-     * overlaps the displayed window. Each per-month window's spend is
-     * already in the page's currency, so no further conversion needed.
-     */
-    /**
      * What [group] spent in [transactions], in [displayCurrency], and whether spending
      * it counts was left out for want of a rate (#670), so the total reads low. Both
      * come from the one conversion pass, so a rate that turns up between two passes
@@ -303,6 +294,15 @@ class BudgetSummaryProvider @Inject constructor(
             ?: emptyList()
     }
 
+    /**
+     * Fallback: when the repo's windowedSpend list doesn't contain a
+     * window that matches the displayed window's exact bounds (e.g. a
+     * Monthly budget with monthStartDay=25 — the displayed window is
+     * the full 30-day cycle but the repo clips to calendar months), sum
+     * the spend of every windowed entry whose [start, end] range
+     * overlaps the displayed window. Each per-month window's spend is
+     * already in the page's currency, so no further conversion needed.
+     */
     private fun getTransactionsForOverlappingWindows(
         budgetId: Long,
         windowedSpend: List<WindowSpending>,

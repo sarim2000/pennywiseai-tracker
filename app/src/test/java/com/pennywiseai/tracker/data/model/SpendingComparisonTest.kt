@@ -155,7 +155,7 @@ class SpendingComparisonTest {
     fun `a category counts its share of split transactions`() {
         val current = listOf(tx("100", category = "Food & Dining", splits = listOf("Food & Dining" to "60", "Transportation" to "40")))
         val previous = listOf(tx("50", category = "Transportation"))
-        assertEquals(mapOf("INR" to Triple("40", "50", -20)), rows(SpendingComparison.compare(windows, current, previous, setOf("Transportation"))))
+        assertEquals(mapOf("INR" to Triple("40", "50", -20)), rows(SpendingComparison.compare(windows, current, previous, setOf("transportation"))))
         assertEquals(mapOf("INR" to Triple("60", "0", null)), rows(SpendingComparison.compare(windows, current, previous, setOf("Food & Dining"))))
         assertEquals(mapOf("INR" to Triple("100", "50", 100)), rows(SpendingComparison.compare(windows, current, previous)))
     }
@@ -392,7 +392,7 @@ class SpendingComparisonTest {
         assertTrue(SpendingComparison.countsCardPurchases(mixed, creditAsExpense = true))
         assertTrue(!SpendingComparison.countsCardPurchases(mixed, creditAsExpense = false))
         // Only the category's own card purchases.
-        assertTrue(SpendingComparison.countsCardPurchases(mixed, setOf("Shopping")))
+        assertTrue(SpendingComparison.countsCardPurchases(mixed, setOf("shopping")))
         assertTrue(!SpendingComparison.countsCardPurchases(mixed, setOf("Food & Dining")))
         // A comparison, in either period.
         assertTrue((SpendingComparison.compare(windows, listOf(tx("10")), mixed) as Result.Rows).cardPurchases)
@@ -402,11 +402,7 @@ class SpendingComparisonTest {
     @Test
     fun `a category set rolls in every name it holds, refunds included`() {
         val cur = listOf(tx("60", category = "Food"), tx("30", category = "Coffee"), tx("9", category = "Travel"), tx("10", type = TransactionType.INCOME, refundTo = "Coffee"))
-        assertEquals(mapOf("INR" to BigDecimal("80")), SpendingComparison.spend(cur, setOf("Food", "Coffee")))
-        // Names match as written, as the Transactions list's category filter does: the caller
-        // resolves a name to its saved spelling (see categoryNames for one that isn't saved).
-        assertEquals(mapOf("INR" to BigDecimal("60")), SpendingComparison.spend(cur + tx("40", category = "food"), setOf("Food")))
-        assertEquals(setOf("Food", "Coffee", "Travel", "Food & Dining", "food"), SpendingComparison.categoryNames(cur + tx("40", category = "food")))
+        assertEquals(mapOf("INR" to BigDecimal("80")), SpendingComparison.spend(cur, setOf("food", "coffee")))
     }
 
     @Test

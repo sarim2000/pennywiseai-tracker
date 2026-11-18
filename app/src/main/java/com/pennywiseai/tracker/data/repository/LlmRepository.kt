@@ -548,8 +548,8 @@ class LlmRepository @Inject constructor(
                     }
                 unknown -> context.getString(R.string.chat_reply_unknown_category, asked)
                 else -> {
-                    // A name the category list doesn't spell matched the rows in any case; the
-                    // list matches exactly, so its link could open on nothing.
+                    // The figure matched the rows' category in any case; the list matches exactly,
+                    // so a name the category list doesn't spell would open on nothing.
                     if (category == null || known != null) turnLinks += comparisonLinks(result, category)
                     comparisonText(result.alsoTrend(), category) +
                         (result as? SpendingComparison.Result.Rows)?.takeIf { known != null }?.let {
@@ -614,8 +614,8 @@ class LlmRepository @Inject constructor(
                     spend.transactionCount
                 ).plus(cardNote(spend.cardPurchases)).also {
                     turnSubject = turnSubject?.copy(share = spend.share)
-                    // Only for a name the category list spells: an unsaved one matched the rows in
-                    // any case, the list matches exactly, and "uber" would open on nothing.
+                    // Only for a name the category list spells: the figure matched the rows in any
+                    // case, the list matches exactly, and "uber" would open on nothing.
                     if (category != null) turnLinks += linksTo(spend.scope, category, spend.byCurrency.keys)
                 }.let { if (category == null) it else it + refundNote(spend.refunded, spend.scope.window) }
             }

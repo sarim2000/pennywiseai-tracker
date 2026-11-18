@@ -188,8 +188,8 @@
     <string name="settings_backup_status_title">Backup Status</string>
     <string name="settings_backup_created_choose">Backup created successfully! Choose where to save it.</string>
     <plurals name="settings_backup_created_skipped_receipts">
-        <item quantity="one">Backup created, but %d receipt was too large and was left out. Choose where to save it.</item>
-        <item quantity="other">Backup created, but %d receipts were too large and were left out. Choose where to save it.</item>
+        <item quantity="one">Backup created, but %d receipt was too large and was left out.</item>
+        <item quantity="other">Backup created, but %d receipts were too large and were left out.</item>
     </plurals>
     <!-- %1$s = technical error detail -->
     <string name="settings_export_failed">Export failed: %1$s</string>
@@ -222,6 +222,10 @@
         <item quantity="other">Backup saved to folder. %d receipts were too large and were left out.</item>
     </plurals>
     <string name="settings_folder_backup_enabled">Automatic folder backup enabled. Backups run daily at 2:00 AM.</string>
+    <plurals name="settings_folder_backup_enabled_skipped_receipts">
+        <item quantity="one">Automatic folder backup enabled. Backups run daily at 2:00 AM. %d receipt was too large and was left out of the first one.</item>
+        <item quantity="other">Automatic folder backup enabled. Backups run daily at 2:00 AM. %d receipts were too large and were left out of the first one.</item>
+    </plurals>
 
     <!-- Data Management → Save backup dialog -->
     <string name="settings_save_backup_title">Save Backup</string>

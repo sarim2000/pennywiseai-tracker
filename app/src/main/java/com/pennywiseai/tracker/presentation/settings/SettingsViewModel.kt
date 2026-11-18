@@ -112,6 +112,10 @@ class SettingsViewModel @Inject constructor(
     private val _exportedBackupFile = MutableStateFlow<File?>(null)
     val exportedBackupFile: StateFlow<File?> = _exportedBackupFile.asStateFlow()
 
+    // Receipts too large for the backup just created; the Save/Share dialog says so.
+    private val _exportSkippedReceipts = MutableStateFlow(0)
+    val exportSkippedReceipts: StateFlow<Int> = _exportSkippedReceipts.asStateFlow()
+
     // "Delete all transactions": null while the confirmation isn't open, else the
     // number of rows the delete would remove — observed, not snapshotted, so the
     // figure the user is consenting to stays the one the delete will act on even
@@ -575,11 +579,9 @@ class SettingsViewModel @Inject constructor(
                     is ExportResult.Success -> {
                         // Store the file for later saving
                         _exportedBackupFile.value = result.file
-                        _importExportMessage.value = if (result.skippedReceipts > 0) {
-                            UiText.Plural(R.plurals.settings_backup_created_skipped_receipts, result.skippedReceipts)
-                        } else {
-                            UiText.Res(R.string.settings_backup_created_choose)
-                        }
+                        _exportSkippedReceipts.value = result.skippedReceipts
+                        // Always this message: it opens the Save/Share dialog, which names skipped receipts.
+                        _importExportMessage.value = UiText.Res(R.string.settings_backup_created_choose)
                     }
                     is ExportResult.Error -> {
                         _importExportMessage.value = UiText.Res(R.string.settings_export_failed, listOf("${result.message}"))
@@ -780,16 +782,17 @@ class SettingsViewModel @Inject constructor(
         }
     }
 
-    private suspend fun performFolderBackup(showSuccessMessage: Boolean): Boolean {
+    /** Writes a backup to the folder; returns how many receipts it left out, or null when it failed. */
+    private suspend fun performFolderBackup(showSuccessMessage: Boolean): Int? {
         val treeUri = userPreferencesRepository.getScheduledFolderBackupTreeUri()
         if (treeUri.isNullOrBlank()) {
             _importExportMessage.value = UiText.Res(R.string.settings_folder_select_first)
-            return false
+            return null
         }
 
         if (!folderBackupWriter.canWriteToFolder(treeUri)) {
             _importExportMessage.value = UiText.Res(R.string.settings_folder_not_writable)
-            return false
+            return null
         }
 
         val includeReceipts = userPreferencesRepository.folderBackupIncludeReceipts.first()
@@ -812,17 +815,17 @@ class SettingsViewModel @Inject constructor(
                                 UiText.Res(R.string.settings_folder_backup_saved)
                             }
                         }
-                        true
+                        exportResult.skippedReceipts
                     }
                     is FolderBackupWriter.Result.Failure -> {
                         _importExportMessage.value = UiText.Plain(writeResult.message)
-                        false
+                        null
                     }
                 }
             }
             is ExportResult.Error -> {
                 _importExportMessage.value = UiText.Plain(exportResult.message)
-                false
+                null
             }
         }
     }
@@ -837,8 +840,11 @@ class SettingsViewModel @Inject constructor(
         scheduledFolderBackupScheduler.schedule()
         // Only claim success if the immediate backup actually wrote. On failure,
         // performFolderBackup has already surfaced the reason — don't clobber it.
-        if (performFolderBackup(showSuccessMessage = false)) {
-            _importExportMessage.value = UiText.Res(R.string.settings_folder_backup_enabled)
+        val skippedReceipts = performFolderBackup(showSuccessMessage = false) ?: return
+        _importExportMessage.value = if (skippedReceipts > 0) {
+            UiText.Plural(R.plurals.settings_folder_backup_enabled_skipped_receipts, skippedReceipts)
+        } else {
+            UiText.Res(R.string.settings_folder_backup_enabled)
         }
     }
 

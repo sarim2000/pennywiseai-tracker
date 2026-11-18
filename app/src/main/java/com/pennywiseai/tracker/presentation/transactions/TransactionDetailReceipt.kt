@@ -535,6 +535,9 @@ internal fun TransactionReceipt(
                                 context.startActivity(pdfIntent)
                             } catch (_: ActivityNotFoundException) {
                                 Toast.makeText(context, R.string.txn_detail_receipt_no_pdf_app, Toast.LENGTH_SHORT).show()
+                            } catch (_: SecurityException) {
+                                // A viewer whose activity needs a permission we don't hold.
+                                Toast.makeText(context, R.string.txn_detail_receipt_no_pdf_app, Toast.LENGTH_SHORT).show()
                             }
                         }
                     },

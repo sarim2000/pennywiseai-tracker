@@ -986,7 +986,7 @@ class TransactionDetailViewModel @Inject constructor(
             try {
                 // Handle receipt changes. The new file is saved first, so a failed one
                 // leaves the old receipt in place and the edit open. The old file is
-                // only deleted once the row points away from it (see below).
+                // only deleted once the whole save has gone through (see below).
                 val pendingUri = _pendingReceiptUri.value
                 val savedReceiptPath = pendingUri?.let { uri ->
                     receiptManager.saveReceipt(uri) ?: run {
@@ -1119,6 +1119,9 @@ class TransactionDetailViewModel @Inject constructor(
                 // Whatever is stored for the saved merchant is now the truth.
                 val trimmedAlias = merchantAliasRepository.getAliasForMerchant(newMerchantName) ?: ""
 
+                // Only now: a step above that failed leaves the edit open on the old
+                // receipt, and a cancel would show a deleted file.
+                discardReplacedReceipt(toSave.receiptPath, newReceiptPath, receiptManager::deleteReceipt)
                 _transaction.value = normalizedTransaction
                 loadReceiptUri(normalizedTransaction)
                 _pendingReceiptUri.value = null
@@ -1561,11 +1564,11 @@ internal fun merchantKeyForApply(originalMerchant: String?, savedMerchant: Strin
 internal fun normalizeReference(raw: String?): String? = raw?.trim()?.ifEmpty { null }
 
 /**
- * Runs [persist], which writes a row whose receipt goes from [oldPath] to [newPath],
- * so the row never points at a deleted file. The old file is deleted only after
- * [persist] succeeds. If it fails, the just-saved new file is deleted and the old
- * one kept. A cancellation deletes nothing: the write may already have committed,
- * and an orphaned file is harmless where a dangling path is not.
+ * Runs [persist], which writes a row whose receipt goes from [oldPath] to [newPath].
+ * If it fails, the just-saved new file is deleted and the old one kept. The old file
+ * is left for [discardReplacedReceipt] once the whole save is done. A cancellation
+ * deletes nothing: the write may already have committed, and an orphaned file is
+ * harmless where a dangling path is not.
  */
 internal suspend fun persistReceiptChange(
     oldPath: String?,
@@ -1581,6 +1584,10 @@ internal suspend fun persistReceiptChange(
         if (newPath != null && newPath != oldPath) deleteReceipt(newPath)
         throw e
     }
+}
+
+/** Deletes the receipt a finished save replaced or removed; called after every step of the save. */
+internal fun discardReplacedReceipt(oldPath: String?, newPath: String?, deleteReceipt: (String) -> Unit) {
     if (oldPath != null && oldPath != newPath) deleteReceipt(oldPath)
 }
 

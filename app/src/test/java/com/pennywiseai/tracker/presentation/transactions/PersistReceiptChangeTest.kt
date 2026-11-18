@@ -3,7 +3,7 @@ package com.pennywiseai.tracker.presentation.transactions
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertTrue
+import org.junit.Assert.assertFalse
 import org.junit.Assert.fail
 import org.junit.Test
 
@@ -12,17 +12,28 @@ class PersistReceiptChangeTest {
 
     private val deleted = mutableListOf<String>()
 
-    private fun change(oldPath: String?, newPath: String?, persist: suspend () -> Unit) = runBlocking {
+    /** The row write, then the rest of the save ([rest]); the old file goes only when both succeed. */
+    private fun change(oldPath: String?, newPath: String?, rest: () -> Unit = {}, persist: suspend () -> Unit) = runBlocking {
         persistReceiptChange(oldPath, newPath, { deleted += it }, persist)
+        rest()
+        discardReplacedReceipt(oldPath, newPath) { deleted += it }
     }
 
     @Test
-    fun replace_deletesTheOldFileOnlyAfterTheRowIsSaved() {
-        var savedBeforeDelete = false
-        change("receipts/old.jpg", "receipts/new.pdf") { savedBeforeDelete = deleted.isEmpty() }
+    fun replace_deletesTheOldFileOnlyAfterTheWholeSave() {
+        var deletedBeforeRest = true
+        change("receipts/old.jpg", "receipts/new.pdf", rest = { deletedBeforeRest = deleted.isNotEmpty() }) {}
 
-        assertTrue(savedBeforeDelete)
+        assertFalse(deletedBeforeRest)
         assertEquals(listOf("receipts/old.jpg"), deleted)
+    }
+
+    /** Tags or balances failing after the row is written keep the old file, so a cancel still shows it. */
+    @Test
+    fun laterStepFails_keepsTheOldFile() {
+        runCatching { change("receipts/old.jpg", "receipts/new.pdf", rest = { error("tags") }) {} }
+
+        assertEquals(emptyList<String>(), deleted)
     }
 
     @Test

@@ -4,6 +4,7 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import javax.inject.Inject
@@ -35,6 +36,8 @@ class NetWorthLoader @Inject constructor(
             // Two rows can share an account's newest timestamp; count the account once.
             .sortedByDescending { it.id }
             .distinctBy { it.bankName to it.accountLast4 }
+            // The currency Manage Accounts shows: an older SMS-tracked account can be stored as INR.
+            .map { it.copy(currency = CurrencyFormatter.resolveAccountCurrency(it.sourceType, it.currency, it.bankName)) }
         NetWorthSnapshot(accounts, NetWorth.totals(accounts))
     }
 }

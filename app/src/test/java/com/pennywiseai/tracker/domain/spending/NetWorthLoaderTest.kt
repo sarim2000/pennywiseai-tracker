@@ -57,6 +57,24 @@ class NetWorthLoaderTest {
         assertEquals(BigDecimal("1200"), snapshot.totals.single().net)
     }
 
+    @Test
+    fun `an SMS account stored as INR counts in its bank's currency`() = runBlocking {
+        val sms = AccountBalanceEntity(
+            bankName = "BPCE", accountLast4 = "9999", balance = BigDecimal("40"), timestamp = at,
+            currency = "INR", sourceType = "SMS_BALANCE", profileId = PERSONAL,
+        )
+        val balances = mockk<AccountBalanceRepository>()
+        every { balances.getAllLatestBalances() } returns flowOf(listOf(account("1111", "1000"), sms))
+        val ignored = mockk<IgnoredAccountsStore>()
+        every { ignored.keysFlow } returns flowOf(emptySet())
+        val preferences = mockk<UserPreferencesRepository>()
+        every { preferences.selectedProfileId } returns flowOf(null)
+
+        val totals = NetWorthLoader(balances, ignored, preferences).observe().first().totals
+
+        assertEquals(mapOf("INR" to BigDecimal("1000"), "EUR" to BigDecimal("40")), totals.associate { it.currency to it.net })
+    }
+
     private companion object {
         const val BANK = "Test Bank"
         const val PERSONAL = 1L

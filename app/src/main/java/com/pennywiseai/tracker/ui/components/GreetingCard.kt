@@ -16,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -64,6 +65,8 @@ fun GreetingCard(
     // Shows an Add button when set (the floating nav bar docks Sync instead
     // of Home keeping an Add FAB).
     onAddClick: (() -> Unit)? = null,
+    // The voice mic, where the phone can listen: a cash spend said, or a question.
+    onVoiceClick: (() -> Unit)? = null,
     profiles: List<ProfileEntity> = emptyList(),
     selectedProfileId: Long? = null,
     onProfileSelected: (Long?) -> Unit = {},
@@ -221,6 +224,20 @@ fun GreetingCard(
                     selectedProfileId = selectedProfileId,
                     onProfileSelected = onProfileSelected,
                     onDismiss = { showProfileMenu = false }
+                )
+            }
+        }
+
+        if (onVoiceClick != null) {
+            IconButton(
+                onClick = onVoiceClick,
+                modifier = Modifier.size(Dimensions.Component.minTouchTarget),
+                shapes = IconButtonDefaults.shapes()
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Mic,
+                    contentDescription = stringResource(R.string.quick_add_voice_title),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

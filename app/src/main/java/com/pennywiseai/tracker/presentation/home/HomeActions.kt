@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.*
@@ -33,7 +34,8 @@ import com.pennywiseai.tracker.ui.theme.*
 
 /**
  * Home's top-bar actions: the Pro chip (free users only), the profile filter,
- * Add (while the floating nav bar is up) and More options.
+ * the voice mic (where the phone can listen), Add (while the floating nav bar
+ * is up) and More options.
  */
 @Composable
 internal fun HomeTopBarActions(
@@ -48,6 +50,7 @@ internal fun HomeTopBarActions(
     onProfileSelected: (Long?) -> Unit,
     onDismissProfileFilter: () -> Unit,
     onNavigateToAddScreen: () -> Unit,
+    onVoiceClick: (() -> Unit)?,
     onMoreClick: () -> Unit
 ) {
     val containerColor = MaterialTheme.colorScheme.surfaceContainer
@@ -116,6 +119,30 @@ internal fun HomeTopBarActions(
                 onProfileSelected = { onProfileSelected(it) },
                 onDismiss = { onDismissProfileFilter() }
             )
+        }
+        if (onVoiceClick != null) {
+            Box(
+                modifier = Modifier
+                    .size(Dimensions.Component.iconButton)
+                    .clip(CircleShape)
+                    .background(
+                        color = if (blurEffects) containerColor.copy(0.5f) else containerColor,
+                        shape = CircleShape
+                    )
+                    .clickable(
+                        onClick = onVoiceClick,
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null,
+                    ),
+                contentAlignment = Alignment.Center
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Mic,
+                    contentDescription = stringResource(R.string.quick_add_voice_title),
+                    tint = MaterialTheme.colorScheme.inverseSurface,
+                    modifier = Modifier.size(Dimensions.Icon.medium)
+                )
+            }
         }
         if (showAddAction) {
             Box(

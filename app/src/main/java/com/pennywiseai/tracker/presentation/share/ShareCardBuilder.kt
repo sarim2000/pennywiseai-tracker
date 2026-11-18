@@ -83,6 +83,7 @@ fun shareCardState(selection: ShareStudioSelection, data: ShareStudioData): Shar
         }
         is ShareStudioData.Budget -> budgetCard(data.summary, data.converted, details)
         is ShareStudioData.Achievements -> achievementsCard(data.earned, selection.achievements, details)
+        ShareStudioData.Failed -> ShareCardState.Unavailable(stringResource(R.string.share_unavailable_failed))
     }
 }
 

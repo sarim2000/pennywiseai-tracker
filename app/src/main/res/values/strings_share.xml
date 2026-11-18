@@ -129,6 +129,7 @@
     <string name="share_kind_achievements">Achievements</string>
     <string name="share_studio_section_achievements">Achievements on the card</string>
     <string name="share_detail_date_earned">Date earned</string>
+    <string name="share_unavailable_failed">Couldn\'t put this card together. Pick it again to retry.</string>
     <string name="share_unavailable_achievements">You haven\'t earned an achievement yet.</string>
     <string name="share_unavailable_achievements_none">Pick at least one achievement.</string>
     <string name="share_card_achievement_title">Achievement unlocked</string>

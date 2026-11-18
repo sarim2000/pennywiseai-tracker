@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.share
 
+import android.util.Log
 import androidx.lifecycle.SavedStateHandle
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -26,6 +27,7 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.flatMapLatest
@@ -66,6 +68,9 @@ sealed interface ShareStudioData {
 
     /** The achievements earned, newest first. */
     data class Achievements(val earned: List<Achievement>) : ShareStudioData
+
+    /** The card's data couldn't be worked out; picking the card again retries. */
+    data object Failed : ShareStudioData
 }
 
 /** How far back the budget card can go; the summary can't say whether anything is older. */
@@ -116,7 +121,11 @@ class ShareStudioViewModel @Inject constructor(
 
     private fun load(query: Query): Flow<ShareStudioData> {
         val period = query.period
-            ?: return flow { emit(ShareStudioData.Achievements(achievementLoader.load().forDisplay().filter { it.earned })) }
+            ?: return flow<ShareStudioData> { emit(ShareStudioData.Achievements(achievementLoader.load().forDisplay().filter { it.earned })) }
+                .catch { e ->
+                    Log.e("ShareStudioViewModel", "Couldn't work out achievements", e)
+                    emit(ShareStudioData.Failed)
+                }
         val (kind, offset, today) = period
         return when (query.source) {
             Source.REVIEW -> loader.observe(kind, offset, today).map { ShareStudioData.Reviews(listOf(it)) }

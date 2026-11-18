@@ -114,6 +114,7 @@
     <string name="share_kind_achievements">الإنجازات</string>
     <string name="share_studio_section_achievements">الإنجازات على البطاقة</string>
     <string name="share_detail_date_earned">تاريخ التحقيق</string>
+    <string name="share_unavailable_failed">تعذّر تجهيز هذه البطاقة. اخترها مرة أخرى لإعادة المحاولة.</string>
     <string name="share_unavailable_achievements">لم تحقق أي إنجاز بعد.</string>
     <string name="share_unavailable_achievements_none">اختر إنجازًا واحدًا على الأقل.</string>
     <string name="share_card_achievement_title">إنجاز جديد</string>

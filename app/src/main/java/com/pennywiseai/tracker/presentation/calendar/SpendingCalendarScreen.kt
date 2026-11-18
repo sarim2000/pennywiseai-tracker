@@ -105,9 +105,9 @@ fun SpendingCalendarScreen(
     // Deliberately not saved: restored after a recreation, it named a day whose sheet was no
     // longer on screen, and tapping that day again set the same value, so nothing opened.
     var selectedDay by remember { mutableStateOf<LocalDate?>(null) }
-    // The days of the month the sheet was opened for: a month that finishes loading
-    // while it's open replaces the state, and its days aren't this sheet's.
-    var sheetDays by remember { mutableStateOf<Map<LocalDate, CalendarDay>>(emptyMap()) }
+    // The month the sheet was opened for: a month that finishes loading while it's open
+    // replaces the state, and its days and leading currency aren't this sheet's.
+    var sheetMonth by remember { mutableStateOf<SpendingCalendarUiState?>(null) }
     LifecycleResumeEffect(Unit) {
         viewModel.refreshDate()
         onPauseOrDispose { }
@@ -144,15 +144,16 @@ fun SpendingCalendarScreen(
                     onSelectCurrency = viewModel::selectCurrency,
                     onDay = {
                         selectedDay = it
-                        sheetDays = loaded.days
+                        sheetMonth = loaded
                     },
                 )
                 selectedDay?.let { day ->
+                    val month = if (YearMonth.from(day) == loaded.month) loaded else sheetMonth ?: loaded
                     DaySheet(
                         day = day,
                         today = loaded.today,
-                        content = (if (YearMonth.from(day) == loaded.month) loaded.days else sheetDays)[day] ?: CalendarDay(),
-                        selectedCurrency = loaded.currency,
+                        content = month.days[day] ?: CalendarDay(),
+                        selectedCurrency = month.currency,
                         onDismiss = { selectedDay = null },
                         onOpenTransactions = { currency ->
                             selectedDay = null

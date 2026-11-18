@@ -98,6 +98,28 @@ class ShareStudioSelectionTest {
     }
 
     @Test
+    fun `an achievement opens on that one alone, Share all on every one earned`() {
+        val one = routeSelection(SavedStateHandle(mapOf("kind" to "ACHIEVEMENTS", "achievement" to "goals_reached")), today)
+        assertEquals(ShareKind.ACHIEVEMENTS, one.kind)
+        assertEquals(setOf("goals_reached"), one.achievements)
+        assertNull(routeSelection(SavedStateHandle(mapOf("kind" to "ACHIEVEMENTS")), today).achievements)
+    }
+
+    @Test
+    fun `picking achievements goes back to every one once all are on`() {
+        val earned = listOf("a", "b", "c")
+        assertEquals(setOf("a", "c"), toggleAchievement(null, "b", shown = false, earned))
+        assertEquals(emptySet<String>(), toggleAchievement(setOf("a"), "a", shown = false, earned))
+        assertNull(toggleAchievement(setOf("a", "c"), "b", shown = true, earned))
+    }
+
+    @Test
+    fun `an achievements card leads with badges, not a figure, and only offers its date`() {
+        assertFalse(ShareKind.ACHIEVEMENTS.needsFigure)
+        assertEquals(setOf(ShareDetail.PERIOD), effectiveDetails(ShareKind.ACHIEVEMENTS, ShareDetail.entries.toSet()))
+    }
+
+    @Test
     fun `the budget card never goes further back than it reaches`() {
         val oldest = ShareStudioSelection(kind = ShareKind.BUDGET, period = ReviewSelection(ReviewKind.MONTH, -BUDGET_MONTHS_BACK, today))
         assertEquals(-BUDGET_MONTHS_BACK, oldest.older().period.offset)

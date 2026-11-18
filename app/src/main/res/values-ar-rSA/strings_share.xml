@@ -115,4 +115,22 @@
     <string name="share_text_savings">نسبة ادخاري، من PennyWise، يتتبّع الإنفاق من رسائل البنك على الهاتف نفسه. https://%1$s</string>
     <string name="share_text_goal">تقدّمي نحو هدفي، من PennyWise، يتتبّع الإنفاق من رسائل البنك على الهاتف نفسه. https://%1$s</string>
     <string name="share_text_budget">كيف كانت ميزانيتي، من PennyWise، يتتبّع الإنفاق من رسائل البنك على الهاتف نفسه. https://%1$s</string>
+
+    <string name="share_kind_achievements">الإنجازات</string>
+    <string name="share_studio_section_achievements">الإنجازات على البطاقة</string>
+    <string name="share_detail_date_earned">تاريخ التحقيق</string>
+    <string name="share_unavailable_failed">تعذّر تجهيز هذه البطاقة. اخترها مرة أخرى لإعادة المحاولة.</string>
+    <string name="share_unavailable_achievements">لم تحقق أي إنجاز بعد.</string>
+    <string name="share_unavailable_achievements_none">اختر إنجازًا واحدًا على الأقل.</string>
+    <string name="share_card_achievement_title">إنجاز جديد</string>
+    <string name="share_card_achievements_title">إنجازاتي</string>
+    <plurals name="share_card_achievements_hero">
+        <item quantity="zero">إنجاز مُحقَّق</item>
+        <item quantity="one">إنجاز مُحقَّق</item>
+        <item quantity="two">إنجازان مُحقَّقان</item>
+        <item quantity="few">إنجازات مُحقَّقة</item>
+        <item quantity="many">إنجازًا مُحقَّقًا</item>
+        <item quantity="other">إنجاز مُحقَّق</item>
+    </plurals>
+    <string name="share_text_achievements">إنجازاتي، من PennyWise. يتتبّع الإنفاق من رسائل البنك على الهاتف نفسه. https://%1$s</string>
 </resources>

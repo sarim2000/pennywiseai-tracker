@@ -63,6 +63,12 @@ fun AccountDetailScreen(
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val selectedDateRange by viewModel.selectedDateRange.collectAsStateWithLifecycle()
 
+    // A new day can close a statement or make a bill overdue, with nothing else changing.
+    androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
+        viewModel.refreshDate()
+        onPauseOrDispose { }
+    }
+
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val hazeState = remember { HazeState() }
@@ -114,6 +120,12 @@ fun AccountDetailScreen(
                     billedOutstanding = uiState.billedOutstanding,
                     unbilledOutstanding = uiState.unbilledOutstanding
                 )
+            }
+
+            uiState.cardBill?.let { status ->
+                item(key = "card_bill") {
+                    CardBillCard(status = status, onSave = viewModel::setCardBill, onClear = viewModel::clearCardBill)
+                }
             }
 
             // Date Range Filter

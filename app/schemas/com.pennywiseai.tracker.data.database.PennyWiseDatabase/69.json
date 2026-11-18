@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 69,
-    "identityHash": "5151ef3167fcb88cb94ef65f490fdc31",
+    "identityHash": "67c1057e1e07cba20b945b2a7673f036",
     "entities": [
       {
         "tableName": "transactions",
@@ -535,7 +535,7 @@
       },
       {
         "tableName": "account_balances",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `bank_name` TEXT NOT NULL, `account_last4` TEXT NOT NULL, `balance` TEXT NOT NULL, `timestamp` TEXT NOT NULL, `transaction_id` INTEGER, `credit_limit` TEXT, `is_credit_card` INTEGER NOT NULL DEFAULT 0, `sms_source` TEXT, `source_type` TEXT, `account_type` TEXT, `created_at` TEXT NOT NULL, `currency` TEXT NOT NULL DEFAULT 'INR', `statement_day` INTEGER DEFAULT NULL, `profile_id` INTEGER NOT NULL DEFAULT 1, `alias` TEXT, `lowBalanceThreshold` TEXT)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `bank_name` TEXT NOT NULL, `account_last4` TEXT NOT NULL, `balance` TEXT NOT NULL, `timestamp` TEXT NOT NULL, `transaction_id` INTEGER, `credit_limit` TEXT, `is_credit_card` INTEGER NOT NULL DEFAULT 0, `sms_source` TEXT, `source_type` TEXT, `account_type` TEXT, `created_at` TEXT NOT NULL, `currency` TEXT NOT NULL DEFAULT 'INR', `statement_day` INTEGER DEFAULT NULL, `profile_id` INTEGER NOT NULL DEFAULT 1, `alias` TEXT, `lowBalanceThreshold` TEXT, `card_due_day` INTEGER DEFAULT NULL, `card_bill_amount` TEXT DEFAULT NULL, `card_bill_as_of` TEXT DEFAULT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -634,6 +634,24 @@
             "fieldPath": "lowBalanceThreshold",
             "columnName": "lowBalanceThreshold",
             "affinity": "TEXT"
+          },
+          {
+            "fieldPath": "cardDueDay",
+            "columnName": "card_due_day",
+            "affinity": "INTEGER",
+            "defaultValue": "NULL"
+          },
+          {
+            "fieldPath": "cardBillAmount",
+            "columnName": "card_bill_amount",
+            "affinity": "TEXT",
+            "defaultValue": "NULL"
+          },
+          {
+            "fieldPath": "cardBillAsOf",
+            "columnName": "card_bill_as_of",
+            "affinity": "TEXT",
+            "defaultValue": "NULL"
           }
         ],
         "primaryKey": {
@@ -1177,7 +1195,7 @@
       },
       {
         "tableName": "budgets",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `limit_amount` TEXT NOT NULL, `period_type` TEXT NOT NULL, `start_date` TEXT NOT NULL, `end_date` TEXT NOT NULL, `weekday_anchor` INTEGER, `month_anchor` INTEGER, `currency` TEXT NOT NULL DEFAULT 'INR', `is_active` INTEGER NOT NULL DEFAULT 1, `include_all_categories` INTEGER NOT NULL DEFAULT 0, `color` TEXT NOT NULL DEFAULT '#1565C0', `group_type` TEXT NOT NULL DEFAULT 'LIMIT', `display_order` INTEGER NOT NULL DEFAULT 0, `created_at` TEXT NOT NULL, `updated_at` TEXT NOT NULL, `rollover_enabled` INTEGER NOT NULL DEFAULT 0, `rollover_since` TEXT DEFAULT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `limit_amount` TEXT NOT NULL, `period_type` TEXT NOT NULL, `start_date` TEXT NOT NULL, `end_date` TEXT NOT NULL, `weekday_anchor` INTEGER, `month_anchor` INTEGER, `currency` TEXT NOT NULL DEFAULT 'INR', `is_active` INTEGER NOT NULL DEFAULT 1, `include_all_categories` INTEGER NOT NULL DEFAULT 0, `color` TEXT NOT NULL DEFAULT '#1565C0', `group_type` TEXT NOT NULL DEFAULT 'LIMIT', `display_order` INTEGER NOT NULL DEFAULT 0, `created_at` TEXT NOT NULL, `updated_at` TEXT NOT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -1278,19 +1296,6 @@
             "columnName": "updated_at",
             "affinity": "TEXT",
             "notNull": true
-          },
-          {
-            "fieldPath": "rolloverEnabled",
-            "columnName": "rollover_enabled",
-            "affinity": "INTEGER",
-            "notNull": true,
-            "defaultValue": "0"
-          },
-          {
-            "fieldPath": "rolloverSince",
-            "columnName": "rollover_since",
-            "affinity": "TEXT",
-            "defaultValue": "NULL"
           }
         ],
         "primaryKey": {
@@ -2720,7 +2725,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '5151ef3167fcb88cb94ef65f490fdc31')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '67c1057e1e07cba20b945b2a7673f036')"
     ]
   }
 }

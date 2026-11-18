@@ -452,6 +452,24 @@ fun PennyWiseNavHost(
                         )
                     }
 
+                    entry<Achievements> { key ->
+                        com.pennywiseai.tracker.presentation.achievements.AchievementsScreen(
+                            onNavigateBack = { backStack.pop(key) },
+                            onShare = { achievement ->
+                                backStack.navigate(ShareStudio(kind = "ACHIEVEMENTS", achievement = achievement))
+                            }
+                        )
+                    }
+
+                    entry<NetWorth> { key ->
+                        com.pennywiseai.tracker.presentation.accounts.NetWorthScreen(
+                            onNavigateBack = { backStack.pop(key) },
+                            onAccountClick = { bankName, accountLast4 ->
+                                backStack.navigate(AccountDetail(bankName, accountLast4))
+                            },
+                        )
+                    }
+
                     entry<ShareStudio> { key ->
                         com.pennywiseai.tracker.presentation.share.ShareStudioScreen(
                             onNavigateBack = { backStack.pop(key) }

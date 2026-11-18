@@ -40,6 +40,7 @@ import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.database.entity.formatAmount
 import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.domain.model.getAccountType
+import com.pennywiseai.tracker.domain.spending.RecurringCharge
 import com.pennywiseai.tracker.presentation.accounts.icon
 import com.pennywiseai.tracker.ui.animations.StaggeredEntrance
 import com.pennywiseai.tracker.ui.animations.pwCollapse
@@ -659,10 +660,7 @@ private fun SwipeableSubscriptionItem(
                                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                                     )
                                 } else {
-                                    var nextPaymentDate: LocalDate = subscriptionDate
-                                    while (nextPaymentDate.isBefore(today) || nextPaymentDate.isEqual(today)) {
-                                        nextPaymentDate = nextPaymentDate.plusMonths(1)
-                                    }
+                                    val nextPaymentDate = RecurringCharge.nextPaymentShown(subscriptionDate, subscription.billingCycle, today)
                                     val daysUntilNext = ChronoUnit.DAYS.between(today, nextPaymentDate)
 
                                     Icon(

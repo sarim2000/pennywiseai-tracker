@@ -111,11 +111,17 @@ internal class SmsScanPipeline(
                             stats.unrecognised.incrementAndGet()
                             unrecognizedBatch.add(result.sms)
                             if (unrecognizedBatch.size >= UNRECOGNIZED_BATCH_SIZE)
-                                writer.flushUnrecognizedBatch(unrecognizedBatch, isTaught)
+                                flushUnrecognized(unrecognizedBatch, stats)
                         }
                         is ParseResult.SpecialNotification -> {
-                            stats.special.incrementAndGet()
-                            try { result.onSave() } catch (e: Exception) { Log.e(TAG, "Error saving special notification: ${e.message}") }
+                            try {
+                                result.onSave()
+                                stats.special.incrementAndGet()
+                            } catch (e: Exception) {
+                                if (e is CancellationException) throw e
+                                Log.e(TAG, "Error saving special notification: ${e.message}")
+                                stats.failed.incrementAndGet()
+                            }
                         }
                         is ParseResult.Transaction -> {
                             stats.parsed.incrementAndGet()
@@ -152,7 +158,7 @@ internal class SmsScanPipeline(
                 Trace.endSection()
             }
 
-            if (unrecognizedBatch.isNotEmpty()) writer.flushUnrecognizedBatch(unrecognizedBatch, isTaught)
+            if (unrecognizedBatch.isNotEmpty()) flushUnrecognized(unrecognizedBatch, stats)
             if (widgetNeedsUpdate) {
                 onTransactionsChanged()
             }
@@ -164,5 +170,14 @@ internal class SmsScanPipeline(
         // Not a finished scan: the caller must neither record a success nor move the cursor.
         val readError = feedError.get()
         if (readError != null) throw readError
+    }
+
+    /** What couldn't be filed moves from unrecognised to failed, so the cursor stays put. */
+    private suspend fun flushUnrecognized(batch: ArrayList<ScannedSms>, stats: ProcessingStats) {
+        val lost = writer.flushUnrecognizedBatch(batch, isTaught)
+        if (lost > 0) {
+            stats.unrecognised.addAndGet(-lost)
+            stats.failed.addAndGet(lost)
+        }
     }
 }

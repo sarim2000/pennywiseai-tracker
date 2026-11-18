@@ -288,6 +288,34 @@ class SmsScanPipelineTest {
     }
 
     @Test
+    fun `a balance or mandate that fails to save counts as failed, not special`() = scanTest {
+        val stats = h.scan(
+            listOf(hdfcDebit(1), hdfcDebit(2)),
+            classify = { sms ->
+                ParseResult.SpecialNotification(sms) { if (sms.id == 2L) error("database is locked") }
+            },
+        )
+
+        assertEquals(SmsScanCounts(special = 1, failed = 1), stats.counts())
+        assertFalse(stats.mayAdvanceCursor())
+    }
+
+    @Test
+    fun `unrecognized messages that fail to file count as failed`() = scanTest {
+        coEvery { h.unrecognized.insertAll(any()) } throws IllegalStateException("disk full")
+
+        val stats = h.scan(
+            listOf(
+                scannedSms("AD-NEWBNK-T", "Your statement is ready", id = 1L),
+                scannedSms("ZQTBNK", "Card payment EUR 12.50 at TEST SHOP", id = 2L),
+            )
+        )
+
+        assertEquals(SmsScanCounts(failed = 2), stats.counts())
+        assertFalse(stats.mayAdvanceCursor())
+    }
+
+    @Test
     fun `an ignored account's messages count as excluded`() = scanTest {
         every { h.ignored.isIgnored(any(), *anyVararg()) } returns true
 

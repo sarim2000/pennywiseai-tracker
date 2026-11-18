@@ -474,27 +474,37 @@ internal class ScanTransactionWriter(
 
     // ─── Unrecognized SMS batch ────────────────────────────────────────────────
 
-    suspend fun flushUnrecognizedBatch(batch: ArrayList<ScannedSms>, isTaught: (ScannedSms) -> Boolean) {
+    /** Files [batch] under Unrecognized SMS and empties it; returns how many couldn't be stored. */
+    suspend fun flushUnrecognizedBatch(batch: ArrayList<ScannedSms>, isTaught: (ScannedSms) -> Boolean): Int {
         fun ScannedSms.toRow() = UnrecognizedSmsEntity(
             sender     = sender,
             smsBody    = body,
             receivedAt = timestamp.toLocalDateTime()
         )
         val (taught, others) = batch.partition(isTaught)
+        batch.clear()
+        var failed = 0
         try {
             unrecognizedSmsRepository.insertAll(others.map { it.toRow() })
-            // A taught sender's text can repeat: the same words later are another payment, offered
-            // again unless that very SMS is already booked, as on every rescan after confirming it.
-            taught.forEach { sms ->
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            Log.e(TAG, "Error storing unrecognized SMS batch: ${e.message}")
+            failed += others.size
+        }
+        // A taught sender's text can repeat: the same words later are another payment, offered
+        // again unless that very SMS is already booked, as on every rescan after confirming it.
+        taught.forEach { sms ->
+            try {
                 val booked = transactionRepository.getAnyBySmsAround(
                     sms.body, sms.sender, sms.timestamp.toLocalDateTime(), UnrecognizedSmsRepository.REDELIVERY_WINDOW
                 )
                 if (booked == null) unrecognizedSmsRepository.insertOrRevive(sms.toRow())
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                Log.e(TAG, "Error storing a taught unrecognized SMS: ${e.message}")
+                failed++
             }
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
-            Log.e(TAG, "Error storing unrecognized SMS batch: ${e.message}")
         }
-        batch.clear()
+        return failed
     }
 }

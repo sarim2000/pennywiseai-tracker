@@ -24,7 +24,7 @@ data class SmsScanCounts(
     val discarded: Int = 0,
     /** A balance update or a subscription mandate rather than a transaction. */
     val special: Int = 0,
-    /** Read as a transaction, but saving it threw. */
+    /** Read, but storing it threw: a transaction, a balance or mandate, or an unrecognised message. */
     val failed: Int = 0,
 ) {
     val examined: Int get() = saved + duplicates + excluded + unrecognised + discarded + special + failed
@@ -63,7 +63,7 @@ enum class LastScanStatus {
     RUNNING,
     SUCCEEDED,
 
-    /** Finished, but some transactions it read couldn't be saved. */
+    /** Finished, but some messages it read couldn't be saved. */
     SAVE_FAILED,
     FAILED,
     CANCELLED,

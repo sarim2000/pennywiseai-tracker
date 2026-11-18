@@ -310,7 +310,11 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
         if (arrivedAt == shape && morphFrom == null && arrival.value < 1f) {
             pose = arrived(pose, shape, (arrival.value * ARRIVAL_MS).toLong())
         }
-        morphFrom?.let { pose = withCutArrival(pose, it.moves, morph.value) }
+        morphFrom?.let { from ->
+            pose = withCutArrival(pose, from.moves, morph.value)
+            // Bars' trend gaze eases out with the morph instead of snapping to the centre.
+            from.gaze?.let { pose = lookAt(pose, it, from.gazeWeight * (1f - morph.value.coerceIn(0f, 1f))) }
+        }
         val w = blend.value
         from?.let { if (w < 1f) pose = blendPose(it, pose, w) }
         val target = dragLook ?: look
@@ -446,7 +450,8 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
         } else {
             null
         }
-        val from = morphFrom ?: return MorphFrom(here, g.eyes, g.pivot, shape, stamp = stamped, moves = moving)
+        val gaze = if (shape == MascotShape.Bars && value != 0f) trendGaze(value) else null
+        val from = morphFrom ?: return MorphFrom(here, g.eyes, g.pivot, shape, stamp = stamped, moves = moving, gaze = gaze)
         val p = morph.value
         val w = p.coerceIn(0f, 1f)
         val early = w < 0.5f
@@ -461,6 +466,9 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
             stamp = fromStampAlpha(from, w),
             squint = morphEyes(from, p),
             moves = from.moves?.let { it.copy(weight = cutWeight(it, p)) }?.takeIf { it.weight > 0f },
+            // Into Bars, pose() already looks along the trend; out of it, what's left of the old look.
+            gaze = gaze ?: from.gaze,
+            gazeWeight = if (gaze != null) 1f else from.gazeWeight * (1f - w),
         )
     }
 

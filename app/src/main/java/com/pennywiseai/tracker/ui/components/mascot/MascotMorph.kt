@@ -186,6 +186,9 @@ internal class MorphFrom(
     val squint: Float = 0f,
     /** The arrival's moves the morph cut into, still showing, or null. */
     val moves: CutArrival? = null,
+    /** Where the eyes looked for the shape's own reason (Bars' trend), at [gazeWeight], or null. */
+    val gaze: Offset? = null,
+    val gazeWeight: Float = 1f,
 )
 
 /** The owl's colours are 1, every object's 0. */

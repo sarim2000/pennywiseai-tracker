@@ -66,11 +66,16 @@ internal class ScanOutcomeRecorder(
         return result
     }
 
-    /** The scan reads the whole window, so until it finishes clean the next one must too. */
+    /**
+     * The scan reads the whole window, so until it finishes clean the next one must too.
+     * Unlike the other records, this one throws when it can't be stored: a scan that went
+     * on without it, then died with its process, would leave nothing owing the window, and
+     * a rebuild would already have deleted the rows it means to read again.
+     */
     suspend fun markFullWindow() {
         if (fullWindow) return
         fullWindow = true
-        record(running())
+        preferences.setLastScanRecord(running())
     }
 
     private fun running() = SmsScanRecord(

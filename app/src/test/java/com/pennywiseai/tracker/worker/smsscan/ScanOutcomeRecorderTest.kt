@@ -217,6 +217,29 @@ class ScanOutcomeRecorderTest {
     }
 
     @Test
+    fun `a whole-window scan stops when it can't record that it owes the window`() = runTest {
+        var writes = 0
+        coEvery { preferences.setLastScanRecord(any()) } answers {
+            // The RUNNING record lands; the marker after it doesn't.
+            if (++writes == 2) throw IOException("datastore broken")
+            written += firstArg<SmsScanRecord>()
+            stored.value = firstArg()
+        }
+        var readInbox = false
+
+        val thrown = runCatching {
+            recorder.run(isStopped = { false }) {
+                recorder.markFullWindow()
+                readInbox = true
+            }
+        }.exceptionOrNull()
+
+        assertTrue(thrown is IOException)
+        assertFalse("nothing is read or deleted without the marker", readInbox)
+        assertTrue("the failed record still tries to carry it", written.last().owesFullWindow)
+    }
+
+    @Test
     fun `with no earlier scan there is no last success`() = runTest {
         runCatching { recorder.run(isStopped = { false }) { error("no inbox") } }
 

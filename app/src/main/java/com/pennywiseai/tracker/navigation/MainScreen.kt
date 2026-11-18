@@ -333,6 +333,9 @@ fun MainScreen(
                 onNavigateToManageAccounts = {
                     open(tab, ManageAccounts)
                 },
+                onNavigateToBackgroundAccess = {
+                    openRoot(BackgroundAccess)
+                },
                 onNavigateToSmsCheckup = {
                     openRoot(SmsCheckup)
                 },

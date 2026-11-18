@@ -33,6 +33,8 @@ fun TrackingProblemCard(
     onFix: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    /** Opens the SMS check-up, a second action: Fix stays the one tap to the fix itself. */
+    onCheckup: (() -> Unit)? = null,
 ) {
     val ink = MaterialTheme.colorScheme.onSecondaryContainer
     PennyWiseCardV2(
@@ -71,6 +73,11 @@ fun TrackingProblemCard(
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically,
         ) {
+            if (onCheckup != null) {
+                TextButton(onClick = onCheckup, shapes = ButtonDefaults.shapes()) {
+                    Text(stringResource(R.string.sms_checkup_title))
+                }
+            }
             TextButton(onClick = onFix, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.home_tracking_card_fix))
             }

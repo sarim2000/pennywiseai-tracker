@@ -78,13 +78,14 @@ suspend fun budgetCarry(
 data class BudgetSpend(val amount: BigDecimal, val incomplete: Boolean = false)
 
 /**
- * The one place a budget's spending is added up, so its carry and every live
- * figure (the Budgets card in both currency modes, Home, the widget, Budget
- * History) agree: every expense for a budget with no categories, else its own
- * categories (a parent covering its sub-categories, #374) and type buckets,
- * refunds taken off. Spending [convert] has no rate for is left out and marked
- * [BudgetSpend.incomplete]. Outside unified mode, pass only the budget's own
- * currency's [transactions] and a [convert] that keeps amounts as they are.
+ * A budget's spending as its carry adds it up: every expense for a budget with no
+ * categories, else its own categories (a parent covering its sub-categories, #374)
+ * and type buckets, refunds taken off. A budget with rollover on shows the same sum
+ * live (Budgets card, Home, Budget History), so what it shows spent is what it
+ * carries; rollover-off budgets keep each screen's own sum. Spending [convert] has no
+ * rate for is left out and marked [BudgetSpend.incomplete]. Outside unified mode,
+ * pass only the budget's own currency's [transactions] and a [convert] that keeps
+ * amounts as they are.
  */
 internal suspend fun budgetSpend(
     group: BudgetWithCategories,

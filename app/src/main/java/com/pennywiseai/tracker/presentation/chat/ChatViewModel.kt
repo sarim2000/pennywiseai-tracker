@@ -108,7 +108,7 @@ class ChatViewModel @Inject constructor(
     // Read again each time Chat comes back: a bill's "overdue" and a budget's window move with the day.
     private val today = MutableStateFlow(java.time.LocalDate.now())
 
-    /** The suggested prompts that apply now, kept current as rows are filed and bills paid. */
+    /** The suggested prompts that apply now, kept current as bills are paid and budgets spent. */
     @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
     val suggestions: StateFlow<List<com.pennywiseai.tracker.data.repository.ChatSuggestion>> = today
         .flatMapLatest { chatSuggestions.observe(it) }
@@ -405,12 +405,6 @@ class ChatViewModel @Inject constructor(
             }
         }
     }
-
-    /**
-     * The newest rows still to file as of this tap, for the category picker to walk. A sitting's
-     * worth ([ChatSuggestions.REVIEW_MAX]): the chip still counts them all and offers the rest next time.
-     */
-    suspend fun uncategorizedIds(): List<Long> = chatSuggestions.reviewIds()
 
     fun clearChat() {
         if (_isConfirming.value) return

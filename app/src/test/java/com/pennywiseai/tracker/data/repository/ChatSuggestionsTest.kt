@@ -1,13 +1,8 @@
 package com.pennywiseai.tracker.data.repository
 
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
-import com.pennywiseai.tracker.data.database.entity.TransactionEntity
-import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.model.BillsDue
 import com.pennywiseai.tracker.data.model.BudgetStatus
-import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
-import com.pennywiseai.tracker.data.repository.ChatSuggestion.Ask
-import com.pennywiseai.tracker.data.repository.ChatSuggestion.Uncategorized
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.awaitCancellation
@@ -18,12 +13,9 @@ import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
 import java.time.LocalDate
-import java.time.LocalDateTime
 
 class ChatSuggestionsTest {
     private val today = LocalDate.of(2026, 11, 16)
@@ -32,134 +24,79 @@ class ChatSuggestionsTest {
     private fun budget(spent: String) =
         BudgetStatus("Food", "SAR", BigDecimal("2000"), BigDecimal(spent), LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 30))
 
-    private val standing = listOf(Ask(QuickAction.MONTH_SPEND), Ask(QuickAction.TOP_CATEGORIES), Ask(QuickAction.COMPARE_MONTH))
+    private val standing = listOf(
+        ChatSuggestion(QuickAction.MONTH_SPEND),
+        ChatSuggestion(QuickAction.TOP_CATEGORIES),
+        ChatSuggestion(QuickAction.COMPARE_MONTH),
+    )
 
     @Test
     fun `with nothing to act on, only the standing questions show`() {
-        assertEquals(standing, ChatSuggestions.pick(0, noBills, emptyList()))
+        assertEquals(standing, ChatSuggestions.pick(noBills, emptyList()))
+        assertEquals(ChatSuggestions.STANDING, ChatSuggestions.pick(noBills, emptyList()))
     }
 
     @Test
     fun `what needs doing comes first, and never more than four compete`() {
-        val all = ChatSuggestions.pick(12, BillsDue(today.plusDays(7), emptyList(), listOf(bill(today.plusDays(2)))), listOf(budget("500")))
-        assertEquals(listOf(Uncategorized(12), Ask(QuickAction.BILLS), Ask(QuickAction.BUDGETS), Ask(QuickAction.MONTH_SPEND)), all)
+        val all = ChatSuggestions.pick(BillsDue(today.plusDays(7), emptyList(), listOf(bill(today.plusDays(2)))), listOf(budget("500")))
+        assertEquals(
+            listOf(
+                ChatSuggestion(QuickAction.BILLS),
+                ChatSuggestion(QuickAction.BUDGETS),
+                ChatSuggestion(QuickAction.MONTH_SPEND),
+                ChatSuggestion(QuickAction.TOP_CATEGORIES),
+            ),
+            all
+        )
         assertEquals(ChatSuggestions.MAX_SHOWN, all.size)
     }
 
     @Test
     fun `overdue bills are counted apart from those still to come`() {
         val bills = BillsDue(today.plusDays(7), overdue = listOf(bill(today.minusDays(3)), bill(today.minusDays(1))), upcoming = listOf(bill(today)))
-        assertEquals(Ask(QuickAction.BILLS, overdue = 2), ChatSuggestions.pick(0, bills, emptyList()).first())
+        assertEquals(ChatSuggestion(QuickAction.BILLS, overdue = 2), ChatSuggestions.pick(bills, emptyList()).first())
         val overdueOnly = BillsDue(today.plusDays(7), overdue = listOf(bill(today.minusDays(3))), upcoming = emptyList())
-        assertEquals(Ask(QuickAction.BILLS, overdue = 1), ChatSuggestions.pick(0, overdueOnly, emptyList()).first())
+        assertEquals(ChatSuggestion(QuickAction.BILLS, overdue = 1), ChatSuggestions.pick(overdueOnly, emptyList()).first())
     }
 
     @Test
     fun `a spent limit still has something to say`() {
         // Over its limit, or without a rate to show it in: the answer says so, so the prompt stays.
-        assertEquals(Ask(QuickAction.BUDGETS), ChatSuggestions.pick(0, noBills, listOf(budget("2500"))).first())
-        assertEquals(Ask(QuickAction.BUDGETS), ChatSuggestions.pick(0, noBills, listOf(budget("10").copy(limit = null))).first())
-    }
-
-    private fun row(
-        id: Long,
-        category: String,
-        profileId: Long? = null,
-        excluded: Boolean = false,
-        deleted: Boolean = false,
-        bank: String? = null,
-        account: String? = null,
-    ) = TransactionEntity(
-        id = id,
-        amount = BigDecimal.TEN,
-        merchantName = "Shop",
-        category = category,
-        transactionType = TransactionType.EXPENSE,
-        dateTime = LocalDateTime.of(2026, 11, 10, 12, 0),
-        transactionHash = "h$id",
-        currency = "SAR",
-        profileId = profileId,
-        excludedFromAnalytics = excluded,
-        isDeleted = deleted,
-        bankName = bank,
-        accountNumber = account,
-    )
-
-    @Test
-    fun `a row needs a category when it has none or sits in Others, whatever Others is called`() {
-        assertTrue(row(1, "").needsCategory("Others", split = false))
-        assertTrue(row(2, "  ").needsCategory("Others", split = false))
-        assertTrue(row(3, "Misc").needsCategory("Misc", split = false))
-        assertFalse(row(4, "Others").needsCategory("Misc", split = false))
-        assertFalse(row(5, "Food").needsCategory("Others", split = false))
-        // Kept out of totals or deleted: nothing waits on it.
-        assertFalse(row(6, "Others", excluded = true).needsCategory("Others", split = false))
-        assertFalse(row(7, "Others", deleted = true).needsCategory("Others", split = false))
-        // Split across categories: the splits are its answer, whatever the row itself says.
-        assertFalse(row(8, "Others").needsCategory("Others", split = true))
+        assertEquals(ChatSuggestion(QuickAction.BUDGETS), ChatSuggestions.pick(noBills, listOf(budget("2500"))).first())
+        assertEquals(ChatSuggestion(QuickAction.BUDGETS), ChatSuggestions.pick(noBills, listOf(budget("10").copy(limit = null))).first())
     }
 
     private fun suggestions(
-        rows: Flow<List<TransactionEntity>>,
-        profile: Flow<Long?> = flowOf(null),
-        ignored: Set<String> = emptySet(),
         bills: Flow<BillsDue> = flowOf(noBills),
         budgets: Flow<List<BudgetStatus>> = flowOf(emptyList()),
     ) = ChatSuggestions(
-        transactionRepository = mockk { every { observeUncategorized() } returns rows },
         planningRepository = mockk {
             every { observeBillsDue(today, any()) } returns bills
             every { observeBudgets(today) } returns budgets
         },
-        userPreferencesRepository = mockk<UserPreferencesRepository> { every { selectedProfileId } returns profile },
-        accountBalanceRepository = mockk { every { getAllLatestBalances() } returns flowOf(emptyList()) },
-        ignoredAccountsStore = mockk { every { keysFlow } returns flowOf(ignored) },
-        cardRepository = mockk { every { getAllCards() } returns flowOf(emptyList()) },
     )
 
     @Test
-    fun `the count follows the profile Home shows, and goes as rows are filed`() = runTest {
-        val unsorted = MutableStateFlow(listOf(row(1, "Others", profileId = 2), row(2, "Others", profileId = 1)))
-        val profile = MutableStateFlow<Long?>(2)
-        val suggestions = suggestions(unsorted, profile)
-        assertEquals(Uncategorized(1), suggestions.observe(today).first().first())
-        assertEquals(listOf(1L), suggestions.uncategorized().first().map { it.id })
+    fun `the bills prompt goes once nothing is due`() = runTest {
+        val bills = MutableStateFlow(BillsDue(today.plusDays(7), listOf(bill(today.minusDays(1))), emptyList()))
+        val suggestions = suggestions(bills = bills)
+        assertEquals(ChatSuggestion(QuickAction.BILLS, overdue = 1), suggestions.observe(today).first().first())
 
-        profile.value = null
-        assertEquals(Uncategorized(2), suggestions.observe(today).first().first())
-
-        unsorted.value = emptyList()
+        bills.value = noBills
         assertEquals(standing, suggestions.observe(today).first())
-    }
-
-    @Test
-    fun `rows of an ignored account aren't counted or walked, as no list shows them`() = runTest {
-        val rows = listOf(row(1, "Others", bank = "Bank", account = "1234"), row(2, "Others", bank = "Bank", account = "5678"))
-        val suggestions = suggestions(flowOf(rows), ignored = setOf("Bank_1234"))
-        assertEquals(listOf(2L), suggestions.uncategorized().first().map { it.id })
-        assertEquals(Uncategorized(1), suggestions.observe(today).first().first())
     }
 
     @Test
     fun `a source that fails or is slow drops only its own prompt`() = runTest {
         // Bills fail to read; budgets wait on a rate fetch that hasn't come back.
-        val suggestions = suggestions(
-            flowOf(listOf(row(1, "Others"))),
-            bills = flow { throw IllegalStateException("boom") },
+        val failing = suggestions(bills = flow { throw IllegalStateException("boom") }, budgets = flow { awaitCancellation() })
+        assertEquals(standing, failing.observe(today).first())
+
+        // Budgets still waiting don't hold back the bills prompt.
+        val slowBudgets = suggestions(
+            bills = flowOf(BillsDue(today.plusDays(7), emptyList(), listOf(bill(today.plusDays(1))))),
             budgets = flow { awaitCancellation() },
         )
-        assertEquals(listOf(Uncategorized(1)) + standing, suggestions.observe(today).first())
-    }
-
-    @Test
-    fun `a tap on the chip walks the newest rows, and a failed read walks none instead of crashing`() = runTest {
-        val many = (1L..60L).map { row(it, "Others") }
-        assertEquals((1L..ChatSuggestions.REVIEW_MAX.toLong()).toList(), suggestions(flowOf(many)).reviewIds())
-        assertEquals(emptyList<Long>(), suggestions(flow { throw IllegalStateException("boom") }).reviewIds())
-    }
-
-    @Test
-    fun `the standing questions are what pick shows with nothing to act on`() {
-        assertEquals(ChatSuggestions.STANDING, ChatSuggestions.pick(0, noBills, emptyList()))
+        assertEquals(listOf(ChatSuggestion(QuickAction.BILLS)) + standing.take(3), slowBudgets.observe(today).first())
     }
 }

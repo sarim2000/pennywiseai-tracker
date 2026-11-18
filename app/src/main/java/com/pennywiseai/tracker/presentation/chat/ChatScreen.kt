@@ -126,14 +126,6 @@ fun ChatScreen(
     }
     val listState = rememberLazyListState()
     val scope = rememberCoroutineScope()
-    val context = androidx.compose.ui.platform.LocalContext.current
-    // "N uncategorized": the picker walks the rows still waiting as of the tap, not the count shown.
-    val reviewUncategorized: () -> Unit = {
-        scope.launch {
-            val ids = viewModel.uncategorizedIds()
-            if (ids.isNotEmpty()) context.startActivity(com.pennywiseai.tracker.receiver.QuickCategoryPickerActivity.review(context, ids))
-        }
-    }
     val focusRequester = remember { FocusRequester() }
 
     // Auto-scroll to bottom when new messages arrive
@@ -310,8 +302,7 @@ fun ChatScreen(
                         QuickActionChips(
                             suggestions = suggestions,
                             enabled = !uiState.isLoading && !isConfirming,
-                            onAsk = viewModel::runQuickAction,
-                            onReview = reviewUncategorized
+                            onAsk = viewModel::runQuickAction
                         )
                         Spacer(modifier = Modifier.height(Spacing.sm))
 
@@ -603,7 +594,6 @@ fun ChatScreen(
                                             suggestions = suggestions,
                                             enabled = !uiState.isLoading && !isConfirming,
                                             onAsk = viewModel::runQuickAction,
-                                            onReview = reviewUncategorized,
                                             leading = { if (voice.available) VoiceLanguageChip(voice) }
                                         )
                                     }
@@ -1119,7 +1109,6 @@ private fun QuickActionChips(
     suggestions: List<ChatSuggestion>,
     enabled: Boolean,
     onAsk: (QuickAction, String) -> Unit,
-    onReview: () -> Unit,
     leading: @Composable () -> Unit = {}
 ) {
     Row(
@@ -1131,22 +1120,13 @@ private fun QuickActionChips(
     ) {
         leading()
         suggestions.forEach { suggestion ->
-            val label = when (suggestion) {
-                is ChatSuggestion.Uncategorized ->
-                    pluralStringResource(R.plurals.chat_quick_uncategorized, suggestion.count, suggestion.count)
-                is ChatSuggestion.Ask -> if (suggestion.overdue > 0) {
-                    pluralStringResource(R.plurals.chat_quick_bills_overdue, suggestion.overdue, suggestion.overdue)
-                } else {
-                    stringResource(suggestion.action.label)
-                }
+            val label = if (suggestion.overdue > 0) {
+                pluralStringResource(R.plurals.chat_quick_bills_overdue, suggestion.overdue, suggestion.overdue)
+            } else {
+                stringResource(suggestion.action.label)
             }
             SuggestionChip(
-                onClick = {
-                    when (suggestion) {
-                        is ChatSuggestion.Uncategorized -> onReview()
-                        is ChatSuggestion.Ask -> onAsk(suggestion.action, label)
-                    }
-                },
+                onClick = { onAsk(suggestion.action, label) },
                 label = { Text(label) },
                 enabled = enabled
             )

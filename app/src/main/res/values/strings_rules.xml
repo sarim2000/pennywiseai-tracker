@@ -366,11 +366,6 @@
         <item quantity="one">%d bill overdue</item>
         <item quantity="other">%d bills overdue</item>
     </plurals>
-    <!-- Chat prompt: transactions with no category yet; tapping it opens the category picker on them -->
-    <plurals name="chat_quick_uncategorized">
-        <item quantity="one">%d uncategorized</item>
-        <item quantity="other">%d uncategorized</item>
-    </plurals>
     <string name="chat_reply_month_spend">Spent %1$s:</string>
     <string name="chat_reply_top_categories">Top categories, %1$s:</string>
     <string name="chat_reply_top_merchants">Top merchants, %1$s:</string>

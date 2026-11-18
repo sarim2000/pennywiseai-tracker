@@ -409,14 +409,6 @@
         <item quantity="many">%d فاتورة متأخرة</item>
         <item quantity="other">%d فاتورة متأخرة</item>
     </plurals>
-    <plurals name="chat_quick_uncategorized">
-        <item quantity="zero">لا معاملات بلا فئة</item>
-        <item quantity="one">%d معاملة بلا فئة</item>
-        <item quantity="two">معاملتان بلا فئة</item>
-        <item quantity="few">%d معاملات بلا فئة</item>
-        <item quantity="many">%d معاملة بلا فئة</item>
-        <item quantity="other">%d معاملة بلا فئة</item>
-    </plurals>
     <string name="chat_reply_month_spend">الإنفاق (%1$s):</string>
     <string name="chat_reply_top_categories">الفئات الأعلى إنفاقًا (%1$s):</string>
     <string name="chat_reply_top_merchants">التجار الأعلى إنفاقًا (%1$s):</string>

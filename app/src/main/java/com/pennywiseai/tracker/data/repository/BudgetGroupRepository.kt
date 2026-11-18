@@ -73,16 +73,18 @@ class BudgetGroupRepository @Inject constructor(
 
     /**
      * Sets the global budget cycle start day. A rollover budget whose period follows
-     * it starts its rollover again, as a change of its own period would.
+     * it starts its rollover again, as a change of its own period would. The budgets
+     * go first: stopped halfway, the day is still the old one and a retry finds the
+     * change to make; a budget already restarted only carries nothing this period.
      */
     suspend fun updateBudgetCycleStartDay(day: Int) {
         val before = userPreferencesRepository.getBudgetCycleStartDay()
-        userPreferencesRepository.updateBudgetCycleStartDay(day)
         val today = LocalDate.now()
         budgetDao.getAllBudgets().first().forEach { budget ->
             val since = BudgetRollover.sinceAfterCycleStartDayChange(budget, today, before, day)
-            if (since != budget.rolloverSince) budgetDao.updateBudget(budget.copy(rolloverSince = since))
+            if (since != budget.rolloverSince) budgetDao.updateRolloverSince(budget.id, since)
         }
+        userPreferencesRepository.updateBudgetCycleStartDay(day)
     }
 
     private suspend fun parentOf(): Map<String, String> = categoryDao.getAllCategoriesList().parentNameOf()

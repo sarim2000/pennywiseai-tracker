@@ -260,6 +260,7 @@
     <!-- Theme style -->
     <string name="appearance_style_dynamic">डायनामिक</string>
     <string name="appearance_style_default">डिफ़ॉल्ट</string>
+    <!-- Fixed palettes ported from Mihon: proper names, not translated -->
     <!-- Toggles -->
     <string name="appearance_amoled_title">AMOLED काला</string>
     <string name="appearance_amoled_subtitle">गहरे कंट्रास्ट के लिए शुद्ध काला पृष्ठभूमि उपयोग करें</string>

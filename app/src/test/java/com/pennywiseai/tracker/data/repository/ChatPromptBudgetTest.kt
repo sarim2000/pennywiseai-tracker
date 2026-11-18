@@ -13,7 +13,6 @@ class ChatPromptBudgetTest {
     private fun prompt(expense: List<String>, income: List<String>, accounts: List<String>) =
         LlmRepository.composeSystemPrompt(
             currentDate = "2026-10-21",
-            monthLine = "₹12,345 spent, ₹50,000 income, 58 transactions",
             expenseCategories = expense,
             incomeCategories = income,
             accounts = accounts
@@ -34,6 +33,14 @@ class ChatPromptBudgetTest {
         assertTrue(p.contains("Income categories: Salary\n"))
         assertTrue(p.contains("Accounts: Test Bank 1111\n"))
         assertFalse(p.contains(" more\n"))
+    }
+
+    @Test
+    fun `the prompt carries no money figures, so none can go stale or disagree with Home`() {
+        val p = prompt(listOf("Food & Dining"), listOf("Salary"), listOf("Cash"))
+        // The date is the only number: every total comes from a tool, dated and per currency.
+        assertFalse(Regex("\\d").containsMatchIn(p.replace("2026-10-21", "")))
+        assertTrue(p.contains("call monthSummary"))
     }
 
     @Test

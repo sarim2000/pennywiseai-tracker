@@ -1,13 +1,32 @@
+language: en-US
+
 reviews:
-  path_filters:
-    - "!fastlane/**"
-    - "!**/*.md"
-    - "!**/*.txt"
-    - "!**/*.yml"
-    - "!**/*.yaml"
-    - "!**/*.xml"
-    - "!.github/**"
-    - "!docs/**"
-    - "!.idea/**"
-    - "!iosApp/**"
-    - "!shared/**"
+  profile: chill
+  high_level_summary: true
+  poem: false
+  review_status: true
+  auto_review:
+    enabled: true
+    drafts: false
+    ignore_title_keywords:
+      - "i18n: new translations from Crowdin"
+  path_instructions:
+    - path: "parser-core/**"
+      instructions: |
+        Parser tests must use the shared ParserTestUtils helpers. New parsers must extend the
+        right base class and be registered in BankParserFactory (and in pennywise-web's
+        BankParserRegistry). Flag any real-looking names, account numbers or phone numbers in
+        test SMS samples as PII.
+    - path: "app/**"
+      instructions: |
+        Money must always carry a currency code: never format without one, and never sum amounts
+        across currencies (use sumByCurrency). Every backup-serialized field (Room entities and
+        BackupModels.kt) must keep a Kotlin default value. Room migrations must work on Android 8
+        (minSdk 26) SQLite.
+
+knowledge_base:
+  code_guidelines:
+    enabled: true
+    filePatterns:
+      - "CLAUDE.md"
+      - "docs/*.md"

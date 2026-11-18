@@ -278,6 +278,7 @@
     <!-- Theme style -->
     <string name="appearance_style_dynamic">Дынамічныя</string>
     <string name="appearance_style_default">Стандартныя</string>
+    <!-- Fixed palettes ported from Mihon: proper names, not translated -->
     <!-- Toggles -->
     <string name="appearance_amoled_title">Чорны AMOLED</string>
     <string name="appearance_amoled_subtitle">Чыста чорны фон для глыбейшага кантрасту</string>

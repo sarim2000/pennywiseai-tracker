@@ -29,6 +29,17 @@ abstract class BankParser {
             """\b(debited|deducted|credited|deposited|withdrawn|spent|received|transferred|""" +
                 """sent|charged|used|refunded|reversed|paid|purchased)\b"""
         )
+
+        // National Stock Exchange as a whole word; plain "nse" also matches "finserv"/"expense".
+        private val NSE_WORD = Regex("""\bnse\b""")
+        /** ACH/NACH/ECS as a word, or glued to ICICI's "Info" ("InfoACH*…"). Lowercase input. */
+        private val AUTO_PAY_RAIL = Regex("""(?:\b|info)(?:n?ach|ecs)\b""")
+
+        /** A loan lender as the auto-pay payee (names are often truncated: "LICHousin"). */
+        private val LOAN_PAYEE = Regex("""housin|home\s*loan|\bloans?\b|\bemi\b|financ""")
+
+        /** Words that only a loan repayment uses; they beat an investment keyword ("Edelweiss"). */
+        private val LOAN_REPAYMENT = Regex("""\bloans?\b|\bemi\b""")
     }
 
     /**
@@ -316,6 +327,9 @@ abstract class BankParser {
      * Can be overridden by specific bank parsers for custom logic.
      */
     protected open fun isInvestmentTransaction(lowerMessage: String): Boolean {
+        // Edelweiss and similar names are both brokers and lenders; a loan EMI is a spend.
+        if (LOAN_REPAYMENT.containsMatchIn(lowerMessage)) return false
+
         val investmentKeywords = listOf(
             // Clearing corporations
             "iccl",                         // Indian Clearing Corporation Limited
@@ -323,11 +337,6 @@ abstract class BankParser {
             "nsccl",                        // NSE Clearing Corporation
             "nse clearing",
             "clearing corporation",
-
-            // Auto-pay indicators (excluding mandate/UMRN to avoid subscription false positives)
-            "nach",                         // National Automated Clearing House
-            "ach",                          // Automated Clearing House
-            "ecs",                          // Electronic Clearing Service
 
             // Investment platforms
             "groww",
@@ -364,13 +373,19 @@ abstract class BankParser {
             "sovereign gold",               // Sovereign Gold Bonds
 
             // Stock exchanges
-            "nse",                          // National Stock Exchange
             "bse",                          // Bombay Stock Exchange
             "cdsl",                         // Central Depository Services
             "nsdl"                          // National Securities Depository
         )
 
-        return investmentKeywords.any { lowerMessage.contains(it) }
+        if (NSE_WORD.containsMatchIn(lowerMessage)) return true
+        if (investmentKeywords.any { lowerMessage.contains(it) }) return true
+
+        // Auto-pay rails (excluding mandate/UMRN to avoid subscription false
+        // positives): an ACH/NACH/ECS debit is usually a SIP, but a loan EMI to a
+        // lender ("ACH*LICHousin", "NACH*BAJAJ FINANCE") is a spend, not an
+        // investment. Whole words, so "each"/"reach" don't count as ACH.
+        return AUTO_PAY_RAIL.containsMatchIn(lowerMessage) && !LOAN_PAYEE.containsMatchIn(lowerMessage)
     }
 
     /**
@@ -498,7 +513,6 @@ abstract class BankParser {
      * This is the remaining credit available to spend, NOT the total credit limit.
      */
     protected open fun extractAvailableLimit(message: String): BigDecimal? {
-
         // Currency token: most banks print "Rs"/"₹", but some (e.g. IndusInd) use
         // "Avl Lmt: INR ..." — accept all three. Only ever evaluated for CREDIT
         // messages (extractAvailableLimit is gated on type == CREDIT in parse()).
@@ -616,18 +630,18 @@ abstract class BankParser {
 
         val upper = name.uppercase().trim()
         val isBlockInstruction = upper in commonWords ||
-                upper.startsWith("BLOCK UPI") ||
-                upper.startsWith("BLOCK CARD") ||
-                upper.startsWith("BLOCK ACT") ||
-                upper.startsWith("BLOCK A/C") ||
-                upper.startsWith("BLOCK ACCOUNT") ||
-                upper.startsWith("TO BLOCK") ||
-                upper.startsWith("UPIBLOCK")
+            upper.startsWith("BLOCK UPI") ||
+            upper.startsWith("BLOCK CARD") ||
+            upper.startsWith("BLOCK ACT") ||
+            upper.startsWith("BLOCK A/C") ||
+            upper.startsWith("BLOCK ACCOUNT") ||
+            upper.startsWith("TO BLOCK") ||
+            upper.startsWith("UPIBLOCK")
 
         return name.length >= Constants.Parsing.MIN_MERCHANT_NAME_LENGTH &&
-                name.any { it.isLetter() } &&
-                !isBlockInstruction &&
-                !name.all { it.isDigit() } &&
-                !name.contains("@") // Not a UPI ID
+            name.any { it.isLetter() } &&
+            !isBlockInstruction &&
+            !name.all { it.isDigit() } &&
+            !name.contains("@") // Not a UPI ID
     }
 }

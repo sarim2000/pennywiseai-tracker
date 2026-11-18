@@ -318,6 +318,7 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
         if (cue != null && morphFrom == null && arrival.value < 1f) {
             pose = arrived(pose, cue, (arrival.value * ARRIVAL_MS).toLong())
         }
+        morphFrom?.let { pose = withCutArrival(pose, it.moves, morph.value) }
         val w = blend.value
         from?.let { if (w < 1f) pose = blendPose(it, pose, w) }
         val target = dragLook ?: look
@@ -464,10 +465,13 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
     private fun outlineOnScreen(): MorphFrom {
         val g = shape.geometry(value)
         val here = profileOf(shape, value)
+        // A jar mid-dip or a wallet mid-lean keeps that pose and lets it go through the morph.
+        val moving = arrivedCue?.takeIf { arrival.value < 1f }?.let { CutArrival(it, (arrival.value * ARRIVAL_MS).toLong(), 1f) }
         val from = morphFrom ?: return MorphFrom(
             here, g.eyes, g.pivot, shape,
             stamp = checkAlpha(arrivedCue, arrival.value),
             stampAt = checkSpot(shape),
+            moves = moving,
         )
         val p = morph.value
         val w = p.coerceIn(0f, 1f)
@@ -483,6 +487,7 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
             stamp = fromStampAlpha(from, w),
             stampAt = from.stampAt,
             squint = morphEyes(from, p),
+            moves = from.moves?.let { it.copy(weight = cutWeight(it, p)) }?.takeIf { it.weight > 0f },
         )
     }
 

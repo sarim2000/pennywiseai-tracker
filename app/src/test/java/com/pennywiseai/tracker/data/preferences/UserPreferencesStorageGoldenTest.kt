@@ -161,9 +161,9 @@ class UserPreferencesStorageGoldenTest {
         assertEquals("THIS_MONTH", share.period.name)
         assertEquals(
             listOf(
-                "SAFE_TO_SPEND", "BUDGETS", "INSIGHTS", "RECENT_TRANSACTIONS", "ACCOUNTS", "SUBSCRIPTIONS",
+                "SAFE_TO_SPEND", "BUDGETS", "RECENT_TRANSACTIONS", "ACCOUNTS", "SUBSCRIPTIONS",
                 "LOANS", "GOALS", "GROUPS", "MONEY_IN_MOTION", "ACTIVITY"
-            ).map { it to (it != "INSIGHTS") },
+            ).map { it to true },
             repository.homeSectionLayout.first().map { (section, visible) -> section.name to visible }
         )
         assertEquals(emptySet<String>(), repository.safeToSpendExcludedAccounts.first())
@@ -592,22 +592,6 @@ class UserPreferencesStorageGoldenTest {
 
         repository.releaseRecurringOffer("merchant-1", today)
         assertEquals(emptySet<String>(), stored()[log])
-    }
-
-    @Test
-    fun `dismissed insights last for their own cycle`() = runBlocking {
-        val dismissed = stringSet("dismissed_insights")
-
-        repository.dismissInsight("budget_over:v1:2026-10-01:INR:1")
-        repository.dismissInsight("savings_rate:v1:2026-10-01:INR:cycle")
-        assertEquals(2, stored()[dismissed]?.size)
-
-        // A new cycle's dismissal drops the last cycle's: their ids can't come back anyway.
-        repository.dismissInsight("budget_over:v1:2026-11-01:INR:1")
-        assertEquals(setOf("budget_over:v1:2026-11-01:INR:1"), stored()[dismissed])
-
-        repository.restoreInsight("budget_over:v1:2026-11-01:INR:1")
-        assertEquals(emptySet<String>(), stored()[dismissed])
     }
 
     @Test

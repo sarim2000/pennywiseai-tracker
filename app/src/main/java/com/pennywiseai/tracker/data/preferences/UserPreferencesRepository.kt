@@ -22,7 +22,6 @@ import com.pennywiseai.tracker.data.share.SharePeriod
 import com.pennywiseai.tracker.domain.conscience.ConscienceCadence
 import com.pennywiseai.tracker.domain.conscience.ConscienceCandidate
 import com.pennywiseai.tracker.domain.conscience.ConscienceChoice
-import com.pennywiseai.tracker.domain.insights.insightCycleOf
 import com.pennywiseai.tracker.domain.spending.BudgetAlertTier
 import com.pennywiseai.tracker.domain.spending.MoneyAlertRules
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -82,8 +81,7 @@ open class UserPreferencesRepository internal constructor(
     NotificationPreferences,
     BackupPreferences,
     BillingPreferences,
-    RecurringSuggestionPreferences,
-    InsightPreferences {
+    RecurringSuggestionPreferences {
     // Production always takes the delegate: a second DataStore on the same file throws.
     // The internal constructor exists so tests can give each case its own empty file.
     @Inject
@@ -146,8 +144,6 @@ open class UserPreferencesRepository internal constructor(
         // "Track as … bill" on transaction alerts: "key|epochDay" per merchant
         // offered, to cap how often it's offered. Device-local.
         val RECURRING_OFFER_LOG = stringSetPreferencesKey("recurring_offer_log")
-        // Insight ids dismissed this cycle (Insight.id names the cycle). Device-local.
-        val DISMISSED_INSIGHTS = stringSetPreferencesKey("dismissed_insights")
 
         // App Lock preferences
         val APP_LOCK_ENABLED = booleanPreferencesKey("app_lock_enabled")
@@ -311,7 +307,7 @@ open class UserPreferencesRepository internal constructor(
             K.BACKGROUND_OEM_STEP_CONFIRMED_ON, K.WEEKLY_SUMMARY_LAST_WEEK, K.REVIEW_PROMPT_HANDLED_YEAR,
             K.CONSCIENCE_LOG, K.ACTIVE_DOWNLOAD_ID, K.SHARE_PROMPT_HANDLED_MONTH, K.PRO_HOME_CARD_HANDLED,
             K.PAYDAY_SUGGESTION_HANDLED, K.RECURRING_HOME_CARD_SEEN, K.RECURRING_HOME_CARD_DISMISSED_AT,
-            K.TRACKING_CARD_SNOOZED_UNTIL, K.RECURRING_OFFER_LOG, K.DISMISSED_INSIGHTS, K.APP_LOCK_ENABLED, K.APP_LOCK_TIMEOUT_MINUTES,
+            K.TRACKING_CARD_SNOOZED_UNTIL, K.RECURRING_OFFER_LOG, K.APP_LOCK_ENABLED, K.APP_LOCK_TIMEOUT_MINUTES,
             K.LAST_AUTH_TIMESTAMP, K.APP_LOCK_NO_SCREEN_LOCK_NOTICE_SHOWN, K.HAS_USED_FULL_RESYNC,
             K.PRO_CACHED_IS_PRO, K.LICENSE_VALIDATED_AT, K.LICENSE_PRODUCT_NAME, K.SUPPORT_NUDGE_LAST_SHOWN_DAY,
             K.LAST_STATEMENT_IMPORT_AT, K.LAST_SEEN_APP_VERSION, K.MONTHLY_BUDGET_LIMIT,
@@ -882,23 +878,6 @@ open class UserPreferencesRepository internal constructor(
         dataStore.edit {
             it[PreferencesKeys.DISMISSED_RECURRING_SUGGESTIONS] =
                 (it[PreferencesKeys.DISMISSED_RECURRING_SUGGESTIONS] ?: emptySet()) - key
-        }
-    }
-
-    override val dismissedInsights: Flow<Set<String>> = dataStore.data
-        .map { it[PreferencesKeys.DISMISSED_INSIGHTS] ?: emptySet() }
-
-    override suspend fun dismissInsight(id: String) {
-        val cycle = insightCycleOf(id)
-        dataStore.edit {
-            val kept = (it[PreferencesKeys.DISMISSED_INSIGHTS] ?: emptySet()).filter { old -> insightCycleOf(old) == cycle }
-            it[PreferencesKeys.DISMISSED_INSIGHTS] = kept.toSet() + id
-        }
-    }
-
-    override suspend fun restoreInsight(id: String) {
-        dataStore.edit {
-            it[PreferencesKeys.DISMISSED_INSIGHTS] = (it[PreferencesKeys.DISMISSED_INSIGHTS] ?: emptySet()) - id
         }
     }
 

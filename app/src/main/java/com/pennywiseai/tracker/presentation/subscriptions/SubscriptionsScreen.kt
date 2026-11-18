@@ -12,7 +12,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -41,7 +40,6 @@ import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.database.entity.formatAmount
 import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.domain.model.getAccountType
-import com.pennywiseai.tracker.domain.spending.RecurringCharge
 import com.pennywiseai.tracker.presentation.accounts.icon
 import com.pennywiseai.tracker.ui.animations.StaggeredEntrance
 import com.pennywiseai.tracker.ui.animations.pwCollapse
@@ -79,9 +77,7 @@ import java.time.temporal.ChronoUnit
 fun SubscriptionsScreen(
     viewModel: SubscriptionsViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit = {},
-    onAddSubscriptionClick: () -> Unit = {},
-    // A tab root has no back arrow; opened over another screen (an insight's link), it needs one.
-    showBack: Boolean = false,
+    onAddSubscriptionClick: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val accounts by viewModel.accounts.collectAsStateWithLifecycle()
@@ -186,17 +182,6 @@ fun SubscriptionsScreen(
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 title = stringResource(R.string.subscriptions_title),
-                hasBackButton = showBack,
-                navigationContent = {
-                    if (showBack) {
-                        IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = stringResource(R.string.subscriptions_back)
-                            )
-                        }
-                    }
-                },
                 hazeState = hazeState
             )
         },
@@ -674,7 +659,10 @@ private fun SwipeableSubscriptionItem(
                                         overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
                                     )
                                 } else {
-                                    val nextPaymentDate = RecurringCharge.nextPaymentShown(subscriptionDate, subscription.billingCycle, today)
+                                    var nextPaymentDate: LocalDate = subscriptionDate
+                                    while (nextPaymentDate.isBefore(today) || nextPaymentDate.isEqual(today)) {
+                                        nextPaymentDate = nextPaymentDate.plusMonths(1)
+                                    }
                                     val daysUntilNext = ChronoUnit.DAYS.between(today, nextPaymentDate)
 
                                     Icon(

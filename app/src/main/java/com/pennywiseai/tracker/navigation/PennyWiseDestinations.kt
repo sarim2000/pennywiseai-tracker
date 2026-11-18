@@ -184,10 +184,6 @@ data class TransactionsWithFilter(
 @Serializable
 data class Review(val kind: String = "MONTH", val weekStart: String? = null) : NavKey
 
-/** What needs attention this cycle; opened from Home (its menu and section) and the evening recap. */
-@Serializable
-data object Insights : NavKey
-
 // Screens inside MainScreen's tab stacks (Settings, SettingsPage, Categories, Faq
 // and ImportStatement live only there; UnrecognizedSms also opens on the root stack).
 @Serializable

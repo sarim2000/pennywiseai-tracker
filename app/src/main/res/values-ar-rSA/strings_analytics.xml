@@ -252,7 +252,6 @@
     <string name="category_edit_delete_message">سيُحذف \"%1$s\". ستحتفظ المعاملات الحالية بتسميتها الحالية. لا يمكن التراجع عن ذلك.</string>
     <!-- ══ Subscriptions screen ══ -->
     <string name="subscriptions_title">الاشتراكات</string>
-    <string name="subscriptions_back">الرجوع</string>
     <string name="subscriptions_add">إضافة اشتراك</string>
     <string name="subscriptions_undo">تراجع</string>
     <!-- %1$s = merchant name -->

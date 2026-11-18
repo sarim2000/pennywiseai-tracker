@@ -62,9 +62,7 @@ object TransactionFinder {
      * ponytail: only the Arabic article is stripped; "وقهوة" or "بقهوة" still miss a match.
      */
     private fun tokensOf(text: String): List<String> =
-        text.lowercase()
-            .replace(Regex("[\\u064B-\\u0652]"), "")
-            .replace(Regex("[أإآ]"), "ا").replace('ة', 'ه').replace('ى', 'ي')
+        ChatMessageFacts.foldSpelling(text)
             .split(Regex("[^\\p{L}\\p{M}\\p{N}]+"))
             .map { if (it.length > 4 && it.startsWith("ال")) it.removePrefix("ال") else it }
 

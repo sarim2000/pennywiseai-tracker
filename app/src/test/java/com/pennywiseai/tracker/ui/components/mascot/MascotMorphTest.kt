@@ -137,6 +137,35 @@ class MascotMorphTest {
         assertTrue(ringing.roll != 0f)
     }
 
+    @Test
+    fun `a shape change in the jar's dip starts from the dip and lets it go through the morph`() {
+        val dipMs = (0.36f * ARRIVAL_MS).toLong()
+        val dipping = arrived(MascotPose(), MascotCue.CoinDrop, dipMs)
+        assertTrue(dipping.lift > 3f)
+        val cut = CutArrival(MascotCue.CoinDrop, dipMs, 1f)
+        // No jump at the start, none of it left at the end, and it eases out between.
+        assertEquals(dipping.lift, withCutArrival(MascotPose(), cut, 0f).lift, 1e-4f)
+        assertEquals(dipping.lift / 2, withCutArrival(MascotPose(), cut, 0.5f).lift, 1e-4f)
+        assertEquals(0f, withCutArrival(MascotPose(), cut, 1f).lift, 0f)
+        // A spring past the end doesn't bring it back.
+        assertEquals(0f, withCutArrival(MascotPose(), cut, 1.1f).lift, 0f)
+        assertEquals(MascotPose(lift = -2f), withCutArrival(MascotPose(lift = -2f), null, 0.3f))
+    }
+
+    @Test
+    fun `a morph cut short hands on only what still showed of the arrival`() {
+        val cut = CutArrival(MascotCue.Glance, (0.4f * ARRIVAL_MS).toLong(), 1f)
+        val leaning = withCutArrival(MascotPose(), cut, 0f)
+        assertTrue(leaning.roll != 0f)
+        // Cut again a quarter of the way in: the next morph starts from that quarter-faded lean.
+        val handedOn = cut.copy(weight = cutWeight(cut, 0.25f))
+        assertEquals(
+            withCutArrival(MascotPose(), cut, 0.25f).roll,
+            withCutArrival(MascotPose(), handedOn, 0f).roll,
+            1e-4f,
+        )
+    }
+
     private fun halfDisc(c: Offset, r: Float, fromDeg: Double, n: Int = 360): FloatArray {
         val pts = ArrayList<Float>()
         pts += c.x

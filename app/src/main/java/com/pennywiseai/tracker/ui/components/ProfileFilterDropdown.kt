@@ -1,22 +1,22 @@
 package com.pennywiseai.tracker.ui.components
 
-import androidx.annotation.StringRes
-import androidx.compose.ui.graphics.Color
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.outlined.AccountBalance
-import androidx.compose.material.icons.outlined.Work
 import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Work
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.SelectableDropdownMenuItem
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.stringResource
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
+import com.pennywiseai.tracker.domain.model.seededNameRes
 
 @Composable
 fun ProfileFilterDropdown(
@@ -62,18 +62,6 @@ fun ProfileFilterDropdown(
             )
         }
     }
-}
-
-/**
- * The seeded profiles' names are stored in English, so while a seeded row
- * still holds its seeded name it shows in the app's language. A renamed
- * profile, or any other, shows exactly as stored.
- */
-@StringRes
-fun ProfileEntity.seededNameRes(): Int? = when {
-    id == ProfileEntity.PERSONAL_ID && name == "Personal" -> R.string.profile_default_personal
-    id == ProfileEntity.BUSINESS_ID && name == "Business" -> R.string.profile_default_business
-    else -> null
 }
 
 /** This profile's name as the user should see it. Edit fields keep [ProfileEntity.name]. */

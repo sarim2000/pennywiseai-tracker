@@ -37,4 +37,7 @@
         <item quantity="many">%1$d معاملة جديدة</item>
         <item quantity="other">%1$d معاملة جديدة</item>
     </plurals>
+    <!-- AI chat: the badge by the latest reply's mascot. Saved: the rows of an Add card were just saved -->
+    <!-- Developer mode: a screen showing the mascot in every shape and mood, for checking it on a device -->
+    <!-- The slider for the figure a shape draws (how full a jar is, where a gauge's needle sits). %1$d is a percentage -->
 </resources>

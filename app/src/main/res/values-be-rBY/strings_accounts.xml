@@ -273,6 +273,11 @@
     <string name="loan_detail_settle_message">Пазначыць гэтую пазыку як закрытую? Рэшта будзе даравана.</string>
     <string name="loan_detail_expected_return_title">Чаканае вяртанне</string>
     <string name="loan_detail_expected_return_label">Сума, якую чакаеце атрымаць назад</string>
+    <!-- A repayment larger than what's left on the loan. %1$s = formatted extra amount -->
+    <!-- %1$s = person name, %2$s = formatted extra amount -->
+    <!-- %1$s = person name, %2$s = formatted extra amount -->
+    <!-- %1$s = person name -->
+    <!-- %1$s = person name -->
     <string name="loan_detail_delete_title">Выдаліць пазыку</string>
     <string name="loan_detail_delete_message">Выдаліць гэтую пазыку? Звязаныя транзакцыі будуць адвязаны, але не выдалены.</string>
     <string name="loan_detail_original_chip">Пачатковая</string>

@@ -165,6 +165,12 @@ fun HomeScreen(
     // moves to the header so no FAB stack floats over the content.
     val navDock = LocalNavDock.current
 
+    // Say a cash spend, or ask: the quick add sheet listens, on phones with a recognizer.
+    val onVoiceClick = remember(context) {
+        { context.startActivity(com.pennywiseai.tracker.core.QuickAddIntent.voice(context)) }
+            .takeIf { com.pennywiseai.tracker.ui.voice.VoiceInput.isAvailable(context) }
+    }
+
     // Haptic on successful SMS scan completion
     LaunchedEffect(smsScanWorkInfo?.state) {
         if (smsScanWorkInfo?.state == WorkInfo.State.SUCCEEDED) {
@@ -284,6 +290,7 @@ fun HomeScreen(
                         onProfileSelected = { viewModel.updateSelectedProfile(it) },
                         onDismissProfileFilter = { showProfileFilterMenu = false },
                         onNavigateToAddScreen = onNavigateToAddScreen,
+                        onVoiceClick = onVoiceClick,
                         onMoreClick = { showMenuSheet = true }
                     )
                 },
@@ -295,6 +302,7 @@ fun HomeScreen(
                         onAvatarClick = onNavigateToSettings,
                         onMenuClick = { showMenuSheet = true },
                         onAddClick = onNavigateToAddScreen.takeIf { navDock != null },
+                        onVoiceClick = onVoiceClick,
                         profiles = uiState.profiles,
                         selectedProfileId = uiState.selectedProfileId,
                         onProfileSelected = { viewModel.updateSelectedProfile(it) },

@@ -385,6 +385,20 @@ class AiContextRepositoryTest {
     }
 
     @Test
+    fun `a saved category counts only the rows spelled as saved, as the list it links to`() = runBlocking {
+        tx("100")
+        // A CSV import keeps the cell as written: the Transactions list and Analytics file it apart.
+        tx("40", category = "food")
+        tx("30", category = "pets")
+        tx("5", category = "Pets", splits = listOf("PETS" to "5"))
+        val food = repository.categorySpending("FOOD", today)
+        assertEquals(mapOf("INR" to "100"), amounts(food.byCurrency))
+        assertEquals(1, food.transactionCount)
+        // No category is saved as Pets, so no link: every spelling the rows use counts.
+        assertEquals(mapOf("INR" to "35"), amounts(repository.categorySpending("Pets", today).byCurrency))
+    }
+
+    @Test
     fun `a category refunded in full is nothing spent`() = runBlocking {
         tx("200", category = "Travel")
         tx("200", type = TransactionType.INCOME, refundTo = "Travel")

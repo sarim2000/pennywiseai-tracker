@@ -139,7 +139,7 @@ class AiContextRepository @Inject constructor(
         val scope = homeScope(today)
         val rows = rows(scope)
         val credit = creditAsExpense()
-        val names = categoriesNamed(category)
+        val names = categoriesNamed(category, rows)
         // A currency refunded in full is nothing spent, as spending() leaves it out.
         val byCurrency = SpendingComparison.spend(rows, names, credit).filterValues { it.signum() > 0 }
         return CategorySpend(
@@ -182,16 +182,27 @@ class AiContextRepository @Inject constructor(
         val (current, previous) = windows.toList().map { scope(it, shown) }
         // Forgiven loan balances count as spent, as on Home (#938); a category comparison leaves them out.
         val (currentLoss, previousLoss) = if (category == null) forgiven(current) to forgiven(previous) else emptyMap<String, BigDecimal>() to emptyMap()
-        return when (val result = SpendingComparison.compare(windows, rows(current), rows(previous), category?.let { categoriesNamed(it) }, currentLoss, previousLoss, creditAsExpense)) {
+        val (rowsNow, rowsBefore) = rows(current) to rows(previous)
+        val names = category?.let { categoriesNamed(it, rowsNow + rowsBefore) }
+        return when (val result = SpendingComparison.compare(windows, rowsNow, rowsBefore, names, currentLoss, previousLoss, creditAsExpense)) {
             is SpendingComparison.Result.Rows -> result.copy(profile = shown.profile)
             is SpendingComparison.Result.NoData -> result.copy(profile = shown.profile)
         }
     }
 
-    /** A parent counts its children, as the category filters do. The model's casing isn't the saved name's. */
-    private suspend fun categoriesNamed(asked: String): Set<String> {
+    /**
+     * The category names a figure for [asked] counts, matched against [rows] exactly. A saved
+     * category (the model's casing isn't the saved name's) counts its children, as the category
+     * filters do, and only the rows spelled as saved: the Transactions list a figure links to and
+     * Analytics match exactly, so a CSV row filed under "food" isn't "Food" there either. A name
+     * no category is saved under (one deleted while rows still carry it) has no link, so it
+     * takes every spelling of it in [rows].
+     */
+    private suspend fun categoriesNamed(asked: String, rows: List<TransactionWithSplits>): Set<String> {
         val all = categoryDao.getAllCategoriesList()
-        return all.expandWithChildren(listOf(all.firstOrNull { it.name.equals(asked, ignoreCase = true) }?.name ?: asked))
+        val saved = all.firstOrNull { it.name.equals(asked, ignoreCase = true) }?.name
+            ?: return SpendingComparison.categoryNames(rows).filterTo(mutableSetOf(asked)) { it.equals(asked, ignoreCase = true) }
+        return all.expandWithChildren(listOf(saved))
     }
 
     /** [part]'s share of all spending, in the user's own currency when it has some, else the first. */

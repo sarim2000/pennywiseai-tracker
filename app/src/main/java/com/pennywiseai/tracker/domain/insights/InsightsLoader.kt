@@ -140,7 +140,9 @@ internal fun scopedSubscriptions(
     val profileKeys = buildProfileAccountKeys(balances)
     return subscriptions.filter { sub ->
         val key = "${sub.bankName}_${sub.accountLast4}"
-        val profile = profileKeys.entries.firstOrNull { (_, keys) -> key in keys }?.key ?: ProfileEntity.PERSONAL_ID
+        // Bank names as the payment matcher compares them: a subscription may spell its bank another case.
+        val profile = profileKeys.entries.firstOrNull { (_, keys) -> keys.any { it.equals(key, ignoreCase = true) } }?.key
+            ?: ProfileEntity.PERSONAL_ID
         !IgnoredAccountsStore.isIgnored(ignored, sub.bankName, sub.accountLast4) &&
             (profileId == null || profile == profileId)
     }

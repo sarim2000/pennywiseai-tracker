@@ -521,7 +521,5 @@ private fun insightDestination(action: InsightAction): NavKey = when (action) {
     is InsightAction.OpenTransaction -> TransactionDetail(action.transactionId)
     is InsightAction.OpenAccount -> AccountDetail(action.bankName, action.accountLast4)
     InsightAction.OpenSubscriptions -> Subscriptions
-    // Goals live at the top of the Budgets screen.
-    InsightAction.OpenGoals -> BudgetGroups()
     InsightAction.OpenAccounts -> ManageAccounts
 }

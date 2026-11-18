@@ -56,41 +56,6 @@
     <!-- %1$d = a whole percentage -->
     <string name="insights_percent">%1$d%%</string>
 
-    <!-- Tracking health: a 0-100 indicator of how the cycle is going and being tracked -->
-    <string name="insights_score_title">Tracking health</string>
-    <string name="insights_score_out_of">out of 100</string>
-    <!-- %1$s = the parts the score is built from this cycle, as a list, e.g. "your savings and how much is categorised" -->
-    <string name="insights_score_hint">From %1$s. Tap to see how.</string>
-    <!-- The parts listed in insights_score_hint -->
-    <string name="insights_score_hint_savings">your savings</string>
-    <string name="insights_score_hint_budgets">your budgets</string>
-    <string name="insights_score_hint_categorised">how much is categorised</string>
-    <string name="insights_score_breakdown_title">How tracking health is worked out</string>
-    <string name="insights_score_savings">Savings</string>
-    <!-- %1$s = percentage of income kept -->
-    <string name="insights_score_savings_detail">%1$s of income kept. A fifth or more gets full marks.</string>
-    <!-- More went out than came in. %1$s = how much more, as a percentage of income -->
-    <string name="insights_score_savings_detail_negative">You spent %1$s more than you earned. Keeping a fifth of income gets full marks.</string>
-    <string name="insights_score_budgets">Budgets</string>
-    <!-- %1$d = budgets on track, %2$d = all budgets -->
-    <plurals name="insights_score_budgets_detail">
-        <item quantity="one">%1$d of %2$d budget on track</item>
-        <item quantity="other">%1$d of %2$d budgets on track</item>
-    </plurals>
-    <string name="insights_score_categorised">Categorised</string>
-    <!-- %1$d = spends with a category, %2$d = all spends -->
-    <plurals name="insights_score_categorised_detail">
-        <item quantity="one">%1$d of %2$d spend has a category</item>
-        <item quantity="other">%1$d of %2$d spends have a category</item>
-    </plurals>
-    <!-- %1$d = points for one part -->
-    <string name="insights_score_points">%1$d/100</string>
-    <!-- Under a score part. %1$s = how much it counts toward the score, as a percentage -->
-    <string name="insights_score_share">Counts for %1$s of the score</string>
-    <!-- The savings part while amounts are hidden: no rate, and no hint whether it's below zero -->
-    <string name="insights_score_savings_detail_hidden">Share of income kept. A fifth or more gets full marks.</string>
-    <string name="insights_score_footnote">The score adds up each part\'s points by how much it counts. A part without data is left out and the others count for more. Dismissing an insight doesn\'t change it.</string>
-
     <!-- Metric labels on an expanded insight -->
     <string name="insights_metric_spent">Spent</string>
     <string name="insights_metric_budget">Budget</string>
@@ -106,8 +71,6 @@
     <string name="insights_metric_charged">Charged</string>
     <string name="insights_metric_held">In accounts</string>
     <string name="insights_metric_usual_month">Usual month</string>
-    <string name="insights_metric_goals_need">Goals need</string>
-    <string name="insights_metric_left_over">Usually left over</string>
 
     <!-- Action buttons -->
     <string name="insights_action_budgets">Open budgets</string>
@@ -115,7 +78,6 @@
     <string name="insights_action_transaction">Open transaction</string>
     <string name="insights_action_subscriptions">Open subscriptions</string>
     <string name="insights_action_account">Open account</string>
-    <string name="insights_action_goals">Open goals</string>
     <string name="insights_action_accounts">Open accounts</string>
 
     <!-- Budget over. %1$s = amount over, %2$s = budget name (often already ends in "Budget", so don't add the word) -->
@@ -169,17 +131,6 @@
     <!-- Under the runway's Held and Usual month figures. %1$d = months many aim for -->
     <string name="insights_runway_good_body">That\'s past the %1$d months many people aim for.</string>
     <string name="insights_runway_estimate">Some accounts are left out because their balance isn\'t known yet. Update them in Accounts for a truer figure.</string>
-
-    <!-- Goals fit what a usual month leaves over. %1$s = what all goals in progress need a month -->
-    <string name="insights_goals_fit_title">%1$s a month reaches all your goals</string>
-    <!-- Under the Goals need and Left over figures -->
-    <string name="insights_goals_fit_body">A usual month leaves enough over, so they fit.</string>
-    <!-- Goals need more than a usual month leaves. %1$s = the gap a month -->
-    <string name="insights_goals_short_title">Your goals need %1$s more a month</string>
-    <!-- Under the Goals need and Left over figures -->
-    <string name="insights_goals_short_body">Together they ask more than a usual month leaves over.</string>
-    <!-- A usual month spends all its income or more -->
-    <string name="insights_goals_no_surplus_body">A usual month spends all that comes in.</string>
 
     <!-- Bills due. %1$s = total, %2$d = days -->
     <plurals name="insights_bills_title">

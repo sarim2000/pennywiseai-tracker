@@ -6,7 +6,6 @@ import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.mapper.BuiltinCategoryNames
-import com.pennywiseai.tracker.domain.goals.GoalAffordability
 import com.pennywiseai.tracker.domain.insights.InsightFact.BillsDue
 import com.pennywiseai.tracker.domain.insights.InsightFact.BudgetOver
 import com.pennywiseai.tracker.domain.insights.InsightFact.BudgetPace
@@ -14,7 +13,6 @@ import com.pennywiseai.tracker.domain.insights.InsightFact.BudgetsOnTrack
 import com.pennywiseai.tracker.domain.insights.InsightFact.CardBillDue
 import com.pennywiseai.tracker.domain.insights.InsightFact.CardUtilisation
 import com.pennywiseai.tracker.domain.insights.InsightFact.CategorySpike
-import com.pennywiseai.tracker.domain.insights.InsightFact.GoalsFit
 import com.pennywiseai.tracker.domain.insights.InsightFact.LargeTransaction
 import com.pennywiseai.tracker.domain.insights.InsightFact.MoneyLasts
 import com.pennywiseai.tracker.domain.insights.InsightFact.PriceChange
@@ -54,7 +52,7 @@ data class BudgetStatus(
     /** A weekly budget's week 2 is news again after week 1 was dismissed. */
     internal val windowKey: String get() = "$id@$windowStart"
 
-    /** At or under an even pace, as the Budgets meter reads it: the rules and the score share this. */
+    /** At or under an even pace, as the Budgets meter reads it. */
     val isOnTrack: Boolean
         get() = budgetPace(spent, limit, daysElapsed, windowDays)?.let { !it.isOverBudget && it.daysOver < 1 } == true
 }
@@ -73,8 +71,6 @@ data class InsightInputs(
     val profileId: Long? = null,
     /** Per currency, from the same scope as [review]. */
     val runways: List<Runway> = emptyList(),
-    /** Per goal currency; empty while one profile is selected, as goals span them all. */
-    val goals: List<GoalAffordability> = emptyList(),
     /** The bills entered on [creditCards] that are still to pay. */
     val cardBills: List<CardBill> = emptyList(),
 )
@@ -100,8 +96,7 @@ object InsightRules {
                 categorySpikes(inputs.review, period) +
                 largeTransactions(inputs.review, subscriptions, period) +
                 savingsRate(inputs.review, inputs.today, period) +
-                runway(inputs.runways, period) +
-                goalsFit(inputs.goals, period)
+                runway(inputs.runways, period)
             ).sortedBy { it.severity }
     }
 
@@ -147,7 +142,7 @@ object InsightRules {
             }
         }.sortedByDescending { it.usedShare() }
 
-        // Only when every budget passes the score's test, early fast starts included.
+        // Only when every budget is on track, early fast starts included.
         val onTrack = running.groupBy { it.currency }
             .filter { (_, list) -> list.all { it.isOnTrack && !it.incomplete } }
             .map { (currency, list) ->
@@ -250,9 +245,13 @@ object InsightRules {
     ): List<Insight> {
         val charges = review.detail?.paymentRows.orEmpty()
             .filter { it.dateTime.toLocalDate() in review.range.start..review.range.end }
-        // A charge at some subscription's exact amount is that one's payment, not another's new price.
+        // A charge at the exact amount of a subscription due around then is that one's
+        // payment, not another's new price. One due months away (an annual plan) can't claim it.
         val unclaimed = UpcomingPayments.withoutRecorded(subscriptions, charges).filterNot { charge ->
-            subscriptions.any { UpcomingPayments.canPay(it, charge) && RecurringCharge.sameAmount(it.amount, charge.amount) }
+            subscriptions.any {
+                UpcomingPayments.canPay(it, charge) && RecurringCharge.sameAmount(it.amount, charge.amount) &&
+                    dueNear(it, charge.dateTime.toLocalDate())
+            }
         }.toMutableList()
         val latestFirst = { _: SubscriptionEntity -> compareByDescending<TransactionEntity> { it.dateTime } }
         val repriced = UpcomingPayments.claim(subscriptions, unclaimed, { it }, latestFirst) { sub, charge ->
@@ -389,27 +388,24 @@ object InsightRules {
     }
 
     /**
-     * Whether the goals in progress fit what a usual month leaves over. A currency with
-     * no income history says nothing: no data isn't the same as can't afford.
-     */
-    internal fun goalsFit(goals: List<GoalAffordability>, period: String): List<Insight> = goals.mapNotNull { g ->
-        val surplus = g.surplus ?: return@mapNotNull null
-        Insight(
-            id("goals_fit", period, g.currency, "all"),
-            if (g.fits == true) InsightSeverity.GOOD else InsightSeverity.WARNING,
-            g.currency,
-            GoalsFit(Money(g.needed, g.currency), Money(surplus, g.currency), g.shortBy?.let { Money(it, g.currency) }),
-            InsightAction.OpenGoals,
-        )
-    }
-
-    /**
      * What active subscriptions add up to a month, per currency: a running figure for
      * the summary card, not something that needs attention every cycle.
      */
     fun subscriptionsMonthly(subscriptions: List<SubscriptionEntity>): Map<String, Money> =
         subscriptions.filter(::isActiveExpense)
             .sumByCurrency({ it.currency }) { SubscriptionCost.monthlyEquivalent(it.amount, it.billingCycle) }
+
+    /**
+     * Whether a payment of [sub] falls within [RecurringCharge.DUE_WINDOW_DAYS] of [date]:
+     * the scheduled one around it, or the one before. One with no schedule might.
+     */
+    private fun dueNear(sub: SubscriptionEntity, date: LocalDate): Boolean {
+        val scheduled = sub.nextPaymentDate ?: return true
+        val next = RecurringCharge.nextPaymentShown(scheduled, sub.billingCycle, date)
+        return listOf(next, RecurringCharge.advance(next, sub.billingCycle, -1)).any {
+            Math.abs(ChronoUnit.DAYS.between(it, date)) <= RecurringCharge.DUE_WINDOW_DAYS
+        }
+    }
 
     private fun isActiveExpense(sub: SubscriptionEntity) =
         sub.state == SubscriptionState.ACTIVE && sub.direction == SubscriptionDirection.EXPENSE

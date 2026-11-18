@@ -163,7 +163,7 @@ class UserPreferencesStorageGoldenTest {
             listOf(
                 "SAFE_TO_SPEND", "BUDGETS", "INSIGHTS", "RECENT_TRANSACTIONS", "ACCOUNTS", "SUBSCRIPTIONS",
                 "LOANS", "GOALS", "GROUPS", "MONEY_IN_MOTION", "ACTIVITY"
-            ).map { it to true },
+            ).map { it to (it != "INSIGHTS") },
             repository.homeSectionLayout.first().map { (section, visible) -> section.name to visible }
         )
         assertEquals(emptySet<String>(), repository.safeToSpendExcludedAccounts.first())

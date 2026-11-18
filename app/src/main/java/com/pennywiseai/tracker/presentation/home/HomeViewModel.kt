@@ -38,8 +38,8 @@ import com.pennywiseai.tracker.data.repository.ProfileRepository
 import com.pennywiseai.tracker.data.repository.SubscriptionRepository
 import com.pennywiseai.tracker.data.repository.TransactionGroupRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
-import com.pennywiseai.tracker.domain.goals.GoalAffordabilityLoader
 import com.pennywiseai.tracker.domain.goals.GoalReserve
+import com.pennywiseai.tracker.domain.goals.GoalReserveLoader
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
 import com.pennywiseai.tracker.domain.model.filterTransactionsByProfile
@@ -122,7 +122,7 @@ class HomeViewModel @Inject constructor(
     private val ignoredAccountsStore: IgnoredAccountsStore,
     private val cardRepository: CardRepository,
     private val upcomingPaymentsLoader: UpcomingPaymentsLoader,
-    private val goalAffordabilityLoader: GoalAffordabilityLoader,
+    private val goalReserveLoader: GoalReserveLoader,
 ) : ViewModel() {
 
     /**
@@ -333,11 +333,10 @@ class HomeViewModel @Inject constructor(
 
     /**
      * The goal savings Safe to spend sets aside, when the user opted in. Goals span every
-     * profile, so like their affordability (roadmap Decision 3) there's nothing to set
-     * aside, and no switch, while one profile is selected.
+     * profile, so there's nothing to set aside, and no switch, while one profile is selected.
      */
     private val goalReserve = cycleToday.flatMapLatest { (window, day) ->
-        combine(goalAffordabilityLoader.goalsToWeigh(day), userPreferencesRepository.reserveGoalSavings) { goals, on ->
+        combine(goalReserveLoader.observe(day), userPreferencesRepository.reserveGoalSavings) { goals, on ->
             GoalReserveState(
                 available = goals != null,
                 on = on,

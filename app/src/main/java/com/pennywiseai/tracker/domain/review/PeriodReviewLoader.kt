@@ -127,7 +127,8 @@ class PeriodReviewLoader @Inject constructor(
             .map { rows -> rows.filter { it.transaction.dateTime in from..to } }
     }
 
-    private fun ignoredKeys(): Flow<Set<String>> = combine(
+    /** The ignored account keys, with the cards linked to an ignored account, as every review row is scoped. */
+    fun ignoredKeys(): Flow<Set<String>> = combine(
         ignoredAccountsStore.keysFlow,
         cardRepository.getAllCards(),
         accountBalanceRepository.getAllLatestBalances(),

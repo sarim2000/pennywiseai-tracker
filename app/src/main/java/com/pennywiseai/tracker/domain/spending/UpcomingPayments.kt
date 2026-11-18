@@ -123,20 +123,23 @@ object UpcomingPayments {
      * (and marking a bill paid) keeps no link to the row: it stamps the charge's date as
      * the bill's lastPaidAt and moves the bill on a cycle, so that's the trace matched
      * here. Such a charge is that bill's, so it can't settle or reprice a second one
-     * after the first has moved on. One per subscription, a row marked recurring first.
+     * after the first has moved on. One per subscription, by date rather than amount, so
+     * editing the bill's price later doesn't free its old payment for another bill; the
+     * closest amount first, then a row marked recurring.
      */
     fun withoutRecorded(
         subscriptions: Collection<SubscriptionEntity>,
         charges: List<TransactionEntity>,
     ): MutableList<TransactionEntity> {
         val unclaimed = charges.toMutableList()
-        val recurringFirst = { _: SubscriptionEntity -> compareByDescending<TransactionEntity> { it.isRecurring } }
+        val closestAmount = { sub: SubscriptionEntity ->
+            compareBy<TransactionEntity> { (it.amount - sub.amount).abs() }.thenByDescending { it.isRecurring }
+        }
         // By the matcher's own test, which doesn't look at the account.
-        claim(subscriptions.filter { it.lastPaidAt != null }, unclaimed, { it }, recurringFirst) { sub, charge ->
+        claim(subscriptions.filter { it.lastPaidAt != null }, unclaimed, { it }, closestAmount) { sub, charge ->
             charge.currency == sub.currency &&
                 RecurringCharge.sameMerchant(charge.merchantName, sub.merchantName) &&
-                charge.dateTime.toLocalDate() == sub.lastPaidAt &&
-                RecurringCharge.sameAmount(sub.amount, charge.amount)
+                charge.dateTime.toLocalDate() == sub.lastPaidAt
         }
         return unclaimed
     }
@@ -145,7 +148,8 @@ object UpcomingPayments {
      * Gives each of [items] at most one of [unclaimed] that [matches] it, removing it so
      * no other item gets it. Items whose subscription names its account choose first, so
      * a charge goes to the bill on its own account before one that could be paid from
-     * any; each takes the charge [preferred] puts first.
+     * any; each takes a free charge in [preferred] order. When none is free, it takes one
+     * from an item that can move to another, so as many bills as possible are settled.
      */
     fun <T> claim(
         items: Collection<T>,
@@ -154,13 +158,21 @@ object UpcomingPayments {
         preferred: (T) -> Comparator<TransactionEntity>,
         matches: (T, TransactionEntity) -> Boolean,
     ): Map<T, TransactionEntity> {
-        val claimed = linkedMapOf<T, TransactionEntity>()
-        items.sortedByDescending { subscriptionOf(it).knownAccountParts() }
-            .forEach { item ->
-                val charge = unclaimed.filter { matches(item, it) }.minWithOrNull(preferred(item)) ?: return@forEach
-                unclaimed.remove(charge)
-                claimed[item] = charge
+        val ordered = items.sortedByDescending { subscriptionOf(it).knownAccountParts() }
+        val options = ordered.associateWith { item ->
+            unclaimed.indices.filter { matches(item, unclaimed[it]) }.sortedWith(compareBy(preferred(item)) { unclaimed[it] })
+        }
+        val holder = mutableMapOf<Int, T>()
+        fun place(item: T, tried: MutableSet<Int>): Boolean {
+            val choices = options.getValue(item)
+            choices.firstOrNull { it !in holder }?.let { holder[it] = item; return true }
+            return choices.any { charge ->
+                tried.add(charge) && place(holder.getValue(charge), tried) && run { holder[charge] = item; true }
             }
+        }
+        ordered.forEach { place(it, mutableSetOf()) }
+        val claimed = holder.entries.associate { (charge, item) -> item to unclaimed[charge] }
+        holder.keys.sortedDescending().forEach { unclaimed.removeAt(it) }
         return claimed
     }
 

@@ -34,6 +34,7 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.ledger.BalanceCalculator
 import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.ui.animations.pwExpand
@@ -306,7 +307,13 @@ private fun CurrentBalanceCard(
                 )
                 Spacer(modifier = Modifier.height(Spacing.xs))
                 Text(
-                    text = CurrencyFormatter.formatCurrency(creditLimit, primaryCurrency),
+                    // creditLimit is the card's TOTAL limit; the figure labelled
+                    // "Available Credit" must be what's left of it after the
+                    // outstanding shown below, as on the Manage Accounts card.
+                    text = CurrencyFormatter.formatCurrency(
+                        BalanceCalculator.availableCredit(creditLimit, balance),
+                        primaryCurrency
+                    ),
                     style = MaterialTheme.typography.headlineMedium.money(),
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.onSurface

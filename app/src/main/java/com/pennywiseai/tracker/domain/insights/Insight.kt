@@ -18,7 +18,6 @@ sealed interface InsightAction {
     data class OpenTransaction(val transactionId: Long) : InsightAction
     data class OpenAccount(val bankName: String, val accountLast4: String) : InsightAction
     data object OpenSubscriptions : InsightAction
-    data object OpenGoals : InsightAction
     data object OpenAccounts : InsightAction
 }
 
@@ -74,13 +73,6 @@ sealed interface InsightFact {
         val monthlySpend: Money,
         val lowConfidence: Boolean,
     ) : InsightFact
-
-    /**
-     * The goals in progress need [needed] a month together, and a usual month leaves
-     * [surplus] over (below zero when more goes out than comes in). [shortBy] is
-     * [com.pennywiseai.tracker.domain.goals.GoalAffordability.shortBy]: null when they fit.
-     */
-    data class GoalsFit(val needed: Money, val surplus: Money, val shortBy: Money?) : InsightFact
 
     /**
      * A credit card's bill with [left] still to pay of the [statement], due on

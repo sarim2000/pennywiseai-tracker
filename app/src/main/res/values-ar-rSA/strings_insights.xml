@@ -64,49 +64,6 @@
     <!-- %1$d = a whole percentage -->
     <string name="insights_percent">%1$d%%</string>
 
-    <!-- Tracking health: a 0-100 indicator of how the cycle is going and being tracked -->
-    <string name="insights_score_title">جودة التتبّع</string>
-    <string name="insights_score_out_of">من 100</string>
-    <!-- %1$s = the parts the score is built from this cycle, as a list, e.g. "ادخارك ونسبة المصروفات المصنّفة" -->
-    <string name="insights_score_hint">مبنية على %1$s. اضغط لترى الطريقة.</string>
-    <!-- The parts listed in insights_score_hint -->
-    <string name="insights_score_hint_savings">ادخارك</string>
-    <string name="insights_score_hint_budgets">ميزانياتك</string>
-    <string name="insights_score_hint_categorised">نسبة المصروفات المصنّفة</string>
-    <string name="insights_score_breakdown_title">كيف تُحسب جودة التتبّع</string>
-    <string name="insights_score_savings">الادخار</string>
-    <!-- %1$s = percentage of income kept -->
-    <string name="insights_score_savings_detail">احتفظت بـ %1$s من دخلك. الخُمس أو أكثر يحصل على الدرجة الكاملة.</string>
-    <!-- More went out than came in. %1$s = how much more, as a percentage of income -->
-    <string name="insights_score_savings_detail_negative">أنفقت أكثر مما كسبت بنسبة %1$s. الاحتفاظ بخُمس الدخل يحصل على الدرجة الكاملة.</string>
-    <string name="insights_score_budgets">الميزانيات</string>
-    <!-- %1$d = budgets on track, %2$d = all budgets -->
-    <plurals name="insights_score_budgets_detail">
-        <item quantity="zero">الميزانيات ضمن المسار: %1$d من %2$d</item>
-        <item quantity="one">الميزانيات ضمن المسار: %1$d من %2$d</item>
-        <item quantity="two">الميزانيات ضمن المسار: %1$d من %2$d</item>
-        <item quantity="few">الميزانيات ضمن المسار: %1$d من %2$d</item>
-        <item quantity="many">الميزانيات ضمن المسار: %1$d من %2$d</item>
-        <item quantity="other">الميزانيات ضمن المسار: %1$d من %2$d</item>
-    </plurals>
-    <string name="insights_score_categorised">التصنيف</string>
-    <!-- %1$d = spends with a category, %2$d = all spends -->
-    <plurals name="insights_score_categorised_detail">
-        <item quantity="zero">المصروفات المصنّفة: %1$d من %2$d</item>
-        <item quantity="one">المصروفات المصنّفة: %1$d من %2$d</item>
-        <item quantity="two">المصروفات المصنّفة: %1$d من %2$d</item>
-        <item quantity="few">المصروفات المصنّفة: %1$d من %2$d</item>
-        <item quantity="many">المصروفات المصنّفة: %1$d من %2$d</item>
-        <item quantity="other">المصروفات المصنّفة: %1$d من %2$d</item>
-    </plurals>
-    <!-- %1$d = points for one part -->
-    <string name="insights_score_points">%1$d/100</string>
-    <!-- Under a score part. %1$s = how much it counts toward the score, as a percentage -->
-    <string name="insights_score_share">يمثّل %1$s من الدرجة</string>
-    <!-- The savings part while amounts are hidden: no rate, and no hint whether it's below zero -->
-    <string name="insights_score_savings_detail_hidden">نسبة الدخل التي احتفظت بها. الخُمس أو أكثر يحصل على الدرجة الكاملة.</string>
-    <string name="insights_score_footnote">تجمع الدرجة نقاط كل جزء بحسب وزنه. يُستبعد الجزء الذي لا بيانات له ويزيد وزن الأجزاء الأخرى. تجاهل رؤية لا يغيّرها.</string>
-
     <!-- Metric labels on an expanded insight -->
     <string name="insights_metric_spent">المصروف</string>
     <string name="insights_metric_budget">الميزانية</string>
@@ -122,8 +79,6 @@
     <string name="insights_metric_charged">المخصوم</string>
     <string name="insights_metric_held">في الحسابات</string>
     <string name="insights_metric_usual_month">شهر معتاد</string>
-    <string name="insights_metric_goals_need">تحتاج الأهداف</string>
-    <string name="insights_metric_left_over">يتبقى عادةً</string>
 
     <!-- Action buttons -->
     <string name="insights_action_budgets">فتح الميزانيات</string>
@@ -131,7 +86,6 @@
     <string name="insights_action_transaction">فتح المعاملة</string>
     <string name="insights_action_subscriptions">فتح الاشتراكات</string>
     <string name="insights_action_account">فتح الحساب</string>
-    <string name="insights_action_goals">فتح الأهداف</string>
     <string name="insights_action_accounts">فتح الحسابات</string>
 
     <!-- Budget over. %1$s = amount over, %2$s = budget name (often already ends in "Budget", so don't add the word) -->
@@ -193,17 +147,6 @@
     <!-- Under the runway's Held and Usual month figures. %1$d = months many aim for -->
     <string name="insights_runway_good_body">أي أكثر من %1$d أشهر يسعى إليها كثيرون.</string>
     <string name="insights_runway_estimate">بعض الحسابات غير محسوبة لأن رصيدها غير معروف بعد. حدّثها من الحسابات لرقم أدق.</string>
-
-    <!-- Goals fit what a usual month leaves over. %1$s = what all goals in progress need a month -->
-    <string name="insights_goals_fit_title">%1$s شهريًا يحقق كل أهدافك</string>
-    <!-- Under the Goals need and Left over figures -->
-    <string name="insights_goals_fit_body">يتبقى لك في الشهر المعتاد ما يكفي، فهي في متناولك.</string>
-    <!-- Goals need more than a usual month leaves. %1$s = the gap a month -->
-    <string name="insights_goals_short_title">تحتاج أهدافك %1$s إضافية شهريًا</string>
-    <!-- Under the Goals need and Left over figures -->
-    <string name="insights_goals_short_body">تحتاج معًا أكثر مما يتبقى في الشهر المعتاد.</string>
-    <!-- A usual month spends all its income or more -->
-    <string name="insights_goals_no_surplus_body">الشهر المعتاد يُنفق كل ما يدخل.</string>
 
     <!-- Bills due. %1$s = total, %2$d = days -->
     <plurals name="insights_bills_title">

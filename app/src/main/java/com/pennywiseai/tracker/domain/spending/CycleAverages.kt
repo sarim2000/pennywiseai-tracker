@@ -7,7 +7,7 @@ import java.math.RoundingMode
 /**
  * A usual cycle in one currency: the average income and spending of the [CYCLES]
  * complete cycles before the current one, by Period Review's definitions (spending
- * net of refunds). The runway and goal affordability read it through [of].
+ * net of refunds). The runway reads it through [of].
  *
  * Home's forecast "usual" shares only [mean]: it still loads its own previous cycles
  * under its headline spend rules (any recorded row makes a cycle count), so the two

@@ -184,7 +184,7 @@ data class TransactionsWithFilter(
 @Serializable
 data class Review(val kind: String = "MONTH", val weekStart: String? = null) : NavKey
 
-/** What needs attention this cycle; opened from Home, Analytics and the evening recap. */
+/** What needs attention this cycle; opened from Home (its menu and section) and the evening recap. */
 @Serializable
 data object Insights : NavKey
 

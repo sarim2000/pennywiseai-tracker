@@ -34,14 +34,14 @@ class HomeSectionLayoutTest {
     }
 
     @Test
-    fun `missing sections are added visible at their default position`() {
+    fun `missing sections are added at their default position and visibility`() {
         val decoded = HomeSectionLayout.decode("!ACTIVITY,ACCOUNTS")
         assertEquals(
             listOf(
                 HomeSection.SAFE_TO_SPEND, HomeSection.BUDGETS, HomeSection.INSIGHTS, HomeSection.RECENT_TRANSACTIONS,
                 HomeSection.SUBSCRIPTIONS, HomeSection.LOANS, HomeSection.GOALS, HomeSection.GROUPS,
                 HomeSection.MONEY_IN_MOTION,
-            ).map { it to true }.let { it.take(4) + listOf(HomeSection.ACTIVITY to false) + it.drop(4) } +
+            ).map { it to it.visibleByDefault }.let { it.take(4) + listOf(HomeSection.ACTIVITY to false) + it.drop(4) } +
                 listOf(HomeSection.ACCOUNTS to true),
             decoded,
         )
@@ -70,16 +70,19 @@ class HomeSectionLayoutTest {
     }
 
     @Test
-    fun `insights join a saved layout right after budgets`() {
-        val decoded = HomeSectionLayout.decode("SAFE_TO_SPEND,BUDGETS,RECENT_TRANSACTIONS").map { it.first }
-        assertEquals(HomeSection.INSIGHTS, decoded[2])
+    fun `insights join a saved layout right after budgets, hidden until turned on`() {
+        val decoded = HomeSectionLayout.decode("SAFE_TO_SPEND,BUDGETS,RECENT_TRANSACTIONS")
+        assertEquals(HomeSection.INSIGHTS to false, decoded[2])
+        // Turned on, it stays on.
+        val shown = HomeSectionLayout.encode(HomeSectionLayout.withVisibility(decoded, HomeSection.INSIGHTS, true))
+        assertEquals(HomeSection.INSIGHTS to true, HomeSectionLayout.decode(shown)[2])
     }
 
     @Test
     fun `blank or absent pref yields the default layout`() {
         assertEquals(HomeSectionLayout.DEFAULT, HomeSectionLayout.decode(null))
         assertEquals(HomeSectionLayout.DEFAULT, HomeSectionLayout.decode("  "))
-        assertEquals(HomeSection.entries.map { it to true }, HomeSectionLayout.DEFAULT)
+        assertEquals(HomeSection.entries.map { it to (it != HomeSection.INSIGHTS) }, HomeSectionLayout.DEFAULT)
     }
 
     private val threeSections = listOf(

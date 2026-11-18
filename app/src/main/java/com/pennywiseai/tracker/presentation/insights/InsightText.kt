@@ -131,24 +131,6 @@ internal fun insightText(insight: Insight): InsightText = when (val f = insight.
         ),
         note = stringResource(R.string.insights_runway_estimate).takeIf { f.lowConfidence },
     )
-    is InsightFact.GoalsFit -> InsightText(
-        // With nothing left over, "need X more" would only restate the shortfall as a
-        // bigger number than the goals ask for, so lead with what they need.
-        title = when {
-            f.shortBy == null -> stringResource(R.string.insights_goals_fit_title, f.needed.format())
-            f.surplus.amount.signum() <= 0 -> stringResource(R.string.goals_need_per_month, f.needed.format())
-            else -> stringResource(R.string.insights_goals_short_title, f.shortBy.format())
-        },
-        body = when {
-            f.shortBy == null -> stringResource(R.string.insights_goals_fit_body)
-            f.surplus.amount.signum() > 0 -> stringResource(R.string.insights_goals_short_body)
-            else -> stringResource(R.string.insights_goals_no_surplus_body)
-        },
-        metrics = listOf(
-            stringResource(R.string.insights_metric_goals_need) to f.needed.format(),
-            stringResource(R.string.insights_metric_left_over) to f.surplus.format(),
-        ),
-    )
     is InsightFact.CardBillDue -> InsightText(
         title = when {
             f.daysLeft < 0 -> stringResource(R.string.insights_card_bill_overdue_title, name(f.label))
@@ -186,7 +168,6 @@ internal fun actionLabel(action: InsightAction): String = stringResource(
         is InsightAction.OpenTransaction -> R.string.insights_action_transaction
         is InsightAction.OpenAccount -> R.string.insights_action_account
         InsightAction.OpenSubscriptions -> R.string.insights_action_subscriptions
-        InsightAction.OpenGoals -> R.string.insights_action_goals
         InsightAction.OpenAccounts -> R.string.insights_action_accounts
     }
 )

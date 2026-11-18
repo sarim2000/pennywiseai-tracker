@@ -185,6 +185,8 @@ internal class MorphFrom(
     val stampAt: Offset = Offset.Zero,
     /** How shut the eyes were, 0..1. */
     val squint: Float = 0f,
+    /** The arrival's moves the morph cut into, still showing, or null. */
+    val moves: CutArrival? = null,
 )
 
 /** The owl's colours are 1, every object's 0. */

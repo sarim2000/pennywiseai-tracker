@@ -145,6 +145,7 @@ class AddViewModel @Inject constructor(
                 )
             }
             selectAccount(draftBankName, draftAccountLast4)
+            _transactionUiState.update { it.copy(draftLoaded = true) }
         }
     }
 
@@ -837,8 +838,15 @@ data class TransactionUiState(
     val currency: String = "INR",
     val receiptUri: Uri? = null,
     val budgetImpactType: BudgetImpactType? = null,
-    val budgetCategory: String? = null
+    val budgetCategory: String? = null,
+    // False until a Duplicate/shared/voice draft has been copied in, so the
+    // calculator doesn't open on an amount that's about to be replaced.
+    val draftLoaded: Boolean = false
 ) {
+    // The currency the amount is saved in: a transfer moves the FROM account's money.
+    val entryCurrency: String
+        get() = selectedAccount?.takeIf { transactionType == TransactionType.TRANSFER }?.currency ?: currency
+
     val isValid: Boolean
         get() {
             val amountOk = amount.isNotBlank() &&

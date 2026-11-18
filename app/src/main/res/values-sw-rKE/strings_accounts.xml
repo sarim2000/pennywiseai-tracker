@@ -260,6 +260,11 @@
     <string name="loan_detail_settle_message">Uweke mkopo huu kuwa umelipwa? Salio lolote lililobaki litasamehewa.</string>
     <string name="loan_detail_expected_return_title">Kinachotarajiwa Kurudi</string>
     <string name="loan_detail_expected_return_label">Kiasi kinachotarajiwa kurudi</string>
+    <!-- A repayment larger than what's left on the loan. %1$s = formatted extra amount -->
+    <!-- %1$s = person name, %2$s = formatted extra amount -->
+    <!-- %1$s = person name, %2$s = formatted extra amount -->
+    <!-- %1$s = person name -->
+    <!-- %1$s = person name -->
     <string name="loan_detail_delete_title">Futa Mkopo</string>
     <string name="loan_detail_delete_message">Ufute mkopo huu? Miamala iliyounganishwa itatenganishwa lakini haitafutwa.</string>
     <string name="loan_detail_original_chip">Asili</string>

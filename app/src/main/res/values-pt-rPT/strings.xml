@@ -29,4 +29,7 @@
     <string name="duplicate_accounts_merge">Juntar e memorizar</string>
     <string name="duplicate_accounts_keep">Manter separadas</string>
     <!-- Docked nav action: a finished scan's result, shown for a beat in place of the icon -->
+    <!-- AI chat: the badge by the latest reply's mascot. Saved: the rows of an Add card were just saved -->
+    <!-- Developer mode: a screen showing the mascot in every shape and mood, for checking it on a device -->
+    <!-- The slider for the figure a shape draws (how full a jar is, where a gauge's needle sits). %1$d is a percentage -->
 </resources>

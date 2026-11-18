@@ -4,9 +4,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.ledger.forTotals
-import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
-import com.pennywiseai.tracker.domain.model.filterTransactionsByProfile
 import java.math.BigDecimal
 import java.time.LocalDate
 
@@ -109,26 +107,6 @@ private fun amountMatchesSearch(query: String, amount: BigDecimal): Boolean {
     return cleanedQuery.isNotEmpty() &&
         cleanedQuery.all { it.isDigit() || it == '.' } &&
         amount.toPlainString().contains(cleanedQuery)
-}
-
-internal fun filterTrackedByProfile(
-    transactions: List<TransactionEntity>,
-    profileId: Long?,
-    ignoredAccountKeys: Set<String>,
-    profileAccountKeys: Map<Long, Set<String>>,
-): List<TransactionEntity> {
-    // Ignored accounts drop out first, and independently of the profile
-    // filter — that one returns early for "All profiles" and falls back to
-    // Personal for an unattributed transaction, so it can't carry the
-    // exclusion (#826).
-    val tracked = if (ignoredAccountKeys.isEmpty()) {
-        transactions
-    } else {
-        transactions.filterNot { tx ->
-            IgnoredAccountsStore.isIgnored(ignoredAccountKeys, tx.bankName, tx.accountNumber)
-        }
-    }
-    return filterTransactionsByProfile(tracked, profileId, profileAccountKeys)
 }
 
 /** Rows carrying exactly [tag], ignoring case; null means no tag filter. */

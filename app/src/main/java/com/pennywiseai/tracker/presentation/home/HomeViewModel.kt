@@ -20,15 +20,19 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.nameForBuiltin
 import com.pennywiseai.tracker.data.events.MascotMoment
 import com.pennywiseai.tracker.data.events.MascotMoments
+import com.pennywiseai.tracker.data.ledger.breakdownByCurrency
+import com.pennywiseai.tracker.data.ledger.convertedSpent
 import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.manager.InAppReviewManager
 import com.pennywiseai.tracker.data.manager.InAppUpdateManager
 import com.pennywiseai.tracker.data.preferences.HomeSection
 import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
+import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
+import com.pennywiseai.tracker.data.repository.CardRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.LlmRepository
 import com.pennywiseai.tracker.data.repository.LoanRepository
@@ -114,6 +118,8 @@ class HomeViewModel @Inject constructor(
     private val categoryRepository: CategoryRepository,
     private val recurringSuggestionsUseCase: com.pennywiseai.tracker.domain.usecase.RecurringSuggestionsUseCase,
     private val mascotMoments: MascotMoments,
+    private val ignoredAccountsStore: IgnoredAccountsStore,
+    private val cardRepository: CardRepository,
 ) : ViewModel() {
 
     /**
@@ -219,6 +225,17 @@ class HomeViewModel @Inject constructor(
     // null = not loaded yet (avoids emitting stale empty data on cold launch)
     private val _cachedAccountBalances = MutableStateFlow<List<AccountBalanceEntity>?>(null)
     private val cachedAccountBalances: List<AccountBalanceEntity> get() = _cachedAccountBalances.value ?: emptyList()
+
+    // Which rows Home's figures count: the profile shown, and nothing from an ignored
+    // account or its linked cards (#826), by the rule the Transactions list and the chat
+    // use. Null until the balances load.
+    private val tracked: StateFlow<((TransactionEntity) -> Boolean)?> = trackedRowsFilter(
+        userPreferencesRepository.selectedProfileId,
+        _cachedAccountBalances.filterNotNull(),
+        ignoredAccountsStore.keysFlow,
+        cardRepository.getAllCards(),
+    ).stateIn(viewModelScope, SharingStarted.Eagerly, null)
+    private val trackedRows = tracked.filterNotNull()
 
     // Visible spendable accounts in their own currency (not pre-converted), for Safe to spend.
     private val spendableRaw = MutableStateFlow<List<AccountBalanceEntity>>(emptyList())
@@ -490,6 +507,7 @@ class HomeViewModel @Inject constructor(
     }
 
     private fun filterTransactions(transactions: List<TransactionEntity>): List<TransactionEntity> {
+        tracked.value?.let { return transactions.filter(it) }
         return filterTransactionsByProfile(
             transactions,
             _uiState.value.selectedProfileId,
@@ -542,13 +560,7 @@ class HomeViewModel @Inject constructor(
                 .flatMapLatest { (cycleStart, day) ->
                     transactionRepository.getTransactionsBetweenDates(cycleStart, day)
                 }
-                .combine(userPreferencesRepository.selectedProfileId) { transactions, profileId ->
-                    transactions to profileId
-                }
-                .combine(_cachedAccountBalances.filterNotNull()) { (transactions, profileId), balances ->
-                    filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
-                        .forTotals()
-                }
+                .combine(trackedRows) { transactions, keep -> transactions.filter(keep).forTotals() }
                 .combine(userPreferencesRepository.countCreditCardAsExpense) { nonLoan, creditAsExpense ->
                     breakdownByCurrency(nonLoan, creditAsExpense)
                 }
@@ -646,12 +658,7 @@ class HomeViewModel @Inject constructor(
                         endDate = cycleEnd
                     )
                 }
-                .combine(userPreferencesRepository.selectedProfileId) { transactions, profileId ->
-                    transactions to profileId
-                }
-                .combine(_cachedAccountBalances.filterNotNull()) { (transactions, profileId), balances ->
-                    filterTransactionsByProfile(transactions, profileId, buildProfileAccountKeys(balances))
-                }
+                .combine(trackedRows) { transactions, keep -> transactions.filter(keep) }
                 // Filtering and grouping off the main thread; the collector still runs on Main.
                 .flowOn(Dispatchers.Default)
                 .collect { transactions ->
@@ -670,13 +677,7 @@ class HomeViewModel @Inject constructor(
                     val end = cycleEnd.atTime(java.time.LocalTime.MAX)
                     loanRepository.getActiveLentTransactionsInPeriod(start, end)
                 }
-                .combine(userPreferencesRepository.selectedProfileId) { lentTxns, profileId ->
-                    lentTxns to profileId
-                }
-                .combine(_cachedAccountBalances.filterNotNull()) { (lentTxns, profileId), balances ->
-                    val keys = buildProfileAccountKeys(balances)
-                    filterTransactionsByProfile(lentTxns, profileId, keys)
-                }
+                .combine(trackedRows) { lentTxns, keep -> lentTxns.filter(keep) }
                 // Filtering and grouping off the main thread; the collector still runs on Main.
                 .flowOn(Dispatchers.Default)
                 .collect { filtered ->
@@ -703,19 +704,11 @@ class HomeViewModel @Inject constructor(
                     val end = cycleEnd.atTime(java.time.LocalTime.MAX)
                     loanRepository.getLentLoansSettledInPeriod(start, end)
                 }
-                .combine(userPreferencesRepository.selectedProfileId) { settledLoans, profileId ->
-                    settledLoans to profileId
-                }
-                .combine(_cachedAccountBalances.filterNotNull()) { (settledLoans, profileId), balances ->
-                    Triple(settledLoans, profileId, balances)
-                }
+                .combine(trackedRows) { settledLoans, keep -> settledLoans to keep }
                 // A collect, not a trailing combine: a flow with no collector never runs,
                 // so settlement losses silently stopped reaching "Spent" after #571.
-                .collect { (settledLoans, profileId, balances) ->
-                    val keys = buildProfileAccountKeys(balances)
-                    currentMonthLoanLossByCurrency = loanRepository.settlementLossByCurrency(settledLoans) {
-                        filterTransactionsByProfile(listOf(it), profileId, keys).isNotEmpty()
-                    }
+                .collect { (settledLoans, keep) ->
+                    currentMonthLoanLossByCurrency = loanRepository.settlementLossByCurrency(settledLoans, keep)
                     updateUIStateForCurrency(_uiState.value.selectedCurrency, _uiState.value.availableCurrencies)
                 }
         }
@@ -737,21 +730,14 @@ class HomeViewModel @Inject constructor(
                     transactionRepository.getTransactionsBetweenDates(cycles.last().first, cycles.first().second)
                         .map { transactions -> cycles to transactions }
                 }
-                .combine(userPreferencesRepository.selectedProfileId) { pair, profileId ->
-                    pair to profileId
-                }
-                .combine(_cachedAccountBalances.filterNotNull()) { (pair, profileId), balances ->
-                    val (cycles, transactions) = pair
-                    val keys = buildProfileAccountKeys(balances)
+                .combine(trackedRows) { (cycles, transactions), keep ->
                     previousCycleLoanLoss = cycles.map { (start, end) ->
                         val settled = loanRepository.getLentLoansSettledInPeriod(
                             start.atStartOfDay(), end.atTime(java.time.LocalTime.MAX)
                         ).first()
-                        loanRepository.settlementLossByCurrency(settled) {
-                            filterTransactionsByProfile(listOf(it), profileId, keys).isNotEmpty()
-                        }
+                        loanRepository.settlementLossByCurrency(settled, keep)
                     }
-                    cycles to filterTransactionsByProfile(transactions, profileId, keys).forTotals()
+                    cycles to transactions.filter(keep).forTotals()
                 }
                 .combine(userPreferencesRepository.countCreditCardAsExpense) { (cycles, nonLoan), creditAsExpense ->
                     Triple(cycles, nonLoan, creditAsExpense)
@@ -799,12 +785,7 @@ class HomeViewModel @Inject constructor(
                         endDate = day
                     )
                 }
-                .combine(userPreferencesRepository.selectedProfileId) { allTransactions, profileId ->
-                    allTransactions to profileId
-                }
-                .combine(_cachedAccountBalances.filterNotNull()) { (allTransactions, profileId), balances ->
-                    filterTransactionsByProfile(allTransactions, profileId, buildProfileAccountKeys(balances))
-                }
+                .combine(trackedRows) { allTransactions, keep -> allTransactions.filter(keep) }
                 // Rebuild on a currency switch too, or the sparkline keeps drawing the
                 // previous currency's figures.
                 .combine(
@@ -1546,11 +1527,15 @@ class HomeViewModel @Inject constructor(
                 val lastSamePoint = combinedBreakdown(lastMonthSamePointBreakdownMap, selectedCurrency, convert).expenses
                 val loanLoss = combinedTotal(currentMonthLoanLossByCurrency, selectedCurrency, convert)
                 val lent = combinedTotal(currentMonthLentByCurrency, selectedCurrency, convert)
+                // The chat's converted "Spent" comes from convertedSpent too, so the two agree to the cent.
+                val spent = convertedSpent(
+                    currentMonthBreakdownMap.mapValues { it.value.expenses }, currentMonthLoanLossByCurrency, selectedCurrency, convert
+                ).total
 
                 _uiState.value = _uiState.value.copy(
                     currentMonthTotal = currentBreakdown.total - loanLoss,
                     currentMonthIncome = currentBreakdown.income,
-                    currentMonthExpenses = currentBreakdown.expenses + loanLoss,
+                    currentMonthExpenses = spent,
                     currentMonthLent = lent,
                     lastMonthTotal = lastBreakdown.total,
                     lastMonthIncome = lastBreakdown.income,
@@ -1559,14 +1544,13 @@ class HomeViewModel @Inject constructor(
                     selectedCurrency = selectedCurrency,
                     availableCurrencies = availableCurrencies,
                     spendForecast = forecastFor(
-                        currentBreakdown.expenses + loanLoss,
+                        spent,
                         selectedCurrency,
                         previousCycleBreakdownMaps.mapIndexed { i, map ->
                             val loss = previousCycleLoanLoss.getOrNull(i).orEmpty()
                             // A cycle with only a settlement loss still counts as history.
                             if (map.isEmpty() && loss.isEmpty()) null
-                            else combinedBreakdown(map, selectedCurrency, convert).expenses +
-                                combinedTotal(loss, selectedCurrency, convert)
+                            else convertedSpent(map.mapValues { it.value.expenses }, loss, selectedCurrency, convert).total
                         }
                     )
                 )

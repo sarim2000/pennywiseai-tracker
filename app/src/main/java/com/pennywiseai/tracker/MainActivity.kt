@@ -1,6 +1,5 @@
 package com.pennywiseai.tracker
 
-import com.pennywiseai.tracker.utils.withLatinDigits
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -20,6 +19,7 @@ import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import com.pennywiseai.tracker.data.repository.AppLockRepository
 import com.pennywiseai.tracker.receiver.SmsBroadcastReceiver
+import com.pennywiseai.tracker.utils.withLatinDigits
 import dagger.hilt.android.AndroidEntryPoint
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.launch
@@ -53,6 +53,9 @@ class MainActivity : FragmentActivity() {
         const val EXTRA_OPEN_BUDGETS = "com.pennywiseai.tracker.OPEN_BUDGETS"
         const val EXTRA_CREATE_GOAL = "com.pennywiseai.tracker.CREATE_GOAL"
 
+        /** A question said to the quick add mic: Chat opens with it in the box, not sent. */
+        const val EXTRA_CHAT_TEXT = "com.pennywiseai.tracker.CHAT_TEXT"
+
         /**
          * Deep link that jumps straight to Add Transaction: `pennywise://add`.
          * The single entry point every quick-add surface routes through — the
@@ -83,7 +86,12 @@ class MainActivity : FragmentActivity() {
     var sharedText by mutableStateOf<String?>(null)
         private set
 
+    // A question said to the quick add mic (its words wait in ChatDraftInbox): when it was asked.
+    var openChat by mutableStateOf<Long?>(null)
+        private set
+
     @Inject lateinit var appLockRepository: AppLockRepository
+    @Inject lateinit var chatDrafts: com.pennywiseai.tracker.data.manager.ChatDraftInbox
 
     override fun attachBaseContext(newBase: android.content.Context) {
         super.attachBaseContext(newBase.withLatinDigits())
@@ -131,7 +139,12 @@ class MainActivity : FragmentActivity() {
                 sharedText = sharedText,
                 onSharedTextHandled = sharedTextCallback,
                 widgetDestination = widgetDestination,
-                onWidgetDestinationHandled = { widgetDestination = null }
+                onWidgetDestinationHandled = { widgetDestination = null },
+                openChat = openChat,
+                onOpenChatHandled = {
+                    openChat = null
+                    chatDrafts.requestOpen()
+                }
             )
         }
     }
@@ -157,7 +170,8 @@ class MainActivity : FragmentActivity() {
         super.onSaveInstanceState(outState)
         outState.putBoolean(
             KEY_LAUNCH_PENDING,
-            editTransactionId != null || openAddTransaction != null || sharedText != null || widgetDestination != null
+            editTransactionId != null || openAddTransaction != null || sharedText != null || widgetDestination != null ||
+                openChat != null
         )
     }
 
@@ -203,6 +217,10 @@ class MainActivity : FragmentActivity() {
         if (intent?.action == Intent.ACTION_SEND && intent.type == "text/plain") {
             // Capped: it travels as a navigation argument and ends up as a note.
             sharedText = intent.getStringExtra(Intent.EXTRA_TEXT)?.trim()?.take(MAX_SHARED_TEXT)?.ifEmpty { null }
+        }
+        intent?.getStringExtra(EXTRA_CHAT_TEXT)?.take(MAX_SHARED_TEXT)?.let {
+            chatDrafts.put(it)
+            openChat = android.os.SystemClock.elapsedRealtime()
         }
         if (intent?.getBooleanExtra(EXTRA_OPEN_ADD_TRANSACTION, false) == true || intent.isAddDeepLink()) {
             openAddTransaction = com.pennywiseai.tracker.navigation.AddTransaction(

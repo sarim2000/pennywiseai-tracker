@@ -113,7 +113,7 @@ class LoanRepository @Inject constructor(
     private fun SharedTransaction.asLoanRow() = transaction.copy(loanContribution = shareAmount)
 
     // Only same-currency transactions can repay a loan (see getActiveLoanByPersonAndDirection).
-    fun getRecentUnlinkedRepayments(direction: LoanDirection, currency: String, limit: Int = 20): Flow<List<TransactionEntity>> {
+    fun getRecentUnlinkedRepayments(direction: LoanDirection, currency: String, limit: Int = 100): Flow<List<TransactionEntity>> {
         // A repayment flows against the loan: money in for LENT, any money out for BORROWED (#876).
         return loanDao.getRecentUnlinkedTransactions(moneyIn = direction == LoanDirection.LENT, currency = currency, limit = limit)
     }

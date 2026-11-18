@@ -170,6 +170,12 @@ class HomeViewModel @Inject constructor(
         }
     }
 
+    fun reorderHomeSections(order: List<HomeSection>) {
+        viewModelScope.launch {
+            userPreferencesRepository.updateHomeSectionLayout { HomeSectionLayout.reorder(it, order) }
+        }
+    }
+
     fun setHomeSectionVisible(section: HomeSection, visible: Boolean) {
         viewModelScope.launch {
             userPreferencesRepository.updateHomeSectionLayout { HomeSectionLayout.withVisibility(it, section, visible) }

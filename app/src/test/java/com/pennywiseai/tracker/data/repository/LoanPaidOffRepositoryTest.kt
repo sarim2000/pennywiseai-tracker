@@ -85,6 +85,17 @@ class LoanPaidOffRepositoryTest {
     }
 
     @Test
+    fun `a partial repayment is judged by what it wrote, not by a later edit`() {
+        // An edit that settles the loan lands right after the repayment's own write.
+        coEvery { loanDao.updateLoan(any()) } answers {
+            loan = firstArg<LoanEntity>().copy(remainingAmount = BigDecimal.ZERO, status = LoanStatus.SETTLED)
+        }
+        assertFalse(repay(9, "50"))
+        loan = loan.copy(remainingAmount = BigDecimal("80"), status = LoanStatus.ACTIVE)
+        assertFalse(runBlocking { repo.recordManualRepayment(2, BigDecimal("30"), "Pal", "INR") }!!.paidOff)
+    }
+
+    @Test
     fun `an overpayment that turned the loan around did not`() {
         assertFalse(repay(9, "200", LoanOverflow.FLIP_DEBT))
         assertEquals(LoanDirection.BORROWED, loan.direction)

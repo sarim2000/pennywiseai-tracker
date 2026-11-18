@@ -271,8 +271,8 @@ class LoanRepository @Inject constructor(
             persistContributionOverride(transactionId, capped)
         }
         keepNote(transactionId, note)
-        recalculateRemaining(loanId)
-        LoanMath.paidOff(before, loanDao.getLoanById(loanId))
+        // Judged from the loan this payment's own recalculation wrote, not a later read.
+        LoanMath.paidOff(before, recalculateRemaining(loanId))
     }
 
     /**
@@ -359,9 +359,9 @@ class LoanRepository @Inject constructor(
         )
         if (!flip) {
             val txId = transactionDao.insertTransaction(transaction)
-            recalculateRemaining(loanId)
+            val after = recalculateRemaining(loanId)
             val before = loan.copy(remainingAmount = owed)
-            return@withLock ManualRepayment(txId, paidOff = LoanMath.paidOff(before, loanDao.getLoanById(loanId)))
+            return@withLock ManualRepayment(txId, paidOff = LoanMath.paidOff(before, after))
         }
         database.withTransaction {
             val txId = transactionDao.insertTransaction(transaction)
@@ -621,17 +621,18 @@ class LoanRepository @Inject constructor(
         }
     }
 
-    private suspend fun recalculateRemaining(loanId: Long) {
-        val loan = loanDao.getLoanById(loanId) ?: return
+    /** Re-derives [loanId]'s remainder and status; returns the loan as written, null when gone. */
+    private suspend fun recalculateRemaining(loanId: Long): LoanEntity? {
+        val loan = loanDao.getLoanById(loanId) ?: return null
         val remaining = remainingFor(loan)
         val newStatus = if (remaining <= BigDecimal.ZERO) LoanStatus.SETTLED else LoanStatus.ACTIVE
-        loanDao.updateLoan(
-            loan.copy(
-                remainingAmount = remaining,
-                status = newStatus,
-                settledAt = if (newStatus == LoanStatus.SETTLED) LocalDateTime.now() else null,
-                updatedAt = LocalDateTime.now()
-            )
+        val updated = loan.copy(
+            remainingAmount = remaining,
+            status = newStatus,
+            settledAt = if (newStatus == LoanStatus.SETTLED) LocalDateTime.now() else null,
+            updatedAt = LocalDateTime.now()
         )
+        loanDao.updateLoan(updated)
+        return updated
     }
 }

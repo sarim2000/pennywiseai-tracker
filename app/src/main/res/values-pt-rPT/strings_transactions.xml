@@ -402,6 +402,8 @@
     <string name="quick_add_saved">Guardado: %1$s · %2$s</string>
     <!-- The sheet filled from the voice mic (Home, the cash widget) -->
     <!-- Clears a day said out loud ("yesterday") back to today -->
+    <!-- Amount calculator: a keypad sheet opened from the amount field -->
+    <!-- The sum is unfinished or doesn't make sense yet, e.g. "12+" or "1..2" -->
     <string name="date_range_title">Selecione Intervalo de Datas</string>
     <string name="date_range_ok">Certo</string>
     <string name="date_range_cancel">cancelar</string>

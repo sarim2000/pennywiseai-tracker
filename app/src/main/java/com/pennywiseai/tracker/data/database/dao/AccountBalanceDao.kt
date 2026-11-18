@@ -59,6 +59,27 @@ interface AccountBalanceDao {
         frozenBefore: LocalDateTime?
     ): List<BalanceRowAfter>
 
+    /**
+     * Whether the bank reported this account's balance at or after [at]: a
+     * balance notice, an SMS that stated its balance, or a linked card's figure.
+     * That figure already includes anything dated [at] or earlier (#1022). Rows
+     * the app worked out itself, and the user's MANUAL / OPENING figures, don't count.
+     */
+    @Query("""
+        SELECT EXISTS(
+            SELECT 1 FROM account_balances ab
+            LEFT JOIN transactions t ON t.id = ab.transaction_id
+            WHERE ab.bank_name = :bankName AND ab.account_last4 = :accountLast4 AND ab.timestamp >= :at
+            AND CASE
+                WHEN ab.source_type IN ('MANUAL', 'OPENING') THEN 0
+                WHEN ab.source_type = 'TRANSACTION'
+                    THEN ab.sms_source IS NOT NULL AND (t.id IS NULL OR t.balance_after IS NOT NULL)
+                ELSE 1
+            END
+        )
+    """)
+    suspend fun hasBankBalanceAtOrAfter(bankName: String, accountLast4: String, at: LocalDateTime): Boolean
+
     @Query("""
         SELECT * FROM account_balances
         WHERE bank_name = :bankName AND account_last4 = :accountLast4

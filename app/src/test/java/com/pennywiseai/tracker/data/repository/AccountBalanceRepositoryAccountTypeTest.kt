@@ -87,6 +87,7 @@ class AccountBalanceRepositoryAccountTypeTest {
                     }
                     updated
                 }
+                "hasBankBalanceAtOrAfter" -> false
                 "fillMissingAccountType" -> {
                     val (bankName, accountLast4, type, isCredit) = args
                     var updated = 0
@@ -235,11 +236,11 @@ class AccountBalanceRepositoryAccountTypeTest {
         repository.insertBalance(smsAccountRow("250000.00", hoursAgo = 2))
         repository.setAccountType("Test Bank", "7777", AccountType.LOAN)
 
-        repository.applyTransactionToBalance("Test Bank", "7777", BigDecimal("12000.00"), TransactionType.INCOME, 1L)
+        repository.applyTransactionToBalance("Test Bank", "7777", BigDecimal("12000.00"), TransactionType.INCOME, LocalDateTime.now(), 1L)
         assertEquals(BigDecimal("238000.00"), repository.getLatestBalance("Test Bank", "7777")?.balance)
 
         repository.setAccountType("Test Bank", "7777", AccountType.SAVINGS)
-        repository.applyTransactionToBalance("Test Bank", "7777", BigDecimal("1000.00"), TransactionType.INCOME, 2L)
+        repository.applyTransactionToBalance("Test Bank", "7777", BigDecimal("1000.00"), TransactionType.INCOME, LocalDateTime.now(), 2L)
         val latest = repository.getLatestBalance("Test Bank", "7777")!!
         assertFalse(latest.isLiability)
         assertEquals(BigDecimal("239000.00"), latest.balance)

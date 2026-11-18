@@ -437,10 +437,10 @@ open class AccountBalanceRepository @Inject constructor(
                 if (!isManualAccount(bank, acct)) {
                     val latest = getLatestBalance(bank, acct)
                     if (latest != null) {
-                        val net = BalanceCalculator.signedBalanceEffect(
-                            latest.isLiability, updated!!.ledgerType(), updated.amount
-                        ) - BalanceCalculator.signedBalanceEffect(
-                            latest.isLiability, original!!.ledgerType(), original.amount
+                        val net = countedEffect(
+                            bank, acct, latest.isLiability, updated!!.ledgerType(), updated.amount, updated.dateTime
+                        ) - countedEffect(
+                            bank, acct, latest.isLiability, original!!.ledgerType(), original.amount, original.dateTime
                         )
                         if (net.signum() != 0) {
                             insertBalanceDelta(bank, acct, net, LocalDateTime.now(), updated.id)
@@ -458,7 +458,7 @@ open class AccountBalanceRepository @Inject constructor(
                         original.amount, updated?.id, original.toBankName)
                 } else if (origKey != null) {
                     shiftSingleAccount(origKey, original.ledgerType(), original.amount,
-                        revert = true, updated?.id)
+                        original.dateTime, revert = true, updated?.id)
                 }
             }
             if (updated != null) {
@@ -469,7 +469,7 @@ open class AccountBalanceRepository @Inject constructor(
                         updated.amount, updated.id, updated.toBankName)
                 } else if (updKey != null) {
                     shiftSingleAccount(updKey, updated.ledgerType(), updated.amount,
-                        revert = false, updated.id)
+                        updated.dateTime, revert = false, updated.id)
                 }
             }
         }
@@ -481,7 +481,8 @@ open class AccountBalanceRepository @Inject constructor(
      * their transactions (so back-dated or later-edited rows stay correct); an
      * SMS-tracked account gets a signed "TRANSACTION" delta snapshot off its
      * latest row. No-op when the account has no balance row yet (an SMS account
-     * we've never seen a balance for) — there's no anchor to move.
+     * we've never seen a balance for) — there's no anchor to move — or when the
+     * bank reported a balance at or after [dateTime], which already includes it.
      *
      * The transaction MUST already be persisted before calling this. Callers
      * that support manual accounts must also call [ensureManualOpening] BEFORE
@@ -495,6 +496,7 @@ open class AccountBalanceRepository @Inject constructor(
         accountLast4: String,
         amount: BigDecimal,
         type: TransactionType,
+        dateTime: LocalDateTime,
         transactionId: Long
     ) {
         if (isManualAccount(bankName, accountLast4)) {
@@ -504,7 +506,7 @@ open class AccountBalanceRepository @Inject constructor(
         val currentAccount = getLatestBalance(bankName, accountLast4) ?: return
         // Credit-card aware (#636): a purchase on a card must *raise* its
         // outstanding, which the old debit-only formula got backwards.
-        val effect = BalanceCalculator.signedBalanceEffect(currentAccount.isLiability, type, amount)
+        val effect = countedEffect(bankName, accountLast4, currentAccount.isLiability, type, amount, dateTime)
         if (effect.signum() == 0) return
         insertBalance(
             currentAccount.copy(
@@ -545,6 +547,7 @@ open class AccountBalanceRepository @Inject constructor(
                 accountLast4 = accountLast4,
                 amount = transaction.amount,
                 type = transaction.transactionType,
+                dateTime = transaction.dateTime,
                 transactionId = rowId
             )
         }
@@ -672,17 +675,36 @@ open class AccountBalanceRepository @Inject constructor(
         key: Pair<String, String>,
         type: TransactionType,
         amount: BigDecimal,
+        dateTime: LocalDateTime,
         revert: Boolean,
         transactionId: Long?
     ) {
         val (bank, acct) = key
         if (isManualAccount(bank, acct)) return
         val latest = getLatestBalance(bank, acct) ?: return
-        var effect = BalanceCalculator.signedBalanceEffect(latest.isLiability, type, amount)
+        var effect = countedEffect(bank, acct, latest.isLiability, type, amount, dateTime)
         if (revert) effect = effect.negate()
         if (effect.signum() == 0) return
         insertBalanceDelta(bank, acct, effect, LocalDateTime.now(), transactionId)
     }
+
+    /**
+     * A transaction's signed effect on a non-manual account, or zero when the
+     * bank reported a balance at or after [dateTime]: that figure already holds
+     * it, so moving off it would count it twice and the next SMS would show a
+     * false mismatch (#1022). Adds, edits and deletes all ask this, so a
+     * transaction that never moved the balance can't move it on the way out.
+     */
+    private suspend fun countedEffect(
+        bankName: String,
+        accountLast4: String,
+        isLiability: Boolean,
+        type: TransactionType,
+        amount: BigDecimal,
+        dateTime: LocalDateTime
+    ): BigDecimal =
+        if (accountBalanceDao.hasBankBalanceAtOrAfter(bankName, accountLast4, dateTime)) BigDecimal.ZERO
+        else BalanceCalculator.signedBalanceEffect(isLiability, type, amount)
 
     /**
      * Applies (or, with [revert], undoes) one TRANSFER leg's effect. Resolved by
@@ -937,7 +959,9 @@ open class AccountBalanceRepository @Inject constructor(
                 original.fromBankName != updated.fromBankName ||
                 original.toBankName != updated.toBankName ||
                 original.fromAccount != updated.fromAccount ||
-                original.toAccount != updated.toAccount
+                original.toAccount != updated.toAccount ||
+                // A new date can move it across the bank's latest figure (#1022).
+                (original.dateTime != updated.dateTime && singleAccountKey(original) != null)
             )
         // A merchant/category-only edit moves no balance; skipping the recompute keeps a
         // batch rule run from re-summing an account once per row.

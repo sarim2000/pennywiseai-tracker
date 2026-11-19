@@ -172,15 +172,19 @@ fun BudgetGroupsScreen(
         }
     ) { paddingValues ->
         if (uiState.isLoading) {
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxSize()
                     .hazeSource(hazeState)
                     .background(MaterialTheme.colorScheme.background)
                     .padding(paddingValues),
-                contentAlignment = Alignment.Center
+                horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                LoadingIndicator()
+                // Keep the Plan switch usable while budgets load, so Bills/Goals aren't blocked.
+                planTab?.let { host ->
+                    PlanSwitcher(host, Modifier.padding(horizontal = Dimensions.Padding.content, vertical = Spacing.sm))
+                }
+                Box(Modifier.weight(1f), contentAlignment = Alignment.Center) { LoadingIndicator() }
             }
             return@PennyWiseScaffold
         }

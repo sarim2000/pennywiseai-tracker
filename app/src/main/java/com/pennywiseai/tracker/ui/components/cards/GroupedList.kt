@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -85,6 +86,7 @@ fun GroupedRow(
     horizontalArrangement: Arrangement.Horizontal = Arrangement.spacedBy(Spacing.md),
     content: @Composable RowScope.() -> Unit
 ) {
+    val ink = rowInk(containerColor)
     val row: @Composable () -> Unit = {
         Row(
             modifier = Modifier
@@ -100,6 +102,7 @@ fun GroupedRow(
         Surface(
             modifier = modifier.fillMaxWidth(),
             color = containerColor,
+            contentColor = ink,
             shape = position.toShape(),
             content = row
         )
@@ -120,9 +123,9 @@ fun GroupedRow(
         // (disabled rows explain themselves, e.g. an error-coloured subtitle).
         colors = ListItemDefaults.segmentedColors(
             containerColor = containerColor,
-            contentColor = contentColorFor(containerColor),
+            contentColor = ink,
             disabledContainerColor = containerColor,
-            disabledContentColor = contentColorFor(containerColor)
+            disabledContentColor = ink
         ),
         contentPadding = PaddingValues(),
         content = row
@@ -151,7 +154,7 @@ fun GroupedColumn(
     verticalArrangement: Arrangement.Vertical = Arrangement.spacedBy(Spacing.smd),
     content: @Composable ColumnScope.() -> Unit
 ) {
-    val ink = if (contentColor == Color.Unspecified) contentColorFor(containerColor) else contentColor
+    val ink = if (contentColor == Color.Unspecified) rowInk(containerColor) else contentColor
     val column: @Composable () -> Unit = {
         Column(
             modifier = Modifier
@@ -259,3 +262,13 @@ fun RowScope.RowLabels(
         }
     }
 }
+
+/**
+ * The ink for a row on [containerColor]: the scheme's pair for a scheme fill, and
+ * `onSurface` for a custom tint (a category or budget colour over the surface). M3's
+ * `contentColorFor` falls back to the inherited content colour there, which is dark
+ * ink inside some dark-theme parents, so a tinted row's title went dark on dark.
+ */
+@Composable
+private fun rowInk(containerColor: Color): Color =
+    MaterialTheme.colorScheme.contentColorFor(containerColor).takeOrElse { MaterialTheme.colorScheme.onSurface }

@@ -65,6 +65,16 @@ class SchemeContrastTest {
     }
 
     @Test
+    fun inkOnWash_givesOpaqueInk_evenForATranslucentColour() {
+        // 20% black would pass as black and render at ~1.6:1 on its own wash.
+        val ink = LightColorScheme.inkOnWash(Color.Black.copy(alpha = 0.2f), 0.1f)
+        assertEquals(1f, ink.alpha)
+        LightColorScheme.neutralSurfaces.forEach { bg ->
+            assertTrue(contrastRatio(ink, Color.Black.copy(alpha = 0.1f).compositeOver(bg)) >= TEXT_CONTRAST)
+        }
+    }
+
+    @Test
     fun bestInk_alwaysClearsTheTextFloor() {
         // The worst case for black-or-white is a mid-luminance fill (~0.18).
         (0..255 step 5).forEach { v ->

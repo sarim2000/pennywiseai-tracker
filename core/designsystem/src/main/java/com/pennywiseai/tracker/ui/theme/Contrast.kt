@@ -77,10 +77,13 @@ fun Color.readableOn(backgrounds: List<Color>, minimum: Float = TEXT_CONTRAST): 
  * [color] as ink on a pill, chip or circle filled with an [alpha] wash of itself. The
  * wash pulls the background toward the ink, so a colour sitting at 4.5:1 on the bare
  * surface drops to ~4:1 on it; this nudges it back, whatever neutral surface is behind.
- * Pass [GRAPHIC_CONTRAST] as [minimum] for an icon.
+ * Pass [GRAPHIC_CONTRAST] as [minimum] for an icon. The ink comes back opaque: contrast is
+ * measured on opaque colours, so a translucent [color] is drawn at full strength.
  */
-fun ColorScheme.inkOnWash(color: Color, alpha: Float, minimum: Float = TEXT_CONTRAST): Color =
-    color.readableOn(neutralSurfaces.map { color.copy(alpha = alpha).compositeOver(it) }, minimum)
+fun ColorScheme.inkOnWash(color: Color, alpha: Float, minimum: Float = TEXT_CONTRAST): Color {
+    val ink = color.copy(alpha = 1f)
+    return ink.readableOn(neutralSurfaces.map { ink.copy(alpha = alpha).compositeOver(it) }, minimum)
+}
 
 /**
  * Makes a hand-built scheme's text roles readable: primary, error and onSurfaceVariant

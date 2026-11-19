@@ -112,7 +112,6 @@
     <string name="txn_detail_label_to">को</string>
     <string name="txn_detail_label_balance">बाकी राशि</string>
     <string name="txn_detail_label_balance_mismatch">बाकी राशि मेल नहीं खाती</string>
-    <string name="txn_detail_balance_mismatch_value">%1$s का अंतर · होना था %2$s</string>
     <string name="txn_detail_add_untracked_expense">%1$s का छूटा हुआ खर्च जोड़ें</string>
     <string name="txn_detail_add_untracked_income">%1$s की छूटी हुई आय जोड़ें</string>
     <string name="txn_detail_adjustment_title_expense">छूटा हुआ खर्च</string>

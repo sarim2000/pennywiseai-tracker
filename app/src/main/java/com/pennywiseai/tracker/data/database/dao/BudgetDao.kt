@@ -15,7 +15,7 @@ interface BudgetDao {
 
     @Query("SELECT * FROM budgets ORDER BY created_at DESC")
     fun getAllBudgets(): Flow<List<BudgetEntity>>
-    
+
     @Query("SELECT * FROM budget_categories ORDER BY budget_id")
     fun getAllBudgetCategories(): Flow<List<BudgetCategoryEntity>>
 
@@ -138,6 +138,10 @@ interface BudgetDao {
 
     @Query("UPDATE budgets SET limit_amount = :amount, updated_at = datetime('now') WHERE id = :budgetId")
     suspend fun updateBudgetLimitAmount(budgetId: Long, amount: java.math.BigDecimal)
+
+    /** Only the rollover start, so a row read earlier can't undo another save's other columns. */
+    @Query("UPDATE budgets SET rollover_since = :since WHERE id = :budgetId")
+    suspend fun updateRolloverSince(budgetId: Long, since: LocalDate?)
 
     @Query("SELECT COUNT(*) FROM budgets WHERE is_active = 1")
     suspend fun getActiveGroupCount(): Int

@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.domain.spending
 
+import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
+import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
@@ -88,5 +90,106 @@ class RecurringChargeTest {
         val nov26 = LocalDate.of(2026, 11, 26)
         assertTrue(RecurringCharge.isRetap(nov23, LocalDate.of(2026, 11, 30), nov26, nov23))
         assertFalse(RecurringCharge.isRetap(nov23, LocalDate.of(2026, 11, 30), nov26, nov26))
+    }
+
+    @Test
+    fun `the next payment shown keeps today and moves past dates on a month at a time`() {
+        val today = LocalDate.of(2026, 11, 16)
+        assertEquals(today, RecurringCharge.nextPaymentShown(today, "Monthly", today))
+        assertEquals(LocalDate.of(2026, 12, 10), RecurringCharge.nextPaymentShown(LocalDate.of(2026, 10, 10), "Monthly", today))
+        assertEquals(LocalDate.of(2026, 11, 20), RecurringCharge.nextPaymentShown(LocalDate.of(2026, 11, 20), "Monthly", today))
+    }
+
+    @Test
+    fun `the next payment shown moves on by the subscription's own cycle`() {
+        val today = LocalDate.of(2026, 11, 17)
+        // Weekly: Nov 13 is next due Nov 20, not Dec 13.
+        assertEquals(LocalDate.of(2026, 11, 20), RecurringCharge.nextPaymentShown(LocalDate.of(2026, 11, 13), "Weekly", today))
+        // Annual: a missed March date is next due next March, with no monthly dates between.
+        assertEquals(LocalDate.of(2027, 3, 5), RecurringCharge.nextPaymentShown(LocalDate.of(2026, 3, 5), "Annual", today))
+        assertEquals(LocalDate.of(2027, 2, 1), RecurringCharge.nextPaymentShown(LocalDate.of(2026, 11, 1), "Quarterly", today))
+        // Due today stays today, whatever the cycle.
+        assertEquals(today, RecurringCharge.nextPaymentShown(today, "Weekly", today))
+    }
+
+    @Test
+    fun `a month-end payment lands on February's last day and comes back to the 31st`() {
+        val jan31 = LocalDate.of(2027, 1, 31)
+        assertEquals(LocalDate.of(2027, 2, 28), RecurringCharge.nextPaymentShown(jan31, "Monthly", LocalDate.of(2027, 2, 10)))
+        assertEquals(
+            LocalDate.of(2028, 2, 29),
+            RecurringCharge.nextPaymentShown(LocalDate.of(2028, 1, 31), "Monthly", LocalDate.of(2028, 2, 10)),
+        )
+        assertEquals(LocalDate.of(2027, 3, 31), RecurringCharge.nextPaymentShown(jan31, "Monthly", LocalDate.of(2027, 3, 1)))
+    }
+
+    @Test
+    fun `advance moves by the cycle, either way`() {
+        val date = LocalDate.of(2026, 11, 13)
+        assertEquals(LocalDate.of(2026, 11, 20), RecurringCharge.advance(date, "Weekly"))
+        assertEquals(LocalDate.of(2026, 11, 6), RecurringCharge.advance(date, "WEEKLY", -1))
+        assertEquals(LocalDate.of(2027, 5, 13), RecurringCharge.advance(date, "Semi-Annual"))
+        assertEquals(LocalDate.of(2027, 11, 13), RecurringCharge.advance(date, "Yearly"))
+        assertEquals(LocalDate.of(2026, 12, 13), RecurringCharge.advance(date, "Fortnightly"))
+    }
+
+    private fun plan(total: Int?, made: Int) = SubscriptionEntity(
+        merchantName = "Synthetic EMI", amount = BigDecimal("1500.50"), currency = "INR",
+        nextPaymentDate = LocalDate.of(2026, 12, 5), totalPayments = total, paymentsMade = made,
+    )
+
+    @Test
+    fun `a payment on a plan counts and moves the schedule until the last one`() {
+        val paid = LocalDate.of(2026, 12, 5)
+        val next = LocalDate.of(2027, 1, 5)
+
+        val third = RecurringCharge.afterPayment(plan(total = 12, made = 2), paid, next)
+        assertEquals(3, third.paymentsMade)
+        assertEquals(next, third.nextPaymentDate)
+        assertEquals(paid, third.lastPaidAt)
+        assertEquals(SubscriptionState.ACTIVE, third.state)
+    }
+
+    @Test
+    fun `the last payment ends the plan without moving its date on`() {
+        val paid = LocalDate.of(2026, 12, 5)
+
+        val last = RecurringCharge.afterPayment(plan(total = 12, made = 11), paid, LocalDate.of(2027, 1, 5))
+
+        assertEquals(12, last.paymentsMade)
+        assertEquals(SubscriptionState.ENDED, last.state)
+        assertEquals(LocalDate.of(2026, 12, 5), last.nextPaymentDate)
+        assertEquals(paid, last.lastPaidAt)
+    }
+
+    @Test
+    fun `a bill with no end only moves on and counts nothing`() {
+        val next = LocalDate.of(2027, 1, 5)
+
+        val after = RecurringCharge.afterPayment(plan(total = null, made = 0), LocalDate.of(2026, 12, 5), next)
+
+        assertEquals(0, after.paymentsMade)
+        assertEquals(next, after.nextPaymentDate)
+        assertEquals(SubscriptionState.ACTIVE, after.state)
+    }
+
+    @Test
+    fun `what's left is one payment for each still to make`() {
+        assertEquals(BigDecimal("13504.50"), RecurringCharge.amountLeft(plan(total = 12, made = 3)))
+        assertEquals(0, BigDecimal.ZERO.compareTo(RecurringCharge.amountLeft(plan(total = 12, made = 12))))
+        // A plan shortened below what's been paid owes nothing, never a negative amount.
+        assertEquals(0, BigDecimal.ZERO.compareTo(RecurringCharge.amountLeft(plan(total = 2, made = 3))))
+        assertNull(RecurringCharge.amountLeft(plan(total = null, made = 0)))
+    }
+
+    @Test
+    fun `a plan added 3 payments in owes 9 and counts on from 3`() {
+        val midWay = plan(total = 12, made = 3)
+
+        assertEquals(BigDecimal("1500.50").multiply(BigDecimal(9)), RecurringCharge.amountLeft(midWay))
+        val fourth = RecurringCharge.afterPayment(midWay, LocalDate.of(2026, 12, 5), LocalDate.of(2027, 1, 5))
+        assertEquals(4, fourth.paymentsMade)
+        assertEquals(SubscriptionState.ACTIVE, fourth.state)
+        assertEquals(BigDecimal("1500.50").multiply(BigDecimal(8)), RecurringCharge.amountLeft(fourth))
     }
 }

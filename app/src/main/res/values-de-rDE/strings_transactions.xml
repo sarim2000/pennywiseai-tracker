@@ -113,7 +113,6 @@
     <string name="txn_detail_label_to">An</string>
     <string name="txn_detail_label_balance">Saldo</string>
     <string name="txn_detail_label_balance_mismatch">Kontostand stimmt nicht überein</string>
-    <string name="txn_detail_balance_mismatch_value">Abgestellt von %1$s · erwartete %2$s</string>
     <string name="txn_detail_add_untracked_expense">Füge %1$s nicht verfolgte Ausgaben hinzu</string>
     <string name="txn_detail_add_untracked_income">Füge %1$s nicht verfolgte Einnahmen hinzu</string>
     <string name="txn_detail_adjustment_title_expense">Nicht erfasste Ausgabe</string>

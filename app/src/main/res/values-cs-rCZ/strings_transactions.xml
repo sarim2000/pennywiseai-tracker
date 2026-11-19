@@ -121,7 +121,6 @@
     <string name="txn_detail_label_to">Komu</string>
     <string name="txn_detail_label_balance">Zůstatek</string>
     <string name="txn_detail_label_balance_mismatch">Neshoda zůstatku</string>
-    <string name="txn_detail_balance_mismatch_value">Vypnuto %1$s · očekáváno %2$s</string>
     <string name="txn_detail_add_untracked_expense">Přidat %1$s bez sledování výdajů</string>
     <string name="txn_detail_add_untracked_income">Přidat %1$s nesledovaný příjem</string>
     <string name="txn_detail_adjustment_title_expense">Nezaznamenaný výdaj</string>

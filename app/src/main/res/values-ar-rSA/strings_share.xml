@@ -115,7 +115,7 @@
     <string name="share_text_savings">نسبة ادخاري، من PennyWise، يتتبّع الإنفاق من رسائل البنك على الهاتف نفسه. https://%1$s</string>
     <string name="share_text_goal">تقدّمي نحو هدفي، من PennyWise، يتتبّع الإنفاق من رسائل البنك على الهاتف نفسه. https://%1$s</string>
     <string name="share_text_budget">كيف كانت ميزانيتي، من PennyWise، يتتبّع الإنفاق من رسائل البنك على الهاتف نفسه. https://%1$s</string>
-
+    <!-- Achievements card -->
     <string name="share_kind_achievements">الإنجازات</string>
     <string name="share_studio_section_achievements">الإنجازات على البطاقة</string>
     <string name="share_detail_date_earned">تاريخ التحقيق</string>
@@ -132,5 +132,6 @@
         <item quantity="many">إنجازًا مُحقَّقًا</item>
         <item quantity="other">إنجاز مُحقَّق</item>
     </plurals>
+    <!-- %1$s = the app's website -->
     <string name="share_text_achievements">إنجازاتي، من PennyWise. يتتبّع الإنفاق من رسائل البنك على الهاتف نفسه. https://%1$s</string>
 </resources>

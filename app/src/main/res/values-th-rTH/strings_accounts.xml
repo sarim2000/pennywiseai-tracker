@@ -287,4 +287,6 @@
     <plurals name="accounts_overview_view_all">
         <item quantity="other">ดูบัญชีทั้งหมด %1$d บัญชี</item>
     </plurals>
+    <!-- Card bill on a credit card's page (Safe to spend sets it aside) -->
+    <!-- Net worth: what you own minus what you owe, per currency -->
 </resources>

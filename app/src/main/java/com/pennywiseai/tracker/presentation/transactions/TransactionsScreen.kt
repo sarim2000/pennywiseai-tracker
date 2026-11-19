@@ -187,6 +187,13 @@ fun TransactionsScreen(
         accountFilter != null ||
         tagFilter != null ||
         sortOption != SortOption.DATE_NEWEST
+    val advancedFilterCount = listOf(
+        categoryFilter != null || categoriesFilter != null,
+        selectedProfileId != null,
+        accountFilter != null,
+        tagFilter != null,
+        sortOption != SortOption.DATE_NEWEST
+    ).count { it }
     var showAdvancedFilters by rememberSaveable { mutableStateOf(hasAdvancedFilter) }
     // A drill-in (Insights, a budget) applies its filter after the first frame: open the panel then.
     LaunchedEffect(hasAdvancedFilter) { if (hasAdvancedFilter) showAdvancedFilters = true }
@@ -339,7 +346,7 @@ fun TransactionsScreen(
             SnackbarHost(
                 hostState = snackbarHostState,
                 modifier = Modifier.padding(bottom = if (navDock != null) bottomBarClearance else 0.dp)
-            )
+            ) { data -> Snackbar(data, shape = MaterialTheme.shapes.large) }
         },
         customTopBar = {
             if (selectionMode) {
@@ -383,11 +390,28 @@ fun TransactionsScreen(
                     },
                     actionContent = {
                         if (navDock != null && uiState.transactions.isNotEmpty()) {
-                            IconButton(onClick = { showExportDialog = true }, shapes = IconButtonDefaults.shapes()) {
-                                Icon(
-                                    imageVector = Icons.Default.FileDownload,
-                                    contentDescription = stringResource(R.string.txn_list_export_csv)
-                                )
+                            var showOverflow by remember { mutableStateOf(false) }
+                            Box {
+                                IconButton(onClick = { showOverflow = true }, shapes = IconButtonDefaults.shapes()) {
+                                    Icon(
+                                        imageVector = Icons.Default.MoreVert,
+                                        contentDescription = stringResource(R.string.txn_detail_more_actions)
+                                    )
+                                }
+                                DropdownMenu(
+                                    expanded = showOverflow,
+                                    onDismissRequest = { showOverflow = false },
+                                    shape = MaterialTheme.shapes.large
+                                ) {
+                                    DropdownMenuItem(
+                                        text = { Text(stringResource(R.string.txn_list_export_csv)) },
+                                        leadingIcon = { Icon(Icons.Default.FileDownload, contentDescription = null) },
+                                        onClick = {
+                                            showOverflow = false
+                                            showExportDialog = true
+                                        }
+                                    )
+                                }
                             }
                         }
                     },
@@ -453,7 +477,7 @@ fun TransactionsScreen(
                 categoryFilter = categoryFilter,
                 focusRequester = searchFocusRequester,
                 filtersOpen = showAdvancedFilters,
-                hasAdvancedFilter = hasAdvancedFilter,
+                advancedFilterCount = advancedFilterCount,
                 onToggleFilters = { showAdvancedFilters = !showAdvancedFilters },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -664,7 +688,12 @@ fun TransactionsScreen(
                             stickyHeader(key = "day_$day", contentType = "dayHeader") {
                                 ActivityDayHeader(
                                     title = dayTitle(day, today),
-                                    net = dayNet(section.rows, uiState.splitShares, convertedAmounts, displayCurrency),
+                                    // A lone row already says its amount; the subtotal only helps on busier days.
+                                    net = if (section.rows.size > 1) {
+                                        dayNet(section.rows, uiState.splitShares, convertedAmounts, displayCurrency)
+                                    } else {
+                                        null
+                                    },
                                     modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                                 )
                             }

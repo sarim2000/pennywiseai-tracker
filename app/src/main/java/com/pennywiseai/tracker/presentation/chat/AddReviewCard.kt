@@ -65,6 +65,7 @@ import com.pennywiseai.tracker.data.model.ReviewRow
 import com.pennywiseai.tracker.data.model.TransactionDraft
 import com.pennywiseai.tracker.ui.components.CategoryMenuItems
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
+import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.components.SettledCheck
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.forPicker
@@ -252,6 +253,7 @@ private fun ReviewRowEditSheet(
             Text(stringResource(R.string.chat_action_edit_title), style = MaterialTheme.typography.titleMedium)
             Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 OutlinedTextField(
+                    shape = RoundedField.shape,
                     value = amount,
                     onValueChange = { amount = it },
                     label = { Text(stringResource(R.string.add_field_amount)) },
@@ -262,6 +264,7 @@ private fun ReviewRowEditSheet(
                 )
                 ExposedDropdownMenuBox(expanded = showCurrencies, onExpandedChange = { showCurrencies = it }, modifier = Modifier.weight(1f)) {
                     OutlinedTextField(
+                        shape = RoundedField.shape,
                         value = "${CurrencyFormatter.getCurrencySymbol(currency)} $currency",
                         onValueChange = {},
                         readOnly = true,
@@ -270,7 +273,7 @@ private fun ReviewRowEditSheet(
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCurrencies) },
                         modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                     )
-                    ExposedDropdownMenu(expanded = showCurrencies, onDismissRequest = { showCurrencies = false }) {
+                    ExposedDropdownMenu(expanded = showCurrencies, onDismissRequest = { showCurrencies = false }, shape = MaterialTheme.shapes.large) {
                         val codes = (listOf(currency) + CurrencyFormatter.getSupportedCurrencies()).distinct()
                         codes.forEachIndexed { index, code ->
                             SelectableDropdownMenuItem(
@@ -286,6 +289,7 @@ private fun ReviewRowEditSheet(
                 }
             }
             OutlinedTextField(
+                shape = RoundedField.shape,
                 value = merchant,
                 onValueChange = { merchant = it },
                 label = { Text(stringResource(R.string.add_field_merchant)) },
@@ -305,6 +309,7 @@ private fun ReviewRowEditSheet(
             )
             ExposedDropdownMenuBox(expanded = showCategories, onExpandedChange = { showCategories = it }) {
                 OutlinedTextField(
+                    shape = RoundedField.shape,
                     value = categoryLabel(category),
                     onValueChange = {},
                     readOnly = true,
@@ -313,7 +318,7 @@ private fun ReviewRowEditSheet(
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCategories) },
                     modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                 )
-                ExposedDropdownMenu(expanded = showCategories, onDismissRequest = { showCategories = false }) {
+                ExposedDropdownMenu(expanded = showCategories, onDismissRequest = { showCategories = false }, shape = MaterialTheme.shapes.large) {
                     CategoryMenuItems(
                         categories = categories,
                         isIncome = type == TransactionType.INCOME,

@@ -28,7 +28,12 @@ import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.ui.components.CategoryMenuItems
+import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.components.SelectedCategoryIcon
+import com.pennywiseai.tracker.ui.components.cards.GroupedList
+import com.pennywiseai.tracker.ui.components.cards.GroupedRow
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
+import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -326,6 +331,7 @@ internal fun BalanceAdjustmentSheet(
                     colors = editFilledColors()
                 )
                 ExposedDropdownMenu(
+                    shape = MaterialTheme.shapes.large,
                     expanded = expanded,
                     onDismissRequest = { expanded = false }
                 ) {
@@ -404,7 +410,6 @@ internal fun GroupBottomSheet(
                         Text(stringResource(R.string.txn_detail_group_remove), color = MaterialTheme.colorScheme.error)
                     }
                 }
-                HorizontalDivider(modifier = Modifier.padding(bottom = Spacing.md))
             }
 
             val otherGroups = availableGroups.filter { it.id != currentGroup?.id }
@@ -415,25 +420,24 @@ internal fun GroupBottomSheet(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     modifier = Modifier.padding(bottom = Spacing.sm)
                 )
-                otherGroups.forEach { group ->
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { onAddToGroup(group.id) }
-                            .padding(vertical = Spacing.sm),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
-                    ) {
-                        Icon(
-                            imageVector = Icons.Outlined.FolderOpen,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(Dimensions.Icon.medium)
-                        )
-                        Text(
-                            text = group.name,
-                            style = MaterialTheme.typography.bodyMedium
-                        )
+                GroupedList(
+                    modifier = Modifier
+                        .heightIn(max = Dimensions.Component.dialogListMaxHeight)
+                        .verticalScroll(rememberScrollState())
+                ) {
+                    otherGroups.forEachIndexed { index, group ->
+                        GroupedRow(
+                            position = ListItemPosition.from(index, otherGroups.size),
+                            onClick = { onAddToGroup(group.id) }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Outlined.FolderOpen,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(Dimensions.Icon.medium)
+                            )
+                            RowLabels(title = group.name)
+                        }
                     }
                 }
                 Spacer(modifier = Modifier.height(Spacing.sm))
@@ -441,6 +445,7 @@ internal fun GroupBottomSheet(
 
             if (showCreateField) {
                 OutlinedTextField(
+                    shape = RoundedField.shape,
                     value = newGroupName,
                     onValueChange = { newGroupName = it },
                     label = { Text(stringResource(R.string.txn_detail_group_name)) },

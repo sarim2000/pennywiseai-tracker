@@ -74,7 +74,7 @@ internal fun SwipeToEditCategory(
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .background(color)
+                    .background(color, MaterialTheme.shapes.large)
                     .padding(horizontal = Dimensions.Padding.content),
                 contentAlignment = Alignment.CenterEnd
             ) {

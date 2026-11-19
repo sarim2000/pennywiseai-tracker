@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
@@ -35,6 +35,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -42,6 +43,8 @@ import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.ui.components.cards.GroupedRow
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -92,7 +95,15 @@ fun QuickCategoryPickerSheet(
     val labels = categories.associate { it.id to categoryLabel(it.name) }
     val shown = categories.matching(query) { labels[it.id] ?: it.name }
     val top = if (query.isBlank()) categories.mostUsed(mostUsed) else emptyList()
-    val labelPadding = PaddingValues(horizontal = Dimensions.Padding.content)
+    val addCategoryLabel = stringResource(R.string.txn_detail_add_category)
+    val actions = buildList {
+        if (onExclude != null && excludeLabel != null) {
+            add(Triple(Icons.Outlined.VisibilityOff, excludeLabel, onExclude))
+        }
+        if (onAddCategory != null && query.isBlank()) {
+            add(Triple(Icons.Default.Add, addCategoryLabel) { onAddCategory("") })
+        }
+    }
     val sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))
     ModalBottomSheet(
         onDismissRequest = onDismiss,
@@ -117,12 +128,6 @@ fun QuickCategoryPickerSheet(
                     start = Dimensions.Padding.content,
                     end = Dimensions.Padding.content,
                     bottom = Spacing.sm
-                )
-            )
-            HorizontalDivider(
-                modifier = Modifier.padding(
-                    horizontal = Dimensions.Padding.content,
-                    vertical = Spacing.xs
                 )
             )
         }
@@ -160,41 +165,38 @@ fun QuickCategoryPickerSheet(
         // fully expanded — a plain Column would render items past the screen
         // bottom unscrollable.
         LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = Spacing.md)
+            modifier = Modifier.fillMaxWidth(),
+            contentPadding = PaddingValues(start = Dimensions.Padding.content, end = Dimensions.Padding.content, bottom = Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)
         ) {
-            if (onExclude != null && excludeLabel != null) {
-                item(key = "exclude") {
-                    ActionRow(Icons.Outlined.VisibilityOff, excludeLabel, MaterialTheme.colorScheme.onSurfaceVariant, onExclude)
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = Dimensions.Padding.content))
-                }
-            }
-            // Reachable without scrolling past sub-categories (#584, #835).
-            if (onAddCategory != null && query.isBlank()) {
-                item(key = "add") {
-                    ActionRow(Icons.Default.Add, stringResource(R.string.txn_detail_add_category), MaterialTheme.colorScheme.onSurface) { onAddCategory("") }
-                    HorizontalDivider(modifier = Modifier.padding(horizontal = Dimensions.Padding.content))
-                }
+            // Actions first as one small group, reachable without scrolling past sub-categories (#584, #835).
+            itemsIndexed(actions, key = { _, action -> "action-${action.second}" }) { index, (icon, text, onClick) ->
+                ActionRow(icon, text, ListItemPosition.from(index, actions.size), onClick)
             }
             if (top.isNotEmpty()) {
-                item(key = "most-used") { CategoryPickerLabel(stringResource(R.string.category_picker_most_used), labelPadding) }
-                items(top, key = { "top-${it.id}" }) { category ->
-                    CategoryRow(category, currentCategory == category.name, indent = false, Modifier.animateItem()) { onCategorySelected(category.name) }
+                item(key = "most-used") { CategoryPickerLabel(stringResource(R.string.category_picker_most_used)) }
+                itemsIndexed(top, key = { _, c -> "top-${c.id}" }) { index, category ->
+                    CategoryRow(category, currentCategory == category.name, ListItemPosition.from(index, top.size), Modifier.animateItem()) { onCategorySelected(category.name) }
                 }
-                item(key = "all") { CategoryPickerLabel(stringResource(R.string.category_picker_all), labelPadding) }
+                item(key = "all") { CategoryPickerLabel(stringResource(R.string.category_picker_all)) }
             }
             if (shown.isEmpty() && onAddCategory == null) {
-                item(key = "no-match") { CategoryPickerLabel(stringResource(R.string.category_picker_no_match), labelPadding) }
+                item(key = "no-match") { CategoryPickerLabel(stringResource(R.string.category_picker_no_match)) }
             }
             // Matches are a flat list; the parent indent only reads in the full list.
-            items(shown, key = { it.id }) { category ->
-                CategoryRow(category, currentCategory == category.name, indent = query.isBlank(), Modifier.animateItem()) { onCategorySelected(category.name) }
+            itemsIndexed(shown, key = { _, c -> c.id }) { index, category ->
+                CategoryRow(
+                    category,
+                    currentCategory == category.name,
+                    ListItemPosition.from(index, shown.size),
+                    Modifier.animateItem(),
+                    indent = query.isBlank()
+                ) { onCategorySelected(category.name) }
             }
             if (onAddCategory != null && query.isNotBlank()) {
                 item(key = "create") {
                     val name = query.trim()
-                    ActionRow(Icons.Default.Add, stringResource(R.string.category_picker_create, name), MaterialTheme.colorScheme.onSurface) { onAddCategory(name) }
+                    ActionRow(Icons.Default.Add, stringResource(R.string.category_picker_create, name), ListItemPosition.Single) { onAddCategory(name) }
                 }
             }
         }
@@ -227,59 +229,50 @@ private fun CategorySearchField(query: String, onQueryChange: (String) -> Unit, 
         placeholder = { Text(stringResource(R.string.category_picker_search)) },
         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
         singleLine = true,
-        shape = MaterialTheme.shapes.large,
-        colors = TextFieldDefaults.colors(
-            focusedIndicatorColor = Color.Transparent,
-            unfocusedIndicatorColor = Color.Transparent
-        ),
+        shape = RoundedField.shape,
+        colors = RoundedField.colors(),
         modifier = modifier.fillMaxWidth()
     )
 }
 
 /** A small section label ("Most used", "All") inside the picker. */
 @Composable
-private fun CategoryPickerLabel(text: String, padding: PaddingValues) {
+private fun CategoryPickerLabel(text: String) {
     Text(
         text = text,
         style = MaterialTheme.typography.labelMedium,
         color = MaterialTheme.colorScheme.onSurfaceVariant,
         modifier = Modifier
-            .padding(padding)
-            .padding(vertical = Spacing.xs)
+            .padding(horizontal = Spacing.sm)
+            .padding(top = Spacing.sm, bottom = Spacing.xs)
             .semantics { heading() }
     )
 }
 
 @Composable
-private fun ActionRow(icon: ImageVector, text: String, color: Color, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(horizontal = Dimensions.Padding.content, vertical = Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
-    ) {
-        Icon(imageVector = icon, contentDescription = null, tint = color)
-        Text(text = text, style = MaterialTheme.typography.bodyLarge, color = color)
+private fun ActionRow(icon: ImageVector, text: String, position: ListItemPosition, onClick: () -> Unit) {
+    GroupedRow(position = position, onClick = onClick) {
+        Icon(imageVector = icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(text = text, style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
     }
 }
 
 @Composable
-private fun CategoryRow(category: CategoryEntity, selected: Boolean, indent: Boolean, modifier: Modifier = Modifier, onClick: () -> Unit) {
-    Row(
+private fun CategoryRow(
+    category: CategoryEntity,
+    selected: Boolean,
+    position: ListItemPosition,
+    modifier: Modifier = Modifier,
+    indent: Boolean = false,
+    onClick: () -> Unit
+) {
+    GroupedRow(
+        position = position,
+        onClick = onClick,
+        // Sub-categories indent under their parent (#374)
         modifier = modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(
-                // Sub-categories indent under their parent (#374)
-                start = Dimensions.Padding.content + (if (indent && category.parentId != null) Spacing.lg else Spacing.none),
-                end = Dimensions.Padding.content,
-                top = Spacing.sm,
-                bottom = Spacing.sm
-            ),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+            .padding(start = if (indent && category.parentId != null) Spacing.lg else Spacing.none)
+            .semantics { this.selected = selected }
     ) {
         CategoryChip(category = category, showText = false)
         Text(

@@ -43,7 +43,7 @@ private val QUICK_TYPE_FILTERS = listOf(
 /**
  * The Activity search field: a tall pill with the search glyph, a clear button
  * while there's a query, and a tune button that opens the advanced filters
- * ([filtersOpen]). A dot on the tune button marks an advanced filter in force.
+ * ([filtersOpen]). A count on the tune button shows how many advanced filters are in force.
  */
 @Composable
 internal fun ActivitySearchField(
@@ -52,7 +52,7 @@ internal fun ActivitySearchField(
     categoryFilter: String?,
     focusRequester: FocusRequester,
     filtersOpen: Boolean,
-    hasAdvancedFilter: Boolean,
+    advancedFilterCount: Int,
     onToggleFilters: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -116,11 +116,11 @@ internal fun ActivitySearchField(
                 onCheckedChange = { onToggleFilters() },
                 shapes = IconButtonDefaults.toggleableShapes()
             ) {
-                BadgedBox(badge = { if (hasAdvancedFilter) Badge() }) {
+                BadgedBox(badge = { if (advancedFilterCount > 0) Badge { Text(advancedFilterCount.toString()) } }) {
                     Icon(
                         imageVector = Icons.Default.Tune,
                         contentDescription = stringResource(R.string.txn_list_filters),
-                        tint = if (filtersOpen || hasAdvancedFilter) {
+                        tint = if (filtersOpen || advancedFilterCount > 0) {
                             MaterialTheme.colorScheme.primary
                         } else {
                             MaterialTheme.colorScheme.onSurfaceVariant
@@ -133,7 +133,7 @@ internal fun ActivitySearchField(
 }
 
 /**
- * All · Spending · Income · Transfers, then the period and (with several
+ * The period first, then All · Spending · Income · Transfers and (with several
  * currencies) the currency. A type picked from the advanced filters that isn't
  * one of the four (Expense, Credit, Investment) shows as its own selected chip
  * so the list never looks unfiltered while it is.
@@ -158,27 +158,6 @@ internal fun ActivityQuickFilters(
         contentPadding = PaddingValues(horizontal = Dimensions.Padding.content),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        items(QUICK_TYPE_FILTERS.size) { index ->
-            val filter = QUICK_TYPE_FILTERS[index]
-            QuickChip(
-                selected = transactionTypeFilter == filter,
-                text = if (filter == TransactionTypeFilter.TRANSFER) {
-                    stringResource(R.string.txn_list_chip_transfers)
-                } else {
-                    filter.shortLabel()
-                },
-                onClick = { onTransactionTypeSelected(filter) }
-            )
-        }
-        if (transactionTypeFilter !in QUICK_TYPE_FILTERS) {
-            item {
-                QuickChip(
-                    selected = true,
-                    text = transactionTypeFilter.shortLabel(),
-                    onClick = { onTransactionTypeSelected(TransactionTypeFilter.ALL) }
-                )
-            }
-        }
         item {
             Box {
                 ExpressiveFilterChip(
@@ -203,6 +182,27 @@ internal fun ActivityQuickFilters(
                         )
                     }
                 }
+            }
+        }
+        items(QUICK_TYPE_FILTERS.size) { index ->
+            val filter = QUICK_TYPE_FILTERS[index]
+            QuickChip(
+                selected = transactionTypeFilter == filter,
+                text = if (filter == TransactionTypeFilter.TRANSFER) {
+                    stringResource(R.string.txn_list_chip_transfers)
+                } else {
+                    filter.shortLabel()
+                },
+                onClick = { onTransactionTypeSelected(filter) }
+            )
+        }
+        if (transactionTypeFilter !in QUICK_TYPE_FILTERS) {
+            item {
+                QuickChip(
+                    selected = true,
+                    text = transactionTypeFilter.shortLabel(),
+                    onClick = { onTransactionTypeSelected(TransactionTypeFilter.ALL) }
+                )
             }
         }
         if (currencyPicker != null) {
@@ -336,6 +336,7 @@ internal fun ActivityAdvancedFilters(
                 )
 
                 DropdownMenu(
+                    shape = MaterialTheme.shapes.large,
                     expanded = showMoreFiltersMenu,
                     onDismissRequest = onMoreFiltersDismiss
                 ) {
@@ -411,6 +412,7 @@ internal fun ActivityAdvancedFilters(
                     )
 
                     DropdownMenu(
+                        shape = MaterialTheme.shapes.large,
                         expanded = showTagMenu,
                         onDismissRequest = onTagDismiss
                     ) {
@@ -452,6 +454,7 @@ internal fun ActivityAdvancedFilters(
                     )
 
                     DropdownMenu(
+                        shape = MaterialTheme.shapes.large,
                         expanded = showAccountMenu,
                         onDismissRequest = onAccountDismiss
                     ) {

@@ -36,6 +36,10 @@ import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.presentation.split.canSplit
+import com.pennywiseai.tracker.ui.components.cards.GroupedList
+import com.pennywiseai.tracker.ui.components.cards.GroupedRow
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
+import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 
@@ -60,43 +64,22 @@ fun whatWasThisOptions(txn: TransactionEntity, hasLoan: Boolean): List<WhatWasTh
 
 @Composable
 internal fun WhatWasThisRow(onClick: () -> Unit) {
-    Surface(
-        modifier = Modifier.fillMaxWidth(),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        shape = MaterialTheme.shapes.medium
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clickable(onClick = onClick)
-                .padding(Spacing.md),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-        ) {
-            Icon(
-                Icons.AutoMirrored.Filled.HelpOutline,
-                contentDescription = null,
-                modifier = Modifier.size(Dimensions.Icon.medium),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    stringResource(R.string.what_was_this_title),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold
-                )
-                Text(
-                    stringResource(R.string.what_was_this_subtitle),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Icon(
-                Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+    GroupedRow(position = ListItemPosition.Single, onClick = onClick) {
+        Icon(
+            Icons.AutoMirrored.Filled.HelpOutline,
+            contentDescription = null,
+            modifier = Modifier.size(Dimensions.Icon.medium),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        RowLabels(
+            title = stringResource(R.string.what_was_this_title),
+            subtitle = stringResource(R.string.what_was_this_subtitle)
+        )
+        Icon(
+            Icons.AutoMirrored.Filled.KeyboardArrowRight,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
@@ -108,21 +91,25 @@ internal fun WhatWasThisSheet(
     onPick: (WhatWasThis) -> Unit
 ) {
     ModalBottomSheet(onDismissRequest = onDismiss) {
-        Column(Modifier.navigationBarsPadding().padding(bottom = Spacing.md)) {
+        Column(
+            Modifier
+                .navigationBarsPadding()
+                .padding(horizontal = Dimensions.Padding.content)
+                .padding(bottom = Spacing.md)
+        ) {
             Text(
                 stringResource(R.string.what_was_this_title),
                 style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.sm)
+                modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.sm)
             )
-            options.forEach { option ->
-                val (icon, title, hint) = option.labels()
-                ListItem(
-                    headlineContent = { Text(stringResource(title)) },
-                    supportingContent = { Text(stringResource(hint)) },
-                    leadingContent = { Icon(icon, contentDescription = null) },
-                    colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                    modifier = Modifier.clickable { onPick(option) }
-                )
+            GroupedList {
+                options.forEachIndexed { index, option ->
+                    val (icon, title, hint) = option.labels()
+                    GroupedRow(position = ListItemPosition.from(index, options.size), onClick = { onPick(option) }) {
+                        Icon(icon, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        RowLabels(title = stringResource(title), subtitle = stringResource(hint))
+                    }
+                }
             }
         }
     }

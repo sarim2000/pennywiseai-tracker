@@ -98,4 +98,11 @@
     <string name="quick_add_yesterday">Yesterday</string>
     <string name="quick_add_other_date">Other date</string>
     <string name="quick_add_summary">%1$s · %2$s</string>
+
+    <!-- rd:browse -->
+    <string name="txn_detail_more_details">More details</string>
+    <string name="ask_model_missing_title">Quick questions work now</string>
+    <string name="ask_model_missing_action">Download for custom questions (%1$d MB)</string>
+    <string name="ask_clear_confirm_title">Clear this conversation?</string>
+    <string name="ask_clear_confirm_body">The chat history is removed from this device.</string>
 </resources>

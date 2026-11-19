@@ -41,10 +41,10 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.SuggestionChip
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -73,6 +73,7 @@ import com.pennywiseai.tracker.domain.loan.SplitPerson
 import com.pennywiseai.tracker.domain.loan.SplitRules
 import com.pennywiseai.tracker.domain.loan.UpiRequest
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
+import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
@@ -205,6 +206,7 @@ fun UpiIdDialog(initial: String, onDismiss: () -> Unit, onSave: (String) -> Bool
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
                 Text(stringResource(R.string.split_upi_message), style = MaterialTheme.typography.bodyMedium)
                 OutlinedTextField(
+                    shape = RoundedField.shape,
                     value = value,
                     onValueChange = { value = it.trim(); invalid = false },
                     placeholder = { Text(stringResource(R.string.split_upi_hint)) },
@@ -302,6 +304,7 @@ fun SplitBillSheet(viewModel: SplitBillViewModel, transaction: TransactionEntity
                 val symbol = CurrencyFormatter.getCurrencySymbol(currency)
                 f.people.forEachIndexed { i, person ->
                     OutlinedTextField(
+                        shape = RoundedField.shape,
                         value = person.amount,
                         onValueChange = { if (it.matches(amountInput)) viewModel.setShare(i, it) },
                         label = { Text(person.name) },
@@ -313,6 +316,7 @@ fun SplitBillSheet(viewModel: SplitBillViewModel, transaction: TransactionEntity
                     )
                 }
                 OutlinedTextField(
+                    shape = RoundedField.shape,
                     value = f.yourPart,
                     onValueChange = { if (it.matches(amountInput)) viewModel.setYourPart(it) },
                     label = { Text(stringResource(R.string.split_your_part)) },

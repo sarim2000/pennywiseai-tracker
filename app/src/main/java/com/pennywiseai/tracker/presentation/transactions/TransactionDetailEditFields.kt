@@ -321,6 +321,7 @@ internal fun CurrencyDropdown(
         )
 
         ExposedDropdownMenu(
+            shape = MaterialTheme.shapes.large,
             expanded = expanded,
             onDismissRequest = { expanded = false }
         ) {
@@ -431,6 +432,7 @@ internal fun AccountNumberField(
 
         if (filteredAccounts.isNotEmpty()) {
             ExposedDropdownMenu(
+                shape = MaterialTheme.shapes.large,
                 expanded = expanded,
                 onDismissRequest = { expanded = false }
             ) {

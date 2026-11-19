@@ -519,16 +519,55 @@ private fun chatListPadding() = PaddingValues(
     bottom = Spacing.md
 )
 
-/** Clear chat, in the header; it's only there while there's something to clear. */
+/** The header's overflow: Clear Chat, confirmed first. It's only there while there's something to clear. */
 @Composable
 private fun ClearChatAction(visible: Boolean, onClear: () -> Unit) {
+    var menuOpen by remember { mutableStateOf(false) }
+    var confirming by rememberSaveable { mutableStateOf(false) }
     AnimatedVisibility(visible = visible, enter = pwFadeIn(), exit = pwFadeOut()) {
-        IconButton(onClick = onClear, shapes = IconButtonDefaults.shapes()) {
-            Icon(
-                Icons.Default.DeleteSweep,
-                contentDescription = stringResource(R.string.chat_clear_chat)
-            )
+        Box {
+            IconButton(onClick = { menuOpen = true }, shapes = IconButtonDefaults.shapes()) {
+                Icon(
+                    Icons.Default.MoreVert,
+                    contentDescription = stringResource(R.string.txn_detail_more_actions)
+                )
+            }
+            DropdownMenu(
+                expanded = menuOpen,
+                onDismissRequest = { menuOpen = false },
+                shape = MaterialTheme.shapes.large
+            ) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.chat_clear_chat)) },
+                    leadingIcon = { Icon(Icons.Default.DeleteSweep, contentDescription = null) },
+                    onClick = {
+                        menuOpen = false
+                        confirming = true
+                    }
+                )
+            }
         }
+    }
+    if (confirming) {
+        AlertDialog(
+            onDismissRequest = { confirming = false },
+            title = { Text(stringResource(R.string.ask_clear_confirm_title)) },
+            text = { Text(stringResource(R.string.ask_clear_confirm_body)) },
+            confirmButton = {
+                TextButton(
+                    onClick = {
+                        confirming = false
+                        onClear()
+                    },
+                    shapes = ButtonDefaults.shapes()
+                ) { Text(stringResource(R.string.chat_clear_chat)) }
+            },
+            dismissButton = {
+                TextButton(onClick = { confirming = false }, shapes = ButtonDefaults.shapes()) {
+                    Text(stringResource(R.string.chat_cancel))
+                }
+            }
+        )
     }
 }
 
@@ -556,16 +595,18 @@ private fun ModelRequiredPrompt(
         PrivacyNote()
         Spacer(modifier = Modifier.height(Spacing.xs))
         Text(
-            text = stringResource(if (isDownloading) R.string.chat_downloading_model else R.string.chat_model_required_title),
+            text = stringResource(if (isDownloading) R.string.chat_downloading_model else R.string.ask_model_missing_title),
             style = MaterialTheme.typography.headlineSmallEmphasized,
             textAlign = TextAlign.Center
         )
-        Text(
-            text = if (isDownloading) stringResource(R.string.chat_download_progress, downloadedMB, totalMB) else stringResource(R.string.chat_model_required_body),
-            style = MaterialTheme.typography.bodyLarge,
-            textAlign = TextAlign.Center,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+        if (isDownloading) {
+            Text(
+                text = stringResource(R.string.chat_download_progress, downloadedMB, totalMB),
+                style = MaterialTheme.typography.bodyLarge,
+                textAlign = TextAlign.Center,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
         Spacer(modifier = Modifier.height(Spacing.sm))
         if (isDownloading) {
             LinearWavyProgressIndicator(
@@ -589,7 +630,7 @@ private fun ModelRequiredPrompt(
                     modifier = Modifier.size(Dimensions.Icon.small)
                 )
                 Spacer(modifier = Modifier.width(Spacing.xs))
-                Text(stringResource(R.string.chat_download_with_size, totalMB))
+                Text(stringResource(R.string.ask_model_missing_action, totalMB))
             }
         }
         TextButton(onClick = onSettings, shapes = ButtonDefaults.shapes()) {
@@ -658,15 +699,9 @@ private fun ModelRequiredBanner(
             ) {
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
-                        text = stringResource(R.string.chat_model_required_short),
+                        text = stringResource(R.string.ask_model_missing_title),
                         style = MaterialTheme.typography.titleMedium,
                         fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        // 1.6 GB via the system Download Manager; some phones (Samsung
-                        // with Data saver) won't start it on mobile data.
-                        text = stringResource(R.string.chat_model_size_hint),
-                        style = MaterialTheme.typography.bodyMedium
                     )
                 }
                 Button(
@@ -680,7 +715,7 @@ private fun ModelRequiredBanner(
                         modifier = Modifier.size(Dimensions.Icon.small)
                     )
                     Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text(stringResource(R.string.chat_download))
+                    Text(stringResource(R.string.ask_model_missing_action, totalMB))
                 }
             }
         }
@@ -762,6 +797,7 @@ private fun ChatComposer(
                 maxLines = 3,
                 // Arabic from the mic (or typed) reads right to left.
                 textStyle = LocalTextStyle.current.copy(textDirection = TextDirection.Content),
+                shape = MaterialTheme.shapes.extraLarge,
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = clear,
                     unfocusedContainerColor = clear,
@@ -872,10 +908,6 @@ fun DeveloperInfoCard(
                     .padding(top = Spacing.sm),
                 verticalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-
-                Spacer(modifier = Modifier.height(Spacing.xs))
-
                 // Context usage
                 Row(
                     modifier = Modifier.fillMaxWidth(),

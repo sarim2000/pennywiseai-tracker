@@ -1,15 +1,10 @@
 package com.pennywiseai.tracker.presentation.transactions
 
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
-import androidx.compose.foundation.selection.toggleable
-import androidx.compose.ui.semantics.Role
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
-import com.pennywiseai.tracker.presentation.add.ReceiptPickerSection
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.CallSplit
 import androidx.compose.material.icons.filled.*
@@ -18,22 +13,31 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
-import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.presentation.add.ReceiptPickerSection
 import com.pennywiseai.tracker.ui.components.BrandIcon
+import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
+import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.components.SplitEditor
 import com.pennywiseai.tracker.ui.components.SplitItem
 import com.pennywiseai.tracker.ui.components.TagInputField
-import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
+import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.icons.categoryLabel
+import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.money
 
 // Reusable filled field colors for edit mode
@@ -53,10 +57,10 @@ internal fun editFilledColors() = TextFieldDefaults.colors(
     disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
 )
 
-private val editTopShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
-private val editMiddleShape = RoundedCornerShape(4.dp)
-private val editBottomShape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
-internal val editFullShape = RoundedCornerShape(16.dp)
+private val editTopShape: Shape @Composable get() = ListItemPosition.Top.toShape()
+private val editMiddleShape: Shape @Composable get() = ListItemPosition.Middle.toShape()
+private val editBottomShape: Shape @Composable get() = ListItemPosition.Bottom.toShape()
+internal val editFullShape: Shape @Composable get() = RoundedField.shape
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -250,7 +254,6 @@ internal fun EditableTransactionHeader(
             dateTime = transaction.dateTime,
             onDateTimeChange = { viewModel.updateDateTime(it) }
         )
-
     }
 }
 
@@ -522,6 +525,7 @@ private fun BudgetImpactSection(viewModel: TransactionDetailViewModel) {
                 onExpandedChange = { expanded = it }
             ) {
                 OutlinedTextField(
+                    shape = RoundedField.shape,
                     value = budgetCategory ?: stringResource(R.string.txn_detail_budget_select_category),
                     onValueChange = {},
                     readOnly = true,
@@ -533,6 +537,7 @@ private fun BudgetImpactSection(viewModel: TransactionDetailViewModel) {
                     colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors()
                 )
                 ExposedDropdownMenu(
+                    shape = MaterialTheme.shapes.large,
                     expanded = expanded,
                     onDismissRequest = { expanded = false }
                 ) {

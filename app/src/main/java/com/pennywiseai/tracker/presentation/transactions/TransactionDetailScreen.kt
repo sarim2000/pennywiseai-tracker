@@ -11,6 +11,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.CallSplit
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material3.*
@@ -210,7 +212,7 @@ fun TransactionDetailScreen(
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         containerColor = MaterialTheme.colorScheme.background,
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) { data -> Snackbar(data, shape = MaterialTheme.shapes.large) } },
         // Transaction actions live in the top-bar overflow menu and the rows at
         // the end of the page, not floating buttons: a stack of FABs overlapped
         // the receipt content (#451 follow-up).
@@ -288,6 +290,26 @@ fun TransactionDetailScreen(
                                 transaction?.let { onDuplicateTransaction(it.id) }
                             }
                         )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.txn_detail_report_mistake)) },
+                            leadingIcon = { Icon(Icons.Outlined.Flag, contentDescription = null) },
+                            onClick = {
+                                dismiss()
+                                reportMistake()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = {
+                                Text(stringResource(R.string.txn_detail_delete_transaction), color = MaterialTheme.colorScheme.error)
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Outlined.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                            },
+                            onClick = {
+                                dismiss()
+                                viewModel.showDeleteDialog()
+                            }
+                        )
                     }
                 )
             }
@@ -336,8 +358,7 @@ fun TransactionDetailScreen(
                         null -> Unit
                     }
                 },
-                onReportMistake = reportMistake,
-                onDelete = { viewModel.showDeleteDialog() },
+                hasClassificationAction = transaction?.let { whatWasThisOptions(it, loan != null) }?.isNotEmpty() == true,
                 modifier = Modifier.padding(paddingValues)
             )
         }
@@ -626,8 +647,7 @@ private fun TransactionDetailContent(
     splitWith: @Composable () -> Unit,
     whatWasThis: @Composable () -> Unit,
     onCategoryClick: () -> Unit,
-    onReportMistake: () -> Unit,
-    onDelete: () -> Unit,
+    hasClassificationAction: Boolean,
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -684,8 +704,7 @@ private fun TransactionDetailContent(
                 whatWasThis = whatWasThis,
                 onCategoryClick = onCategoryClick,
                 onEditClick = { viewModel.enterEditMode() },
-                onReportMistake = onReportMistake,
-                onDelete = onDelete
+                hasClassificationAction = hasClassificationAction
             )
         }
     }
@@ -741,7 +760,7 @@ private fun DetailTopBar(
                 IconButton(onClick = { showMenu = true }, shapes = IconButtonDefaults.shapes()) {
                     Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.txn_detail_more_actions))
                 }
-                DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }, shape = MaterialTheme.shapes.large) {
                     menu { showMenu = false }
                 }
             }

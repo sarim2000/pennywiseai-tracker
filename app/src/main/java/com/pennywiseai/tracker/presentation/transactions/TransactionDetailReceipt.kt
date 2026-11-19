@@ -14,9 +14,8 @@ import androidx.compose.material.icons.outlined.AccountBalance
 import androidx.compose.material.icons.outlined.AccountBalanceWallet
 import androidx.compose.material.icons.outlined.Business
 import androidx.compose.material.icons.outlined.Category
-import androidx.compose.material.icons.outlined.Delete
 import androidx.compose.material.icons.outlined.EditNote
-import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Schedule
 import androidx.compose.material.icons.outlined.Sell
@@ -104,8 +103,8 @@ internal fun TransactionReceipt(
     whatWasThis: @Composable () -> Unit = {},
     onCategoryClick: () -> Unit = {},
     onEditClick: () -> Unit = {},
-    onReportMistake: () -> Unit = {},
-    onDelete: () -> Unit = {}
+    /** True when [whatWasThis] will draw a row, so the unsorted nudge can step aside. */
+    hasClassificationAction: Boolean = false
 ) {
     // Prefer the user's saved alias (#583); else the contact-resolved name when
     // that toggle is on. The raw merchant is still what the editor shows.
@@ -140,6 +139,8 @@ internal fun TransactionReceipt(
             )
         )
 
+        // One inline action for what's still unresolved: the remember-this offer
+        // after a category change, else "What was this?", else a nudge to sort it.
         if (ruleSuggestion != null) {
             RuleSuggestionCard(
                 // The raw merchant: that is what the saved category is keyed on.
@@ -147,102 +148,20 @@ internal fun TransactionReceipt(
                 onCreate = viewModel::acceptRuleSuggestion,
                 onDismiss = viewModel::dismissRuleSuggestion
             )
-        } else if (unsorted) {
+        } else if (unsorted && !hasClassificationAction) {
             MascotNote(
                 text = stringResource(R.string.txn_detail_uncategorized_hint),
                 mood = MascotMood.Thinking,
                 containerColor = MaterialTheme.colorScheme.tertiaryContainer,
                 contentColor = MaterialTheme.colorScheme.onTertiaryContainer
             )
-        }
-
-        whatWasThis()
-
-        // ── Exclude from analytics (#451) ──
-        GroupedRow(
-            position = ListItemPosition.Single,
-            onClick = { viewModel.setExcludedFromAnalytics(!transaction.excludedFromAnalytics) }
-        ) {
-            DetailIcon(Icons.Default.QueryStats)
-            RowLabels(
-                title = stringResource(R.string.txn_detail_exclude_analytics_title),
-                subtitle = stringResource(R.string.txn_detail_exclude_analytics_subtitle)
-            )
-            // Display-only — the row's click is the single toggle handler
-            // so a tap can't fire the VM call twice (Greptile #454).
-            Switch(
-                checked = transaction.excludedFromAnalytics,
-                onCheckedChange = null
-            )
+        } else {
+            whatWasThis()
         }
 
         towardGoals()
 
         splitWith()
-
-        // ── The rest of what the SMS said ──
-        val detailTags by viewModel.transactionTags.collectAsStateWithLifecycle()
-        val accountCurrency by viewModel.accountCurrency.collectAsStateWithLifecycle()
-        val discrepancy by viewModel.balanceDiscrepancy.collectAsStateWithLifecycle()
-        DetailGroup(
-            moreRows(
-                transaction = transaction,
-                tags = detailTags,
-                accountProfileId = accountProfileId,
-                accountCurrency = accountCurrency,
-                discrepancy = discrepancy
-            )
-        )
-        discrepancy?.let { d -> BalanceAdjustmentAction(d, viewModel) }
-
-        // ── Receipt Section ──
-        val receiptUri by viewModel.receiptUri.collectAsStateWithLifecycle()
-        receiptUri?.let { uri ->
-            GroupedColumn(
-                position = ListItemPosition.Single,
-                modifier = Modifier
-                    .clip(MaterialTheme.shapes.large)
-                    .clickable { viewModel.showFullScreenReceipt() }
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.md)
-                ) {
-                    DetailIcon(Icons.Default.Receipt)
-                    Text(
-                        text = stringResource(R.string.txn_detail_receipt),
-                        style = PennyWiseText.rowTitle,
-                        modifier = Modifier.weight(1f)
-                    )
-                    Text(
-                        text = stringResource(R.string.txn_detail_receipt_tap_to_view),
-                        style = MaterialTheme.typography.labelMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                AsyncImage(
-                    model = uri,
-                    contentDescription = stringResource(R.string.txn_detail_receipt),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .heightIn(max = RECEIPT_PREVIEW_MAX_HEIGHT)
-                        .clip(MaterialTheme.shapes.medium),
-                    contentScale = ContentScale.Crop
-                )
-            }
-        }
-
-        val receiptMissing by viewModel.receiptMissing.collectAsStateWithLifecycle()
-        if (receiptUri == null && receiptMissing) {
-            GroupedRow(position = ListItemPosition.Single) {
-                DetailIcon(Icons.Default.Receipt)
-                Text(
-                    text = stringResource(R.string.txn_detail_receipt_missing),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
 
         // ── Split Breakdown ──
         if (hasSplits && splits.isNotEmpty()) {
@@ -252,37 +171,119 @@ internal fun TransactionReceipt(
             )
         }
 
-        // ── SMS Section ──
-        if (!transaction.smsBody.isNullOrBlank()) {
-            OriginalSmsSection(smsBody = transaction.smsBody)
+        // ── More details: everything the SMS said, tucked away until asked for ──
+        val detailTags by viewModel.transactionTags.collectAsStateWithLifecycle()
+        val accountCurrency by viewModel.accountCurrency.collectAsStateWithLifecycle()
+        val discrepancy by viewModel.balanceDiscrepancy.collectAsStateWithLifecycle()
+        val receiptUri by viewModel.receiptUri.collectAsStateWithLifecycle()
+        val receiptMissing by viewModel.receiptMissing.collectAsStateWithLifecycle()
+        var moreExpanded by rememberSaveable { mutableStateOf(false) }
+        // A real balance mismatch stays in view beside the account.
+        val showMore = moreExpanded || discrepancy != null
+        GroupedRow(
+            position = ListItemPosition.Single,
+            onClick = { moreExpanded = !showMore }
+        ) {
+            DetailIcon(Icons.Outlined.Info)
+            Text(
+                stringResource(R.string.txn_detail_more_details),
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                if (showMore) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(Dimensions.Icon.medium)
+            )
         }
-
-        // ── Actions ──
-        DetailGroup(
-            buildList {
-                add { position ->
-                    GroupedRow(position = position, onClick = onReportMistake) {
-                        DetailIcon(Icons.Outlined.Flag)
-                        Text(stringResource(R.string.txn_detail_report_mistake), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
-                    }
+        AnimatedVisibility(visible = showMore, enter = pwExpand(), exit = pwCollapse()) {
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.md)) {
+                // ── Exclude from analytics (#451) ──
+                GroupedRow(
+                    position = ListItemPosition.Single,
+                    onClick = { viewModel.setExcludedFromAnalytics(!transaction.excludedFromAnalytics) }
+                ) {
+                    DetailIcon(Icons.Default.QueryStats)
+                    RowLabels(
+                        title = stringResource(R.string.txn_detail_exclude_analytics_title),
+                        subtitle = stringResource(R.string.txn_detail_exclude_analytics_subtitle)
+                    )
+                    // Display-only — the row's click is the single toggle handler
+                    // so a tap can't fire the VM call twice (Greptile #454).
+                    Switch(
+                        checked = transaction.excludedFromAnalytics,
+                        onCheckedChange = null
+                    )
                 }
-                add { position ->
-                    GroupedRow(position = position, onClick = onDelete) {
-                        DetailIcon(Icons.Outlined.Delete, tint = MaterialTheme.colorScheme.error)
-                        Text(
-                            stringResource(R.string.txn_detail_delete_transaction),
-                            style = MaterialTheme.typography.bodyLarge,
-                            color = MaterialTheme.colorScheme.error,
-                            modifier = Modifier.weight(1f)
+
+                DetailGroup(
+                    moreRows(
+                        transaction = transaction,
+                        tags = detailTags,
+                        accountProfileId = accountProfileId,
+                        accountCurrency = accountCurrency,
+                        discrepancy = discrepancy
+                    )
+                )
+                discrepancy?.let { d -> BalanceAdjustmentAction(d, viewModel) }
+
+                // ── Receipt Section ──
+                receiptUri?.let { uri ->
+                    GroupedColumn(
+                        position = ListItemPosition.Single,
+                        modifier = Modifier
+                            .clip(MaterialTheme.shapes.large)
+                            .clickable { viewModel.showFullScreenReceipt() }
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+                        ) {
+                            DetailIcon(Icons.Default.Receipt)
+                            Text(
+                                text = stringResource(R.string.txn_detail_receipt),
+                                style = PennyWiseText.rowTitle,
+                                modifier = Modifier.weight(1f)
+                            )
+                            Text(
+                                text = stringResource(R.string.txn_detail_receipt_tap_to_view),
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                        AsyncImage(
+                            model = uri,
+                            contentDescription = stringResource(R.string.txn_detail_receipt),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .heightIn(max = RECEIPT_PREVIEW_MAX_HEIGHT)
+                                .clip(MaterialTheme.shapes.medium),
+                            contentScale = ContentScale.Crop
                         )
                     }
                 }
+                if (receiptUri == null && receiptMissing) {
+                    GroupedRow(position = ListItemPosition.Single) {
+                        DetailIcon(Icons.Default.Receipt)
+                        Text(
+                            text = stringResource(R.string.txn_detail_receipt_missing),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+
+                // ── SMS Section ──
+                if (!transaction.smsBody.isNullOrBlank()) {
+                    OriginalSmsSection(smsBody = transaction.smsBody)
+                }
             }
-        )
+        }
     }
 }
 
-/** Badge, merchant, the big amount and an "Expense · Wed, Nov 19" chip, centred. */
+/** Badge, merchant, the big amount and a type chip, centred. */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
 private fun DetailHero(
@@ -369,10 +370,8 @@ private fun DetailHero(
             )
         }
 
-        // "Expense · Wed, Nov 19"
+        // The type, once; the date is the Date row below.
         val typeLabel = stringResource(transactionTypeLabel(transaction.transactionType))
-        val dateLabel = transaction.dateTime.format(AppDates.pattern("EEE")) + ", " +
-            transaction.dateTime.format(AppDates.dayMonthFormatter())
         Surface(
             shape = CircleShape,
             color = MaterialTheme.colorScheme.surfaceContainerHigh,
@@ -380,7 +379,7 @@ private fun DetailHero(
         ) {
             Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = Spacing.smd, vertical = Spacing.xs)) {
                 Text(
-                    text = "$typeLabel · $dateLabel",
+                    text = typeLabel,
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )

@@ -78,7 +78,7 @@ internal fun ActivitySummaryTiles(
     }
 
     val outer = MaterialTheme.shapes.largeIncreased
-    val inner = MaterialTheme.shapes.extraSmall
+    val inner = MaterialTheme.shapes.small
     // Four tiles in one row squeeze the figures; two rows of two keep them whole.
     val rows = if (tiles.size > 3) tiles.chunked(2) else listOf(tiles)
     Column(
@@ -119,7 +119,7 @@ private fun SummaryTileView(tile: SummaryTile, shape: CornerBasedShape, modifier
     Column(
         modifier = modifier
             .background(MaterialTheme.colorScheme.surfaceContainerLow, shape)
-            .padding(horizontal = Spacing.md, vertical = Spacing.smd),
+            .padding(horizontal = Spacing.md, vertical = Spacing.sm),
         verticalArrangement = Arrangement.spacedBy(Spacing.xxs)
     ) {
         Text(

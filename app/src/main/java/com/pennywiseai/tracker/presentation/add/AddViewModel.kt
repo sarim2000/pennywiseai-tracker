@@ -547,7 +547,7 @@ class AddViewModel @Inject constructor(
                 val receiptPath = state.receiptUri?.let { receiptManager.saveReceipt(it) }
                 addTransactionUseCase.execute(
                     amount = amount,
-                    merchant = state.merchant.trim(),
+                    merchant = state.merchant.trim().ifEmpty { state.category },
                     category = state.category,
                     type = state.transactionType,
                     date = state.date,
@@ -809,8 +809,9 @@ class AddViewModel @Inject constructor(
 
     private fun validateMerchant(merchant: String): UiText? {
         return when {
-            merchant.isBlank() -> UiText.Res(R.string.add_error_merchant_required)
-            merchant.length < 2 -> UiText.Res(R.string.add_error_merchant_too_short)
+            // Optional, like the quick add sheet: a blank merchant saves as the category name.
+            merchant.isBlank() -> null
+            merchant.trim().length < 2 -> UiText.Res(R.string.add_error_merchant_too_short)
             else -> null
         }
     }
@@ -882,8 +883,7 @@ data class TransactionUiState(
                 return from.id != to.id && from.currency == to.currency
             }
 
-            return merchant.isNotBlank() &&
-                category.isNotBlank() &&
+            return category.isNotBlank() &&
                 merchantError == null &&
                 categoryError == null &&
                 (budgetImpactType == null || budgetCategory != null)

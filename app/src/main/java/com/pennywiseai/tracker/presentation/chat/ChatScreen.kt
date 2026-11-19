@@ -692,21 +692,19 @@ private fun ModelRequiredBanner(
                 )
             }
         } else {
-            Row(
+            // Stacked, not side by side: the button label carries the download size and
+            // would otherwise squeeze the title to one letter per line.
+            Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.ask_model_missing_title),
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                }
+                Text(
+                    text = stringResource(R.string.ask_model_missing_title),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
                 Button(
                     onClick = onDownload,
-                    modifier = Modifier.padding(start = Spacing.sm),
                     shapes = ButtonDefaults.shapes()
                 ) {
                     Icon(

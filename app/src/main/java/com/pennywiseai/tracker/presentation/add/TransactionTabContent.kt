@@ -270,7 +270,7 @@ fun TransactionTabContent(
                 TextField(
                     value = uiState.merchant,
                     onValueChange = viewModel::updateTransactionMerchant,
-                    label = { Text(stringResource(R.string.add_field_merchant)) },
+                    label = { Text(stringResource(R.string.quick_add_where_hint)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                     modifier = Modifier.fillMaxWidth(),

@@ -297,16 +297,20 @@ class TransactionDetailViewModel @Inject constructor(
             _transaction.value = txn.copy(category = category)
             try {
                 transactionRepository.updateCategory(txn.id, category)
+            } catch (e: Exception) {
+                if (_transaction.value?.id == txn.id && _transaction.value?.category == category) _transaction.value = txn
+                _errorMessage.value = UiText.Res(R.string.txn_detail_error_update_category, listOf(e.message.toString()))
+                return@launch
+            }
+            // The write is in: a follow-up failing mustn't undo it on screen.
+            runCatching {
                 _transaction.value = transactionRepository.getTransactionById(txn.id)
                 com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
                 val learned = merchantMappingRepository.getCategoryForMerchant(txn.merchantName)
                 _ruleSuggestion.value = RuleOffer(txn.id, txn.merchantName, category).takeIf {
                     category != learned && !com.pennywiseai.tracker.ui.components.cards.isUnsortedCategory(category)
                 }
-            } catch (e: Exception) {
-                if (_transaction.value?.id == txn.id && _transaction.value?.category == category) _transaction.value = txn
-                _errorMessage.value = UiText.Res(R.string.txn_detail_error_update_category, listOf(e.message.toString()))
-            }
+            }.onFailure { android.util.Log.w("TransactionDetailVM", "After category change", it) }
         }
     }
 

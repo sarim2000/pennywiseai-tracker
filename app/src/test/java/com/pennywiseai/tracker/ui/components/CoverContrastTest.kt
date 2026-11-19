@@ -66,6 +66,13 @@ class CoverContrastTest {
     }
 
     @Test
+    fun srgbMidpoint_isThePerChannelAverage() {
+        // A reference for the sweep below, which takes its midpoints from srgbMidpoint.
+        assertEquals(Color(0xFF808080), srgbMidpoint(Color.Black, Color.White))
+        assertEquals(Color(0xFF808000), srgbMidpoint(Color(0xFFFF0000), Color(0xFF00FF00)))
+    }
+
+    @Test
     fun aGradientThatAlreadyPasses_rendersExactlyAsBefore() {
         // A gradient whose stops and midpoints all pass comes back as the original stops, byte
         // for byte; in one that doesn't, every stop that already passed keeps its colour.

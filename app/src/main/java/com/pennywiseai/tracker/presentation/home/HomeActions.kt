@@ -1,23 +1,16 @@
 package com.pennywiseai.tracker.presentation.home
 
 import android.view.HapticFeedbackConstants
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.AutoAwesome
-import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
@@ -33,135 +26,52 @@ import com.pennywiseai.tracker.ui.components.spotlightTarget
 import com.pennywiseai.tracker.ui.theme.*
 
 /**
- * Home's top-bar actions: the Pro chip (free users only), the profile filter,
- * the voice mic (where the phone can listen), Add (while the floating nav bar
- * is up) and More options.
+ * Home's collapsed top-bar actions: the profile filter (only with more than one profile
+ * to choose between) and More options. Voice lives in the Add sheet, Pro in Settings.
  */
 @Composable
 internal fun HomeTopBarActions(
-    isProEntitled: Boolean,
     blurEffects: Boolean,
     profiles: List<ProfileEntity>,
     selectedProfileId: Long?,
     showProfileFilterMenu: Boolean,
-    onUpgradeClick: () -> Unit,
     onOpenProfileFilter: () -> Unit,
     onProfileSelected: (Long?) -> Unit,
     onDismissProfileFilter: () -> Unit,
-    onVoiceClick: (() -> Unit)?,
     onMoreClick: () -> Unit
 ) {
     val containerColor = MaterialTheme.colorScheme.surfaceContainer
+    val colors = IconButtonDefaults.filledIconButtonColors(
+        containerColor = if (blurEffects) containerColor.copy(alpha = Dimensions.Alpha.medium) else containerColor,
+        contentColor = MaterialTheme.colorScheme.inverseSurface
+    )
     Row(
         verticalAlignment = Alignment.CenterVertically,
         modifier = Modifier.padding(end = Dimensions.Padding.content),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
-        // Subtle Pro discovery chip — yellow sparkle that ties
-        // back to the Settings → PennyWise Pro entry. Hidden
-        // for already-entitled users so it's never pushy.
-        // Tap → opens the same UpgradeSheet as Settings.
-        if (!isProEntitled) {
-            Box(
-                modifier = Modifier
-                    .size(Dimensions.Component.iconButton)
-                    .clip(CircleShape)
-                    .background(
-                        color = com.pennywiseai.tracker.ui.theme.yellow_light,
-                        shape = CircleShape,
+        if (profiles.size > 1) {
+            Box {
+                FilledIconButton(onClick = onOpenProfileFilter, colors = colors, shapes = IconButtonDefaults.shapes()) {
+                    Icon(
+                        imageVector = profileFilterIcon(profiles, selectedProfileId),
+                        contentDescription = stringResource(R.string.home_profile_filter),
+                        modifier = Modifier.size(Dimensions.Icon.inline)
                     )
-                    .clickable(
-                        onClick = { onUpgradeClick() },
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                    ),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(
-                    imageVector = Icons.Default.AutoAwesome,
-                    contentDescription = stringResource(R.string.home_upgrade_pro),
-                    tint = com.pennywiseai.tracker.ui.theme.yellow_dark,
-                    modifier = Modifier.size(Dimensions.Icon.inline),
+                }
+                ProfileFilterDropdown(
+                    expanded = showProfileFilterMenu,
+                    profiles = profiles,
+                    selectedProfileId = selectedProfileId,
+                    onProfileSelected = onProfileSelected,
+                    onDismiss = onDismissProfileFilter
                 )
             }
         }
-
-        // Business/Personal filter dropdown
-        Box {
-            Box(
-                modifier = Modifier
-                    .size(Dimensions.Component.iconButton)
-                    .clip(CircleShape)
-                    .background(
-                        color = if (blurEffects) containerColor.copy(0.5f) else containerColor,
-                        shape = CircleShape
-                    )
-                    .clickable(
-                        onClick = { onOpenProfileFilter() },
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = profileFilterIcon(profiles, selectedProfileId),
-                    contentDescription = stringResource(R.string.home_profile_filter),
-                    tint = MaterialTheme.colorScheme.inverseSurface,
-                    modifier = Modifier.size(Dimensions.Icon.inline)
-                )
-            }
-            ProfileFilterDropdown(
-                expanded = showProfileFilterMenu,
-                profiles = profiles,
-                selectedProfileId = selectedProfileId,
-                onProfileSelected = { onProfileSelected(it) },
-                onDismiss = { onDismissProfileFilter() }
-            )
-        }
-        if (onVoiceClick != null) {
-            Box(
-                modifier = Modifier
-                    .size(Dimensions.Component.iconButton)
-                    .clip(CircleShape)
-                    .background(
-                        color = if (blurEffects) containerColor.copy(0.5f) else containerColor,
-                        shape = CircleShape
-                    )
-                    .clickable(
-                        onClick = onVoiceClick,
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Mic,
-                    contentDescription = stringResource(R.string.quick_add_voice_title),
-                    tint = MaterialTheme.colorScheme.inverseSurface,
-                    modifier = Modifier.size(Dimensions.Icon.medium)
-                )
-            }
-        }
-        // More options button
-        Box(
-            modifier = Modifier
-                .size(Dimensions.Component.iconButton)
-                .clip(CircleShape)
-                .background(
-                    color = if (blurEffects) containerColor.copy(0.5f) else containerColor,
-                    shape = CircleShape
-                )
-                .clickable(
-                    onClick = { onMoreClick() },
-                    interactionSource = remember { MutableInteractionSource() },
-                    indication = null,
-                ),
-            contentAlignment = Alignment.Center
-        ) {
+        FilledIconButton(onClick = onMoreClick, colors = colors, shapes = IconButtonDefaults.shapes()) {
             Icon(
                 imageVector = Icons.Default.MoreHoriz,
                 contentDescription = stringResource(R.string.home_more_options),
-                tint = MaterialTheme.colorScheme.inverseSurface,
                 modifier = Modifier.size(Dimensions.Icon.medium)
             )
         }

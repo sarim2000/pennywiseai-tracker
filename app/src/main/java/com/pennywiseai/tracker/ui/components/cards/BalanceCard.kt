@@ -4,7 +4,6 @@ import android.view.HapticFeedbackConstants
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -12,7 +11,6 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
@@ -20,26 +18,19 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.Payments
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.DropdownMenu
-import androidx.compose.material3.FilledIconButton
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
-import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.SelectableDropdownMenuItem
@@ -55,21 +46,17 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.StrokeCap
-import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
-import com.pennywiseai.tracker.data.database.entity.formatBalance
 import com.pennywiseai.tracker.ui.components.AnimatedCurrencyText
+import com.pennywiseai.tracker.ui.components.WavyMeter
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -119,16 +106,17 @@ data class HomeHeroBudget(
 
 /**
  * Home's hero: a big tonal card. With an overall [budget] it leads with what's left to
- * spend, a meter and "spent / of" under it; without one, with this month's spending in
- * [currency]. Tapping it opens the month's detail (sparkline, income/expenses/saved,
- * accounts); the round button opens Budgets or the month's transactions ([onOpen]).
+ * spend, a wavy meter, "spent of limit · days left" and where the pace is heading; without
+ * one, with this month's spending in [currency] and how it compares to last month. Tapping
+ * it opens the month's detail (sparkline, income/expenses/saved, balance); its one labelled
+ * action opens that budget or the month's transactions ([onOpen]).
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun BalanceCard(
     totalBalance: BigDecimal,
     monthlyChange: BigDecimal,
-    /** Null hides the change chip (no last-month spending to compare with). */
+    /** Null hides the change line (no last-month spending to compare with). */
     monthlyChangePercent: Int?,
     currency: String,
     currentMonthIncome: BigDecimal,
@@ -146,15 +134,14 @@ fun BalanceCard(
     onShowBreakdown: () -> Unit = {},
     isBalanceHidden: Boolean = false,
     onToggleBalanceVisibility: () -> Unit = {},
-    accountBalances: List<AccountBalanceEntity> = emptyList(),
-    creditCards: List<AccountBalanceEntity> = emptyList(),
+    /** Shows the accounts' total in the opened card when there are any. */
+    hasAccounts: Boolean = false,
     /** Leads with what's left of this budget when set; this month's spending otherwise. */
     budget: HomeHeroBudget? = null,
-    /** The last day of the spending cycle, for the "days left" chip without a budget. */
+    /** The last day of the spending cycle, for "days left" without a budget. */
     cycleEnd: LocalDate? = null,
-    /** The round arrow: Budgets with a [budget], the month's transactions without. */
+    /** The labelled action: the budget with a [budget], the month's transactions without. */
     onOpen: () -> Unit = {},
-    onAccountClick: (String, String) -> Unit = { _, _ -> },
     /** Opens Net worth from a labelled link in the expanded card; null hides the link. */
     onOpenNetWorth: (() -> Unit)? = null,
     modifier: Modifier = Modifier,
@@ -179,7 +166,7 @@ fun BalanceCard(
         }
         val changeText = monthlyChangePercent?.let { percent ->
             when {
-                isBalanceHidden -> "••••"
+                isBalanceHidden -> MASK
                 monthlyChange >= BigDecimal.ZERO ->
                     stringResource(R.string.balance_card_change_more_same_point, kotlin.math.abs(percent))
                 else -> stringResource(R.string.balance_card_change_less_same_point, kotlin.math.abs(percent))
@@ -187,7 +174,7 @@ fun BalanceCard(
         }
         // Inverted for spending: more spent = red, less = green.
         val changeColor = when {
-            monthlyChangePercent == 0 -> MaterialTheme.colorScheme.onSurface
+            monthlyChangePercent == 0 || isBalanceHidden -> MaterialTheme.colorScheme.onSurfaceVariant
             monthlyChange >= BigDecimal.ZERO -> MaterialTheme.colorScheme.expense
             else -> MaterialTheme.colorScheme.income
         }
@@ -204,17 +191,13 @@ fun BalanceCard(
             contentColor = outer.onPrimaryContainer,
         ) {
             Column(
-                modifier = Modifier.padding(start = Spacing.lg, top = Spacing.lg, end = Spacing.lg, bottom = Spacing.sm),
+                modifier = Modifier.padding(start = Spacing.lg, top = Spacing.md, end = Spacing.lg, bottom = Spacing.sm),
                 verticalArrangement = Arrangement.spacedBy(Spacing.smd)
             ) {
                 HeroHeader(
                     label = heroLabel(budget),
                     isBalanceHidden = isBalanceHidden,
                     onToggleBalanceVisibility = toggleHidden,
-                    openLabel = stringResource(
-                        if (budget != null) R.string.home_hero_open_budgets else R.string.home_hero_open_activity
-                    ),
-                    onOpen = onOpen,
                 )
                 val heroStyle = MaterialTheme.typography.displayLargeEmphasized.money()
                 AnimatedCurrencyText(
@@ -230,36 +213,33 @@ fun BalanceCard(
                     autoSize = TextAutoSize.StepBased(PennyWiseText.autoSizeFloor, heroStyle.fontSize),
                 )
                 if (budget != null) {
-                    BudgetMeter(budget = budget, format = hidden)
+                    BudgetMeter(budget = budget)
+                    Text(
+                        text = stringResource(
+                            R.string.home_hero_spent_of_limit,
+                            hidden(budget.spent, budget.currency),
+                            hidden(budget.limit, budget.currency)
+                        ) + " · " + daysLeftText(budget.daysLeft),
+                        style = MaterialTheme.typography.bodyMedium.tabular(),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else if (showCurrencyChip) {
+                    CurrencyChip(currency, availableCurrencies, onCurrencySelected)
                 }
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-                ) {
-                    if (budget != null) {
-                        HeroChip(Icons.Default.CalendarToday, daysLeftText(budget.daysLeft))
-                        if (budget.remaining.signum() > 0) {
-                            HeroChip(
-                                Icons.Default.Payments,
-                                stringResource(R.string.home_hero_per_day, hidden(budget.perDay, budget.currency))
-                            )
-                        }
-                    } else {
-                        if (showCurrencyChip) {
-                            CurrencyChip(currency, availableCurrencies, onCurrencySelected)
-                        }
-                        cycleEnd?.let {
-                            val today = LocalDate.now()
-                            if (!it.isBefore(today)) {
-                                HeroChip(
-                                    Icons.Default.CalendarToday,
-                                    daysLeftText(ChronoUnit.DAYS.between(today, it).toInt())
-                                )
-                            }
-                        }
-                        if (changeText != null) HeroChip(text = changeText, textColor = changeColor)
-                    }
-                }
+                HeroFooter(
+                    line = if (budget != null) paceText(budget, hidden) else monthLine(cycleEnd),
+                    lineColor = when {
+                        budget != null -> if ((budget.pace?.signum() ?: 0) < 0) MaterialTheme.colorScheme.expense
+                        else MaterialTheme.colorScheme.onSurface
+                        else -> MaterialTheme.colorScheme.onSurface
+                    },
+                    trailing = if (budget == null && changeText != null) changeText else null,
+                    trailingColor = changeColor,
+                    actionLabel = stringResource(
+                        if (budget != null) R.string.home_hero_view_budget else R.string.home_hero_see_transactions
+                    ),
+                    onAction = onOpen,
+                )
 
                 AnimatedVisibility(
                     visible = isExpanded,
@@ -269,8 +249,6 @@ fun BalanceCard(
                     Column {
                         if (budget != null) {
                             // The month's spending, which the budget hero doesn't lead with.
-                            Spacer(modifier = Modifier.height(Spacing.xs))
-                            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
                             Spacer(modifier = Modifier.height(Spacing.md))
                             Text(
                                 text = stringResource(R.string.balance_card_spent_this_month),
@@ -287,9 +265,12 @@ fun BalanceCard(
                                 FlowRow(
                                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                                     verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                                    itemVerticalAlignment = Alignment.CenterVertically,
                                 ) {
                                     if (showCurrencyChip) CurrencyChip(currency, availableCurrencies, onCurrencySelected)
-                                    if (changeText != null) HeroChip(text = changeText, textColor = changeColor)
+                                    if (changeText != null) {
+                                        Text(text = changeText, style = MaterialTheme.typography.bodyMedium, color = changeColor)
+                                    }
                                 }
                             }
                         }
@@ -305,9 +286,7 @@ fun BalanceCard(
                             lastMonthSpending = lastMonthSpending,
                             isApproximate = isApproximate,
                             isBalanceHidden = isBalanceHidden,
-                            accountBalances = accountBalances,
-                            creditCards = creditCards,
-                            onAccountClick = onAccountClick,
+                            hasAccounts = hasAccounts,
                             onOpenNetWorth = onOpenNetWorth,
                             onShowBreakdown = onShowBreakdown,
                         )
@@ -325,6 +304,65 @@ fun BalanceCard(
                         .rotate(chevronRotation)
                 )
             }
+        }
+    }
+}
+
+/** Where the budget's window should end at the pace so far; null too early (or too late) to say. */
+@Composable
+private fun paceText(budget: HomeHeroBudget, format: (BigDecimal, String) -> String): String? {
+    val pace = budget.pace ?: return null
+    return if (pace.signum() >= 0) {
+        stringResource(R.string.home_nudge_under_budget, format(pace, budget.currency))
+    } else {
+        stringResource(R.string.home_nudge_over_budget, format(pace.abs(), budget.currency))
+    }
+}
+
+/** "11 days left" in the spending cycle, or null once it's over. */
+@Composable
+private fun monthLine(cycleEnd: LocalDate?): String? {
+    val today = LocalDate.now()
+    val days = cycleEnd?.takeIf { !it.isBefore(today) }?.let { ChronoUnit.DAYS.between(today, it).toInt() }
+    return days?.let { daysLeftText(it) }
+}
+
+/**
+ * The hero's last row: one status line (pace, or days left and the change on last month)
+ * and its one labelled action. The line wraps; the action keeps its place at the end.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun HeroFooter(
+    line: String?,
+    lineColor: Color,
+    trailing: String?,
+    trailingColor: Color,
+    actionLabel: String,
+    onAction: () -> Unit,
+) {
+    Row(verticalAlignment = Alignment.CenterVertically) {
+        FlowRow(
+            modifier = Modifier.weight(1f),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+        ) {
+            if (line != null) {
+                Text(
+                    text = if (trailing != null) "$line ·" else line,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = lineColor
+                )
+            }
+            if (trailing != null) Text(text = trailing, style = MaterialTheme.typography.bodyMedium, color = trailingColor)
+        }
+        TextButton(onClick = onAction, shapes = ButtonDefaults.shapes()) {
+            Text(actionLabel, color = MaterialTheme.colorScheme.primary)
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(Dimensions.Icon.small)
+            )
         }
     }
 }
@@ -353,8 +391,6 @@ private fun HeroHeader(
     label: String,
     isBalanceHidden: Boolean,
     onToggleBalanceVisibility: () -> Unit,
-    openLabel: String,
-    onOpen: () -> Unit,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
@@ -373,73 +409,40 @@ private fun HeroHeader(
                 modifier = Modifier.size(Dimensions.Icon.inline)
             )
         }
-        FilledIconButton(
-            onClick = onOpen,
-            shapes = IconButtonDefaults.shapes(),
-            colors = IconButtonDefaults.filledIconButtonColors(
-                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-                contentColor = MaterialTheme.colorScheme.onSurface
-            ),
-            modifier = Modifier.size(Dimensions.Component.iconButton)
-        ) {
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                contentDescription = openLabel,
-                modifier = Modifier.size(Dimensions.Icon.inline)
-            )
-        }
     }
 }
 
-/** A flat data meter (the wave is for work in progress), then "spent / of total". */
+/** The budget's wavy meter, standing still: warning from 70% used, error from 90%. */
 @Composable
-private fun BudgetMeter(budget: HomeHeroBudget, format: (BigDecimal, String) -> String) {
-    val used = budget.fractionUsed
+private fun BudgetMeter(budget: HomeHeroBudget) {
     val progress by animateFloatAsState(
-        targetValue = used,
+        targetValue = budget.fractionUsed,
         animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
         label = "heroBudgetProgress"
     )
-    // Status follows the value on screen: warning from 70%, error from 90%.
     val color = when {
         progress >= DANGER_AT -> MaterialTheme.colorScheme.error
         progress >= WARNING_AT -> MaterialTheme.colorScheme.warning
         else -> MaterialTheme.colorScheme.primary
     }
-    LinearProgressIndicator(
-        progress = { progress },
+    // The figures sit right under it, so the meter itself needs no text.
+    WavyMeter(
+        fraction = progress,
         color = color,
         trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
-        strokeCap = StrokeCap.Round,
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(Dimensions.Component.progressBarHeight)
+        modifier = Modifier.clearAndSetSemantics { }
     )
-    Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
-        Text(
-            text = stringResource(R.string.home_hero_spent, format(budget.spent, budget.currency)),
-            style = MaterialTheme.typography.bodyMedium.tabular(),
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Text(
-            text = stringResource(R.string.home_hero_of_total, format(budget.limit, budget.currency)),
-            style = MaterialTheme.typography.bodyMedium.tabular(),
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
 }
 
-/** A pill on the hero: "11 days left", "~₹450 a day", the change on last month. */
+/** The currency pill on the hero; opens the currency list. */
 @Composable
-private fun HeroChip(
-    icon: ImageVector? = null,
-    text: String,
-    textColor: Color = MaterialTheme.colorScheme.onSurface,
-    onClick: (() -> Unit)? = null,
-    trailingIcon: ImageVector? = null,
-    trailingLabel: String? = null,
-) {
-    val content: @Composable () -> Unit = {
+private fun HeroChip(text: String, onClick: () -> Unit, trailingLabel: String) {
+    Surface(
+        onClick = onClick,
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+    ) {
         Row(
             modifier = Modifier
                 .heightIn(min = Dimensions.Component.chipHeight)
@@ -447,30 +450,9 @@ private fun HeroChip(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
         ) {
-            if (icon != null) {
-                Icon(icon, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
-            }
-            Text(text = text, style = MaterialTheme.typography.labelLarge, color = textColor, maxLines = 1)
-            if (trailingIcon != null) {
-                Icon(trailingIcon, contentDescription = trailingLabel, modifier = Modifier.size(Dimensions.Icon.small))
-            }
+            Text(text = text, style = MaterialTheme.typography.labelLarge, maxLines = 1)
+            Icon(Icons.Default.KeyboardArrowDown, contentDescription = trailingLabel, modifier = Modifier.size(Dimensions.Icon.small))
         }
-    }
-    if (onClick != null) {
-        Surface(
-            onClick = onClick,
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.surfaceContainerHighest,
-            contentColor = MaterialTheme.colorScheme.onSurface,
-            content = content
-        )
-    } else {
-        Surface(
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.surfaceContainerHighest,
-            contentColor = MaterialTheme.colorScheme.onSurface,
-            content = content
-        )
     }
 }
 
@@ -486,10 +468,13 @@ private fun CurrencyChip(
         HeroChip(
             text = currency,
             onClick = { showMenu = true },
-            trailingIcon = Icons.Default.KeyboardArrowDown,
             trailingLabel = stringResource(R.string.balance_card_change_currency)
         )
-        DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+        DropdownMenu(
+            expanded = showMenu,
+            onDismissRequest = { showMenu = false },
+            shape = MaterialTheme.shapes.large
+        ) {
             currencies.forEachIndexed { index, code ->
                 SelectableDropdownMenuItem(
                     selected = code == currency,
@@ -507,7 +492,7 @@ private fun CurrencyChip(
     }
 }
 
-/** The opened card: the month's sparkline, income / expenses / saved, and the accounts. */
+/** The opened card: the month's sparkline, income / expenses / saved, and the accounts' total. */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun MonthDetails(
@@ -522,9 +507,7 @@ private fun MonthDetails(
     lastMonthSpending: BigDecimal,
     isApproximate: Boolean,
     isBalanceHidden: Boolean,
-    accountBalances: List<AccountBalanceEntity>,
-    creditCards: List<AccountBalanceEntity>,
-    onAccountClick: (String, String) -> Unit,
+    hasAccounts: Boolean,
     onOpenNetWorth: (() -> Unit)?,
     onShowBreakdown: () -> Unit,
 ) {
@@ -588,9 +571,7 @@ private fun MonthDetails(
             }
         }
 
-        Spacer(modifier = Modifier.height(Spacing.sm))
-        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-        Spacer(modifier = Modifier.height(Spacing.md))
+        Spacer(modifier = Modifier.height(Spacing.lg))
 
         DetailHeading(stringResource(R.string.balance_card_this_month))
         // Income | Expenses | Lent | Saved, with coloured accent bars. FlowRow so long
@@ -636,100 +617,56 @@ private fun MonthDetails(
             Text(stringResource(R.string.home_breakdown_title), color = MaterialTheme.colorScheme.primary)
         }
 
-        if (accountBalances.isNotEmpty() || creditCards.isNotEmpty()) {
-            Spacer(modifier = Modifier.height(Spacing.sm))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+        // The accounts' total; each account is a tap away under Accounts, not repeated here.
+        if (hasAccounts) {
             Spacer(modifier = Modifier.height(Spacing.md))
-            if (accountBalances.isNotEmpty()) {
-                DetailHeading(stringResource(R.string.balance_card_accounts))
-                accountBalances.forEach { account ->
-                    AccountLine(
-                        // The alias when set; wallets show just the service name.
-                        name = account.displayLabel,
-                        // The account's own (pre-converted) currency, so an un-convertible
-                        // balance shows honestly as "$400", not mislabelled "MZN400".
-                        amount = if (isBalanceHidden) MASK else account.formatBalance(),
-                        onClick = { onAccountClick(account.bankName, account.accountLast4) }
-                    )
-                }
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Text(
+                    text = stringResource(R.string.balance_card_total),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    fontWeight = FontWeight.Bold
+                )
+                Text(
+                    text = if (isBalanceHidden) {
+                        MASK
+                    } else {
+                        "${CurrencyFormatter.formatCurrency(totalBalance, currency)}${if (isApproximate) "*" else ""}"
+                    },
+                    style = MaterialTheme.typography.titleSmall.money(),
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurface
+                )
             }
-
-            if (creditCards.isNotEmpty()) {
-                // Credit-card-only users still see their cards (no bank list above).
-                if (accountBalances.isNotEmpty()) Spacer(modifier = Modifier.height(Spacing.sm))
-                DetailHeading(stringResource(R.string.balance_card_credit_cards))
-                creditCards.forEach { card ->
-                    AccountLine(
-                        name = card.displayLabel,
-                        // The amount owed on the card, in the card's own currency (#684).
-                        amount = if (isBalanceHidden) MASK else CurrencyFormatter.formatCurrency(card.balance, card.currency),
-                        onClick = { onAccountClick(card.bankName, card.accountLast4) }
-                    )
-                }
-            }
-
-            // The total is the bank accounts' balance; with only cards it would read "0".
-            if (accountBalances.isNotEmpty()) {
+            if (isApproximate) {
                 Spacer(modifier = Modifier.height(Spacing.xs))
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-                Spacer(modifier = Modifier.height(Spacing.xs))
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = stringResource(R.string.balance_card_total),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        fontWeight = FontWeight.Bold
-                    )
-                    Text(
-                        text = if (isBalanceHidden) {
-                            MASK
-                        } else {
-                            "${CurrencyFormatter.formatCurrency(totalBalance, currency)}${if (isApproximate) "*" else ""}"
-                        },
-                        style = MaterialTheme.typography.titleSmall.money(),
-                        fontWeight = FontWeight.Bold,
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                }
-                if (isApproximate) {
-                    Spacer(modifier = Modifier.height(Spacing.xs))
-                    Text(
-                        text = stringResource(R.string.balance_card_other_currency_note),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
+                Text(
+                    text = stringResource(R.string.balance_card_other_currency_note),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth()
+                )
             }
-            // Named for where it goes: Net worth takes off cards and loans, so its
-            // figure isn't this total.
-            if (onOpenNetWorth != null) {
-                val netWorthLabel = stringResource(R.string.net_worth_title)
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clip(RoundedCornerShape(Dimensions.CornerRadius.medium))
-                        .clickable(onClickLabel = netWorthLabel, role = Role.Button, onClick = onOpenNetWorth)
-                        .defaultMinSize(minHeight = Dimensions.Component.minTouchTarget),
-                    horizontalArrangement = Arrangement.End,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Text(
-                        text = netWorthLabel,
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.primary
-                    )
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(Dimensions.Icon.small)
-                    )
-                }
+        }
+        // Named for where it goes: Net worth takes off cards and loans, so its
+        // figure isn't this total.
+        if (onOpenNetWorth != null) {
+            TextButton(
+                onClick = onOpenNetWorth,
+                shapes = ButtonDefaults.shapes(),
+                modifier = Modifier.align(Alignment.End)
+            ) {
+                Text(stringResource(R.string.net_worth_title), color = MaterialTheme.colorScheme.primary)
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(Dimensions.Icon.small)
+                )
             }
         }
         Spacer(modifier = Modifier.height(Spacing.sm))
@@ -744,33 +681,6 @@ private fun DetailHeading(text: String) {
         color = MaterialTheme.colorScheme.onSurfaceVariant
     )
     Spacer(modifier = Modifier.height(Spacing.sm))
-}
-
-@Composable
-private fun AccountLine(name: String, amount: String, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = Spacing.xs),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = name,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f, fill = false)
-        )
-        Text(
-            text = amount,
-            style = MaterialTheme.typography.titleSmall.money(),
-            fontWeight = FontWeight.Bold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-    }
 }
 
 /**
@@ -796,7 +706,7 @@ private fun SummaryItem(
                 .height(Dimensions.Component.iconButton)
                 .background(
                     color = accentColor,
-                    shape = RoundedCornerShape(Dimensions.CornerRadius.small)
+                    shape = CircleShape
                 )
         )
         Spacer(modifier = Modifier.width(Spacing.sm))

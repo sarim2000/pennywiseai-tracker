@@ -11,8 +11,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -54,11 +52,6 @@ fun GreetingCard(
     profileBackgroundColor: Int = 0,
     onAvatarClick: () -> Unit = {},
     onMenuClick: () -> Unit = {},
-    // Shows an Add button when set (the floating nav bar docks Sync instead
-    // of Home keeping an Add FAB).
-    onAddClick: (() -> Unit)? = null,
-    // The voice mic, where the phone can listen: a cash spend said, or a question.
-    onVoiceClick: (() -> Unit)? = null,
     profiles: List<ProfileEntity> = emptyList(),
     selectedProfileId: Long? = null,
     onProfileSelected: (Long?) -> Unit = {},
@@ -66,7 +59,7 @@ fun GreetingCard(
     /** A line under the name, e.g. when SMS were last read. */
     status: (@Composable () -> Unit)? = null,
 ) {
-    // Time of day only: the hero card's chips carry "11 days left".
+    // Time of day only: the hero card carries "11 days left".
     val hour = remember { LocalTime.now().hour }
     val greeting = stringResource(
         when (hour) {
@@ -102,7 +95,8 @@ fun GreetingCard(
                 )
             }
 
-            if (profiles.isNotEmpty()) {
+            // Header actions: More and the avatar; the profile filter only when there's a choice.
+            if (profiles.size > 1) {
                 var showProfileMenu by remember { mutableStateOf(false) }
                 Box {
                     HeaderIcon(
@@ -118,12 +112,6 @@ fun GreetingCard(
                         onDismiss = { showProfileMenu = false }
                     )
                 }
-            }
-            if (onVoiceClick != null) {
-                HeaderIcon(Icons.Default.Mic, stringResource(R.string.quick_add_voice_title), onVoiceClick)
-            }
-            if (onAddClick != null) {
-                HeaderIcon(Icons.Default.Add, stringResource(R.string.home_fab_add), onAddClick)
             }
             HeaderIcon(Icons.Default.MoreHoriz, stringResource(R.string.greeting_more_options), onMenuClick)
 

@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Category
@@ -38,6 +37,7 @@ import com.pennywiseai.tracker.ui.components.cards.GroupCard
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.HomeGroupCard
+import com.pennywiseai.tracker.ui.components.cards.IconTile
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.RowLabels
@@ -59,6 +59,8 @@ import java.time.temporal.ChronoUnit
 @Composable
 internal fun HomeBudgetsSection(
     summary: BudgetOverallSummary,
+    /** The budget the hero already shows. */
+    excludeBudgetId: Long?,
     onNavigateToBudgets: () -> Unit
 ) {
     Column(
@@ -82,7 +84,8 @@ internal fun HomeBudgetsSection(
             summary = summary,
             onClick = onNavigateToBudgets,
             onCreateBudget = onNavigateToBudgets,
-            modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+            excludeBudgetId = excludeBudgetId
         )
     }
 }
@@ -514,59 +517,39 @@ internal fun HomeActivitySection(
 internal const val UNSORTED_WALK_SIZE = 20
 
 /**
- * "3 transactions this month need a category": a count only, no amounts. Tapping walks
- * the oldest [UNSORTED_WALK_SIZE] in the category picker, as the evening recap does.
+ * "7 need a category": one compact row, a count only, no amounts. Tapping walks the
+ * oldest [UNSORTED_WALK_SIZE] in the category picker, as the evening recap does.
  */
 @Composable
-internal fun HomeUnsortedCard(
+internal fun HomeUnsortedRow(
     count: Int,
     onSort: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    PennyWiseCardV2(
-        modifier = modifier.fillMaxWidth(),
-        contentPadding = Spacing.none,
+    val action = when {
+        count > UNSORTED_WALK_SIZE -> stringResource(R.string.home_unsorted_action_batch, UNSORTED_WALK_SIZE)
+        count > 1 -> stringResource(R.string.notif_daily_action_sort_all)
+        else -> stringResource(R.string.notif_daily_action_sort)
+    }
+    GroupedRow(
+        position = ListItemPosition.Single,
         onClick = onSort,
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.smd)
     ) {
-        Row(
-            modifier = Modifier.padding(start = Spacing.md, top = Spacing.md, end = Spacing.md),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.smd),
-        ) {
-            Icon(
-                imageVector = Icons.Default.Category,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(Dimensions.Icon.medium),
-            )
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
-                Text(
-                    text = pluralStringResource(R.plurals.home_unsorted_title, count, count),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = pluralStringResource(R.plurals.home_unsorted_body, count),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(end = Spacing.xs),
-            horizontalArrangement = Arrangement.End,
-        ) {
-            TextButton(onClick = onSort, shapes = ButtonDefaults.shapes()) {
-                Text(
-                    when {
-                        count > UNSORTED_WALK_SIZE -> stringResource(R.string.home_unsorted_action_batch, UNSORTED_WALK_SIZE)
-                        count > 1 -> stringResource(R.string.notif_daily_action_sort_all)
-                        else -> stringResource(R.string.notif_daily_action_sort)
-                    }
-                )
-            }
-        }
+        IconTile(
+            icon = Icons.Default.Category,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            size = Dimensions.Icon.list,
+            glyphSize = Dimensions.Icon.inline
+        )
+        RowLabels(title = pluralStringResource(R.plurals.home_unsorted_row, count, count))
+        Text(
+            text = action,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary
+        )
     }
 }
 

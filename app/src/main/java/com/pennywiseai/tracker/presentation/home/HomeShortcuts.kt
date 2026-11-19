@@ -15,9 +15,6 @@ import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.DonutLarge
 import androidx.compose.material.icons.filled.Flag
-import androidx.compose.material.icons.filled.Sell
-import androidx.compose.material3.Badge
-import androidx.compose.material3.BadgedBox
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
@@ -39,17 +36,15 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 
 /**
- * One tap from Home to what used to hide behind menus: budgets, bills, accounts, and
- * the unsorted pile when there is one (goals otherwise). Settings is the avatar.
+ * One tap from Home to the places behind it: budgets, bills, goals and accounts.
+ * Settings is the avatar; the unsorted pile has its own row in the list.
  */
 @Composable
 fun HomeShortcuts(
-    unsortedCount: Int,
     onBudgets: () -> Unit,
     onBills: () -> Unit,
-    onAccounts: () -> Unit,
-    onUnsorted: () -> Unit,
     onGoals: () -> Unit,
+    onAccounts: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
@@ -75,6 +70,14 @@ fun HomeShortcuts(
             onClick = onBills,
         )
         Shortcut(
+            label = stringResource(R.string.goals_section_title),
+            icon = Icons.Default.Flag,
+            shape = MaterialShapes.Cookie9Sided.toShape(),
+            container = colors.surfaceContainerHighest,
+            content = colors.onSurface,
+            onClick = onGoals,
+        )
+        Shortcut(
             label = stringResource(R.string.home_shortcut_accounts),
             icon = Icons.Default.AccountBalance,
             shape = MaterialShapes.SoftBurst.toShape(),
@@ -82,26 +85,6 @@ fun HomeShortcuts(
             content = colors.onSecondaryContainer,
             onClick = onAccounts,
         )
-        if (unsortedCount > 0) {
-            Shortcut(
-                label = stringResource(R.string.home_shortcut_unsorted),
-                icon = Icons.Default.Sell,
-                shape = MaterialShapes.Cookie9Sided.toShape(),
-                container = colors.surfaceContainerHighest,
-                content = colors.onSurface,
-                onClick = onUnsorted,
-                badge = unsortedCount,
-            )
-        } else {
-            Shortcut(
-                label = stringResource(R.string.goals_section_title),
-                icon = Icons.Default.Flag,
-                shape = MaterialShapes.Cookie9Sided.toShape(),
-                container = colors.surfaceContainerHighest,
-                content = colors.onSurface,
-                onClick = onGoals,
-            )
-        }
     }
 }
 
@@ -113,7 +96,6 @@ private fun RowScope.Shortcut(
     container: Color,
     content: Color,
     onClick: () -> Unit,
-    badge: Int? = null,
 ) {
     Column(
         modifier = Modifier
@@ -124,21 +106,15 @@ private fun RowScope.Shortcut(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        BadgedBox(
-            badge = {
-                if (badge != null) Badge { Text(if (badge > MAX_BADGE) "$MAX_BADGE+" else badge.toString()) }
-            }
+        Box(
+            modifier = Modifier
+                .size(Dimensions.Component.shortcutTile)
+                .clip(shape)
+                .background(container),
+            contentAlignment = Alignment.Center,
         ) {
-            Box(
-                modifier = Modifier
-                    .size(Dimensions.Component.shortcutTile)
-                    .clip(shape)
-                    .background(container),
-                contentAlignment = Alignment.Center,
-            ) {
-                // The label below names it.
-                Icon(icon, contentDescription = null, tint = content, modifier = Modifier.size(Dimensions.Icon.medium))
-            }
+            // The label below names it.
+            Icon(icon, contentDescription = null, tint = content, modifier = Modifier.size(Dimensions.Icon.medium))
         }
         Text(
             text = label,
@@ -151,5 +127,3 @@ private fun RowScope.Shortcut(
         )
     }
 }
-
-private const val MAX_BADGE = 99

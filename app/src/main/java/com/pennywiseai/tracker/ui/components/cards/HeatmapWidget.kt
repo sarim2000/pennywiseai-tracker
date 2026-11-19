@@ -25,9 +25,9 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.ui.components.buildHeatmapMonthLabels
+import com.pennywiseai.tracker.ui.effects.frostedBlur
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.ui.effects.frostedBlur
 import dev.chrisbanes.haze.HazeState
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -136,7 +136,7 @@ fun HeatmapWidget(
                                     Box(
                                         modifier = Modifier
                                             .size(cellSize)
-                                            .clip(MaterialTheme.shapes.extraSmall)
+                                            .clip(MaterialTheme.shapes.small)
                                             .background(color)
                                     )
                                 }

@@ -89,8 +89,8 @@ fun HomeScreen(
     onGroupClick: (Long) -> Unit = {},
     onGoalClick: (Long) -> Unit = {},
     onTransactionTypeClick: (String?) -> Unit = {},
-    /** Opens the Ask tab from the owl's nudge; null while that tab is hidden. */
-    onOpenAssistant: (() -> Unit)? = null,
+    /** Opens the Ask tab; null while that tab is hidden. Home has no Ask entry of its own (the tab is it). */
+    @Suppress("UNUSED_PARAMETER") onOpenAssistant: (() -> Unit)? = null,
     onFabPositioned: (Rect) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -157,7 +157,10 @@ fun HomeScreen(
     val heroBudget = remember(uiState.budgetSummary) {
         uiState.budgetSummary?.heroBudget(java.time.LocalDate.now())
     }
-    val nudge = homeNudge(heroBudget, uiState.spendForecast, uiState.isBalanceHidden)
+    // The carousel leaves out the budget the hero already shows; with nothing else, no section.
+    val carouselBudgets = uiState.budgetSummary?.takeIf { summary ->
+        summary.groups.isEmpty() || summary.groups.any { it.group.budget.id != heroBudget?.budgetId }
+    }
 
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
@@ -181,12 +184,6 @@ fun HomeScreen(
     // Set while the floating nav bar is up: Sync docks beside it, and Add
     // moves to the header so no FAB stack floats over the content.
     val navDock = LocalNavDock.current
-
-    // Say a cash spend, or ask: the quick add sheet listens, on phones with a recognizer.
-    val onVoiceClick = remember(context) {
-        { context.startActivity(com.pennywiseai.tracker.core.QuickAddIntent.voice(context)) }
-            .takeIf { com.pennywiseai.tracker.ui.voice.VoiceInput.isAvailable(context) }
-    }
 
     // Haptic on successful SMS scan completion
     LaunchedEffect(smsScanWorkInfo?.state) {
@@ -278,7 +275,7 @@ fun HomeScreen(
             SnackbarHost(
                 hostState = snackbarHostState,
                 modifier = Modifier.padding(bottom = Dimensions.Component.bottomBarHeight)
-            )
+            ) { data -> Snackbar(data, shape = MaterialTheme.shapes.large) }
         },
         customTopBar = {
             CustomTitleTopAppBar(
@@ -293,16 +290,13 @@ fun HomeScreen(
                 blurEffects = blurEffects,
                 actionContent = {
                     HomeTopBarActions(
-                        isProEntitled = isProEntitled,
                         blurEffects = blurEffects,
                         profiles = uiState.profiles,
                         selectedProfileId = uiState.selectedProfileId,
                         showProfileFilterMenu = showProfileFilterMenu,
-                        onUpgradeClick = { showUpgradeSheet = true },
                         onOpenProfileFilter = { showProfileFilterMenu = true },
                         onProfileSelected = { viewModel.updateSelectedProfile(it) },
                         onDismissProfileFilter = { showProfileFilterMenu = false },
-                        onVoiceClick = onVoiceClick,
                         onMoreClick = { showMenuSheet = true }
                     )
                 },
@@ -313,9 +307,6 @@ fun HomeScreen(
                         profileBackgroundColor = uiState.profileBackgroundColor,
                         onAvatarClick = onNavigateToSettings,
                         onMenuClick = { showMenuSheet = true },
-                        // Add is the bar's docked action (or the FAB stack's) now.
-                        onAddClick = null,
-                        onVoiceClick = onVoiceClick,
                         profiles = uiState.profiles,
                         selectedProfileId = uiState.selectedProfileId,
                         onProfileSelected = { viewModel.updateSelectedProfile(it) },
@@ -384,29 +375,12 @@ fun HomeScreen(
                                 onToggleBalanceVisibility = { viewModel.toggleBalanceVisibility() },
                                 onCurrencySelected = { viewModel.selectCurrency(it) },
                                 onShowBreakdown = { viewModel.showBreakdownDialog() },
-                                accountBalances = uiState.accountBalances,
-                                creditCards = uiState.creditCards,
+                                hasAccounts = uiState.accountBalances.isNotEmpty(),
                                 budget = heroBudget,
                                 cycleEnd = currentCycleWindow.second,
                                 onOpen = if (heroBudget != null) onNavigateToBudgets else onNavigateToTransactions,
-                                onAccountClick = onAccountClick,
                                 onOpenNetWorth = { onNavigateToNetWorth(uiState.selectedCurrency) }
                             )
-                        }
-                    }
-                }
-
-                // 2. The owl's one line on where the month is heading.
-                if (uiState.isBalanceReady) {
-                    nudge?.let { line ->
-                        item(key = "nudge") {
-                            StaggeredEntrance(delayMs = 0L, skip = hasAnimated) {
-                                HomeNudgeCard(
-                                    nudge = line,
-                                    onAsk = onOpenAssistant,
-                                    modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
-                                )
-                            }
                         }
                     }
                 }
@@ -416,12 +390,10 @@ fun HomeScreen(
                 item(key = "shortcuts") {
                     StaggeredEntrance(delayMs = 0L, skip = hasAnimated) {
                         HomeShortcuts(
-                            unsortedCount = unsorted.size,
                             onBudgets = onNavigateToBudgets,
                             onBills = onNavigateToSubscriptions,
-                            onAccounts = onNavigateToManageAccounts,
-                            onUnsorted = sortUnsorted,
                             onGoals = onNavigateToGoals,
+                            onAccounts = onNavigateToManageAccounts,
                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                         )
                     }
@@ -523,7 +495,7 @@ fun HomeScreen(
                 val promoAfter = visibleSections.firstOrNull { section ->
                     when (section) {
                         HomeSection.SAFE_TO_SPEND -> safeToSpend != null
-                        HomeSection.BUDGETS -> uiState.budgetSummary != null
+                        HomeSection.BUDGETS -> carouselBudgets != null
                         HomeSection.UNSORTED -> unsorted.isNotEmpty()
                         HomeSection.GOALS -> goals.isNotEmpty()
                         HomeSection.LOANS -> uiState.loanSummary != null
@@ -555,11 +527,12 @@ fun HomeScreen(
                         }
                         HomeSection.BUDGETS -> {
                             // 2. Budget Carousel
-                            uiState.budgetSummary?.let { summary ->
+                            carouselBudgets?.let { summary ->
                                 item(key = section.name) {
                                     StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
                                         HomeBudgetsSection(
                                             summary = summary,
+                                            excludeBudgetId = heroBudget?.budgetId,
                                             onNavigateToBudgets = onNavigateToBudgets
                                         )
                                     }
@@ -571,7 +544,7 @@ fun HomeScreen(
                             if (unsorted.isNotEmpty()) {
                                 item(key = section.name) {
                                     StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
-                                        HomeUnsortedCard(
+                                        HomeUnsortedRow(
                                             count = unsorted.size,
                                             onSort = sortUnsorted,
                                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
@@ -801,9 +774,7 @@ fun HomeScreen(
                 onOpenReview = { onNavigateToReview(ReviewKind.MONTH) },
                 onOpenShareCard = onNavigateToShareStudio,
                 onOpenAchievements = onNavigateToAchievements,
-                onOpenSettings = onNavigateToSettings,
-                onEditHome = { showEditWidgetsSheet = true },
-                onReadMessagesAgain = { showFullResyncDialog = true }
+                onEditHome = { showEditWidgetsSheet = true }
             )
         }
     }
@@ -831,8 +802,7 @@ fun HomeScreen(
         )
     }
 
-    // Pro upgrade sheet — triggered from the subtle ✨ chip in the top bar
-    // for free users; reuses the same composable Settings uses.
+    // Pro upgrade sheet, from the one-time Pro card; the same composable Settings uses.
     if (showUpgradeSheet) {
         com.pennywiseai.tracker.presentation.paywall.UpgradeSheet(
             onDismiss = { showUpgradeSheet = false },

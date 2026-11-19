@@ -1,7 +1,5 @@
 package com.pennywiseai.tracker.presentation.home
 
-import android.content.Intent
-import android.net.Uri
 import androidx.annotation.StringRes
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
@@ -11,41 +9,38 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Insights
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Star
-import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.data.preferences.HomeSection
 import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
+import com.pennywiseai.tracker.ui.components.cards.IconTile
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
+import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.theme.*
 
 /**
- * The "More options" sheet behind Home's avatar / menu button. Every row
- * closes the sheet, then runs its action.
+ * The "More options" sheet behind Home's menu button: Home's own extras. Settings is the
+ * avatar; reading messages again lives in SMS check-up (and a long-press on the sync line).
+ * Every row closes the sheet, then runs its action.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -55,12 +50,17 @@ internal fun HomeMenuSheet(
     onOpenReview: () -> Unit,
     onOpenShareCard: () -> Unit,
     onOpenAchievements: () -> Unit,
-    onOpenSettings: () -> Unit,
     onEditHome: () -> Unit,
-    onReadMessagesAgain: () -> Unit
 ) {
-    // The screen's context, read outside the sheet's own window.
-    val context = LocalContext.current
+    val rows = listOf(
+        // Reorder / hide Home sections (#770).
+        Triple(R.string.home_menu_edit_home, Icons.Default.Tune, onEditHome),
+        // Week, cycle and year reviews, whatever the Home banner is offering.
+        Triple(R.string.review_title, Icons.Default.Insights, onOpenReview),
+        // The share card, and the achievements that feed it.
+        Triple(R.string.home_menu_share_card, Icons.Default.Share, onOpenShareCard),
+        Triple(R.string.achievements_title, Icons.Default.EmojiEvents, onOpenAchievements),
+    )
     ModalBottomSheet(
         onDismissRequest = { onDismiss() },
         sheetState = sheetState,
@@ -74,7 +74,6 @@ internal fun HomeMenuSheet(
                 .padding(bottom = Spacing.xl),
             verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)
         ) {
-            // Title
             Text(
                 text = stringResource(R.string.home_menu_title),
                 style = MaterialTheme.typography.titleMedium,
@@ -83,127 +82,15 @@ internal fun HomeMenuSheet(
                     .padding(bottom = Spacing.sm)
                     .fillMaxWidth()
             )
-
-            // Reviews (Top) — week, cycle and year, whatever the Home banner is offering.
-            MenuListItem(
-                headline = stringResource(R.string.review_title),
-                icon = { Icon(Icons.Default.Insights, contentDescription = null) },
-                position = ListItemPosition.Top,
-                onClick = {
-                    onDismiss()
-                    onOpenReview()
-                }
-            )
-
-            // Achievements (Middle) — beside the share card, which they feed.
-            MenuListItem(
-                headline = stringResource(R.string.achievements_title),
-                icon = { Icon(Icons.Default.EmojiEvents, contentDescription = null) },
-                position = ListItemPosition.Middle,
-                onClick = {
-                    onDismiss()
-                    onOpenAchievements()
-                }
-            )
-
-            // Share card (Middle) — the growth loop lives here rather than buried
-            // in the Subscriptions screen, where nobody would find it.
-            MenuListItem(
-                headline = stringResource(R.string.home_menu_share_card),
-                icon = { Icon(Icons.Default.Share, contentDescription = null) },
-                position = ListItemPosition.Middle,
-                onClick = {
-                    onDismiss()
-                    onOpenShareCard()
-                }
-            )
-
-            // Settings (Middle)
-            MenuListItem(
-                headline = stringResource(R.string.home_menu_settings),
-                icon = { Icon(Icons.Default.Settings, contentDescription = null) },
-                position = ListItemPosition.Middle,
-                onClick = {
-                    onDismiss()
-                    onOpenSettings()
-                }
-            )
-
-            // Edit home screen (Middle) — reorder / hide Home sections (#770)
-            MenuListItem(
-                headline = stringResource(R.string.home_menu_edit_home),
-                icon = { Icon(Icons.Default.Tune, contentDescription = null) },
-                position = ListItemPosition.Middle,
-                onClick = {
-                    onDismiss()
-                    onEditHome()
-                }
-            )
-
-            // Read messages again (Middle) — the full resync otherwise
-            // hides behind a long-press on Sync.
-            MenuListItem(
-                headline = stringResource(R.string.home_resync_title),
-                icon = { Icon(Icons.Default.Sync, contentDescription = null) },
-                position = ListItemPosition.Middle,
-                onClick = {
-                    onDismiss()
-                    onReadMessagesAgain()
-                }
-            )
-
-            // Join Discord (Middle)
-            MenuListItem(
-                headline = stringResource(R.string.home_menu_discord),
-                icon = {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_discord),
-                        contentDescription = null,
-                        modifier = Modifier.size(Dimensions.Icon.medium)
-                    )
-                },
-                position = ListItemPosition.Middle,
-                onClick = {
-                    onDismiss()
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(Constants.Links.DISCORD_URL))
-                    context.startActivity(intent)
-                }
-            )
-
-            // Rate on Play Store (Bottom)
-            MenuListItem(
-                headline = stringResource(R.string.home_menu_rate),
-                icon = { Icon(Icons.Default.Star, contentDescription = null) },
-                position = ListItemPosition.Bottom,
-                onClick = {
-                    onDismiss()
-                    try {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${context.packageName}"))
-                        context.startActivity(intent)
-                    } catch (_: android.content.ActivityNotFoundException) {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=${context.packageName}"))
-                        context.startActivity(intent)
+            rows.forEachIndexed { i, (label, icon, action) ->
+                MenuListItem(
+                    headline = stringResource(label),
+                    icon = icon,
+                    position = ListItemPosition.from(i, rows.size),
+                    onClick = {
+                        onDismiss()
+                        action()
                     }
-                }
-            )
-
-            Spacer(modifier = Modifier.height(Spacing.sm))
-
-            // Version footer
-            val versionName = remember {
-                try {
-                    context.packageManager.getPackageInfo(context.packageName, 0).versionName
-                } catch (_: Exception) {
-                    null
-                }
-            }
-            versionName?.let {
-                Text(
-                    text = stringResource(R.string.home_version, it),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center
                 )
             }
         }
@@ -218,7 +105,7 @@ internal fun HomeMenuSheet(
 @Composable
 private fun MenuListItem(
     headline: String,
-    icon: @Composable () -> Unit,
+    icon: ImageVector,
     position: ListItemPosition,
     onClick: () -> Unit,
 ) {
@@ -228,14 +115,15 @@ private fun MenuListItem(
         modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
         horizontalArrangement = Arrangement.spacedBy(Spacing.smd)
     ) {
-        CompositionLocalProvider(
-            LocalContentColor provides MaterialTheme.colorScheme.secondary
-        ) { icon() }
-        Text(
-            text = headline,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface
+        // Chrome, not data: the neutral circle Settings rows use.
+        IconTile(
+            icon = icon,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            size = Dimensions.Icon.list,
+            glyphSize = Dimensions.Icon.inline
         )
+        RowLabels(title = headline)
     }
 }
 
@@ -314,7 +202,7 @@ internal fun EditHomeSectionsSheet(
                             .zIndex(if (isDragged) 1f else 0f)
                             .graphicsLayer {
                                 translationY = if (isDragged) dragOffset else 0f
-                                shadowElevation = if (isDragged) 8.dp.toPx() else 0f
+                                shadowElevation = if (isDragged) Dimensions.Elevation.dialog.toPx() else 0f
                                 shape = liftedShape
                                 clip = false
                             },

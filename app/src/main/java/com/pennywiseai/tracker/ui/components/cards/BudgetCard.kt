@@ -354,7 +354,7 @@ fun BudgetCard(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
-        RolloverLine(groupSpending, currency, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
+        RolloverLine(groupSpending, currency)
     }
 }
 

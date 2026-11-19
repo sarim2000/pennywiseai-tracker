@@ -16,8 +16,8 @@ import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
-import java.math.BigDecimal
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
+import java.math.BigDecimal
 
 @Composable
 fun BalanceSparkline(
@@ -39,7 +39,7 @@ fun BalanceSparkline(
     val range = (max - min).takeIf { it > 0f } ?: 1f
 
     val textMeasurer = rememberTextMeasurer()
-    val labelColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.7f)
+    val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
     val labelStyle = PennyWiseText.chartLabel.copy(color = labelColor)
 
     val startLabel = if (isBalanceHidden) "••••" else formatCompactBalance(data.first(), currency)
@@ -58,7 +58,43 @@ fun BalanceSparkline(
         val rtl = layoutDirection == LayoutDirection.Rtl
 
         scale(scaleX = if (rtl) -1f else 1f, scaleY = 1f) {
-            // Draw comparison line FIRST (behind main line)
+            // Draw main line
+            val linePath = Path()
+
+            data.forEachIndexed { index, value ->
+                val x = index * stepX
+                val y = chartHeight - ((value.toFloat() - min) / range * chartHeight * 0.85f + chartHeight * 0.075f)
+
+                if (index == 0) {
+                    linePath.moveTo(x, y)
+                } else {
+                    val prevX = (index - 1) * stepX
+                    val prevValue = data[index - 1]
+                    val prevY = chartHeight - ((prevValue.toFloat() - min) / range * chartHeight * 0.85f + chartHeight * 0.075f)
+                    val midX = (prevX + x) / 2f
+                    linePath.cubicTo(midX, prevY, midX, y, x, y)
+                }
+            }
+
+            // Gradient fill under the main line
+            val fillPath = Path().apply {
+                addPath(linePath)
+                lineTo(width, chartHeight)
+                lineTo(0f, chartHeight)
+                close()
+            }
+
+            drawPath(
+                path = fillPath,
+                brush = Brush.verticalGradient(
+                    colors = listOf(
+                        lineColor.copy(alpha = 0.25f),
+                        lineColor.copy(alpha = 0.05f),
+                        Color.Transparent
+                    )
+                )
+            )
+            // Comparison line over the fill (the fill used to wash it out), under the main line
             if (hasComparison) {
                 val compData = comparisonData!!
                 val compStepX = if (compData.size > 1) width / (compData.size - 1) else width
@@ -87,47 +123,10 @@ fun BalanceSparkline(
                 )
             }
 
-            // Draw main line
-            val linePath = Path()
-
-            data.forEachIndexed { index, value ->
-                val x = index * stepX
-                val y = chartHeight - ((value.toFloat() - min) / range * chartHeight * 0.85f + chartHeight * 0.075f)
-
-                if (index == 0) {
-                    linePath.moveTo(x, y)
-                } else {
-                    val prevX = (index - 1) * stepX
-                    val prevValue = data[index - 1]
-                    val prevY = chartHeight - ((prevValue.toFloat() - min) / range * chartHeight * 0.85f + chartHeight * 0.075f)
-                    val midX = (prevX + x) / 2f
-                    linePath.cubicTo(midX, prevY, midX, y, x, y)
-                }
-            }
-
             drawPath(
                 path = linePath,
                 color = lineColor,
                 style = Stroke(width = 2.dp.toPx())
-            )
-
-            // Gradient fill under the main line
-            val fillPath = Path().apply {
-                addPath(linePath)
-                lineTo(width, chartHeight)
-                lineTo(0f, chartHeight)
-                close()
-            }
-
-            drawPath(
-                path = fillPath,
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        lineColor.copy(alpha = 0.25f),
-                        lineColor.copy(alpha = 0.05f),
-                        Color.Transparent
-                    )
-                )
             )
         }
 

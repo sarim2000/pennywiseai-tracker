@@ -20,6 +20,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.platform.LocalContext
@@ -78,7 +79,7 @@ fun TransactionItem(
         TransactionType.CREDIT -> colorScheme.credit
         TransactionType.TRANSFER -> colorScheme.transfer
         TransactionType.INVESTMENT -> colorScheme.investment
-    }
+    }.onRow(containerColor)
 
     val dateTimeFormatter = if (showDate) AppDates.dayMonthTimeFormatter() else AppDates.pattern("h:mm a")
     val dateTimeText = remember(transaction.dateTime, dateTimeFormatter) {
@@ -173,7 +174,7 @@ fun TransactionItem(
         subtitle = subtitle,
         amount = CurrencyFormatter.signed(amountPrefix, formattedAmount),
         amountColor = amountColor,
-        subtitleColor = if (unsorted) colorScheme.tertiary else colorScheme.onSurfaceVariant,
+        subtitleColor = (if (unsorted) colorScheme.tertiary else colorScheme.onSurfaceVariant).onRow(containerColor),
         shape = listItemPosition.toShape(),
         contentPadding = Dimensions.Padding.cardCompact,
         onClick = {
@@ -216,7 +217,7 @@ fun TransactionItem(
                     Text(
                         text = "($nativeAmount)",
                         style = PennyWiseText.amountSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.onRow(containerColor),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -312,7 +313,8 @@ fun TransactionAvatar(
             Icon(
                 imageVector = icon.icon,
                 contentDescription = categoryLabel(category),
-                tint = icon.tint,
+                // The hue on a wash of itself: keep it, but reach 3:1.
+                tint = MaterialTheme.colorScheme.inkOnWash(icon.tint, Dimensions.Alpha.categoryTint, GRAPHIC_CONTRAST),
                 modifier = Modifier.size(glyphSize)
             )
         }
@@ -324,3 +326,6 @@ fun TransactionAvatar(
         }
     }
 }
+
+/** This ink on a selected row's override fill (primaryContainer), which isn't the surface it was picked for. */
+private fun Color.onRow(containerColor: Color?): Color = containerColor?.let { readableOn(listOf(it)) } ?: this

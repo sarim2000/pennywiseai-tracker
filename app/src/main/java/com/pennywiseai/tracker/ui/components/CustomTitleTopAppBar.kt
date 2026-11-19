@@ -60,6 +60,7 @@ import com.pennywiseai.tracker.ui.effects.LocalBlurEffects
 import com.pennywiseai.tracker.ui.effects.frostedBlur
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.bestInk
 import dev.chrisbanes.haze.HazeProgressive
 import dev.chrisbanes.haze.HazeState
 import kotlin.math.roundToInt
@@ -528,7 +529,12 @@ private fun HomeBarTitle(
                     style = MaterialTheme.typography.labelSmall.copy(
                         fontWeight = FontWeight.Bold
                     ),
-                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                    // A user-picked avatar colour has no on-role.
+                    color = if (profileBackgroundColor != 0) {
+                        Color(profileBackgroundColor).bestInk()
+                    } else {
+                        MaterialTheme.colorScheme.onPrimaryContainer
+                    }
                 )
             }
         }

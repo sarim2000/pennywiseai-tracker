@@ -252,6 +252,21 @@ class HomeViewModel @Inject constructor(
     // Today's date as a flow, so day-based figures move on when Home is resumed on a new day.
     private val today = MutableStateFlow(LocalDate.now())
 
+    /** This cycle's rows still to sort, oldest first ([unsortedIds]): the "Needs a category" card, hidden when empty. */
+    val unsorted: StateFlow<List<Long>> = combine(
+        combine(_currentCycleWindow, today) { (start, _), day -> start to day }
+            .distinctUntilChanged()
+            .flatMapLatest { (start, day) -> transactionRepository.getTransactionsBetweenDates(start, day) }
+            .combine(trackedRows) { rows, keep -> rows.filter(keep) },
+        // By built-in identity, so a renamed or translated Others still matches.
+        categoryRepository.getAllCategories().map { it.nameForBuiltin("Others") }.distinctUntilChanged(),
+        transactionRepository.observeSplitsForActiveTransactions().map { splits -> splits.mapTo(HashSet()) { it.transactionId } },
+        ::unsortedIds,
+    )
+        .distinctUntilChanged()
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     /**
      * Declared above init{} deliberately: Kotlin initialises properties in declaration
      * order, and init calls observeReviewPrompt(). Leaving this further down the class

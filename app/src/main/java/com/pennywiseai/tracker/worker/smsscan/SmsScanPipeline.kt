@@ -9,13 +9,15 @@ import kotlinx.coroutines.channels.Channel
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.joinAll
 import kotlinx.coroutines.launch
+import java.util.concurrent.atomic.AtomicReference
 
 private const val TAG = "OptimizedSmsReaderWorker"
 
 /**
  * The scan's topology: one feed into bounded channels, parallel parsers, one sequential
  * saver and one balance consumer. A coroutineScope, so a failing stage cancels the rest
- * and [run] only returns normally once every stage has finished.
+ * and [run] only returns normally once every stage has finished. A feed that breaks off
+ * is the exception: what it already read is still saved, then [run] throws its error.
  */
 internal class SmsScanPipeline(
     private val source: SmsMessageSource,
@@ -36,10 +38,19 @@ internal class SmsScanPipeline(
         val feed    = Channel<ScannedSms>(PARSE_CHANNEL_CAPACITY)
         val results = Channel<ParseResult>(RESULT_CHANNEL_CAPACITY)
 
-        // Stage 1 – Feed (streams SMS cursor + RCS directly into the channel)
+        // Stage 1 – Feed (streams SMS cursor + RCS directly into the channel). A read error
+        // ends the feed instead of cancelling the scan, so the messages already read (up to
+        // both channels' worth) are saved; a bad row can't keep the ones before it out.
+        val feedError = AtomicReference<Exception?>(null)
         launch(Dispatchers.IO) {
             try {
-                source.streamTo(feed, scanStartTime)
+                source.streamTo(feed, scanStartTime) {
+                    stats.notRead.incrementAndGet()
+                    stats.processed.incrementAndGet()
+                }
+            } catch (e: Exception) {
+                if (e is CancellationException) throw e
+                feedError.set(e)
             } finally {
                 feed.close()
             }
@@ -77,8 +88,7 @@ internal class SmsScanPipeline(
         val balanceUpdates = Channel<DeferredBalanceUpdate>(Channel.BUFFERED)
         val balanceUpdater = launch(Dispatchers.IO) {
             for (update in balanceUpdates) {
-                try { writer.applyBalanceUpdate(update) }
-                catch (e: Exception) {
+                try { writer.applyBalanceUpdate(update) } catch (e: Exception) {
                     if (e is CancellationException) throw e
                     Log.e(TAG, "Balance update failed: ${e.message}")
                 }
@@ -97,16 +107,24 @@ internal class SmsScanPipeline(
                     val p = stats.processed.incrementAndGet()
                     stats.recordCompletion()
 
+                    // Each message counts in exactly one outcome (see SmsScanCounts).
                     when (result) {
-                        is ParseResult.Discard            -> Unit
+                        is ParseResult.Discard            -> stats.discarded.incrementAndGet()
                         is ParseResult.StoreUnrecognized  -> {
+                            stats.unrecognised.incrementAndGet()
                             unrecognizedBatch.add(result.sms)
                             if (unrecognizedBatch.size >= UNRECOGNIZED_BATCH_SIZE)
-                                writer.flushUnrecognizedBatch(unrecognizedBatch, isTaught)
+                                flushUnrecognized(unrecognizedBatch, stats)
                         }
                         is ParseResult.SpecialNotification -> {
-                            try { result.onSave() }
-                            catch (e: Exception) { Log.e(TAG, "Error saving special notification: ${e.message}") }
+                            try {
+                                result.onSave()
+                                stats.special.incrementAndGet()
+                            } catch (e: Exception) {
+                                if (e is CancellationException) throw e
+                                Log.e(TAG, "Error saving special notification: ${e.message}")
+                                stats.failed.incrementAndGet()
+                            }
                         }
                         is ParseResult.Transaction -> {
                             stats.parsed.incrementAndGet()
@@ -124,7 +142,8 @@ internal class SmsScanPipeline(
                                     SaveOutcome.SKIPPED_DUPLICATE -> {
                                         stats.duplicates.incrementAndGet()
                                     }
-                                    SaveOutcome.SKIPPED -> Unit
+                                    SaveOutcome.EXCLUDED -> stats.excluded.incrementAndGet()
+                                    SaveOutcome.FAILED -> stats.failed.incrementAndGet()
                                 }
                             } finally {
                                 Trace.endSection()
@@ -142,7 +161,7 @@ internal class SmsScanPipeline(
                 Trace.endSection()
             }
 
-            if (unrecognizedBatch.isNotEmpty()) writer.flushUnrecognizedBatch(unrecognizedBatch, isTaught)
+            if (unrecognizedBatch.isNotEmpty()) flushUnrecognized(unrecognizedBatch, stats)
             if (widgetNeedsUpdate) {
                 onTransactionsChanged()
             }
@@ -151,5 +170,17 @@ internal class SmsScanPipeline(
         saver.join()
         balanceUpdates.close()
         balanceUpdater.join()
+        // Not a finished scan: the caller must neither record a success nor move the cursor.
+        val readError = feedError.get()
+        if (readError != null) throw readError
+    }
+
+    /** What couldn't be filed moves from unrecognised to failed, so the cursor stays put. */
+    private suspend fun flushUnrecognized(batch: ArrayList<ScannedSms>, stats: ProcessingStats) {
+        val lost = writer.flushUnrecognizedBatch(batch, isTaught)
+        if (lost > 0) {
+            stats.unrecognised.addAndGet(-lost)
+            stats.failed.addAndGet(lost)
+        }
     }
 }

@@ -7,6 +7,7 @@
     <string name="calendar_back">رجوع</string>
     <string name="calendar_previous_month">الشهر السابق</string>
     <string name="calendar_next_month">الشهر التالي</string>
+    <!-- Toolbar button that jumps back to the current month -->
     <string name="calendar_this_month">هذا الشهر</string>
     <string name="calendar_legend_due">دفعة مستحقة</string>
     <!-- The ends of the shading scale under the calendar: less spent on a day, more spent -->
@@ -15,7 +16,6 @@
     <!-- %1$s = a month, e.g. "November 2026" -->
     <string name="calendar_empty_headline">لا إنفاق ولا مستحقات في %1$s</string>
     <string name="calendar_empty_body">يظهر هنا إنفاقك من رسائل البنك، والاشتراكات والدفعات المتكررة وفواتير البطاقات التي تتابعها.</string>
-
     <!-- Read out for a day; %1$s = what was spent, e.g. "₹500" or "₹500, $10" -->
     <string name="calendar_day_spent">أنفقت %1$s</string>
     <plurals name="calendar_day_due">
@@ -27,13 +27,12 @@
         <item quantity="other">%d دفعة مستحقة</item>
     </plurals>
     <string name="calendar_day_today">اليوم</string>
-    <!-- A weekday and a date; %1$s = the weekday, %2$s = the date -->
+    <!-- A weekday and a date, e.g. "Monday, 16 Nov 2026"; %1$s = the weekday, %2$s = the date -->
     <string name="calendar_day_date">%1$s، %2$s</string>
-
     <!-- The sheet for one day -->
     <string name="calendar_day_section_spent">المصروف</string>
     <string name="calendar_day_section_due">المستحق</string>
-    <!-- %1$s = a currency code, e.g. "INR" -->
+    <!-- Opens that day's transactions in one currency, the net spend beside it; %1$s = a currency code, e.g. "INR" -->
     <string name="calendar_day_transactions">معاملات %1$s</string>
     <string name="calendar_day_empty">لا إنفاق ولا مستحقات في هذا اليوم.</string>
     <string name="calendar_kind_subscription">اشتراك</string>

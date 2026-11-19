@@ -26,7 +26,8 @@ class AddSubscriptionUseCase @Inject constructor(
         direction: SubscriptionDirection = SubscriptionDirection.EXPENSE,
         bankName: String? = null,
         accountLast4: String? = null,
-        totalPayments: Int? = null
+        totalPayments: Int? = null,
+        paymentsMade: Int = 0
     ): Long {
         Log.d("AddSubscriptionUseCase", "Creating subscription entity...")
 
@@ -47,7 +48,8 @@ class AddSubscriptionUseCase @Inject constructor(
             updatedAt = LocalDateTime.now(),
             direction = direction,
             billingCycle = billingCycle,
-            totalPayments = totalPayments
+            totalPayments = totalPayments,
+            paymentsMade = if (totalPayments == null) 0 else paymentsMade
         )
 
         Log.d("AddSubscriptionUseCase", "Subscription entity created: $subscription")

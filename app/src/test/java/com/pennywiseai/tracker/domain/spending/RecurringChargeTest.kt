@@ -181,4 +181,15 @@ class RecurringChargeTest {
         assertEquals(0, BigDecimal.ZERO.compareTo(RecurringCharge.amountLeft(plan(total = 2, made = 3))))
         assertNull(RecurringCharge.amountLeft(plan(total = null, made = 0)))
     }
+
+    @Test
+    fun `a plan added 3 payments in owes 9 and counts on from 3`() {
+        val midWay = plan(total = 12, made = 3)
+
+        assertEquals(BigDecimal("1500.50").multiply(BigDecimal(9)), RecurringCharge.amountLeft(midWay))
+        val fourth = RecurringCharge.afterPayment(midWay, LocalDate.of(2026, 12, 5), LocalDate.of(2027, 1, 5))
+        assertEquals(4, fourth.paymentsMade)
+        assertEquals(SubscriptionState.ACTIVE, fourth.state)
+        assertEquals(BigDecimal("1500.50").multiply(BigDecimal(8)), RecurringCharge.amountLeft(fourth))
+    }
 }

@@ -320,6 +320,24 @@ fun SubscriptionTabContent(
                     shape = subFullShape,
                     colors = subFilledColors()
                 )
+                // A plan added after it started: "3 of 12 paid", not "0 of 12".
+                if (uiState.totalPayments.isNotEmpty()) {
+                    TextField(
+                        value = uiState.paymentsMade,
+                        onValueChange = viewModel::updateSubscriptionPaymentsMade,
+                        label = { Text(stringResource(R.string.add_sub_already_paid), fontWeight = FontWeight.SemiBold) },
+                        isError = uiState.paymentsMadeError,
+                        supportingText = if (uiState.paymentsMadeError) {
+                            { Text(stringResource(R.string.add_sub_already_paid_error)) }
+                        } else null,
+                        leadingIcon = { Icon(Icons.Default.CheckCircle, contentDescription = null) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = subFullShape,
+                        colors = subFilledColors()
+                    )
+                }
             }
 
             // Service Name + Category + Notes (connected group)

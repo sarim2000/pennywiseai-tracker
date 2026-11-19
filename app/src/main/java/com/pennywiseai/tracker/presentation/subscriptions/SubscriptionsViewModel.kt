@@ -243,6 +243,7 @@ class SubscriptionsViewModel @Inject constructor(
         account: AccountBalanceEntity?,
         accountChanged: Boolean,
         totalPayments: Int?,
+        paymentsMade: Int,
     ) {
         viewModelScope.launch {
             val existing = subscriptionRepository.getSubscriptionById(id) ?: return@launch
@@ -262,7 +263,7 @@ class SubscriptionsViewModel @Inject constructor(
                     accountLast4 = if (accountChanged) account?.accountLast4 else existing.accountLast4,
                     // The count runs only while the plan has an end, so removing the end resets it.
                     totalPayments = totalPayments,
-                    paymentsMade = if (totalPayments == null) 0 else existing.paymentsMade,
+                    paymentsMade = if (totalPayments == null) 0 else paymentsMade,
                     updatedAt = java.time.LocalDateTime.now()
                 )
             )

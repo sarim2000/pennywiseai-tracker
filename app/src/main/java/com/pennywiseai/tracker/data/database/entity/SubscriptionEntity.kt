@@ -104,8 +104,9 @@ data class SubscriptionEntity(
     val totalPayments: Int? = null,
 
     /**
-     * Payments recorded since [totalPayments] was set: a matched bank charge,
-     * mark-paid or a linked payment. Always 0 while [totalPayments] is null.
+     * Payments made on the plan: the "already paid" entered for one added part
+     * way through, plus each payment recorded since (a matched bank charge,
+     * mark-paid or a linked payment). Always 0 while [totalPayments] is null.
      */
     @ColumnInfo(name = "payments_made", defaultValue = "0")
     val paymentsMade: Int = 0,

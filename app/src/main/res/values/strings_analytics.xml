@@ -300,8 +300,6 @@
     <string name="subscriptions_edit_pick_account">Pick account</string>
     <string name="subscriptions_edit_save">Save</string>
     <string name="subscriptions_edit_ends_after">Ends after (payments, optional)</string>
-    <!-- %1$d = payments recorded on a plan so far -->
-    <string name="subscriptions_edit_paid_so_far">%1$d paid so far</string>
 
     <!-- A plan that ends after a set number of payments (#1061). %1$d = paid, %2$d = total, %3$s = amount left -->
     <string name="subscriptions_payments_progress">%1$d of %2$d paid · %3$s left</string>

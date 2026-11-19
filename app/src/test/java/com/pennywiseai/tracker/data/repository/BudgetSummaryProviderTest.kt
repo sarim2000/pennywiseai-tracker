@@ -29,10 +29,11 @@ class BudgetSummaryProviderTest {
     private val today = LocalDate.of(2026, 11, 16)
     private val window = BudgetWindow(LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 30), 30)
 
-    private fun budget(id: Long, name: String, vararg categories: String) = BudgetWithCategories(
+    private fun budget(id: Long, name: String, vararg categories: String, rollover: Boolean = false) = BudgetWithCategories(
         BudgetEntity(
             id = id, name = name, limitAmount = BigDecimal("500"), periodType = BudgetPeriodType.MONTHLY,
-            startDate = window.start, endDate = window.end, groupType = BudgetGroupType.LIMIT
+            startDate = window.start, endDate = window.end, groupType = BudgetGroupType.LIMIT,
+            rolloverEnabled = rollover, rolloverSince = window.start
         ),
         categories.map { BudgetCategoryEntity(budgetId = id, categoryName = it) }
     )
@@ -199,5 +200,33 @@ class BudgetSummaryProviderTest {
             mapOf("Everything" to false),
             flags(provider(false, listOf(all), listOf(tx(1, "10", "Others", "USD", TransactionType.INCOME))))
         )
+    }
+
+    @Test
+    fun `unified - a rollover budget is incomplete for its sub-category's spending with no rate`() {
+        // Rollover credits Groceries to Food, so its total leaves the row out and says so.
+        val food = runBlocking {
+            provider(
+                unified = true,
+                budgets = listOf(budget(1, "Food", "Food", rollover = true)),
+                transactions = listOf(tx(1, "10", "Groceries", "XYZ"), tx(2, "20", "Groceries", "USD")),
+                parentOf = mapOf("Groceries" to "Food")
+            ).summary(YearMonth.from(today), flagUncounted = true).first().groups.single()
+        }
+        assertEquals(0, BigDecimal("20").compareTo(food.totalActual))
+        assertTrue(food.hasUnconvertedSpend)
+    }
+
+    @Test
+    fun `base currency only - a rollover budget is incomplete for its sub-category's other currency`() {
+        val flags = flags(
+            provider(
+                unified = false,
+                budgets = listOf(budget(1, "Food", "Food", rollover = true), budget(2, "Fun", "Fun", rollover = true)),
+                transactions = listOf(tx(1, "10", "Groceries", "USD"), tx(2, "20", "Fun", "JOD")),
+                parentOf = mapOf("Groceries" to "Food")
+            )
+        )
+        assertEquals(mapOf("Food" to true, "Fun" to false), flags)
     }
 }

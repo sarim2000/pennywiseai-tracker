@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.ui.theme
 
 import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.luminance
 import java.util.concurrent.ConcurrentHashMap
@@ -12,8 +13,11 @@ import java.util.concurrent.ConcurrentHashMap
 /** WCAG AA floor for normal-size text. */
 const val TEXT_CONTRAST = 4.5f
 
-/** What a nudged colour aims for, so 8-bit rounding never lands it under [TEXT_CONTRAST]. */
-private const val TEXT_CONTRAST_TARGET = 4.6f
+/** WCAG AA floor (1.4.11) for icons and chart marks you need to see. */
+const val GRAPHIC_CONTRAST = 3f
+
+/** How far past its floor a nudged colour aims, so 8-bit rounding never lands it under. */
+private const val NUDGE_MARGIN = 0.1f
 
 /** WCAG 2.x contrast ratio between two opaque colours, from 1 to 21. */
 fun contrastRatio(a: Color, b: Color): Float {
@@ -45,23 +49,40 @@ private val readableCache = ConcurrentHashMap<List<ULong>, Color>()
 
 /**
  * This colour, moved toward black or white (in Oklab, so the hue holds) just far enough
- * to read at [TEXT_CONTRAST] on every one of [backgrounds]. Unchanged when it already does,
- * so a palette that passes keeps its exact colours.
+ * to read at [minimum] on every one of [backgrounds]. Unchanged when it already does,
+ * so a palette that passes keeps its exact colours. Pass [GRAPHIC_CONTRAST] for an icon
+ * or chart mark, so it keeps more of its hue than text would. Results are cached, so
+ * nudge an animation's target, never its in-between frames.
+ *
+ * Meant for [backgrounds] of one tone (a surface and washes over it). If they straddle
+ * mid-grey so that not even pure black or white reaches [minimum], it gives the better of the two.
  */
-fun Color.readableOn(backgrounds: List<Color>): Color {
+fun Color.readableOn(backgrounds: List<Color>, minimum: Float = TEXT_CONTRAST): Color {
     fun minContrast(c: Color) = backgrounds.minOf { contrastRatio(c, it) }
-    if (minContrast(this) >= TEXT_CONTRAST) return this
+    if (minContrast(this) >= minimum) return this
     // ponytail: unbounded in theory, but keys are (token × scheme) — a few hundred at most.
-    return readableCache.getOrPut(listOf(value) + backgrounds.map { it.value }) {
+    return readableCache.getOrPut(listOf(value, minimum.toRawBits().toULong()) + backgrounds.map { it.value }) {
         val end = if (minContrast(Color.Black) >= minContrast(Color.White)) Color.Black else Color.White
         var lo = 0f
         var hi = 1f
         repeat(16) {
             val mid = (lo + hi) / 2
-            if (minContrast(lerp(this, end, mid)) >= TEXT_CONTRAST_TARGET) hi = mid else lo = mid
+            if (minContrast(lerp(this, end, mid)) >= minimum + NUDGE_MARGIN) hi = mid else lo = mid
         }
         lerp(this, end, hi)
     }
+}
+
+/**
+ * [color] as ink on a pill, chip or circle filled with an [alpha] wash of itself. The
+ * wash pulls the background toward the ink, so a colour sitting at 4.5:1 on the bare
+ * surface drops to ~4:1 on it; this nudges it back, whatever neutral surface is behind.
+ * Pass [GRAPHIC_CONTRAST] as [minimum] for an icon. The ink comes back opaque: contrast is
+ * measured on opaque colours, so a translucent [color] is drawn at full strength.
+ */
+fun ColorScheme.inkOnWash(color: Color, alpha: Float, minimum: Float = TEXT_CONTRAST): Color {
+    val ink = color.copy(alpha = 1f)
+    return ink.readableOn(neutralSurfaces.map { ink.copy(alpha = alpha).compositeOver(it) }, minimum)
 }
 
 /**

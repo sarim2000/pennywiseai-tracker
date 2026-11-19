@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.ui.theme
 
 import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import com.pennywiseai.tracker.data.preferences.AccentColor
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -38,6 +39,39 @@ class SchemeContrastTest {
         val nudged = Color(0xFFFFB74D).readableOn(white) // amber is 1.8:1 on white
         assertTrue(contrastRatio(nudged, Color.White) >= TEXT_CONTRAST)
         assertTrue("moved toward black, not to it", nudged != Color.Black)
+    }
+
+    @Test
+    fun readableOn_graphicFloor_stopsAt3To1_keepingMoreHue() {
+        val white = listOf(Color.White)
+        val grey = Color(0xFF9E9E9E) // a category colour, ~2.7:1 on white
+        val icon = grey.readableOn(white, GRAPHIC_CONTRAST)
+        assertTrue(contrastRatio(icon, Color.White) >= GRAPHIC_CONTRAST)
+        assertTrue("an icon needs less nudging than text", contrastRatio(icon, Color.White) < TEXT_CONTRAST)
+    }
+
+    @Test
+    fun inkOnWash_readsOnAWashOfItself_inEveryScheme() {
+        val failures = schemes.flatMap { (name, scheme) ->
+            listOf(scheme.income, scheme.loan, scheme.transfer).flatMap { semantic ->
+                val ink = scheme.inkOnWash(semantic, 0.25f)
+                scheme.neutralSurfaces.mapNotNull { bg ->
+                    val ratio = contrastRatio(ink, semantic.copy(alpha = 0.25f).compositeOver(bg))
+                    if (ratio < TEXT_CONTRAST) "$name: ${"%.2f".format(ratio)}" else null
+                }
+            }
+        }
+        assertTrue(failures.joinToString("\n"), failures.isEmpty())
+    }
+
+    @Test
+    fun inkOnWash_givesOpaqueInk_evenForATranslucentColour() {
+        // 20% black would pass as black and render at ~1.6:1 on its own wash.
+        val ink = LightColorScheme.inkOnWash(Color.Black.copy(alpha = 0.2f), 0.1f)
+        assertEquals(1f, ink.alpha)
+        LightColorScheme.neutralSurfaces.forEach { bg ->
+            assertTrue(contrastRatio(ink, Color.Black.copy(alpha = 0.1f).compositeOver(bg)) >= TEXT_CONTRAST)
+        }
     }
 
     @Test

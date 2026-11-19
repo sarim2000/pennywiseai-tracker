@@ -2,8 +2,11 @@ package com.pennywiseai.tracker.presentation.chat
 
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsFocusedAsState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -33,6 +36,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDirection
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
@@ -260,6 +264,9 @@ fun ChatScreen(
                                 text = stringResource(R.string.chat_draft_waiting, draft.text),
                                 style = MaterialTheme.typography.bodyMedium.copy(textDirection = TextDirection.Content),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                // Bounded: a long draft at a large font scale mustn't push Download off screen.
+                                maxLines = 3,
+                                overflow = TextOverflow.Ellipsis,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .padding(horizontal = Dimensions.Padding.content, vertical = Spacing.sm)
@@ -773,10 +780,14 @@ private fun ChatComposer(
     modifier: Modifier = Modifier
 ) {
     val clear = Color.Transparent
+    val interactionSource = remember { MutableInteractionSource() }
+    val focused by interactionSource.collectIsFocusedAsState()
     Surface(
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh
+        color = MaterialTheme.colorScheme.surfaceContainerHigh,
+        // The underline is hidden, so focus shows as an accent outline on the pill instead.
+        border = if (focused) BorderStroke(TextFieldDefaults.FocusedIndicatorThickness, MaterialTheme.colorScheme.primary) else null
     ) {
         Row(
             modifier = Modifier.padding(end = Spacing.xs),
@@ -792,6 +803,7 @@ private fun ChatComposer(
                 enabled = enabled,
                 readOnly = readOnly,
                 trailingIcon = trailing,
+                interactionSource = interactionSource,
                 maxLines = 3,
                 // Arabic from the mic (or typed) reads right to left.
                 textStyle = LocalTextStyle.current.copy(textDirection = TextDirection.Content),
@@ -1147,8 +1159,9 @@ fun ChatMessageItem(
                 Text(
                     text = timeFormat.format(Date(message.timestamp)),
                     style = MaterialTheme.typography.labelSmall,
+                    // Full-opacity ink: dimming onPrimary drops a small label below 4.5:1 on some accents.
                     color = if (isUser)
-                        MaterialTheme.colorScheme.onPrimary.copy(alpha = Dimensions.Alpha.subtitle)
+                        MaterialTheme.colorScheme.onPrimary
                     else
                         MaterialTheme.colorScheme.onSurfaceVariant
                 )

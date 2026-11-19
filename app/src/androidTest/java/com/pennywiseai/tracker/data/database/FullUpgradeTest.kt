@@ -126,6 +126,26 @@ class FullUpgradeTest {
         } finally { db.close() }
     }
 
+    @Test fun upgradeFrom69LeavesRolloverOff() = runBlocking {
+        helper.createDatabase(69).apply {
+            execSQL("""INSERT INTO budgets (id, name, limit_amount, period_type, start_date, end_date,
+                created_at, updated_at) VALUES
+                (1, 'Groceries', '500', 'WEEKLY', '2026-01-05', '2026-01-11', '2026-01-01T10:00:00', '2026-01-01T10:00:00')""")
+            close()
+        }
+
+        val db = Room.databaseBuilder(instrumentation.targetContext, PennyWiseDatabase::class.java, NAME)
+            .addMigrations(*PennyWiseMigrations.ALL_MIGRATIONS)
+            .setDriver(AndroidSQLiteDriver())
+            .build()
+        try {
+            val budget = db.budgetDao().getBudgetById(1)!!
+            assertEquals(0, BigDecimal("500").compareTo(budget.limitAmount))
+            assertEquals(false, budget.rolloverEnabled)
+            assertNull(budget.rolloverSince)
+        } finally { db.close() }
+    }
+
     @Test fun upgradeFrom69LeavesSubscriptionsRenewing() = runBlocking {
         helper.createDatabase(69).apply {
             execSQL("""INSERT INTO subscriptions (id, merchant_name, amount, next_payment_date, state, created_at,

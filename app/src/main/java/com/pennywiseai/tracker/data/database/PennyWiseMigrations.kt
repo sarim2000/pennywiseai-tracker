@@ -599,10 +599,25 @@ object PennyWiseMigrations {
     }
 
     /**
+     * A budget's rollover setting on `budgets`: off for every existing budget. Plain
+     * ADD COLUMNs that SQLite 3.18 runs.
+     */
+    val MIGRATION_69_70 = object : Migration(69, 70) {
+        override suspend fun migrate(db: SQLiteConnection) {
+            if (!db.hasColumn("budgets", "rollover_enabled")) {
+                db.execSQL("ALTER TABLE budgets ADD COLUMN rollover_enabled INTEGER NOT NULL DEFAULT 0")
+            }
+            if (!db.hasColumn("budgets", "rollover_since")) {
+                db.execSQL("ALTER TABLE budgets ADD COLUMN rollover_since TEXT DEFAULT NULL")
+            }
+        }
+    }
+
+    /**
      * A recurring item that ends after a set number of payments (#1061). Plain ADD
      * COLUMNs that SQLite 3.18 runs; existing rows recur as before (no end, none counted).
      */
-    val MIGRATION_69_70 = object : Migration(69, 70) {
+    val MIGRATION_70_71 = object : Migration(70, 71) {
         override suspend fun migrate(db: SQLiteConnection) {
             if (!db.hasColumn("subscriptions", "total_payments")) {
                 db.execSQL("ALTER TABLE subscriptions ADD COLUMN total_payments INTEGER DEFAULT NULL")
@@ -651,6 +666,7 @@ object PennyWiseMigrations {
         MIGRATION_67_68,
         MIGRATION_68_69,
         MIGRATION_69_70,
+        MIGRATION_70_71,
     )
 }
 

@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 70,
-    "identityHash": "542e3c1144eae211a018854d37169092",
+    "identityHash": "46280b950583905af3d25c8e89cbf0ef",
     "entities": [
       {
         "tableName": "transactions",
@@ -222,7 +222,7 @@
       },
       {
         "tableName": "subscriptions",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `merchant_name` TEXT NOT NULL, `amount` TEXT NOT NULL, `next_payment_date` TEXT, `state` TEXT NOT NULL, `bank_name` TEXT, `account_last4` TEXT, `umn` TEXT, `category` TEXT, `sms_body` TEXT, `created_at` TEXT NOT NULL, `updated_at` TEXT NOT NULL, `currency` TEXT NOT NULL DEFAULT 'INR', `direction` TEXT NOT NULL DEFAULT 'EXPENSE', `billing_cycle` TEXT NOT NULL DEFAULT 'Monthly', `last_paid_at` TEXT, `total_payments` INTEGER DEFAULT NULL, `payments_made` INTEGER NOT NULL DEFAULT 0)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `merchant_name` TEXT NOT NULL, `amount` TEXT NOT NULL, `next_payment_date` TEXT, `state` TEXT NOT NULL, `bank_name` TEXT, `account_last4` TEXT, `umn` TEXT, `category` TEXT, `sms_body` TEXT, `created_at` TEXT NOT NULL, `updated_at` TEXT NOT NULL, `currency` TEXT NOT NULL DEFAULT 'INR', `direction` TEXT NOT NULL DEFAULT 'EXPENSE', `billing_cycle` TEXT NOT NULL DEFAULT 'Monthly', `last_paid_at` TEXT)",
         "fields": [
           {
             "fieldPath": "id",
@@ -315,19 +315,6 @@
             "fieldPath": "lastPaidAt",
             "columnName": "last_paid_at",
             "affinity": "TEXT"
-          },
-          {
-            "fieldPath": "totalPayments",
-            "columnName": "total_payments",
-            "affinity": "INTEGER",
-            "defaultValue": "NULL"
-          },
-          {
-            "fieldPath": "paymentsMade",
-            "columnName": "payments_made",
-            "affinity": "INTEGER",
-            "notNull": true,
-            "defaultValue": "0"
           }
         ],
         "primaryKey": {
@@ -1208,7 +1195,7 @@
       },
       {
         "tableName": "budgets",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `limit_amount` TEXT NOT NULL, `period_type` TEXT NOT NULL, `start_date` TEXT NOT NULL, `end_date` TEXT NOT NULL, `weekday_anchor` INTEGER, `month_anchor` INTEGER, `currency` TEXT NOT NULL DEFAULT 'INR', `is_active` INTEGER NOT NULL DEFAULT 1, `include_all_categories` INTEGER NOT NULL DEFAULT 0, `color` TEXT NOT NULL DEFAULT '#1565C0', `group_type` TEXT NOT NULL DEFAULT 'LIMIT', `display_order` INTEGER NOT NULL DEFAULT 0, `created_at` TEXT NOT NULL, `updated_at` TEXT NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `name` TEXT NOT NULL, `limit_amount` TEXT NOT NULL, `period_type` TEXT NOT NULL, `start_date` TEXT NOT NULL, `end_date` TEXT NOT NULL, `weekday_anchor` INTEGER, `month_anchor` INTEGER, `currency` TEXT NOT NULL DEFAULT 'INR', `is_active` INTEGER NOT NULL DEFAULT 1, `include_all_categories` INTEGER NOT NULL DEFAULT 0, `color` TEXT NOT NULL DEFAULT '#1565C0', `group_type` TEXT NOT NULL DEFAULT 'LIMIT', `display_order` INTEGER NOT NULL DEFAULT 0, `created_at` TEXT NOT NULL, `updated_at` TEXT NOT NULL, `rollover_enabled` INTEGER NOT NULL DEFAULT 0, `rollover_since` TEXT DEFAULT NULL)",
         "fields": [
           {
             "fieldPath": "id",
@@ -1309,6 +1296,19 @@
             "columnName": "updated_at",
             "affinity": "TEXT",
             "notNull": true
+          },
+          {
+            "fieldPath": "rolloverEnabled",
+            "columnName": "rollover_enabled",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "defaultValue": "0"
+          },
+          {
+            "fieldPath": "rolloverSince",
+            "columnName": "rollover_since",
+            "affinity": "TEXT",
+            "defaultValue": "NULL"
           }
         ],
         "primaryKey": {
@@ -2738,7 +2738,7 @@
     ],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '542e3c1144eae211a018854d37169092')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '46280b950583905af3d25c8e89cbf0ef')"
     ]
   }
 }

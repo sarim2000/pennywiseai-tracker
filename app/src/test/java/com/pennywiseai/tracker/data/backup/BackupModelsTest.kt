@@ -690,6 +690,52 @@ class BackupModelsTest {
         assertEquals(card, restored)
     }
 
+    /** A backup from before schema 70 has no rollover: the budget restores with it off. */
+    @Test
+    fun oldBackupMissingRollover_defaultsToOff() {
+        val json = """
+        {
+          "database": {
+            "budgets": [
+              {
+                "id": 1,
+                "name": "Groceries",
+                "limitAmount": "500",
+                "periodType": "WEEKLY",
+                "startDate": "2024-01-01",
+                "endDate": "2024-01-07"
+              }
+            ]
+          }
+        }
+        """.trimIndent()
+
+        val legacy = backupJson.decodeFromString<PennyWiseBackup>(json).database.budgets.single()
+
+        assertFalse(legacy.rolloverEnabled)
+        assertNull(legacy.rolloverSince)
+    }
+
+    @Test
+    fun rolloverSurvivesBackupRoundtrip() {
+        val budget = BudgetEntity(
+            name = "Groceries",
+            limitAmount = BigDecimal("500"),
+            periodType = BudgetPeriodType.MONTHLY,
+            startDate = LocalDate.of(2024, 2, 1),
+            endDate = LocalDate.of(2024, 2, 29),
+            monthStartDay = 1,
+            createdAt = LocalDateTime.of(2024, 1, 1, 9, 0),
+            updatedAt = LocalDateTime.of(2024, 1, 1, 9, 0),
+            rolloverEnabled = true,
+            rolloverSince = LocalDate.of(2024, 2, 10),
+        )
+
+        val restored = backupJson.decodeFromString<BudgetEntity>(backupJson.encodeToString(budget))
+
+        assertEquals(budget, restored)
+    }
+
     /**
      * #583 regression. An older backup predates the `merchant_aliases` table,
      * so the key is simply absent from the database snapshot. It must default

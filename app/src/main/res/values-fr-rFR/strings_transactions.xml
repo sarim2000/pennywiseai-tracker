@@ -112,7 +112,6 @@
     <string name="txn_detail_label_to">À</string>
     <string name="txn_detail_label_balance">Solde</string>
     <string name="txn_detail_label_balance_mismatch">Incompatibilité du solde</string>
-    <string name="txn_detail_balance_mismatch_value">Désactivé par %1$s · attendu %2$s</string>
     <string name="txn_detail_add_untracked_expense">Ajouter une dépense %1$s sans suivi</string>
     <string name="txn_detail_add_untracked_income">Ajouter un revenu %1$s non suivi</string>
     <string name="txn_detail_adjustment_title_expense">Dépense non suivie</string>

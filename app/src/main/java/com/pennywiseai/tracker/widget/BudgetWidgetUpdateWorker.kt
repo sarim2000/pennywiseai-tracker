@@ -12,20 +12,22 @@ import androidx.work.WorkManager
 import androidx.work.WorkerParameters
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
-import com.pennywiseai.tracker.data.database.entity.BudgetWithCategories
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
+import com.pennywiseai.tracker.data.database.entity.BudgetWithCategories
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.BudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
-import com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
+import com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending
+import com.pennywiseai.tracker.data.repository.budgetPercentUsed
+import com.pennywiseai.tracker.data.repository.budgetSpend
 import com.pennywiseai.tracker.domain.model.BudgetCycle
-import java.math.BigDecimal
-import java.math.RoundingMode
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
+import java.math.BigDecimal
+import java.math.RoundingMode
 import java.util.concurrent.TimeUnit
 
 @HiltWorker
@@ -138,6 +140,12 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
 
                 val groupSpendingList = raw.budgetsWithCategories.map { group ->
                     val isTrackingAll = group.categories.isEmpty()
+                    // A rollover budget counts its own window, as on Budgets: its spending
+                    // and its Extra budget, so the carry isn't set against a month of a
+                    // weekly budget's figures.
+                    val rolloverSpend = if (group.budget.rolloverEnabled) {
+                        budgetSpend(group, raw.currentWindowTransactions(group.budget.id).orEmpty(), raw.parentOf, convertSplit)
+                    } else null
                     val catSpending = group.categories.map { cat ->
                         val actual = if (cat.matchType != null) {
                             typeAmounts[cat.matchType] ?: BigDecimal.ZERO
@@ -145,8 +153,8 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                             categoryAmounts[cat.categoryName] ?: BigDecimal.ZERO
                         }
                         val convertedBudget = currencyConversionService.convertAmount(cat.budgetAmount, baseCurrency, displayCurrency)
-                        val boost = if (cat.matchType != null) BigDecimal.ZERO
-                            else categoryLimitBoosts[cat.categoryName] ?: BigDecimal.ZERO
+                        val boost = if (cat.matchType != null || rolloverSpend != null) BigDecimal.ZERO
+                        else categoryLimitBoosts[cat.categoryName] ?: BigDecimal.ZERO
                         BudgetCategorySpending(cat.categoryName, convertedBudget + boost, actual, 0f, BigDecimal.ZERO)
                     }
                     val convertedGroupLimit = currencyConversionService.convertAmount(
@@ -156,12 +164,20 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                     // is the source of truth when set (including when
                     // isTrackingAll), with the per-cat sum as a fallback for
                     // budgets that only define per-cat amounts.
-                    val totalBudget = if (convertedGroupLimit > BigDecimal.ZERO) {
-                        convertedGroupLimit
-                    } else {
-                        catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
+                    // Rollover: the same carry the Budgets screen and Home add.
+                    val carry = raw.carryFor(group, displayCurrency, baseCurrency) { fromCurrency, amount ->
+                        currencyConversionService.convertAmountOrNull(amount, fromCurrency, displayCurrency)
                     }
-                    val totalActual = if (isTrackingAll) {
+                    val totalBudget = carry.appliedTo(
+                        if (convertedGroupLimit > BigDecimal.ZERO) {
+                            convertedGroupLimit
+                        } else {
+                            catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount } + (rolloverSpend?.boost ?: BigDecimal.ZERO)
+                        }
+                    )
+                    val totalActual = if (rolloverSpend != null) {
+                        rolloverSpend.amount
+                    } else if (isTrackingAll) {
                         categoryAmounts.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
                     } else {
                         catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
@@ -176,7 +192,9 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                         BigDecimal.ZERO,
                         raw.daysRemaining,
                         raw.daysElapsed,
-                        isTrackingAllExpenses = isTrackingAll
+                        isTrackingAllExpenses = isTrackingAll,
+                        carry = carry.amount.amount,
+                        carryGap = carry.gap
                     )
                 }
 
@@ -184,9 +202,7 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                 val totalLimitBudget = limitGroups.fold(BigDecimal.ZERO) { acc, g -> acc + g.totalBudget }
                 val totalLimitSpent = limitGroups.fold(BigDecimal.ZERO) { acc, g -> acc + g.totalActual }
                 val limitRemaining = totalLimitBudget - totalLimitSpent
-                val pctUsed = if (totalLimitBudget > BigDecimal.ZERO) {
-                    (totalLimitSpent.toFloat() / totalLimitBudget.toFloat() * 100f).coerceAtLeast(0f)
-                } else 0f
+                val usage = widgetLimitUsage(totalLimitBudget, totalLimitSpent, groupSpendingList)
                 val dailyAllowance = if (raw.daysRemaining > 0 && limitRemaining > BigDecimal.ZERO) {
                     limitRemaining.divide(BigDecimal(raw.daysRemaining), 0, RoundingMode.HALF_UP)
                 } else BigDecimal.ZERO
@@ -239,8 +255,9 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                 BudgetWidgetData(
                     totalSpent = totalLimitSpent,
                     totalLimit = totalLimitBudget,
+                    hasLimit = usage.hasLimit,
                     remaining = limitRemaining,
-                    percentageUsed = pctUsed,
+                    percentageUsed = usage.percentageUsed,
                     dailyAllowance = dailyAllowance,
                     totalIncome = totalIncome,
                     netSavings = netSavings,
@@ -261,15 +278,14 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                 val savingsDelta = spending.netSavings - prevSpending.netSavings
 
                 val limitRemaining = spending.totalLimitBudget - spending.totalLimitSpent
-                val pctUsed = if (spending.totalLimitBudget > java.math.BigDecimal.ZERO) {
-                    (spending.totalLimitSpent.toFloat() / spending.totalLimitBudget.toFloat() * 100f).coerceAtLeast(0f)
-                } else 0f
+                val usage = widgetLimitUsage(spending.totalLimitBudget, spending.totalLimitSpent, spending.groups)
 
                 BudgetWidgetData(
                     totalSpent = spending.totalLimitSpent,
                     totalLimit = spending.totalLimitBudget,
+                    hasLimit = usage.hasLimit,
                     remaining = limitRemaining,
-                    percentageUsed = pctUsed,
+                    percentageUsed = usage.percentageUsed,
                     dailyAllowance = spending.dailyAllowance,
                     totalIncome = spending.totalIncome,
                     netSavings = spending.netSavings,
@@ -289,4 +305,18 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
             Result.retry()
         }
     }
+}
+
+internal data class WidgetLimitUsage(val percentageUsed: Float, val hasLimit: Boolean)
+
+/**
+ * How much of the page's spending limits ([budget] with every carry in it, [spent]:
+ * the totals the widget shows) is used. Rollover can carry every limit down to 0:
+ * that's used up, not "no budget". [groups] give the carries; a budget left out of
+ * the totals (a one-time budget that already ended) has no window and carries nothing.
+ */
+internal fun widgetLimitUsage(budget: BigDecimal, spent: BigDecimal, groups: List<BudgetGroupSpending>): WidgetLimitUsage {
+    val carry = groups.filter { it.group.budget.groupType == BudgetGroupType.LIMIT }
+        .fold(BigDecimal.ZERO) { acc, g -> acc + g.carry }
+    return WidgetLimitUsage(budgetPercentUsed(spent, budget, carry), (budget - carry).signum() > 0)
 }

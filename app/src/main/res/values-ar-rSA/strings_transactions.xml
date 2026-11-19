@@ -129,7 +129,6 @@
     <string name="txn_detail_label_to">إلى</string>
     <string name="txn_detail_label_balance">الرصيد</string>
     <string name="txn_detail_label_balance_mismatch">عدم تطابق الرصيد</string>
-    <string name="txn_detail_balance_mismatch_value">فرق %1$s · المتوقع %2$s</string>
     <string name="txn_detail_add_untracked_expense">إضافة %1$s كمصروف غير مسجّل</string>
     <string name="txn_detail_add_untracked_income">إضافة %1$s كدخل غير مسجّل</string>
     <string name="txn_detail_adjustment_title_expense">مصروف غير مسجّل</string>

@@ -15,6 +15,7 @@
 
     <!-- Home sections (headers + edit-home sheet) -->
     <string name="home_section_budgets">Budgets</string>
+    <string name="home_section_unsorted">Needs a category</string>
     <string name="home_section_goals">Goals</string>
     <string name="home_section_loans">Loans</string>
     <string name="home_section_groups">Groups</string>
@@ -363,6 +364,17 @@
     <string name="notif_daily_action_sort">Sort it</string>
     <string name="notif_daily_action_sort_all">Sort them</string>
     <string name="notif_daily_action_cash">+ Cash</string>
+    <!-- Home "Needs a category" card: this month's transactions still in Others -->
+    <plurals name="home_unsorted_title">
+        <item quantity="one">%d transaction this month needs a category</item>
+        <item quantity="other">%d transactions this month need a category</item>
+    </plurals>
+    <plurals name="home_unsorted_body">
+        <item quantity="one">Sort it so only real spending counts.</item>
+        <item quantity="other">Sort them so only real spending counts.</item>
+    </plurals>
+    <!-- %d is how many one round of sorting covers, oldest first -->
+    <string name="home_unsorted_action_batch">Sort the oldest %d</string>
     <!-- Header over a stack of transaction alerts -->
     <plurals name="notif_txn_group_title">
         <item quantity="one">%d new transaction</item>

@@ -6,9 +6,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
@@ -28,11 +26,9 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.semantics.ProgressBarRangeInfo
-import androidx.compose.ui.semantics.progressBarRangeInfo
-import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
+import com.pennywiseai.tracker.ui.components.WavyMeter
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -80,33 +76,16 @@ internal fun PlanHeroAmount(text: String, modifier: Modifier = Modifier, color: 
     )
 }
 
-/**
- * A determinate data meter: flat, like Home's budget card. The wave is kept for
- * work in progress (scans, imports), so a budget never reads as "loading".
- */
+/** A determinate data meter: the app's still wavy bar (see [WavyMeter]). */
 @Composable
 internal fun PlanMeter(
     fraction: Float,
     color: Color,
     trackColor: Color,
     modifier: Modifier = Modifier,
+    dense: Boolean = false,
 ) {
-    Box(
-        modifier = modifier
-            .fillMaxWidth()
-            .semantics { progressBarRangeInfo = ProgressBarRangeInfo(fraction.coerceIn(0f, 1f), 0f..1f) }
-            .height(Dimensions.Component.progressBarHeight)
-            .clip(CircleShape)
-            .background(trackColor),
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(fraction.coerceIn(0f, 1f))
-                .fillMaxHeight()
-                .clip(CircleShape)
-                .background(color),
-        )
-    }
+    WavyMeter(fraction = fraction, color = color, trackColor = trackColor, modifier = modifier, dense = dense)
 }
 
 /** Small tinted pill naming a status: "On track", "Getting close", "Reached". */

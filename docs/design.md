@@ -359,9 +359,15 @@ it by `Dimensions.Component.bottomBarHeight`.
   every currency).
 - **Page / section / dialog loading** → `LoadingIndicator()`. Tiny inline
   spinners inside buttons or rows stay `CircularProgressIndicator`.
-- **Activity progress** (scan, import, export, download) →
-  `LinearWavyProgressIndicator`. **Data meters** (budget used, loan repaid)
-  stay flat `LinearProgressIndicator` — the wave signals *work happening*.
+- **Activity progress** (scan, import, export, download) → the moving,
+  indeterminate or animated `LinearWavyProgressIndicator`. **Data meters**
+  (budget used, goal saved, loan repaid, category share, card utilisation) →
+  `WavyMeter`: a determinate wave that stands still (no travel, no stop dot),
+  `dense = true` in list rows. Glance widgets and tiny goal rings stay flat.
+- **Corners.** No sharp corners: grouped rows join at `shapes.small` (8dp),
+  menus and snackbars use `shapes.large`, filled and outlined text fields use
+  `RoundedField` (all four corners, no underline). Full-bleed bottom sheets keep
+  the library shape (rounded top, flush with the screen edge).
 - Motion comes from `MotionScheme.expressive()` in `PennyWiseTheme`; read
   specs from `MaterialTheme.motionScheme` instead of hand-rolled `tween`s.
   **Spatial** specs (offset, size, scale, rotation) are springs that

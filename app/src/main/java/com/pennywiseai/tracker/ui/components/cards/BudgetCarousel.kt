@@ -1,7 +1,5 @@
 package com.pennywiseai.tracker.ui.components.cards
 
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,8 +25,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.util.lerp
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -39,9 +39,13 @@ fun BudgetCarousel(
     summary: BudgetOverallSummary,
     onClick: () -> Unit = {},
     onCreateBudget: () -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** The budget Home's hero already shows; left out here so it isn't shown twice. */
+    excludeBudgetId: Long? = null
 ) {
-    val groups = summary.groups
+    val groups = summary.groups.filter { it.group.budget.id != excludeBudgetId }
+    // Every budget is already on the hero: nothing to add, and certainly not "create a budget".
+    if (groups.isEmpty() && summary.groups.isNotEmpty()) return
 
     if (groups.isEmpty()) {
         PennyWiseCardV2(
@@ -113,7 +117,7 @@ fun BudgetCarousel(
             ) { page ->
                 val pageOffset = (
                     (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
-                ).absoluteValue
+                    ).absoluteValue
 
                 BudgetCard(
                     groupSpending = groups[page],

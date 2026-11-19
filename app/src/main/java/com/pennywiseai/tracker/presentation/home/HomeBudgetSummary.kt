@@ -217,6 +217,7 @@ internal fun BudgetOverallSummary.heroBudget(today: LocalDate): HomeHeroBudget? 
             it.windowDays > 0 && !today.isBefore(it.windowStart) && !today.isAfter(it.windowEnd)
     }.maxWithOrNull(compareBy({ it.periodType == BudgetPeriodType.MONTHLY }, { it.windowDays })) ?: return null
     return HomeHeroBudget(
+        budgetId = group.group.budget.id,
         name = group.group.budget.name.takeUnless { group.periodType == BudgetPeriodType.MONTHLY },
         spent = group.totalActual,
         limit = group.totalBudget,

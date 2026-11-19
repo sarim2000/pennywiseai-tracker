@@ -56,7 +56,8 @@ enum class ListItemPosition {
 @Composable
 fun ListItemPosition.toShape(): CornerBasedShape {
     val outer = MaterialTheme.shapes.large
-    val inner = MaterialTheme.shapes.extraSmall
+    // Interior joins at 8dp, not the M3 segmented 4dp: no near-square corners anywhere in the app.
+    val inner = MaterialTheme.shapes.small
 
     return when (this) {
         ListItemPosition.Top -> outer.copy(

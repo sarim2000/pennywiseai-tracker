@@ -94,6 +94,8 @@ import java.time.format.TextStyle as DateTextStyle
  */
 @Immutable
 data class HomeHeroBudget(
+    /** The budget's id, so the budget carousel can leave out the one the hero already shows. */
+    val budgetId: Long,
     /** The budget's own name; null for a monthly budget, which the hero names by the month. */
     val name: String?,
     val spent: BigDecimal,

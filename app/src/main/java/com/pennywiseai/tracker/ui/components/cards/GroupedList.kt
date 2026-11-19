@@ -15,8 +15,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemDefaults
-import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.contentColorFor
@@ -35,7 +35,7 @@ import com.pennywiseai.tracker.ui.theme.Spacing
 /**
  * The app's one grouped-list pattern: sibling rows share a tonal surface and
  * are separated by a 2dp gutter, with the outer corners of the block rounded
- * and the interior corners nearly square. The shape does the grouping, so no
+ * and the interior corners softly rounded (8dp). The shape does the grouping, so no
  * dividers are needed.
  *
  * [GroupedList] handles the gutter; each child passes its
@@ -107,7 +107,7 @@ fun GroupedRow(
     }
     // M3 Expressive segmented list item: same resting corners as the static
     // row, plus the native press/focus shape morph (to shapes.large) and
-    // list-item semantics. Its tokens match ours (extraSmall interior,
+    // list-item semantics. Its tokens match ours (small interior,
     // large outer, 2dp gap), so the block looks identical at rest.
     SegmentedListItem(
         onClick = onClick,

@@ -217,6 +217,10 @@ object Dimensions {
          */
         val progressBarHeight = 8.dp
 
+        /** `WavyMeter`: no stop dot and no travel (a still wave), and the calmer wavelength for dense list rows. */
+        val wavyMeterStop = 0.dp
+        val wavyMeterDenseWavelength = 24.dp
+
         /** The "today" tick on a budget meter: stands a little proud of the track so it reads over the fill. */
         val paceTickHeight = 14.dp
         val paceTickWidth = 2.dp

@@ -140,6 +140,12 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
 
                 val groupSpendingList = raw.budgetsWithCategories.map { group ->
                     val isTrackingAll = group.categories.isEmpty()
+                    // A rollover budget counts its own window, as on Budgets: its spending
+                    // and its Extra budget, so the carry isn't set against a month of a
+                    // weekly budget's figures.
+                    val rolloverSpend = if (group.budget.rolloverEnabled) {
+                        budgetSpend(group, raw.currentWindowTransactions(group.budget.id).orEmpty(), raw.parentOf, convertSplit)
+                    } else null
                     val catSpending = group.categories.map { cat ->
                         val actual = if (cat.matchType != null) {
                             typeAmounts[cat.matchType] ?: BigDecimal.ZERO
@@ -147,7 +153,7 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                             categoryAmounts[cat.categoryName] ?: BigDecimal.ZERO
                         }
                         val convertedBudget = currencyConversionService.convertAmount(cat.budgetAmount, baseCurrency, displayCurrency)
-                        val boost = if (cat.matchType != null) BigDecimal.ZERO
+                        val boost = if (cat.matchType != null || rolloverSpend != null) BigDecimal.ZERO
                         else categoryLimitBoosts[cat.categoryName] ?: BigDecimal.ZERO
                         BudgetCategorySpending(cat.categoryName, convertedBudget + boost, actual, 0f, BigDecimal.ZERO)
                     }
@@ -166,13 +172,11 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                         if (convertedGroupLimit > BigDecimal.ZERO) {
                             convertedGroupLimit
                         } else {
-                            catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
+                            catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount } + (rolloverSpend?.boost ?: BigDecimal.ZERO)
                         }
                     )
-                    // A rollover budget counts its own window, as on Budgets, so the carry
-                    // isn't set against a month of a weekly budget's spending.
-                    val totalActual = if (group.budget.rolloverEnabled) {
-                        budgetSpend(group, raw.currentWindowTransactions(group.budget.id).orEmpty(), raw.parentOf, convertSplit).amount
+                    val totalActual = if (rolloverSpend != null) {
+                        rolloverSpend.amount
                     } else if (isTrackingAll) {
                         categoryAmounts.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
                     } else {

@@ -7,6 +7,7 @@ import com.pennywiseai.tracker.data.database.dao.TransactionSplitDao
 import com.pennywiseai.tracker.data.database.entity.BudgetCategoryEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.database.entity.BudgetWithCategories
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
@@ -458,5 +459,21 @@ class BudgetRolloverRoutingTest {
         // Week 2's +100 and week 3's +70 are weeks 1 and 2's own leftovers: already in their limits.
         val history = listOf(week(start, "40"), week(start.plusDays(7), "100"), week(start.plusDays(14), "70"))
         assertEquals(0, BigDecimal("340").compareTo(historyBudgetTotal(group, history)))
+    }
+
+    @Test
+    fun `the widget takes a rollover budget's extra budget from this week only`() = runBlocking {
+        // Category limits only, so Extra budget raises the limit; last week had +50, this week none.
+        val group = budget().let { it.copy(budget = it.budget.copy(limitAmount = BigDecimal.ZERO)) }
+        val boost = spend("50", at = lastWeek, type = TransactionType.INCOME).let {
+            it.copy(transaction = it.transaction.copy(budgetCategory = "Food", budgetImpactType = BudgetImpactType.ADD_TO_LIMIT))
+        }
+        val repo = repository(group, listOf(boost))
+        val raw = repo.getGroupSpendingAllCurrencies(today.year, today.monthValue).first()
+        val thisWeek = budgetSpend(group, raw.currentWindowTransactions(1).orEmpty(), raw.parentOf) { _, a -> a }
+        assertEquals(0, BigDecimal.ZERO.compareTo(thisWeek.boost))
+        // The widget's limit, as the worker builds it, is the Budgets card's.
+        val carry = raw.carryFor(group, "JOD", "JOD") { _, a -> a }
+        assertEquals(0, summary(repo, unified = true).totalBudget.compareTo(carry.appliedTo(BigDecimal("100") + thisWeek.boost)))
     }
 }

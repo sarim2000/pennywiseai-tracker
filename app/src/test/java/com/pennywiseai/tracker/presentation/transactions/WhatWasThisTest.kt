@@ -5,6 +5,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.presentation.transactions.WhatWasThis.LOAN
 import com.pennywiseai.tracker.presentation.transactions.WhatWasThis.OWN_TRANSFER
+import com.pennywiseai.tracker.presentation.transactions.WhatWasThis.REFUND
 import com.pennywiseai.tracker.presentation.transactions.WhatWasThis.SAVING
 import com.pennywiseai.tracker.presentation.transactions.WhatWasThis.SPLIT
 import org.junit.Assert.assertEquals
@@ -41,8 +42,12 @@ class WhatWasThisTest {
     }
 
     @Test
-    fun `income can be a loan or an own transfer only`() =
-        assertEquals(listOf(LOAN, OWN_TRANSFER), whatWasThisOptions(txn(TransactionType.INCOME), hasLoan = false))
+    fun `income can be a loan, a refund or an own transfer`() {
+        assertEquals(listOf(LOAN, REFUND, OWN_TRANSFER), whatWasThisOptions(txn(TransactionType.INCOME), hasLoan = false))
+        // Already a refund: that answer is given.
+        val refund = txn(TransactionType.INCOME).copy(budgetImpactType = BudgetImpactType.DEDUCT_SPENT)
+        assertEquals(listOf(LOAN, OWN_TRANSFER), whatWasThisOptions(refund, hasLoan = false))
+    }
 
     @Test
     fun `a paired transfer leg offers nothing`() =

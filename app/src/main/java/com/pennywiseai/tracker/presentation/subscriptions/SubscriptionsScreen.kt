@@ -11,6 +11,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Chat
@@ -80,7 +82,7 @@ fun SubscriptionsScreen(
     viewModel: SubscriptionsViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit = {},
     onAddSubscriptionClick: () -> Unit = {},
-    // A tab root has no back arrow; opened over another screen (an insight's link), it needs one.
+    // A tab root has no back arrow; opened over another screen (an insight's or a calendar bill's link), it needs one.
     showBack: Boolean = false,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -301,8 +303,8 @@ fun SubscriptionsScreen(
                             onTap = { markPaidTarget = subscription },
                             onHide = { viewModel.hideSubscription(subscription.id) },
                             onMarkAsEnded = { viewModel.markAsEnded(subscription.id) },
-                            onEdit = { merchantName, amount, nextDate, category, account, accountChanged ->
-                                viewModel.updateSubscription(subscription.id, merchantName, amount, nextDate, category, account, accountChanged)
+                            onEdit = { merchantName, amount, nextDate, category, account, accountChanged, totalPayments, paymentsMade ->
+                                viewModel.updateSubscription(subscription.id, merchantName, amount, nextDate, category, account, accountChanged, totalPayments, paymentsMade)
                             },
                             onDelete = { viewModel.deleteSubscription(subscription.id) }
                         )
@@ -384,6 +386,19 @@ fun SubscriptionsScreen(
     }
 }
 
+/** "3 of 12 paid · ₹4,500 left" for a plan with an end (#1061), null for one that keeps renewing. */
+@Composable
+internal fun paymentsProgress(subscription: SubscriptionEntity): String? {
+    val total = subscription.totalPayments ?: return null
+    val left = RecurringCharge.amountLeft(subscription) ?: return null
+    return stringResource(
+        R.string.subscriptions_payments_progress,
+        subscription.paymentsMade,
+        total,
+        CurrencyFormatter.formatCurrency(left, subscription.currency)
+    )
+}
+
 /** Suggestions shown before "Show all". */
 private const val SUGGESTIONS_PREVIEW = 3
 
@@ -459,6 +474,13 @@ private fun EndedSubscriptionItem(
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+                subscription.totalPayments?.let { total ->
+                    Text(
+                        text = stringResource(R.string.subscriptions_payments_count, subscription.paymentsMade, total),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
             TextButton(onClick = onReactivate, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.subscriptions_reactivate)) }
             IconButton(onClick = { showDeleteConfirm = true }, shapes = IconButtonDefaults.shapes()) {
@@ -552,7 +574,7 @@ private fun SwipeableSubscriptionItem(
     onTap: () -> Unit = {},
     onHide: () -> Unit,
     onMarkAsEnded: () -> Unit = {},
-    onEdit: (merchantName: String, amount: BigDecimal, nextDate: LocalDate?, category: String?, account: AccountBalanceEntity?, accountChanged: Boolean) -> Unit = { _, _, _, _, _, _ -> },
+    onEdit: (merchantName: String, amount: BigDecimal, nextDate: LocalDate?, category: String?, account: AccountBalanceEntity?, accountChanged: Boolean, totalPayments: Int?, paymentsMade: Int) -> Unit = { _, _, _, _, _, _, _, _ -> },
     onDelete: () -> Unit = {}
 ) {
     var showSmsBody by remember { mutableStateOf(false) }
@@ -739,6 +761,16 @@ private fun SwipeableSubscriptionItem(
                                 }
                             }
 
+                            paymentsProgress(subscription)?.let { progress ->
+                                Text(
+                                    text = progress,
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    maxLines = 1,
+                                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
+                                )
+                            }
+
                             // Category — its own line. No bullet, no row
                             // sharing. Wraps if very long but won't break
                             // mid-word against a narrow column.
@@ -907,8 +939,8 @@ private fun SwipeableSubscriptionItem(
             subscription = subscription,
             accounts = accounts,
             onDismiss = { showEditDialog = false },
-            onSave = { merchantName, amount, nextDate, category, account, accountChanged ->
-                onEdit(merchantName, amount, nextDate, category, account, accountChanged)
+            onSave = { merchantName, amount, nextDate, category, account, accountChanged, totalPayments, paymentsMade ->
+                onEdit(merchantName, amount, nextDate, category, account, accountChanged, totalPayments, paymentsMade)
                 showEditDialog = false
             }
         )
@@ -945,7 +977,7 @@ private fun EditSubscriptionDialog(
     subscription: SubscriptionEntity,
     accounts: List<AccountBalanceEntity> = emptyList(),
     onDismiss: () -> Unit,
-    onSave: (merchantName: String, amount: BigDecimal, nextDate: LocalDate?, category: String?, account: AccountBalanceEntity?, accountChanged: Boolean) -> Unit
+    onSave: (merchantName: String, amount: BigDecimal, nextDate: LocalDate?, category: String?, account: AccountBalanceEntity?, accountChanged: Boolean, totalPayments: Int?, paymentsMade: Int) -> Unit
 ) {
     var merchantName by remember { mutableStateOf(subscription.merchantName) }
     var amountText by remember { mutableStateOf(subscription.amount.toPlainString()) }
@@ -979,13 +1011,25 @@ private fun EditSubscriptionDialog(
             try { BigDecimal(it) } catch (_: NumberFormatException) { null }
         }
     }
-    val isValid = merchantName.isNotBlank() && parsedAmount != null && parsedAmount > BigDecimal.ZERO
+    // Blank = no end. "Already paid" starts at the count so far and must leave a payment to make.
+    var totalPaymentsText by remember { mutableStateOf(subscription.totalPayments?.toString().orEmpty()) }
+    var paymentsMadeText by remember {
+        mutableStateOf(subscription.paymentsMade.takeIf { subscription.totalPayments != null }?.toString().orEmpty())
+    }
+    val totalPayments = totalPaymentsText.toIntOrNull()?.takeIf { it > 0 }
+    val paymentsMade = paymentsMadeText.toIntOrNull() ?: 0
+    val totalPaymentsError = totalPaymentsText.isNotEmpty() && totalPayments == null
+    val paymentsMadeError = totalPayments != null && paymentsMade >= totalPayments
+    val isValid = merchantName.isNotBlank() && parsedAmount != null && parsedAmount > BigDecimal.ZERO &&
+        !totalPaymentsError && !paymentsMadeError
 
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.subscriptions_edit_title)) },
         text = {
+            // Scrolls so the last field stays reachable on a short screen with the keyboard up.
             Column(
+                modifier = Modifier.verticalScroll(rememberScrollState()),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 OutlinedTextField(
@@ -1028,6 +1072,36 @@ private fun EditSubscriptionDialog(
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
+                // Ends after N payments (#1061). Scheduled income is booked without counting, so expenses only.
+                if (subscription.direction == SubscriptionDirection.EXPENSE) {
+                    OutlinedTextField(
+                        value = totalPaymentsText,
+                        onValueChange = { totalPaymentsText = it.filter { c -> c.isDigit() }.take(3) },
+                        label = { Text(stringResource(R.string.subscriptions_edit_ends_after)) },
+                        isError = totalPaymentsError,
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    if (totalPaymentsText.isNotEmpty()) {
+                        OutlinedTextField(
+                            value = paymentsMadeText,
+                            onValueChange = { paymentsMadeText = it.filter { c -> c.isDigit() }.take(3) },
+                            label = { Text(stringResource(R.string.add_sub_already_paid)) },
+                            supportingText = if (paymentsMadeError) {
+                                { Text(stringResource(R.string.add_sub_already_paid_error)) }
+                            } else null,
+                            isError = paymentsMadeError,
+                            singleLine = true,
+                            keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        )
+                    }
+                }
 
                 // Funding account (#570). Marking this subscription paid moves
                 // the chosen account's balance; "No account" keeps it unlinked.
@@ -1103,7 +1177,7 @@ private fun EditSubscriptionDialog(
                 enabled = isValid,
                 onClick = {
                     parsedAmount?.let { amt ->
-                        onSave(merchantName, amt, nextDate, category, selectedAccount, accountChanged)
+                        onSave(merchantName, amt, nextDate, category, selectedAccount, accountChanged, totalPayments, paymentsMade)
                     }
                 },
                 shapes = ButtonDefaults.shapes()

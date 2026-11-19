@@ -531,9 +531,9 @@ class InsightRulesTest {
         val dao = mockk<SubscriptionDao>()
         coEvery { dao.getSubscriptionsByStateList(SubscriptionState.ACTIVE) } answers { stored.toList() }
         coEvery { dao.getSubscriptionById(any()) } answers { stored.firstOrNull { it.id == firstArg<Long>() } }
-        coEvery { dao.markPaid(any(), any(), any()) } answers {
+        coEvery { dao.markPaid(any(), any(), any(), any(), any()) } answers {
             val i = stored.indexOfFirst { it.id == firstArg<Long>() }
-            stored[i] = stored[i].copy(lastPaidAt = secondArg(), nextPaymentDate = thirdArg())
+            stored[i] = stored[i].copy(lastPaidAt = secondArg(), nextPaymentDate = thirdArg(), paymentsMade = arg(3), state = arg(4))
         }
         val repository = SubscriptionRepository(dao, mockk<CategoryDao>())
 

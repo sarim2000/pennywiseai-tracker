@@ -68,7 +68,8 @@ class BudgetSummaryProviderTest {
             today = today,
             globalStartDay = 1,
             isCurrentMonth = true,
-            currentWindows = budgets.associate { it.budget.id to window }
+            currentWindows = budgets.associate { it.budget.id to window },
+            parentOf = parentOf
         )
         // The base-currency path's own figures; only the flag is under test here.
         val baseSummary = BudgetOverallSummary(
@@ -93,6 +94,7 @@ class BudgetSummaryProviderTest {
         }
         val conversion = mockk<CurrencyConversionService> {
             coEvery { convertAmountOrNull(any(), any(), any(), any()) } answers { rate(firstArg(), secondArg()) }
+            every { getAllRatesFlow() } returns flowOf(emptyList())
         }
         return BudgetSummaryProvider(repo, prefs, conversion)
     }

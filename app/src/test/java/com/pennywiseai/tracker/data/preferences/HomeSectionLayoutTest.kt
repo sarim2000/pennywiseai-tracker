@@ -12,6 +12,7 @@ class HomeSectionLayoutTest {
             HomeSection.SAFE_TO_SPEND to false,
             HomeSection.GROUPS to false,
             HomeSection.BUDGETS to true,
+            HomeSection.UNSORTED to false,
             HomeSection.INSIGHTS to false,
             HomeSection.GOALS to false,
             HomeSection.LOANS to true,
@@ -21,7 +22,7 @@ class HomeSectionLayoutTest {
             HomeSection.MONEY_IN_MOTION to false,
         )
         val encoded = HomeSectionLayout.encode(layout)
-        assertEquals("ACTIVITY,!SAFE_TO_SPEND,!GROUPS,BUDGETS,!INSIGHTS,!GOALS,LOANS,!RECENT_TRANSACTIONS,ACCOUNTS,SUBSCRIPTIONS,!MONEY_IN_MOTION", encoded)
+        assertEquals("ACTIVITY,!SAFE_TO_SPEND,!GROUPS,BUDGETS,!UNSORTED,!INSIGHTS,!GOALS,LOANS,!RECENT_TRANSACTIONS,ACCOUNTS,SUBSCRIPTIONS,!MONEY_IN_MOTION", encoded)
         assertEquals(layout, HomeSectionLayout.decode(encoded))
     }
 
@@ -38,10 +39,10 @@ class HomeSectionLayoutTest {
         val decoded = HomeSectionLayout.decode("!ACTIVITY,ACCOUNTS")
         assertEquals(
             listOf(
-                HomeSection.SAFE_TO_SPEND, HomeSection.BUDGETS, HomeSection.INSIGHTS, HomeSection.RECENT_TRANSACTIONS,
-                HomeSection.SUBSCRIPTIONS, HomeSection.LOANS, HomeSection.GOALS, HomeSection.GROUPS,
-                HomeSection.MONEY_IN_MOTION,
-            ).map { it to it.visibleByDefault }.let { it.take(4) + listOf(HomeSection.ACTIVITY to false) + it.drop(4) } +
+                HomeSection.SAFE_TO_SPEND, HomeSection.BUDGETS, HomeSection.UNSORTED, HomeSection.INSIGHTS,
+                HomeSection.RECENT_TRANSACTIONS, HomeSection.SUBSCRIPTIONS, HomeSection.LOANS, HomeSection.GOALS,
+                HomeSection.GROUPS, HomeSection.MONEY_IN_MOTION,
+            ).map { it to it.visibleByDefault }.let { it.take(5) + listOf(HomeSection.ACTIVITY to false) + it.drop(5) } +
                 listOf(HomeSection.ACCOUNTS to true),
             decoded,
         )
@@ -52,8 +53,8 @@ class HomeSectionLayoutTest {
         // A layout saved before Money in motion was a section (it used to be a fixed card on top).
         val saved = "SAFE_TO_SPEND,BUDGETS,GOALS,LOANS,GROUPS,RECENT_TRANSACTIONS,ACCOUNTS,SUBSCRIPTIONS,ACTIVITY"
         val decoded = HomeSectionLayout.decode(saved).map { it.first.name }
-        assertEquals(saved.split(','), decoded - "MONEY_IN_MOTION" - "INSIGHTS")
-        assertEquals(9, decoded.indexOf("MONEY_IN_MOTION"))
+        assertEquals(saved.split(','), decoded - "MONEY_IN_MOTION" - "UNSORTED" - "INSIGHTS")
+        assertEquals(10, decoded.indexOf("MONEY_IN_MOTION"))
     }
 
     @Test
@@ -65,17 +66,17 @@ class HomeSectionLayoutTest {
         assertEquals(HomeSection.SAFE_TO_SPEND to true, decoded.first())
         assertEquals(
             listOf("ACTIVITY", "BUDGETS", "GOALS", "LOANS", "!GROUPS", "RECENT_TRANSACTIONS", "ACCOUNTS", "SUBSCRIPTIONS"),
-            decoded.drop(1).filter { it.first != HomeSection.MONEY_IN_MOTION && it.first != HomeSection.INSIGHTS }.map { (s, v) -> (if (v) "" else "!") + s.name },
+            decoded.drop(1).filter { it.first !in setOf(HomeSection.MONEY_IN_MOTION, HomeSection.UNSORTED, HomeSection.INSIGHTS) }.map { (s, v) -> (if (v) "" else "!") + s.name },
         )
     }
 
     @Test
-    fun `insights join a saved layout right after budgets, hidden until turned on`() {
-        val decoded = HomeSectionLayout.decode("SAFE_TO_SPEND,BUDGETS,RECENT_TRANSACTIONS")
-        assertEquals(HomeSection.INSIGHTS to false, decoded[2])
+    fun `insights join a saved layout after the budget cards, hidden until turned on`() {
+        val decoded = HomeSectionLayout.decode("SAFE_TO_SPEND,BUDGETS,UNSORTED,RECENT_TRANSACTIONS")
+        assertEquals(HomeSection.INSIGHTS to false, decoded[3])
         // Turned on, it stays on.
         val shown = HomeSectionLayout.encode(HomeSectionLayout.withVisibility(decoded, HomeSection.INSIGHTS, true))
-        assertEquals(HomeSection.INSIGHTS to true, HomeSectionLayout.decode(shown)[2])
+        assertEquals(HomeSection.INSIGHTS to true, HomeSectionLayout.decode(shown)[3])
     }
 
     @Test

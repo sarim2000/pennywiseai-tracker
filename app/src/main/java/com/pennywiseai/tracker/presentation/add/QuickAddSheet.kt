@@ -9,9 +9,11 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.imePadding
+import androidx.compose.foundation.layout.isImeVisible
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -19,7 +21,6 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.List
-import androidx.compose.material.icons.filled.Calculate
 import androidx.compose.material.icons.rounded.CalendarToday
 import androidx.compose.material.icons.rounded.ExpandLess
 import androidx.compose.material.icons.rounded.ExpandMore
@@ -56,6 +57,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
@@ -71,14 +73,19 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDirection
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import com.pennywiseai.shared.domain.money.MinorUnits
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.model.VoiceEntry
-import com.pennywiseai.tracker.ui.components.AmountCalculatorSheet
+import com.pennywiseai.tracker.domain.model.AmountInput
+import com.pennywiseai.tracker.ui.components.AmountCursorAtEnd
+import com.pennywiseai.tracker.ui.components.AmountKeyboardBar
 import com.pennywiseai.tracker.ui.components.CategoryChip
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
 import com.pennywiseai.tracker.ui.components.RoundedField
+import com.pennywiseai.tracker.ui.components.amountFieldValue
+import com.pennywiseai.tracker.ui.components.amountSumHint
 import com.pennywiseai.tracker.ui.components.cards.GroupedColumn
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
@@ -310,7 +317,6 @@ private fun QuickAddForm(
     val ofType = if (income) setup.incomeCategories else setup.expenseCategories
     val categories = remember(income, pinned) { ofType.sortedBy { it.name != pinned } }
     val type = if (income) TransactionType.INCOME else TransactionType.EXPENSE
-    var showCalculator by rememberSaveable { mutableStateOf(false) }
     var showPicker by rememberSaveable { mutableStateOf(false) }
     var showDate by rememberSaveable { mutableStateOf(false) }
     var summaryOpen by rememberSaveable { mutableStateOf(false) }
@@ -318,7 +324,10 @@ private fun QuickAddForm(
     var saving by remember { mutableStateOf(false) }
     val gate = remember { SaveGate() }
     val scope = rememberCoroutineScope()
-    val amount = amountText.toBigDecimalOrNull()?.takeIf { it.signum() > 0 }
+    // The field takes a sum too ("120+35"), typed with the operator row above the keyboard.
+    val amount = AmountInput.value(amountText, MinorUnits.digits(currency))?.takeIf { it.signum() > 0 }
+    var amountFocused by remember { mutableStateOf(false) }
+    var amountCursor by remember { mutableStateOf(AmountCursorAtEnd) }
     val focus = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
     val locale = LocalConfiguration.current.locales[0]
@@ -327,7 +336,18 @@ private fun QuickAddForm(
     // Filled by voice: what's left is a tap on a category, not typing.
     LaunchedEffect(Unit) { if (heard == null || amountText.isEmpty()) focus.requestFocus() }
 
-    fun draft(t: TransactionType = type) = QuickAddDraft(amountText, where, category, t, currency, account, day)
+    /** A finished sum becomes its result, so what's saved or handed on is what the field shows. */
+    fun foldAmount() {
+        AmountInput.fold(amountText, MinorUnits.digits(currency))?.let {
+            amountText = it
+            amountCursor = AmountCursorAtEnd
+        }
+    }
+
+    fun draft(t: TransactionType = type): QuickAddDraft {
+        foldAmount()
+        return QuickAddDraft(amountText, where, category, t, currency, account, day)
+    }
 
     fun save() {
         val a = amount ?: return
@@ -361,228 +381,236 @@ private fun QuickAddForm(
         }
     }
 
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Dimensions.Padding.dialog)
-            .padding(bottom = Spacing.lg)
-            .imePadding()
-            // Short phones and landscape: scroll rather than run off the sheet.
-            .verticalScroll(rememberScrollState()),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md)
-    ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = stringResource(R.string.add_title),
-                style = MaterialTheme.typography.titleLarge,
-                modifier = Modifier.weight(1f)
-            )
-            // Only where the phone has a recognizer; otherwise the mic would bounce straight back.
-            if (remember { VoiceInput.isAvailable(context) }) {
-                IconButton(onClick = onListen, enabled = !saving, shapes = IconButtonDefaults.shapes()) {
-                    Icon(Icons.Rounded.Mic, contentDescription = stringResource(R.string.quick_add_voice_title))
-                }
-            }
-        }
-        ConnectedChoiceRow(
-            options = listOf(false, true),
-            selected = income,
-            onSelect = { isIncome ->
-                if (income != isIncome) {
-                    income = isIncome
-                    // Categories are per type.
-                    category = null
-                }
-            },
-            label = { stringResource(if (it) R.string.txn_type_income else R.string.txn_type_expense) }
-        )
-        OutlinedTextField(
-            value = amountText,
-            onValueChange = { typed -> QuickAddActivity.normalizeAmount(typed, decimalComma)?.let { amountText = it } },
-            label = { Text(stringResource(R.string.add_field_amount)) },
-            leadingIcon = {
-                CurrencyButton(currency, onPick = { picked ->
-                    if (picked != currency) {
-                        currency = picked
-                        // The cash accounts are per currency: start from the new one's last used.
-                        accountKey = QuickAddActivity.cashAccounts(setup.balances, picked, setup.profileId)
-                            .firstOrNull()?.let(QuickAddActivity::keyOf)
-                    }
-                })
-            },
-            textStyle = MaterialTheme.typography.headlineSmall.money(),
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
-            trailingIcon = {
-                IconButton(
-                    onClick = {
-                        // The sheet has its own keypad; the keyboard would cover it.
-                        focusManager.clearFocus()
-                        showCalculator = true
-                    },
-                    shapes = IconButtonDefaults.shapes()
-                ) {
-                    Icon(Icons.Default.Calculate, contentDescription = stringResource(R.string.calculator_open))
-                }
-            },
-            shape = RoundedField.shape,
-            modifier = Modifier.fillMaxWidth().focusRequester(focus)
-        )
-        OutlinedTextField(
-            value = where,
-            onValueChange = { where = it },
-            placeholder = { Text(stringResource(R.string.quick_add_where_hint)) },
-            singleLine = true,
-            keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Done),
-            shape = RoundedField.shape,
-            modifier = Modifier.fillMaxWidth()
-        )
-        // One scrolling row, most-used first, after the full searchable list: the usual
-        // pick is in view and Save stays above the keyboard.
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            modifier = Modifier.horizontalScroll(rememberScrollState())
+    // The operator row sits under the form, so on the keyboard, while the amount is being typed.
+    Column(modifier = Modifier.fillMaxWidth().imePadding()) {
+        Column(
+            modifier = Modifier
+                .fillMaxWidth()
+                .weight(1f, fill = false)
+                // Short phones and landscape: scroll rather than run off the sheet.
+                .verticalScroll(rememberScrollState())
+                .padding(horizontal = Dimensions.Padding.dialog)
+                .padding(bottom = Spacing.lg),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
-            AssistChip(
-                onClick = {
-                    focusManager.clearFocus()
-                    showPicker = true
-                },
-                label = { Text(stringResource(R.string.quick_add_all_categories)) },
-                leadingIcon = { Icon(Icons.AutoMirrored.Rounded.List, contentDescription = null, modifier = Modifier.size(AssistChipDefaults.IconSize)) }
-            )
-            categories.forEach { c ->
-                FilterChip(
-                    selected = category == c.name,
-                    shapes = FilterChipDefaults.shapes(),
-                    colors = FilterChipDefaults.filterChipColors(),
-                    onClick = {
-                        category = c.name
-                        // Typing is done once the category is picked; on a short phone the keyboard hides Save.
-                        focusManager.clearFocus()
-                    },
-                    label = { Text(categoryLabel(c.name)) },
-                    leadingIcon = { CategoryChip(category = c, showText = false) }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = stringResource(R.string.add_title),
+                    style = MaterialTheme.typography.titleLarge,
+                    modifier = Modifier.weight(1f)
                 )
-            }
-        }
-        // Account and date: a summary line; the choices open under it on demand.
-        val dayText = when (day) {
-            null -> stringResource(R.string.quick_add_today)
-            LocalDate.now().minusDays(1) -> stringResource(R.string.quick_add_yesterday)
-            else -> day!!.format(AppDates.dateFormatter())
-        }
-        val noAccount = stringResource(R.string.add_txn_no_account)
-        val summary = if (cashAccounts.isEmpty()) dayText else stringResource(R.string.quick_add_summary, account?.displayLabel ?: noAccount, dayText)
-        GroupedList {
-            GroupedRow(
-                position = if (summaryOpen) ListItemPosition.Top else ListItemPosition.Single,
-                onClick = { summaryOpen = !summaryOpen },
-                modifier = Modifier.semantics {
-                    if (summaryOpen) collapse { summaryOpen = false; true } else expand { summaryOpen = true; true }
+                // Only where the phone has a recognizer; otherwise the mic would bounce straight back.
+                if (remember { VoiceInput.isAvailable(context) }) {
+                    IconButton(onClick = onListen, enabled = !saving, shapes = IconButtonDefaults.shapes()) {
+                        Icon(Icons.Rounded.Mic, contentDescription = stringResource(R.string.quick_add_voice_title))
+                    }
                 }
-            ) {
-                Icon(Icons.Rounded.CalendarToday, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                RowLabels(title = summary)
-                Icon(
-                    if (summaryOpen) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
             }
-            if (summaryOpen) {
-                GroupedColumn(position = ListItemPosition.Bottom) {
-                    if (cashAccounts.isNotEmpty()) {
-                        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                            (listOf(null) + cashAccounts).forEach { a ->
-                                FilterChip(
-                                    selected = account?.let(QuickAddActivity::keyOf) == a?.let(QuickAddActivity::keyOf),
-                                    shapes = FilterChipDefaults.shapes(),
-                                    colors = FilterChipDefaults.filterChipColors(),
-                                    onClick = { accountKey = a?.let(QuickAddActivity::keyOf) },
-                                    label = { Text(a?.displayLabel ?: noAccount) }
-                                )
+            ConnectedChoiceRow(
+                options = listOf(false, true),
+                selected = income,
+                onSelect = { isIncome ->
+                    if (income != isIncome) {
+                        income = isIncome
+                        // Categories are per type.
+                        category = null
+                    }
+                },
+                label = { stringResource(if (it) R.string.txn_type_income else R.string.txn_type_expense) }
+            )
+            val sumHint = amountSumHint(amountText, currency)
+            OutlinedTextField(
+                value = amountFieldValue(amountText, amountCursor),
+                onValueChange = { typed ->
+                    AmountInput.normalize(typed.text, decimalComma)?.let {
+                        amountText = it
+                        amountCursor = if (it == typed.text) typed.selection else AmountCursorAtEnd
+                    }
+                },
+                label = { Text(stringResource(R.string.add_field_amount)) },
+                leadingIcon = {
+                    CurrencyButton(currency, onPick = { picked ->
+                        if (picked != currency) {
+                            currency = picked
+                            // The cash accounts are per currency: start from the new one's last used.
+                            accountKey = QuickAddActivity.cashAccounts(setup.balances, picked, setup.profileId)
+                                .firstOrNull()?.let(QuickAddActivity::keyOf)
+                        }
+                    })
+                },
+                textStyle = MaterialTheme.typography.headlineSmall.money(),
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
+                supportingText = sumHint?.let { hint -> { Text(hint.text) } },
+                isError = sumHint?.isError == true,
+                shape = RoundedField.shape,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .focusRequester(focus)
+                    .onFocusChanged { state ->
+                        // Leaving the field finishes the sum.
+                        if (amountFocused && !state.isFocused) foldAmount()
+                        amountFocused = state.isFocused
+                    }
+            )
+            OutlinedTextField(
+                value = where,
+                onValueChange = { where = it },
+                placeholder = { Text(stringResource(R.string.quick_add_where_hint)) },
+                singleLine = true,
+                keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Done),
+                shape = RoundedField.shape,
+                modifier = Modifier.fillMaxWidth()
+            )
+            // One scrolling row, most-used first, after the full searchable list: the usual
+            // pick is in view and Save stays above the keyboard.
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                modifier = Modifier.horizontalScroll(rememberScrollState())
+            ) {
+                AssistChip(
+                    onClick = {
+                        focusManager.clearFocus()
+                        showPicker = true
+                    },
+                    label = { Text(stringResource(R.string.quick_add_all_categories)) },
+                    leadingIcon = { Icon(Icons.AutoMirrored.Rounded.List, contentDescription = null, modifier = Modifier.size(AssistChipDefaults.IconSize)) }
+                )
+                categories.forEach { c ->
+                    FilterChip(
+                        selected = category == c.name,
+                        shapes = FilterChipDefaults.shapes(),
+                        colors = FilterChipDefaults.filterChipColors(),
+                        onClick = {
+                            category = c.name
+                            // Typing is done once the category is picked; on a short phone the keyboard hides Save.
+                            focusManager.clearFocus()
+                        },
+                        label = { Text(categoryLabel(c.name)) },
+                        leadingIcon = { CategoryChip(category = c, showText = false) }
+                    )
+                }
+            }
+            // Account and date: a summary line; the choices open under it on demand.
+            val dayText = when (day) {
+                null -> stringResource(R.string.quick_add_today)
+                LocalDate.now().minusDays(1) -> stringResource(R.string.quick_add_yesterday)
+                else -> day!!.format(AppDates.dateFormatter())
+            }
+            val noAccount = stringResource(R.string.add_txn_no_account)
+            val summary = if (cashAccounts.isEmpty()) dayText else stringResource(R.string.quick_add_summary, account?.displayLabel ?: noAccount, dayText)
+            GroupedList {
+                GroupedRow(
+                    position = if (summaryOpen) ListItemPosition.Top else ListItemPosition.Single,
+                    onClick = { summaryOpen = !summaryOpen },
+                    modifier = Modifier.semantics {
+                        if (summaryOpen) collapse { summaryOpen = false; true } else expand { summaryOpen = true; true }
+                    }
+                ) {
+                    Icon(Icons.Rounded.CalendarToday, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    RowLabels(title = summary)
+                    Icon(
+                        if (summaryOpen) Icons.Rounded.ExpandLess else Icons.Rounded.ExpandMore,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                if (summaryOpen) {
+                    GroupedColumn(position = ListItemPosition.Bottom) {
+                        if (cashAccounts.isNotEmpty()) {
+                            FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                                (listOf(null) + cashAccounts).forEach { a ->
+                                    FilterChip(
+                                        selected = account?.let(QuickAddActivity::keyOf) == a?.let(QuickAddActivity::keyOf),
+                                        shapes = FilterChipDefaults.shapes(),
+                                        colors = FilterChipDefaults.filterChipColors(),
+                                        onClick = { accountKey = a?.let(QuickAddActivity::keyOf) },
+                                        label = { Text(a?.displayLabel ?: noAccount) }
+                                    )
+                                }
                             }
                         }
-                    }
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                        val yesterday = LocalDate.now().minusDays(1)
-                        FilterChip(
-                            selected = day == null,
-                            shapes = FilterChipDefaults.shapes(),
-                            colors = FilterChipDefaults.filterChipColors(),
-                            onClick = { day = null },
-                            label = { Text(stringResource(R.string.quick_add_today)) }
-                        )
-                        FilterChip(
-                            selected = day == yesterday,
-                            shapes = FilterChipDefaults.shapes(),
-                            colors = FilterChipDefaults.filterChipColors(),
-                            onClick = { day = yesterday },
-                            label = { Text(stringResource(R.string.quick_add_yesterday)) }
-                        )
-                        val other = day?.takeIf { it != yesterday }
-                        FilterChip(
-                            selected = other != null,
-                            shapes = FilterChipDefaults.shapes(),
-                            colors = FilterChipDefaults.filterChipColors(),
-                            onClick = { showDate = true },
-                            label = { Text(other?.format(AppDates.dateFormatter()) ?: stringResource(R.string.quick_add_other_date)) }
-                        )
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                            val yesterday = LocalDate.now().minusDays(1)
+                            FilterChip(
+                                selected = day == null,
+                                shapes = FilterChipDefaults.shapes(),
+                                colors = FilterChipDefaults.filterChipColors(),
+                                onClick = { day = null },
+                                label = { Text(stringResource(R.string.quick_add_today)) }
+                            )
+                            FilterChip(
+                                selected = day == yesterday,
+                                shapes = FilterChipDefaults.shapes(),
+                                colors = FilterChipDefaults.filterChipColors(),
+                                onClick = { day = yesterday },
+                                label = { Text(stringResource(R.string.quick_add_yesterday)) }
+                            )
+                            val other = day?.takeIf { it != yesterday }
+                            FilterChip(
+                                selected = other != null,
+                                shapes = FilterChipDefaults.shapes(),
+                                colors = FilterChipDefaults.filterChipColors(),
+                                onClick = { showDate = true },
+                                label = { Text(other?.format(AppDates.dateFormatter()) ?: stringResource(R.string.quick_add_other_date)) }
+                            )
+                        }
                     }
                 }
             }
-        }
-        error?.let {
-            Text(
-                text = stringResource(it),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.error,
-                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
-            )
-        }
-        // The full form, with what's typed here: as a transfer, a subscription, or with every field.
-        FlowRow(verticalArrangement = Arrangement.Center) {
-            TextButton(
-                onClick = { onMoreDetails(draft(TransactionType.TRANSFER)) },
-                enabled = !saving,
+            error?.let {
+                Text(
+                    text = stringResource(it),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.error,
+                    modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+                )
+            }
+            // The full form, with what's typed here: as a transfer, a subscription, or with every field.
+            FlowRow(verticalArrangement = Arrangement.Center) {
+                TextButton(
+                    onClick = { onMoreDetails(draft(TransactionType.TRANSFER)) },
+                    enabled = !saving,
+                    shapes = ButtonDefaults.shapes()
+                ) { Text(stringResource(R.string.txn_type_transfer)) }
+                onSubscription?.let { open ->
+                    TextButton(onClick = { open(draft()) }, enabled = !saving, shapes = ButtonDefaults.shapes()) {
+                        Text(stringResource(R.string.add_tab_subscription))
+                    }
+                }
+                Spacer(Modifier.weight(1f))
+                TextButton(onClick = { onMoreDetails(draft()) }, enabled = !saving, shapes = ButtonDefaults.shapes()) {
+                    Text(stringResource(R.string.quick_add_more_details))
+                }
+            }
+            Button(
+                onClick = ::save,
+                enabled = amount != null && category != null && !saving,
+                modifier = Modifier.fillMaxWidth().heightIn(min = Dimensions.Component.minTouchTarget),
                 shapes = ButtonDefaults.shapes()
-            ) { Text(stringResource(R.string.txn_type_transfer)) }
-            onSubscription?.let { open ->
-                TextButton(onClick = { open(draft()) }, enabled = !saving, shapes = ButtonDefaults.shapes()) {
-                    Text(stringResource(R.string.add_tab_subscription))
+            ) {
+                if (saving) {
+                    LoadingIndicator(modifier = Modifier.size(Dimensions.Icon.medium))
+                } else {
+                    Text(stringResource(R.string.add_save))
                 }
             }
-            Spacer(Modifier.weight(1f))
-            TextButton(onClick = { onMoreDetails(draft()) }, enabled = !saving, shapes = ButtonDefaults.shapes()) {
-                Text(stringResource(R.string.quick_add_more_details))
-            }
         }
-        Button(
-            onClick = ::save,
-            enabled = amount != null && category != null && !saving,
-            modifier = Modifier.fillMaxWidth().heightIn(min = Dimensions.Component.minTouchTarget),
-            shapes = ButtonDefaults.shapes()
-        ) {
-            if (saving) {
-                LoadingIndicator(modifier = Modifier.size(Dimensions.Icon.medium))
-            } else {
-                Text(stringResource(R.string.add_save))
-            }
+        if (amountFocused && WindowInsets.isImeVisible) {
+            AmountKeyboardBar(
+                onOperator = { op ->
+                    amountText = AmountInput.append(amountText, op)
+                    amountCursor = AmountCursorAtEnd
+                },
+                onEquals = ::foldAmount,
+                onDone = {
+                    foldAmount()
+                    focusManager.clearFocus()
+                }
+            )
         }
     }
 
-    if (showCalculator) {
-        AmountCalculatorSheet(
-            initialAmount = amountText,
-            currency = currency,
-            onApply = { result ->
-                QuickAddActivity.normalizeAmount(result.toPlainString(), decimalComma)?.let { amountText = it }
-                showCalculator = false
-            },
-            onDismiss = { showCalculator = false }
-        )
-    }
     if (showPicker) {
         QuickCategoryPickerSheet(
             currentCategory = category.orEmpty(),

@@ -17,9 +17,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
@@ -32,22 +34,27 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
+import com.pennywiseai.shared.domain.money.MinorUnits
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.domain.model.AccountType
+import com.pennywiseai.tracker.domain.model.AmountInput
 import com.pennywiseai.tracker.domain.model.getAccountType
 import com.pennywiseai.tracker.presentation.accounts.displayName
 import com.pennywiseai.tracker.presentation.accounts.icon
 import com.pennywiseai.tracker.presentation.categories.CategoryEditDialog
 import com.pennywiseai.tracker.presentation.transactions.transactionTypeLabel
-import com.pennywiseai.tracker.ui.components.AmountCalculatorSheet
+import com.pennywiseai.tracker.ui.components.AmountCursorAtEnd
+import com.pennywiseai.tracker.ui.components.AmountKeyboardBar
 import com.pennywiseai.tracker.ui.components.CategoryChip
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
 import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.components.TagInputField
+import com.pennywiseai.tracker.ui.components.amountFieldValue
+import com.pennywiseai.tracker.ui.components.amountSumHint
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.icons.categoryLabel
@@ -56,6 +63,7 @@ import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.money
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import java.text.DecimalFormatSymbols
 import java.time.format.DateTimeFormatter
 import java.time.format.FormatStyle
 
@@ -150,7 +158,7 @@ internal fun AccountGlyph(account: AccountBalanceEntity?) {
  * category / account / date → the optional rest folded under "More details" → Save,
  * kept above the keyboard.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun TransactionTabContent(
     viewModel: AddViewModel,
@@ -172,7 +180,32 @@ fun TransactionTabContent(
     // Which account picker is open (null = closed). For a TRANSFER this routes the
     // chosen account to either the FROM or TO row; for other types only FROM is used.
     var accountPickerTarget by remember { mutableStateOf<AccountPickerTarget?>(null) }
-    var showCalculator by rememberSaveable { mutableStateOf(false) }
+    // A sum typed into the amount ("120+35"); null while it holds a plain amount. The form's
+    // amount is always what the sum comes to (empty until it's finished), so Save checks that.
+    var amountSum by rememberSaveable { mutableStateOf<String?>(null) }
+    var amountFocused by remember { mutableStateOf(false) }
+    var amountCursor by remember { mutableStateOf(AmountCursorAtEnd) }
+    val locale = LocalConfiguration.current.locales[0]
+    val decimalComma = remember(locale) { DecimalFormatSymbols.getInstance(locale).decimalSeparator == ',' }
+    val digits = MinorUnits.digits(uiState.entryCurrency)
+    fun setAmountText(text: String) {
+        if (AmountInput.hasOperator(text)) {
+            amountSum = text
+            val result = AmountInput.value(text, digits)?.takeIf { it.signum() > 0 }
+            viewModel.updateTransactionAmount(result?.toPlainString().orEmpty())
+        } else {
+            amountSum = null
+            viewModel.updateTransactionAmount(text)
+        }
+    }
+    fun foldAmount() {
+        amountSum?.let { sum ->
+            AmountInput.fold(sum, digits)?.let {
+                setAmountText(it)
+                amountCursor = AmountCursorAtEnd
+            }
+        }
+    }
     var moreOpen by rememberSaveable { mutableStateOf(false) }
 
     val isTransfer = uiState.transactionType == TransactionType.TRANSFER
@@ -219,15 +252,25 @@ fun TransactionTabContent(
                 }
             }
 
-            // ── Amount, its currency (a transfer's is the From account's) and the calculator ──
+            // ── Amount (or a sum, with the operator row on the keyboard) and its currency
+            // (a transfer's is the From account's) ──
+            val sumHint = amountSum?.let { amountSumHint(it, uiState.entryCurrency) }
             TextField(
-                value = uiState.amount,
-                onValueChange = viewModel::updateTransactionAmount,
+                value = amountFieldValue(amountSum ?: uiState.amount, amountCursor),
+                onValueChange = { typed ->
+                    AmountInput.normalize(typed.text, decimalComma)?.let {
+                        setAmountText(it)
+                        amountCursor = if (it == typed.text) typed.selection else AmountCursorAtEnd
+                    }
+                },
                 label = { Text(stringResource(R.string.add_field_amount)) },
                 textStyle = MaterialTheme.typography.headlineSmall.money(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                isError = uiState.amountError != null,
-                supportingText = uiState.amountError?.let { { Text(it.asString()) } },
+                isError = sumHint?.isError ?: (uiState.amountError != null),
+                supportingText = when {
+                    sumHint != null -> { { Text(sumHint.text) } }
+                    else -> uiState.amountError?.let { { Text(it.asString()) } }
+                },
                 leadingIcon = {
                     CurrencyButton(
                         currency = uiState.entryCurrency,
@@ -235,35 +278,17 @@ fun TransactionTabContent(
                         enabled = !(isTransfer && uiState.selectedAccount != null)
                     )
                 },
-                trailingIcon = {
-                    IconButton(
-                        onClick = {
-                            // The sheet has its own keypad; the keyboard would cover it.
-                            focusManager.clearFocus()
-                            showCalculator = true
-                        },
-                        enabled = uiState.draftLoaded,
-                        shapes = IconButtonDefaults.shapes()
-                    ) {
-                        Icon(Icons.Default.Calculate, contentDescription = stringResource(R.string.calculator_open))
-                    }
-                },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .onFocusChanged { state ->
+                        // Leaving the field finishes the sum.
+                        if (amountFocused && !state.isFocused) foldAmount()
+                        amountFocused = state.isFocused
+                    },
                 singleLine = true,
                 shape = RoundedField.shape,
                 colors = RoundedField.colors()
             )
-            if (showCalculator) {
-                AmountCalculatorSheet(
-                    initialAmount = uiState.amount,
-                    currency = uiState.entryCurrency,
-                    onApply = {
-                        viewModel.updateTransactionAmount(it.toPlainString())
-                        showCalculator = false
-                    },
-                    onDismiss = { showCalculator = false }
-                )
-            }
 
             // ── Merchant: a transfer moves money between own accounts, so it has none ──
             if (!isTransfer) {
@@ -480,13 +505,33 @@ fun TransactionTabContent(
             )
         }
 
-        SaveBar(
-            error = uiState.error?.asString(),
-            enabled = uiState.isValid && !uiState.isLoading,
-            loading = uiState.isLoading,
-            onClick = { viewModel.saveTransaction(onSuccess = onSave) },
-            modifier = Modifier.align(Alignment.BottomCenter)
-        )
+        // While the amount is being typed, the operator row takes Save's place on the keyboard.
+        if (amountFocused && WindowInsets.isImeVisible) {
+            AmountKeyboardBar(
+                onOperator = { op ->
+                    setAmountText(AmountInput.append(amountSum ?: uiState.amount, op))
+                    amountCursor = AmountCursorAtEnd
+                },
+                onEquals = ::foldAmount,
+                onDone = {
+                    foldAmount()
+                    focusManager.clearFocus()
+                },
+                // The screen's scaffold already pads for the navigation bar, which the
+                // keyboard's inset includes: only the rest of the keyboard's height here.
+                modifier = Modifier
+                    .align(Alignment.BottomCenter)
+                    .windowInsetsPadding(WindowInsets.ime.exclude(WindowInsets.navigationBars))
+            )
+        } else {
+            SaveBar(
+                error = uiState.error?.asString(),
+                enabled = uiState.isValid && !uiState.isLoading,
+                loading = uiState.isLoading,
+                onClick = { viewModel.saveTransaction(onSuccess = onSave) },
+                modifier = Modifier.align(Alignment.BottomCenter)
+            )
+        }
     }
 
     if (showDatePicker) {

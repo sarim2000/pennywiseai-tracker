@@ -458,24 +458,18 @@
     <string name="quick_add_voice_unclear">Couldn\'t find one amount in that. Try again, or type it.</string>
     <string name="quick_add_voice_chat_hidden">Questions go to Chat, which is hidden. Show it in Appearance settings, or say a spend.</string>
     <string name="quick_add_voice_type">Type instead</string>
-    <!-- Amount calculator: a keypad sheet opened from the amount field -->
-    <string name="calculator_open">Calculator</string>
-    <string name="calculator_title">Work out the amount</string>
-    <string name="calculator_apply">Use amount</string>
+    <!-- Amount sums: the operator row above the keyboard while an amount field has focus -->
+    <string name="amount_bar_done">Done</string>
     <string name="calculator_must_be_positive">The amount must be more than zero</string>
     <string name="calculator_divide_by_zero">Can\'t divide by zero</string>
     <string name="calculator_too_large">That amount is too large</string>
     <!-- The sum is unfinished or doesn't make sense yet, e.g. "12+" or "1..2" -->
-    <string name="calculator_too_long">That sum is too long. Shorten it or press =</string>
     <string name="calculator_unfinished">Finish the sum to use it</string>
-    <string name="calculator_clear">Clear</string>
     <string name="calculator_divide">Divide</string>
     <string name="calculator_multiply">Multiply</string>
     <string name="calculator_minus">Minus</string>
     <string name="calculator_plus">Plus</string>
     <string name="calculator_equals">Equals</string>
-    <string name="calculator_decimal_point">Decimal point</string>
-    <string name="calculator_backspace">Delete</string>
     <string name="date_range_title">Select Date Range</string>
     <string name="date_range_ok">OK</string>
     <string name="date_range_cancel">Cancel</string>

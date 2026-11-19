@@ -161,28 +161,6 @@ class QuickAddActivity : FragmentActivity() {
         private const val CASH = "CASH"
 
         /**
-         * What the amount field keeps of a keystroke: digits in any script
-         * (an Arabic keyboard types ٣٫٥) as ASCII, "٫" as the decimal point,
-         * at most one point. "," is the decimal point only where the locale
-         * writes it so (3,5 in German); elsewhere it's a thousands separator
-         * and dropped, as the full form does, so "1,250" is 1250, not 1.25.
-         * Null rejects the keystroke.
-         */
-        internal fun normalizeAmount(input: String, decimalComma: Boolean): String? {
-            val ascii = input.mapNotNull { c ->
-                when {
-                    c == '٫' || (c == ',' && decimalComma) -> '.'
-                    c == ',' || c == '٬' -> null
-                    Character.isDigit(c) -> '0' + Character.digit(c, 10)
-                    else -> c
-                }
-            }.joinToString("")
-            return ascii.takeIf { AMOUNT_INPUT.matches(it) }
-        }
-
-        private val AMOUNT_INPUT = Regex("""\d*\.?\d*""")
-
-        /**
          * One entry fills the sheet. A question or a plan goes to Chat (with no model it waits
          * there), or, with Chat hidden, says so. Two amounts go to Chat only with the model there
          * to read them: a cash spend said as "2 coffees 10" must not end up where it can't be

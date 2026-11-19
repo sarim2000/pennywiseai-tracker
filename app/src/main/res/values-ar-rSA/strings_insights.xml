@@ -23,7 +23,7 @@
     <plurals name="insights_months">
         <item quantity="zero">%1$s شهر</item>
         <item quantity="one">%1$s شهر</item>
-        <item quantity="two">%1$s شهر</item>
+        <item quantity="two">شهرين</item>
         <item quantity="few">%1$s أشهر</item>
         <item quantity="many">%1$s شهرًا</item>
         <item quantity="other">%1$s شهر</item>

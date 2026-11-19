@@ -69,7 +69,8 @@ internal class ScanOutcomeRecorder(
             withContext(NonCancellable) { record(finished(state)) }
             throw e
         }
-        record(finished(SmsScanState.SUCCEEDED))
+        // The scan returned: a cancel now mustn't leave its record RUNNING.
+        withContext(NonCancellable) { record(finished(SmsScanState.SUCCEEDED)) }
         return result
     }
 

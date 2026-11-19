@@ -37,10 +37,11 @@ internal fun trackedRowsFilter(
 /**
  * The ids of [rows] still in Others ([others], under its current name), oldest first: what
  * Home's "Needs a category" card walks. As the evening recap picks a day's: a row that counts
- * for nothing (kept out of totals, or lent in full) isn't asked about.
+ * for nothing (kept out of totals, or lent in full) isn't asked about. Nor is one already
+ * [split] across categories: its splits file it, though its own category stays Others.
  */
-internal fun unsortedIds(rows: List<TransactionEntity>, others: String): List<Long> =
-    rows.forTotals().filter { it.category == others }.sortedBy { it.dateTime }.map { it.id }
+internal fun unsortedIds(rows: List<TransactionEntity>, others: String, split: Set<Long>): List<Long> =
+    rows.forTotals().filter { it.category == others && it.id !in split }.sortedBy { it.dateTime }.map { it.id }
 
 /**
  * Converts an amount between currencies, with the contract of

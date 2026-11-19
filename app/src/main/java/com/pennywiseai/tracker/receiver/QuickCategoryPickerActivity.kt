@@ -63,6 +63,8 @@ import javax.inject.Inject
  * and from Home's "Needs a category" card this month's oldest ones:
  * each pick shows the next one still unsorted (re-read, since learning a
  * merchant can sort others) until none are left or the user dismisses.
+ * A Home walk keeps its "Saved as" notes in one slot, so only the last
+ * pick's Undo stays, and leaves the recap alone.
  *
  * Behind the app lock, like opening the app: the sheet shows the
  * transaction's category and tags, so a locked app asks first.
@@ -92,6 +94,7 @@ class QuickCategoryPickerActivity : FragmentActivity() {
     // Walk mode only: the recap's unsorted ids still to visit (current first),
     // and how many were already answered, for the "2 of 3".
     private var walkQueue: List<Long>? = null
+    private var walkFromHome = false
     private val walked = mutableStateOf(0)
     private var saving = false
     // Bumped by each (re)start: a walk's pending step must not steer a picker re-targeted meanwhile.
@@ -115,7 +118,7 @@ class QuickCategoryPickerActivity : FragmentActivity() {
         savedInstanceState?.getLongArray(KEY_WALK_QUEUE)?.let { queue ->
             walkQueue = queue.toList()
             walked.value = savedInstanceState.getInt(KEY_WALKED)
-            queue.firstOrNull()?.let { currentArgs.value = PickerArgs(it, it.toInt()) }
+            queue.firstOrNull()?.let { currentArgs.value = PickerArgs(it, noteId(it)) }
         }
 
         if (savedInstanceState?.getBoolean(KEY_UNLOCKED) == true) {
@@ -163,6 +166,7 @@ class QuickCategoryPickerActivity : FragmentActivity() {
 
     private fun startWalk(intent: Intent) {
         walkQueue = intent.getLongArrayExtra(EXTRA_WALK_IDS)?.toList()
+        walkFromHome = intent.getBooleanExtra(EXTRA_WALK_FROM_HOME, false)
         walked.value = 0
         saving = false
         walkGen++
@@ -216,13 +220,16 @@ class QuickCategoryPickerActivity : FragmentActivity() {
         saving = false
         val next = left.firstOrNull()
         if (next == null) {
-            // All of today's are answered: the recap's "N need a category" is stale.
-            (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).cancel(DailySummaryWorker.NOTIFICATION_ID)
+            // All of today's are answered: the recap's "N need a category" is stale. Home's batch may not hold today's.
+            if (!walkFromHome) (getSystemService(NOTIFICATION_SERVICE) as NotificationManager).cancel(DailySummaryWorker.NOTIFICATION_ID)
             finish()
         } else {
-            currentArgs.value = PickerArgs(next.id, next.id.toInt())
+            currentArgs.value = PickerArgs(next.id, noteId(next.id))
         }
     }
+
+    /** Where a pick's "Saved as" note goes: the row's own alert, or Home's one slot. */
+    private fun noteId(txnId: Long): Int = if (walkFromHome) HOME_WALK_NOTE_ID else txnId.toInt()
 
     /** Shows the sheet only once the app lock (if on) is satisfied; a cancel closes the picker. */
     private fun checkLock() {
@@ -362,6 +369,9 @@ class QuickCategoryPickerActivity : FragmentActivity() {
         const val EXTRA_NOTIFICATION_ID = "notification_id"
         /** Walk mode: the unsorted transaction ids in walk order (the recap's newest first, Home's oldest first). */
         const val EXTRA_WALK_IDS = "walk_ids"
+        private const val EXTRA_WALK_FROM_HOME = "walk_from_home"
+        /** The one slot a Home walk's "Saved as" notes share (other fixed ids: -2 to -5). */
+        private const val HOME_WALK_NOTE_ID = -6
         private const val KEY_UNLOCKED = "unlocked"
         private const val KEY_WALK_QUEUE = "walk_queue"
         private const val KEY_WALKED = "walked"
@@ -370,12 +380,16 @@ class QuickCategoryPickerActivity : FragmentActivity() {
         internal fun stillUnsorted(rows: List<TransactionEntity>, others: String): List<TransactionEntity> =
             rows.filter { it.category == others && !it.excludedFromAnalytics && !it.isDeleted }
 
-        /** Opens the picker on [ids]' first and walks the rest; each alert's id is its transaction's. */
-        fun walk(context: Context, ids: List<Long>): Intent =
+        /**
+         * Opens the picker on [ids]' first and walks the rest; each alert's id is its
+         * transaction's. [fromHome]: one note slot for the walk, and the recap stays.
+         */
+        fun walk(context: Context, ids: List<Long>, fromHome: Boolean = false): Intent =
             Intent(context, QuickCategoryPickerActivity::class.java).apply {
                 putExtra(EXTRA_TRANSACTION_ID, ids.first())
-                putExtra(EXTRA_NOTIFICATION_ID, ids.first().toInt())
+                putExtra(EXTRA_NOTIFICATION_ID, if (fromHome) HOME_WALK_NOTE_ID else ids.first().toInt())
                 putExtra(EXTRA_WALK_IDS, ids.toLongArray())
+                putExtra(EXTRA_WALK_FROM_HOME, fromHome)
                 addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
             }
 

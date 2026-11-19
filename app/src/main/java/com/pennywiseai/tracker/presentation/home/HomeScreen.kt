@@ -537,7 +537,7 @@ fun HomeScreen(
                                             count = unsorted.size,
                                             onSort = {
                                                 context.startActivity(
-                                                    QuickCategoryPickerActivity.walk(context, unsorted.take(UNSORTED_WALK_SIZE))
+                                                    QuickCategoryPickerActivity.walk(context, unsorted.take(UNSORTED_WALK_SIZE), fromHome = true)
                                                 )
                                             },
                                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content)

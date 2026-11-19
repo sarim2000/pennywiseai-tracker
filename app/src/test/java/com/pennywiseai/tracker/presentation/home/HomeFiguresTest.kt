@@ -117,18 +117,20 @@ class HomeFiguresTest {
         assertBreakdown(total = "-600", income = "0", expenses = "600", actual = b["INR"])
     }
 
-    @Test fun `unsorted rows are the counted ones still in Others, oldest first`() {
+    @Test fun `unsorted rows are the counted, unsplit ones still in Others, oldest first`() {
         val newer = tx("10", TransactionType.EXPENSE, category = "Misc", date = LocalDate.of(2026, 3, 12))
         val older = tx("20", TransactionType.INCOME, category = "Misc", date = LocalDate.of(2026, 3, 2))
+        val split = tx("60", TransactionType.EXPENSE, category = "Misc")
         val rows = listOf(
             newer,
             tx("30", TransactionType.EXPENSE, category = "Food"),
             tx("40", TransactionType.EXPENSE, category = "Misc", excluded = true),
             tx("50", TransactionType.EXPENSE, category = "Misc", loanId = 1),
+            split,
             older,
         )
-        // "Misc" stands in for a renamed Others.
-        assertEquals(listOf(older.id, newer.id), unsortedIds(rows, "Misc"))
+        // "Misc" stands in for a renamed Others; a row split across categories is filed already.
+        assertEquals(listOf(older.id, newer.id), unsortedIds(rows, "Misc", setOf(split.id)))
     }
 
     @Test fun `transfers and investments are neither income nor spend`() {

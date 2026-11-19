@@ -80,8 +80,8 @@ one file format and every v1.x app can read it (older apps ignore the key):
 
 - `path` is the transaction's `receiptPath` (relative to `filesDir`);
   `data_base64` is the file's bytes, standard Base64. Both defaulted to `""`.
-- **Export** includes photos only when the caller opts in and only for `FULL`
-  exports. Settings has one toggle per path: *Include receipt photos* for
+- **Export** includes receipts only when the caller opts in and only for `FULL`
+  exports. Settings has one toggle per path: *Include receipts* for
   manual export (pref `export_include_receipts`, default **on**) and for
   Automatic Folder Backup (pref `folder_backup_include_receipts`, default
   **off**: it runs daily). Missing/unreadable files are skipped and logged.

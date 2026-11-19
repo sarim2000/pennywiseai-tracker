@@ -28,7 +28,7 @@ import javax.inject.Inject
 import javax.inject.Singleton
 
 // OutOfMemoryError isn't an Exception: without this, too many photos crash the app.
-private const val TOO_LARGE = "Export failed: too many receipt photos for one backup. Turn off \"Include receipt photos\" and try again."
+private const val TOO_LARGE = "Export failed: too many receipts for one backup. Turn off \"Include receipts\" and try again."
 
 @Singleton
 class BackupExporter @Inject constructor(

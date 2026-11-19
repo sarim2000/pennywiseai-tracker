@@ -185,45 +185,49 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
                 var latestBeforeRebuild: List<AccountBalanceEntity> = emptyList()
                 if (forceResync) {
                     rebuildStartedAt = LocalDateTime.now()
-                    Trace.beginSection("clearDatabase")
-                    try {
-                        // Delete only what the inbox can rebuild (active SMS rows
-                        // outside loans/groups); manual, imported, notification and
-                        // deleted rows survive — nothing would bring them back. Re-parse uses
-                        // transaction_hash UNIQUE + OnConflictStrategy.IGNORE, so
-                        // surviving rows are not duplicated. Fixes #401.
-                        //
-                        // Order matters: drop the transactions FIRST, then run the
-                        // companion balance-cleanup which decides orphan-status
-                        // against the now-current transactions table. Without the
-                        // companion, deleteAllBalances() would wipe balance entries
-                        // for the preserved transactions and the re-parse would
-                        // never regenerate them (hash collision short-circuits
-                        // processBalanceUpdate), leaving gaps in the balance
-                        // time-series.
-                        latestBeforeRebuild = accountBalanceRepository.getAllLatestBalancesOnce()
-                        accountsBeforeRebuild = latestBeforeRebuild
-                            .filter { it.accountType != null }
-                            .associateBy { it.bankName to it.accountLast4 }
-                        transactionRepository.deleteRebuildableSmsTransactions(
-                            java.time.LocalDateTime.ofInstant(
-                                java.time.Instant.ofEpochMilli(scanStartTime), java.time.ZoneId.systemDefault()
-                            )
-                        )
-                        accountBalanceRepository.deleteRebuildableBalances()
-                    } finally {
-                        Trace.endSection()
-                    }
-                    Log.i(TAG, "Force resync: SMS rows cleared (loans, groups, deleted and non-SMS rows kept)")
+                    // What the rebuild's restore puts back, taken before anything is deleted.
+                    latestBeforeRebuild = accountBalanceRepository.getAllLatestBalancesOnce()
+                    accountsBeforeRebuild = latestBeforeRebuild
+                        .filter { it.accountType != null }
+                        .associateBy { it.bankName to it.accountLast4 }
                 }
 
-                // From here on a force resync has deleted rows: restore their accounts however the scan ends.
+                // From the first delete on, restore the rebuilt accounts however the scan ends.
                 val (stats, totalTime) = restoringAccountsAfterRebuild(
                     accountBalanceRepository,
                     accountsBeforeRebuild.values,
                     latestBeforeRebuild,
                     rebuilt = rebuildStartedAt != null,
                 ) {
+                    if (forceResync) {
+                        Trace.beginSection("clearDatabase")
+                        try {
+                            // Delete only what the inbox can rebuild (active SMS rows
+                            // outside loans/groups); manual, imported, notification and
+                            // deleted rows survive — nothing would bring them back. Re-parse uses
+                            // transaction_hash UNIQUE + OnConflictStrategy.IGNORE, so
+                            // surviving rows are not duplicated. Fixes #401.
+                            //
+                            // Order matters: drop the transactions FIRST, then run the
+                            // companion balance-cleanup which decides orphan-status
+                            // against the now-current transactions table. Without the
+                            // companion, deleteAllBalances() would wipe balance entries
+                            // for the preserved transactions and the re-parse would
+                            // never regenerate them (hash collision short-circuits
+                            // processBalanceUpdate), leaving gaps in the balance
+                            // time-series.
+                            transactionRepository.deleteRebuildableSmsTransactions(
+                                java.time.LocalDateTime.ofInstant(
+                                    java.time.Instant.ofEpochMilli(scanStartTime), java.time.ZoneId.systemDefault()
+                                )
+                            )
+                            accountBalanceRepository.deleteRebuildableBalances()
+                        } finally {
+                            Trace.endSection()
+                        }
+                        Log.i(TAG, "Force resync: SMS rows cleared (loans, groups, deleted and non-SMS rows kept)")
+                    }
+
                     val now = System.currentTimeMillis()
 
                     Trace.beginSection("preloadCaches")

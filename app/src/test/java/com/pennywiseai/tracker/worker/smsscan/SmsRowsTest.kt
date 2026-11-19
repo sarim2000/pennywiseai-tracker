@@ -101,6 +101,55 @@ class SmsRowsTest {
         assertEquals(0, unreadable)
     }
 
+    @Test
+    fun `an inbox with more bad rows than the resume limit still reads through`() = runBlocking {
+        val rows = (0L until 30L).map { SmsRowKey(date = 1_000L + it, id = it) }
+        val inbox = FakeInbox(rows, tooBig = (1L..25L).toSet())
+        val feed = Channel<ScannedSms>(Channel.UNLIMITED)
+        var unreadable = 0
+
+        val count = streamSmsSkippingBadRows(inbox::query, feed, onUnreadable = { unreadable++ })
+        feed.close()
+
+        assertEquals(listOf(0L) + (26L until 30L), feed.toList().map { it.id })
+        assertEquals(5, count)
+        assertEquals(25, unreadable)
+    }
+
+    @Test
+    fun `a read that keeps breaking off in one place still gives up`() = runBlocking {
+        val rows = (0L until 5L).map { SmsRowKey(date = 1_000L + it, id = it) }
+        // Row 2 breaks the read every time, yet reads fine on its own: nothing to skip.
+        val inbox = FakeInbox(rows, breaksRead = setOf(2L))
+        val feed = Channel<ScannedSms>(Channel.UNLIMITED)
+
+        val thrown = runCatching { streamSmsSkippingBadRows(inbox::query, feed) {} }.exceptionOrNull()
+
+        assertSame(inbox.windowError, thrown)
+    }
+
+    @Test
+    fun `rows that share a date resume by id, with the key read from the right columns`() = runBlocking {
+        // Ids out of step with dates: the feed's order is date, then _id.
+        val rows = listOf(
+            SmsRowKey(date = 1_000L, id = 40L),
+            SmsRowKey(date = 2_000L, id = 31L),
+            SmsRowKey(date = 2_000L, id = 30L),
+            SmsRowKey(date = 2_000L, id = 32L),
+            SmsRowKey(date = 3_000L, id = 10L),
+        )
+        val inbox = FakeInbox(rows, tooBig = setOf(31L))
+        val feed = Channel<ScannedSms>(Channel.UNLIMITED)
+        var unreadable = 0
+
+        streamSmsSkippingBadRows(inbox::query, feed, onUnreadable = { unreadable++ })
+        feed.close()
+
+        assertEquals(listOf(40L, 30L, 32L, 10L), feed.toList().map { it.id })
+        assertEquals(1, unreadable)
+        assertEquals(SmsRowKey(date = 2_000L, id = 31L), inbox.resumedAfter.last())
+    }
+
     private fun SmsRowKey?.next() = this?.let { it.id.toInt() + 1 } ?: 0
 
     /** Row [id] read on its own; reading [badRow] throws [error]. */
@@ -128,3 +177,49 @@ class SmsRowsTest {
 }
 
 private suspend fun <T> Channel<T>.toList(): List<T> = buildList { for (item in this@toList) add(item) }
+
+/**
+ * An inbox that answers [SmsQuery] the way the SMS provider does: rows in date, then _id
+ * order, each column where its projection puts it. Moving onto a [tooBig] row throws, and
+ * so does reading it on its own; a [breaksRead] row breaks the read but loads on its own.
+ */
+private class FakeInbox(
+    rows: List<SmsRowKey>,
+    private val tooBig: Set<Long> = emptySet(),
+    private val breaksRead: Set<Long> = emptySet(),
+) {
+    val windowError = IllegalStateException("Row too big to fit into CursorWindow")
+    val resumedAfter = mutableListOf<SmsRowKey?>()
+    private val rows = rows.sortedWith(compareBy({ it.date }, { it.id }))
+
+    fun query(projection: Array<String>, after: SmsRowKey?, only: SmsRowKey?): Cursor {
+        val keysOnly = projection.contentEquals(SMS_KEY_PROJECTION)
+        if (!keysOnly && only == null) resumedAfter += after
+        val selected = when {
+            only != null -> rows.filter { it.id == only.id }
+            after != null -> rows.filter { it.date > after.date || (it.date == after.date && it.id > after.id) }
+            else -> rows
+        }
+        var pos = -1
+        fun moveTo(next: Int): Boolean {
+            pos = next
+            val row = selected.getOrNull(pos) ?: return false
+            if (!keysOnly && (row.id in tooBig || (only == null && row.id in breaksRead))) throw windowError
+            return true
+        }
+        return mockk(relaxed = true) {
+            every { getColumnIndexOrThrow(any()) } answers { projection.indexOf(firstArg()) }
+            every { moveToNext() } answers { moveTo(pos + 1) }
+            every { moveToFirst() } answers { moveTo(0) }
+            every { getLong(any()) } answers {
+                val row = selected[pos]
+                when (projection[firstArg()]) {
+                    SMS_KEY_PROJECTION[0] -> row.id
+                    SMS_KEY_PROJECTION[1] -> row.date
+                    else -> 0L
+                }
+            }
+            every { getString(any()) } returns "text"
+        }
+    }
+}

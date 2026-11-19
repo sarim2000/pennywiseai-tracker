@@ -264,7 +264,7 @@ internal val SMS_PROJECTION = arrayOf(
 /** Just a row's place in the feed's order: small enough to load where the full row can't. */
 internal val SMS_KEY_PROJECTION = arrayOf(Telephony.Sms._ID, Telephony.Sms.DATE)
 
-/** Times one scan's SMS read may break off and resume before it calls the inbox broken. */
+/** Times the SMS read may break off at one place and resume there before it calls the inbox broken. */
 private const val MAX_RESUMES = 20
 
 /** Where a read is in the feed's order (date, then _id). */
@@ -294,7 +294,10 @@ internal suspend fun streamSmsSkippingBadRows(
 ): Int {
     var after: SmsRowKey? = null
     var count = 0
+    // Counted per place: a read that moved on (a skipped row too) made progress, so an
+    // inbox with many bad rows still reads through, and only a read stuck in one place fails.
     var resumes = 0
+    var resumedAt: SmsRowKey? = null
     while (true) {
         val error = try {
             // No cursor means the provider failed, not an empty inbox (that is a cursor
@@ -311,6 +314,10 @@ internal suspend fun streamSmsSkippingBadRows(
         } catch (e: Exception) {
             if (e is CancellationException || e is SecurityException || e is NoSmsCursor) throw e
             e
+        }
+        if (after != resumedAt) {
+            resumes = 0
+            resumedAt = after
         }
         if (++resumes > MAX_RESUMES) throw error
         val next = probe(error) {

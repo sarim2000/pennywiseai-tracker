@@ -479,7 +479,7 @@ private fun GroupByMenuButton(
                             Icon(
                                 Icons.Default.Lock,
                                 contentDescription = stringResource(R.string.analytics_group_by_pro),
-                                tint = yellow_dark,
+                                tint = yellow_dark.readableOn(listOf(MaterialTheme.colorScheme.surfaceContainer), GRAPHIC_CONTRAST),
                                 modifier = Modifier.size(Dimensions.Icon.small)
                             )
                         }

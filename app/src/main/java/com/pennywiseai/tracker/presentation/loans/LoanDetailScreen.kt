@@ -195,7 +195,7 @@ fun LoanDetailScreen(
                                     loan.personName.take(1).uppercase(),
                                     style = MaterialTheme.typography.titleLarge,
                                     fontWeight = FontWeight.Bold,
-                                    color = directionColor
+                                    color = MaterialTheme.colorScheme.inkOnWash(directionColor, 0.15f)
                                 )
                             }
                             Column(modifier = Modifier.weight(1f)) {
@@ -534,7 +534,7 @@ private fun RecordPaymentBottomSheet(
                     },
                     enabled = manualAmount.toBigDecimalOrNull()?.let { it > BigDecimal.ZERO } == true,
                     shape = MaterialTheme.shapes.large,
-                    colors = ButtonDefaults.buttonColors(containerColor = loanColor)
+                    colors = ButtonDefaults.buttonColors(containerColor = loanColor, contentColor = loanColor.bestInk())
                 ) {
                     Text(stringResource(R.string.loan_detail_add))
                 }

@@ -110,6 +110,7 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.income
+import com.pennywiseai.tracker.ui.theme.inkOnWash
 import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.text.Collator
@@ -451,7 +452,7 @@ private fun ProfileStep(
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent,
                 focusedLabelColor = MaterialTheme.colorScheme.primary,
-                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f)
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant
             )
         )
 
@@ -493,7 +494,7 @@ private fun ProfileStep(
                         contentDescription = stringResource(R.string.onboarding_avatar_cd, index + 1),
                         modifier = Modifier.size(Dimensions.Icon.avatar),
                         colorFilter = ColorFilter.tint(
-                            if (isSelected) MaterialTheme.colorScheme.primary
+                            if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer
                             else MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     )
@@ -524,7 +525,7 @@ private fun ProfileStep(
                         Icon(
                             imageVector = Icons.Default.Check,
                             contentDescription = stringResource(R.string.onboarding_photo_selected_cd),
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = MaterialTheme.colorScheme.onPrimaryContainer,
                             modifier = Modifier.size(Dimensions.Icon.large)
                         )
                     } else {
@@ -656,10 +657,11 @@ private fun PermissionsStep(
         Spacer(modifier = Modifier.height(Spacing.xl))
 
         if (uiState.smsPermissionGranted) {
-            val incomeColor = MaterialTheme.colorScheme.income
+            val washAlpha = if (isAppInDarkTheme()) 0.15f else 0.12f
+            val incomeColor = MaterialTheme.colorScheme.run { inkOnWash(income, washAlpha) }
             Card(
                 colors = CardDefaults.cardColors(
-                    containerColor = incomeColor.copy(alpha = if (isAppInDarkTheme()) 0.15f else 0.12f)
+                    containerColor = MaterialTheme.colorScheme.income.copy(alpha = washAlpha)
                 ),
                 shape = MaterialTheme.shapes.large,
                 modifier = Modifier.fillMaxWidth()
@@ -893,6 +895,7 @@ private fun MissingBankCard() {
                     runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, BANK_REQUEST_URL.toUri())) }
                 },
                 modifier = Modifier.align(Alignment.End),
+                colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onSecondaryContainer),
                 shapes = ButtonDefaults.shapes()
             ) {
                 Text(stringResource(R.string.onboarding_bank_missing_action))
@@ -969,9 +972,7 @@ private fun AccountSetupStep(
                 // a colour paired with `surface` — then sat on it at almost no
                 // contrast, making the masked digits vanish on the selected row.
                 val mutedColor = if (isSelected) {
-                    MaterialTheme.colorScheme.onPrimaryContainer.copy(
-                        alpha = Dimensions.Alpha.subtitle
-                    )
+                    MaterialTheme.colorScheme.onPrimaryContainer
                 } else {
                     MaterialTheme.colorScheme.onSurfaceVariant
                 }

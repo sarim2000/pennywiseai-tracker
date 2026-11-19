@@ -534,6 +534,12 @@ because the same role also renders small labels.
 - **A custom fill** (a semantic or category colour as a background) has no
   `on*` role, so pass `fill.bestInk()` explicitly. `contentColorFor()` can't
   infer one, and black-or-white always clears 4.58:1.
+- **A colour on a wash of itself** (a category glyph or a chip label on its
+  own 12–20% tint) goes through `inkOnWash(color, alpha)`; pass
+  `GRAPHIC_CONTRAST` for an icon. `CategoryIcon(washAlpha = …)` does this for
+  you, and a bare `CategoryIcon` already reaches 3:1 on any surface.
+  `WavyMeter` nudges its colour to 3:1 on its track, so a pale budget or
+  category colour still shows.
 - **Alpha**: check the composited colour, not the base. Never dim
   `onSurfaceVariant` (see Alpha).
 - Hand-built schemes (default, Rosé Pine) go through `withReadableInk()`. It

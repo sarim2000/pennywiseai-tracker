@@ -61,9 +61,6 @@ object Dimensions {
         const val divider = 0.12f
         const val surface = 0.65f
 
-        /** Secondary text sitting on a coloured container. */
-        const val subtitle = 0.75f
-
         /** Placeholder / skeleton content shown behind an empty state. */
         const val ghost = 0.12f
 

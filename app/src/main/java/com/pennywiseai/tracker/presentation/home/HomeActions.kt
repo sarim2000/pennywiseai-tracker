@@ -43,7 +43,7 @@ internal fun HomeTopBarActions(
     val containerColor = MaterialTheme.colorScheme.surfaceContainer
     val colors = IconButtonDefaults.filledIconButtonColors(
         containerColor = if (blurEffects) containerColor.copy(alpha = Dimensions.Alpha.medium) else containerColor,
-        contentColor = MaterialTheme.colorScheme.inverseSurface
+        contentColor = MaterialTheme.colorScheme.onSurface
     )
     Row(
         verticalAlignment = Alignment.CenterVertically,

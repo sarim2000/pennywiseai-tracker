@@ -133,7 +133,8 @@ internal fun MarkAsLoanBottomSheet(
                                     name.take(1).uppercase(),
                                     style = MaterialTheme.typography.titleSmall,
                                     fontWeight = FontWeight.Bold,
-                                    color = loanColor
+                                    // The 15% avatar wash over a selected row's 12% one ≈ a 25% wash.
+                                    color = MaterialTheme.colorScheme.inkOnWash(loanColor, 0.25f)
                                 )
                             }
                             Text(
@@ -234,7 +235,8 @@ internal fun MarkAsLoanBottomSheet(
                 enabled = personName.isNotBlank() && isLoanAmountValid,
                 shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
                 colors = ButtonDefaults.buttonColors(
-                    containerColor = loanColor
+                    containerColor = loanColor,
+                    contentColor = loanColor.bestInk()
                 )
             ) {
                 Icon(

@@ -139,7 +139,7 @@ fun AddAccountScreen(
                 focusedIndicatorColor = Color.Transparent,
                 unfocusedIndicatorColor = Color.Transparent,
                 focusedLabelColor = MaterialTheme.colorScheme.primary,
-                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f),
+                unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
                 disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                 disabledIndicatorColor = Color.Transparent,
                 disabledLabelColor = MaterialTheme.colorScheme.primary,

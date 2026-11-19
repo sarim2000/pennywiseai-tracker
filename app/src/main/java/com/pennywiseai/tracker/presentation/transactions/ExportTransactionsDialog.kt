@@ -265,7 +265,7 @@ fun ExportTransactionsDialog(
                                 Text(
                                     text = stringResource(R.string.txn_export_file_size, formatFileSize(state.fileSizeBytes)),
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                             }
                         }

@@ -389,6 +389,7 @@ private fun DetailHero(
         // Loan chip
         if (loan != null) {
             val loanColor = MaterialTheme.colorScheme.loan
+            val loanInk = MaterialTheme.colorScheme.inkOnWash(loanColor, Dimensions.Alpha.categoryTint)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
@@ -417,13 +418,13 @@ private fun DetailHero(
                             Icons.Default.SwapHoriz,
                             contentDescription = null,
                             modifier = Modifier.size(Dimensions.Icon.small),
-                            tint = loanColor
+                            tint = loanInk
                         )
                     },
                     colors = SuggestionChipDefaults.suggestionChipColors(
                         containerColor = loanColor.copy(alpha = Dimensions.Alpha.categoryTint),
-                        labelColor = loanColor,
-                        iconContentColor = loanColor
+                        labelColor = loanInk,
+                        iconContentColor = loanInk
                     ),
                     shape = CircleShape,
                     border = null
@@ -694,7 +695,8 @@ private fun CategoryDropdownChip(text: String, color: Color) {
     Surface(
         shape = CircleShape,
         color = color.copy(alpha = Dimensions.Alpha.categoryTint),
-        contentColor = color,
+        // Ink nudged for the wash of itself it sits on; the wash keeps the raw hue.
+        contentColor = MaterialTheme.colorScheme.inkOnWash(color, Dimensions.Alpha.categoryTint),
         modifier = Modifier.heightIn(min = Dimensions.Component.chipHeight)
     ) {
         Row(

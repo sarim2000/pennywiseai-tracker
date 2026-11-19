@@ -176,7 +176,8 @@ data object LearnedCategories : NavKey
 
 @Serializable
 data class TransactionsWithFilter(
-    val category: String,
+    /** Null lists every category: a calendar day's transactions. */
+    val category: String? = null,
     val period: String? = null,
     val currency: String? = null,
     val startDate: Long? = null,
@@ -191,6 +192,10 @@ data class TransactionsWithFilter(
  */
 @Serializable
 data class Review(val kind: String = "MONTH", val weekStart: String? = null) : NavKey
+
+/** A month of daily spend and payments due; opened from Analytics. */
+@Serializable
+data object SpendCalendar : NavKey
 
 /** Achievements earned and still to earn, worked out from the app's history. */
 @Serializable

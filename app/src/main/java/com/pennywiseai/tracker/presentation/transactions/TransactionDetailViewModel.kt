@@ -479,6 +479,9 @@ class TransactionDetailViewModel @Inject constructor(
 
     fun enterEditMode() {
         _editableTransaction.value = _transaction.value?.copy()
+        // A cancelled edit can leave these on an unsaved pick (e.g. the Refund answer).
+        _budgetImpactType.value = _transaction.value?.budgetImpactType
+        _budgetCategory.value = _transaction.value?.budgetCategory
         _isEditMode.value = true
         _errorMessage.value = null
         _pendingReceiptUri.value = null

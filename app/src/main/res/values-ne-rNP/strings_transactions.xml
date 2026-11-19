@@ -112,7 +112,6 @@
     <string name="txn_detail_label_to">लाई</string>
     <string name="txn_detail_label_balance">बालान्स</string>
     <string name="txn_detail_label_balance_mismatch">बालान्स मेल खाएन</string>
-    <string name="txn_detail_balance_mismatch_value">%1$s ले फरक · अपेक्षित %2$s</string>
     <string name="txn_detail_add_untracked_expense">%1$s छुटेको खर्च थप्नुहोस्</string>
     <string name="txn_detail_add_untracked_income">%1$s छुटेको आम्दानी थप्नुहोस्</string>
     <string name="txn_detail_adjustment_title_expense">छुटेको खर्च</string>

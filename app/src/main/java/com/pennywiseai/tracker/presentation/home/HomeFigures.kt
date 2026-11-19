@@ -6,6 +6,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.ledger.convertedEstimate
 import com.pennywiseai.tracker.data.ledger.countingTransferPairsOnce
+import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
@@ -32,6 +33,15 @@ internal fun trackedRowsFilter(
     val keep: (TransactionEntity) -> Boolean = { it.isTracked(profile, ignoredKeys, accountKeys) }
     keep
 }
+
+/**
+ * The ids of [rows] still in Others ([others], under its current name), oldest first: what
+ * Home's "Needs a category" card walks. As the evening recap picks a day's: a row that counts
+ * for nothing (kept out of totals, or lent in full) isn't asked about. Nor is one already
+ * [split] across categories: its splits file it, though its own category stays Others.
+ */
+internal fun unsortedIds(rows: List<TransactionEntity>, others: String, split: Set<Long>): List<Long> =
+    rows.forTotals().filter { it.category == others && it.id !in split }.sortedBy { it.dateTime }.map { it.id }
 
 /**
  * Converts an amount between currencies, with the contract of

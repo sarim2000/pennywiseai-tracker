@@ -571,6 +571,31 @@ class BackupModelsTest {
         assertEquals("4321", spotify.accountLast4)
     }
 
+    /** A backup from before schema 70 has no payment plans: every row keeps renewing (#1061). */
+    @Test
+    fun oldBackupMissingPaymentPlan_hasNoEnd() {
+        val json = """
+        {
+          "database": {
+            "subscriptions": [
+              { "id": 9, "merchantName": "Netflix", "amount": "499.00", "nextPaymentDate": "2023-06-01" },
+              { "id": 10, "merchantName": "Synthetic EMI", "amount": "1500.00", "nextPaymentDate": "2023-06-05",
+                "totalPayments": 12, "paymentsMade": 3 }
+            ]
+          }
+        }
+        """.trimIndent()
+
+        val subs = backupJson.decodeFromString<PennyWiseBackup>(json).database.subscriptions
+
+        val legacy = subs.single { it.id == 9L }
+        assertNull(legacy.totalPayments)
+        assertEquals(0, legacy.paymentsMade)
+        val plan = subs.single { it.id == 10L }
+        assertEquals(12, plan.totalPayments)
+        assertEquals(3, plan.paymentsMade)
+    }
+
     /**
      * #509 regression. An older backup's account_balances row predates the
      * per-account `lowBalanceThreshold` column, so the key is simply absent.
@@ -663,6 +688,52 @@ class BackupModelsTest {
         val restored = backupJson.decodeFromString<AccountBalanceEntity>(backupJson.encodeToString(card))
 
         assertEquals(card, restored)
+    }
+
+    /** A backup from before schema 70 has no rollover: the budget restores with it off. */
+    @Test
+    fun oldBackupMissingRollover_defaultsToOff() {
+        val json = """
+        {
+          "database": {
+            "budgets": [
+              {
+                "id": 1,
+                "name": "Groceries",
+                "limitAmount": "500",
+                "periodType": "WEEKLY",
+                "startDate": "2024-01-01",
+                "endDate": "2024-01-07"
+              }
+            ]
+          }
+        }
+        """.trimIndent()
+
+        val legacy = backupJson.decodeFromString<PennyWiseBackup>(json).database.budgets.single()
+
+        assertFalse(legacy.rolloverEnabled)
+        assertNull(legacy.rolloverSince)
+    }
+
+    @Test
+    fun rolloverSurvivesBackupRoundtrip() {
+        val budget = BudgetEntity(
+            name = "Groceries",
+            limitAmount = BigDecimal("500"),
+            periodType = BudgetPeriodType.MONTHLY,
+            startDate = LocalDate.of(2024, 2, 1),
+            endDate = LocalDate.of(2024, 2, 29),
+            monthStartDay = 1,
+            createdAt = LocalDateTime.of(2024, 1, 1, 9, 0),
+            updatedAt = LocalDateTime.of(2024, 1, 1, 9, 0),
+            rolloverEnabled = true,
+            rolloverSince = LocalDate.of(2024, 2, 10),
+        )
+
+        val restored = backupJson.decodeFromString<BudgetEntity>(backupJson.encodeToString(budget))
+
+        assertEquals(budget, restored)
     }
 
     /**

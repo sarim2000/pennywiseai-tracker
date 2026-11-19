@@ -113,7 +113,6 @@
     <string name="txn_detail_label_to">Para</string>
     <string name="txn_detail_label_balance">Saldo</string>
     <string name="txn_detail_label_balance_mismatch">Incompatibilidade de saldo</string>
-    <string name="txn_detail_balance_mismatch_value">Desligar por %1$s · esperado %2$s</string>
     <string name="txn_detail_add_untracked_expense">Adicionar %1$s despesa não monitorada</string>
     <string name="txn_detail_add_untracked_income">Adicionar renda %1$s não monitorada</string>
     <string name="txn_detail_adjustment_title_expense">Despesa não registada</string>

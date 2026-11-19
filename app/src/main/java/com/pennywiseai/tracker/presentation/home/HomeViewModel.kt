@@ -48,6 +48,7 @@ import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.domain.review.ReviewPrompt
 import com.pennywiseai.tracker.domain.review.reviewPromptFor
 import com.pennywiseai.tracker.domain.spending.Bill
+import com.pennywiseai.tracker.domain.spending.BillSource
 import com.pennywiseai.tracker.domain.spending.CardBillsLoader
 import com.pennywiseai.tracker.domain.spending.SafeToSpend
 import com.pennywiseai.tracker.domain.spending.SpendForecast
@@ -254,6 +255,21 @@ class HomeViewModel @Inject constructor(
     // Today's date as a flow, so day-based figures move on when Home is resumed on a new day.
     private val today = MutableStateFlow(LocalDate.now())
 
+    /** This cycle's rows still to sort, oldest first ([unsortedIds]): the "Needs a category" card, hidden when empty. */
+    val unsorted: StateFlow<List<Long>> = combine(
+        combine(_currentCycleWindow, today) { (start, _), day -> start to day }
+            .distinctUntilChanged()
+            .flatMapLatest { (start, day) -> transactionRepository.getTransactionsBetweenDates(start, day) }
+            .combine(trackedRows) { rows, keep -> rows.filter(keep) },
+        // By built-in identity, so a renamed or translated Others still matches.
+        categoryRepository.getAllCategories().map { it.nameForBuiltin("Others") }.distinctUntilChanged(),
+        transactionRepository.observeSplitsForActiveTransactions().map { splits -> splits.mapTo(HashSet()) { it.transactionId } },
+        ::unsortedIds,
+    )
+        .distinctUntilChanged()
+        .flowOn(Dispatchers.Default)
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), emptyList())
+
     /**
      * Declared above init{} deliberately: Kotlin initialises properties in declaration
      * order, and init calls observeReviewPrompt(). Leaving this further down the class
@@ -370,7 +386,7 @@ class HomeViewModel @Inject constructor(
         // The whole unpaid bill: card purchases never touched the bank balance, so all of
         // it still leaves the bank, whatever this cycle's spending already counts.
         val cardBills = cards.mapNotNull { status ->
-            status.bill?.let { Bill(it.label, Money(it.remaining, it.currency), it.dueDate, isCardBill = true) }
+            status.bill?.let { Bill(it.label, Money(it.remaining, it.currency), it.dueDate, source = BillSource.Card(it.bankName, it.accountLast4)) }
         }
         val bills = SafeToSpend.billsInWindow(SafeToSpend.billsFrom(subscriptions) + cardBills, today, periodEnd)
         val results = SafeToSpend.calculate(
@@ -1051,7 +1067,11 @@ class HomeViewModel @Inject constructor(
                 val today = LocalDate.now()
                 val todayYm = YearMonth.of(today.year, today.monthValue)
                 if (unifiedMode) {
-                    budgetGroupRepository.getGroupSpendingAllCurrencies(todayYm.year, todayYm.monthValue)
+                    // Recounted when a rate changes too, as the Budgets screen is.
+                    combine(
+                        budgetGroupRepository.getGroupSpendingAllCurrencies(todayYm.year, todayYm.monthValue),
+                        currencyConversionService.getAllRatesFlow()
+                    ) { raw, _ -> raw }
                         .map { raw ->
                             homeBudgetSummary(raw, displayCurrency, baseCurrency, convert)
                         }
@@ -1415,8 +1435,9 @@ class HomeViewModel @Inject constructor(
     /** "Start on day N" on the payday card: the budget cycle moves to payday, and the card never comes back. */
     fun acceptPaydaySuggestion(day: Int) {
         viewModelScope.launch {
+            // The new day hides the card; marked only once it's saved, so a failed move keeps the offer.
+            budgetGroupRepository.updateBudgetCycleStartDay(day)
             userPreferencesRepository.markPaydaySuggestionHandled()
-            userPreferencesRepository.updateBudgetCycleStartDay(day)
         }
     }
 

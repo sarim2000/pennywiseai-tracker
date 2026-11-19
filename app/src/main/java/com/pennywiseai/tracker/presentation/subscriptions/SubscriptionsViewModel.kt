@@ -248,6 +248,8 @@ class SubscriptionsViewModel @Inject constructor(
         category: String?,
         account: AccountBalanceEntity?,
         accountChanged: Boolean,
+        totalPayments: Int?,
+        paymentsMade: Int,
     ) {
         viewModelScope.launch {
             val existing = subscriptionRepository.getSubscriptionById(id) ?: return@launch
@@ -265,6 +267,9 @@ class SubscriptionsViewModel @Inject constructor(
                     // "No account" still work because that flips accountChanged. (#570)
                     bankName = if (accountChanged) account?.bankName ?: "Manual Entry" else existing.bankName,
                     accountLast4 = if (accountChanged) account?.accountLast4 else existing.accountLast4,
+                    // The count runs only while the plan has an end, so removing the end resets it.
+                    totalPayments = totalPayments,
+                    paymentsMade = if (totalPayments == null) 0 else paymentsMade,
                     updatedAt = java.time.LocalDateTime.now()
                 )
             )
@@ -304,7 +309,7 @@ class SubscriptionsViewModel @Inject constructor(
             }
             val paid = result is MarkSubscriptionPaidUseCase.Result.Created || result is MarkSubscriptionPaidUseCase.Result.Linked
             _uiState.value = _uiState.value.copy(
-                markPaidMessage = message,
+                markPaidMessage = (if (paid) finishedPlan(subscriptionId) else null) ?: message,
                 settledSubscriptionId = subscriptionId.takeIf { paid } ?: _uiState.value.settledSubscriptionId,
             )
             announceBillPaid(result)
@@ -320,6 +325,12 @@ class SubscriptionsViewModel @Inject constructor(
         }
         billPaidMoment(transactionRepository.getTransactionById(paymentId))?.let(mascotMoments::announce)
     }
+
+    /** "All 12 payments made" when that payment was a plan's last (#1061): its row has moved to Cancelled. */
+    private suspend fun finishedPlan(subscriptionId: Long): UiText? =
+        subscriptionRepository.getSubscriptionById(subscriptionId)
+            ?.takeIf { it.state == SubscriptionState.ENDED && it.totalPayments != null }
+            ?.let { UiText.Res(R.string.subscriptions_msg_plan_done, listOf(it.merchantName, it.paymentsMade)) }
 
     /** Ends the settled check on [subscriptionId]'s row, unless a newer one took over. */
     fun clearSettled(subscriptionId: Long) {
@@ -374,9 +385,10 @@ class SubscriptionsViewModel @Inject constructor(
                     UiText.Res(R.string.subscriptions_msg_not_found)
                 else -> UiText.Res(R.string.subscriptions_msg_linked_generic)
             }
+            val linked = result is MarkSubscriptionPaidUseCase.Result.Linked
             _uiState.value = _uiState.value.copy(
-                markPaidMessage = message,
-                settledSubscriptionId = subscriptionId.takeIf { result is MarkSubscriptionPaidUseCase.Result.Linked }
+                markPaidMessage = (if (linked) finishedPlan(subscriptionId) else null) ?: message,
+                settledSubscriptionId = subscriptionId.takeIf { linked }
                     ?: _uiState.value.settledSubscriptionId,
             )
             announceBillPaid(result)

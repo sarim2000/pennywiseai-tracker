@@ -10,6 +10,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.CalendarToday
+import androidx.compose.material.icons.filled.Category
 import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Sync
@@ -627,5 +628,65 @@ internal fun HomeActivitySection(
             blurEffects = blurEffects,
             hazeState = hazeStateBanner
         )
+    }
+}
+
+/** How many unsorted rows one tap on the "Needs a category" card walks, oldest first. */
+internal const val UNSORTED_WALK_SIZE = 20
+
+/**
+ * "3 transactions this month need a category": a count only, no amounts. Tapping walks
+ * the oldest [UNSORTED_WALK_SIZE] in the category picker, as the evening recap does.
+ */
+@Composable
+internal fun HomeUnsortedCard(
+    count: Int,
+    onSort: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    PennyWiseCardV2(
+        modifier = modifier.fillMaxWidth(),
+        contentPadding = Spacing.none,
+        onClick = onSort,
+    ) {
+        Row(
+            modifier = Modifier.padding(start = Spacing.md, top = Spacing.md, end = Spacing.md),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.smd),
+        ) {
+            Icon(
+                imageVector = Icons.Default.Category,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(Dimensions.Icon.medium),
+            )
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
+                Text(
+                    text = pluralStringResource(R.plurals.home_unsorted_title, count, count),
+                    style = MaterialTheme.typography.titleSmall,
+                    color = MaterialTheme.colorScheme.onSurface,
+                )
+                Text(
+                    text = pluralStringResource(R.plurals.home_unsorted_body, count),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+            }
+        }
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(end = Spacing.xs),
+            horizontalArrangement = Arrangement.End,
+        ) {
+            TextButton(onClick = onSort, shapes = ButtonDefaults.shapes()) {
+                Text(
+                    when {
+                        count > UNSORTED_WALK_SIZE -> stringResource(R.string.home_unsorted_action_batch, UNSORTED_WALK_SIZE)
+                        count > 1 -> stringResource(R.string.notif_daily_action_sort_all)
+                        else -> stringResource(R.string.notif_daily_action_sort)
+                    }
+                )
+            }
+        }
     }
 }

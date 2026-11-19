@@ -49,6 +49,7 @@ import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.saveable.rememberSaveableStateHolder
 import androidx.compose.runtime.setValue
 import androidx.compose.runtime.snapshotFlow
 import androidx.compose.ui.Alignment
@@ -94,8 +95,10 @@ import com.pennywiseai.tracker.ui.voice.VoiceStatusBar
 import com.pennywiseai.tracker.ui.voice.rememberVoiceInput
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
 import java.text.DecimalFormatSymbols
 import java.time.Instant
@@ -135,27 +138,32 @@ fun QuickAddSheet(
     var heard by remember { mutableStateOf<VoiceEntry?>(null) }
     val sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))
     val scope = rememberCoroutineScope()
+    // Keeps the typed draft while the mic pane is up; a voice entry starts it afresh.
+    val panes = rememberSaveableStateHolder()
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = sheetState) {
         if (listening) {
             VoicePane(
                 setup = s,
                 onEntry = {
                     heard = it
+                    panes.removeState(FORM_PANE)
                     listening = false
                 },
                 onAsk = onAsk,
                 onType = { listening = false }
             )
         } else {
-            QuickAddForm(
-                setup = s,
-                heard = heard,
-                viewModel = viewModel,
-                onListen = { listening = true },
-                onSaved = { scope.launch { sheetState.hide() }.invokeOnCompletion { onSaved() } },
-                onMoreDetails = onMoreDetails,
-                onSubscription = onSubscription
-            )
+            panes.SaveableStateProvider(FORM_PANE) {
+                QuickAddForm(
+                    setup = s,
+                    heard = heard,
+                    viewModel = viewModel,
+                    onListen = { listening = true },
+                    onSaved = { scope.launch { sheetState.hide() }.invokeOnCompletion { onSaved() } },
+                    onMoreDetails = onMoreDetails,
+                    onSubscription = onSubscription
+                )
+            }
         }
     }
 }
@@ -328,7 +336,8 @@ private fun QuickAddForm(
         scope.launch {
             saving = true
             error = null
-            when (val outcome = gate.save { viewModel.insert(d, a, c) }) {
+            // A save the user started finishes even if the sheet closes meanwhile.
+            when (val outcome = gate.save { withContext(NonCancellable) { viewModel.insert(d, a, c) } }) {
                 SaveOutcome.Saved -> {
                     viewModel.afterSave()
                     Toast.makeText(
@@ -370,7 +379,7 @@ private fun QuickAddForm(
             )
             // Only where the phone has a recognizer; otherwise the mic would bounce straight back.
             if (remember { VoiceInput.isAvailable(context) }) {
-                IconButton(onClick = onListen, shapes = IconButtonDefaults.shapes()) {
+                IconButton(onClick = onListen, enabled = !saving, shapes = IconButtonDefaults.shapes()) {
                     Icon(Icons.Rounded.Mic, contentDescription = stringResource(R.string.quick_add_voice_title))
                 }
             }
@@ -602,3 +611,5 @@ private fun QuickAddForm(
 
 /** How long the mic waits for the language list before starting anyway. */
 private const val LANGUAGES_WAIT_MS = 3_000L
+
+private const val FORM_PANE = "form"

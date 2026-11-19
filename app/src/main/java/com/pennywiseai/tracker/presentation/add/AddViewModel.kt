@@ -28,6 +28,7 @@ import com.pennywiseai.tracker.domain.usecase.GetCategoriesUseCase
 import com.pennywiseai.tracker.presentation.transactions.normalizeReference
 import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.ui.components.pickerDefault
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.Job
@@ -37,7 +38,7 @@ import java.math.BigDecimal
 import java.time.Instant
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.ZoneId
+import java.time.ZoneOffset
 import javax.inject.Inject
 
 @HiltViewModel
@@ -144,11 +145,16 @@ class AddViewModel @Inject constructor(
                     date = draftDateTime ?: it.date
                 )
             }
-            // The same draft starts the Subscription form, so switching forms keeps what was typed.
+            // The same draft starts the Subscription form, so switching forms keeps what was
+            // typed, income included (the direction first: it resets the category).
+            if (draftType == TransactionType.INCOME) {
+                updateSubscriptionDirection(com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.INCOME)
+            }
             _subscriptionUiState.update {
                 it.copy(
                     amount = draftAmount ?: it.amount,
                     serviceName = draftMerchant ?: it.serviceName,
+                    category = draftCategory ?: it.category,
                     currency = draftCurrency ?: it.currency
                 )
             }
@@ -201,17 +207,23 @@ class AddViewModel @Inject constructor(
             // From the repository, not [accounts]: init can run this before that
             // property (declared further down) exists.
             val all = accountBalanceRepository.getAllLatestBalances().first { it.isNotEmpty() }
+            // Only accounts in the entry's currency, so no amount lands in another currency.
+            val currency = _transactionUiState.value.currency
+            val inCurrency = all.filter {
+                CurrencyFormatter.resolveAccountCurrency(it.sourceType, it.currency, it.bankName) == currency
+            }
             val matched = if (bankName != null) {
-                all.firstOrNull { it.bankName == bankName && it.accountLast4 == last4 }
+                inCurrency.firstOrNull { it.bankName == bankName && it.accountLast4 == last4 }
             } else {
-                // Only the last 4 digits are known (an SMS suggestion): link only when exactly
-                // one account in the entry's currency has them, so no amount lands in another currency.
-                val currency = _transactionUiState.value.currency
-                all.filter { it.accountLast4 == last4 && it.currency == currency }.singleOrNull()
+                // Only the last 4 digits are known (an SMS suggestion): link only when exactly one has them.
+                inCurrency.filter { it.accountLast4 == last4 }.singleOrNull()
             } ?: return@launch
             // Don't override a selection the user may have already made.
             _transactionUiState.update { state ->
                 if (state.selectedAccount == null) state.copy(selectedAccount = matched) else state
+            }
+            _subscriptionUiState.update { state ->
+                if (state.selectedAccount == null && state.currency == currency) state.copy(selectedAccount = matched) else state
             }
         }
     }
@@ -280,7 +292,10 @@ class AddViewModel @Inject constructor(
         _transactionUiState.update { currentState ->
             // The account drives the entry currency (a balance moves by the raw amount, and
             // we never sum across currencies); a To account in another currency is dropped.
-            val currency = account?.currency ?: currentState.currency
+            // Resolved like everywhere else: an old SMS account can still store the INR default.
+            val currency = account?.let {
+                CurrencyFormatter.resolveAccountCurrency(it.sourceType, it.currency, it.bankName)
+            } ?: currentState.currency
             currentState.copy(
                 selectedAccount = account,
                 currency = currency,
@@ -422,8 +437,8 @@ class AddViewModel @Inject constructor(
     }
 
     fun updateTransactionDate(dateMillis: Long) {
-        val instant = Instant.ofEpochMilli(dateMillis)
-        val localDate = instant.atZone(ZoneId.systemDefault()).toLocalDate()
+        // The date picker's millis are UTC midnight: read them in UTC, or west of UTC it's the day before.
+        val localDate = Instant.ofEpochMilli(dateMillis).atZone(ZoneOffset.UTC).toLocalDate()
         val currentTime = _transactionUiState.value.date.toLocalTime()
         val newDateTime = LocalDateTime.of(localDate, currentTime)
 
@@ -545,23 +560,31 @@ class AddViewModel @Inject constructor(
                 _transactionUiState.update { it.copy(isLoading = true, error = null) }
                 val amount = BigDecimal(state.amount)
                 val receiptPath = state.receiptUri?.let { receiptManager.saveReceipt(it) }
-                addTransactionUseCase.execute(
-                    amount = amount,
-                    merchant = state.merchant.trim().ifEmpty { state.category },
-                    category = state.category,
-                    type = state.transactionType,
-                    date = state.date,
-                    notes = state.notes.takeIf { it.isNotBlank() },
-                    reference = normalizeReference(state.reference),
-                    tags = state.tags,
-                    isRecurring = state.isRecurring,
-                    bankName = selectedAccount?.bankName,
-                    accountLast4 = selectedAccount?.accountLast4,
-                    currency = state.currency,
-                    receiptPath = receiptPath,
-                    budgetCategory = state.budgetCategory,
-                    budgetImpactType = state.budgetImpactType
-                )
+                // A row that isn't saved keeps the draft, and the retry copies the photo
+                // again: drop this copy so failed attempts don't pile up files.
+                var id = -1L
+                try {
+                    id = addTransactionUseCase.execute(
+                        amount = amount,
+                        merchant = state.merchant.trim().ifEmpty { state.category },
+                        category = state.category,
+                        type = state.transactionType,
+                        date = state.date,
+                        notes = state.notes.takeIf { it.isNotBlank() },
+                        reference = normalizeReference(state.reference),
+                        tags = state.tags,
+                        isRecurring = state.isRecurring,
+                        bankName = selectedAccount?.bankName,
+                        accountLast4 = selectedAccount?.accountLast4,
+                        currency = state.currency,
+                        receiptPath = receiptPath,
+                        budgetCategory = state.budgetCategory,
+                        budgetImpactType = state.budgetImpactType
+                    )
+                } finally {
+                    if (id == -1L) receiptPath?.let(receiptManager::deleteReceipt)
+                }
+                id
             }
             onTransactionOutcome(outcome, R.string.add_error_save_transaction, onSuccess) {
                 bookedFromSuggestion(selectedAccount)
@@ -693,8 +716,8 @@ class AddViewModel @Inject constructor(
     }
 
     fun updateSubscriptionNextPaymentDate(dateMillis: Long) {
-        val instant = Instant.ofEpochMilli(dateMillis)
-        val localDate = instant.atZone(ZoneId.systemDefault()).toLocalDate()
+        // The date picker's millis are UTC midnight: read them in UTC, or west of UTC it's the day before.
+        val localDate = Instant.ofEpochMilli(dateMillis).atZone(ZoneOffset.UTC).toLocalDate()
 
         _subscriptionUiState.update { currentState ->
             currentState.copy(nextPaymentDate = localDate)

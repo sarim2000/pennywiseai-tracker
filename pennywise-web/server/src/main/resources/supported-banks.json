@@ -1,5 +1,5 @@
 {
-  "totalBanks": 177,
+  "totalBanks": 178,
   "totalCountries": 26,
   "countries": [
     {
@@ -131,6 +131,14 @@
       "banks": ["Banco Agricola", "Banco Cuscatlan", "Banco Promerica"]
     },
     {
+      "country": "Belarus",
+      "flag": "🇧🇾",
+      "currency": "BYN",
+      "symbol": "Br",
+      "bankCount": 2,
+      "banks": ["Belarusbank", "Priorbank"]
+    },
+    {
       "country": "Eurozone",
       "flag": "🇪🇺",
       "currency": "EUR",
@@ -153,14 +161,6 @@
       "symbol": "£",
       "bankCount": 2,
       "banks": ["Chase UK", "Trading 212"]
-    },
-    {
-      "country": "Belarus",
-      "flag": "🇧🇾",
-      "currency": "BYN",
-      "symbol": "Br",
-      "bankCount": 1,
-      "banks": ["Priorbank"]
     },
     {
       "country": "Colombia",

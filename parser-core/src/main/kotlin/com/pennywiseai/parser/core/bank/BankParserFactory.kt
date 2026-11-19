@@ -88,6 +88,7 @@ object BankParserFactory {
         NavyFederalParser(),  // Navy Federal Credit Union (USA)
         AdelFiParser(),  // AdelFi Credit Union (USA)
         AlecuBankParser(),  // ALECU Credit Union (USA)
+        BelarusbankParser(), // Belarusbank (Belarus)
         PriorbankParser(),  // Priorbank (Belarus)
         AlinmaBankParser(),  // Alinma Bank (Saudi Arabia)
         NabilBankParser(),  // Nabil Bank (Nepal) — must be before NMBBankParser (NMB handles NABIL senders broadly)

@@ -231,6 +231,17 @@
       "reference": null,
       "balance": "15000.50"
     },
+    "Belarusbank": {
+      "sender": "ASB.BY",
+      "message": "NALICHNYE 100.00 USD  KARTA #3333 DATA 26.10.2023 17:42:31 DANA MALL' RB.795 ATM>MINSK>BY MCC:6011 OSTATOK 1505.15 BYN",
+      "currency": "USD",
+      "amount": "100.00",
+      "type": "EXPENSE",
+      "merchant": "DANA MALL' RB.795 ATM",
+      "accountLast4": "3333",
+      "reference": null,
+      "balance": "1505.15"
+    },
     "CIB Egypt": {
       "sender": "CIB",
       "message": "The transaction on your credit card#8016  from ORACLE IRELAND  with EUR .93 on 15/11/25  at 05:14 has been refunded. Please try again. Thank you",

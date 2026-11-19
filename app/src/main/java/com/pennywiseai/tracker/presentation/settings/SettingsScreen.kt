@@ -306,6 +306,33 @@ fun SettingsScreen(
                         val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/sarim2000/pennywiseai-tracker/issues/new/choose"))
                         context.startActivity(intent)
                     },
+                    position = ListItemPosition.Middle,
+                    trailingIcon = Icons.AutoMirrored.Filled.OpenInNew,
+                )
+                // Moved here from Home's overflow sheet.
+                HubRow(
+                    icon = Icons.Default.Forum,
+                    title = stringResource(R.string.home_menu_discord),
+                    subtitle = stringResource(R.string.settings_help_community_subtitle),
+                    onClick = {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(Constants.Links.DISCORD_URL)))
+                    },
+                    position = ListItemPosition.Middle,
+                    trailingIcon = Icons.AutoMirrored.Filled.OpenInNew,
+                )
+                HubRow(
+                    icon = Icons.Default.Star,
+                    title = stringResource(R.string.home_menu_rate),
+                    subtitle = stringResource(R.string.settings_help_rate_subtitle),
+                    onClick = {
+                        try {
+                            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${context.packageName}")))
+                        } catch (_: android.content.ActivityNotFoundException) {
+                            context.startActivity(
+                                Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=${context.packageName}"))
+                            )
+                        }
+                    },
                     position = ListItemPosition.Bottom,
                     trailingIcon = Icons.AutoMirrored.Filled.OpenInNew,
                 )

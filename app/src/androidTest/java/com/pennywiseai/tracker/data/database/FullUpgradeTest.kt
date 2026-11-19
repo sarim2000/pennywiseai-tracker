@@ -126,5 +126,26 @@ class FullUpgradeTest {
         } finally { db.close() }
     }
 
+    @Test fun upgradeFrom69LeavesSubscriptionsRenewing() = runBlocking {
+        helper.createDatabase(69).apply {
+            execSQL("""INSERT INTO subscriptions (id, merchant_name, amount, next_payment_date, state, created_at,
+                updated_at, currency, direction, billing_cycle) VALUES
+                (1, 'Synthetic service', '499.00', '2026-12-01', 'ACTIVE', '2026-01-01T10:00:00',
+                '2026-01-01T10:00:00', 'INR', 'EXPENSE', 'Monthly')""")
+            close()
+        }
+
+        val db = Room.databaseBuilder(instrumentation.targetContext, PennyWiseDatabase::class.java, NAME)
+            .addMigrations(*PennyWiseMigrations.ALL_MIGRATIONS)
+            .setDriver(AndroidSQLiteDriver())
+            .build()
+        try {
+            val sub = db.subscriptionDao().getSubscriptionById(1)!!
+            assertEquals("Synthetic service", sub.merchantName)
+            assertNull(sub.totalPayments)
+            assertEquals(0, sub.paymentsMade)
+        } finally { db.close() }
+    }
+
     private companion object { const val NAME = "full-upgrade-test" }
 }

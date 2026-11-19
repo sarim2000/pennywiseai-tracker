@@ -699,6 +699,10 @@ class AddViewModel @Inject constructor(
         }
     }
 
+    fun updateSubscriptionTotalPayments(count: String) {
+        _subscriptionUiState.update { it.copy(totalPayments = count.filter { c -> c.isDigit() }.take(3)) }
+    }
+
     fun updateSubscriptionCurrency(currency: String) {
         _subscriptionUiState.update { currentState ->
             currentState.copy(currency = currency)
@@ -761,7 +765,11 @@ class AddViewModel @Inject constructor(
                     currency = state.currency,
                     direction = state.direction,
                     bankName = state.selectedAccount?.bankName,
-                    accountLast4 = state.selectedAccount?.accountLast4
+                    accountLast4 = state.selectedAccount?.accountLast4,
+                    // An income has no end here: scheduled income is booked without counting.
+                    totalPayments = state.totalPayments.toIntOrNull()?.takeIf {
+                        it > 0 && state.direction == com.pennywiseai.tracker.data.database.entity.SubscriptionDirection.EXPENSE
+                    }
                 )
 
                 Log.d("AddViewModel", "Subscription saved successfully with ID: $subscriptionId")
@@ -893,7 +901,9 @@ data class SubscriptionUiState(
      * income moves this account's balance; null keeps the subscription
      * unlinked ("Manual Entry", no balance tracking).
      */
-    val selectedAccount: AccountBalanceEntity? = null
+    val selectedAccount: AccountBalanceEntity? = null,
+    /** Optional "Ends after N payments" (#1061), digits only; blank recurs until stopped. */
+    val totalPayments: String = ""
 ) {
     val isValid: Boolean
         get() = serviceName.isNotBlank() &&

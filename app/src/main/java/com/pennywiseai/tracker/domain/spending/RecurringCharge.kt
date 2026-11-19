@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.domain.spending
 
+import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
+import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -109,6 +111,27 @@ object RecurringCharge {
         var next = scheduled
         while (next.isBefore(today)) next = advance(scheduled, billingCycle, ++cycles)
         return next
+    }
+
+    /**
+     * [sub] once a payment on [paidAt] has moved its schedule to [next]. A plan with
+     * [SubscriptionEntity.totalPayments] counts the payment, and its last one ends
+     * the plan where it stands: ENDED, so reminders and the totals drop it, with
+     * the date left on the payment just made rather than a cycle that won't come.
+     */
+    fun afterPayment(sub: SubscriptionEntity, paidAt: LocalDate, next: LocalDate): SubscriptionEntity {
+        val total = sub.totalPayments ?: return sub.copy(lastPaidAt = paidAt, nextPaymentDate = next)
+        val made = sub.paymentsMade + 1
+        return if (made < total) {
+            sub.copy(lastPaidAt = paidAt, nextPaymentDate = next, paymentsMade = made)
+        } else {
+            sub.copy(lastPaidAt = paidAt, paymentsMade = made, state = SubscriptionState.ENDED)
+        }
+    }
+
+    /** What's left to pay on a plan: one [SubscriptionEntity.amount] per payment left. Null for one with no end. */
+    fun amountLeft(sub: SubscriptionEntity): BigDecimal? = sub.totalPayments?.let { total ->
+        sub.amount.multiply(BigDecimal((total - sub.paymentsMade).coerceAtLeast(0)))
     }
 
     const val EARLY_PAY_DAYS = 3L

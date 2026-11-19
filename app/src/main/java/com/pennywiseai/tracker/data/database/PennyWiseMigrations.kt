@@ -599,6 +599,21 @@ object PennyWiseMigrations {
     }
 
     /**
+     * A recurring item that ends after a set number of payments (#1061). Plain ADD
+     * COLUMNs that SQLite 3.18 runs; existing rows recur as before (no end, none counted).
+     */
+    val MIGRATION_69_70 = object : Migration(69, 70) {
+        override suspend fun migrate(db: SQLiteConnection) {
+            if (!db.hasColumn("subscriptions", "total_payments")) {
+                db.execSQL("ALTER TABLE subscriptions ADD COLUMN total_payments INTEGER DEFAULT NULL")
+            }
+            if (!db.hasColumn("subscriptions", "payments_made")) {
+                db.execSQL("ALTER TABLE subscriptions ADD COLUMN payments_made INTEGER NOT NULL DEFAULT 0")
+            }
+        }
+    }
+
+    /**
      * Single source of truth for the migration list. Both the Hilt-built
      * database (DatabaseModule.providePennyWiseDatabase) and the
      * BroadcastReceiver fallback path (PennyWiseDatabase.getInstance) reference this
@@ -635,6 +650,7 @@ object PennyWiseMigrations {
         MIGRATION_64_65,
         MIGRATION_67_68,
         MIGRATION_68_69,
+        MIGRATION_69_70,
     )
 }
 

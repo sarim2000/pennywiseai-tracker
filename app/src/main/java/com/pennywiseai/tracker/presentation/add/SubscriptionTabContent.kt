@@ -1,11 +1,5 @@
 package com.pennywiseai.tracker.presentation.add
 
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.pennywiseai.tracker.utils.AppDates
-
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.platform.LocalFocusManager
-import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -23,26 +17,31 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.pennywiseai.tracker.ui.theme.Spacing
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.domain.model.AccountType
+import com.pennywiseai.tracker.domain.model.getAccountType
 import com.pennywiseai.tracker.presentation.accounts.displayName
 import com.pennywiseai.tracker.presentation.accounts.icon
-import com.pennywiseai.tracker.domain.model.getAccountType
-import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.ui.components.CategoryMenuItems
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.SelectedCategoryIcon
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.*
+import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.money
+import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.time.format.DateTimeFormatter
-import com.pennywiseai.tracker.ui.icons.categoryLabel
-import androidx.compose.ui.platform.LocalDensity
-import com.pennywiseai.tracker.ui.theme.money
 
 private val subTopShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
 private val subBottomShape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
@@ -305,6 +304,22 @@ fun SubscriptionTabContent(
                         }
                     }
                 }
+            }
+
+            // Ends after N payments (#1061): an EMI or instalment plan stops on its last one.
+            if (!isIncome) {
+                TextField(
+                    value = uiState.totalPayments,
+                    onValueChange = viewModel::updateSubscriptionTotalPayments,
+                    label = { Text(stringResource(R.string.add_sub_ends_after), fontWeight = FontWeight.SemiBold) },
+                    supportingText = { Text(stringResource(R.string.add_sub_ends_after_hint)) },
+                    leadingIcon = { Icon(Icons.Default.Flag, contentDescription = null) },
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = subFullShape,
+                    colors = subFilledColors()
+                )
             }
 
             // Service Name + Category + Notes (connected group)

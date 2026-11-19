@@ -330,7 +330,11 @@ private fun RowScope.PeriodBarColumn(bar: PeriodBar, fraction: Float, selected: 
         verticalArrangement = Arrangement.Bottom
     ) {
         // The selected period's value already appears as the hero total.
-        val value = if (bar.hasData && !selected) CurrencyFormatter.formatAbbreviated(bar.amount.toDouble(), currency) else ""
+        // formatAbbreviated drops the sign; a negative period (net outflow) must still read negative.
+        val value = if (bar.hasData && !selected) {
+            val abbreviated = CurrencyFormatter.formatAbbreviated(bar.amount.toDouble(), currency)
+            if (bar.amount.signum() < 0 && !com.pennywiseai.tracker.utils.AmountPrivacy.hidden) "-$abbreviated" else abbreviated
+        } else ""
         Text(
             text = value,
             style = label,

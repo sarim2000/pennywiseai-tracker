@@ -1,49 +1,47 @@
 package com.pennywiseai.tracker.presentation.goals
 
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Archive
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.MoreVert
-import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Unarchive
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ButtonGroup
-import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.DatePicker
 import androidx.compose.material3.DatePickerDialog
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
+import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
-import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
@@ -60,9 +58,7 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
@@ -70,10 +66,10 @@ import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
 import com.pennywiseai.tracker.data.repository.GoalDetail
 import com.pennywiseai.tracker.data.repository.GoalProgress
 import com.pennywiseai.tracker.data.repository.GoalStatus
-import com.pennywiseai.tracker.domain.goals.monthlyDisplay
 import com.pennywiseai.tracker.presentation.paywall.UpgradeSheet
 import com.pennywiseai.tracker.ui.components.GoalRing
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
+import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
@@ -85,7 +81,6 @@ import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.money
 import com.pennywiseai.tracker.ui.theme.success
-import com.pennywiseai.tracker.ui.theme.tabular
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -138,13 +133,6 @@ fun GoalDetailScreen(
                 IconButton(onClick = { onShare(progress.goal.id) }, shapes = IconButtonDefaults.shapes()) {
                     Icon(Icons.Default.Share, contentDescription = stringResource(R.string.goal_share))
                 }
-                GoalOverflowMenu(
-                    progress = progress,
-                    onEdit = { onEdit(progress.goal.id) },
-                    onRepeat = { viewModel.repeatForNextYear(onCreated = onOpenGoal, onBlocked = { showUpgrade = true }) },
-                    onArchive = { viewModel.setArchived(progress.status != GoalStatus.ARCHIVED) },
-                    onDelete = { showDelete = true },
-                )
             }
         },
     ) { padding ->
@@ -160,6 +148,15 @@ fun GoalDetailScreen(
             addedFrom = addedFrom,
             onAddedSettled = { addedFrom = null },
             merchants = merchants,
+            management = {
+                GoalManagement(
+                    progress = progress,
+                    onEdit = { onEdit(progress.goal.id) },
+                    onRepeat = { viewModel.repeatForNextYear(onCreated = onOpenGoal, onBlocked = { showUpgrade = true }) },
+                    onArchive = { viewModel.setArchived(progress.status != GoalStatus.ARCHIVED) },
+                    onDelete = { showDelete = true },
+                )
+            },
             // A row taken from a transaction opens it; the rest open the edit sheet.
             onContribution = { c -> c.transactionId?.let(onOpenTransaction) ?: open(MoneySheetMode.Edit(c)) },
         )
@@ -205,7 +202,7 @@ fun GoalDetailScreen(
 }
 
 @Composable
-private fun GoalOverflowMenu(
+private fun GoalManagement(
     progress: GoalProgress,
     onEdit: () -> Unit,
     onRepeat: () -> Unit,
@@ -216,32 +213,32 @@ private fun GoalOverflowMenu(
     val archived = progress.status == GoalStatus.ARCHIVED
     // Repeat fits a goal that has run its course: Reached, or Missed.
     val canRepeat = progress.status == GoalStatus.REACHED || progress.status == GoalStatus.MISSED
-    IconButton(onClick = { open = true }, shapes = IconButtonDefaults.shapes()) {
-        Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.goal_more))
-    }
-    DropdownMenu(expanded = open, onDismissRequest = { open = false }) {
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.goal_menu_edit)) },
-            leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
-            onClick = { open = false; onEdit() },
-        )
-        if (canRepeat) {
-            DropdownMenuItem(
-                text = { Text(stringResource(R.string.goal_menu_repeat)) },
-                leadingIcon = { Icon(Icons.Default.Repeat, contentDescription = null) },
-                onClick = { open = false; onRepeat() },
-            )
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), itemVerticalAlignment = Alignment.CenterVertically) {
+        FilledTonalButton(onClick = onEdit, shapes = ButtonDefaults.shapes()) {
+            Text(stringResource(R.string.goal_menu_edit))
         }
-        DropdownMenuItem(
-            text = { Text(stringResource(if (archived) R.string.goal_menu_unarchive else R.string.goal_menu_archive)) },
-            leadingIcon = { Icon(if (archived) Icons.Default.Unarchive else Icons.Default.Archive, contentDescription = null) },
-            onClick = { open = false; onArchive() },
-        )
-        DropdownMenuItem(
-            text = { Text(stringResource(R.string.goal_menu_delete), color = MaterialTheme.colorScheme.error) },
-            leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
-            onClick = { open = false; onDelete() },
-        )
+        TextButton(onClick = onArchive, shapes = ButtonDefaults.shapes()) {
+            Text(stringResource(if (archived) R.string.goal_menu_unarchive else R.string.goal_menu_archive))
+        }
+        Box {
+            IconButton(onClick = { open = true }, shapes = IconButtonDefaults.shapes()) {
+                Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.goal_more))
+            }
+            DropdownMenu(expanded = open, onDismissRequest = { open = false }, shape = MaterialTheme.shapes.large) {
+                if (canRepeat) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.goal_menu_repeat)) },
+                        leadingIcon = { Icon(Icons.Default.Repeat, contentDescription = null) },
+                        onClick = { open = false; onRepeat() },
+                    )
+                }
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.goal_menu_delete), color = MaterialTheme.colorScheme.error) },
+                    leadingIcon = { Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error) },
+                    onClick = { open = false; onDelete() },
+                )
+            }
+        }
     }
 }
 
@@ -254,6 +251,7 @@ private fun GoalDetailContent(
     addedFrom: BigDecimal?,
     onAddedSettled: () -> Unit,
     merchants: Map<Long, String>,
+    management: @Composable () -> Unit,
     onContribution: (GoalContributionEntity) -> Unit,
 ) {
     val progress = detail.progress
@@ -271,70 +269,40 @@ private fun GoalDetailContent(
     ) {
         item {
             PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
-                Column(Modifier.fillMaxWidth(), horizontalAlignment = Alignment.CenterHorizontally, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
                     GoalRing(
                         progress,
-                        Dimensions.Component.goalRingLarge,
-                        Dimensions.Component.goalRingLargeStroke,
+                        Dimensions.Component.goalRing,
+                        Dimensions.Component.goalRingStroke,
                         addedFrom = addedFrom,
                         onAddedSettled = onAddedSettled,
-                    ) { percent ->
-                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            Text(stringResource(R.string.budgets_percent, percent), style = MaterialTheme.typography.headlineMedium.tabular())
-                            Text(
-                                CurrencyFormatter.formatCurrency(progress.saved, currency),
-                                style = PennyWiseText.amountSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            )
-                        }
-                    }
-                    Text(
-                        stringResource(
-                            R.string.goals_amount_of,
-                            CurrencyFormatter.formatCurrency(progress.saved, currency),
-                            CurrencyFormatter.formatCurrency(goal.targetAmount, currency),
-                        ),
-                        style = MaterialTheme.typography.titleMedium.money(),
-                    )
-                    GoalStatusPill(progress)
-                    if (progress.over.signum() > 0) {
+                        announceProgress = false,
+                    ) {}
+                    Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                         Text(
-                            stringResource(R.string.goal_detail_over, CurrencyFormatter.formatCurrency(progress.over, currency)),
+                            stringResource(
+                                R.string.plan_goals_saved_of,
+                                CurrencyFormatter.formatCurrency(progress.saved, currency),
+                                CurrencyFormatter.formatCurrency(goal.targetAmount, currency),
+                            ),
+                            style = PennyWiseText.amountMedium,
+                        )
+                        GoalStatusPill(progress)
+                        Text(
+                            stringResource(R.string.goals_due_on, goal.dueDate.format(goalDateFormat)),
                             style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.success,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
                         )
                     }
                 }
             }
+            Spacer(Modifier.height(Spacing.sm))
+            MoneyButtons(canTakeOut = progress.saved.signum() > 0, onAdd = onAdd, onTakeOut = onTakeOut)
         }
-        item {
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                StatTile(stringResource(R.string.goal_detail_left), CurrencyFormatter.formatCurrency(progress.left, currency), Modifier.weight(1f))
-                StatTile(stringResource(R.string.goal_detail_per_month), CurrencyFormatter.formatCurrency(progress.monthlyDisplay(), currency), Modifier.weight(1f))
-            }
-        }
-        item {
-            GroupedList {
-                GroupedRow(position = ListItemPosition.Single) {
-                    Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    RowLabels(title = stringResource(R.string.goal_edit_due), subtitle = goal.dueDate.format(goalDateFormat))
-                    Text(
-                        text = when (progress.status) {
-                            GoalStatus.MISSED -> stringResource(R.string.goals_missed_by, CurrencyFormatter.formatCurrency(progress.left, currency))
-                            GoalStatus.REACHED -> stringResource(R.string.goals_reached)
-                            else -> goalTimeLabel(progress)
-                        },
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = when (progress.status) {
-                            GoalStatus.MISSED -> MaterialTheme.colorScheme.error
-                            GoalStatus.REACHED -> MaterialTheme.colorScheme.success
-                            else -> MaterialTheme.colorScheme.onSurfaceVariant
-                        },
-                    )
-                }
-            }
-        }
-        item { MoneyButtons(canTakeOut = progress.saved.signum() > 0, onAdd = onAdd, onTakeOut = onTakeOut) }
         item { SectionHeaderV2(title = stringResource(R.string.goal_detail_history)) }
         val rows = detail.contributions
         val hasAlreadySaved = goal.alreadySaved.signum() > 0
@@ -368,66 +336,19 @@ private fun GoalDetailContent(
                 }
             }
         }
+        item { management() }
     }
 }
 
-/**
- * Add money / Take out as an M3 Expressive button group: the pressed button
- * widens and its neighbour yields (spatial spring). Each button keeps half the
- * row at rest and wraps its label rather than clipping at large font scales.
- */
 @Composable
 private fun MoneyButtons(canTakeOut: Boolean, onAdd: () -> Unit, onTakeOut: () -> Unit) {
-    val addLabel = stringResource(R.string.goal_add_money)
-    val takeOutLabel = stringResource(R.string.goal_take_out)
-    ButtonGroup(
-        overflowIndicator = { ButtonGroupDefaults.OverflowIndicator(it) },
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-    ) {
-        customItem(
-            buttonGroupContent = {
-                val interaction = remember { MutableInteractionSource() }
-                Button(
-                    onClick = onAdd,
-                    modifier = Modifier.weight(1f).animateWidth(interaction).heightIn(min = Dimensions.Component.minTouchTarget),
-                    interactionSource = interaction,
-                    shapes = ButtonDefaults.shapes(),
-                ) {
-                    Icon(Icons.Default.Add, contentDescription = null, modifier = Modifier.padding(end = Spacing.xs))
-                    Text(addLabel, textAlign = TextAlign.Center)
-                }
-            },
-            menuContent = { state ->
-                DropdownMenuItem(text = { Text(addLabel) }, onClick = { state.dismiss(); onAdd() })
-            },
-        )
-        customItem(
-            buttonGroupContent = {
-                val interaction = remember { MutableInteractionSource() }
-                OutlinedButton(
-                    onClick = onTakeOut,
-                    enabled = canTakeOut,
-                    modifier = Modifier.weight(1f).animateWidth(interaction).heightIn(min = Dimensions.Component.minTouchTarget),
-                    interactionSource = interaction,
-                    shapes = ButtonDefaults.shapes(),
-                ) {
-                    Icon(Icons.Default.Remove, contentDescription = null, modifier = Modifier.padding(end = Spacing.xs))
-                    Text(takeOutLabel, textAlign = TextAlign.Center)
-                }
-            },
-            menuContent = { state ->
-                DropdownMenuItem(text = { Text(takeOutLabel) }, enabled = canTakeOut, onClick = { state.dismiss(); onTakeOut() })
-            },
-        )
-    }
-}
-
-@Composable
-private fun StatTile(label: String, value: String, modifier: Modifier = Modifier) {
-    PennyWiseCardV2(modifier = modifier, contentPadding = Dimensions.Padding.cardCompact) {
-        Text(label, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(value, style = PennyWiseText.amountMedium, fontWeight = FontWeight.SemiBold)
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), itemVerticalAlignment = Alignment.CenterVertically) {
+        Button(onClick = onAdd, shapes = ButtonDefaults.shapes()) {
+            Text(stringResource(R.string.goal_add_money))
+        }
+        TextButton(onClick = onTakeOut, enabled = canTakeOut, shapes = ButtonDefaults.shapes()) {
+            Text(stringResource(R.string.goal_take_out))
+        }
     }
 }
 
@@ -489,7 +410,8 @@ private fun MoneySheet(
                 .padding(horizontal = Dimensions.Padding.content)
                 .padding(bottom = Spacing.lg)
                 .navigationBarsPadding()
-                .imePadding(),
+                .imePadding()
+                .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             Text(stringResource(title), style = MaterialTheme.typography.titleMedium)
@@ -515,6 +437,7 @@ private fun MoneySheet(
                     else -> null
                 }
                 OutlinedTextField(
+                    shape = RoundedField.shape,
                     value = amount,
                     onValueChange = { if (it.matches(amountInput(currency))) amount = it },
                     label = { Text(stringResource(R.string.goal_money_amount)) },
@@ -532,6 +455,7 @@ private fun MoneySheet(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 OutlinedTextField(
+                    shape = RoundedField.shape,
                     value = manual,
                     onValueChange = { if (it.matches(amountInput(goalCurrency))) manual = it },
                     label = { Text(stringResource(R.string.goal_money_converted, goalCurrency)) },
@@ -542,6 +466,7 @@ private fun MoneySheet(
                 )
             }
             OutlinedTextField(
+                shape = RoundedField.shape,
                 value = date.format(goalDateFormat),
                 onValueChange = {},
                 readOnly = true,
@@ -554,6 +479,7 @@ private fun MoneySheet(
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
+                shape = RoundedField.shape,
                 value = note,
                 onValueChange = { note = it },
                 label = { Text(stringResource(R.string.goal_money_note)) },

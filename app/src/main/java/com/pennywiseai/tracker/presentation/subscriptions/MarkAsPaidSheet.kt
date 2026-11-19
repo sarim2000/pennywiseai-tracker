@@ -1,7 +1,6 @@
 package com.pennywiseai.tracker.presentation.subscriptions
 
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -9,12 +8,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.CalendarToday
 import androidx.compose.material.icons.outlined.CheckCircle
@@ -45,13 +45,14 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.ui.components.BrandIcon
+import com.pennywiseai.tracker.ui.components.cards.GroupedList
+import com.pennywiseai.tracker.ui.components.cards.GroupedRow
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
@@ -63,7 +64,6 @@ import com.pennywiseai.tracker.utils.CurrencyFormatter
 import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.ZoneOffset
-import java.time.format.DateTimeFormatter
 
 /**
  * Bottom sheet for confirming a subscription payment / receipt (#412).
@@ -133,6 +133,7 @@ fun MarkAsPaidSheet(
         Column(
             modifier = Modifier
                 .fillMaxWidth()
+                .verticalScroll(rememberScrollState())
                 .padding(
                     horizontal = Dimensions.Padding.content,
                     vertical = Spacing.md,
@@ -153,7 +154,7 @@ fun MarkAsPaidSheet(
             ) {
                 BrandIcon(
                     merchantName = subscription.merchantName,
-                    size = 44.dp,
+                    size = Dimensions.Icon.avatar,
                     showBackground = true,
                 )
                 Spacer(Modifier.width(Spacing.md))
@@ -203,7 +204,7 @@ fun MarkAsPaidSheet(
             // and row badge can't disagree.
             if (isPaidThisCycle) {
                 androidx.compose.material3.Surface(
-                    shape = RoundedCornerShape(Dimensions.CornerRadius.large),
+                    shape = MaterialTheme.shapes.large,
                     color = MaterialTheme.colorScheme.secondaryContainer,
                     modifier = Modifier.fillMaxWidth(),
                 ) {
@@ -218,7 +219,7 @@ fun MarkAsPaidSheet(
                             imageVector = Icons.Outlined.CheckCircle,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                            modifier = Modifier.size(20.dp),
+                            modifier = Modifier.size(Dimensions.Icon.inline),
                         )
                         Spacer(Modifier.width(Spacing.sm))
                         Text(
@@ -246,9 +247,9 @@ fun MarkAsPaidSheet(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 Spacer(Modifier.height(Spacing.sm))
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    candidates.forEach { txn ->
-                        CandidateCard(txn, onClick = { linkAndDismiss(txn) })
+                GroupedList {
+                    candidates.forEachIndexed { index, txn ->
+                        CandidateCard(txn, ListItemPosition.from(index, candidates.size), onClick = { linkAndDismiss(txn) })
                     }
                 }
                 Spacer(Modifier.height(Spacing.lg))
@@ -278,7 +279,7 @@ fun MarkAsPaidSheet(
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(Dimensions.Component.buttonHeight),
-                shape = RoundedCornerShape(Dimensions.CornerRadius.large),
+                shape = MaterialTheme.shapes.large,
                 colors = ButtonDefaults.buttonColors(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary,
@@ -347,44 +348,32 @@ fun MarkAsPaidSheet(
 @Composable
 private fun CandidateCard(
     txn: TransactionEntity,
+    position: ListItemPosition,
     onClick: () -> Unit,
 ) {
     val amountColor = MaterialTheme.colorScheme.spending
-    androidx.compose.material3.Surface(
-        onClick = onClick,
-        shape = RoundedCornerShape(Dimensions.CornerRadius.large),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Row(
-            modifier = Modifier.padding(
-                horizontal = Dimensions.Padding.card,
-                vertical = Spacing.md,
-            ),
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = CurrencyFormatter.formatCurrency(txn.amount, txn.currency),
-                    style = PennyWiseText.amountMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = amountColor,
-                )
-                Text(
-                    text = txn.bankName?.let {
-                        stringResource(R.string.mark_paid_candidate_subtitle, relativeDate(txn.dateTime.toLocalDate()), it)
-                    } ?: relativeDate(txn.dateTime.toLocalDate()),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-            Icon(
-                imageVector = Icons.Outlined.CheckCircle,
-                contentDescription = stringResource(R.string.mark_paid_link_payment),
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp),
+    GroupedRow(position = position, onClick = onClick) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = CurrencyFormatter.formatCurrency(txn.amount, txn.currency),
+                style = PennyWiseText.amountMedium,
+                fontWeight = FontWeight.SemiBold,
+                color = amountColor,
+            )
+            Text(
+                text = txn.bankName?.let {
+                    stringResource(R.string.mark_paid_candidate_subtitle, relativeDate(txn.dateTime.toLocalDate()), it)
+                } ?: relativeDate(txn.dateTime.toLocalDate()),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
             )
         }
+        Icon(
+            imageVector = Icons.Outlined.CheckCircle,
+            contentDescription = stringResource(R.string.mark_paid_link_payment),
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(Dimensions.Icon.inline),
+        )
     }
 }
 
@@ -439,16 +428,15 @@ private fun EyebrowChip(text: String, isAccent: Boolean) {
     }
     androidx.compose.material3.Surface(
         color = container,
-        shape = RoundedCornerShape(50),
+        shape = CircleShape,
     ) {
         Text(
             text = text,
             style = MaterialTheme.typography.labelSmall.copy(
-                letterSpacing = 1.6.sp,
                 fontWeight = FontWeight.SemiBold,
             ),
             color = content,
-            modifier = Modifier.padding(horizontal = Spacing.md, vertical = 6.dp),
+            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.xs),
         )
     }
 }
@@ -508,7 +496,7 @@ private fun DateChips(
                     Icon(
                         imageVector = Icons.Outlined.CalendarToday,
                         contentDescription = null,
-                        modifier = Modifier.size(16.dp),
+                        modifier = Modifier.size(Dimensions.Icon.small),
                     )
                 }
             },

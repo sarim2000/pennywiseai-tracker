@@ -105,4 +105,29 @@
     <string name="ask_model_missing_action">Download for custom questions (%1$d MB)</string>
     <string name="ask_clear_confirm_title">Clear this conversation?</string>
     <string name="ask_clear_confirm_body">The chat history is removed from this device.</string>
+    <!-- rd:plan -->
+    <string name="plan_budget_remaining">%1$s left</string>
+    <string name="plan_budget_starts">Starts %1$s</string>
+    <string name="plan_budget_tracking">Tracking spending</string>
+    <string name="plan_budget_target">Target %1$s</string>
+    <string name="plan_budget_expected">%1$s expected</string>
+    <string name="plan_budget_over_estimate">Over estimate</string>
+    <string name="plan_budget_category_limit">Limit</string>
+    <string name="plan_budget_missing_rate">Missing exchange rate</string>
+    <string name="plan_budget_calculation">How this limit is calculated</string>
+    <string name="plan_budget_base">Base limit %1$s</string>
+    <string name="plan_budget_converted_limit">%1$s, converted to %2$s</string>
+    <string name="plan_budget_pace_summary">Actual %1$s · Budget pace %2$s</string>
+    <string name="plan_goals_saved_of">Saved %1$s of %2$s</string>
+    <string name="plan_bills_monthly_estimate">Estimated monthly cost</string>
+    <string name="plan_bills_overdue">Overdue</string>
+    <string name="plan_bills_upcoming">Upcoming</string>
+    <string name="plan_bills_paid">Paid this cycle (%1$d)</string>
+    <string name="plan_bills_income">Recurring income (%1$d)</string>
+    <string name="plan_bills_undated">Undated (%1$d)</string>
+    <string name="plan_bills_ended">Ended (%1$d)</string>
+    <plurals name="plan_bills_review_suggestions">
+        <item quantity="one">Review %1$d suggestion</item>
+        <item quantity="other">Review %1$d suggestions</item>
+    </plurals>
 </resources>

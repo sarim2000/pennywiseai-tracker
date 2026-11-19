@@ -36,7 +36,6 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
@@ -46,6 +45,7 @@ import com.pennywiseai.tracker.data.database.entity.GoalEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.repository.GoalProgress
 import com.pennywiseai.tracker.ui.components.GoalRing
+import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
@@ -134,6 +134,7 @@ fun AddToGoalSheet(
                 else -> null
             }
             OutlinedTextField(
+                shape = RoundedField.shape,
                 value = amount,
                 onValueChange = { if (it.matches(amountInput(currency))) { amount = it; onEdited() } },
                 label = { Text(stringResource(R.string.goal_money_amount)) },
@@ -151,6 +152,7 @@ fun AddToGoalSheet(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 OutlinedTextField(
+                    shape = RoundedField.shape,
                     value = manual,
                     onValueChange = { if (it.matches(amountInput(goalCurrency))) manual = it },
                     label = { Text(stringResource(R.string.goal_money_converted, goalCurrency)) },
@@ -161,6 +163,7 @@ fun AddToGoalSheet(
                 )
             }
             OutlinedTextField(
+                shape = RoundedField.shape,
                 value = transaction.dateTime.toLocalDate().format(goalDateFormat),
                 onValueChange = {},
                 readOnly = true,
@@ -170,6 +173,7 @@ fun AddToGoalSheet(
                 modifier = Modifier.fillMaxWidth(),
             )
             OutlinedTextField(
+                shape = RoundedField.shape,
                 value = note,
                 onValueChange = { note = it },
                 label = { Text(stringResource(R.string.goal_money_note)) },

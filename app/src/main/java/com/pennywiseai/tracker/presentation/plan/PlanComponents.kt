@@ -1,22 +1,14 @@
 package com.pennywiseai.tracker.presentation.plan
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxScope
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ColumnScope
-import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
@@ -26,55 +18,8 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import com.pennywiseai.tracker.ui.components.WavyMeter
 import com.pennywiseai.tracker.ui.theme.Dimensions
-import com.pennywiseai.tracker.ui.theme.PennyWiseText
-import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.ui.theme.money
-
-/*
- * The Plan tab's shared visual language: one hero card per section, segmented
- * rows that lead with a glyph in an Expressive shape, a status pill and a flat
- * meter. Budgets, Bills and Goals all draw from here so the three read as one tab.
- */
-
-/** The big tonal card that opens a Plan section (the month's budget, the bills total). */
-@Composable
-internal fun PlanHeroCard(
-    containerColor: Color,
-    contentColor: Color,
-    modifier: Modifier = Modifier,
-    content: @Composable ColumnScope.() -> Unit,
-) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.extraLarge,
-        color = containerColor,
-        contentColor = contentColor,
-    ) {
-        Column(
-            modifier = Modifier.padding(Spacing.lg),
-            verticalArrangement = Arrangement.spacedBy(Spacing.smd),
-            content = content,
-        )
-    }
-}
-
-/** The one big figure on a hero card. Shrinks to fit rather than wrapping mid-number. */
-@Composable
-internal fun PlanHeroAmount(text: String, modifier: Modifier = Modifier, color: Color = Color.Unspecified) {
-    val style = MaterialTheme.typography.displayMedium.copy(fontWeight = FontWeight.Bold).money()
-    Text(
-        text = text,
-        style = style,
-        color = color,
-        maxLines = 1,
-        autoSize = TextAutoSize.StepBased(PennyWiseText.autoSizeFloor, style.fontSize),
-        modifier = modifier,
-    )
-}
 
 /** A determinate data meter: the app's still wavy bar (see [WavyMeter]). */
 @Composable
@@ -86,22 +31,6 @@ internal fun PlanMeter(
     dense: Boolean = false,
 ) {
     WavyMeter(fraction = fraction, color = color, trackColor = trackColor, modifier = modifier, dense = dense)
-}
-
-/** Small tinted pill naming a status: "On track", "Getting close", "Reached". */
-@Composable
-internal fun PlanStatusChip(text: String, color: Color, modifier: Modifier = Modifier) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelMedium,
-        fontWeight = FontWeight.SemiBold,
-        color = color,
-        maxLines = 1,
-        overflow = TextOverflow.Ellipsis,
-        modifier = modifier
-            .background(color.tintOver(MaterialTheme.colorScheme.surfaceContainerLow), CircleShape)
-            .padding(horizontal = Spacing.smd, vertical = Spacing.xxs),
-    )
 }
 
 /** [this] colour washed over [surface]: the fill behind a glyph or pill drawn in it. */

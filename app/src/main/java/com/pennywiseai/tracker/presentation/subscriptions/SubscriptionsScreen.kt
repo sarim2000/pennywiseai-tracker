@@ -1,11 +1,10 @@
 package com.pennywiseai.tracker.presentation.subscriptions
 
 import android.animation.ValueAnimator
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -30,23 +29,22 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontFamily
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
-import com.pennywiseai.tracker.data.database.entity.SubscriptionState
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.formatAmount
-import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.domain.model.getAccountType
 import com.pennywiseai.tracker.domain.spending.RecurringCharge
+import com.pennywiseai.tracker.domain.spending.RecurringSuggestion
 import com.pennywiseai.tracker.presentation.accounts.icon
-import com.pennywiseai.tracker.presentation.plan.PlanHeroAmount
-import com.pennywiseai.tracker.presentation.plan.PlanHeroCard
+import com.pennywiseai.tracker.presentation.home.rememberToday
 import com.pennywiseai.tracker.presentation.plan.PlanSwitcher
 import com.pennywiseai.tracker.presentation.plan.PlanTabHost
 import com.pennywiseai.tracker.presentation.plan.planOverline
@@ -60,9 +58,10 @@ import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.DockNavAction
 import com.pennywiseai.tracker.ui.components.LocalNavDock
 import com.pennywiseai.tracker.ui.components.NavDockAction
-import com.pennywiseai.tracker.ui.components.cards.GroupedList
+import com.pennywiseai.tracker.ui.components.cards.GroupedColumn
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
+import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.components.mascot.Mascot
@@ -77,13 +76,12 @@ import com.pennywiseai.tracker.ui.theme.spending
 import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.utils.Money
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.delay
-import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.LocalDate
-import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -102,16 +100,15 @@ fun SubscriptionsScreen(
     val snackbarHostState = remember { SnackbarHostState() }
     // Subscription currently being marked-as-paid. Null = sheet closed.
     var markPaidTarget by remember { mutableStateOf<SubscriptionEntity?>(null) }
-    // Suggested-payment candidates resolved when target changes. Empty list
-    // = no recent SMS-derived matches (user falls through to date picker).
-    var markPaidCandidates by remember {
-        mutableStateOf<List<com.pennywiseai.tracker.data.database.entity.TransactionEntity>>(emptyList())
-    }
-    // Suggested bill under review. Null = sheet closed.
-    var reviewTarget by remember { mutableStateOf<com.pennywiseai.tracker.domain.spending.RecurringSuggestion?>(null) }
-    LaunchedEffect(markPaidTarget) {
-        val target = markPaidTarget
-        markPaidCandidates = if (target != null) viewModel.candidatesFor(target) else emptyList()
+    var reviewTarget by remember { mutableStateOf<RecurringSuggestion?>(null) }
+    var showSuggestions by rememberSaveable { mutableStateOf(false) }
+    var showPaid by rememberSaveable { mutableStateOf(false) }
+    var showIncome by rememberSaveable { mutableStateOf(false) }
+    var showUndated by rememberSaveable { mutableStateOf(false) }
+    var showEnded by rememberSaveable { mutableStateOf(false) }
+    val today = rememberToday()
+    val groups = remember(uiState.activeSubscriptions, uiState.paidThisCycleIds, today) {
+        uiState.activeSubscriptions.groupBy { it.billSection(today, uiState.paidThisCycleIds) }
     }
 
     // Scroll behaviors for collapsible TopAppBar
@@ -204,12 +201,16 @@ fun SubscriptionsScreen(
         )
     }
 
-    Scaffold(
+    PennyWiseScaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         containerColor = Color.Transparent,
         // In the Plan tab the nav bar is laid over this screen: keep Undo and Add above it.
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState, modifier = Modifier.padding(bottom = planBarClearance)) },
-        topBar = {
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState, modifier = Modifier.padding(bottom = planBarClearance)) { data ->
+                Snackbar(data, shape = MaterialTheme.shapes.large)
+            }
+        },
+        customTopBar = {
             CustomTitleTopAppBar(
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
@@ -263,85 +264,31 @@ fun SubscriptionsScreen(
         ) {
             planTab?.let { host -> item(key = "plan-switch") { PlanSwitcher(host, Modifier.padding(bottom = BlockGap)) } }
 
-            // The month's subscriptions and bills as one total (per currency unless unified).
-            item(key = "summary") {
-                StaggeredEntrance(delayMs = 0L, skip = hasAnimated) {
+            if (uiState.activeSubscriptions.any { it.direction == SubscriptionDirection.EXPENSE }) {
+                item(key = "summary") {
                     TotalSubscriptionsSummary(
                         totalAmount = uiState.totalMonthlyAmount,
                         totalByCurrency = uiState.totalByCurrency,
                         isUnified = uiState.isUnifiedMode,
-                        activeCount = uiState.activeSubscriptions.size,
-                        paidThisCycleCount = uiState.paidThisCycleCount,
                         currency = uiState.displayCurrency
                     )
                 }
             }
 
-            // Suggested: repeating payments found in history, not tracked yet.
-            // Above the active list so they're seen; they never touch the totals.
-            if (uiState.suggestions.isNotEmpty()) {
-                item(key = "suggested-header") {
-                    SectionHeaderV2(
-                        title = stringResource(R.string.subscriptions_suggested_section),
-                        subtitle = stringResource(R.string.subscriptions_suggested_hint),
-                        modifier = Modifier.padding(top = BlockGap)
-                    )
-                }
-                item(key = "suggested-list") {
-                    var showAll by rememberSaveable { mutableStateOf(false) }
-                    val shown = if (showAll) uiState.suggestions else uiState.suggestions.take(SUGGESTIONS_PREVIEW)
-                    Column(
-                        modifier = Modifier.padding(top = Spacing.Layout.headerToContent),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)
-                    ) {
-                        shown.forEachIndexed { index, suggestion ->
-                            androidx.compose.runtime.key(suggestion.key) {
-                                SuggestedSubscriptionItem(
-                                    suggestion = suggestion,
-                                    position = ListItemPosition.from(index, shown.size),
-                                    onReview = { reviewTarget = suggestion },
-                                    onDismiss = { viewModel.dismissSuggestion(suggestion) }
-                                )
-                            }
-                        }
-                        if (uiState.suggestions.size > SUGGESTIONS_PREVIEW) {
-                            TextButton(
-                                onClick = { showAll = !showAll },
-                                modifier = Modifier.align(Alignment.CenterHorizontally),
-                                shapes = ButtonDefaults.shapes()
-                            ) {
-                                Text(
-                                    if (showAll) stringResource(R.string.subscriptions_suggested_show_less)
-                                    else stringResource(R.string.subscriptions_suggested_show_all, uiState.suggestions.size)
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-
-            // Active subscriptions: one segmented block, unpaid first (soonest first), then paid this cycle.
-            if (uiState.activeSubscriptions.isNotEmpty()) {
-                item(key = "active-header") {
-                    SectionHeaderV2(
-                        title = stringResource(R.string.subscriptions_active_section),
-                        modifier = Modifier.padding(top = BlockGap, bottom = Spacing.Layout.headerToContent)
-                    )
-                }
-                val activeCount = uiState.activeSubscriptions.size
-                itemsIndexed(
-                    items = uiState.activeSubscriptions,
-                    key = { _, item -> item.id }
-                ) { index, subscription ->
+            fun bills(section: BillSection, hasDisclosure: Boolean = false) {
+                val subscriptions = groups[section].orEmpty()
+                val offset = if (hasDisclosure) 1 else 0
+                itemsIndexed(subscriptions, key = { _, item -> item.id }) { index, subscription ->
                     StaggeredEntrance(delayMs = staggerDelayMs(index), skip = hasAnimated, modifier = Modifier.animateItem()) {
                         SwipeableSubscriptionItem(
                             subscription = subscription,
-                            position = ListItemPosition.from(index, activeCount),
+                            position = ListItemPosition.from(index + offset, subscriptions.size + offset),
                             accounts = accounts,
                             isPaidThisCycle = subscription.id in uiState.paidThisCycleIds,
                             settled = subscription.id == uiState.settledSubscriptionId,
                             convertedAmount = uiState.convertedAmounts[subscription.id],
                             displayCurrency = uiState.displayCurrency,
+                            today = today,
                             onTap = { markPaidTarget = subscription },
                             onHide = { viewModel.hideSubscription(subscription.id) },
                             onMarkAsEnded = { viewModel.markAsEnded(subscription.id) },
@@ -354,23 +301,73 @@ fun SubscriptionsScreen(
                 }
             }
 
-            // Cancelled subscriptions (collapsible; only rendered when any
-            // exist so the section disappears entirely on empty state).
-            // Stable key so `rememberSaveable` below isn't bound to the
-            // positional slot index — without it, expanding the section and
-            // then reactivating / hiding an active subscription would shift
-            // the index and silently collapse the section.
-            if (uiState.endedSubscriptions.isNotEmpty()) {
-                item(key = "cancelled-section") {
-                    var expanded by rememberSaveable { mutableStateOf(false) }
-                    EndedSubscriptionsSection(
-                        modifier = Modifier.padding(top = BlockGap),
-                        endedSubscriptions = uiState.endedSubscriptions,
-                        expanded = expanded,
-                        onToggle = { expanded = !expanded },
-                        onReactivate = { viewModel.reactivateSubscription(it) },
-                        onDelete = { viewModel.deleteSubscription(it) }
+            for (section in listOf(BillSection.OVERDUE, BillSection.UPCOMING)) {
+                if (groups[section].isNullOrEmpty()) continue
+                item(key = section.name) {
+                    SectionHeaderV2(
+                        title = stringResource(section.title),
+                        modifier = Modifier.padding(top = BlockGap, bottom = Spacing.Layout.headerToContent)
                     )
+                }
+                bills(section)
+            }
+
+            if (uiState.suggestions.isNotEmpty()) {
+                item(key = "suggested-header") {
+                    BillDisclosure(
+                        title = pluralStringResource(
+                            R.plurals.plan_bills_review_suggestions, uiState.suggestions.size, uiState.suggestions.size
+                        ),
+                        expanded = showSuggestions,
+                        onToggle = { showSuggestions = !showSuggestions }
+                    )
+                }
+                if (showSuggestions) {
+                    itemsIndexed(
+                        uiState.suggestions,
+                        key = { _, suggestion -> "suggestion-${suggestion.key}" }
+                    ) { index, suggestion ->
+                        SuggestedSubscriptionItem(
+                            suggestion = suggestion,
+                            position = ListItemPosition.from(index + 1, uiState.suggestions.size + 1),
+                            onReview = { reviewTarget = suggestion },
+                            onDismiss = { viewModel.dismissSuggestion(suggestion) }
+                        )
+                    }
+                }
+            }
+
+            fun collapsibleBills(section: BillSection, expanded: Boolean, onToggle: () -> Unit) {
+                val count = groups[section]?.size ?: return
+                item(key = section.name) {
+                    BillDisclosure(title = stringResource(section.title, count), expanded = expanded, onToggle = onToggle)
+                }
+                if (expanded) bills(section, hasDisclosure = true)
+            }
+            collapsibleBills(BillSection.PAID, showPaid) { showPaid = !showPaid }
+            collapsibleBills(BillSection.INCOME, showIncome) { showIncome = !showIncome }
+            collapsibleBills(BillSection.UNDATED, showUndated) { showUndated = !showUndated }
+
+            if (uiState.endedSubscriptions.isNotEmpty()) {
+                item(key = "ended-header") {
+                    BillDisclosure(
+                        title = stringResource(R.string.plan_bills_ended, uiState.endedSubscriptions.size),
+                        expanded = showEnded,
+                        onToggle = { showEnded = !showEnded }
+                    )
+                }
+                if (showEnded) {
+                    itemsIndexed(
+                        uiState.endedSubscriptions,
+                        key = { _, subscription -> "ended-${subscription.id}" }
+                    ) { index, subscription ->
+                        EndedSubscriptionItem(
+                            subscription = subscription,
+                            position = ListItemPosition.from(index + 1, uiState.endedSubscriptions.size + 1),
+                            onReactivate = { viewModel.reactivateSubscription(subscription.id) },
+                            onDelete = { viewModel.deleteSubscription(subscription.id) }
+                        )
+                    }
                 }
             }
 
@@ -414,18 +411,22 @@ fun SubscriptionsScreen(
     // Mark-as-paid sheet (#412). Rendered at screen scope so a list item
     // re-composition (snackbar, scroll) can't tear down the sheet.
     markPaidTarget?.let { target ->
-        MarkAsPaidSheet(
-            subscription = target,
-            isPaidThisCycle = target.id in uiState.paidThisCycleIds,
-            candidates = markPaidCandidates,
-            onDismiss = { markPaidTarget = null },
-            onConfirm = { paymentDate ->
-                viewModel.markAsPaid(target.id, paymentDate)
-            },
-            onLinkExisting = { txn ->
-                viewModel.linkExistingTransaction(target.id, txn.id)
-            },
-        )
+        key(target.id) {
+            var candidates by remember { mutableStateOf(emptyList<TransactionEntity>()) }
+            LaunchedEffect(target) { candidates = viewModel.candidatesFor(target) }
+            MarkAsPaidSheet(
+                subscription = target,
+                isPaidThisCycle = target.id in uiState.paidThisCycleIds,
+                candidates = candidates,
+                onDismiss = { markPaidTarget = null },
+                onConfirm = { paymentDate ->
+                    viewModel.markAsPaid(target.id, paymentDate)
+                },
+                onLinkExisting = { txn ->
+                    viewModel.linkExistingTransaction(target.id, txn.id)
+                },
+            )
+        }
     }
 }
 
@@ -445,54 +446,37 @@ internal fun paymentsProgress(subscription: SubscriptionEntity): String? {
 /** Gap between the blocks of a Plan section (hero, suggestions, payments); rows inside a block sit 2dp apart. */
 private val BlockGap = Spacing.smd
 
-/** Suggestions shown before "Show all". */
-private const val SUGGESTIONS_PREVIEW = 3
+internal enum class BillSection(@get:StringRes val title: Int) {
+    OVERDUE(R.string.plan_bills_overdue),
+    UPCOMING(R.string.plan_bills_upcoming),
+    PAID(R.string.plan_bills_paid),
+    INCOME(R.string.plan_bills_income),
+    UNDATED(R.string.plan_bills_undated)
+}
+
+// The stored schedule is advanced when a payment is recorded. An unpaid date in the past is overdue.
+internal fun SubscriptionEntity.billSection(today: LocalDate, paidIds: Set<Long>): BillSection = when {
+    direction == SubscriptionDirection.INCOME -> BillSection.INCOME
+    id in paidIds -> BillSection.PAID
+    nextPaymentDate == null -> BillSection.UNDATED
+    nextPaymentDate.isBefore(today) -> BillSection.OVERDUE
+    else -> BillSection.UPCOMING
+}
 
 @Composable
-private fun EndedSubscriptionsSection(
-    endedSubscriptions: List<SubscriptionEntity>,
-    expanded: Boolean,
-    onToggle: () -> Unit,
-    onReactivate: (Long) -> Unit,
-    onDelete: (Long) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    Column(
-        modifier = modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+private fun BillDisclosure(title: String, expanded: Boolean, onToggle: () -> Unit) {
+    val state = stringResource(if (expanded) R.string.subscriptions_collapse else R.string.subscriptions_expand)
+    GroupedRow(
+        position = if (expanded) ListItemPosition.Top else ListItemPosition.Single,
+        modifier = Modifier.padding(top = BlockGap).semantics { stateDescription = state },
+        onClick = onToggle
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(MaterialTheme.shapes.large)
-                .clickable(onClick = onToggle)
-                .padding(horizontal = Spacing.xs, vertical = Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween
-        ) {
-            Text(
-                text = stringResource(R.string.subscriptions_cancelled_section, endedSubscriptions.size),
-                style = PennyWiseText.sectionHeader,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Icon(
-                imageVector = if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                contentDescription = stringResource(if (expanded) R.string.subscriptions_collapse else R.string.subscriptions_expand),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
-        AnimatedVisibility(visible = expanded, enter = pwExpand(), exit = pwCollapse()) {
-            GroupedList {
-                endedSubscriptions.forEachIndexed { index, sub ->
-                    EndedSubscriptionItem(
-                        subscription = sub,
-                        position = ListItemPosition.from(index, endedSubscriptions.size),
-                        onReactivate = { onReactivate(sub.id) },
-                        onDelete = { onDelete(sub.id) }
-                    )
-                }
-            }
-        }
+        RowLabels(title = title, titleMaxLines = Int.MAX_VALUE)
+        Icon(
+            if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 
@@ -564,63 +548,24 @@ private fun EndedSubscriptionItem(
     }
 }
 
-/**
- * The Bills hero: what the active subscriptions and bills cost a month (each
- * normalised to monthly), and how many there are / how many are paid this cycle.
- */
+/** Recurring costs normalized to one month, displayed in the loaded currency or per native currency. */
 @Composable
 private fun TotalSubscriptionsSummary(
     totalAmount: BigDecimal,
-    totalByCurrency: Map<String, com.pennywiseai.tracker.utils.Money> = emptyMap(),
-    isUnified: Boolean = false,
-    activeCount: Int,
-    paidThisCycleCount: Int = 0,
-    currency: String? = null
+    totalByCurrency: Map<String, Money>,
+    isUnified: Boolean,
+    currency: String?
 ) {
-    // Subtitle shape:
-    //   no paid yet  → "5 active subscriptions"
-    //   some paid    → "3 of 5 paid this cycle"
-    //   all paid     → "All 5 paid this cycle ✓"
-    val subtitle = when {
-        activeCount == 0 -> stringResource(R.string.subscriptions_summary_none_active)
-        paidThisCycleCount == 0 -> pluralStringResource(R.plurals.subscriptions_summary_active, activeCount, activeCount)
-        paidThisCycleCount == activeCount -> pluralStringResource(R.plurals.subscriptions_summary_all_paid, activeCount, activeCount)
-        else -> stringResource(R.string.subscriptions_summary_some_paid, paidThisCycleCount, activeCount)
-    }
-    // Unified mode: one converted figure. Native mode: per-currency so a
-    // ₹ + $ mix shows "₹399 · $30" rather than dropping non-base subs.
-    val amount = when {
-        !isUnified -> CurrencyFormatter.formatByCurrency(
-            totalByCurrency,
-            fallbackCurrency = currency ?: "INR"
-        )
-        currency != null -> CurrencyFormatter.formatCurrency(totalAmount, currency)
-        AmountPrivacy.hidden -> AmountPrivacy.MASK
-        else -> totalAmount.toPlainString()
-    }
-
-    PlanHeroCard(
-        containerColor = MaterialTheme.colorScheme.tertiaryContainer,
-        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
-    ) {
-        Text(
-            text = stringResource(R.string.plan_bills_hero_title),
-            style = MaterialTheme.typography.titleMedium
-        )
-        // "a month" rides the amount's baseline; a long (multi-currency) total shrinks to fit beside it.
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            PlanHeroAmount(amount, modifier = Modifier.weight(1f, fill = false).alignByBaseline())
-            Text(
-                text = stringResource(R.string.plan_bills_per_month),
-                style = MaterialTheme.typography.titleMedium,
-                maxLines = 1,
-                modifier = Modifier.alignByBaseline()
-            )
+    GroupedColumn(position = ListItemPosition.Single, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+        Text(stringResource(R.string.plan_bills_monthly_estimate), style = MaterialTheme.typography.titleSmall)
+        when {
+            AmountPrivacy.hidden -> Text(AmountPrivacy.MASK, style = PennyWiseText.amountLarge)
+            isUnified && currency != null ->
+                Text(CurrencyFormatter.formatCurrency(totalAmount, currency), style = PennyWiseText.amountLarge)
+            else -> totalByCurrency.values.sortedBy { it.currency }.forEach { money ->
+                Text(CurrencyFormatter.formatCurrency(money.amount, money.currency), style = PennyWiseText.amountLarge)
+            }
         }
-        Text(
-            text = subtitle,
-            style = MaterialTheme.typography.bodyMedium
-        )
     }
 }
 
@@ -643,6 +588,7 @@ private fun SwipeableSubscriptionItem(
     settled: Boolean = false,
     convertedAmount: BigDecimal? = null,
     displayCurrency: String? = null,
+    today: LocalDate,
     onTap: () -> Unit = {},
     onHide: () -> Unit,
     onMarkAsEnded: () -> Unit = {},
@@ -698,174 +644,157 @@ private fun SwipeableSubscriptionItem(
             }
         },
         content = {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                shape = shape,
-                color = MaterialTheme.colorScheme.surfaceContainerLow
-            ) {
-                Column(modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            // Tap = mark as paid (#412). The SMS body lives in the
-                            // overflow's "View source", so the primary tap means the
-                            // same thing for every row, SMS-detected or not.
-                            .clickable(
-                                onClickLabel = stringResource(markLabel),
-                                onClick = onTap
-                            )
-                            .padding(start = Spacing.md, top = Spacing.smd, bottom = Spacing.smd, end = Spacing.xs),
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.smd),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        SettledCheck(settled = settled, size = Dimensions.Icon.avatarLarge) {
-                            BrandIcon(
-                                merchantName = subscription.merchantName,
-                                size = Dimensions.Icon.avatarLarge,
-                                showBackground = true
-                            )
-                        }
-
-                        SubscriptionLabels(
-                            subscription = subscription,
-                            accounts = accounts,
-                            isPaidThisCycle = isPaidThisCycle,
-                            modifier = Modifier.weight(1f)
+            GroupedColumn(position = position, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    SettledCheck(settled = settled, size = Dimensions.Icon.avatar) {
+                        BrandIcon(
+                            merchantName = subscription.merchantName,
+                            size = Dimensions.Icon.avatar,
+                            showBackground = true
                         )
-
-                        if (convertedAmount != null && displayCurrency != null) {
-                            Column(horizontalAlignment = Alignment.End) {
-                                Text(
-                                    text = CurrencyFormatter.signed(amountPrefix, CurrencyFormatter.formatCurrency(convertedAmount, displayCurrency)),
-                                    style = PennyWiseText.amountRow,
-                                    color = amountColor
-                                )
-                                Text(
-                                    text = "(${subscription.formatAmount()})",
-                                    style = PennyWiseText.amountSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        } else {
-                            Text(
-                                text = CurrencyFormatter.signed(amountPrefix, subscription.formatAmount()),
-                                style = PennyWiseText.amountRow,
-                                color = amountColor
+                    }
+                    SubscriptionLabels(
+                        subscription = subscription,
+                        accounts = accounts,
+                        isPaidThisCycle = isPaidThisCycle,
+                        today = today,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Box {
+                        IconButton(
+                            onClick = { showMenu = true },
+                            modifier = Modifier.size(Dimensions.Component.minTouchTarget),
+                            shapes = IconButtonDefaults.shapes()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.MoreVert,
+                                contentDescription = stringResource(R.string.subscriptions_more_options),
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
-
-                        Box {
-                            IconButton(
-                                onClick = { showMenu = true },
-                                modifier = Modifier.size(Dimensions.Component.minTouchTarget),
-                                shapes = IconButtonDefaults.shapes()
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.MoreVert,
-                                    contentDescription = stringResource(R.string.subscriptions_more_options),
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                            DropdownMenu(
-                                expanded = showMenu,
-                                onDismissRequest = { showMenu = false }
-                            ) {
+                        DropdownMenu(
+                            shape = MaterialTheme.shapes.large,
+                            expanded = showMenu,
+                            onDismissRequest = { showMenu = false }
+                        ) {
+                            if (!subscription.smsBody.isNullOrBlank()) {
                                 DropdownMenuItem(
-                                    text = { Text(stringResource(markLabel)) },
-                                    leadingIcon = { Icon(Icons.Default.CheckCircle, contentDescription = null) },
+                                    text = { Text(stringResource(R.string.subscriptions_menu_view_source)) },
+                                    leadingIcon = { Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null) },
                                     onClick = {
                                         showMenu = false
-                                        onTap()
+                                        showSmsBody = !showSmsBody
                                     }
                                 )
-                                if (!subscription.smsBody.isNullOrBlank()) {
-                                    DropdownMenuItem(
-                                        text = { Text(stringResource(R.string.subscriptions_menu_view_source)) },
-                                        leadingIcon = { Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = null) },
-                                        onClick = {
-                                            showMenu = false
-                                            showSmsBody = !showSmsBody
-                                        }
-                                    )
+                            }
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.subscriptions_menu_edit)) },
+                                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                                onClick = {
+                                    showMenu = false
+                                    showEditDialog = true
                                 }
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.subscriptions_menu_edit)) },
-                                    leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
-                                    onClick = {
-                                        showMenu = false
-                                        showEditDialog = true
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.subscriptions_menu_end)) },
-                                    leadingIcon = { Icon(Icons.Default.Cancel, contentDescription = null) },
-                                    onClick = {
-                                        showMenu = false
-                                        onMarkAsEnded()
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.subscriptions_action_delete), color = MaterialTheme.colorScheme.error) },
-                                    leadingIcon = {
-                                        Icon(
-                                            Icons.Default.Delete,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.error
-                                        )
-                                    },
-                                    onClick = {
-                                        showMenu = false
-                                        showDeleteConfirm = true
-                                    }
-                                )
-                            }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.subscriptions_menu_end)) },
+                                leadingIcon = { Icon(Icons.Default.Cancel, contentDescription = null) },
+                                onClick = {
+                                    showMenu = false
+                                    onMarkAsEnded()
+                                }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.subscriptions_hide)) },
+                                leadingIcon = { Icon(Icons.Default.VisibilityOff, contentDescription = null) },
+                                onClick = { showMenu = false; onHide() }
+                            )
+                            DropdownMenuItem(
+                                text = { Text(stringResource(R.string.subscriptions_action_delete), color = MaterialTheme.colorScheme.error) },
+                                leadingIcon = {
+                                    Icon(
+                                        Icons.Default.Delete,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                },
+                                onClick = {
+                                    showMenu = false
+                                    showDeleteConfirm = true
+                                }
+                            )
                         }
                     }
+                }
+                FlowRow(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    itemVerticalAlignment = Alignment.CenterVertically
+                ) {
+                    val amount = if (convertedAmount != null && displayCurrency != null) {
+                        CurrencyFormatter.formatCurrency(convertedAmount, displayCurrency)
+                    } else subscription.formatAmount()
+                    Column {
+                        Text(CurrencyFormatter.signed(amountPrefix, amount), style = PennyWiseText.amountRow, color = amountColor)
+                        if (convertedAmount != null && displayCurrency != null) {
+                            Text(subscription.formatAmount(), style = PennyWiseText.amountSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                    if (!isPaidThisCycle) {
+                        TextButton(onClick = onTap, shapes = ButtonDefaults.shapes()) {
+                            Text(stringResource(markLabel))
+                        }
+                    }
+                }
+                paymentsProgress(subscription)?.let { progress ->
+                    Text(progress, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                }
 
-                    // The source SMS (or notes), opened from "View source".
-                    AnimatedVisibility(
-                        visible = showSmsBody && !subscription.smsBody.isNullOrBlank(),
-                        enter = pwExpand(),
-                        exit = pwCollapse()
+                // The source SMS (or notes), opened from "View source".
+                AnimatedVisibility(
+                    visible = showSmsBody && !subscription.smsBody.isNullOrBlank(),
+                    enter = pwExpand(),
+                    exit = pwCollapse()
+                ) {
+                    Column(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(top = Spacing.sm),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                     ) {
-                        Column(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(start = Spacing.md, end = Spacing.md, bottom = Spacing.md),
-                            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                            ) {
-                                Icon(
-                                    Icons.AutoMirrored.Filled.Chat,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                                    modifier = Modifier.size(Dimensions.Icon.inline)
-                                )
-                                Text(
-                                    text = stringResource(
-                                        if (subscription.bankName == "Manual Entry") R.string.subscriptions_source_notes
-                                        else R.string.subscriptions_source_original_sms
-                                    ),
-                                    style = MaterialTheme.typography.titleSmall
-                                )
-                            }
-                            // SMS text in monospace font
-                            Surface(
-                                modifier = Modifier.fillMaxWidth(),
-                                color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                                shape = MaterialTheme.shapes.medium
-                            ) {
-                                Text(
-                                    text = CurrencyFormatter.maskAmountsIn(subscription.smsBody.orEmpty()),
-                                    style = MaterialTheme.typography.bodySmall.copy(
-                                        fontFamily = FontFamily.Monospace
-                                    ),
-                                    modifier = Modifier.padding(Spacing.smd)
-                                )
-                            }
+                            Icon(
+                                Icons.AutoMirrored.Filled.Chat,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.size(Dimensions.Icon.inline)
+                            )
+                            Text(
+                                text = stringResource(
+                                    if (subscription.bankName == "Manual Entry") R.string.subscriptions_source_notes
+                                    else R.string.subscriptions_source_original_sms
+                                ),
+                                style = MaterialTheme.typography.titleSmall
+                            )
+                        }
+                        // SMS text in monospace font
+                        Surface(
+                            modifier = Modifier.fillMaxWidth(),
+                            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            shape = MaterialTheme.shapes.medium
+                        ) {
+                            Text(
+                                text = CurrencyFormatter.maskAmountsIn(subscription.smsBody.orEmpty()),
+                                style = MaterialTheme.typography.bodySmall.copy(
+                                    fontFamily = FontFamily.Monospace
+                                ),
+                                modifier = Modifier.padding(Spacing.smd)
+                            )
                         }
                     }
                 }
@@ -910,104 +839,38 @@ private fun SwipeableSubscriptionItem(
     }
 }
 
-/**
- * Name, then when it's next due and where it's paid from ("Due tomorrow · Card ••7720",
- * soon-due in the warning colour), then this cycle's paid badge and a fixed plan's
- * progress when they apply. The category stands in for the account when there's none.
- */
 @Composable
 private fun SubscriptionLabels(
     subscription: SubscriptionEntity,
     accounts: List<AccountBalanceEntity>,
     isPaidThisCycle: Boolean,
+    today: LocalDate,
     modifier: Modifier = Modifier
 ) {
     Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
-        Text(
-            text = subscription.merchantName,
-            style = PennyWiseText.rowTitle,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 1,
-            overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
-        )
-
-        val today = LocalDate.now()
-        val nextShown = subscription.nextPaymentDate?.let {
-            RecurringCharge.nextPaymentShown(it, subscription.billingCycle, today)
-        }
-        val daysUntilNext = nextShown?.let { ChronoUnit.DAYS.between(today, it) }
+        Text(subscription.merchantName, style = PennyWiseText.rowTitle)
+        val dueDate = subscription.nextPaymentDate
+        val daysUntilDue = dueDate?.let { ChronoUnit.DAYS.between(today, it) }
+        val overdue = daysUntilDue != null && daysUntilDue < 0
         val due = when {
-            nextShown == null || daysUntilNext == null -> stringResource(R.string.subscriptions_no_date)
-            daysUntilNext == 0L -> stringResource(R.string.subscriptions_due_today)
-            daysUntilNext == 1L -> stringResource(R.string.subscriptions_due_tomorrow)
-            daysUntilNext in 2..7 -> pluralStringResource(
-                R.plurals.subscriptions_due_in_days,
-                daysUntilNext.toInt(),
-                daysUntilNext.toInt()
-            )
-            else -> nextShown.format(AppDates.dayMonthFormatter())
+            dueDate == null -> stringResource(R.string.subscriptions_no_date)
+            daysUntilDue == 0L -> stringResource(R.string.subscriptions_due_today)
+            daysUntilDue == 1L -> stringResource(R.string.subscriptions_due_tomorrow)
+            else -> dueDate.format(AppDates.dateFormatter())
         }
-        val source = accountLabelFor(subscription, accounts)
-            ?: subscription.category?.let { categoryLabel(it) }
-        // Due within three days (and not yet paid) is worth a glance; the rest stays quiet.
-        val dueSoon = !isPaidThisCycle && daysUntilNext != null && daysUntilNext <= 3
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            if (!subscription.smsBody.isNullOrBlank()) {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.Chat,
-                    contentDescription = stringResource(R.string.subscriptions_sms_available),
-                    modifier = Modifier.size(Dimensions.Icon.small),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+        val source = accountLabelFor(subscription, accounts) ?: subscription.category?.let { categoryLabel(it) }
+        val timing = if (isPaidThisCycle && subscription.lastPaidAt != null) {
+            stringResource(R.string.subscriptions_paid_on, subscription.lastPaidAt.format(AppDates.dayMonthFormatter()))
+        } else due
+        Text(
+            text = if (source != null) stringResource(R.string.plan_bills_due_from, timing, source) else timing,
+            style = PennyWiseText.rowSubtitle,
+            color = when {
+                isPaidThisCycle -> MaterialTheme.colorScheme.success
+                overdue && subscription.direction == SubscriptionDirection.EXPENSE -> MaterialTheme.colorScheme.error
+                else -> MaterialTheme.colorScheme.onSurfaceVariant
             }
-            Text(
-                text = if (source != null) stringResource(R.string.plan_bills_due_from, due, source) else due,
-                style = PennyWiseText.rowSubtitle,
-                color = if (dueSoon) MaterialTheme.colorScheme.warning else MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-            )
-        }
-
-        // "Paid Mar 15": this cycle is already marked. Computed in the VM
-        // (today-anchored cycle check, shared with the list's sort).
-        if (isPaidThisCycle) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-            ) {
-                Icon(
-                    imageVector = Icons.Default.CheckCircle,
-                    contentDescription = null,
-                    modifier = Modifier.size(Dimensions.Icon.small),
-                    tint = MaterialTheme.colorScheme.primary,
-                )
-                Text(
-                    text = stringResource(
-                        R.string.subscriptions_paid_on,
-                        "${subscription.lastPaidAt?.format(AppDates.dayMonthFormatter())}"
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.primary,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-                )
-            }
-        }
-
-        paymentsProgress(subscription)?.let { progress ->
-            Text(
-                text = progress,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis,
-            )
-        }
+        )
     }
 }
 
@@ -1073,6 +936,7 @@ private fun EditSubscriptionDialog(
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 OutlinedTextField(
+                    shape = RoundedField.shape,
                     value = merchantName,
                     onValueChange = { merchantName = it },
                     label = { Text(stringResource(R.string.subscriptions_edit_name)) },
@@ -1080,6 +944,7 @@ private fun EditSubscriptionDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
                 OutlinedTextField(
+                    shape = RoundedField.shape,
                     value = amountText,
                     onValueChange = { amountText = it.filter { c -> c.isDigit() || c == '.' } },
                     label = { Text(stringResource(R.string.subscriptions_edit_amount, subscription.currency)) },
@@ -1090,22 +955,16 @@ private fun EditSubscriptionDialog(
                     modifier = Modifier.fillMaxWidth(),
                     isError = parsedAmount == null || (parsedAmount != null && parsedAmount <= BigDecimal.ZERO)
                 )
+                GroupedRow(position = ListItemPosition.Single, onClick = { showDatePicker = true }) {
+                    Icon(Icons.Default.CalendarToday, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                    RowLabels(
+                        title = stringResource(R.string.subscriptions_edit_next_date),
+                        subtitle = nextDate?.format(AppDates.dateFormatter()) ?: stringResource(R.string.subscriptions_edit_tap_to_set),
+                        titleMaxLines = Int.MAX_VALUE
+                    )
+                }
                 OutlinedTextField(
-                    value = nextDate?.format(AppDates.dateFormatter()) ?: stringResource(R.string.subscriptions_edit_tap_to_set),
-                    onValueChange = {},
-                    readOnly = true,
-                    label = { Text(stringResource(R.string.subscriptions_edit_next_date)) },
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable { showDatePicker = true },
-                    enabled = false,
-                    trailingIcon = {
-                        IconButton(onClick = { showDatePicker = true }, shapes = IconButtonDefaults.shapes()) {
-                            Icon(Icons.Default.CalendarToday, contentDescription = stringResource(R.string.subscriptions_edit_pick_date))
-                        }
-                    }
-                )
-                OutlinedTextField(
+                    shape = RoundedField.shape,
                     value = category,
                     onValueChange = { category = it },
                     label = { Text(stringResource(R.string.subscriptions_edit_category)) },
@@ -1115,6 +974,7 @@ private fun EditSubscriptionDialog(
                 // Ends after N payments (#1061). Scheduled income is booked without counting, so expenses only.
                 if (subscription.direction == SubscriptionDirection.EXPENSE) {
                     OutlinedTextField(
+                        shape = RoundedField.shape,
                         value = totalPaymentsText,
                         onValueChange = { totalPaymentsText = it.filter { c -> c.isDigit() }.take(3) },
                         label = { Text(stringResource(R.string.subscriptions_edit_ends_after)) },
@@ -1127,6 +987,7 @@ private fun EditSubscriptionDialog(
                     )
                     if (totalPaymentsText.isNotEmpty()) {
                         OutlinedTextField(
+                            shape = RoundedField.shape,
                             value = paymentsMadeText,
                             onValueChange = { paymentsMadeText = it.filter { c -> c.isDigit() }.take(3) },
                             label = { Text(stringResource(R.string.add_sub_already_paid)) },
@@ -1146,22 +1007,17 @@ private fun EditSubscriptionDialog(
                 // Funding account (#570). Marking this subscription paid moves
                 // the chosen account's balance; "No account" keeps it unlinked.
                 Box(modifier = Modifier.fillMaxWidth()) {
-                    OutlinedTextField(
-                        value = selectedAccount?.displayLabel ?: stringResource(R.string.subscriptions_edit_no_account),
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text(stringResource(R.string.subscriptions_edit_paid_from)) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { showAccountMenu = true },
-                        enabled = false,
-                        trailingIcon = {
-                            IconButton(onClick = { showAccountMenu = true }, shapes = IconButtonDefaults.shapes()) {
-                                Icon(Icons.Default.AccountBalance, contentDescription = stringResource(R.string.subscriptions_edit_pick_account))
-                            }
-                        }
-                    )
+                    GroupedRow(position = ListItemPosition.Single, onClick = { showAccountMenu = true }) {
+                        Icon(Icons.Default.AccountBalance, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        RowLabels(
+                            title = stringResource(R.string.subscriptions_edit_paid_from),
+                            subtitle = selectedAccount?.displayLabel ?: stringResource(R.string.subscriptions_edit_no_account),
+                            titleMaxLines = Int.MAX_VALUE,
+                            subtitleMaxLines = Int.MAX_VALUE
+                        )
+                    }
                     DropdownMenu(
+                        shape = MaterialTheme.shapes.large,
                         expanded = showAccountMenu,
                         onDismissRequest = { showAccountMenu = false }
                     ) {

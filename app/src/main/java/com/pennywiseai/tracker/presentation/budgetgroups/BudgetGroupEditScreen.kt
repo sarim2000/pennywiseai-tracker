@@ -11,7 +11,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
@@ -36,8 +35,6 @@ import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
@@ -45,7 +42,12 @@ import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.ui.components.CategoryIcon
 import com.pennywiseai.tracker.ui.components.ColorSwatchRow
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
+import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
+import com.pennywiseai.tracker.ui.components.RoundedField
+import com.pennywiseai.tracker.ui.components.cards.GroupedRow
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
@@ -96,10 +98,10 @@ fun BudgetGroupEditScreen(
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val hazeState = remember { HazeState() }
 
-    Scaffold(
+    PennyWiseScaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
-        topBar = {
+        customTopBar = {
             CustomTitleTopAppBar(
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
@@ -145,7 +147,7 @@ fun BudgetGroupEditScreen(
                             onClick = { viewModel.save() },
                             modifier = Modifier.fillMaxWidth(),
                             enabled = canSave,
-                            shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
+                            shape = MaterialTheme.shapes.large,
                             colors = ButtonDefaults.buttonColors(
                                 containerColor = MaterialTheme.colorScheme.primary
                             )
@@ -153,7 +155,7 @@ fun BudgetGroupEditScreen(
                             if (uiState.isSaving) {
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(Dimensions.Icon.small),
-                                    strokeWidth = 2.dp,
+                                    strokeWidth = Spacing.xxs,
                                     color = MaterialTheme.colorScheme.onPrimary
                                 )
                                 Spacer(modifier = Modifier.width(Spacing.sm))
@@ -180,7 +182,7 @@ fun BudgetGroupEditScreen(
             ) {
                 LoadingIndicator()
             }
-            return@Scaffold
+            return@PennyWiseScaffold
         }
 
         val lazyListState = rememberLazyListState()
@@ -270,12 +272,6 @@ fun BudgetGroupEditScreen(
                             }
                         }
 
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(
-                                alpha = Dimensions.Alpha.divider
-                            )
-                        )
-
                         // Mode-specific form.
                         when (uiState.periodType) {
                             BudgetPeriodType.WEEKLY -> {
@@ -305,12 +301,6 @@ fun BudgetGroupEditScreen(
                                 )
                             }
                         }
-
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.outlineVariant.copy(
-                                alpha = Dimensions.Alpha.divider
-                            )
-                        )
 
                         // Read-only "current window" line. Shows the window
                         // the budget will track *now* — same logic the home
@@ -356,11 +346,6 @@ fun BudgetGroupEditScreen(
                         }
 
                         if (uiState.rolloverAvailable) {
-                            HorizontalDivider(
-                                color = MaterialTheme.colorScheme.outlineVariant.copy(
-                                    alpha = Dimensions.Alpha.divider
-                                )
-                            )
                             RolloverRow(
                                 checked = uiState.rolloverEnabled,
                                 onCheckedChange = viewModel::updateRollover,
@@ -408,13 +393,6 @@ fun BudgetGroupEditScreen(
                                 onAmountChange = { viewModel.updateCategoryAmount(cat.categoryName, it) },
                                 onRemove = { viewModel.removeCategory(cat.categoryName) }
                             )
-                            if (cat != uiState.categories.last()) {
-                                HorizontalDivider(
-                                    color = MaterialTheme.colorScheme.outlineVariant.copy(
-                                        alpha = Dimensions.Alpha.divider
-                                    )
-                                )
-                            }
                         }
 
                         // Unallocated / Over-allocated info
@@ -445,7 +423,7 @@ fun BudgetGroupEditScreen(
                                 modifier = Modifier.fillMaxWidth(),
                                 enabled = uiState.availableCategories.isNotEmpty() ||
                                     uiState.availableTypeBuckets.isNotEmpty(),
-                                shape = RoundedCornerShape(Dimensions.CornerRadius.medium)
+                                shape = MaterialTheme.shapes.large
                             ) {
                                 Icon(
                                     Icons.Default.Add,
@@ -457,6 +435,7 @@ fun BudgetGroupEditScreen(
                             }
 
                             DropdownMenu(
+                                shape = MaterialTheme.shapes.large,
                                 expanded = showAddCategoryDropdown,
                                 onDismissRequest = { showAddCategoryDropdown = false }
                             ) {
@@ -471,12 +450,12 @@ fun BudgetGroupEditScreen(
                                                     ?: CategoryMapping.categories["Others"]!!
                                                 Box(
                                                     modifier = Modifier
-                                                        .size(32.dp)
+                                                        .size(Dimensions.Icon.large)
                                                         .clip(CircleShape)
                                                         .background(CategoryMapping.colorFor(categoryName).copy(alpha = 0.15f)),
                                                     contentAlignment = Alignment.Center
                                                 ) {
-                                                    CategoryIcon(category = categoryName, size = 18.dp)
+                                                    CategoryIcon(category = categoryName, size = Dimensions.Icon.inline)
                                                 }
                                                 Text(categoryLabel(categoryName))
                                             }
@@ -500,12 +479,12 @@ fun BudgetGroupEditScreen(
                                                     ?: CategoryMapping.categories["Others"]!!
                                                 Box(
                                                     modifier = Modifier
-                                                        .size(32.dp)
+                                                        .size(Dimensions.Icon.large)
                                                         .clip(CircleShape)
                                                         .background(CategoryMapping.colorFor(option.displayName).copy(alpha = 0.15f)),
                                                     contentAlignment = Alignment.Center
                                                 ) {
-                                                    CategoryIcon(category = option.displayName, size = 18.dp)
+                                                    CategoryIcon(category = option.displayName, size = Dimensions.Icon.inline)
                                                 }
                                                 Text(stringResource(R.string.budget_edit_type_bucket_all, categoryLabel(option.displayName)))
                                             }
@@ -629,13 +608,12 @@ private fun BudgetHeaderCard(
     }
 
     PennyWiseCardV2(modifier = Modifier.fillMaxWidth()) {
-        Row(
+        Column(
             modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs)
         ) {
             // Budget name (left side)
-            Box(modifier = Modifier.weight(1f)) {
+            Box(modifier = Modifier.fillMaxWidth()) {
                 if (isEditingName) {
                     BasicTextField(
                         value = name,
@@ -671,6 +649,7 @@ private fun BudgetHeaderCard(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
                         modifier = Modifier
+                            .heightIn(min = Dimensions.Component.minTouchTarget)
                             .clickable { onNameTap() }
                             .padding(vertical = Spacing.xs)
                     ) {
@@ -679,8 +658,6 @@ private fun BudgetHeaderCard(
                             style = MaterialTheme.typography.titleMedium,
                             color = if (name.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant
                             else MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f, fill = false)
                         )
                         // Affordance: the name looked static, so users never found it (#763)
@@ -693,8 +670,6 @@ private fun BudgetHeaderCard(
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.width(Spacing.md))
 
             // Budget amount (right side)
             if (isEditingAmount) {
@@ -720,7 +695,7 @@ private fun BudgetHeaderCard(
                         focusManager.clearFocus()
                     }),
                     modifier = Modifier
-                        .widthIn(min = 100.dp, max = 160.dp)
+                        .fillMaxWidth()
                         .focusRequester(amountFocusRequester),
                     decorationBox = { innerTextField ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -743,20 +718,17 @@ private fun BudgetHeaderCard(
                     }
                 )
             } else {
-                val displayAmount = amount.toBigDecimalOrNull()?.let {
-                    CurrencyFormatter.formatCurrency(it, currency)
-                } ?: "${currencySymbol}0"
+                val displayAmount = CurrencyFormatter.formatCurrency(amount.toBigDecimalOrNull() ?: BigDecimal.ZERO, currency)
 
                 Text(
                     text = displayAmount,
                     style = MaterialTheme.typography.headlineSmall.money(),
                     color = if (amount.isEmpty()) MaterialTheme.colorScheme.onSurfaceVariant
                     else MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
                     modifier = Modifier
+                        .heightIn(min = Dimensions.Component.minTouchTarget)
                         .clickable { onAmountTap() }
-                        .padding(vertical = Spacing.xs)
+                        .wrapContentHeight(Alignment.CenterVertically)
                 )
             }
         }
@@ -776,9 +748,6 @@ private fun CategoryBudgetRow(
         mutableStateOf(if (amount.compareTo(BigDecimal.ZERO) == 0) "" else amount.toPlainString())
     }
 
-    val categoryInfo = CategoryMapping.categories[categoryName]
-        ?: CategoryMapping.categories["Others"]!!
-
     Row(
         modifier = Modifier
             .fillMaxWidth()
@@ -788,12 +757,12 @@ private fun CategoryBudgetRow(
     ) {
         Box(
             modifier = Modifier
-                .size(40.dp)
+                .size(Dimensions.Icon.avatar)
                 .clip(CircleShape)
                 .background(CategoryMapping.colorFor(categoryName).copy(alpha = 0.15f)),
             contentAlignment = Alignment.Center
         ) {
-            CategoryIcon(category = categoryName, size = 22.dp)
+            CategoryIcon(category = categoryName, size = Dimensions.Icon.medium)
         }
 
         Column(modifier = Modifier.weight(1f)) {
@@ -819,18 +788,14 @@ private fun CategoryBudgetRow(
                     onAmountChange(parsed)
                 }
             },
+            label = { Text(stringResource(R.string.plan_budget_category_limit)) },
             prefix = { Text(CurrencyFormatter.getCurrencySymbol(currency)) },
             singleLine = true,
-            modifier = Modifier.width(140.dp),
+            modifier = Modifier.weight(1f),
             textStyle = MaterialTheme.typography.bodyMedium,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-            shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
-            colors = TextFieldDefaults.colors(
-                focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                focusedIndicatorColor = Color.Transparent,
-                unfocusedIndicatorColor = Color.Transparent
-            )
+            shape = RoundedField.shape,
+            colors = RoundedField.colors()
         )
 
         IconButton(
@@ -893,6 +858,7 @@ private fun WeekdayAnchorRow(
                 onExpandedChange = { expanded = it }
             ) {
                 OutlinedTextField(
+                    shape = RoundedField.shape,
                     value = dayOfWeekName(weekStartDay),
                     onValueChange = {},
                     readOnly = true,
@@ -903,6 +869,7 @@ private fun WeekdayAnchorRow(
                         .fillMaxWidth()
                 )
                 ExposedDropdownMenu(
+                    shape = MaterialTheme.shapes.large,
                     expanded = expanded,
                     onDismissRequest = { expanded = false }
                 ) {
@@ -999,12 +966,9 @@ private fun MonthAnchorRow(
  */
 @Composable
 private fun RolloverRow(checked: Boolean, onCheckedChange: (Boolean) -> Unit, startsNext: String? = null) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .heightIn(min = 48.dp)
-            .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange),
-        verticalAlignment = Alignment.CenterVertically
+    GroupedRow(
+        position = ListItemPosition.Single,
+        modifier = Modifier.toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange)
     ) {
         Column(modifier = Modifier.weight(1f)) {
             Text(
@@ -1040,29 +1004,8 @@ private fun OneTimeDateRow(
     formatter: DateTimeFormatter,
     onClick: () -> Unit
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
-            .padding(vertical = Spacing.xs),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Icon(
-            imageVector = Icons.Default.CalendarMonth,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        Spacer(modifier = Modifier.width(Spacing.sm))
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                text = date.format(formatter),
-                style = MaterialTheme.typography.bodyLarge
-            )
-        }
+    GroupedRow(position = ListItemPosition.Single, onClick = onClick) {
+        Icon(Icons.Default.CalendarMonth, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+        RowLabels(title = label, subtitle = date.format(formatter), titleMaxLines = Int.MAX_VALUE)
     }
 }

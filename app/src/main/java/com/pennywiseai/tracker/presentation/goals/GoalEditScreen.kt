@@ -26,6 +26,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.ExposedDropdownMenu
+import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
@@ -33,7 +34,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LoadingIndicator
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.ExposedDropdownMenuAnchorType
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SelectableDates
 import androidx.compose.material3.Surface
@@ -46,9 +46,9 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
-import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -57,6 +57,7 @@ import com.pennywiseai.shared.domain.money.MinorUnits
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.components.ColorSwatchRow
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
+import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -127,6 +128,7 @@ fun GoalEditScreen(
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
         ) {
             OutlinedTextField(
+                shape = RoundedField.shape,
                 value = form.name,
                 onValueChange = { v -> viewModel.update { it.copy(name = v) } },
                 label = { Text(stringResource(R.string.goal_edit_name)) },
@@ -145,6 +147,7 @@ fun GoalEditScreen(
                     modifier = Modifier.weight(0.4f),
                 )
                 OutlinedTextField(
+                    shape = RoundedField.shape,
                     value = form.target,
                     onValueChange = { v -> if (v.matches(amountInput(form.currency))) viewModel.update { it.copy(target = v) } },
                     label = { Text(stringResource(R.string.goal_edit_target)) },
@@ -164,6 +167,7 @@ fun GoalEditScreen(
             }
 
             OutlinedTextField(
+                shape = RoundedField.shape,
                 value = form.dueDate?.format(goalDateFormat).orEmpty(),
                 onValueChange = {},
                 readOnly = true,
@@ -180,6 +184,7 @@ fun GoalEditScreen(
 
             if (!state.isEditing) {
                 OutlinedTextField(
+                    shape = RoundedField.shape,
                     value = form.alreadySaved,
                     onValueChange = { v -> if (v.matches(amountInput(form.currency))) viewModel.update { it.copy(alreadySaved = v) } },
                     label = { Text(stringResource(R.string.goal_edit_already_saved)) },
@@ -276,6 +281,7 @@ internal fun CurrencyField(
         modifier = modifier,
     ) {
         OutlinedTextField(
+            shape = RoundedField.shape,
             value = currency,
             onValueChange = {},
             readOnly = true,
@@ -285,7 +291,7 @@ internal fun CurrencyField(
             singleLine = true,
             modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled),
         )
-        ExposedDropdownMenu(expanded = expanded && enabled, onDismissRequest = { expanded = false }) {
+        ExposedDropdownMenu(expanded = expanded && enabled, onDismissRequest = { expanded = false }, shape = MaterialTheme.shapes.large) {
             CurrencyFormatter.getSupportedCurrencies().forEach { code ->
                 DropdownMenuItem(
                     text = { Text("${CurrencyFormatter.getCurrencySymbol(code)} $code") },

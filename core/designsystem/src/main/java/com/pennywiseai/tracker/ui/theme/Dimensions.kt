@@ -272,6 +272,8 @@ object Dimensions {
 
         /** The owl heading the empty Ask chat and its model screens. */
         val chatHeroMascot = 112.dp
+
+        val budgetPaceChartHeight = 120.dp
     }
 
     // ── Motion ────────────────────────────────────────────────────────────

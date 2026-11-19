@@ -1,10 +1,9 @@
 package com.pennywiseai.tracker.presentation.recurring
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -21,7 +20,6 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
@@ -32,8 +30,10 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.ui.components.CategoryMenuItems
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
+import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.components.SelectedCategoryIcon
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GroupedRow
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.mascot.Mascot
 import com.pennywiseai.tracker.ui.components.mascot.MascotShape
@@ -44,7 +44,6 @@ import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.time.DayOfWeek
-import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -112,9 +111,10 @@ fun RecurringTransactionsScreen(
         ) {
             if (active.isNotEmpty()) {
                 item { SectionHeaderV2(title = stringResource(R.string.recurring_section_active)) }
-                items(active, key = { it.id }) { template ->
+                itemsIndexed(active, key = { _, template -> template.id }) { index, template ->
                     RecurringItem(
                         template = template,
+                        position = ListItemPosition.from(index, active.size),
                         onEdit = { editing = RecurringFormState.from(template) },
                         onToggleActive = { viewModel.setActive(template, it) },
                         onDelete = { viewModel.delete(template) }
@@ -123,9 +123,10 @@ fun RecurringTransactionsScreen(
             }
             if (paused.isNotEmpty()) {
                 item { SectionHeaderV2(title = stringResource(R.string.recurring_section_paused)) }
-                items(paused, key = { it.id }) { template ->
+                itemsIndexed(paused, key = { _, template -> template.id }) { index, template ->
                     RecurringItem(
                         template = template,
+                        position = ListItemPosition.from(index, paused.size),
                         onEdit = { editing = RecurringFormState.from(template) },
                         onToggleActive = { viewModel.setActive(template, it) },
                         onDelete = { viewModel.delete(template) }
@@ -163,6 +164,7 @@ private fun RecurringFrequency.label(): String = stringResource(
 @Composable
 private fun RecurringItem(
     template: RecurringTransactionEntity,
+    position: ListItemPosition,
     onEdit: () -> Unit,
     onToggleActive: (Boolean) -> Unit,
     onDelete: () -> Unit
@@ -170,79 +172,70 @@ private fun RecurringItem(
     var showMenu by remember { mutableStateOf(false) }
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
-    PennyWiseCardV2(
-        modifier = Modifier.fillMaxWidth().clickable(onClick = onEdit)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md)
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = template.merchantName.ifBlank { stringResource(R.string.recurring_untitled) },
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
-                )
-                Text(
-                    text = stringResource(
-                        R.string.recurring_item_schedule,
-                        template.frequency.label(),
-                        template.nextDueDate.format(AppDates.dayMonthFormatter())
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                template.category.takeIf { it.isNotBlank() }?.let {
-                    Text(
-                        text = categoryLabel(it),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
+    GroupedRow(position = position, onClick = onEdit) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = template.merchantName.ifBlank { stringResource(R.string.recurring_untitled) },
+                style = MaterialTheme.typography.bodyLarge,
+                fontWeight = FontWeight.Medium
+            )
+            Text(
+                text = stringResource(
+                    R.string.recurring_item_schedule,
+                    template.frequency.label(),
+                    template.nextDueDate.format(AppDates.dayMonthFormatter())
+                ),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
             Text(
                 text = CurrencyFormatter.formatCurrency(template.amount, template.currency),
                 style = MaterialTheme.typography.bodyLarge,
                 fontWeight = FontWeight.SemiBold,
                 color = MaterialTheme.colorScheme.onSurface
             )
+            template.category.takeIf { it.isNotBlank() }?.let {
+                Text(
+                    text = categoryLabel(it),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
 
-            Box {
-                IconButton(onClick = { showMenu = true }, shapes = IconButtonDefaults.shapes()) {
-                    Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.recurring_more_options))
-                }
-                DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
-                    DropdownMenuItem(
-                        text = { Text(if (template.isActive) stringResource(R.string.recurring_pause) else stringResource(R.string.recurring_resume)) },
-                        onClick = {
-                            showMenu = false
-                            onToggleActive(!template.isActive)
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.recurring_edit)) },
-                        onClick = {
-                            showMenu = false
-                            onEdit()
-                        }
-                    )
-                    DropdownMenuItem(
-                        text = { Text(stringResource(R.string.recurring_delete), color = MaterialTheme.colorScheme.error) },
-                        leadingIcon = {
-                            Icon(
-                                Icons.Default.Delete,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.error
-                            )
-                        },
-                        onClick = {
-                            showMenu = false
-                            showDeleteConfirm = true
-                        }
-                    )
-                }
+        Box {
+            IconButton(onClick = { showMenu = true }, shapes = IconButtonDefaults.shapes()) {
+                Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.recurring_more_options))
+            }
+            DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }, shape = MaterialTheme.shapes.large) {
+                DropdownMenuItem(
+                    text = { Text(if (template.isActive) stringResource(R.string.recurring_pause) else stringResource(R.string.recurring_resume)) },
+                    onClick = {
+                        showMenu = false
+                        onToggleActive(!template.isActive)
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.recurring_edit)) },
+                    onClick = {
+                        showMenu = false
+                        onEdit()
+                    }
+                )
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.recurring_delete), color = MaterialTheme.colorScheme.error) },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    },
+                    onClick = {
+                        showMenu = false
+                        showDeleteConfirm = true
+                    }
+                )
             }
         }
     }
@@ -297,6 +290,7 @@ private fun RecurringEditorDialog(
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 OutlinedTextField(
+                    shape = RoundedField.shape,
                     value = state.merchantName,
                     onValueChange = { state = state.copy(merchantName = it) },
                     label = { Text(stringResource(R.string.recurring_field_name)) },
@@ -306,6 +300,7 @@ private fun RecurringEditorDialog(
 
                 Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     OutlinedTextField(
+                        shape = RoundedField.shape,
                         value = state.amount,
                         onValueChange = { input ->
                             val filtered = input.filter { it.isDigit() || it == '.' }
@@ -317,11 +312,12 @@ private fun RecurringEditorDialog(
                         modifier = Modifier.weight(1f)
                     )
                     OutlinedTextField(
+                        shape = RoundedField.shape,
                         value = state.currency,
                         onValueChange = { state = state.copy(currency = it.uppercase().take(3)) },
                         label = { Text(stringResource(R.string.recurring_field_currency)) },
                         singleLine = true,
-                        modifier = Modifier.width(110.dp)
+                        modifier = Modifier.width(Dimensions.Component.tableCellWidth)
                     )
                 }
 
@@ -361,6 +357,7 @@ private fun RecurringEditorDialog(
                     onExpandedChange = { categoryExpanded = it }
                 ) {
                     OutlinedTextField(
+                        shape = RoundedField.shape,
                         value = categoryLabel(state.category),
                         onValueChange = {},
                         readOnly = true,
@@ -370,6 +367,7 @@ private fun RecurringEditorDialog(
                         modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth()
                     )
                     ExposedDropdownMenu(
+                        shape = MaterialTheme.shapes.large,
                         expanded = categoryExpanded,
                         onDismissRequest = { categoryExpanded = false }
                     ) {
@@ -390,6 +388,7 @@ private fun RecurringEditorDialog(
                     onExpandedChange = { freqExpanded = it }
                 ) {
                     OutlinedTextField(
+                        shape = RoundedField.shape,
                         value = state.frequency.label(),
                         onValueChange = {},
                         readOnly = true,
@@ -398,6 +397,7 @@ private fun RecurringEditorDialog(
                         modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth()
                     )
                     ExposedDropdownMenu(
+                        shape = MaterialTheme.shapes.large,
                         expanded = freqExpanded,
                         onDismissRequest = { freqExpanded = false }
                     ) {
@@ -417,6 +417,7 @@ private fun RecurringEditorDialog(
                 when (state.frequency) {
                     RecurringFrequency.MONTHLY -> {
                         OutlinedTextField(
+                            shape = RoundedField.shape,
                             value = state.dayOfMonth?.toString() ?: "",
                             onValueChange = { input ->
                                 val n = input.filter { it.isDigit() }.toIntOrNull()
@@ -434,6 +435,7 @@ private fun RecurringEditorDialog(
                             onExpandedChange = { dowExpanded = it }
                         ) {
                             OutlinedTextField(
+                                shape = RoundedField.shape,
                                 value = state.dayOfWeek?.let { dayOfWeekNames[it - 1] } ?: stringResource(R.string.recurring_day_of_week_any),
                                 onValueChange = {},
                                 readOnly = true,
@@ -442,6 +444,7 @@ private fun RecurringEditorDialog(
                                 modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth()
                             )
                             ExposedDropdownMenu(
+                                shape = MaterialTheme.shapes.large,
                                 expanded = dowExpanded,
                                 onDismissRequest = { dowExpanded = false }
                             ) {
@@ -461,6 +464,7 @@ private fun RecurringEditorDialog(
                 }
 
                 OutlinedTextField(
+                    shape = RoundedField.shape,
                     value = state.note,
                     onValueChange = { state = state.copy(note = it) },
                     label = { Text(stringResource(R.string.recurring_field_note)) },

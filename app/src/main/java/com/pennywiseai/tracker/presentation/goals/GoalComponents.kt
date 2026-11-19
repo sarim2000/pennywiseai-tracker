@@ -1,12 +1,9 @@
 package com.pennywiseai.tracker.presentation.goals
 
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.ExperimentalLayoutApi
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -28,7 +25,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetValue
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberBottomSheetState
@@ -44,21 +40,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.repository.GoalProgress
-import com.pennywiseai.tracker.data.repository.GoalStatus
 import com.pennywiseai.tracker.domain.goals.GoalPill
 import com.pennywiseai.tracker.domain.goals.GoalTone
 import com.pennywiseai.tracker.domain.goals.fraction
-import com.pennywiseai.tracker.domain.goals.percent
 import com.pennywiseai.tracker.domain.goals.pill
 import com.pennywiseai.tracker.domain.goals.tone
 import com.pennywiseai.tracker.presentation.paywall.UpgradeSheet
@@ -74,7 +64,6 @@ import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
-import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.components.mascot.Mascot
 import com.pennywiseai.tracker.ui.components.mascot.MascotShape
 import com.pennywiseai.tracker.ui.components.statusLine
@@ -83,8 +72,8 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.success
-import com.pennywiseai.tracker.ui.theme.tabular
 import com.pennywiseai.tracker.ui.theme.warning
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.time.format.DateTimeFormatter
@@ -99,14 +88,15 @@ internal fun GoalProgress.color(): Color = goal.color.toColorOr(MaterialTheme.co
 fun GoalStatusPill(progress: GoalProgress, modifier: Modifier = Modifier) {
     val scheme = MaterialTheme.colorScheme
     val currency = progress.goal.currency
-    val (text, content) = when (val pill = progress.pill()) {
+    val pill = progress.pill()
+    val (text, content) = when (pill) {
         GoalPill.Reached -> stringResource(R.string.goals_reached) to scheme.success
         is GoalPill.MissedBy -> stringResource(R.string.goals_missed_by, CurrencyFormatter.formatCurrency(pill.amount, currency)) to scheme.error
         is GoalPill.Behind -> stringResource(R.string.goals_behind, CurrencyFormatter.formatCurrency(pill.amount, currency)) to scheme.warning
         is GoalPill.PerMonth -> stringResource(R.string.goals_per_month, CurrencyFormatter.formatCurrency(pill.amount, currency)) to scheme.onSecondaryContainer
         GoalPill.Archived -> stringResource(R.string.goals_archived) to scheme.onSurfaceVariant
     }
-    val container = when (progress.pill()) {
+    val container = when (pill) {
         is GoalPill.PerMonth -> scheme.secondaryContainer
         GoalPill.Archived -> scheme.surfaceContainerHighest
         else -> content.copy(alpha = Dimensions.Alpha.divider).compositeOver(scheme.surface)
@@ -116,21 +106,11 @@ fun GoalStatusPill(progress: GoalProgress, modifier: Modifier = Modifier) {
         style = MaterialTheme.typography.labelMedium,
         fontWeight = FontWeight.SemiBold,
         color = content,
-        maxLines = 1,
         modifier = modifier
             .background(container, CircleShape)
             .padding(horizontal = Spacing.sm, vertical = Spacing.xxs),
     )
 }
-
-/** "5 months left" while in progress, else the due date. */
-@Composable
-fun goalTimeLabel(progress: GoalProgress): String =
-    if (progress.status == GoalStatus.IN_PROGRESS) {
-        pluralStringResource(R.plurals.goals_months_left, progress.monthsLeft, progress.monthsLeft)
-    } else {
-        stringResource(R.string.goals_due_on, progress.goal.dueDate.format(goalDateFormat))
-    }
 
 @Composable
 private fun GoalTone.color(): Color = when (this) {
@@ -156,25 +136,15 @@ fun GoalsHomeCard(goals: List<GoalProgress>, onOpenGoal: (Long) -> Unit, modifie
                     title = progress.goal.name,
                     subtitle = progress.statusLine(context),
                     subtitleColor = progress.tone().color(),
-                    subtitleMaxLines = 1,
-                )
-                Text(
-                    text = stringResource(R.string.budgets_percent, progress.percent()),
-                    style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = MaterialTheme.colorScheme.onSurface,
+                    titleMaxLines = Int.MAX_VALUE,
+                    subtitleMaxLines = Int.MAX_VALUE,
                 )
             }
         }
     }
 }
 
-/**
- * One goal in the Plan tab's visual language: a savings glyph in the goal's colour,
- * name and target, the percent saved, a flat meter, then saved / to go and its status.
- * [position] puts it in a segmented block; [index] picks its glyph's shape.
- */
-@OptIn(ExperimentalLayoutApi::class)
+/** A savings goal with one amount summary and one status. */
 @Composable
 fun GoalCard(
     progress: GoalProgress,
@@ -185,82 +155,26 @@ fun GoalCard(
 ) {
     val goal = progress.goal
     val color = progress.color()
-    // Effects spec: a progress meter never bounces past its value.
-    val fraction by animateFloatAsState(progress.fraction(), MaterialTheme.motionScheme.slowEffectsSpec(), label = "goalMeter")
-    Surface(
-        onClick = onClick,
-        modifier = modifier.fillMaxWidth(),
-        shape = position.toShape(),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
-    ) {
-        Column(
-            modifier = Modifier.padding(Dimensions.Padding.card),
-            verticalArrangement = Arrangement.spacedBy(Spacing.smd),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.smd)) {
-                PlanIconBadge(icon = Icons.Default.Savings, color = color, index = index)
-                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
-                    Text(
-                        text = goal.name,
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurface,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                    Text(
-                        text = stringResource(
-                            R.string.goals_card_target,
-                            CurrencyFormatter.formatCurrency(goal.targetAmount, goal.currency),
-                            goal.dueDate.format(goalDateFormat),
-                        ),
-                        style = PennyWiseText.rowSubtitle,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis,
-                    )
-                }
-                Text(
-                    text = stringResource(R.string.budgets_percent, progress.percent()),
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold).tabular(),
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-            }
-            PlanMeter(fraction = fraction, color = color, trackColor = MaterialTheme.colorScheme.surfaceVariant)
-            // Wraps the remainder below when both figures don't fit (large font), so neither is cut.
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                itemVerticalAlignment = Alignment.CenterVertically,
-            ) {
-                Text(
-                    text = stringResource(R.string.goals_card_saved, CurrencyFormatter.formatCurrency(progress.saved, goal.currency)),
-                    style = PennyWiseText.amountRow,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(end = Spacing.sm),
-                )
-                val rest = when {
-                    progress.over.signum() > 0 ->
-                        stringResource(R.string.goal_detail_over, CurrencyFormatter.formatCurrency(progress.over, goal.currency))
-                    progress.left.signum() > 0 ->
-                        stringResource(R.string.goals_card_to_go, CurrencyFormatter.formatCurrency(progress.left, goal.currency))
-                    else -> null
-                }
-                if (rest != null) {
-                    Text(
-                        text = rest,
-                        style = MaterialTheme.typography.bodyMedium.tabular(),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
-                }
-            }
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                GoalStatusPill(progress)
-                Text(
-                    text = goalTimeLabel(progress),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
+    GroupedRow(position = position, onClick = onClick, modifier = modifier) {
+        PlanIconBadge(icon = Icons.Default.Savings, color = color, index = index)
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            Text(goal.name, style = MaterialTheme.typography.titleMedium)
+            Text(
+                stringResource(
+                    R.string.plan_goals_saved_of,
+                    CurrencyFormatter.formatCurrency(progress.saved, goal.currency),
+                    CurrencyFormatter.formatCurrency(goal.targetAmount, goal.currency),
+                ),
+                style = PennyWiseText.rowSubtitle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+            )
+            GoalStatusPill(progress)
+            if (!AmountPrivacy.hidden) {
+                PlanMeter(
+                    fraction = progress.fraction(),
+                    color = color,
+                    trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                    dense = true,
                 )
             }
         }

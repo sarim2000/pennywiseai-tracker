@@ -113,14 +113,13 @@ Also here: `progressBarHeight` (8dp — one height for budget, loan and download
 tracks), `legendDot` (10dp), `calendarDot` (6dp), `fab` (56dp), `fabBottomInset`,
 `fabScrollClearance`, `hairline` (0.5dp), `dividerThickness`.
 
-The Floating nav style is a pill of five labelled tabs — Home · Activity · Plan ·
+The Floating nav style is a pill of five icon-only tabs — Home · Transactions · Plan ·
 Insights · Ask (`floatingNavHeight` 64dp, `floatingNavBottomGap` 12dp above the
-system bar). The selected tab's icon sits in an indicator
-(`floatingNavIndicatorWidth` × `floatingNavIndicatorHeight`, a `primary` tint at
-`Alpha.selectedIndicator`) that grows out from the icon on an Expressive spring;
-the label below takes `labelSmall`. A tab's one primary action docks beside it as
-a 64dp `primary` squircle (`dockedActionCornerRadius` 20dp): Home and Activity
-dock Add, the Plan tab docks Add budget / Add bill. The screen calls
+system bar) with a sliding selected indicator (`floatingNavIndicatorWidth` ×
+`floatingNavIndicatorHeight`, a `primary` tint at `Alpha.selectedIndicator`); a
+long-press names the tab. A tab's one primary action docks beside it as a 64dp
+`primary` squircle (`dockedActionCornerRadius` 20dp): Home and Transactions dock Add,
+the Plan tab docks Add budget / Add bill. The screen calls
 `DockNavAction(...)` when `LocalNavDock.current` is non-null and
 drops its own FAB, so the bar and the action never stack over content.
 
@@ -342,7 +341,7 @@ it by `Dimensions.Component.bottomBarHeight`.
 - Titles use `titleLarge` collapsed and `headlineLargeEmphasized` expanded
   (one of the emphasized hero moments below).
 - **Overline** (optional): a short label above a tab's title ("November" over
-  "Activity", "Your spending" over "Insights").
+  "Transactions", "Your spending" over "Insights").
 - Screens sit on the flat `background`. No gradient or cover banner behind a
   header.
 - **Subtitle** (optional, on `CustomTitleTopAppBar`): one short line of context the

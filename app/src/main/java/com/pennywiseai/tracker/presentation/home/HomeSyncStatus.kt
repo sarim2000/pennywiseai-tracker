@@ -1,6 +1,5 @@
 package com.pennywiseai.tracker.presentation.home
 
-import android.text.format.DateUtils
 import androidx.compose.animation.core.LinearEasing
 import androidx.compose.animation.core.RepeatMode
 import androidx.compose.animation.core.animateFloat
@@ -16,7 +15,6 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.NewReleases
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.Icon
@@ -25,7 +23,6 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.produceState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -38,12 +35,12 @@ import androidx.compose.ui.res.stringResource
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
-import kotlinx.coroutines.delay
 
 /**
- * Home's SMS status under the greeting: when messages were last read, what the last
- * scan found, or that one is running. Reading happens on its own, so this replaces a
- * Sync button: tap reads now, long-press offers a full re-read.
+ * Home's SMS status under the greeting, shown only when it has something to say: a read
+ * is running, the last one found new messages, or nothing has been read yet. Reading
+ * happens on its own, so a quiet "Updated 5 min ago" isn't shown; the menu's "Read
+ * messages again" stays for a manual re-read. Tap reads now, long-press offers a full re-read.
  */
 @OptIn(ExperimentalFoundationApi::class)
 @Composable
@@ -57,22 +54,12 @@ fun HomeSyncStatus(
     /** Reports the chip's window bounds, for the spotlight tutorial. */
     onPositioned: ((Rect) -> Unit)? = null,
 ) {
-    // Ticks each minute so "5 min ago" doesn't go stale while Home stays open.
-    val now by produceState(System.currentTimeMillis()) {
-        while (true) {
-            delay(DateUtils.MINUTE_IN_MILLIS)
-            value = System.currentTimeMillis()
-        }
-    }
     val text = when {
         isScanning -> stringResource(R.string.home_status_reading)
         newCount != null && newCount > 0 -> pluralStringResource(R.plurals.home_status_new, newCount, newCount)
         lastScanAt == null -> stringResource(R.string.home_status_never)
-        now - lastScanAt < DateUtils.MINUTE_IN_MILLIS -> stringResource(R.string.home_status_just_now)
-        else -> stringResource(
-            R.string.home_status_updated,
-            DateUtils.getRelativeTimeSpanString(lastScanAt, now, DateUtils.MINUTE_IN_MILLIS).toString()
-        )
+        // Up to date: nothing worth a pill.
+        else -> return
     }
     val accent = MaterialTheme.colorScheme.primary
     Surface(
@@ -111,10 +98,8 @@ fun HomeSyncStatus(
                 }
                 newCount != null && newCount > 0 ->
                     Icon(Icons.Default.NewReleases, null, tint = accent, modifier = Modifier.size(Dimensions.Icon.small))
-                lastScanAt == null ->
-                    Icon(Icons.Default.Sync, null, tint = accent, modifier = Modifier.size(Dimensions.Icon.small))
                 else ->
-                    Icon(Icons.Default.CheckCircle, null, tint = accent, modifier = Modifier.size(Dimensions.Icon.small))
+                    Icon(Icons.Default.Sync, null, tint = accent, modifier = Modifier.size(Dimensions.Icon.small))
             }
             Text(text, style = MaterialTheme.typography.labelLarge, color = MaterialTheme.colorScheme.onSurfaceVariant)
         }

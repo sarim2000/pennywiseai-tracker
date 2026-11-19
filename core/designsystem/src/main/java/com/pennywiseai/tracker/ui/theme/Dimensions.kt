@@ -171,9 +171,9 @@ object Dimensions {
         /** Height of the floating nav pill, and the side of the action docked beside it. */
         val floatingNavHeight = 64.dp
 
-        /** The selected-tab indicator behind a tab's icon (its label sits below) in the floating nav pill. */
-        val floatingNavIndicatorHeight = 32.dp
-        val floatingNavIndicatorWidth = 52.dp
+        /** The selected-tab indicator inside the floating nav pill. */
+        val floatingNavIndicatorHeight = 48.dp
+        val floatingNavIndicatorWidth = 64.dp
 
         /** Gap between the floating nav pill and the system navigation bar. */
         val floatingNavBottomGap = 12.dp

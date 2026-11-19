@@ -103,7 +103,7 @@
 
     <!-- ══ Bottom navigation ══ -->
     <string name="nav_home">Home</string>
-    <string name="nav_transactions">Activity</string>
+    <string name="nav_transactions">Transactions</string>
     <string name="nav_plan">Plan</string>
     <string name="plan_bills">Bills</string>
     <string name="nav_analytics">Insights</string>

@@ -320,7 +320,6 @@ fun HomeScreen(
                         selectedProfileId = uiState.selectedProfileId,
                         onProfileSelected = { viewModel.updateSelectedProfile(it) },
                         isProEntitled = isProEntitled,
-                        onUpgradeClick = { showUpgradeSheet = true },
                         status = {
                             HomeSyncStatus(
                                 isScanning = uiState.isScanning,
@@ -350,7 +349,7 @@ fun HomeScreen(
                     .overScrollVertical(),
                 flingBehavior = rememberOverscrollFlingBehavior { lazyListState },
                 contentPadding = PaddingValues(
-                    top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
+                    top = Spacing.sm + paddingValues.calculateTopPadding(),
                     // Clears the nav bar plus the Add + Sync FAB stack above it.
                     bottom = Dimensions.Component.bottomBarHeight +
                         Dimensions.Component.fabScrollClearance

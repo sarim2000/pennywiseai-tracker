@@ -34,6 +34,7 @@ import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import com.pennywiseai.tracker.R
@@ -62,7 +63,6 @@ fun GreetingCard(
     selectedProfileId: Long? = null,
     onProfileSelected: (Long?) -> Unit = {},
     isProEntitled: Boolean = false,
-    onUpgradeClick: () -> Unit = {},
     /** A line under the name, e.g. when SMS were last read. */
     status: (@Composable () -> Unit)? = null,
 ) {
@@ -80,7 +80,7 @@ fun GreetingCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(start = Dimensions.Padding.content, end = Dimensions.Padding.content, bottom = Spacing.xs),
+            .padding(horizontal = Dimensions.Padding.content),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -130,9 +130,9 @@ fun GreetingCard(
             Spacer(modifier = Modifier.width(Spacing.xs))
 
             // The avatar in a cookie shape, edged by a "membership ring" — the only Pro
-            // signal, no pill, no label. Solid gold = Pro member; dashed gold = free user
-            // (reads as "not yet filled / tap to unlock"). For free users tapping
-            // opens the upgrade sheet; Pro members tap through to settings.
+            // signal, no pill, no label. Solid gold = Pro member; dashed gold = free user.
+            // Tapping opens Settings for everyone, like the avatar on every other tab;
+            // upgrading stays on its own controls.
             val ringColor = if (isAppInDarkTheme()) yellow_accent_dark else yellow_dark
             val cookie = MaterialShapes.Cookie9Sided.toShape()
             ProfileAvatar(
@@ -141,7 +141,7 @@ fun GreetingCard(
                 backgroundColor = profileBackgroundColor,
                 size = Dimensions.Icon.avatar,
                 shape = cookie,
-                contentDescription = userName,
+                contentDescription = stringResource(R.string.settings_title),
                 modifier = Modifier
                     .drawWithContent {
                         drawContent()
@@ -156,7 +156,11 @@ fun GreetingCard(
                             style = Stroke(width = stroke, pathEffect = dash)
                         )
                     }
-                    .clickable(onClick = if (isProEntitled) onAvatarClick else onUpgradeClick)
+                    .clickable(
+                        onClickLabel = stringResource(R.string.settings_title),
+                        role = Role.Button,
+                        onClick = onAvatarClick,
+                    )
             )
         }
         status?.invoke()

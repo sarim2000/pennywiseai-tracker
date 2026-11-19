@@ -1,32 +1,24 @@
 package com.pennywiseai.tracker.presentation.analytics
 
 import androidx.compose.animation.animateContentSize
-import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.SegmentedListItem
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.contentColorFor
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -35,9 +27,12 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.clearAndSetSemantics
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.components.CategoryIcon
+import com.pennywiseai.tracker.ui.components.WavyMeter
+import com.pennywiseai.tracker.ui.components.cards.GroupedColumn
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.IconTile
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
@@ -46,6 +41,7 @@ import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.utils.AmountPrivacy
 
 /**
  * A grouped block that shows its first [visibleCount] rows and a "View all"
@@ -85,11 +81,7 @@ internal fun <T> ExpandableGroupedList(
     }
 }
 
-/**
- * One row of a share breakdown: leading glyph, name, share and amount, with a
- * thin bar in the group's colour underneath (its length relative to the
- * largest row). Tappable rows press-morph like every segmented list item.
- */
+/** Each meter is scaled against the largest row in the group. */
 @Composable
 internal fun ShareRow(
     position: ListItemPosition,
@@ -101,90 +93,47 @@ internal fun ShareRow(
     onClick: (() -> Unit)?,
     leading: (@Composable () -> Unit)? = null
 ) {
-    val container = MaterialTheme.colorScheme.surfaceContainerLow
-    val content: @Composable () -> Unit = {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Spacing.md, vertical = Spacing.smd),
-            verticalArrangement = Arrangement.spacedBy(Spacing.smd)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.smd)
-            ) {
-                leading?.invoke()
-                Text(
-                    text = title,
-                    style = PennyWiseText.rowTitle,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
-                )
-                if (percent != null) {
-                    Text(
-                        text = stringResource(R.string.analytics_percent, percent),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                Text(
-                    text = amount,
-                    style = PennyWiseText.amountRow,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1
-                )
-            }
-            ShareBar(fraction = fraction, color = barColor)
-        }
-    }
-    if (onClick == null) {
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = container,
-            shape = position.toShape(),
-            content = content
-        )
-    } else {
-        SegmentedListItem(
-            onClick = onClick,
-            shapes = ListItemDefaults.shapes(shape = position.toShape()),
-            modifier = Modifier.fillMaxWidth(),
-            colors = ListItemDefaults.segmentedColors(
-                containerColor = container,
-                contentColor = contentColorFor(container)
-            ),
-            contentPadding = PaddingValues(),
-            content = content
-        )
-    }
-}
-
-/** A flat data meter: fills to [fraction] on an effects spec, once on first paint. */
-@Composable
-private fun ShareBar(fraction: Float, color: Color) {
-    var grown by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { grown = true }
-    val shown by animateFloatAsState(
-        targetValue = if (grown) fraction.coerceIn(0f, 1f) else 0f,
-        animationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
-        label = "share_bar"
-    )
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(Dimensions.Component.progressBarHeight)
-            .clip(CircleShape)
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
+    GroupedColumn(
+        position = position,
+        modifier = if (onClick == null) Modifier else Modifier
+            .clip(position.toShape())
+            .clickable(role = Role.Button, onClick = onClick)
     ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(shown)
-                .fillMaxHeight()
-                .clip(CircleShape)
-                .background(color)
-        )
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.smd)
+        ) {
+            leading?.invoke()
+            Column(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xxs)
+            ) {
+                Text(text = title, style = PennyWiseText.rowTitle)
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.smd),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.xxs)
+                ) {
+                    Text(text = amount, style = PennyWiseText.amountRow)
+                    if (percent != null && !AmountPrivacy.hidden) {
+                        Text(
+                            text = stringResource(R.string.analytics_percent, percent),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+        }
+        if (!AmountPrivacy.hidden) {
+            // The spoken share is the percentage of the total, not the meter's relative width.
+            WavyMeter(
+                fraction = fraction,
+                color = barColor,
+                trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                modifier = Modifier.clearAndSetSemantics {},
+                dense = true
+            )
+        }
     }
 }
 
@@ -199,7 +148,12 @@ internal fun CategoryBadge(name: String, colorHex: String?) {
             .background(color.copy(alpha = Dimensions.Alpha.ghost)),
         contentAlignment = Alignment.Center
     ) {
-        CategoryIcon(category = name, size = Dimensions.Icon.inline, tint = color)
+        CategoryIcon(
+            category = name,
+            size = Dimensions.Icon.inline,
+            tint = color,
+            modifier = Modifier.clearAndSetSemantics {}
+        )
     }
 }
 

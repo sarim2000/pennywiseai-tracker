@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.presentation.analytics
 
 import androidx.compose.animation.core.animateFloatAsState
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
@@ -9,6 +10,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.ArrowDropDown
@@ -31,11 +34,12 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.text.style.TextAlign
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.label
@@ -60,9 +64,12 @@ internal fun InsightsPeriodSelector(
     modifier: Modifier = Modifier
 ) {
     var menuOpen by remember { mutableStateOf(false) }
+    val scrollable = LocalDensity.current.fontScale >= 1.5f
+    val scrollState = rememberScrollState()
     Row(
         modifier = modifier
             .fillMaxWidth()
+            .then(if (scrollable) Modifier.horizontalScroll(scrollState) else Modifier)
             .selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween)
     ) {
@@ -73,18 +80,20 @@ internal fun InsightsPeriodSelector(
                 shapes = if (index == 0) ButtonGroupDefaults.connectedLeadingButtonShapes()
                 else ButtonGroupDefaults.connectedMiddleButtonShapes(),
                 onClick = { onSelect(period) },
-                modifier = Modifier.weight(selectedWeight(selected == period))
+                scrollableLabel = scrollable,
+                modifier = if (scrollable) Modifier else Modifier.weight(selectedWeight(selected == period))
             )
         }
         val moreSelected = selected in MorePeriods
-        Box(modifier = Modifier.weight(selectedWeight(moreSelected))) {
+        Box(modifier = if (scrollable) Modifier else Modifier.weight(selectedWeight(moreSelected))) {
             PeriodToggle(
                 checked = moreSelected,
                 label = if (moreSelected) selectedMoreLabel else stringResource(R.string.analytics_period_more),
                 shapes = ButtonGroupDefaults.connectedTrailingButtonShapes(),
                 onClick = { menuOpen = true },
                 trailingDropDown = true,
-                modifier = Modifier.fillMaxWidth()
+                scrollableLabel = scrollable,
+                modifier = if (scrollable) Modifier else Modifier.fillMaxWidth()
             )
             DropdownMenu(
                 expanded = menuOpen,
@@ -126,6 +135,7 @@ private fun PeriodToggle(
     label: String,
     shapes: ToggleButtonShapes,
     onClick: () -> Unit,
+    scrollableLabel: Boolean,
     modifier: Modifier = Modifier,
     trailingDropDown: Boolean = false
 ) {
@@ -147,9 +157,9 @@ private fun PeriodToggle(
         }
         Text(
             text = label,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f, fill = false)
+            textAlign = TextAlign.Center,
+            modifier = if (scrollableLabel) Modifier.widthIn(max = Dimensions.Component.minTouchTarget * 5)
+            else Modifier.weight(1f, fill = false)
         )
         if (trailingDropDown) {
             Icon(

@@ -63,4 +63,18 @@
         <item quantity="one">%d needs a category</item>
         <item quantity="other">%d need a category</item>
     </plurals>
+
+    <!-- rd:insights -->
+    <string name="insights_filters_default">Filters · %1$s</string>
+    <string name="insights_filters_active">Filters (%1$d) · %2$s</string>
+    <string name="insights_filter_type">Transaction type</string>
+    <string name="insights_filter_all_profiles">All profiles</string>
+    <string name="insights_forecast_amount">%1$s · %2$s</string>
+    <string name="insights_expanded">Expanded</string>
+    <string name="insights_collapsed">Collapsed</string>
+    <string name="insights_spending_trend">Spending trend</string>
+    <string name="insights_type_trend">%1$s trend</string>
+    <string name="insights_chart_values">View chart values</string>
+    <string name="insights_no_transactions">No transactions</string>
+    <string name="insights_ask">Ask about your money</string>
 </resources>

@@ -9,8 +9,10 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
+import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.RowScope
@@ -20,7 +22,9 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.MaterialTheme
@@ -33,21 +37,25 @@ import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.PathEffect
-import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.components.BalancePoint
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
@@ -243,7 +251,13 @@ private fun BarChartCanvas(frame: BarFrame, growIn: Boolean, height: Int) {
 
 /** One bar of [PeriodBarChart]: a whole period's total, already labelled. */
 @Immutable
-data class PeriodBar(val key: LocalDate, val label: String, val value: Double, val hasData: Boolean)
+data class PeriodBar(
+    val key: LocalDate,
+    val label: String,
+    val spokenLabel: String,
+    val amount: BigDecimal,
+    val hasData: Boolean
+)
 
 /**
  * The Insights hero chart: one rounded pill per period, tonal bars with the
@@ -258,28 +272,38 @@ fun PeriodBarChart(
     modifier: Modifier = Modifier
 ) {
     if (bars.isEmpty()) return
-    val max = bars.maxOf { it.value }.takeIf { it > 0.0 } ?: 1.0
+    val max = bars.maxOf { it.amount.toDouble() }.takeIf { it > 0.0 } ?: 1.0
     // One chart per currency: another currency's amounts share no axis with these,
     // so a switch grows a fresh chart in instead of morphing the old bars.
     key(currency) {
         // Grow in once on first paint; later data changes retarget from where they stand.
         var grown by remember { mutableStateOf(false) }
         LaunchedEffect(Unit) { grown = true }
-        Row(
-            modifier = modifier
-                .fillMaxWidth()
-                .height(Dimensions.Component.insightsChartHeight),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            verticalAlignment = Alignment.Bottom
-        ) {
-            bars.forEachIndexed { index, bar ->
-                key(bar.key) {
-                    PeriodBarColumn(
-                        bar = bar,
-                        fraction = if (grown) (bar.value / max).toFloat().coerceIn(0f, 1f) else 0f,
-                        selected = index == bars.lastIndex,
-                        currency = currency
-                    )
+        BoxWithConstraints(modifier.fillMaxWidth()) {
+            val scale = LocalDensity.current.fontScale
+            val minBarWidth = Dimensions.Icon.avatar * scale
+            val chartWidth = maxOf(maxWidth, minBarWidth * bars.size + Spacing.sm * bars.lastIndex)
+            val scroll = rememberScrollState()
+            LaunchedEffect(chartWidth) {
+                if (chartWidth > maxWidth) scroll.scrollTo(scroll.maxValue)
+            }
+            Row(
+                modifier = Modifier
+                    .horizontalScroll(scroll)
+                    .width(chartWidth)
+                    .height(Dimensions.Component.insightsChartHeight),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalAlignment = Alignment.Bottom
+            ) {
+                bars.forEachIndexed { index, bar ->
+                    key(bar.key) {
+                        PeriodBarColumn(
+                            bar = bar,
+                            fraction = if (grown) (bar.amount.toDouble() / max).toFloat().coerceIn(0f, 1f) else 0f,
+                            selected = index == bars.lastIndex,
+                            currency = currency
+                        )
+                    }
                 }
             }
         }
@@ -295,28 +319,29 @@ private fun RowScope.PeriodBarColumn(bar: PeriodBar, fraction: Float, selected: 
         label = "period_bar"
     )
     val label = PennyWiseText.chartLabel
+    val spokenValue = if (bar.hasData) CurrencyFormatter.formatCurrency(bar.amount, currency)
+    else stringResource(R.string.insights_no_transactions)
     Column(
         modifier = Modifier
             .weight(1f)
             .fillMaxHeight()
-            .semantics(mergeDescendants = true) {},
+            .clearAndSetSemantics { contentDescription = "${bar.spokenLabel}, $spokenValue" },
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.Bottom
     ) {
-        if (bar.hasData) {
-            Text(
-                text = CurrencyFormatter.formatAbbreviated(bar.value, currency),
-                style = label,
-                color = if (selected) colors.onSurface else colors.onSurfaceVariant,
-                fontWeight = if (selected) FontWeight.Bold else null,
-                maxLines = 1,
-                autoSize = TextAutoSize.StepBased(
-                    minFontSize = PennyWiseText.autoSizeFloor,
-                    maxFontSize = label.fontSize
-                )
+        // The selected period's value already appears as the hero total.
+        val value = if (bar.hasData && !selected) CurrencyFormatter.formatAbbreviated(bar.amount.toDouble(), currency) else ""
+        Text(
+            text = value,
+            style = label,
+            color = colors.onSurfaceVariant,
+            maxLines = 1,
+            autoSize = TextAutoSize.StepBased(
+                minFontSize = PennyWiseText.autoSizeFloor,
+                maxFontSize = label.fontSize
             )
-            Spacer(Modifier.height(Spacing.xs))
-        }
+        )
+        Spacer(Modifier.height(Spacing.xs))
         // The bar fills a fraction of what's left after the labels; a fraction of the whole
         // column would push the month label out on the tallest bars.
         Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
@@ -327,7 +352,7 @@ private fun RowScope.PeriodBarColumn(bar: PeriodBar, fraction: Float, selected: 
                     .widthIn(max = Dimensions.Component.insightsBarMaxWidth)
                     .fillMaxWidth()
                     .then(
-                        if (bar.hasData && bar.value > 0.0) {
+                        if (bar.hasData && bar.amount.signum() > 0) {
                             Modifier
                                 .heightIn(min = Dimensions.Component.insightsBarMinHeight)
                                 .fillMaxHeight(shown)
@@ -338,7 +363,7 @@ private fun RowScope.PeriodBarColumn(bar: PeriodBar, fraction: Float, selected: 
                     .clip(CircleShape)
                     .background(
                         when {
-                            !bar.hasData || bar.value <= 0.0 -> colors.surfaceContainerHighest
+                            !bar.hasData || bar.amount.signum() <= 0 -> colors.surfaceContainerHighest
                             selected -> colors.primary
                             else -> colors.primaryContainer
                         }

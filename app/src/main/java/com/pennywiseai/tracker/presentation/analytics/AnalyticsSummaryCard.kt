@@ -13,28 +13,38 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingFlat
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.filled.ExpandLess
+import androidx.compose.material.icons.filled.ExpandMore
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.saveable.rememberSaveable
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.font.FontWeight
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
 import com.pennywiseai.tracker.domain.spending.SpendForecast
 import com.pennywiseai.tracker.ui.components.AnimatedCurrencyText
+import com.pennywiseai.tracker.ui.components.cards.GroupedRow
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.expense
 import com.pennywiseai.tracker.ui.theme.money
 import com.pennywiseai.tracker.ui.theme.success
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
@@ -50,11 +60,9 @@ fun AnalyticsSummaryCard(
     label: String,
     totalAmount: BigDecimal,
     currency: String,
-    transactionCount: Int,
-    averageAmount: BigDecimal,
     history: PeriodHistory?,
     typeFilter: TransactionTypeFilter,
-    isLoading: Boolean,
+    forecast: SpendForecast?,
     modifier: Modifier = Modifier
 ) {
     Surface(
@@ -63,10 +71,7 @@ fun AnalyticsSummaryCard(
         color = MaterialTheme.colorScheme.surfaceContainerLow
     ) {
         Column(
-            modifier = Modifier
-                .padding(Spacing.lg)
-                // A reload dims the figures rather than blanking them.
-                .alpha(if (isLoading) Dimensions.Alpha.medium else 1f),
+            modifier = Modifier.padding(Spacing.lg),
             verticalArrangement = Arrangement.spacedBy(Spacing.smd)
         ) {
             Text(
@@ -77,45 +82,39 @@ fun AnalyticsSummaryCard(
             // Settles on a period change, and shrinks to fit rather than clipping:
             // a clipped total reads as a smaller, wrong figure.
             val totalStyle = MaterialTheme.typography.displayMediumEmphasized.money()
-            AnimatedCurrencyText(
-                text = CurrencyFormatter.formatCurrency(totalAmount, currency),
-                style = totalStyle,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                autoSize = TextAutoSize.StepBased(
-                    minFontSize = PennyWiseText.autoSizeFloor,
-                    maxFontSize = totalStyle.fontSize
-                )
-            )
-            if (transactionCount > 0) {
-                Text(
-                    text = pluralStringResource(
-                        R.plurals.analytics_transaction_count, transactionCount, transactionCount
-                    ) + " · " + stringResource(
-                        R.string.analytics_avg_per_transaction,
-                        CurrencyFormatter.formatCurrency(averageAmount, currency)
-                    ),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+            key(currency) {
+                AnimatedCurrencyText(
+                    text = CurrencyFormatter.formatCurrency(totalAmount, currency),
+                    style = totalStyle,
+                    color = MaterialTheme.colorScheme.onSurface,
+                    maxLines = 1,
+                    autoSize = TextAutoSize.StepBased(
+                        minFontSize = PennyWiseText.autoSizeFloor,
+                        maxFontSize = totalStyle.fontSize
+                    )
                 )
             }
-            history?.change?.let { change ->
-                PeriodChangeChip(change = change, kind = history.kind, typeFilter = typeFilter)
+            if (!AmountPrivacy.hidden) {
+                history?.change?.let { change ->
+                    PeriodChangeChip(change = change, kind = history.kind, typeFilter = typeFilter)
+                }
+                if (history != null && history.periods.size > 1) {
+                    PeriodBarChart(
+                        bars = history.periods.map { period ->
+                            PeriodBar(
+                                key = period.start,
+                                label = period.shortLabel(history.kind),
+                                spokenLabel = period.fullLabel(history.kind),
+                                amount = period.amount,
+                                hasData = period.hasData
+                            )
+                        },
+                        currency = history.currency,
+                        modifier = Modifier.padding(top = Spacing.smd)
+                    )
+                }
             }
-            if (history != null && history.periods.size > 1) {
-                PeriodBarChart(
-                    bars = history.periods.map { period ->
-                        PeriodBar(
-                            key = period.start,
-                            label = period.shortLabel(history.kind),
-                            value = period.amount.toDouble(),
-                            hasData = period.hasData
-                        )
-                    },
-                    currency = history.currency,
-                    modifier = Modifier.padding(top = Spacing.smd)
-                )
-            }
+            forecast?.let { ForecastDisclosure(it) }
         }
     }
 }
@@ -209,53 +208,56 @@ internal fun PeriodSpend.fullLabel(kind: PeriodKind): String = when (kind) {
     PeriodKind.FINANCIAL_YEAR -> fyLabel()
 }
 
-/** Month-end forecast, with the "above your usual" note when it applies. */
+/** Month-end projection with the pace guidance available on demand. */
 @Composable
-fun ForecastCard(forecast: SpendForecast, modifier: Modifier = Modifier) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        shape = MaterialTheme.shapes.extraLarge,
-        color = MaterialTheme.colorScheme.surfaceContainerLow
+private fun ForecastDisclosure(forecast: SpendForecast) {
+    val aboveUsual = forecast.overUsual.takeUnless { AmountPrivacy.hidden }
+    val daily = forecast.dailyToStayAtUsual
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    val state = if (expanded) stringResource(R.string.insights_expanded) else stringResource(R.string.insights_collapsed)
+    val label = stringResource(
+        R.string.analytics_forecast_for,
+        forecast.periodEnd.format(AppDates.dayMonthFormatter())
+    )
+    val summary = stringResource(
+        R.string.insights_forecast_amount,
+        label,
+        CurrencyFormatter.formatCurrency(forecast.projected, forecast.currency)
+    )
+    GroupedRow(
+        position = ListItemPosition.Single,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        onClick = if (aboveUsual != null) ({ expanded = !expanded }) else null,
+        modifier = if (aboveUsual != null) Modifier.semantics { stateDescription = state } else Modifier
     ) {
-        Column(
-            modifier = Modifier.padding(Dimensions.Padding.card),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs)
-        ) {
+        Text(summary, style = MaterialTheme.typography.labelLarge, modifier = Modifier.weight(1f))
+        if (aboveUsual != null) {
+            Icon(
+                if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                contentDescription = null,
+                modifier = Modifier.size(Dimensions.Icon.inline)
+            )
+        }
+    }
+    if (expanded && aboveUsual != null) {
+        Text(
+            text = stringResource(
+                R.string.analytics_forecast_above_usual,
+                CurrencyFormatter.formatCurrency(aboveUsual, forecast.currency)
+            ),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.expense
+        )
+        if (daily != null && forecast.usual != null) {
             Text(
                 text = stringResource(
-                    R.string.analytics_forecast_for,
-                    forecast.periodEnd.format(AppDates.dayMonthFormatter())
+                    R.string.analytics_forecast_stay_under,
+                    CurrencyFormatter.formatCurrency(daily, forecast.currency),
+                    CurrencyFormatter.formatCurrency(forecast.usual, forecast.currency)
                 ),
-                style = MaterialTheme.typography.titleSmall,
+                style = MaterialTheme.typography.bodyMedium,
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
-            Text(
-                text = CurrencyFormatter.formatCurrency(forecast.projected, forecast.currency),
-                style = PennyWiseText.amountLarge,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            val over = forecast.overUsual ?: return@Column
-            Text(
-                text = stringResource(
-                    R.string.analytics_forecast_above_usual,
-                    CurrencyFormatter.formatCurrency(over, forecast.currency)
-                ),
-                style = MaterialTheme.typography.labelLarge,
-                fontWeight = FontWeight.Bold,
-                color = MaterialTheme.colorScheme.expense,
-                modifier = Modifier.padding(top = Spacing.xs)
-            )
-            forecast.dailyToStayAtUsual?.let { daily ->
-                Text(
-                    text = stringResource(
-                        R.string.analytics_forecast_stay_under,
-                        CurrencyFormatter.formatCurrency(daily, forecast.currency),
-                        CurrencyFormatter.formatCurrency(forecast.usual!!, forecast.currency)
-                    ),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
         }
     }
 }

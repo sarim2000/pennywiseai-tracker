@@ -1,7 +1,6 @@
 package com.pennywiseai.tracker.presentation.analytics
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.MaterialTheme
@@ -11,10 +10,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.ui.components.ExpandableList
+import com.pennywiseai.tracker.ui.components.cards.GroupedRow
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -62,20 +60,14 @@ fun TagPieChart(
     fun indexOfPie(pie: Pie): Int =
         chartData.indexOfFirst { it === pie }.takeIf { it >= 0 } ?: chartData.indexOf(pie)
 
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(min = 200.dp)
-            .padding(Spacing.sm),
-        horizontalArrangement = Arrangement.SpaceBetween,
-        verticalAlignment = Alignment.CenterVertically
+    Column(
+        modifier = modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        horizontalAlignment = Alignment.CenterHorizontally
     ) {
-        Box(
-            modifier = Modifier.weight(1.2f),
-            contentAlignment = Alignment.Center
-        ) {
+        Box(contentAlignment = Alignment.Center) {
             PieChart(
-                modifier = Modifier.size(160.dp),
+                modifier = Modifier.size(Dimensions.Component.insightsChartHeight),
                 data = chartData,
                 onPieClick = { clickedPie ->
                     val pieIndex = indexOfPie(clickedPie)
@@ -94,34 +86,27 @@ fun TagPieChart(
                 // The built-in label helper repeats the legend beside us, truncated to
                 // "Groc…" / "Mobi…" — unreadable, and it squeezes the donut.
                 labelHelperProperties = LabelHelperProperties(enabled = false),
-                style = Pie.Style.Stroke(width = 12.dp)
+                style = Pie.Style.Stroke(width = Spacing.smd)
             )
         }
 
-        // A plain list, not a LazyColumn: a fixed-height scroller inside the scrolling
-        // Analytics screen trapped the drag. The rest opens below, like the list view.
-        ExpandableList(
-            items = chartData.sortedByDescending { it.data },
-            visibleItemCount = 5,
-            itemSpacing = Spacing.none,
-            modifier = Modifier
-                .weight(1f)
-                .padding(start = Spacing.md)
-        ) { pie ->
+        ExpandableGroupedList(items = chartData.sortedByDescending { it.data }, visibleCount = 5) { pie, position ->
+            val tag = tags.getOrNull(indexOfPie(pie))
             TagLegendItem(
+                position = position,
                 label = pie.label ?: stringResource(R.string.analytics_pie_unknown),
                 value = pie.data,
                 color = pie.color,
                 isSelected = pie.selected,
                 currency = currency,
                 totalAmount = total,
-                onClick = {
+                onClick = if (tag == null || tag.isUntagged) null else ({
                     val pieIndex = indexOfPie(pie)
                     chartData = chartData.mapIndexed { index, p ->
                         p.copy(selected = index == pieIndex)
                     }
-                    tags.getOrNull(pieIndex)?.let(onTagClick)
-                }
+                    onTagClick(tag)
+                })
             )
         }
     }
@@ -130,29 +115,23 @@ fun TagPieChart(
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun TagLegendItem(
+    position: ListItemPosition,
     label: String,
     value: Double,
     color: androidx.compose.ui.graphics.Color,
     currency: String,
     isSelected: Boolean,
     totalAmount: Double,
-    onClick: () -> Unit
+    onClick: (() -> Unit)?
 ) {
     val percentage = (value / totalAmount * 100).toInt()
 
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .sizeIn(minHeight = 48.dp)
-            .padding(vertical = 4.dp)
-            .clip(MaterialTheme.shapes.small)
-            .background(
-                if (isSelected) MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
-                else androidx.compose.ui.graphics.Color.Transparent
-            )
-            .padding(Spacing.xs)
-            .clickable(onClick = onClick),
-        verticalAlignment = Alignment.CenterVertically
+    GroupedRow(
+        position = position,
+        onClick = onClick,
+        containerColor = if (isSelected) MaterialTheme.colorScheme.secondaryContainer
+        else MaterialTheme.colorScheme.surfaceContainerHigh,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
         Box(
             modifier = Modifier
@@ -160,29 +139,24 @@ private fun TagLegendItem(
                 .clip(CircleShape)
                 .background(color)
         )
-        Spacer(modifier = Modifier.width(8.dp))
         Column(modifier = Modifier.weight(1f)) {
             Text(
                 text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurface,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
             )
             // Each figure stays whole; the percentage moves to the next line when it
             // doesn't fit. In Arabic "(١٠٠%)" broke before its closing parenthesis (#1057).
-            FlowRow(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+            FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                 Text(
                     text = CurrencyFormatter.formatAbbreviated(value, currency),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    softWrap = false
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 Text(
                     text = stringResource(R.string.analytics_pie_percent, percentage),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    softWrap = false
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }

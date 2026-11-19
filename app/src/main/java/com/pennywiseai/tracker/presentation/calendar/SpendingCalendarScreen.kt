@@ -82,6 +82,7 @@ import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.bestInk
 import com.pennywiseai.tracker.ui.theme.isDark
 import com.pennywiseai.tracker.ui.theme.spending
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.CurrencyUtils
@@ -285,8 +286,8 @@ private fun DayCell(
     modifier: Modifier = Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
-    val fill = dayFill(level)
-    val ink = if (level == 0) colors.onSurface else fill.compositeOver(colors.background).bestInk()
+    val fill = dayFill(if (AmountPrivacy.hidden) 0 else level)
+    val ink = if (level == 0 || AmountPrivacy.hidden) colors.onSurface else fill.compositeOver(colors.background).bestInk()
     val hasDue = day?.planned?.isNotEmpty() == true
     val description = dayDescription(date, day)
     val todayLabel = stringResource(R.string.calendar_day_today)
@@ -406,7 +407,7 @@ private fun Legend() {
                 Box(
                     Modifier
                         .size(Dimensions.Component.legendDot)
-                        .clip(MaterialTheme.shapes.extraSmall)
+                        .clip(MaterialTheme.shapes.small)
                         .background(dayFill(level))
                 )
             }
@@ -464,12 +465,12 @@ private fun DaySheet(
                             position = ListItemPosition.from(i, spent.size),
                             onClick = { onOpenTransactions(currency) },
                         ) {
-                            // Named by currency, so rows differ even while amounts are hidden.
-                            RowLabels(title = stringResource(R.string.calendar_day_transactions, currency), titleMaxLines = 2)
-                            Text(
-                                text = CurrencyFormatter.formatCurrency(amount, currency),
-                                style = PennyWiseText.amountRow,
-                                color = MaterialTheme.colorScheme.spending,
+                            RowLabels(
+                                title = stringResource(R.string.calendar_day_transactions, currency),
+                                subtitle = CurrencyFormatter.formatCurrency(amount, currency),
+                                subtitleColor = MaterialTheme.colorScheme.spending,
+                                titleMaxLines = Int.MAX_VALUE,
+                                subtitleMaxLines = Int.MAX_VALUE
                             )
                             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.inline))
                         }
@@ -492,21 +493,27 @@ private fun DaySheet(
 private fun DueRow(bill: Bill, position: ListItemPosition, isOverdue: Boolean, onOpenBill: (BillSource) -> Unit) {
     val source = bill.source
     GroupedRow(position = position, onClick = source?.let { { onOpenBill(it) } }) {
-        RowLabels(
-            title = bill.name,
-            subtitle = when (source) {
-                BillSource.Subscription -> stringResource(R.string.calendar_kind_subscription)
-                BillSource.Recurring -> stringResource(R.string.calendar_kind_recurring)
-                is BillSource.Card -> stringResource(if (isOverdue) R.string.calendar_kind_card_overdue else R.string.calendar_kind_card)
-                null -> null
-            },
-            subtitleColor = if (isOverdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Text(
-            text = CurrencyFormatter.formatCurrency(bill.amount.amount, bill.amount.currency),
-            style = PennyWiseText.amountRow,
-            color = MaterialTheme.colorScheme.onSurface,
-        )
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
+            Text(bill.name, style = PennyWiseText.rowTitle)
+            if (source != null) {
+                Text(
+                    text = stringResource(
+                        when (source) {
+                            BillSource.Subscription -> R.string.calendar_kind_subscription
+                            BillSource.Recurring -> R.string.calendar_kind_recurring
+                            is BillSource.Card ->
+                                if (isOverdue) R.string.calendar_kind_card_overdue else R.string.calendar_kind_card
+                        }
+                    ),
+                    style = PennyWiseText.rowSubtitle,
+                    color = if (isOverdue) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Text(
+                text = CurrencyFormatter.formatCurrency(bill.amount.amount, bill.amount.currency),
+                style = PennyWiseText.amountRow
+            )
+        }
         if (source != null) {
             Icon(Icons.AutoMirrored.Filled.KeyboardArrowRight, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.inline))
         }

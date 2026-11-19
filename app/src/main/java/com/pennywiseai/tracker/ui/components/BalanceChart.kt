@@ -1,22 +1,21 @@
 package com.pennywiseai.tracker.ui.components
 
-import com.pennywiseai.tracker.utils.AppDates
-
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.layout.*
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
-import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
+import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.utils.AppDates
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import ir.ehsannarmani.compose_charts.LineChart
 import ir.ehsannarmani.compose_charts.models.AnimationMode
 import ir.ehsannarmani.compose_charts.models.DividerProperties
@@ -46,7 +45,8 @@ fun BalanceChart(
     primaryCurrency: String,
     balanceHistory: List<BalancePoint>,
     modifier: Modifier = Modifier,
-    height: Int = 200
+    height: Int = 200,
+    label: String = stringResource(R.string.balance_chart_label)
 ) {
     if (balanceHistory.isEmpty()) return
 
@@ -93,7 +93,7 @@ fun BalanceChart(
             .padding(horizontal = Spacing.sm, vertical = Spacing.md),
         data = listOf(
             Line(
-                label = stringResource(R.string.balance_chart_label),
+                label = label,
                 values = chartValues,
                 color = SolidColor(themeColors.primary),
                 firstGradientFillColor = themeColors.primary.copy(alpha = 0.3f),
@@ -200,8 +200,7 @@ private fun smoothBalanceData(
     }
 
     return groupedData.map { (_, group) ->
-        val avgBalance = group.map { it.balance }.reduce { acc, balance -> acc + balance } /
-            BigDecimal(group.size.toLong())
+        val avgBalance = group.sumOf { it.balance } / group.size.toBigDecimal()
         val middleIndex = group.size / 2
         val representativePoint = group[middleIndex]
 

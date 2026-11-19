@@ -338,6 +338,7 @@
     <string name="subscriptions_edit_paid_from">مدفوع من</string>
     <string name="subscriptions_edit_pick_account">اختيار حساب</string>
     <string name="subscriptions_edit_save">حفظ</string>
+    <!-- A plan that ends after a set number of payments (#1061). %1$d = paid, %2$d = total, %3$s = amount left -->
     <!-- Mark-as-paid results (snackbar); %1$s = merchant, %2$s = next payment date -->
     <string name="subscriptions_msg_marked_paid">تم تحديد %1$s كمدفوع · الدورة التالية في %2$s</string>
     <string name="subscriptions_msg_linked">تم ربط %1$s · الدورة التالية في %2$s</string>
@@ -346,6 +347,7 @@
     <string name="subscriptions_msg_not_found">تعذر العثور على هذا الاشتراك</string>
     <string name="subscriptions_msg_linked_existing">تم ربط %1$s بدفعة موجودة · الدورة التالية في %2$s</string>
     <string name="subscriptions_msg_linked_generic">تم الربط</string>
+    <!-- %1$s = merchant, %2$d = number of payments in the plan -->
     <!-- ══ Mark-as-paid sheet ══ -->
     <string name="mark_paid_eyebrow_paid">تحديد كمدفوع</string>
     <string name="mark_paid_eyebrow_received">تحديد كمستلَم</string>

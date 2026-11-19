@@ -16,6 +16,8 @@ import com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.resolveBudgetWindow
 import com.pennywiseai.tracker.data.repository.windowsForMonth
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -80,6 +82,10 @@ class BudgetHistoryViewModel @Inject constructor(
     // Unified mode converts every currency's spending, and last period's for the
     // carry, as the Budgets card does; otherwise it counts the history's own currency only.
     private var convert: (suspend (String, BigDecimal) -> BigDecimal?)? = null
+
+    // The sheet's load in flight. Cancelled when the sheet closes or another load
+    // replaces it, so a slow one finishing late can't reopen or overwrite the sheet.
+    private var breakdownJob: Job? = null
 
     init {
         // Loaded again when a rate changes: unified mode converts at today's rates, and
@@ -159,7 +165,8 @@ class BudgetHistoryViewModel @Inject constructor(
             isLoadingBreakdown = true,
             breakdown = _uiState.value.breakdown?.takeIf { it.window == window }
         )
-        viewModelScope.launch {
+        breakdownJob?.cancel()
+        breakdownJob = viewModelScope.launch {
             val currency = _uiState.value.currency
             val breakdown = budgetGroupRepository.getBudgetWindowBreakdown(
                 budget = budget,
@@ -167,6 +174,7 @@ class BudgetHistoryViewModel @Inject constructor(
                 currency = currency,
                 convert = convert
             )
+            ensureActive()
             _uiState.value = _uiState.value.copy(
                 breakdown = breakdown,
                 isLoadingBreakdown = false
@@ -176,6 +184,7 @@ class BudgetHistoryViewModel @Inject constructor(
 
     /** Dismiss the bottom sheet without changing the loaded breakdown. */
     fun dismissBreakdown() {
+        breakdownJob?.cancel()
         _uiState.value = _uiState.value.copy(breakdown = null, isLoadingBreakdown = false)
     }
 }

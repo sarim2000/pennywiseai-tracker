@@ -134,7 +134,9 @@ fun HomeScreen(
     val context = LocalContext.current
     // Walks the oldest unsorted spends through the quick category picker.
     val sortUnsorted = {
-        context.startActivity(QuickCategoryPickerActivity.walk(context, unsorted.take(UNSORTED_WALK_SIZE), fromHome = true))
+        // The pile can empty between the shortcut showing and the tap; walk() needs one id.
+        val ids = unsorted.take(UNSORTED_WALK_SIZE)
+        if (ids.isNotEmpty()) context.startActivity(QuickCategoryPickerActivity.walk(context, ids, fromHome = true))
     }
     val backgroundAccess: BackgroundAccessViewModel = hiltViewModel()
     val backgroundState by backgroundAccess.state.collectAsStateWithLifecycle()

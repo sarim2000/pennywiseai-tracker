@@ -77,7 +77,6 @@ import com.pennywiseai.tracker.ui.theme.expense
 import com.pennywiseai.tracker.ui.theme.income
 import com.pennywiseai.tracker.ui.theme.loan
 import com.pennywiseai.tracker.ui.theme.money
-import com.pennywiseai.tracker.ui.theme.spending
 import com.pennywiseai.tracker.ui.theme.tabular
 import com.pennywiseai.tracker.ui.theme.warning
 import com.pennywiseai.tracker.utils.AppDates
@@ -613,7 +612,6 @@ private fun MonthDetails(
                 value = if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(currentMonthExpenses, currency),
                 // The bar matches the sparkline's expense series.
                 accentColor = expenseColor,
-                valueColor = MaterialTheme.colorScheme.spending
             )
             if (currentMonthLent > BigDecimal.ZERO) {
                 SummaryItem(
@@ -783,7 +781,8 @@ private fun SummaryItem(
     label: String,
     value: String,
     accentColor: Color,
-    valueColor: Color = accentColor
+    // The figure sits on the hero's primaryContainer, so it takes that fill's ink; the bar keeps the series colour.
+    valueColor: Color = MaterialTheme.colorScheme.onSurface
 ) {
     Row {
         // Coloured left-border accent bar

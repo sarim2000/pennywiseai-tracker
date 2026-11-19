@@ -40,6 +40,8 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
+import com.pennywiseai.tracker.ui.theme.yellow_accent_dark
 import com.pennywiseai.tracker.ui.theme.yellow_dark
 import java.time.LocalTime
 
@@ -78,7 +80,7 @@ fun GreetingCard(
     Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = Dimensions.Padding.content, vertical = Spacing.xs),
+            .padding(start = Dimensions.Padding.content, end = Dimensions.Padding.content, bottom = Spacing.xs),
         verticalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -131,16 +133,15 @@ fun GreetingCard(
             // signal, no pill, no label. Solid gold = Pro member; dashed gold = free user
             // (reads as "not yet filled / tap to unlock"). For free users tapping
             // opens the upgrade sheet; Pro members tap through to settings.
-            val ringColor = yellow_dark
+            val ringColor = if (isAppInDarkTheme()) yellow_accent_dark else yellow_dark
             val cookie = MaterialShapes.Cookie9Sided.toShape()
             ProfileAvatar(
                 name = userName,
                 imageUri = profileImageUri,
                 backgroundColor = profileBackgroundColor,
-                size = Dimensions.Icon.avatarLarge,
+                size = Dimensions.Icon.avatar,
                 shape = cookie,
                 contentDescription = userName,
-                initialsStyle = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 modifier = Modifier
                     .drawWithContent {
                         drawContent()

@@ -233,7 +233,7 @@ fun MainScreen(
             }
             return
         }
-        tabStacks.getValue(BottomNavItem.Plan).resetTo(Plan(section))
+        tabStacks.getValue(BottomNavItem.Plan).resetTo(Plan(section, request = System.nanoTime()))
         selectTab(BottomNavItem.Plan)
     }
 

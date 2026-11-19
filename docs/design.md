@@ -126,7 +126,9 @@ drops its own FAB, so the bar and the action never stack over content.
 
 Each tab's own first screen ends its header in the user's avatar, clipped to
 `MaterialShapes.Cookie9Sided` (`TabProfileButton`, fed by `LocalTabProfile`), which
-opens Settings. Pushed screens keep their back arrow instead.
+opens Settings. Pushed screens keep their back arrow instead. It is 40dp (`Icon.avatar`) on
+every tab, Home included, with its margin outside the shape: the title and the avatar both
+sit on the 16dp content margin, and the last action icon's glyph sits 16dp from the avatar.
 
 ### Elevation (`Dimensions.Elevation`)
 
@@ -250,7 +252,8 @@ Reference `MaterialTheme.shapes.*` rather than re-typing
 Expressive accents use `MaterialShapes` (opt-in `ExperimentalMaterial3ExpressiveApi`):
 merchant avatars (`BrandIcon`, `LetterAvatar`) and the empty-state badge are
 `MaterialShapes.Cookie9Sided.toShape()`. Keep these to identity/hero glyphs —
-not containers or buttons.
+not containers or buttons. Home's shortcut tiles are the one deliberate exception:
+each destination keeps its own shape (Clover, Sunny, SoftBurst, Cookie) as its glyph.
 
 ---
 

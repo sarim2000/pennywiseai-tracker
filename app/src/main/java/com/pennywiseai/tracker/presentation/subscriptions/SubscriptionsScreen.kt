@@ -193,6 +193,7 @@ fun SubscriptionsScreen(
 
     // With the floating nav bar, the Plan tab docks "Add" beside it instead of a FAB.
     val dockAdd = planTab != null && LocalNavDock.current != null
+    val planBarClearance = if (planTab != null) Dimensions.Component.bottomBarHeight else Spacing.none
     if (dockAdd) {
         DockNavAction(
             NavDockAction(
@@ -206,7 +207,8 @@ fun SubscriptionsScreen(
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         containerColor = Color.Transparent,
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
+        // In the Plan tab the nav bar is laid over this screen: keep Undo and Add above it.
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState, modifier = Modifier.padding(bottom = planBarClearance)) },
         topBar = {
             CustomTitleTopAppBar(
                 scrollBehaviorSmall = scrollBehaviorSmall,
@@ -230,6 +232,7 @@ fun SubscriptionsScreen(
         floatingActionButton = {
             if (!dockAdd) SmallFloatingActionButton(
                 onClick = onAddSubscriptionClick,
+                modifier = Modifier.padding(bottom = planBarClearance),
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer
             ) {

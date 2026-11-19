@@ -145,7 +145,8 @@ private fun RowScope.Shortcut(
             style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
-            maxLines = 1,
+            // Two lines, so a large font or a long translation wraps instead of cutting off.
+            maxLines = 2,
             overflow = TextOverflow.Ellipsis,
         )
     }

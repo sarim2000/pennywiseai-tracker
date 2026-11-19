@@ -178,7 +178,9 @@ private fun LargerTopAppBar(
                 overline = overline,
                 trailing = actionContent,
                 isHomeScreen = isHomeScreen,
-                modifier = modifier,
+                // The bar's 4dp inset, so the title and the avatar both sit on the 16dp content
+                // margin. Home's greeting (extraInfoCard) brings its own content padding.
+                modifier = modifier.padding(horizontal = Spacing.xs),
                 extraInfoCard = extraInfoCard,
             )
             if (subtitle != null) {
@@ -188,7 +190,7 @@ private fun LargerTopAppBar(
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.padding(start = Spacing.smd)
+                    modifier = Modifier.padding(start = Dimensions.Padding.content)
                 )
             }
         }
@@ -278,12 +280,7 @@ private fun TabRootHeader(
                 val height = (placeable.height + state.heightOffset).roundToInt().coerceAtLeast(0)
                 layout(placeable.width, height) { placeable.place(0, height - placeable.height) }
             }
-            .padding(
-                start = Spacing.xs,
-                end = Spacing.xs,
-                top = Dimensions.Component.appBarTabTopRow,
-                bottom = Spacing.md,
-            ),
+            .padding(top = Dimensions.Component.appBarTabTopRow, bottom = Spacing.md),
     ) {
         // The M3 bar provides this for its slots; without it titles and action icons
         // fall back to black, unreadable in dark theme.
@@ -336,7 +333,8 @@ private fun TitleForLargeTopAppBar(
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
-                trailing()
+                // Action icons take the M3 bar's onSurfaceVariant, as Home's header icons do.
+                CompositionLocalProvider(LocalContentColor provides MaterialTheme.colorScheme.onSurfaceVariant) { trailing() }
                 TabProfileButton()
             }
         }

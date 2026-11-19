@@ -168,7 +168,11 @@ fun BudgetGroupsScreen(
         },
         floatingActionButton = {
             if (uiState.hasGroups && !dockAdd) {
-                FloatingActionButton(onClick = { onNavigateToGroupEdit(-1L) }) {
+                FloatingActionButton(
+                    onClick = { onNavigateToGroupEdit(-1L) },
+                    // Above the nav bar laid over the Plan tab.
+                    modifier = Modifier.padding(bottom = if (planTab != null) Dimensions.Component.bottomBarHeight else Spacing.none),
+                ) {
                     Icon(Icons.Default.Add, contentDescription = stringResource(R.string.budgets_add))
                 }
             }

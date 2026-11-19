@@ -31,6 +31,7 @@ import coil3.compose.AsyncImage
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.bestInk
 
 /** The user as a tab header's avatar shows them, and where tapping it goes. */
 @Immutable
@@ -51,21 +52,23 @@ val LocalTabProfile = staticCompositionLocalOf<TabProfile?> { null }
 @Composable
 fun TabProfileButton(modifier: Modifier = Modifier) {
     val profile = LocalTabProfile.current ?: return
-    ProfileAvatar(
-        name = profile.name,
-        imageUri = profile.imageUri,
-        backgroundColor = profile.backgroundColor,
-        size = Dimensions.Icon.avatar,
-        shape = MaterialShapes.Cookie9Sided.toShape(),
-        modifier = modifier
-            .padding(horizontal = Spacing.sm)
-            .clickable(
+    // The margin sits outside the avatar (inside, it squeezed the picture). With a bar's own
+    // 4dp end inset the avatar's edge lines up with the screen's 16dp content margin.
+    Box(modifier.padding(start = Spacing.xs, end = Spacing.smd)) {
+        ProfileAvatar(
+            name = profile.name,
+            imageUri = profile.imageUri,
+            backgroundColor = profile.backgroundColor,
+            size = Dimensions.Icon.avatar,
+            shape = MaterialShapes.Cookie9Sided.toShape(),
+            modifier = Modifier.clickable(
                 onClickLabel = stringResource(R.string.settings_title),
                 role = Role.Button,
                 onClick = profile.onClick,
             ),
-        contentDescription = stringResource(R.string.settings_title),
-    )
+            contentDescription = stringResource(R.string.settings_title),
+        )
+    }
 }
 
 /** The user's picture, chosen avatar, or initials, clipped to [shape]. */
@@ -81,11 +84,14 @@ fun ProfileAvatar(
     /** The initials' style when there is no picture; a big avatar passes a bigger one. */
     initialsStyle: TextStyle = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
 ) {
+    val fill = if (backgroundColor != 0) Color(backgroundColor) else MaterialTheme.colorScheme.primaryContainer
+    // A picked colour has no on* role of its own.
+    val ink = if (backgroundColor != 0) fill.bestInk() else MaterialTheme.colorScheme.onPrimaryContainer
     Box(
         modifier = Modifier
             .size(size)
             .clip(shape)
-            .background(if (backgroundColor != 0) Color(backgroundColor) else MaterialTheme.colorScheme.primaryContainer)
+            .background(fill)
             .then(modifier),
         contentAlignment = Alignment.Center,
     ) {
@@ -112,7 +118,7 @@ fun ProfileAvatar(
                 Text(
                     text = initials,
                     style = initialsStyle,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer,
+                    color = ink,
                 )
             }
         }

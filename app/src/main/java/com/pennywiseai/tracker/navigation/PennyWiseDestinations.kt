@@ -62,9 +62,12 @@ data object Categories : NavKey
 @Serializable
 enum class PlanSection { BUDGETS, BILLS, GOALS }
 
-/** The Plan tab: budgets, bills and goals behind one switch. */
+/**
+ * The Plan tab: budgets, bills and goals behind one switch. [request] makes each explicit
+ * "open Plan on X" a new key, so it shows X even when the tab last showed another section.
+ */
 @Serializable
-data class Plan(val section: PlanSection = PlanSection.BUDGETS) : NavKey
+data class Plan(val section: PlanSection = PlanSection.BUDGETS, val request: Long = 0) : NavKey
 
 @Serializable
 data object Analytics : NavKey

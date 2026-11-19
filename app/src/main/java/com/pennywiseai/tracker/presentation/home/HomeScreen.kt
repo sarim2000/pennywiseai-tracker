@@ -87,6 +87,7 @@ fun HomeScreen(
     onNavigateToAddScreen: () -> Unit = {},
     onNavigateToManageAccounts: () -> Unit = {},
     onNavigateToBackgroundAccess: () -> Unit = {},
+    onNavigateToSmsCheckup: () -> Unit = {},
     onTransactionClick: (Long) -> Unit = {},
     onGroupClick: (Long) -> Unit = {},
     onGoalClick: (Long) -> Unit = {},
@@ -422,6 +423,7 @@ fun HomeScreen(
                                     onNavigateToBackgroundAccess()
                                 }
                             },
+                            onCheckup = onNavigateToSmsCheckup,
                             onDismiss = { viewModel.snoozeTrackingCard() },
                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                         )

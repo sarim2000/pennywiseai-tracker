@@ -699,19 +699,28 @@ private fun ModelRequiredBanner(
                 )
             }
         } else {
-            // Stacked, not side by side: the button label carries the download size and
-            // would otherwise squeeze the title to one letter per line.
-            Column(
+            // The size and Wi-Fi hint sit under the title, so the button stays one short word.
+            Row(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
             ) {
-                Text(
-                    text = stringResource(R.string.ask_model_missing_title),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.SemiBold
-                )
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.chat_model_required_short),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        // 1.6 GB via the system Download Manager; some phones (Samsung
+                        // with Data saver) won't start it on mobile data.
+                        text = stringResource(R.string.chat_model_size_hint),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
                 Button(
                     onClick = onDownload,
+                    modifier = Modifier.padding(start = Spacing.sm),
                     shapes = ButtonDefaults.shapes()
                 ) {
                     Icon(
@@ -720,7 +729,7 @@ private fun ModelRequiredBanner(
                         modifier = Modifier.size(Dimensions.Icon.small)
                     )
                     Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text(stringResource(R.string.ask_model_missing_action, totalMB))
+                    Text(stringResource(R.string.chat_download))
                 }
             }
         }

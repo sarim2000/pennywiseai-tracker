@@ -3,7 +3,6 @@ package com.pennywiseai.tracker.presentation.accounts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
@@ -27,7 +26,9 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -132,10 +133,6 @@ fun AddAccountScreen(
                 }
             }
 
-            val acctFullShape = RoundedCornerShape(16.dp)
-            val acctTopShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
-            val acctMiddleShape = RoundedCornerShape(4.dp)
-            val acctBottomShape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
             val acctColors = TextFieldDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -173,13 +170,14 @@ fun AddAccountScreen(
                             contentDescription = null
                         )
                     },
-                    shape = acctFullShape,
+                    shape = ListItemPosition.Single.toShape(),
                     colors = acctColors
                 )
 
                 ExposedDropdownMenu(
                     expanded = showTypeDropdown,
-                    onDismissRequest = { showTypeDropdown = false }
+                    onDismissRequest = { showTypeDropdown = false },
+                    shape = MaterialTheme.shapes.large
                 ) {
                     AccountType.values().forEach { type ->
                         DropdownMenuItem(
@@ -218,13 +216,14 @@ fun AddAccountScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true),
-                    shape = acctFullShape,
+                    shape = ListItemPosition.Single.toShape(),
                     colors = acctColors
                 )
 
                 ExposedDropdownMenu(
                     expanded = showCurrencyDropdown,
-                    onDismissRequest = { showCurrencyDropdown = false }
+                    onDismissRequest = { showCurrencyDropdown = false },
+                    shape = MaterialTheme.shapes.large
                 ) {
                     CurrencyFormatter.getSupportedCurrencies().sorted().forEach { code ->
                         DropdownMenuItem(
@@ -238,10 +237,12 @@ fun AddAccountScreen(
                 }
             }
 
-            // Account Name + Last 4 + Balance (connected group)
+            // Name, last 4 and balance join; a credit limit closes the stack.
+            val credit = formState.accountType == AccountType.CREDIT
+            val stackSize = if (credit) 4 else 3
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(1.5.dp)
+                verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)
             ) {
                 TextField(
                     value = formState.bankName,
@@ -251,7 +252,7 @@ fun AddAccountScreen(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-                    shape = acctTopShape,
+                    shape = ListItemPosition.from(0, stackSize).toShape(),
                     colors = acctColors
                 )
 
@@ -268,7 +269,7 @@ fun AddAccountScreen(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    shape = if (formState.accountType == AccountType.CREDIT) acctMiddleShape else acctBottomShape,
+                    shape = ListItemPosition.from(1, stackSize).toShape(),
                     colors = acctColors
                 )
 
@@ -292,12 +293,12 @@ fun AddAccountScreen(
                     modifier = Modifier.fillMaxWidth(),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    shape = if (formState.accountType == AccountType.CREDIT) acctMiddleShape else acctFullShape,
+                    shape = ListItemPosition.from(2, stackSize).toShape(),
                     colors = acctColors
                 )
 
                 // Credit Limit (only for credit cards)
-                if (formState.accountType == AccountType.CREDIT) {
+                if (credit) {
                     TextField(
                         value = formState.creditLimit,
                         onValueChange = viewModel::updateCreditLimit,
@@ -307,7 +308,7 @@ fun AddAccountScreen(
                         modifier = Modifier.fillMaxWidth(),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        shape = acctBottomShape,
+                        shape = ListItemPosition.from(3, stackSize).toShape(),
                         colors = acctColors
                     )
                 }

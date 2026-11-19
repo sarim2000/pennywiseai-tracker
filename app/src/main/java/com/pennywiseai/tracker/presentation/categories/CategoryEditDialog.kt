@@ -163,7 +163,7 @@ fun CategoryEditDialog(
                                 unfocusedIndicatorColor = Color.Transparent
                             )
                         )
-                        ExposedDropdownMenu(expanded = parentMenu, onDismissRequest = { parentMenu = false }) {
+                        ExposedDropdownMenu(expanded = parentMenu, onDismissRequest = { parentMenu = false }, shape = MaterialTheme.shapes.large) {
                             DropdownMenuItem(text = { Text(stringResource(R.string.category_edit_parent_none)) }, onClick = { parentId = null; parentMenu = false })
                             parentCandidates.forEach { p ->
                                 DropdownMenuItem(

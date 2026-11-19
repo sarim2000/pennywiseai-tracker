@@ -19,6 +19,7 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.domain.model.getAccountType
+import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
@@ -68,7 +69,9 @@ internal fun UpdateBalanceDialog(
                     keyboardType = KeyboardType.Decimal
                 ),
                 singleLine = true,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                shape = RoundedField.shape,
+                colors = RoundedField.colors()
             )
         },
         confirmButton = {
@@ -152,7 +155,9 @@ internal fun UpdateCreditCardDialog(
                         keyboardType = KeyboardType.Decimal
                     ),
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedField.shape,
+                    colors = RoundedField.colors()
                 )
 
                 TextField(
@@ -178,7 +183,9 @@ internal fun UpdateCreditCardDialog(
                         keyboardType = KeyboardType.Decimal
                     ),
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedField.shape,
+                    colors = RoundedField.colors()
                 )
 
                 // Show available credit
@@ -412,7 +419,9 @@ internal fun EditAccountDialog(
                         )
                     },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedField.shape,
+                    colors = RoundedField.colors()
                 )
 
                 // Account Number (Read-only)
@@ -436,7 +445,8 @@ internal fun EditAccountDialog(
                         Icon(Icons.Default.Lock, contentDescription = stringResource(R.string.manage_accounts_read_only))
                     },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedField.shape
                 )
 
                 // Currency (editable — lets an existing account switch currency)
@@ -470,7 +480,8 @@ internal fun EditAccountDialog(
                     }
                     DropdownMenu(
                         expanded = showCurrencyMenu,
-                        onDismissRequest = { showCurrencyMenu = false }
+                        onDismissRequest = { showCurrencyMenu = false },
+                        shape = MaterialTheme.shapes.large
                     ) {
                         CurrencyFormatter.getSupportedCurrencies().sorted().forEach { code ->
                             DropdownMenuItem(
@@ -526,7 +537,8 @@ internal fun EditAccountDialog(
                     }
                     DropdownMenu(
                         expanded = showTypeMenu,
-                        onDismissRequest = { showTypeMenu = false }
+                        onDismissRequest = { showTypeMenu = false },
+                        shape = MaterialTheme.shapes.large
                     ) {
                         AccountType.entries.forEach { type ->
                             DropdownMenuItem(
@@ -574,7 +586,9 @@ internal fun EditAccountDialog(
                             keyboardType = KeyboardType.Decimal
                         ),
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedField.shape,
+                        colors = RoundedField.colors()
                     )
 
                     // Credit Limit
@@ -601,7 +615,9 @@ internal fun EditAccountDialog(
                             keyboardType = KeyboardType.Decimal
                         ),
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedField.shape,
+                        colors = RoundedField.colors()
                     )
 
                     // Show available credit preview
@@ -665,7 +681,9 @@ internal fun EditAccountDialog(
                             keyboardType = KeyboardType.Decimal
                         ),
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedField.shape,
+                        colors = RoundedField.colors()
                     )
                 }
             }

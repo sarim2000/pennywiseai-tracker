@@ -20,10 +20,11 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
-import com.pennywiseai.tracker.R
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 
@@ -74,6 +75,7 @@ internal fun LicenseKeyDialog(
                         capitalization = KeyboardCapitalization.None,
                         imeAction = if (canMove) ImeAction.Next else ImeAction.Done,
                     ),
+                    shape = RoundedField.shape
                 )
                 if (canMove) {
                     Spacer(Modifier.height(Spacing.sm))
@@ -89,6 +91,7 @@ internal fun LicenseKeyDialog(
                             keyboardType = KeyboardType.Email,
                             imeAction = ImeAction.Done,
                         ),
+                        shape = RoundedField.shape
                     )
                 }
             }

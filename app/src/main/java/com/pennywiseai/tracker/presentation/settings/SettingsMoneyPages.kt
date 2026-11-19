@@ -16,14 +16,12 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.domain.loan.UpiRequest
 import com.pennywiseai.tracker.domain.model.BudgetCycle
+import com.pennywiseai.tracker.navigation.BottomNavItem
 import com.pennywiseai.tracker.navigation.BudgetGroups
-import com.pennywiseai.tracker.navigation.Categories
 import com.pennywiseai.tracker.navigation.ExchangeRates
 import com.pennywiseai.tracker.navigation.LearnedCategories
 import com.pennywiseai.tracker.navigation.Loans
-import com.pennywiseai.tracker.navigation.ManageAccounts
 import com.pennywiseai.tracker.navigation.RecurringTransactions
-import com.pennywiseai.tracker.navigation.Rules
 import com.pennywiseai.tracker.navigation.Subscriptions
 import com.pennywiseai.tracker.navigation.TransactionGroups
 import com.pennywiseai.tracker.presentation.split.UpiIdDialog
@@ -31,24 +29,7 @@ import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.ui.animations.pwExpand
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
-import com.pennywiseai.tracker.ui.theme.amber_dark
-import com.pennywiseai.tracker.ui.theme.amber_light
-import com.pennywiseai.tracker.ui.theme.blue_dark
-import com.pennywiseai.tracker.ui.theme.blue_light
-import com.pennywiseai.tracker.ui.theme.green_dark
-import com.pennywiseai.tracker.ui.theme.green_light
-import com.pennywiseai.tracker.ui.theme.indigo_dark
-import com.pennywiseai.tracker.ui.theme.indigo_light
-import com.pennywiseai.tracker.ui.theme.orange_dark
-import com.pennywiseai.tracker.ui.theme.orange_light
-import com.pennywiseai.tracker.ui.theme.pink_dark
-import com.pennywiseai.tracker.ui.theme.pink_light
-import com.pennywiseai.tracker.ui.theme.purple_dark
-import com.pennywiseai.tracker.ui.theme.purple_light
-import com.pennywiseai.tracker.ui.theme.red_dark
-import com.pennywiseai.tracker.ui.theme.red_light
-import com.pennywiseai.tracker.ui.theme.teal_dark
-import com.pennywiseai.tracker.ui.theme.teal_light
+import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.time.LocalDate
@@ -66,7 +47,15 @@ internal fun AccountsPage(
     val atmCashToWallet by settingsViewModel.atmCashToWallet.collectAsStateWithLifecycle(initialValue = false)
     val useContactsForVpa by settingsViewModel.useContactsForVpa.collectAsStateWithLifecycle(initialValue = false)
     val upiId by settingsViewModel.upiId.collectAsStateWithLifecycle(initialValue = null)
+    val accounts by settingsViewModel.accounts.collectAsStateWithLifecycle()
+    val mainAccountKey by settingsViewModel.mainAccountKey.collectAsStateWithLifecycle()
     var showUpiIdDialog by remember { mutableStateOf(false) }
+    var showMainAccountSheet by remember { mutableStateOf(false) }
+    fun accountKey(account: AccountBalanceEntity) = "${account.bankName}_${account.accountLast4}"
+    fun accountLabel(account: AccountBalanceEntity) = AccountBalanceEntity.accountLabel(
+        account.alias?.takeIf { it.isNotBlank() } ?: account.bankName,
+        account.accountLast4
+    )
     // Launches the runtime permission request. If granted, we flip the
     // preference on; if denied, leave the switch off so the user can try
     // again without us silently turning the feature on later.
@@ -76,62 +65,44 @@ internal fun AccountsPage(
         if (granted) settingsViewModel.setUseContactsForVpa(true)
     }
 
+    val behaviorRows = 3 + if (accounts.isNotEmpty()) 1 else 0
+    var behaviorIndex = 0
     SettingsGroup {
-        SettingsNavItem(
-            icon = Icons.Default.AccountBalance,
-            iconBgColor = red_light,
-            iconTint = red_dark,
-            title = stringResource(R.string.settings_manage_accounts_title),
-            subtitle = stringResource(R.string.settings_manage_accounts_subtitle),
-            onClick = { onNavigate(ManageAccounts) },
-            position = ListItemPosition.Top
-        )
-        SettingsNavItem(
-            icon = Icons.Default.Category,
-            iconBgColor = purple_light,
-            iconTint = purple_dark,
-            title = stringResource(R.string.settings_categories_title),
-            subtitle = stringResource(R.string.settings_categories_subtitle),
-            onClick = { onNavigate(Categories) },
-            position = ListItemPosition.Middle
-        )
-        SettingsNavItem(
-            icon = Icons.Default.AutoAwesome,
-            iconBgColor = orange_light,
-            iconTint = orange_dark,
-            title = stringResource(R.string.settings_smart_rules_title),
-            subtitle = stringResource(R.string.settings_smart_rules_subtitle),
-            onClick = { onNavigate(Rules) },
-            position = ListItemPosition.Middle
-        )
+        // Accounts, categories and rules are the hub tiles. This page keeps the
+        // controls those tiles don't open, plus which account sets the currency.
+        if (accounts.isNotEmpty()) {
+            SettingsNavItem(
+                icon = Icons.Default.AccountBalanceWallet,
+                title = stringResource(R.string.settings_main_account_title),
+                subtitle = stringResource(R.string.settings_main_account_subtitle),
+                onClick = { showMainAccountSheet = true },
+                position = ListItemPosition.from(behaviorIndex++, behaviorRows),
+                trailingText = accounts.firstOrNull { accountKey(it) == mainAccountKey }?.let { accountLabel(it) }
+                    ?: stringResource(R.string.settings_main_account_not_set)
+            )
+        }
         SettingsNavItem(
             icon = Icons.Default.Lightbulb,
-            iconBgColor = orange_light,
-            iconTint = orange_dark,
             title = stringResource(LearnedCategoriesR.string.learned_categories_title),
             subtitle = stringResource(LearnedCategoriesR.string.learned_categories_subtitle),
             onClick = { onNavigate(LearnedCategories) },
-            position = ListItemPosition.Middle
+            position = ListItemPosition.from(behaviorIndex++, behaviorRows)
         )
         SettingsSwitchRow(
             icon = Icons.Default.CreditCard,
-            iconBgColor = indigo_light,
-            iconTint = indigo_dark,
             title = stringResource(R.string.settings_card_spend_as_expense_title),
             subtitle = stringResource(R.string.settings_card_spend_as_expense_subtitle),
             checked = countCreditCardAsExpense,
             onCheckedChange = { settingsViewModel.setCountCreditCardAsExpense(it) },
-            position = ListItemPosition.Middle
+            position = ListItemPosition.from(behaviorIndex++, behaviorRows)
         )
         SettingsSwitchRow(
             icon = Icons.Default.LocalAtm,
-            iconBgColor = teal_light,
-            iconTint = teal_dark,
             title = stringResource(R.string.settings_atm_cash_to_wallet_title),
             subtitle = stringResource(R.string.settings_atm_cash_to_wallet_subtitle),
             checked = atmCashToWallet,
             onCheckedChange = { settingsViewModel.setAtmCashToWallet(it) },
-            position = ListItemPosition.Bottom
+            position = ListItemPosition.from(behaviorIndex++, behaviorRows)
         )
     }
 
@@ -139,8 +110,6 @@ internal fun AccountsPage(
     SettingsGroup {
         SettingsSwitchRow(
             icon = Icons.Default.Contacts,
-            iconBgColor = teal_light,
-            iconTint = teal_dark,
             title = stringResource(R.string.settings_contacts_vpa_title),
             subtitle = stringResource(R.string.settings_contacts_vpa_subtitle),
             checked = useContactsForVpa,
@@ -164,13 +133,23 @@ internal fun AccountsPage(
         )
         SettingsNavItem(
             icon = Icons.Default.QrCode2,
-            iconBgColor = teal_light,
-            iconTint = teal_dark,
             title = stringResource(R.string.settings_upi_title),
             subtitle = upiId ?: stringResource(R.string.settings_upi_subtitle),
             onClick = { showUpiIdDialog = true },
             position = ListItemPosition.Bottom,
             trailingText = if (upiId == null) stringResource(R.string.settings_upi_not_set) else null
+        )
+    }
+
+    if (showMainAccountSheet) {
+        SettingsChoiceSheet(
+            title = stringResource(R.string.settings_main_account_title),
+            onDismiss = { showMainAccountSheet = false },
+            choices = accounts.map { account ->
+                SettingsChoice(accountLabel(account), accountKey(account) == mainAccountKey) {
+                    settingsViewModel.setMainAccount(account)
+                }
+            }
         )
     }
 
@@ -197,71 +176,67 @@ internal fun AccountsPage(
 internal fun PlanningPage(
     onNavigate: (NavKey) -> Unit,
     settingsViewModel: SettingsViewModel = hiltViewModel(),
+    themeViewModel: ThemeViewModel = hiltViewModel(),
 ) {
     val budgetCycleStartDay by settingsViewModel.budgetCycleStartDay.collectAsStateWithLifecycle(initialValue = 1)
+    val hiddenTabs = themeViewModel.themeUiState.collectAsStateWithLifecycle().value.hiddenNavTabs
+    val planHidden = BottomNavItem.Plan.route in hiddenTabs
     var showBudgetCycleSheet by remember { mutableStateOf(false) }
+    // Budgets and bills are the Plan tab. Show those links only when the tab is hidden.
+    val rowCount = 4 + if (planHidden) 2 else 0
+    var row = 0
 
     SettingsGroup {
         // The start day changes how Home / Analytics bucket transactions too, so
         // the row and every choice say exactly which dates that means.
         SettingsNavItem(
             icon = Icons.Default.DateRange,
-            iconBgColor = teal_light,
-            iconTint = teal_dark,
             title = stringResource(R.string.settings_budget_cycle_title),
             subtitle = stringResource(R.string.settings_budget_cycle_current, budgetCycleRange(budgetCycleStartDay)),
             onClick = { showBudgetCycleSheet = true },
-            position = ListItemPosition.Top,
+            position = ListItemPosition.from(row++, rowCount),
             trailingText = if (BudgetCycle.isLastWorkingDay(budgetCycleStartDay)) {
                 stringResource(R.string.settings_budget_cycle_last_working_day_short)
             } else {
                 ordinalSuffix(budgetCycleStartDay)
             }
         )
-        SettingsNavItem(
-            icon = Icons.Default.AccountBalanceWallet,
-            iconBgColor = green_light,
-            iconTint = green_dark,
-            title = stringResource(R.string.settings_budgets_title),
-            subtitle = stringResource(R.string.settings_budgets_subtitle),
-            onClick = { onNavigate(BudgetGroups()) },
-            position = ListItemPosition.Middle
-        )
-        SettingsNavItem(
-            icon = Icons.Default.Subscriptions,
-            iconBgColor = pink_light,
-            iconTint = pink_dark,
-            title = stringResource(R.string.subscriptions_title),
-            subtitle = stringResource(R.string.settings_subscriptions_subtitle),
-            onClick = { onNavigate(Subscriptions) },
-            position = ListItemPosition.Middle
-        )
+        if (planHidden) {
+            SettingsNavItem(
+                icon = Icons.Default.AccountBalanceWallet,
+                title = stringResource(R.string.settings_budgets_title),
+                subtitle = stringResource(R.string.settings_budgets_subtitle),
+                onClick = { onNavigate(BudgetGroups()) },
+                position = ListItemPosition.from(row++, rowCount)
+            )
+            SettingsNavItem(
+                icon = Icons.Default.Subscriptions,
+                title = stringResource(R.string.subscriptions_title),
+                subtitle = stringResource(R.string.settings_subscriptions_subtitle),
+                onClick = { onNavigate(Subscriptions) },
+                position = ListItemPosition.from(row++, rowCount)
+            )
+        }
         SettingsNavItem(
             icon = Icons.Default.EventRepeat,
-            iconBgColor = green_light,
-            iconTint = green_dark,
             title = stringResource(R.string.settings_recurring_title),
             subtitle = stringResource(R.string.settings_recurring_subtitle),
             onClick = { onNavigate(RecurringTransactions) },
-            position = ListItemPosition.Middle
+            position = ListItemPosition.from(row++, rowCount)
         )
         SettingsNavItem(
             icon = Icons.Default.SwapHoriz,
-            iconBgColor = amber_light,
-            iconTint = amber_dark,
             title = stringResource(R.string.settings_loans_title),
             subtitle = stringResource(R.string.settings_loans_subtitle),
             onClick = { onNavigate(Loans) },
-            position = ListItemPosition.Middle
+            position = ListItemPosition.from(row++, rowCount)
         )
         SettingsNavItem(
             icon = Icons.Default.Folder,
-            iconBgColor = MaterialTheme.colorScheme.secondaryContainer,
-            iconTint = MaterialTheme.colorScheme.onSecondaryContainer,
             title = stringResource(R.string.settings_transaction_groups_title),
             subtitle = stringResource(R.string.settings_transaction_groups_subtitle),
             onClick = { onNavigate(TransactionGroups) },
-            position = ListItemPosition.Bottom
+            position = ListItemPosition.from(row++, rowCount)
         )
     }
 
@@ -306,48 +281,22 @@ internal fun CurrencyPage(
     val unifiedCurrencyMode by settingsViewModel.unifiedCurrencyMode.collectAsStateWithLifecycle(initialValue = false)
     val displayCurrency by settingsViewModel.displayCurrency.collectAsStateWithLifecycle(initialValue = "")
     val availableCurrencies by settingsViewModel.availableCurrencies.collectAsStateWithLifecycle()
-    val accounts by settingsViewModel.accounts.collectAsStateWithLifecycle()
-    val mainAccountKey by settingsViewModel.mainAccountKey.collectAsStateWithLifecycle()
-    var showMainAccountSheet by remember { mutableStateOf(false) }
     var showDefaultCurrencySheet by remember { mutableStateOf(false) }
     var showDisplayCurrencySheet by remember { mutableStateOf(false) }
 
-    fun accountKey(account: AccountBalanceEntity) = "${account.bankName}_${account.accountLast4}"
-    fun accountLabel(account: AccountBalanceEntity) = AccountBalanceEntity.accountLabel(
-        account.alias?.takeIf { it.isNotBlank() } ?: account.bankName,
-        account.accountLast4
-    )
     fun currencyLabel(currency: String) = "${CurrencyFormatter.getCurrencySymbol(currency)} $currency"
 
     SettingsGroup {
-        // Main account → sets the default currency (unless explicitly chosen below).
-        if (accounts.isNotEmpty()) {
-            SettingsNavItem(
-                icon = Icons.Default.AccountBalanceWallet,
-                iconBgColor = purple_light,
-                iconTint = purple_dark,
-                title = stringResource(R.string.settings_main_account_title),
-                subtitle = stringResource(R.string.settings_main_account_subtitle),
-                onClick = { showMainAccountSheet = true },
-                position = ListItemPosition.Top,
-                trailingText = accounts.firstOrNull { accountKey(it) == mainAccountKey }?.let { accountLabel(it) }
-                    ?: stringResource(R.string.settings_main_account_not_set)
-            )
-        }
         SettingsNavItem(
             icon = Icons.Default.Flag,
-            iconBgColor = indigo_light,
-            iconTint = indigo_dark,
             title = stringResource(R.string.settings_default_currency_title),
             subtitle = stringResource(R.string.settings_default_currency_subtitle),
             onClick = { showDefaultCurrencySheet = true },
-            position = if (accounts.isNotEmpty()) ListItemPosition.Middle else ListItemPosition.Top,
+            position = ListItemPosition.Top,
             trailingText = currencyLabel(baseCurrency)
         )
         SettingsSwitchRow(
             icon = Icons.Default.CurrencyExchange,
-            iconBgColor = green_light,
-            iconTint = green_dark,
             title = stringResource(R.string.settings_unified_currency_title),
             subtitle = stringResource(R.string.settings_unified_currency_subtitle),
             checked = unifiedCurrencyMode,
@@ -357,8 +306,6 @@ internal fun CurrencyPage(
         AnimatedVisibility(visible = unifiedCurrencyMode, enter = pwExpand(), exit = pwCollapse()) {
             SettingsNavItem(
                 icon = Icons.Default.AttachMoney,
-                iconBgColor = teal_light,
-                iconTint = teal_dark,
                 title = stringResource(R.string.settings_display_currency_title),
                 subtitle = stringResource(R.string.settings_display_currency_subtitle),
                 onClick = { showDisplayCurrencySheet = true },
@@ -368,8 +315,6 @@ internal fun CurrencyPage(
         }
         SettingsNavItem(
             icon = Icons.Default.SwapHoriz,
-            iconBgColor = blue_light,
-            iconTint = blue_dark,
             title = stringResource(R.string.settings_exchange_rates_title),
             subtitle = stringResource(R.string.settings_exchange_rates_subtitle),
             onClick = { onNavigate(ExchangeRates) },
@@ -377,17 +322,6 @@ internal fun CurrencyPage(
         )
     }
 
-    if (showMainAccountSheet) {
-        SettingsChoiceSheet(
-            title = stringResource(R.string.settings_main_account_title),
-            onDismiss = { showMainAccountSheet = false },
-            choices = accounts.map { account ->
-                SettingsChoice(accountLabel(account), accountKey(account) == mainAccountKey) {
-                    settingsViewModel.setMainAccount(account)
-                }
-            }
-        )
-    }
     if (showDefaultCurrencySheet) {
         SettingsChoiceSheet(
             title = stringResource(R.string.settings_default_currency_title),

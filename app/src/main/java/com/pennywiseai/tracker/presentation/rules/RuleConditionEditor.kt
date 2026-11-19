@@ -15,6 +15,7 @@ import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.domain.model.rule.*
 import com.pennywiseai.tracker.ui.components.FinancialAccountIdentity
+import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.theme.Spacing
 
 /** The operator a field should reset to when it becomes the condition's field. */
@@ -112,11 +113,14 @@ internal fun ConditionFieldSelector(
             readOnly = true,
             label = { Text(stringResource(R.string.rules_field_label)) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = fieldDropdownExpanded) },
-            modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+            modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+            shape = RoundedField.shape,
+            colors = RoundedField.colors()
         )
         ExposedDropdownMenu(
             expanded = fieldDropdownExpanded,
-            onDismissRequest = { fieldDropdownExpanded = false }
+            onDismissRequest = { fieldDropdownExpanded = false },
+            shape = MaterialTheme.shapes.large
         ) {
             fieldOptions.forEach { (field, label) ->
                 DropdownMenuItem(
@@ -232,7 +236,9 @@ internal fun ConditionFieldSelector(
                 placeholder = { Text(stringResource(R.string.rules_day_of_month_placeholder)) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                shape = RoundedField.shape,
+                colors = RoundedField.colors()
             )
         }
 
@@ -257,7 +263,9 @@ internal fun ConditionFieldSelector(
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                shape = RoundedField.shape,
+                colors = RoundedField.colors()
             )
 
             if (showTimePicker) {
@@ -286,7 +294,9 @@ internal fun ConditionFieldSelector(
                 placeholder = { Text(stringResource(R.string.rules_hour_placeholder)) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                shape = RoundedField.shape,
+                colors = RoundedField.colors()
             )
         }
 
@@ -297,7 +307,9 @@ internal fun ConditionFieldSelector(
                 label = { Text(stringResource(R.string.rules_date_label)) },
                 placeholder = { Text(stringResource(R.string.rules_date_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                shape = RoundedField.shape,
+                colors = RoundedField.colors()
             )
         }
 
@@ -333,7 +345,9 @@ internal fun ConditionFieldSelector(
                     KeyboardOptions.Default
                 },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                shape = RoundedField.shape,
+                colors = RoundedField.colors()
             )
         }
     }
@@ -375,11 +389,14 @@ internal fun RuleAccountPicker(
                 readOnly = true,
                 label = { Text(label) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = accountDropdownExpanded) },
-                modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+                shape = RoundedField.shape,
+                colors = RoundedField.colors()
             )
             ExposedDropdownMenu(
                 expanded = accountDropdownExpanded,
-                onDismissRequest = { accountDropdownExpanded = false }
+                onDismissRequest = { accountDropdownExpanded = false },
+                shape = MaterialTheme.shapes.large
             ) {
                 allAccounts.forEach { account ->
                     val key = "${account.bankName}||${account.accountLast4}"

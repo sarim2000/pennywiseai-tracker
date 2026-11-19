@@ -307,7 +307,7 @@
     <string name="settings_tracking_title">Automatic tracking</string>
     <string name="settings_tracking_summary">SMS and bank app notifications</string>
     <string name="settings_accounts_categories_title">Accounts &amp; categories</string>
-    <string name="settings_accounts_categories_summary">Smart rules, card spending, contacts</string>
+    <string name="settings_accounts_categories_summary">Card spending, contacts, main account</string>
     <string name="settings_planning_title">Planning</string>
     <string name="settings_planning_summary">Budgets, subscriptions, recurring, loans</string>
     <string name="settings_currency_summary">Default currency, conversion, rates</string>

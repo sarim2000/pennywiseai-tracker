@@ -10,6 +10,7 @@ import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
@@ -60,7 +61,6 @@ import com.pennywiseai.tracker.navigation.ManageAccounts
 import com.pennywiseai.tracker.navigation.Rules
 import com.pennywiseai.tracker.navigation.SettingsPage
 import com.pennywiseai.tracker.navigation.SettingsSection
-import com.pennywiseai.tracker.presentation.applock.AppLockViewModel
 import com.pennywiseai.tracker.presentation.paywall.UpgradeSheet
 import com.pennywiseai.tracker.ui.animations.pwFadeIn
 import com.pennywiseai.tracker.ui.animations.pwFadeOut
@@ -77,8 +77,6 @@ import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.success
-import com.pennywiseai.tracker.ui.theme.yellow_dark
-import com.pennywiseai.tracker.ui.theme.yellow_light
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
@@ -96,12 +94,10 @@ fun SettingsScreen(
     modifier: Modifier = Modifier,
     settingsViewModel: SettingsViewModel = hiltViewModel(),
     hubViewModel: SettingsHubViewModel = hiltViewModel(),
-    appLockViewModel: AppLockViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val isProEntitled by settingsViewModel.isProEntitled.collectAsStateWithLifecycle()
     val hub by hubViewModel.state.collectAsStateWithLifecycle()
-    val appLock by appLockViewModel.uiState.collectAsStateWithLifecycle()
     var showUpgradeSheet by remember { mutableStateOf(false) }
     var showSupportDialog by remember { mutableStateOf(false) }
     // F-Droid builds have no Play billing, so they show a "Support development"
@@ -154,9 +150,8 @@ fun SettingsScreen(
                 if (isFdroidBuild) {
                     SettingsNavItem(
                         icon = Icons.Default.Favorite,
-                        iconBgColor = yellow_light,
-                        iconTint = yellow_dark,
                         title = stringResource(R.string.support_title),
+                        accent = true,
                         subtitle = stringResource(R.string.support_subtitle),
                         onClick = { showSupportDialog = true },
                         position = ListItemPosition.Single,
@@ -166,9 +161,8 @@ fun SettingsScreen(
                     // see "Upgrade" so it reads as a call to action.
                     SettingsNavItem(
                         icon = Icons.Default.WorkspacePremium,
-                        iconBgColor = yellow_light,
-                        iconTint = yellow_dark,
                         title = if (isProEntitled) stringResource(R.string.settings_pro_title_active) else stringResource(R.string.settings_pro_title_upgrade),
+                        accent = true,
                         subtitle = if (isProEntitled) {
                             stringResource(R.string.settings_pro_subtitle_active)
                         } else {
@@ -249,30 +243,14 @@ fun SettingsScreen(
 
             SettingsGroupHeader(stringResource(R.string.settings_hub_privacy_data))
             SettingsGroup {
-                // App lock is the one switch worth having right here; the rest of
-                // Security (timeout, shake to hide) stays a page away.
-                SettingsSwitchRow(
-                    icon = Icons.Default.Fingerprint,
-                    iconBgColor = hubIconContainer(),
-                    iconTint = hubIconContent(),
-                    title = stringResource(R.string.settings_app_lock_title),
-                    subtitle = if (appLock.canUseBiometric) {
-                        stringResource(R.string.settings_app_lock_subtitle)
-                    } else {
-                        appLock.biometricCapability.errorMessageRes?.let { stringResource(it) }.orEmpty()
-                    },
-                    checked = appLock.isLockEnabled,
-                    onCheckedChange = { appLockViewModel.setAppLockEnabled(it) },
-                    // Turning it off always works, even after the screen lock was removed.
-                    enabled = appLock.canUseBiometric || appLock.isLockEnabled,
-                    position = ListItemPosition.Top,
-                )
+                // App lock lives on Security, next to its timeout. A second switch here
+                // only repeated that page.
                 HubRow(
                     icon = Icons.Default.Lock,
                     title = stringResource(R.string.settings_security_section),
                     subtitle = stringResource(R.string.settings_security_summary),
                     onClick = { open(SettingsSection.SECURITY) },
-                    position = ListItemPosition.Middle,
+                    position = ListItemPosition.Top,
                 )
                 HubRow(
                     icon = Icons.Default.Backup,
@@ -355,14 +333,6 @@ fun SettingsScreen(
     }
 }
 
-// The hub's rows lead with a neutral circle, so the coloured tiles above stay the
-// only colour on the page and the labels carry the rows.
-@Composable
-private fun hubIconContainer(): Color = MaterialTheme.colorScheme.surfaceContainerHighest
-
-@Composable
-private fun hubIconContent(): Color = MaterialTheme.colorScheme.onSurfaceVariant
-
 @Composable
 private fun HubRow(
     icon: ImageVector,
@@ -375,8 +345,6 @@ private fun HubRow(
 ) {
     SettingsNavItem(
         icon = icon,
-        iconBgColor = hubIconContainer(),
-        iconTint = hubIconContent(),
         title = title,
         subtitle = subtitle,
         onClick = onClick,
@@ -677,17 +645,27 @@ internal fun SettingsGroup(
 @Composable
 internal fun SettingsNavItem(
     icon: ImageVector,
-    iconBgColor: Color,
-    iconTint: Color,
     title: String,
     subtitle: String,
     onClick: () -> Unit,
     position: ListItemPosition,
     trailingText: String? = null,
-    trailingIcon: ImageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight
+    trailingIcon: ImageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+    // Pro and support are the one accent on an otherwise neutral list.
+    accent: Boolean = false,
 ) {
+    val container = if (accent) {
+        MaterialTheme.colorScheme.tertiaryContainer
+    } else {
+        MaterialTheme.colorScheme.surfaceContainerHighest
+    }
+    val tint = if (accent) {
+        MaterialTheme.colorScheme.onTertiaryContainer
+    } else {
+        MaterialTheme.colorScheme.onSurfaceVariant
+    }
     GroupedRow(position = position, onClick = onClick) {
-        IconTile(icon = icon, containerColor = iconBgColor, contentColor = iconTint)
+        IconTile(icon = icon, containerColor = container, contentColor = tint)
         RowLabels(title = title, subtitle = subtitle)
         if (trailingText != null) {
             // Capped so a long account name can't squeeze the labels away; its last digits stay visible.
@@ -714,8 +692,6 @@ internal fun SettingsNavItem(
 @Composable
 internal fun SettingsSwitchRow(
     icon: ImageVector,
-    iconBgColor: Color,
-    iconTint: Color,
     title: String,
     subtitle: String,
     checked: Boolean,
@@ -728,7 +704,11 @@ internal fun SettingsSwitchRow(
         enabled = enabled,
         onClick = { onCheckedChange(!checked) }
     ) {
-        IconTile(icon = icon, containerColor = iconBgColor, contentColor = iconTint)
+        IconTile(
+            icon = icon,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
         RowLabels(
             title = title,
             subtitle = subtitle,
@@ -789,32 +769,33 @@ internal fun SettingsChoiceSheet(
             modifier = Modifier
                 .selectableGroup()
                 .navigationBarsPadding(),
-            contentPadding = PaddingValues(bottom = Spacing.md)
+            contentPadding = PaddingValues(
+                start = Dimensions.Padding.content,
+                end = Dimensions.Padding.content,
+                bottom = Spacing.md,
+            ),
+            verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap),
         ) {
-            items(choices) { choice ->
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .selectable(
-                            selected = choice.selected,
-                            role = Role.RadioButton,
-                            onClick = {
-                                choice.onSelect()
-                                scope.launch { sheetState.hide() }.invokeOnCompletion { onDismiss() }
-                            }
-                        )
-                        .defaultMinSize(minHeight = Dimensions.Component.minTouchTarget)
-                        .padding(horizontal = Dimensions.Padding.content, vertical = Spacing.sm),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-                    verticalAlignment = Alignment.CenterVertically
+            itemsIndexed(choices) { index, choice ->
+                GroupedRow(
+                    position = ListItemPosition.from(index, choices.size),
+                    onClick = {
+                        choice.onSelect()
+                        scope.launch { sheetState.hide() }.invokeOnCompletion { onDismiss() }
+                    },
+                    containerColor = if (choice.selected) {
+                        MaterialTheme.colorScheme.secondaryContainer
+                    } else {
+                        MaterialTheme.colorScheme.surfaceContainerLow
+                    },
                 ) {
                     RadioButton(selected = choice.selected, onClick = null)
-                    Column {
+                    Column(modifier = Modifier.weight(1f)) {
                         Text(choice.label, style = MaterialTheme.typography.bodyLarge)
                         if (choice.description != null) {
                             Text(
                                 text = choice.description,
-                                style = MaterialTheme.typography.bodySmall,
+                                style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }

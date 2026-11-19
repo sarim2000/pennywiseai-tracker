@@ -204,7 +204,7 @@ internal fun ChecklistRow(step: ChecklistStep, position: ListItemPosition) {
                     step.optional -> Icons.Default.MoreHoriz
                     else -> Icons.Default.PriorityHigh
                 },
-                containerColor = statusColor.copy(alpha = 0.15f),
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                 contentColor = statusColor,
                 contentDescription = stringResource(
                     when {

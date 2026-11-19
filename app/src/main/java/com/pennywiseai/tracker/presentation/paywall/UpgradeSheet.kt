@@ -71,9 +71,6 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.ui.theme.yellow_dark
-import com.pennywiseai.tracker.ui.theme.yellow_light
-import com.pennywiseai.tracker.ui.theme.yellow_on_light
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -193,7 +190,7 @@ private fun UpgradeSheetContent(
 }
 
 // ─────────────────────────────────────────────────────────────────────────
-// Brand header — yellow icon tile + title row, matches Settings entry
+// Brand header — the one Pro accent, same tertiary tile as Settings.
 // ─────────────────────────────────────────────────────────────────────────
 
 @Composable
@@ -207,13 +204,13 @@ private fun BrandHeader(isMember: Boolean) {
         Box(
             modifier = Modifier
                 .size(48.dp)
-                .background(yellow_light, CircleShape),
+                .background(MaterialTheme.colorScheme.tertiaryContainer, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Outlined.AutoAwesome,
                 contentDescription = null,
-                tint = yellow_dark,
+                tint = MaterialTheme.colorScheme.onTertiaryContainer,
                 modifier = Modifier.size(Dimensions.Icon.medium),
             )
         }
@@ -321,7 +318,7 @@ private fun SupportNote() {
             .fillMaxWidth()
             .padding(horizontal = Dimensions.Padding.content)
             .clip(RoundedCornerShape(Dimensions.CornerRadius.large))
-            .background(yellow_light)
+            .background(MaterialTheme.colorScheme.tertiaryContainer)
             .padding(Spacing.md),
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -329,21 +326,29 @@ private fun SupportNote() {
         Icon(
             imageVector = Icons.Outlined.FavoriteBorder,
             contentDescription = null,
-            tint = yellow_dark,
+            tint = MaterialTheme.colorScheme.onTertiaryContainer,
             modifier = Modifier.size(Dimensions.Icon.medium),
         )
         Text(
             text = stringResource(R.string.upgrade_support_note),
             style = MaterialTheme.typography.bodySmall,
-            color = yellow_on_light,
+            color = MaterialTheme.colorScheme.onTertiaryContainer,
         )
     }
 }
 
 @Composable
 private fun EyebrowChip(text: String, isAccent: Boolean) {
-    val container = if (isAccent) yellow_light else MaterialTheme.colorScheme.surfaceContainerLow
-    val content = if (isAccent) yellow_dark else MaterialTheme.colorScheme.primary
+    val container = if (isAccent) {
+        MaterialTheme.colorScheme.tertiaryContainer
+    } else {
+        MaterialTheme.colorScheme.surfaceContainerLow
+    }
+    val content = if (isAccent) {
+        MaterialTheme.colorScheme.onTertiaryContainer
+    } else {
+        MaterialTheme.colorScheme.primary
+    }
     Surface(
         color = container,
         shape = RoundedCornerShape(50),
@@ -558,9 +563,7 @@ private fun CelebrationContent(onContinue: () -> Unit) {
             ),
         horizontalAlignment = Alignment.CenterHorizontally,
     ) {
-        // Animated yellow tile carrying the sparkle — same identity as the
-        // Settings entry and the brand header, so the celebration feels
-        // like the natural climax of the journey, not a stranger.
+        // Same tertiary tile as the brand header.
         Box(
             modifier = Modifier
                 .size(96.dp)
@@ -568,13 +571,13 @@ private fun CelebrationContent(onContinue: () -> Unit) {
                     scaleX = iconScale
                     scaleY = iconScale
                 }
-                .background(yellow_light, CircleShape),
+                .background(MaterialTheme.colorScheme.tertiaryContainer, CircleShape),
             contentAlignment = Alignment.Center,
         ) {
             Icon(
                 imageVector = Icons.Outlined.AutoAwesome,
                 contentDescription = null,
-                tint = yellow_dark,
+                tint = MaterialTheme.colorScheme.onTertiaryContainer,
                 modifier = Modifier.size(48.dp),
             )
         }

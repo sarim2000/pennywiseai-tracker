@@ -18,6 +18,7 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.domain.model.rule.*
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
+import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -318,7 +319,9 @@ fun CreateRuleScreen(
                 label = { Text(stringResource(R.string.rules_name_label)) },
                 placeholder = { Text(stringResource(R.string.rules_name_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                singleLine = true,
+                shape = RoundedField.shape,
+                colors = RoundedField.colors()
             )
 
             TextField(
@@ -328,7 +331,9 @@ fun CreateRuleScreen(
                 placeholder = { Text(stringResource(R.string.rules_description_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
                 minLines = 2,
-                maxLines = 3
+                maxLines = 3,
+                shape = RoundedField.shape,
+                colors = RoundedField.colors()
             )
 
             // Conditions section (supports multiple)

@@ -1,6 +1,5 @@
 package com.pennywiseai.tracker.presentation.accounts
 
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -8,12 +7,12 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.ui.components.WavyMeter
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -119,9 +118,11 @@ internal fun CreditCardItem(
                     modifier = Modifier.padding(start = AccountRowIndent),
                     verticalArrangement = Arrangement.spacedBy(Spacing.xs)
                 ) {
-                    UtilizationBar(
+                    WavyMeter(
                         fraction = (utilization / 100f).coerceIn(0f, 1f),
                         color = utilizationColor,
+                        trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                        dense = true,
                     )
                     Text(
                         text = stringResource(
@@ -146,7 +147,8 @@ internal fun CreditCardItem(
 
         DropdownMenu(
             expanded = showMenu,
-            onDismissRequest = { showMenu = false }
+            onDismissRequest = { showMenu = false },
+            shape = MaterialTheme.shapes.large
         ) {
             // Manual cards are edited outright; SMS-tracked ones get their figures
             // corrected first, and reach the edit dialog (name, currency, type) next.
@@ -217,25 +219,6 @@ internal fun CreditCardItem(
                 onSetStatementDay(day)
                 showStatementDayDialog = false
             }
-        )
-    }
-}
-
-@Composable
-private fun UtilizationBar(fraction: Float, color: androidx.compose.ui.graphics.Color) {
-    Box(
-        modifier = Modifier
-            .fillMaxWidth()
-            .height(Dimensions.Component.progressBarHeight)
-            .clip(MaterialTheme.shapes.extraSmall)
-            .background(MaterialTheme.colorScheme.surfaceContainerHighest)
-    ) {
-        Box(
-            modifier = Modifier
-                .fillMaxWidth(fraction)
-                .fillMaxHeight()
-                .clip(MaterialTheme.shapes.extraSmall)
-                .background(color)
         )
     }
 }

@@ -130,4 +130,8 @@
         <item quantity="one">Review %1$d suggestion</item>
         <item quantity="other">Review %1$d suggestions</item>
     </plurals>
+    <!-- rd:settings -->
+    <string name="settings_notifications_permission_title">Allow notifications</string>
+    <string name="settings_notifications_permission_subtitle">PennyWise summaries and alerts. Bank messages the app reads are separate.</string>
+    <string name="appearance_accessibility_section">Accessibility</string>
 </resources>

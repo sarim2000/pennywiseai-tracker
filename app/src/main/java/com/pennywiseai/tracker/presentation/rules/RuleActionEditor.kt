@@ -11,6 +11,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.domain.model.rule.*
+import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.Spacing
 
@@ -49,11 +50,14 @@ internal fun ActionEditor(
                 readOnly = true,
                 label = { Text(stringResource(R.string.rules_action_type_label)) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = actionTypeDropdownExpanded) },
-                modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+                shape = RoundedField.shape,
+                colors = RoundedField.colors()
             )
             ExposedDropdownMenu(
                 expanded = actionTypeDropdownExpanded,
-                onDismissRequest = { actionTypeDropdownExpanded = false }
+                onDismissRequest = { actionTypeDropdownExpanded = false },
+                shape = MaterialTheme.shapes.large
             ) {
                 // Offer exactly what the engine can carry out on this field. The
                 // list used to be hardcoded to Set/Clear, which hid the Append and
@@ -130,11 +134,14 @@ internal fun ActionEditor(
                     readOnly = true,
                     label = { Text(stringResource(R.string.rules_action)) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = actionFieldDropdownExpanded) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                    modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+                    shape = RoundedField.shape,
+                    colors = RoundedField.colors()
                 )
                 ExposedDropdownMenu(
                     expanded = actionFieldDropdownExpanded,
-                    onDismissRequest = { actionFieldDropdownExpanded = false }
+                    onDismissRequest = { actionFieldDropdownExpanded = false },
+                    shape = MaterialTheme.shapes.large
                 ) {
                     listOf(
                         TransactionField.CATEGORY to R.string.rules_field_category,
@@ -193,7 +200,9 @@ internal fun ActionEditor(
                         label = { Text(stringResource(R.string.rules_category_name_label)) },
                         placeholder = { Text(stringResource(R.string.rules_category_name_placeholder)) },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        shape = RoundedField.shape,
+                        colors = RoundedField.colors()
                     )
                 }
 
@@ -252,7 +261,9 @@ internal fun ActionEditor(
                         label = { Text(stringResource(R.string.rules_field_merchant_name)) },
                         placeholder = { Text(stringResource(R.string.rules_merchant_placeholder)) },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        shape = RoundedField.shape,
+                        colors = RoundedField.colors()
                     )
                 }
 
@@ -265,7 +276,9 @@ internal fun ActionEditor(
                         placeholder = { Text(stringResource(R.string.rules_description_value_placeholder)) },
                         modifier = Modifier.fillMaxWidth(),
                         minLines = 2,
-                        maxLines = 3
+                        maxLines = 3,
+                        shape = RoundedField.shape,
+                        colors = RoundedField.colors()
                     )
                 }
 
@@ -277,7 +290,9 @@ internal fun ActionEditor(
                         label = { Text(stringResource(R.string.rules_account_bank_label)) },
                         placeholder = { Text(stringResource(R.string.rules_value_placeholder_bank)) },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        shape = RoundedField.shape,
+                        colors = RoundedField.colors()
                     )
                 }
 
@@ -306,7 +321,9 @@ internal fun ActionEditor(
                         label = { Text(stringResource(R.string.rules_tag_name_label)) },
                         placeholder = { Text(stringResource(R.string.rules_value_placeholder_merchant)) },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        shape = RoundedField.shape,
+                        colors = RoundedField.colors()
                     )
                 }
 
@@ -318,7 +335,9 @@ internal fun ActionEditor(
                         label = { Text(stringResource(R.string.rules_value_label)) },
                         placeholder = { Text(stringResource(R.string.rules_value_placeholder_generic)) },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        singleLine = true,
+                        shape = RoundedField.shape,
+                        colors = RoundedField.colors()
                     )
                 }
             }

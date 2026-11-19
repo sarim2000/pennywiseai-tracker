@@ -24,6 +24,7 @@ import com.pennywiseai.tracker.data.database.entity.*
 import com.pennywiseai.tracker.data.webhook.WebhookHeader
 import com.pennywiseai.tracker.data.webhook.WebhookSyncReason
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
+import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.theme.Spacing
 
 @Composable
@@ -102,7 +103,8 @@ fun WebhooksScreen(onNavigateBack: () -> Unit, viewModel: WebhooksViewModel = hi
                             OutlinedTextField(state.interval, viewModel::setInterval, Modifier.weight(1f),
                                 label = { Text(stringResource(R.string.webhooks_interval_label)) }, singleLine = true,
                                 supportingText = { Text(stringResource(R.string.webhooks_interval_hint)) },
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number))
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                shape = RoundedField.shape)
                             TextButton(onClick = viewModel::saveInterval, enabled = !state.busy, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.webhooks_interval_apply)) }
                         }
                     }
@@ -170,17 +172,20 @@ private fun WebhookEditor(editor: WebhookEditorState, interval: Int, update: ((W
     var rangeMenu by remember { mutableStateOf(false) }
     Column(verticalArrangement = Arrangement.spacedBy(Spacing.smd)) {
         OutlinedTextField(editor.name, { value -> update { it.copy(name = value) } }, Modifier.fillMaxWidth(),
-            label = { Text(stringResource(R.string.webhooks_editor_name)) }, singleLine = true)
+            label = { Text(stringResource(R.string.webhooks_editor_name)) }, singleLine = true,
+            shape = RoundedField.shape)
         OutlinedTextField(editor.url, { value -> update { it.copy(url = value) } }, Modifier.fillMaxWidth(),
-            label = { Text(stringResource(R.string.webhooks_editor_url)) }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri))
+            label = { Text(stringResource(R.string.webhooks_editor_url)) }, singleLine = true, keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
+            shape = RoundedField.shape)
         Text(if (editor.enabled) pluralStringResource(R.plurals.webhooks_editor_auto_on_warning, interval, interval)
-            else stringResource(R.string.webhooks_editor_auto_off_warning),
+        else stringResource(R.string.webhooks_editor_auto_off_warning),
             style = MaterialTheme.typography.bodyMedium)
         if (editor.url.trim().startsWith("http://", true)) {
             Text(stringResource(R.string.webhooks_editor_http_warning), color = MaterialTheme.colorScheme.error)
         }
         OutlinedTextField(editor.currency, { value -> update { it.copy(currency = value.uppercase()) } }, Modifier.fillMaxWidth(),
-            label = { Text(stringResource(R.string.webhooks_editor_currency)) }, singleLine = true)
+            label = { Text(stringResource(R.string.webhooks_editor_currency)) }, singleLine = true,
+            shape = RoundedField.shape)
         Row(verticalAlignment = Alignment.CenterVertically) {
             Text(stringResource(R.string.webhooks_editor_enable_auto), Modifier.weight(1f))
             Switch(editor.enabled, { value -> update { it.copy(enabled = value) } })
@@ -196,7 +201,7 @@ private fun WebhookEditor(editor: WebhookEditorState, interval: Int, update: ((W
         }
         Box {
             OutlinedButton(onClick = { rangeMenu = true }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.webhooks_editor_range, editor.range.label())) }
-            DropdownMenu(rangeMenu, onDismissRequest = { rangeMenu = false }) {
+            DropdownMenu(rangeMenu, onDismissRequest = { rangeMenu = false }, shape = MaterialTheme.shapes.large) {
                 WebhookRangePreset.entries.forEach { range ->
                     DropdownMenuItem(text = { Text(range.label()) }, onClick = {
                         update { it.copy(range = range) }; rangeMenu = false
@@ -208,9 +213,11 @@ private fun WebhookEditor(editor: WebhookEditorState, interval: Int, update: ((W
             style = MaterialTheme.typography.bodySmall)
         if (editor.range == WebhookRangePreset.CUSTOM) {
             OutlinedTextField(editor.start, { value -> update { it.copy(start = value) } }, Modifier.fillMaxWidth(),
-                label = { Text(stringResource(R.string.webhooks_editor_start_date)) }, singleLine = true)
+                label = { Text(stringResource(R.string.webhooks_editor_start_date)) }, singleLine = true,
+                shape = RoundedField.shape)
             OutlinedTextField(editor.end, { value -> update { it.copy(end = value) } }, Modifier.fillMaxWidth(),
-                label = { Text(stringResource(R.string.webhooks_editor_end_date)) }, singleLine = true)
+                label = { Text(stringResource(R.string.webhooks_editor_end_date)) }, singleLine = true,
+                shape = RoundedField.shape)
         }
         Text(stringResource(R.string.webhooks_editor_headers_section), style = MaterialTheme.typography.titleSmall)
         Text(stringResource(R.string.webhooks_editor_headers_hint),
@@ -219,13 +226,15 @@ private fun WebhookEditor(editor: WebhookEditorState, interval: Int, update: ((W
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 OutlinedTextField(header.key, { value -> update { it.copy(headers = it.headers.toMutableList().apply {
                     this[index] = this[index].copy(key = value)
-                }) } }, Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.webhooks_editor_header_name)) }, singleLine = true)
+                }) } }, Modifier.fillMaxWidth(), label = { Text(stringResource(R.string.webhooks_editor_header_name)) }, singleLine = true,
+                    shape = RoundedField.shape)
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     OutlinedTextField(header.value, { value -> update { it.copy(headers = it.headers.toMutableList().apply {
                         this[index] = this[index].copy(value = value)
                     }) } }, Modifier.weight(1f), label = { Text(stringResource(R.string.webhooks_editor_header_value)) }, singleLine = true,
                         visualTransformation = PasswordVisualTransformation(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password))
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Password),
+                        shape = RoundedField.shape)
                     IconButton(onClick = { update { it.copy(headers = it.headers.filterIndexed { i, _ -> i != index }) } }, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.Default.Delete, stringResource(R.string.webhooks_editor_remove_header))
                     }

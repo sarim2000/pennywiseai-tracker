@@ -1,7 +1,6 @@
 package com.pennywiseai.tracker.presentation.unrecognized
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -14,7 +13,7 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.verticalScroll
@@ -68,6 +67,10 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.notification.BankNotificationConfig
 import com.pennywiseai.tracker.data.repository.SmsInboxReader
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
+import com.pennywiseai.tracker.ui.components.RoundedField
+import com.pennywiseai.tracker.ui.components.cards.GroupedColumn
+import com.pennywiseai.tracker.ui.components.cards.GroupedRow
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -344,7 +347,7 @@ private fun TransactionCard(
                 onValueChange = onMerchantTyped,
                 label = { Text(stringResource(R.string.teach_merchant_label)) },
                 singleLine = true,
-                shape = MaterialTheme.shapes.medium,
+                shape = RoundedField.shape,
                 modifier = Modifier.fillMaxWidth()
             )
 
@@ -366,7 +369,7 @@ private fun CurrencyButton(code: String?, onSelect: (String) -> Unit) {
             Text(code ?: stringResource(R.string.teach_currency))
             Icon(Icons.Default.ArrowDropDown, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.inline))
         }
-        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        DropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, shape = MaterialTheme.shapes.large) {
             CurrencyFormatter.getSupportedCurrencies().forEach { currency ->
                 DropdownMenuItem(
                     text = { Text("${CurrencyFormatter.getCurrencySymbol(currency)} $currency") },
@@ -431,11 +434,18 @@ fun InboxPickerSheet(
                     modifier = Modifier.padding(vertical = Spacing.lg)
                 )
                 else -> LazyColumn(
-                    verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap),
                     contentPadding = PaddingValues(bottom = Spacing.md)
                 ) {
-                    items(messages, key = { "${it.sender}|${it.timestamp}|${it.body.hashCode()}" }) { message ->
-                        InboxRow(message, onClick = { onPick(message) })
+                    itemsIndexed(
+                        messages,
+                        key = { _, message -> "${message.sender}|${message.timestamp}|${message.body.hashCode()}" }
+                    ) { index, message ->
+                        InboxRow(
+                            message = message,
+                            position = ListItemPosition.from(index, messages.size),
+                            onClick = { onPick(message) }
+                        )
                     }
                 }
             }
@@ -444,37 +454,35 @@ fun InboxPickerSheet(
 }
 
 @Composable
-private fun InboxRow(message: SmsInboxReader.Message, onClick: () -> Unit) {
+private fun InboxRow(
+    message: SmsInboxReader.Message,
+    position: ListItemPosition,
+    onClick: () -> Unit
+) {
     val context = LocalContext.current
-    Surface(
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        shape = MaterialTheme.shapes.large,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable(onClick = onClick)
+    GroupedColumn(
+        position = position,
+        onClick = onClick,
+        contentPadding = PaddingValues(Dimensions.Padding.content),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
     ) {
-        Column(
-            modifier = Modifier.padding(Dimensions.Padding.content),
-            verticalArrangement = Arrangement.spacedBy(Spacing.xs)
-        ) {
-            Text(
-                remember(message.sender) { BankNotificationConfig.displayName(context, message.sender) },
-                style = MaterialTheme.typography.titleSmall,
-                color = MaterialTheme.colorScheme.primary
-            )
-            Text(
-                LocalDateTime.ofInstant(Instant.ofEpochMilli(message.timestamp), ZoneId.systemDefault())
-                    .format(AppDates.dateTimeFormatter()),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            Text(
-                CurrencyFormatter.maskAmountsIn(message.body),
-                style = MaterialTheme.typography.bodyMedium.copy(textDirection = TextDirection.Content),
-                maxLines = 3,
-                overflow = TextOverflow.Ellipsis
-            )
-        }
+        Text(
+            remember(message.sender) { BankNotificationConfig.displayName(context, message.sender) },
+            style = MaterialTheme.typography.titleSmall,
+            color = MaterialTheme.colorScheme.primary
+        )
+        Text(
+            LocalDateTime.ofInstant(Instant.ofEpochMilli(message.timestamp), ZoneId.systemDefault())
+                .format(AppDates.dateTimeFormatter()),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Text(
+            CurrencyFormatter.maskAmountsIn(message.body),
+            style = MaterialTheme.typography.bodyMedium.copy(textDirection = TextDirection.Content),
+            maxLines = 3,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 
@@ -498,33 +506,27 @@ fun TaughtTemplatesSheet(
                 color = MaterialTheme.colorScheme.onSurfaceVariant
             )
             LazyColumn(
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap),
                 contentPadding = PaddingValues(bottom = Spacing.md)
             ) {
-                items(templates, key = { it.id }) { template ->
-                    Surface(
-                        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-                        shape = MaterialTheme.shapes.large,
-                        modifier = Modifier.animateItem().fillMaxWidth()
+                itemsIndexed(templates, key = { _, template -> template.id }) { index, template ->
+                    GroupedRow(
+                        position = ListItemPosition.from(index, templates.size),
+                        modifier = Modifier.animateItem(),
                     ) {
-                        Row(
-                            modifier = Modifier.padding(start = Dimensions.Padding.content, top = Spacing.sm, bottom = Spacing.sm),
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                                Text(
-                                    template.bankName,
-                                    style = MaterialTheme.typography.titleSmall,
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                                Text(
-                                    shapeText(template),
-                                    style = MaterialTheme.typography.bodyMedium.copy(textDirection = TextDirection.Content)
-                                )
-                            }
-                            IconButton(onClick = { onDelete(template) }, shapes = IconButtonDefaults.shapes()) {
-                                Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.teach_delete_template))
-                            }
+                        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                            Text(
+                                template.bankName,
+                                style = MaterialTheme.typography.titleSmall,
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            Text(
+                                shapeText(template),
+                                style = MaterialTheme.typography.bodyMedium.copy(textDirection = TextDirection.Content)
+                            )
+                        }
+                        IconButton(onClick = { onDelete(template) }, shapes = IconButtonDefaults.shapes()) {
+                            Icon(Icons.Default.Delete, contentDescription = stringResource(R.string.teach_delete_template))
                         }
                     }
                 }

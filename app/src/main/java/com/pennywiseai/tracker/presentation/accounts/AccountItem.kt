@@ -23,6 +23,8 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
+import com.pennywiseai.tracker.ui.components.RoundedField
+import com.pennywiseai.tracker.ui.components.cards.GroupedColumn
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.theme.*
@@ -85,29 +87,17 @@ internal fun AccountRowFrame(
         else -> MaterialTheme.colorScheme.surfaceContainerLow
     }
     val clickLabel = stringResource(R.string.manage_accounts_more_options)
-    // Segmented list item, as GroupedRow: same resting corners plus the native
-    // press/focus morph. It has no onClickLabel, so the label rides on semantics.
-    SegmentedListItem(
+    // Content colour set outright: a translucent container matches no theme colour, so the default went black.
+    GroupedColumn(
+        position = position,
         onClick = onClick,
-        shapes = ListItemDefaults.shapes(shape = position.toShape()),
-        modifier = modifier
-            .fillMaxWidth()
-            .semantics { onClick(label = clickLabel) { onClick(); true } },
-        // Content colour set outright: a translucent container matches no theme colour, so the default went black.
-        colors = ListItemDefaults.segmentedColors(
-            containerColor = container,
-            contentColor = MaterialTheme.colorScheme.onSurface,
-        ),
-        contentPadding = PaddingValues(),
-    ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(Dimensions.Padding.card),
-            verticalArrangement = Arrangement.spacedBy(Spacing.smd),
-            content = content,
-        )
-    }
+        modifier = modifier.semantics { onClick(label = clickLabel) { onClick(); true } },
+        containerColor = container,
+        contentColor = MaterialTheme.colorScheme.onSurface,
+        contentPadding = PaddingValues(Dimensions.Padding.card),
+        verticalArrangement = Arrangement.spacedBy(Spacing.smd),
+        content = content,
+    )
 }
 
 /** Where a row's extra lines start: under its name, past the badge. */
@@ -273,7 +263,8 @@ internal fun AccountItem(
 
         DropdownMenu(
             expanded = showMenu,
-            onDismissRequest = { showMenu = false }
+            onDismissRequest = { showMenu = false },
+            shape = MaterialTheme.shapes.large
         ) {
             // Manual accounts are edited outright; SMS-tracked ones get their balance
             // corrected first, and reach the edit dialog (name, currency, type) next.
@@ -391,7 +382,7 @@ internal fun AccountItem(
 private fun BusinessBadge() {
     Surface(
         color = MaterialTheme.colorScheme.tertiaryContainer,
-        shape = MaterialTheme.shapes.extraSmall
+        shape = MaterialTheme.shapes.small
     ) {
         Text(
             text = stringResource(R.string.manage_accounts_business_badge),
@@ -529,7 +520,8 @@ private fun LowBalanceThresholdDialog(
                     label = { Text(stringResource(R.string.manage_accounts_threshold_label, currency)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedField.shape
                 )
             }
         },
@@ -588,7 +580,8 @@ private fun AccountAliasDialog(
                     label = { Text(stringResource(R.string.manage_accounts_alias_label)) },
                     placeholder = { Text(stringResource(R.string.manage_accounts_alias_placeholder)) },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedField.shape
                 )
                 Text(
                     text = stringResource(R.string.manage_accounts_alias_hint),

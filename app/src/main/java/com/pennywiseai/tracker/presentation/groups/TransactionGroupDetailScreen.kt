@@ -87,7 +87,8 @@ fun TransactionGroupDetailScreen(
                         }
                         DropdownMenu(
                             expanded = showMenu,
-                            onDismissRequest = { showMenu = false }
+                            onDismissRequest = { showMenu = false },
+                            shape = MaterialTheme.shapes.large
                         ) {
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.group_detail_edit)) },

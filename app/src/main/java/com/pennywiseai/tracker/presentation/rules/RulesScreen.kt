@@ -4,7 +4,6 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
@@ -25,7 +24,8 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -39,6 +39,7 @@ import com.pennywiseai.tracker.domain.usecase.BatchApplyResult
 import com.pennywiseai.tracker.domain.usecase.DryRunResult
 import com.pennywiseai.tracker.ui.components.CategoryIcon
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
+import com.pennywiseai.tracker.ui.components.cards.GroupedColumn
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
@@ -128,7 +129,8 @@ fun RulesScreen(
                         }
                         DropdownMenu(
                             expanded = showOverflowMenu,
-                            onDismissRequest = { showOverflowMenu = false }
+                            onDismissRequest = { showOverflowMenu = false },
+                            shape = MaterialTheme.shapes.large
                         ) {
                             DropdownMenuItem(
                                 text = { Text(stringResource(R.string.rules_menu_export)) },
@@ -397,104 +399,99 @@ private fun RuleCard(
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showActionsMenu by remember { mutableStateOf(false) }
     val colors = MaterialTheme.colorScheme
-    val shape = position.toShape()
     // An off rule keeps its words readable but loses its colour.
     val accent = if (rule.isActive) colors.primary else colors.onSurfaceVariant
+    val clickLabel = stringResource(R.string.rules_more_actions)
 
     Box(modifier = modifier) {
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(shape)
-                .clickable(
-                    onClickLabel = stringResource(R.string.rules_more_actions),
-                    role = Role.Button,
-                    onClick = { showActionsMenu = true }
-                ),
-            shape = shape,
-            color = colors.surfaceContainerLow
+        GroupedColumn(
+            position = position,
+            onClick = { showActionsMenu = true },
+            modifier = Modifier.semantics {
+                onClick(label = clickLabel) {
+                    showActionsMenu = true
+                    true
+                }
+            },
+            contentPadding = PaddingValues(Dimensions.Padding.card),
+            verticalArrangement = Arrangement.spacedBy(Spacing.smd),
         ) {
-            Column(
-                modifier = Modifier.padding(Dimensions.Padding.card),
-                verticalArrangement = Arrangement.spacedBy(Spacing.smd)
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(Spacing.smd),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.smd),
-                    verticalAlignment = Alignment.CenterVertically
+                Box(
+                    modifier = Modifier
+                        .size(Dimensions.Icon.avatarLarge)
+                        .clip(badgeShape)
+                        .background(if (rule.isActive) colors.primaryContainer else colors.surfaceContainerHighest),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(Dimensions.Icon.avatarLarge)
-                            .clip(badgeShape)
-                            .background(if (rule.isActive) colors.primaryContainer else colors.surfaceContainerHighest),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        RuleGlyph(rule, tint = if (rule.isActive) colors.onPrimaryContainer else colors.onSurfaceVariant)
-                    }
-                    Column(
-                        modifier = Modifier.weight(1f),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.xxs)
-                    ) {
-                        Text(
-                            text = rule.displayName(),
-                            style = PennyWiseText.rowTitle,
-                            fontWeight = FontWeight.SemiBold,
-                            color = if (rule.isActive) colors.onSurface else colors.onSurfaceVariant,
-                            maxLines = 2,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        val meta = listOfNotNull(
-                            usageCount?.let { pluralStringResource(R.plurals.rules_used_times, it, it) },
-                            // Only a non-default priority is worth a mention.
-                            rule.priority.takeIf { it != 100 }?.let { stringResource(R.string.rules_priority_badge, it) }
-                        )
-                        if (meta.isNotEmpty()) {
-                            Text(
-                                text = meta.joinToString(" · "),
-                                style = PennyWiseText.metadata,
-                                color = colors.onSurfaceVariant
-                            )
-                        }
-                    }
-                    Switch(
-                        checked = rule.isActive,
-                        onCheckedChange = onToggle
-                    )
+                    RuleGlyph(rule, tint = if (rule.isActive) colors.onPrimaryContainer else colors.onSurfaceVariant)
                 }
-
-                rule.displayDescription()?.takeIf { it.isNotBlank() }?.let { description ->
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.xxs)
+                ) {
                     Text(
-                        text = description,
-                        style = PennyWiseText.rowSubtitle,
-                        color = colors.onSurfaceVariant
+                        text = rule.displayName(),
+                        style = PennyWiseText.rowTitle,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (rule.isActive) colors.onSurface else colors.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
                     )
+                    val meta = listOfNotNull(
+                        usageCount?.let { pluralStringResource(R.plurals.rules_used_times, it, it) },
+                        // Only a non-default priority is worth a mention.
+                        rule.priority.takeIf { it != 100 }?.let { stringResource(R.string.rules_priority_badge, it) }
+                    )
+                    if (meta.isNotEmpty()) {
+                        Text(
+                            text = meta.joinToString(" · "),
+                            style = PennyWiseText.metadata,
+                            color = colors.onSurfaceVariant
+                        )
+                    }
                 }
+                Switch(
+                    checked = rule.isActive,
+                    onCheckedChange = onToggle
+                )
+            }
 
-                val whenText = ruleConditionsText(rule.conditions)
-                val thenText = ruleActionsText(rule.actions)
-                if (whenText != null || thenText != null) {
-                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
-                        val clauseCount = listOfNotNull(whenText, thenText).size
-                        whenText?.let {
-                            RuleClause(
-                                label = stringResource(R.string.rules_clause_when),
-                                text = it.capitalized(),
-                                labelContainer = colors.surfaceContainerLowest,
-                                labelContent = colors.onSurfaceVariant,
-                                position = ListItemPosition.from(0, clauseCount),
-                                emphasized = false
-                            )
-                        }
-                        thenText?.let {
-                            RuleClause(
-                                label = stringResource(R.string.rules_clause_then),
-                                text = it.capitalized(),
-                                labelContainer = accent,
-                                labelContent = if (rule.isActive) colors.onPrimary else colors.surfaceContainerLowest,
-                                position = ListItemPosition.from(clauseCount - 1, clauseCount),
-                                emphasized = rule.isActive
-                            )
-                        }
+            rule.displayDescription()?.takeIf { it.isNotBlank() }?.let { description ->
+                Text(
+                    text = description,
+                    style = PennyWiseText.rowSubtitle,
+                    color = colors.onSurfaceVariant
+                )
+            }
+
+            val whenText = ruleConditionsText(rule.conditions)
+            val thenText = ruleActionsText(rule.actions)
+            if (whenText != null || thenText != null) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    val clauseCount = listOfNotNull(whenText, thenText).size
+                    whenText?.let {
+                        RuleClause(
+                            label = stringResource(R.string.rules_clause_when),
+                            text = it.capitalized(),
+                            labelContainer = colors.surfaceContainerLowest,
+                            labelContent = colors.onSurfaceVariant,
+                            position = ListItemPosition.from(0, clauseCount),
+                            emphasized = false
+                        )
+                    }
+                    thenText?.let {
+                        RuleClause(
+                            label = stringResource(R.string.rules_clause_then),
+                            text = it.capitalized(),
+                            labelContainer = accent,
+                            labelContent = if (rule.isActive) colors.onPrimary else colors.surfaceContainerLowest,
+                            position = ListItemPosition.from(clauseCount - 1, clauseCount),
+                            emphasized = rule.isActive
+                        )
                     }
                 }
             }
@@ -502,7 +499,8 @@ private fun RuleCard(
 
         DropdownMenu(
             expanded = showActionsMenu,
-            onDismissRequest = { showActionsMenu = false }
+            onDismissRequest = { showActionsMenu = false },
+            shape = MaterialTheme.shapes.large
         ) {
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.rules_menu_edit)) },
@@ -601,7 +599,7 @@ private fun RuleClause(
             verticalAlignment = Alignment.CenterVertically
         ) {
             Surface(
-                shape = MaterialTheme.shapes.extraSmall,
+                shape = MaterialTheme.shapes.small,
                 color = labelContainer,
                 contentColor = labelContent
             ) {

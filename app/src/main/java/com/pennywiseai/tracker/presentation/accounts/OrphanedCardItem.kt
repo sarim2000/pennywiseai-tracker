@@ -19,6 +19,7 @@ import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
+import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.theme.*
@@ -196,7 +197,8 @@ private fun EditCardDialog(
                     onValueChange = { bankName = it },
                     label = { Text(stringResource(R.string.manage_accounts_bank_label)) },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedField.shape
                 )
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                     Text(
@@ -227,7 +229,8 @@ private fun EditCardDialog(
                     onValueChange = { nickname = it },
                     label = { Text(stringResource(R.string.manage_accounts_nickname_label)) },
                     singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedField.shape
                 )
             }
         },

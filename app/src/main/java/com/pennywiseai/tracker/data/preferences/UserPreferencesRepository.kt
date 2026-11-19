@@ -19,6 +19,7 @@ import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
 import com.pennywiseai.tracker.domain.conscience.ConscienceCadence
 import com.pennywiseai.tracker.domain.conscience.ConscienceCandidate
 import com.pennywiseai.tracker.domain.conscience.ConscienceChoice
+import com.pennywiseai.tracker.domain.smsimport.SmsScanRecord
 import com.pennywiseai.tracker.domain.spending.BudgetAlertTier
 import com.pennywiseai.tracker.domain.spending.MoneyAlertRules
 import dagger.hilt.android.qualifiers.ApplicationContext
@@ -116,6 +117,10 @@ open class UserPreferencesRepository internal constructor(
         val SMS_SCAN_CUSTOM_DATE = longPreferencesKey("sms_scan_custom_date")
         val LAST_SCAN_TIMESTAMP = longPreferencesKey("last_scan_timestamp")
         val LAST_SCAN_PERIOD = intPreferencesKey("last_scan_period")
+        // The SMS check-up's view of the latest scan (SmsScanRecord JSON) and of the live
+        // receiver. Device-local; never the incremental cursor above.
+        val LAST_SCAN_RECORD = stringPreferencesKey("last_scan_record")
+        val LAST_LIVE_SMS_AT = longPreferencesKey("last_live_sms_at")
         val BASE_CURRENCY = stringPreferencesKey("base_currency")
 
         // Calendar month ("2026-07") the monthly share prompt was last acted on or
@@ -307,7 +312,7 @@ open class UserPreferencesRepository internal constructor(
             K.LAST_STATEMENT_IMPORT_AT, K.LAST_SEEN_APP_VERSION, K.MONTHLY_BUDGET_LIMIT,
             K.HAS_MIGRATED_TO_BUDGET_GROUPS, K.SHAKE_TO_HIDE_HINT_SHOWN, K.HAS_COMPLETED_ONBOARDING,
             K.SCHEDULED_FOLDER_BACKUP_ENABLED, K.SCHEDULED_FOLDER_BACKUP_TREE_URI,
-            K.SCHEDULED_FOLDER_BACKUP_LAST_TIMESTAMP
+            K.SCHEDULED_FOLDER_BACKUP_LAST_TIMESTAMP, K.LAST_SCAN_RECORD, K.LAST_LIVE_SMS_AT
         ).map { it.name }.toSet()
 
         // A photo is a file on the old phone; only a built-in avatar means anything elsewhere.
@@ -768,6 +773,25 @@ open class UserPreferencesRepository internal constructor(
     override suspend fun setLastScanPeriod(period: Int) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.LAST_SCAN_PERIOD] = period
+        }
+    }
+
+    override val lastScanRecord: Flow<SmsScanRecord?> = dataStore.data
+        .map { preferences -> SmsScanRecord.fromJson(preferences[PreferencesKeys.LAST_SCAN_RECORD]) }
+
+    override suspend fun setLastScanRecord(record: SmsScanRecord) {
+        dataStore.edit { preferences ->
+            val current = SmsScanRecord.fromJson(preferences[PreferencesKeys.LAST_SCAN_RECORD])
+            if (record.mayReplace(current)) preferences[PreferencesKeys.LAST_SCAN_RECORD] = record.toJson()
+        }
+    }
+
+    override val lastLiveSmsAt: Flow<Long?> = dataStore.data
+        .map { preferences -> preferences[PreferencesKeys.LAST_LIVE_SMS_AT] }
+
+    override suspend fun setLastLiveSmsAt(millis: Long) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.LAST_LIVE_SMS_AT] = millis
         }
     }
 

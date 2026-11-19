@@ -571,6 +571,31 @@ class BackupModelsTest {
         assertEquals("4321", spotify.accountLast4)
     }
 
+    /** A backup from before schema 70 has no payment plans: every row keeps renewing (#1061). */
+    @Test
+    fun oldBackupMissingPaymentPlan_hasNoEnd() {
+        val json = """
+        {
+          "database": {
+            "subscriptions": [
+              { "id": 9, "merchantName": "Netflix", "amount": "499.00", "nextPaymentDate": "2023-06-01" },
+              { "id": 10, "merchantName": "Synthetic EMI", "amount": "1500.00", "nextPaymentDate": "2023-06-05",
+                "totalPayments": 12, "paymentsMade": 3 }
+            ]
+          }
+        }
+        """.trimIndent()
+
+        val subs = backupJson.decodeFromString<PennyWiseBackup>(json).database.subscriptions
+
+        val legacy = subs.single { it.id == 9L }
+        assertNull(legacy.totalPayments)
+        assertEquals(0, legacy.paymentsMade)
+        val plan = subs.single { it.id == 10L }
+        assertEquals(12, plan.totalPayments)
+        assertEquals(3, plan.paymentsMade)
+    }
+
     /**
      * #509 regression. An older backup's account_balances row predates the
      * per-account `lowBalanceThreshold` column, so the key is simply absent.

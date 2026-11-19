@@ -764,7 +764,8 @@ fun HomeScreen(
                 onOpenReview = { onNavigateToReview(ReviewKind.MONTH) },
                 onOpenShareCard = onNavigateToShareStudio,
                 onOpenAchievements = onNavigateToAchievements,
-                onEditHome = { showEditWidgetsSheet = true }
+                onEditHome = { showEditWidgetsSheet = true },
+                onReadAgain = { showFullResyncDialog = true }
             )
         }
     }

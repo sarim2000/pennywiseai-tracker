@@ -251,8 +251,9 @@ fun BalanceCard(
                                 Text(
                                     text = pace,
                                     style = MaterialTheme.typography.bodyMedium,
-                                    color = if ((budget.pace?.signum() ?: 0) < 0) MaterialTheme.colorScheme.expense
-                                    else MaterialTheme.colorScheme.onSurface
+                                    // The card's own ink: red isn't checked against this fill, and the
+                                    // wording already says it's over.
+                                    color = MaterialTheme.colorScheme.onSurface
                                 )
                             }
                             // The month's spending is under Expenses below; only its currency

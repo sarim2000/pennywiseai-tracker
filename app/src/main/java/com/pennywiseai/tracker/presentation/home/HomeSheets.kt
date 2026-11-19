@@ -10,6 +10,7 @@ import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Insights
 import androidx.compose.material.icons.filled.Share
+import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -51,8 +52,11 @@ internal fun HomeMenuSheet(
     onOpenShareCard: () -> Unit,
     onOpenAchievements: () -> Unit,
     onEditHome: () -> Unit,
+    onReadAgain: () -> Unit,
 ) {
     val rows = listOf(
+        // The status pill only shows news, and the floating bar's dock holds Add: a manual re-read lives here.
+        Triple(R.string.home_resync_title, Icons.Default.Sync, onReadAgain),
         // Reorder / hide Home sections (#770).
         Triple(R.string.home_menu_edit_home, Icons.Default.Tune, onEditHome),
         // Week, cycle and year reviews, whatever the Home banner is offering.

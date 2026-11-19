@@ -5,10 +5,12 @@ package com.pennywiseai.tracker.data.preferences
  * order is the default display order: the things to act on first (what still needs a
  * category, what just happened, what's due), then the plans, then reference balances.
  * The hero is fixed and not here; Safe to spend is a line inside it, so its entry only
- * shows or hides that line.
+ * shows or hides that line. Shortcuts come right under the hero, so a new section in
+ * that slot reaches upgraders there too.
  */
 enum class HomeSection(val label: String) {
     SAFE_TO_SPEND("Safe to spend"),
+    SHORTCUTS("Shortcuts"),
     UNSORTED("Needs a category"),
     RECENT_TRANSACTIONS("Recent Transactions"),
     SUBSCRIPTIONS("Upcoming Subscriptions"),

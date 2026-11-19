@@ -121,6 +121,7 @@ class UserPreferencesKeysGoldenTest {
             "has_used_full_resync" to "Boolean",
             "hidden_nav_tabs" to "Set<String>",
             "home_sections" to "String",
+            "home_shortcuts" to "String",
             "is_amoled_mode" to "Boolean",
             "last_auth_timestamp" to "Long",
             "last_live_sms_at" to "Long",

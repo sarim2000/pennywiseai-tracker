@@ -10,6 +10,7 @@ class HomeSectionLayoutTest {
         val layout = listOf(
             HomeSection.ACTIVITY to true,
             HomeSection.SAFE_TO_SPEND to false,
+            HomeSection.SHORTCUTS to true,
             HomeSection.GROUPS to false,
             HomeSection.BUDGETS to true,
             HomeSection.UNSORTED to false,
@@ -21,7 +22,7 @@ class HomeSectionLayoutTest {
             HomeSection.MONEY_IN_MOTION to false,
         )
         val encoded = HomeSectionLayout.encode(layout)
-        assertEquals("ACTIVITY,!SAFE_TO_SPEND,!GROUPS,BUDGETS,!UNSORTED,!GOALS,LOANS,!RECENT_TRANSACTIONS,ACCOUNTS,SUBSCRIPTIONS,!MONEY_IN_MOTION", encoded)
+        assertEquals("ACTIVITY,!SAFE_TO_SPEND,SHORTCUTS,!GROUPS,BUDGETS,!UNSORTED,!GOALS,LOANS,!RECENT_TRANSACTIONS,ACCOUNTS,SUBSCRIPTIONS,!MONEY_IN_MOTION", encoded)
         assertEquals(layout, HomeSectionLayout.decode(encoded))
     }
 
@@ -38,10 +39,10 @@ class HomeSectionLayoutTest {
         val decoded = HomeSectionLayout.decode("!ACTIVITY,ACCOUNTS")
         assertEquals(
             listOf(
-                HomeSection.SAFE_TO_SPEND, HomeSection.UNSORTED, HomeSection.RECENT_TRANSACTIONS, HomeSection.SUBSCRIPTIONS,
-                HomeSection.BUDGETS, HomeSection.GOALS, HomeSection.LOANS, HomeSection.GROUPS,
+                HomeSection.SAFE_TO_SPEND, HomeSection.SHORTCUTS, HomeSection.UNSORTED, HomeSection.RECENT_TRANSACTIONS,
+                HomeSection.SUBSCRIPTIONS, HomeSection.BUDGETS, HomeSection.GOALS, HomeSection.LOANS, HomeSection.GROUPS,
                 HomeSection.MONEY_IN_MOTION,
-            ).map { it to true }.let { it.take(6) + listOf(HomeSection.ACTIVITY to false) + it.drop(6) } +
+            ).map { it to true }.let { it.take(7) + listOf(HomeSection.ACTIVITY to false) + it.drop(7) } +
                 listOf(HomeSection.ACCOUNTS to true),
             decoded,
         )
@@ -52,8 +53,8 @@ class HomeSectionLayoutTest {
         // A layout saved before Money in motion was a section (it used to be a fixed card on top).
         val saved = "SAFE_TO_SPEND,BUDGETS,GOALS,LOANS,GROUPS,RECENT_TRANSACTIONS,ACCOUNTS,SUBSCRIPTIONS,ACTIVITY"
         val decoded = HomeSectionLayout.decode(saved).map { it.first.name }
-        assertEquals(saved.split(','), decoded - "MONEY_IN_MOTION" - "UNSORTED")
-        assertEquals(9, decoded.indexOf("MONEY_IN_MOTION"))
+        assertEquals(saved.split(','), decoded - "MONEY_IN_MOTION" - "UNSORTED" - "SHORTCUTS")
+        assertEquals(10, decoded.indexOf("MONEY_IN_MOTION"))
     }
 
     @Test
@@ -63,9 +64,11 @@ class HomeSectionLayoutTest {
             "ACTIVITY,BUDGETS,GOALS,LOANS,!GROUPS,RECENT_TRANSACTIONS,ACCOUNTS,SUBSCRIPTIONS"
         )
         assertEquals(HomeSection.SAFE_TO_SPEND to true, decoded.first())
+        // Shortcuts, added later still, land right under the hero.
+        assertEquals(HomeSection.SHORTCUTS to true, decoded[1])
         assertEquals(
             listOf("ACTIVITY", "BUDGETS", "GOALS", "LOANS", "!GROUPS", "RECENT_TRANSACTIONS", "ACCOUNTS", "SUBSCRIPTIONS"),
-            decoded.drop(1).filter { it.first != HomeSection.MONEY_IN_MOTION && it.first != HomeSection.UNSORTED }.map { (s, v) -> (if (v) "" else "!") + s.name },
+            decoded.drop(2).filter { it.first != HomeSection.MONEY_IN_MOTION && it.first != HomeSection.UNSORTED }.map { (s, v) -> (if (v) "" else "!") + s.name },
         )
     }
 
@@ -73,7 +76,7 @@ class HomeSectionLayoutTest {
     fun `a layout never reordered moves to the new default order and keeps what's hidden`() {
         val old = "SAFE_TO_SPEND,BUDGETS,UNSORTED,RECENT_TRANSACTIONS,ACCOUNTS,!SUBSCRIPTIONS,LOANS,GOALS,GROUPS,MONEY_IN_MOTION,!ACTIVITY"
         assertEquals(
-            "SAFE_TO_SPEND,UNSORTED,RECENT_TRANSACTIONS,!SUBSCRIPTIONS,BUDGETS,GOALS,ACCOUNTS,LOANS,GROUPS,MONEY_IN_MOTION,!ACTIVITY",
+            "SAFE_TO_SPEND,SHORTCUTS,UNSORTED,RECENT_TRANSACTIONS,!SUBSCRIPTIONS,BUDGETS,GOALS,ACCOUNTS,LOANS,GROUPS,MONEY_IN_MOTION,!ACTIVITY",
             HomeSectionLayout.encode(HomeSectionLayout.decode(old)),
         )
         // An older default, saved before some sections existed, too.
@@ -82,7 +85,7 @@ class HomeSectionLayoutTest {
 
     @Test
     fun `a reordered layout keeps its order`() {
-        val custom = "BUDGETS,SAFE_TO_SPEND,UNSORTED,RECENT_TRANSACTIONS,ACCOUNTS,SUBSCRIPTIONS,LOANS,GOALS,GROUPS,MONEY_IN_MOTION,ACTIVITY"
+        val custom = "BUDGETS,SAFE_TO_SPEND,SHORTCUTS,UNSORTED,RECENT_TRANSACTIONS,ACCOUNTS,SUBSCRIPTIONS,LOANS,GOALS,GROUPS,MONEY_IN_MOTION,ACTIVITY"
         assertEquals(custom, HomeSectionLayout.encode(HomeSectionLayout.decode(custom)))
     }
 

@@ -31,6 +31,7 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalSoftwareKeyboardController
@@ -351,10 +352,19 @@ fun TransactionsScreen(
     }
 
     // Focus search field if requested
+    var searchFocused by remember { mutableStateOf(false) }
     LaunchedEffect(focusSearch) {
         if (focusSearch) {
-            searchFocusRequester.requestFocus()
-            keyboardController?.show()
+            // Opened from Home, the screen slides in: a request made before the field is
+            // placed is dropped, so keep asking for a few frames until it lands.
+            repeat(SEARCH_FOCUS_FRAMES) {
+                withFrameNanos { }
+                runCatching { searchFocusRequester.requestFocus() }
+                if (searchFocused) {
+                    keyboardController?.show()
+                    return@LaunchedEffect
+                }
+            }
         }
     }
 
@@ -549,6 +559,7 @@ fun TransactionsScreen(
                     .fillMaxWidth()
                     .padding(horizontal = Dimensions.Padding.content)
                     .padding(top = Spacing.sm, bottom = Spacing.smd)
+                    .onFocusChanged { searchFocused = it.hasFocus }
             )
 
             // What's in force, under the search field and so always in view: each removable
@@ -975,3 +986,6 @@ private fun ActivityRow(
         }
     }
 }
+
+/** About a second at 60 Hz: long enough for the screen's entry animation. */
+private const val SEARCH_FOCUS_FRAMES = 60

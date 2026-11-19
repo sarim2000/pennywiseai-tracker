@@ -414,6 +414,15 @@ fun MainScreen(
                 onNavigateToSmsCheckup = {
                     openRoot(SmsCheckup)
                 },
+                onNavigateToSearch = {
+                    open(tab, Transactions(focusSearch = true))
+                },
+                onNavigateToCalendar = {
+                    openRoot(SpendCalendar)
+                },
+                onNavigateToRecurring = {
+                    openRoot(RecurringTransactions)
+                },
                 onNavigateToAddScreen = openQuickAdd,
                 onTransactionClick = { transactionId ->
                     openRoot(TransactionDetail(transactionId))

@@ -252,7 +252,11 @@ Reference `MaterialTheme.shapes.*` rather than re-typing
 Expressive accents use `MaterialShapes` (opt-in `ExperimentalMaterial3ExpressiveApi`):
 merchant avatars (`BrandIcon`, `LetterAvatar`) and the empty-state badge are
 `MaterialShapes.Cookie9Sided.toShape()`. Keep these to identity/hero glyphs —
-not containers or buttons.
+not containers or buttons. Home's shortcut row is the one deliberate exception:
+each shortcut keeps its own shape as its glyph, the label under it says what it
+opens, and only a queue (Unsorted) carries a count badge. The user picks up to four
+in Edit home; defaults are Unsorted, Search, Bills and Calendar, the places that
+take two or more taps otherwise.
 
 Home shows one money answer: the hero (what's left, or this month's spending) with
 Safe to spend as a row at its foot. The sections under it are compact rows with one

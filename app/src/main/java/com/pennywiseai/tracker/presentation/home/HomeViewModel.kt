@@ -25,6 +25,8 @@ import com.pennywiseai.tracker.data.manager.InAppReviewManager
 import com.pennywiseai.tracker.data.manager.InAppUpdateManager
 import com.pennywiseai.tracker.data.preferences.HomeSection
 import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
+import com.pennywiseai.tracker.data.preferences.HomeShortcut
+import com.pennywiseai.tracker.data.preferences.HomeShortcutLayout
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
@@ -186,6 +188,16 @@ class HomeViewModel @Inject constructor(
     fun setHomeSectionVisible(section: HomeSection, visible: Boolean) {
         viewModelScope.launch {
             userPreferencesRepository.updateHomeSectionLayout { HomeSectionLayout.withVisibility(it, section, visible) }
+        }
+    }
+
+    val homeShortcuts: StateFlow<List<HomeShortcut>> =
+        userPreferencesRepository.homeShortcuts
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), HomeShortcutLayout.DEFAULT)
+
+    fun toggleHomeShortcut(shortcut: HomeShortcut) {
+        viewModelScope.launch {
+            userPreferencesRepository.updateHomeShortcuts { HomeShortcutLayout.toggle(it, shortcut) }
         }
     }
 

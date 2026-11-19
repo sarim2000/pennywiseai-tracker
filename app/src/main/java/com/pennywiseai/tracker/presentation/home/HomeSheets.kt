@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Insights
@@ -31,6 +32,8 @@ import androidx.compose.ui.zIndex
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.preferences.HomeSection
 import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
+import com.pennywiseai.tracker.data.preferences.HomeShortcut
+import com.pennywiseai.tracker.data.preferences.HomeShortcutLayout
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.IconTile
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
@@ -132,19 +135,22 @@ private fun MenuListItem(
 }
 
 /**
- * Edit home screen: reorder and hide Home sections (#770). Rows reorder by dragging
+ * Edit home screen: reorder and hide Home sections (#770), then pick what the
+ * shortcut row holds. Rows reorder by dragging
  * their handle; the order lives locally while the finger is down and is saved once
  * on release, so DataStore emissions can't yank the row mid-drag. TalkBack users get
  * "Move up / down" custom actions instead.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 internal fun EditHomeSectionsSheet(
     homeSectionLayout: List<Pair<HomeSection, Boolean>>,
     onDismiss: () -> Unit,
     onMoveSection: (HomeSection, Int) -> Unit,
     onReorderSections: (List<HomeSection>) -> Unit,
-    onSetSectionVisible: (HomeSection, Boolean) -> Unit
+    onSetSectionVisible: (HomeSection, Boolean) -> Unit,
+    shortcuts: List<HomeShortcut>,
+    onToggleShortcut: (HomeShortcut) -> Unit
 ) {
     // One state object for the sheet's lifetime: the handles' pointerInput lambdas
     // capture it once, so it's synced from the saved layout rather than re-keyed.
@@ -292,6 +298,53 @@ internal fun EditHomeSectionsSheet(
                     }
                 }
             }
+            EditHomeShortcuts(
+                shortcuts = shortcuts,
+                onToggle = onToggleShortcut,
+                modifier = Modifier
+                    .padding(horizontal = Dimensions.Padding.content)
+                    .padding(top = Spacing.md)
+            )
+        }
+    }
+}
+
+/** The shortcut row's picks, in catalogue order; the row shows them in the order picked. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun EditHomeShortcuts(
+    shortcuts: List<HomeShortcut>,
+    onToggle: (HomeShortcut) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Text(
+            text = stringResource(R.string.home_edit_shortcuts_title),
+            style = MaterialTheme.typography.titleSmall
+        )
+        Text(
+            text = stringResource(R.string.home_edit_shortcuts_description, HomeShortcutLayout.MAX),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            val full = shortcuts.size >= HomeShortcutLayout.MAX
+            HomeShortcut.entries.forEach { shortcut ->
+                val picked = shortcut in shortcuts
+                FilterChip(
+                    selected = picked,
+                    onClick = { onToggle(shortcut) },
+                    // A full row takes no more until one is taken out.
+                    enabled = picked || !full,
+                    label = { Text(stringResource(shortcut.labelRes())) },
+                    leadingIcon = if (picked) {
+                        { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(FilterChipDefaults.IconSize)) }
+                    } else {
+                        null
+                    },
+                    shapes = FilterChipDefaults.shapes()
+                )
+            }
         }
     }
 }
@@ -299,6 +352,7 @@ internal fun EditHomeSectionsSheet(
 @StringRes
 private fun HomeSection.titleRes(): Int = when (this) {
     HomeSection.SAFE_TO_SPEND -> R.string.home_section_safe_to_spend
+    HomeSection.SHORTCUTS -> R.string.home_section_shortcuts
     HomeSection.BUDGETS -> R.string.home_section_budgets
     HomeSection.UNSORTED -> R.string.home_section_unsorted
     HomeSection.GOALS -> R.string.home_section_goals

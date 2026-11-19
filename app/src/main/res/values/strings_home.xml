@@ -41,6 +41,18 @@
     <string name="home_status_updated">Updated %1$s</string>
     <string name="home_status_read_now">Read SMS now</string>
     <string name="home_shortcut_unsorted">Unsorted</string>
+    <!-- Home shortcut labels sit under a 64dp shape: keep them to about 10 characters -->
+    <string name="home_shortcut_calendar">Calendar</string>
+    <string name="home_shortcut_checkup">Check-up</string>
+    <!-- Read out for the Unsorted shortcut with its count badge -->
+    <plurals name="home_shortcut_unsorted_badge">
+        <item quantity="one">Unsorted, %d to sort</item>
+        <item quantity="other">Unsorted, %d to sort</item>
+    </plurals>
+    <string name="home_section_shortcuts">Shortcuts</string>
+    <string name="home_edit_shortcuts_title">Shortcuts</string>
+    <!-- %1$d is the most shortcuts the row holds (4) -->
+    <string name="home_edit_shortcuts_description">Pick up to %1$d. Unsorted shows only while something needs a category.</string>
     <plurals name="home_status_new">
         <item quantity="one">%d new from SMS</item>
         <item quantity="other">%d new from SMS</item>

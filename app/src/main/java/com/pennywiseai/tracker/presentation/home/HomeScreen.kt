@@ -29,6 +29,7 @@ import androidx.work.WorkInfo
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.preferences.HomeSection
 import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
+import com.pennywiseai.tracker.data.preferences.HomeShortcut
 import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.presentation.review.ReviewPromptBanner
 import com.pennywiseai.tracker.presentation.settings.BackgroundAccessViewModel
@@ -85,6 +86,9 @@ fun HomeScreen(
     onNavigateToManageAccounts: () -> Unit = {},
     onNavigateToBackgroundAccess: () -> Unit = {},
     onNavigateToSmsCheckup: () -> Unit = {},
+    onNavigateToSearch: () -> Unit = {},
+    onNavigateToCalendar: () -> Unit = {},
+    onNavigateToRecurring: () -> Unit = {},
     onTransactionClick: (Long) -> Unit = {},
     onGroupClick: (Long) -> Unit = {},
     onGoalClick: (Long) -> Unit = {},
@@ -105,6 +109,7 @@ fun HomeScreen(
     val groupSummaries by viewModel.groupSummaries.collectAsStateWithLifecycle()
     val goals by viewModel.goals.collectAsStateWithLifecycle()
     val homeSectionLayout by viewModel.homeSectionLayout.collectAsStateWithLifecycle()
+    val homeShortcuts by viewModel.homeShortcuts.collectAsStateWithLifecycle()
     val showSafeToSpend = homeSectionLayout.any { it.first == HomeSection.SAFE_TO_SPEND && it.second }
     val reviewPrompt by viewModel.reviewPrompt.collectAsStateWithLifecycle()
     val showProHomeCard by viewModel.showProHomeCard.collectAsStateWithLifecycle()
@@ -138,6 +143,26 @@ fun HomeScreen(
         // The pile can empty between the shortcut showing and the tap; walk() needs one id.
         val ids = unsorted.take(UNSORTED_WALK_SIZE)
         if (ids.isNotEmpty()) context.startActivity(QuickCategoryPickerActivity.walk(context, ids, fromHome = true))
+    }
+    // Unsorted is a queue: with nothing to sort it steps out of the row until there is.
+    val shownShortcuts = homeShortcuts.filter { it != HomeShortcut.UNSORTED || unsorted.isNotEmpty() }
+    // The Unsorted shortcut carries the same count and walk as the "need a category" row: one is enough.
+    val unsortedInShortcuts = HomeShortcut.UNSORTED in homeShortcuts &&
+        homeSectionLayout.any { it.first == HomeSection.SHORTCUTS && it.second }
+    val showUnsortedRow = unsorted.isNotEmpty() && !unsortedInShortcuts
+    val openShortcut: (HomeShortcut) -> Unit = { shortcut ->
+        when (shortcut) {
+            HomeShortcut.UNSORTED -> sortUnsorted()
+            HomeShortcut.SEARCH -> onNavigateToSearch()
+            HomeShortcut.BILLS -> onNavigateToSubscriptions()
+            HomeShortcut.CALENDAR -> onNavigateToCalendar()
+            HomeShortcut.ACCOUNTS -> onNavigateToManageAccounts()
+            HomeShortcut.BUDGETS -> onNavigateToBudgets()
+            HomeShortcut.GOALS -> onNavigateToGoals()
+            HomeShortcut.REVIEW -> onNavigateToReview(ReviewKind.MONTH)
+            HomeShortcut.RECURRING -> onNavigateToRecurring()
+            HomeShortcut.CHECKUP -> onNavigateToSmsCheckup()
+        }
     }
     val backgroundAccess: BackgroundAccessViewModel = hiltViewModel()
     val backgroundState by backgroundAccess.state.collectAsStateWithLifecycle()
@@ -503,8 +528,9 @@ fun HomeScreen(
                 val promoAfter = visibleSections.firstOrNull { section ->
                     when (section) {
                         HomeSection.SAFE_TO_SPEND -> false // ponytail: a line in the hero, not a row of its own
+                        HomeSection.SHORTCUTS -> false // navigation, not content: the promo goes under real content
                         HomeSection.BUDGETS -> carouselBudgets != null
-                        HomeSection.UNSORTED -> unsorted.isNotEmpty()
+                        HomeSection.UNSORTED -> showUnsortedRow
                         HomeSection.GOALS -> goals.isNotEmpty()
                         HomeSection.LOANS -> uiState.loanSummary != null
                         HomeSection.GROUPS -> groupSummaries.isNotEmpty()
@@ -519,6 +545,24 @@ fun HomeScreen(
                     when (section) {
                         // Drawn as the hero's footer; its entry only shows or hides it.
                         HomeSection.SAFE_TO_SPEND -> Unit
+                        HomeSection.SHORTCUTS -> {
+                            if (shownShortcuts.isNotEmpty()) {
+                                item(key = section.name) {
+                                    StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
+                                        HomeShortcuts(
+                                            shortcuts = shownShortcuts,
+                                            unsortedCount = unsorted.size,
+                                            onOpen = openShortcut,
+                                            onEdit = {
+                                                view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                                showEditWidgetsSheet = true
+                                            },
+                                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                                        )
+                                    }
+                                }
+                            }
+                        }
                         HomeSection.BUDGETS -> {
                             // 2. Budget Carousel
                             carouselBudgets?.let { summary ->
@@ -535,7 +579,7 @@ fun HomeScreen(
                         }
                         HomeSection.UNSORTED -> {
                             // This cycle's rows still in Others (#1049), walked in the recap's picker.
-                            if (unsorted.isNotEmpty()) {
+                            if (showUnsortedRow) {
                                 item(key = section.name) {
                                     StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
                                         HomeUnsortedRow(
@@ -789,7 +833,9 @@ fun HomeScreen(
             onDismiss = { showEditWidgetsSheet = false },
             onMoveSection = viewModel::moveHomeSection,
             onReorderSections = viewModel::reorderHomeSections,
-            onSetSectionVisible = viewModel::setHomeSectionVisible
+            onSetSectionVisible = viewModel::setHomeSectionVisible,
+            shortcuts = homeShortcuts,
+            onToggleShortcut = viewModel::toggleHomeShortcut
         )
     }
 

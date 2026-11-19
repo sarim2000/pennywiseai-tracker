@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.worker.smsscan
 
+import com.pennywiseai.tracker.domain.smsimport.SmsScanCounts
 import java.util.concurrent.atomic.AtomicInteger
 
 private const val ETA_WINDOW_MS = 2000L
@@ -30,7 +31,36 @@ internal class ProcessingStats(val total: Int) {
     val saved     = AtomicInteger(0)
     val duplicates = AtomicInteger(0)
     val blocked   = AtomicInteger(0)
+
+    // Per-message outcomes besides saved and duplicates: together they cover every
+    // processed message once. `blocked` (rules) is a part of `excluded`.
+    val excluded     = AtomicInteger(0)
+    val unrecognised = AtomicInteger(0)
+    val discarded    = AtomicInteger(0)
+    val special      = AtomicInteger(0)
+    val failed       = AtomicInteger(0)
+    val notRead      = AtomicInteger(0)
+
     val startTime = System.currentTimeMillis()
+
+    fun counts() = SmsScanCounts(
+        saved = saved.get(),
+        duplicates = duplicates.get(),
+        excluded = excluded.get(),
+        unrecognised = unrecognised.get(),
+        discarded = discarded.get(),
+        special = special.get(),
+        failed = failed.get(),
+        notRead = notRead.get(),
+    )
+
+    /**
+     * Whether the incremental scan cursor may move past this scan's window. A failed save
+     * keeps it put, so the next ordinary scan reads that window again; what did save is
+     * deduped then. Moving it would leave a failed message older than the 3-day overlap
+     * unread for good, and the next clean scan would clear the failed-save warning.
+     */
+    fun mayAdvanceCursor() = failed.get() == 0
 
     private val RING_SIZE          = 8192
     private val MIN_SAMPLES        = 10

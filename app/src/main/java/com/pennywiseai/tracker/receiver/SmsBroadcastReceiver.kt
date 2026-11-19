@@ -41,6 +41,7 @@ import dagger.hilt.EntryPoint
 import dagger.hilt.InstallIn
 import dagger.hilt.android.EntryPointAccessors
 import dagger.hilt.components.SingletonComponent
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -69,6 +70,7 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         fun taughtMessageBooker(): com.pennywiseai.tracker.data.manager.TaughtMessageBooker
         fun recurringSuggestionPreferences(): com.pennywiseai.tracker.data.preferences.RecurringSuggestionPreferences
         fun conscienceManager(): ConscienceManager
+        fun scanPreferences(): com.pennywiseai.tracker.data.preferences.ScanPreferences
     }
 
     companion object {
@@ -756,6 +758,14 @@ class SmsBroadcastReceiver : BroadcastReceiver() {
         timestamp: Long
     ) {
         var conscience: Job? = null
+        // The SMS check-up's proof that live capture still works, whatever this SMS turns out to be.
+        try {
+            EntryPointAccessors.fromApplication(context.applicationContext, SmsBroadcastReceiverEntryPoint::class.java)
+                .scanPreferences().setLastLiveSmsAt(System.currentTimeMillis())
+        } catch (e: Exception) {
+            if (e is CancellationException) throw e
+            Log.e(TAG, "Couldn't record the live SMS time", e)
+        }
         try {
             // Use the shared processor to parse and save the transaction
             val result = processor.processAndSaveTransaction(sender, body, timestamp)

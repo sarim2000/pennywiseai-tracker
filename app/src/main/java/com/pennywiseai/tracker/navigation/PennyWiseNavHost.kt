@@ -179,6 +179,14 @@ fun PennyWiseNavHost(
                         )
                     }
 
+                    entry<SmsCheckup> { key ->
+                        com.pennywiseai.tracker.presentation.settings.SmsCheckupScreen(
+                            onNavigateBack = { backStack.pop(key) },
+                            onOpenBackgroundAccess = { backStack.navigate(BackgroundAccess) },
+                            onOpenUnrecognized = { backStack.navigate(UnrecognizedSms) }
+                        )
+                    }
+
                     entry<LearnedCategories> { key ->
                         LearnedCategoriesEntry(
                             onNavigateBack = { backStack.pop(key) }

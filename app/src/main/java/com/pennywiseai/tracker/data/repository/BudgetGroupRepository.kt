@@ -1096,8 +1096,6 @@ class BudgetGroupRepository @Inject constructor(
         )
         // Rollover: added up as the carry is, so what shows spent is what carries.
         val rolloverSpent = if (budget.rolloverEnabled) budgetSpend(group, displayTxs, parentOf, asIs).amount else null
-        val totalAllExpenses = categoryAmounts.values.fold(BigDecimal.ZERO) { acc, amount -> acc + amount } +
-            typeAmounts.values.fold(BigDecimal.ZERO) { acc, amount -> acc + amount }
 
         // Per-budget window timing. For the *current* month, daysElapsed
         // runs from displayWindow.start to today; daysRemaining runs from
@@ -1164,7 +1162,8 @@ class BudgetGroupRepository @Inject constructor(
         val isTrackingAll = group.categories.isEmpty()
         val groupSpending = if (isTrackingAll) {
             val totalBudget = carry.appliedTo(group.budget.limitAmount)
-            val totalActual = rolloverSpent ?: totalAllExpenses
+            // Not a sum of categoryAmounts: a sub-category's spend is in its parent's too.
+            val totalActual = rolloverSpent ?: budgetSpend(group, displayTxs, parentOf, asIs).amount
             val remaining = totalBudget - totalActual
             val pctUsed = budgetPercentUsed(totalActual, totalBudget, carry.amount.amount)
             val dailyAllowance = if (daysRemaining > 0 && remaining > BigDecimal.ZERO) {

@@ -723,7 +723,9 @@ internal fun calculateTrend(
 ): AnalyticsTrend {
     val (start, end) = dateRange
     val firstDate = if (period == TimePeriod.ALL) {
-        rows.minOfOrNull { it.tx.dateTime.toLocalDate() }?.withDayOfMonth(1)?.coerceAtLeast(start) ?: start
+        // From the first spend or refund: a refund before the first spend still nets off.
+        (rows.map { it.tx.dateTime.toLocalDate() } + refunds.keys).minOrNull()
+            ?.withDayOfMonth(1)?.coerceAtLeast(start) ?: start
     } else start
     val lastDate = minOf(end, today)
     val byDay = groupTotals(rows) { listOf(it.dateTime.toLocalDate()) }

@@ -59,7 +59,6 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -345,7 +344,13 @@ private fun PeriodSummaryCard(state: InsightsUiState) {
 private fun Figure(label: String, value: String) {
     Column(Modifier.semantics(mergeDescendants = true) {}) {
         Text(text = label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-        Text(text = value, style = PennyWiseText.amountRow, maxLines = 1, overflow = TextOverflow.Ellipsis)
+        // Shrinks rather than cut a figure short: a long balance, or "under a month, from the balances known".
+        Text(
+            text = value,
+            style = PennyWiseText.amountRow,
+            maxLines = 1,
+            autoSize = TextAutoSize.StepBased(PennyWiseText.autoSizeFloor, PennyWiseText.amountRow.fontSize),
+        )
     }
 }
 
@@ -529,7 +534,12 @@ private fun MetricChip(label: String, value: String) {
     ) {
         Column(Modifier.padding(horizontal = Spacing.smd, vertical = Spacing.sm)) {
             Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(text = value, style = PennyWiseText.amountSmall, maxLines = 1)
+            Text(
+                text = value,
+                style = PennyWiseText.amountSmall,
+                maxLines = 1,
+                autoSize = TextAutoSize.StepBased(PennyWiseText.autoSizeFloor, PennyWiseText.amountSmall.fontSize),
+            )
         }
     }
 }

@@ -46,6 +46,7 @@ import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.domain.review.ReviewPrompt
 import com.pennywiseai.tracker.domain.review.reviewPromptFor
 import com.pennywiseai.tracker.domain.spending.Bill
+import com.pennywiseai.tracker.domain.spending.BillSource
 import com.pennywiseai.tracker.domain.spending.CardBillsLoader
 import com.pennywiseai.tracker.domain.spending.SafeToSpend
 import com.pennywiseai.tracker.domain.spending.SpendForecast
@@ -367,7 +368,7 @@ class HomeViewModel @Inject constructor(
         // The whole unpaid bill: card purchases never touched the bank balance, so all of
         // it still leaves the bank, whatever this cycle's spending already counts.
         val cardBills = cards.mapNotNull { status ->
-            status.bill?.let { Bill(it.label, Money(it.remaining, it.currency), it.dueDate, isCardBill = true) }
+            status.bill?.let { Bill(it.label, Money(it.remaining, it.currency), it.dueDate, source = BillSource.Card(it.bankName, it.accountLast4)) }
         }
         val bills = SafeToSpend.billsInWindow(SafeToSpend.billsFrom(subscriptions) + cardBills, today, periodEnd)
         val results = SafeToSpend.calculate(

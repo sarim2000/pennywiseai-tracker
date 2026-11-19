@@ -435,6 +435,9 @@ fun MainScreen(
                 },
                 onNavigateToHome = {
                     selectTab(BottomNavItem.Home)
+                },
+                onNavigateToCalendar = {
+                    openRoot(SpendCalendar)
                 }
             )
         }

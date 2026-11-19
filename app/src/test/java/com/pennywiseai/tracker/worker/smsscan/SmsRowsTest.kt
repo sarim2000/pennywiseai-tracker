@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.worker.smsscan
 
 import android.database.Cursor
+import android.database.sqlite.SQLiteException
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.channels.Channel
@@ -150,6 +151,31 @@ class SmsRowsTest {
         assertEquals(SmsRowKey(date = 2_000L, id = 31L), inbox.resumedAfter.last())
     }
 
+    @Test
+    fun `a row too big for even its own query is skipped and the rows after it still come through`() = runBlocking {
+        val rows = (0L until 5L).map { SmsRowKey(date = 1_000L + it, id = it) }
+        val inbox = FakeInbox(rows, tooBig = setOf(2L), ownQueryError = RowTooBig())
+        val feed = Channel<ScannedSms>(Channel.UNLIMITED)
+        var unreadable = 0
+
+        streamSmsSkippingBadRows(inbox::query, feed, onUnreadable = { unreadable++ })
+        feed.close()
+
+        assertEquals(listOf(0L, 1L, 3L, 4L), feed.toList().map { it.id })
+        assertEquals(1, unreadable)
+    }
+
+    @Test
+    fun `any other failure of a row's own query fails the read`() = runBlocking {
+        val rows = (0L until 5L).map { SmsRowKey(date = 1_000L + it, id = it) }
+        val inbox = FakeInbox(rows, tooBig = setOf(2L), ownQueryError = IllegalStateException("provider died"))
+        val feed = Channel<ScannedSms>(Channel.UNLIMITED)
+
+        val thrown = runCatching { streamSmsSkippingBadRows(inbox::query, feed) {} }.exceptionOrNull()
+
+        assertSame("the read's own error", inbox.windowError, thrown)
+    }
+
     private fun SmsRowKey?.next() = this?.let { it.id.toInt() + 1 } ?: 0
 
     /** Row [id] read on its own; reading [badRow] throws [error]. */
@@ -181,12 +207,14 @@ private suspend fun <T> Channel<T>.toList(): List<T> = buildList { for (item in 
 /**
  * An inbox that answers [SmsQuery] the way the SMS provider does: rows in date, then _id
  * order, each column where its projection puts it. Moving onto a [tooBig] row throws, and
- * so does reading it on its own; a [breaksRead] row breaks the read but loads on its own.
+ * so does reading it on its own, or querying it on its own when [ownQueryError] is given.
+ * A [breaksRead] row breaks the read but loads on its own.
  */
 private class FakeInbox(
     rows: List<SmsRowKey>,
     private val tooBig: Set<Long> = emptySet(),
     private val breaksRead: Set<Long> = emptySet(),
+    private val ownQueryError: Exception? = null,
 ) {
     val windowError = IllegalStateException("Row too big to fit into CursorWindow")
     val resumedAfter = mutableListOf<SmsRowKey?>()
@@ -194,6 +222,7 @@ private class FakeInbox(
 
     fun query(projection: Array<String>, after: SmsRowKey?, only: SmsRowKey?): Cursor {
         val keysOnly = projection.contentEquals(SMS_KEY_PROJECTION)
+        if (only != null && only.id in tooBig && ownQueryError != null) throw ownQueryError
         if (!keysOnly && only == null) resumedAfter += after
         val selected = when {
             only != null -> rows.filter { it.id == only.id }
@@ -222,4 +251,9 @@ private class FakeInbox(
             every { getString(any()) } returns "text"
         }
     }
+}
+
+/** What the provider's "Row too big to fit into CursorWindow" arrives as in this process. */
+private class RowTooBig : SQLiteException() {
+    override val message = "Row too big to fit into CursorWindow requiredPos=0, totalRows=1"
 }

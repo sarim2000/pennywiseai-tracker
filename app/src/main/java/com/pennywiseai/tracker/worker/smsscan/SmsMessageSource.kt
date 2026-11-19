@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.worker.smsscan
 
 import android.content.Context
 import android.database.Cursor
+import android.database.sqlite.SQLiteException
 import android.provider.Telephony
 import android.util.Log
 import androidx.core.net.toUri
@@ -342,9 +343,19 @@ private inline fun <T> probe(error: Exception, block: () -> T): T = try {
     throw error
 }
 
-/** Whether [key]'s row reads on its own; true if it's gone. A provider that answers no cursor throws [error]. */
+/**
+ * Whether [key]'s row reads on its own; true if it's gone. The provider fills the first
+ * cursor window inside the query, so a row too big for it throws from the query itself.
+ * Any other query failure, or no cursor, is the provider's, and throws [error].
+ */
 private fun rowLoads(query: SmsQuery, key: SmsRowKey, error: Exception): Boolean {
-    val cursor = probe(error) { query(SMS_PROJECTION, null, key) } ?: throw error
+    val cursor = try {
+        query(SMS_PROJECTION, null, key)
+    } catch (e: Exception) {
+        if (e.isRowTooBig()) return false
+        if (e is SecurityException) throw e
+        throw error
+    } ?: throw error
     return try {
         cursor.use { c ->
             if (c.moveToFirst()) SMS_PROJECTION.forEach { c.getString(c.getColumnIndexOrThrow(it)) }
@@ -355,6 +366,14 @@ private fun rowLoads(query: SmsQuery, key: SmsRowKey, error: Exception): Boolean
         false
     }
 }
+
+/**
+ * SQLite's "Row too big to fit into CursorWindow" (SQLiteBlobTooBigException in the
+ * provider, a plain SQLiteException once it crosses to this process). Matched by its
+ * message, as the type doesn't survive the trip; anything else isn't taken for it.
+ */
+private fun Exception.isRowTooBig(): Boolean =
+    this is SQLiteException && message?.contains("too big", ignoreCase = true) == true
 
 /**
  * Sends each SMS row of [c] into [feed] and returns how many it sent. A row that can't be

@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Spending calendar: a month grid of what was spent each day and what's due -->
+    <!-- The Analytics toolbar button that opens the calendar -->
+    <!-- Toolbar button that jumps back to the current month -->
+    <!-- The ends of the shading scale under the calendar: less spent on a day, more spent -->
+    <!-- %1$s = a month, e.g. "November 2026" -->
+    <!-- Read out for a day; %1$s = what was spent, e.g. "₹500" or "₹500, $10" -->
+    <!-- A weekday and a date, e.g. "Monday, 16 Nov 2026"; %1$s = the weekday, %2$s = the date -->
+    <!-- The sheet for one day -->
+    <!-- Opens that day's transactions in one currency, the net spend beside it; %1$s = a currency code, e.g. "INR" -->
+</resources>

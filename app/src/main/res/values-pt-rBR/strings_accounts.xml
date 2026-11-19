@@ -295,4 +295,6 @@
         <item quantity="one">Ver %1$d conta</item>
         <item quantity="other">Ver todas as %1$d contas</item>
     </plurals>
+    <!-- Card bill on a credit card's page (Safe to spend sets it aside) -->
+    <!-- Net worth: what you own minus what you owe, per currency -->
 </resources>

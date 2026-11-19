@@ -32,6 +32,7 @@ import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
 import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.presentation.review.ReviewPromptBanner
 import com.pennywiseai.tracker.presentation.settings.BackgroundAccessViewModel
+import com.pennywiseai.tracker.receiver.QuickCategoryPickerActivity
 import com.pennywiseai.tracker.ui.animations.StaggeredEntrance
 import com.pennywiseai.tracker.ui.animations.rememberEntranceDone
 import com.pennywiseai.tracker.ui.animations.staggerDelayMs
@@ -108,6 +109,7 @@ fun HomeScreen(
     val paydaySuggestion by viewModel.paydaySuggestion.collectAsStateWithLifecycle()
     val recurringSuggestions by viewModel.recurringSuggestions.collectAsStateWithLifecycle()
     val safeToSpend by viewModel.safeToSpend.collectAsStateWithLifecycle()
+    val unsorted by viewModel.unsorted.collectAsStateWithLifecycle()
     var showSafeToSpendSheet by rememberSaveable { mutableStateOf(false) }
     val activity = LocalActivity.current
     // A grant from the card, the sync button or app settings starts the first scan.
@@ -486,6 +488,7 @@ fun HomeScreen(
                     when (section) {
                         HomeSection.SAFE_TO_SPEND -> safeToSpend != null
                         HomeSection.BUDGETS -> uiState.budgetSummary != null
+                        HomeSection.UNSORTED -> unsorted.isNotEmpty()
                         HomeSection.GOALS -> goals.isNotEmpty()
                         HomeSection.LOANS -> uiState.loanSummary != null
                         HomeSection.GROUPS -> groupSummaries.isNotEmpty()
@@ -522,6 +525,24 @@ fun HomeScreen(
                                         HomeBudgetsSection(
                                             summary = summary,
                                             onNavigateToBudgets = onNavigateToBudgets
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        HomeSection.UNSORTED -> {
+                            // This cycle's rows still in Others (#1049), walked in the recap's picker.
+                            if (unsorted.isNotEmpty()) {
+                                item(key = section.name) {
+                                    StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
+                                        HomeUnsortedCard(
+                                            count = unsorted.size,
+                                            onSort = {
+                                                context.startActivity(
+                                                    QuickCategoryPickerActivity.walk(context, unsorted.take(UNSORTED_WALK_SIZE), fromHome = true)
+                                                )
+                                            },
+                                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                                         )
                                     }
                                 }

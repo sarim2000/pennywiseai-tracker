@@ -328,6 +328,7 @@ fun PennyWiseNavHost(
                             onNavigateToHistory = { groupId, year, month ->
                                 backStack.navigate(BudgetHistory(groupId, year, month))
                             },
+                            onNavigateToExchangeRates = { backStack.navigate(ExchangeRates) },
                             onNavigateToCategory = { category, yearMonth, currency ->
                                 backStack.navigate(TransactionsWithFilter(category, yearMonth, currency))
                             },
@@ -371,7 +372,8 @@ fun PennyWiseNavHost(
 
                     entry<BudgetHistory> { key ->
                         com.pennywiseai.tracker.presentation.budgetgroups.BudgetHistoryScreen(
-                            onNavigateBack = { backStack.pop(key) }
+                            onNavigateBack = { backStack.pop(key) },
+                            onNavigateToExchangeRates = { backStack.navigate(ExchangeRates) }
                         )
                     }
 
@@ -458,6 +460,33 @@ fun PennyWiseNavHost(
                         )
                     }
 
+                    entry<SpendCalendar> { key ->
+                        com.pennywiseai.tracker.presentation.calendar.SpendingCalendarScreen(
+                            onNavigateBack = { backStack.pop(key) },
+                            onOpenTransactions = { day, currency ->
+                                backStack.navigate(
+                                    TransactionsWithFilter(
+                                        period = com.pennywiseai.tracker.presentation.common.TimePeriod.CUSTOM.name,
+                                        currency = currency,
+                                        startDate = day.toEpochDay(),
+                                        endDate = day.toEpochDay(),
+                                        currencyOnly = true,
+                                    )
+                                )
+                            },
+                            onOpenBill = { source -> backStack.navigate(billDestination(source)) },
+                        )
+                    }
+
+                    // Also a tab screen; here for a calendar bill's link.
+                    entry<Subscriptions> { key ->
+                        com.pennywiseai.tracker.presentation.subscriptions.SubscriptionsScreen(
+                            onNavigateBack = { backStack.pop(key) },
+                            onAddSubscriptionClick = { backStack.navigate(AddTransaction()) },
+                            showBack = true,
+                        )
+                    }
+
                     entry<Achievements> { key ->
                         com.pennywiseai.tracker.presentation.achievements.AchievementsScreen(
                             onNavigateBack = { backStack.pop(key) },
@@ -503,4 +532,11 @@ fun PennyWiseNavHost(
             )
         }
     }
+}
+
+/** Where a bill on the calendar leads: the subscriptions, the recurring payments, or the card. */
+private fun billDestination(source: com.pennywiseai.tracker.domain.spending.BillSource): NavKey = when (source) {
+    com.pennywiseai.tracker.domain.spending.BillSource.Subscription -> Subscriptions
+    com.pennywiseai.tracker.domain.spending.BillSource.Recurring -> RecurringTransactions
+    is com.pennywiseai.tracker.domain.spending.BillSource.Card -> AccountDetail(source.bankName, source.accountLast4)
 }

@@ -173,7 +173,7 @@ class SpendingSummaryWidget : GlanceAppWidget() {
  * a limit is set and both are in the same currency (never mix two).
  */
 internal fun budgetIn(budget: BudgetWidgetData, currency: String): BudgetWidgetData? =
-    budget.takeIf { it.totalLimit > BigDecimal.ZERO && it.currency == currency }
+    budget.takeIf { it.hasLimit && it.currency == currency }
 
 class SpendingSummaryWidgetReceiver : GlanceAppWidgetReceiver() {
     override val glanceAppWidget: GlanceAppWidget = SpendingSummaryWidget()

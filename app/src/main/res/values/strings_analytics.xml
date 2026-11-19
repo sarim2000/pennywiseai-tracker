@@ -152,6 +152,17 @@
     <string name="budget_edit_resets_last_working_day">Resets on the last working day of every month</string>
     <string name="budget_edit_runs_once">Runs once, no rollover</string>
     <string name="budget_edit_current_window">Current window</string>
+    <string name="budget_edit_rollover">Roll over unspent or overspent</string>
+    <string name="budget_edit_rollover_subtitle">Unspent money adds to the next period and overspending comes off it, up to one budget\'s worth.</string>
+    <string name="budget_rollover_carried_in">Base %1$s + %2$s carried over = %3$s</string>
+    <string name="budget_rollover_carried_out">Base %1$s − %2$s overspent = %3$s</string>
+    <string name="budget_rollover_incomplete">Nothing carried over: some of last period\'s spending had no exchange rate. Add or refresh it in Settings › Currency › Exchange Rates.</string>
+    <!-- Link under budget_rollover_incomplete; opens the Exchange Rates screen -->
+    <string name="budget_rollover_add_rate">Add exchange rate</string>
+    <!-- Shown while a budget is in the period rollover was turned on in, which carries nothing in -->
+    <string name="budget_rollover_starts_next_week">Rollover starts with next week\'s budget</string>
+    <string name="budget_rollover_starts_next_month">Rollover starts with next month\'s budget</string>
+    <string name="budget_history_carried">Carried over: %1$s</string>
     <!-- %1$s = start date, %2$s = end date, %3$s = reset rule (e.g. "Resets every Monday") -->
     <string name="budget_edit_window_caption">%1$s – %2$s · %3$s</string>
     <string name="budget_edit_category_limits">Category Limits (optional)</string>
@@ -181,6 +192,7 @@
     <string name="budget_history_current">Current</string>
     <string name="budget_history_live">Live · still accumulating</string>
     <string name="budget_history_frozen">Frozen as of %1$s</string>
+    <string name="budget_history_not_started">Not started yet</string>
     <string name="budget_history_categories">Categories</string>
     <!-- %1$s = budget amount, %2$d = percent used -->
     <string name="budget_history_of_budget_percent">of %1$s · %2$d%%</string>
@@ -237,6 +249,7 @@
 
     <!-- ══ Subscriptions screen ══ -->
     <string name="subscriptions_title">Subscriptions</string>
+    <string name="subscriptions_back">Back</string>
     <string name="subscriptions_add">Add Subscription</string>
     <string name="subscriptions_undo">Undo</string>
     <!-- %1$s = merchant name -->

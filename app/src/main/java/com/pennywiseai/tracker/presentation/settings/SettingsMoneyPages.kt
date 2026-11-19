@@ -153,6 +153,9 @@ internal fun AccountsPage(
         )
     }
 
+    // Following the main account can change the base currency.
+    BudgetConversionPrompt(settingsViewModel)
+
     if (showUpiIdDialog) {
         UpiIdDialog(
             initial = upiId.orEmpty(),
@@ -277,7 +280,6 @@ internal fun CurrencyPage(
     settingsViewModel: SettingsViewModel = hiltViewModel(),
 ) {
     val baseCurrency by settingsViewModel.baseCurrency.collectAsStateWithLifecycle(initialValue = "")
-    val budgetConversionPrompt by settingsViewModel.budgetConversionPrompt.collectAsStateWithLifecycle()
     val unifiedCurrencyMode by settingsViewModel.unifiedCurrencyMode.collectAsStateWithLifecycle(initialValue = false)
     val displayCurrency by settingsViewModel.displayCurrency.collectAsStateWithLifecycle(initialValue = "")
     val availableCurrencies by settingsViewModel.availableCurrencies.collectAsStateWithLifecycle()
@@ -345,6 +347,16 @@ internal fun CurrencyPage(
         )
     }
 
+    BudgetConversionPrompt(settingsViewModel)
+}
+
+/**
+ * Asks whether to convert budget limits after the base currency changed. Hosted by both
+ * pages that can change it: Currency directly, Accounts through the main account.
+ */
+@Composable
+private fun BudgetConversionPrompt(settingsViewModel: SettingsViewModel) {
+    val budgetConversionPrompt by settingsViewModel.budgetConversionPrompt.collectAsStateWithLifecycle()
     // Budget conversion question: only asked while the user is still here. Back
     // from Budgets it would convert limits they've since entered in the new
     // currency. A rotation isn't leaving, the ViewModel carries it across.

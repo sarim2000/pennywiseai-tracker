@@ -520,7 +520,14 @@ fun HomeScreen(
                                             isBalanceHidden = uiState.isBalanceHidden,
                                             onReveal = { viewModel.toggleBalanceVisibility() },
                                             onOpenBreakdown = { showSafeToSpendSheet = true },
-                                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                                            // The budget caps it at the hero's "left": don't show that figure twice.
+                                            // A tighter budget than the hero's can set it too; then it's news.
+                                            repeatsHero = heroBudget != null && state.primary.isCapped &&
+                                                state.primary.currency == heroBudget.currency &&
+                                                state.primary.amount.compareTo(
+                                                    heroBudget.remaining.max(java.math.BigDecimal.ZERO)
+                                                ) == 0,
                                         )
                                     }
                                 }

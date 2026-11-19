@@ -20,11 +20,11 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
+import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.DropdownMenu
@@ -191,15 +191,22 @@ fun BalanceCard(
             contentColor = outer.onPrimaryContainer,
         ) {
             Column(
-                modifier = Modifier.padding(start = Spacing.lg, top = Spacing.md, end = Spacing.lg, bottom = Spacing.sm),
-                verticalArrangement = Arrangement.spacedBy(Spacing.smd)
+                modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 HeroHeader(
                     label = heroLabel(budget),
                     isBalanceHidden = isBalanceHidden,
                     onToggleBalanceVisibility = toggleHidden,
+                    // With a budget the hero's figures are all in its currency; the
+                    // month's currency picker sits with the month's spending, when opened.
+                    currencyChip = if (budget == null && showCurrencyChip) {
+                        { CurrencyChip(currency, availableCurrencies, onCurrencySelected) }
+                    } else {
+                        null
+                    },
                 )
-                val heroStyle = MaterialTheme.typography.displayLargeEmphasized.money()
+                val heroStyle = PennyWiseText.heroAmount
                 AnimatedCurrencyText(
                     text = if (budget != null) {
                         hidden(budget.remaining.abs(), budget.currency)
@@ -213,7 +220,8 @@ fun BalanceCard(
                     autoSize = TextAutoSize.StepBased(PennyWiseText.autoSizeFloor, heroStyle.fontSize),
                 )
                 if (budget != null) {
-                    BudgetMeter(budget = budget)
+                    // Hidden amounts hide the meter too: a known limit and its fill give the spend away.
+                    if (!isBalanceHidden) BudgetMeter(budget = budget)
                     Text(
                         text = stringResource(
                             R.string.home_hero_spent_of_limit,
@@ -223,8 +231,6 @@ fun BalanceCard(
                         style = MaterialTheme.typography.bodyMedium.tabular(),
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                } else if (showCurrencyChip) {
-                    CurrencyChip(currency, availableCurrencies, onCurrencySelected)
                 }
                 HeroFooter(
                     line = if (budget != null) paceText(budget, hidden) else monthLine(cycleEnd),
@@ -235,10 +241,8 @@ fun BalanceCard(
                     },
                     trailing = if (budget == null && changeText != null) changeText else null,
                     trailingColor = changeColor,
-                    actionLabel = stringResource(
-                        if (budget != null) R.string.home_hero_view_budget else R.string.home_hero_see_transactions
-                    ),
-                    onAction = onOpen,
+                    chevronRotation = chevronRotation,
+                    isExpanded = isExpanded,
                 )
 
                 AnimatedVisibility(
@@ -248,20 +252,10 @@ fun BalanceCard(
                 ) {
                     Column {
                         if (budget != null) {
-                            // The month's spending, which the budget hero doesn't lead with.
-                            Spacer(modifier = Modifier.height(Spacing.md))
-                            Text(
-                                text = stringResource(R.string.balance_card_spent_this_month),
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            AnimatedCurrencyText(
-                                text = hidden(currentMonthExpenses, currency),
-                                style = PennyWiseText.amountLarge,
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
+                            // The month's spending is already in "spent of limit" and under
+                            // Expenses below; only its currency and the change on last month are new.
                             if (showCurrencyChip || changeText != null) {
-                                Spacer(modifier = Modifier.height(Spacing.sm))
+                                Spacer(modifier = Modifier.height(Spacing.md))
                                 FlowRow(
                                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                                     verticalArrangement = Arrangement.spacedBy(Spacing.sm),
@@ -289,20 +283,13 @@ fun BalanceCard(
                             hasAccounts = hasAccounts,
                             onOpenNetWorth = onOpenNetWorth,
                             onShowBreakdown = onShowBreakdown,
+                            actionLabel = stringResource(
+                                if (budget != null) R.string.home_hero_view_budget else R.string.home_hero_see_transactions
+                            ),
+                            onAction = onOpen,
                         )
                     }
                 }
-
-                // Says the card opens; the whole card is the target.
-                Icon(
-                    imageVector = Icons.Default.KeyboardArrowDown,
-                    contentDescription = stringResource(if (isExpanded) R.string.card_collapse else R.string.card_expand),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier
-                        .align(Alignment.CenterHorizontally)
-                        .size(Dimensions.Icon.inline)
-                        .rotate(chevronRotation)
-                )
             }
         }
     }
@@ -329,7 +316,7 @@ private fun monthLine(cycleEnd: LocalDate?): String? {
 
 /**
  * The hero's last row: one status line (pace, or days left and the change on last month)
- * and its one labelled action. The line wraps; the action keeps its place at the end.
+ * and the chevron that says the card opens. The line wraps; the chevron keeps the end.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -338,10 +325,10 @@ private fun HeroFooter(
     lineColor: Color,
     trailing: String?,
     trailingColor: Color,
-    actionLabel: String,
-    onAction: () -> Unit,
+    chevronRotation: Float,
+    isExpanded: Boolean,
 ) {
-    Row(verticalAlignment = Alignment.CenterVertically) {
+    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         FlowRow(
             modifier = Modifier.weight(1f),
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
@@ -355,15 +342,15 @@ private fun HeroFooter(
             }
             if (trailing != null) Text(text = trailing, style = MaterialTheme.typography.bodyMedium, color = trailingColor)
         }
-        TextButton(onClick = onAction, shapes = ButtonDefaults.shapes()) {
-            Text(actionLabel, color = MaterialTheme.colorScheme.primary)
-            Icon(
-                imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(Dimensions.Icon.small)
-            )
-        }
+        // The whole card is the target; this only says it opens.
+        Icon(
+            imageVector = Icons.Default.KeyboardArrowDown,
+            contentDescription = stringResource(if (isExpanded) R.string.card_collapse else R.string.card_expand),
+            tint = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier
+                .size(Dimensions.Icon.inline)
+                .rotate(chevronRotation)
+        )
     }
 }
 
@@ -391,6 +378,7 @@ private fun HeroHeader(
     label: String,
     isBalanceHidden: Boolean,
     onToggleBalanceVisibility: () -> Unit,
+    currencyChip: (@Composable () -> Unit)? = null,
 ) {
     Row(verticalAlignment = Alignment.CenterVertically) {
         Text(
@@ -401,6 +389,7 @@ private fun HeroHeader(
             overflow = TextOverflow.Ellipsis,
             modifier = Modifier.weight(1f)
         )
+        currencyChip?.invoke()
         IconButton(onClick = onToggleBalanceVisibility, shapes = IconButtonDefaults.shapes()) {
             Icon(
                 imageVector = if (isBalanceHidden) Icons.Default.VisibilityOff else Icons.Default.Visibility,
@@ -510,6 +499,8 @@ private fun MonthDetails(
     hasAccounts: Boolean,
     onOpenNetWorth: (() -> Unit)?,
     onShowBreakdown: () -> Unit,
+    actionLabel: String,
+    onAction: () -> Unit,
 ) {
     Column(modifier = Modifier.fillMaxWidth()) {
         Spacer(modifier = Modifier.height(Spacing.sm))
@@ -573,7 +564,23 @@ private fun MonthDetails(
 
         Spacer(modifier = Modifier.height(Spacing.lg))
 
-        DetailHeading(stringResource(R.string.balance_card_this_month))
+        // The month's figures, with how they're worked out a tap away on the info button.
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Text(
+                text = stringResource(R.string.balance_card_this_month),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.weight(1f)
+            )
+            IconButton(onClick = onShowBreakdown, shapes = IconButtonDefaults.shapes()) {
+                Icon(
+                    imageVector = Icons.Outlined.Info,
+                    contentDescription = stringResource(R.string.home_breakdown_title),
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.size(Dimensions.Icon.inline)
+                )
+            }
+        }
         // Income | Expenses | Lent | Saved, with coloured accent bars. FlowRow so long
         // amounts (a 3-letter "MZN" prefix on big numbers) wrap onto a second line
         // instead of crushing the last column into one character per line.
@@ -608,13 +615,6 @@ private fun MonthDetails(
                 value = if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(currentMonthTotal, currency),
                 accentColor = netColor
             )
-        }
-        TextButton(
-            onClick = onShowBreakdown,
-            shapes = ButtonDefaults.shapes(),
-            modifier = Modifier.align(Alignment.End)
-        ) {
-            Text(stringResource(R.string.home_breakdown_title), color = MaterialTheme.colorScheme.primary)
         }
 
         // The accounts' total; each account is a tap away under Accounts, not repeated here.
@@ -652,35 +652,25 @@ private fun MonthDetails(
                 )
             }
         }
-        // Named for where it goes: Net worth takes off cards and loans, so its
-        // figure isn't this total.
-        if (onOpenNetWorth != null) {
-            TextButton(
-                onClick = onOpenNetWorth,
-                shapes = ButtonDefaults.shapes(),
-                modifier = Modifier.align(Alignment.End)
-            ) {
-                Text(stringResource(R.string.net_worth_title), color = MaterialTheme.colorScheme.primary)
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(Dimensions.Icon.small)
-                )
-            }
+        // Where to go from here, in one row: the budget or the month's transactions, and Net worth (named for where it goes: it takes off cards and
+        // loans, so its figure isn't the total above).
+        Spacer(modifier = Modifier.height(Spacing.sm))
+        FlowRow(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs, Alignment.End),
+        ) {
+            HeroLink(actionLabel, onAction)
+            if (onOpenNetWorth != null) HeroLink(stringResource(R.string.net_worth_title), onOpenNetWorth)
         }
         Spacer(modifier = Modifier.height(Spacing.sm))
     }
 }
 
 @Composable
-private fun DetailHeading(text: String) {
-    Text(
-        text = text,
-        style = MaterialTheme.typography.labelLarge,
-        color = MaterialTheme.colorScheme.onSurfaceVariant
-    )
-    Spacer(modifier = Modifier.height(Spacing.sm))
+private fun HeroLink(label: String, onClick: () -> Unit) {
+    TextButton(onClick = onClick, shapes = ButtonDefaults.shapes()) {
+        Text(label, color = MaterialTheme.colorScheme.primary)
+    }
 }
 
 /**
@@ -743,7 +733,8 @@ private val SPARKLINE_HEIGHT = Spacing.xxl + Spacing.xl
 /** The colour roles Home's hero card draws with, retoned to read on `primaryContainer`. */
 private fun ColorScheme.heroTones() = copy(
     onSurface = onPrimaryContainer,
-    onSurfaceVariant = onPrimaryContainer.copy(alpha = Dimensions.Alpha.subtitle),
+    // Full-opacity ink: the type scale, not a faded colour, tells the levels apart.
+    onSurfaceVariant = onPrimaryContainer,
     surfaceContainerHighest = surface.copy(alpha = Dimensions.Alpha.surface),
     outline = onPrimaryContainer.copy(alpha = Dimensions.Alpha.medium),
     outlineVariant = onPrimaryContainer.copy(alpha = Dimensions.Alpha.divider),

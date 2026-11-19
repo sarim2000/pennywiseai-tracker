@@ -72,9 +72,12 @@ fun SafeToSpendCard(
     isBalanceHidden: Boolean,
     onReveal: () -> Unit,
     onOpenBreakdown: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** True when the budget caps the figure at what Home's hero already shows as left: lead with per day instead. */
+    repeatsHero: Boolean = false,
 ) {
     val primary = state.primary
+    val perDayLead = primary.perDay?.takeIf { repeatsHero }
     PennyWiseCardV2(
         modifier = modifier.fillMaxWidth(),
         contentPadding = Spacing.md,
@@ -105,7 +108,14 @@ fun SafeToSpendCard(
         }
         Spacer(Modifier.height(Spacing.xs))
         Text(
-            text = if (isBalanceHidden) MASK else primary.formatAmount(),
+            text = when {
+                isBalanceHidden -> MASK
+                perDayLead != null -> stringResource(
+                    R.string.safe_to_spend_per_day_headline,
+                    CurrencyFormatter.formatCurrency(perDayLead, primary.currency)
+                )
+                else -> primary.formatAmount()
+            },
             style = PennyWiseText.amountLarge,
             fontWeight = FontWeight.Bold,
             color = if (!isBalanceHidden && primary.amount.signum() < 0) MaterialTheme.colorScheme.error
@@ -116,7 +126,15 @@ fun SafeToSpendCard(
         val dueBefore = state.periodEnd.plusDays(1).format(SHORT_DATE)
         Spacer(Modifier.height(Spacing.xs))
         // One line: per day when there is some, otherwise the budget cap that set it.
-        if (!PerDayLine(primary, state.periodEnd.format(SHORT_DATE), dueBefore)) CappedLine(primary)
+        if (perDayLead != null) {
+            Text(
+                text = stringResource(R.string.safe_to_spend_budget_per_day, state.periodEnd.format(SHORT_DATE)),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        } else if (!PerDayLine(primary, state.periodEnd.format(SHORT_DATE), dueBefore)) {
+            CappedLine(primary)
+        }
         IncompleteLine(state.cardsNeedingBill.size)
     }
 }

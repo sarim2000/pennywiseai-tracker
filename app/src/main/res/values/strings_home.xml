@@ -457,6 +457,8 @@
     <string name="safe_to_spend_none_left">Nothing left after bills due before %1$s</string>
     <string name="safe_to_spend_breakdown">Bank balance %1$s − %2$s in bills due before %3$s</string>
     <string name="safe_to_spend_capped">Capped by your budget: %1$s left</string>
+    <string name="safe_to_spend_per_day_headline">%1$s a day</string>
+    <string name="safe_to_spend_budget_per_day">Your budget\'s left, spread until %1$s, including today</string>
     <string name="safe_to_spend_other_currencies">Plus %1$s, kept separate</string>
     <string name="safe_to_spend_until">Safe to spend until %1$s</string>
     <string name="safe_to_spend_accounts">Bank balance</string>

@@ -320,6 +320,7 @@ fun PennyWiseNavHost(
                             onNavigateToHistory = { groupId, year, month ->
                                 backStack.navigate(BudgetHistory(groupId, year, month))
                             },
+                            onNavigateToExchangeRates = { backStack.navigate(ExchangeRates) },
                             onNavigateToCategory = { category, yearMonth, currency ->
                                 backStack.navigate(TransactionsWithFilter(category, yearMonth, currency))
                             },
@@ -363,7 +364,8 @@ fun PennyWiseNavHost(
 
                     entry<BudgetHistory> { key ->
                         com.pennywiseai.tracker.presentation.budgetgroups.BudgetHistoryScreen(
-                            onNavigateBack = { backStack.pop(key) }
+                            onNavigateBack = { backStack.pop(key) },
+                            onNavigateToExchangeRates = { backStack.navigate(ExchangeRates) }
                         )
                     }
 

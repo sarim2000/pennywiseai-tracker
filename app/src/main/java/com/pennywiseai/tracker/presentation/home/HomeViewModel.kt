@@ -1046,7 +1046,11 @@ class HomeViewModel @Inject constructor(
                 val today = LocalDate.now()
                 val todayYm = YearMonth.of(today.year, today.monthValue)
                 if (unifiedMode) {
-                    budgetGroupRepository.getGroupSpendingAllCurrencies(todayYm.year, todayYm.monthValue)
+                    // Recounted when a rate changes too, as the Budgets screen is.
+                    combine(
+                        budgetGroupRepository.getGroupSpendingAllCurrencies(todayYm.year, todayYm.monthValue),
+                        currencyConversionService.getAllRatesFlow()
+                    ) { raw, _ -> raw }
                         .map { raw ->
                             homeBudgetSummary(raw, displayCurrency, baseCurrency, convert)
                         }
@@ -1410,8 +1414,9 @@ class HomeViewModel @Inject constructor(
     /** "Start on day N" on the payday card: the budget cycle moves to payday, and the card never comes back. */
     fun acceptPaydaySuggestion(day: Int) {
         viewModelScope.launch {
+            // The new day hides the card; marked only once it's saved, so a failed move keeps the offer.
+            budgetGroupRepository.updateBudgetCycleStartDay(day)
             userPreferencesRepository.markPaydaySuggestionHandled()
-            userPreferencesRepository.updateBudgetCycleStartDay(day)
         }
     }
 

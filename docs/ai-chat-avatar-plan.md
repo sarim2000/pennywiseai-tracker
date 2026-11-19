@@ -57,7 +57,7 @@ Agreed with Codex (`gpt-6.1-sol`, high) over two rounds. Its objections that we 
   - **Default plan:** the body uses the theme accent in both states, and the pill marks selection.
   - **When pill and labels are both hidden:** fall back to the muted tint when unselected, because colour would then be the only selection cue.
   - The preview has a "Muted tab" toggle for comparing the two.
-- **At 24/32dp:** a two-tone silhouette only, with the eyes cut in the colour behind it. No mask, iris, coin or receipt lines **(Codex)**. The one mark is an arrival's: the receipt's check, cut out like the eyes.
+- **At 24/32dp:** a two-tone silhouette only, with the eyes cut in the colour behind it. No mask, iris, coin or receipt lines **(Codex)**. The arrivals still play, since they are the tab's reaction: the receipt's check is cut out like the eyes and is the one mark that stays; the coin's shine is cut through it and its sparkles drawn in the tint around it; the coin dropping into the jar is drawn in the tint. Each is gone within its arrival (under 1.6s).
 - **Coming back to the bar:** the bar returns from under a pushed screen (Add) already holding the save's reaction. The owl shows for a beat (350ms) and then turns, so the change is seen rather than already done.
 - **Behaviour:** no poke, drag, haptic or separate focus target on the tab. The click goes to the parent. The accessible name stays the localized "Chat", and the drawing is decorative.
 - **Hidden tab:** if the user hid the Chat tab, the mascot runs no animation and queues nothing.

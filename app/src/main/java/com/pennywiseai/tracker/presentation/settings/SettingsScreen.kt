@@ -7,6 +7,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
@@ -21,10 +23,18 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.filled.AccountBalance
+import androidx.compose.material.icons.filled.Category
+import androidx.compose.material.icons.filled.Rule
+import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.*
+import androidx.compose.material3.MaterialShapes
+import androidx.compose.material3.Surface
+import androidx.compose.material3.toShape
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -38,7 +48,11 @@ import androidx.navigation3.runtime.NavKey
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.navigation.Appearance
+import com.pennywiseai.tracker.navigation.Categories
 import com.pennywiseai.tracker.navigation.Faq
+import com.pennywiseai.tracker.navigation.ImportStatement
+import com.pennywiseai.tracker.navigation.ManageAccounts
+import com.pennywiseai.tracker.navigation.Rules
 import com.pennywiseai.tracker.navigation.SettingsPage
 import com.pennywiseai.tracker.navigation.SettingsSection
 import com.pennywiseai.tracker.presentation.paywall.UpgradeSheet
@@ -130,6 +144,9 @@ fun SettingsScreen(
                 )
             }
         }
+
+        // What people came to Settings for most, one tap away instead of a page deep.
+        SettingsShortcutTiles(onNavigate = onNavigate)
 
         fun open(section: SettingsSection) = onNavigate(SettingsPage(section))
 
@@ -558,6 +575,88 @@ private fun SettingsNavigationContent(onNavigateBack: () -> Unit) {
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = stringResource(R.string.settings_back),
                 modifier = Modifier.size(Dimensions.Icon.inline)
+            )
+        }
+    }
+}
+
+@Composable
+private fun SettingsShortcutTiles(onNavigate: (NavKey) -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            SettingsShortcutTile(
+                title = stringResource(R.string.manage_accounts_title),
+                icon = Icons.Default.AccountBalance,
+                container = colors.primaryContainer,
+                content = colors.onPrimaryContainer,
+                onClick = { onNavigate(ManageAccounts) },
+                modifier = Modifier.weight(1f),
+            )
+            SettingsShortcutTile(
+                title = stringResource(R.string.rules_title),
+                icon = Icons.Default.Rule,
+                container = colors.tertiaryContainer,
+                content = colors.onTertiaryContainer,
+                onClick = { onNavigate(Rules) },
+                modifier = Modifier.weight(1f),
+            )
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            SettingsShortcutTile(
+                title = stringResource(R.string.categories_title),
+                icon = Icons.Default.Category,
+                container = colors.secondaryContainer,
+                content = colors.onSecondaryContainer,
+                onClick = { onNavigate(Categories) },
+                modifier = Modifier.weight(1f),
+            )
+            SettingsShortcutTile(
+                title = stringResource(R.string.import_statement_title),
+                icon = Icons.Default.UploadFile,
+                container = colors.surfaceContainerHighest,
+                content = colors.onSurface,
+                onClick = { onNavigate(ImportStatement) },
+                modifier = Modifier.weight(1f),
+            )
+        }
+    }
+}
+
+@Composable
+private fun SettingsShortcutTile(
+    title: String,
+    icon: ImageVector,
+    container: Color,
+    content: Color,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onClick,
+        shape = MaterialTheme.shapes.extraLarge,
+        color = container,
+        contentColor = content,
+        modifier = modifier,
+    ) {
+        Column(
+            modifier = Modifier.padding(Dimensions.Padding.card),
+            verticalArrangement = Arrangement.spacedBy(Spacing.smd),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(Dimensions.Icon.avatar)
+                    .clip(MaterialShapes.Cookie9Sided.toShape())
+                    .background(MaterialTheme.colorScheme.surface.copy(alpha = Dimensions.Alpha.surface)),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(icon, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.inline))
+            }
+            Text(
+                text = title,
+                style = MaterialTheme.typography.titleSmall,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
             )
         }
     }

@@ -69,6 +69,6 @@ data class SettingsHubState(
     val accountCount: Int? = null,
     val activeRuleCount: Int? = null,
     val categoryCount: Int? = null,
-    /** A webhook or AI access is on, so some data does leave the phone. */
-    val isSharing: Boolean = false,
+    /** A webhook or AI access is on, so some data does leave the phone. Null until known. */
+    val isSharing: Boolean? = null,
 )

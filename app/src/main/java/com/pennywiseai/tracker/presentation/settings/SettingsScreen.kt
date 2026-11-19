@@ -96,6 +96,13 @@ fun SettingsScreen(
     hubViewModel: SettingsHubViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
+    // ponytail: with no app for web links (rare) the tap does nothing rather than crashing.
+    val openLink: (String) -> Unit = { url ->
+        try {
+            context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(url)))
+        } catch (_: android.content.ActivityNotFoundException) {
+        }
+    }
     val isProEntitled by settingsViewModel.isProEntitled.collectAsStateWithLifecycle()
     val hub by hubViewModel.state.collectAsStateWithLifecycle()
     var showUpgradeSheet by remember { mutableStateOf(false) }
@@ -293,7 +300,7 @@ fun SettingsScreen(
                     title = stringResource(R.string.settings_user_guide_title),
                     subtitle = stringResource(R.string.settings_user_guide_subtitle),
                     onClick = {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(Constants.Links.USER_GUIDE_URL)))
+                        openLink(Constants.Links.USER_GUIDE_URL)
                     },
                     position = ListItemPosition.Middle,
                     trailingIcon = Icons.AutoMirrored.Filled.OpenInNew,
@@ -303,8 +310,7 @@ fun SettingsScreen(
                     title = stringResource(R.string.settings_report_issue_title),
                     subtitle = stringResource(R.string.settings_report_issue_subtitle),
                     onClick = {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/sarim2000/pennywiseai-tracker/issues/new/choose"))
-                        context.startActivity(intent)
+                        openLink("https://github.com/sarim2000/pennywiseai-tracker/issues/new/choose")
                     },
                     position = ListItemPosition.Middle,
                     trailingIcon = Icons.AutoMirrored.Filled.OpenInNew,
@@ -315,7 +321,7 @@ fun SettingsScreen(
                     title = stringResource(R.string.home_menu_discord),
                     subtitle = stringResource(R.string.settings_help_community_subtitle),
                     onClick = {
-                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(Constants.Links.DISCORD_URL)))
+                        openLink(Constants.Links.DISCORD_URL)
                     },
                     position = ListItemPosition.Middle,
                     trailingIcon = Icons.AutoMirrored.Filled.OpenInNew,
@@ -328,9 +334,7 @@ fun SettingsScreen(
                         try {
                             context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${context.packageName}")))
                         } catch (_: android.content.ActivityNotFoundException) {
-                            context.startActivity(
-                                Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=${context.packageName}"))
-                            )
+                            openLink("https://play.google.com/store/apps/details?id=${context.packageName}")
                         }
                     },
                     position = ListItemPosition.Bottom,
@@ -424,7 +428,8 @@ private fun SettingsProfileHeader(state: SettingsHubState, modifier: Modifier = 
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        PrivacyPill(isSharing = state.isSharing)
+        // No "never leaves this phone" claim until the sharing sources have reported.
+        state.isSharing?.let { PrivacyPill(isSharing = it) }
     }
 }
 
@@ -582,8 +587,8 @@ private fun SettingsShortcutTile(
                 if (tile.subtitle != null) {
                     Text(
                         text = tile.subtitle,
+                        // Full-opacity tile ink: dimmed, it falls under 4.5:1 on some accent fills.
                         style = MaterialTheme.typography.bodySmall,
-                        color = LocalContentColor.current.copy(alpha = Dimensions.Alpha.subtitle),
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )

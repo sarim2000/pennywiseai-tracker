@@ -186,6 +186,15 @@ fun MarkAsPaidSheet(
                 modifier = Modifier.fillMaxWidth(),
                 textAlign = TextAlign.Center,
             )
+            paymentsProgress(subscription)?.let { progress ->
+                Text(
+                    text = progress,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = TextAlign.Center,
+                )
+            }
             Spacer(Modifier.height(Spacing.lg))
 
             // Already-paid notice — shown when this cycle was marked paid

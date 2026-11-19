@@ -68,6 +68,21 @@ fun resolveBudgetWindow(
 }
 
 /**
+ * The full cadence window just before the one holding [window]'s first day: last
+ * week for a weekly budget, last cycle for a monthly one. [window] may be clipped to
+ * a month (see [windowsForMonth]); the result never is. Not for CUSTOM budgets,
+ * whose single range has nothing before it.
+ */
+fun previousBudgetWindow(
+    budget: BudgetEntity,
+    window: BudgetWindow,
+    globalStartDay: Int = BudgetCycle.DEFAULT_START_DAY
+): BudgetWindow {
+    val full = resolveBudgetWindow(budget, window.start, globalStartDay)
+    return resolveBudgetWindow(budget, full.start.minusDays(1), globalStartDay)
+}
+
+/**
  * (days elapsed, days remaining) in this window as of [today]. Outside the
  * current month the window is fully past. An empty window (days = 0, the
  * placeholder for a budget with no window this month, e.g. a one-time budget

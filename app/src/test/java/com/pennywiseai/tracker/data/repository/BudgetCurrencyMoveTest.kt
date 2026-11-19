@@ -82,6 +82,19 @@ class BudgetCurrencyMoveTest {
     }
 
     @Test
+    fun `a rolled-over budget moving currency starts its rollover again`() {
+        coEvery { dao.getAllBudgets() } returns flowOf(
+            listOf(budget(1, "360", "JOD").copy(rolloverEnabled = true, rolloverSince = LocalDate.of(2026, 1, 1)))
+        )
+        coEvery { dao.getAllBudgetCategories() } returns flowOf(emptyList())
+        lateinit var budgets: List<BudgetEntity>
+        coEvery { dao.updateBudgetsAndCategories(any(), any()) } answers { budgets = firstArg() }
+        runBlocking { repository.moveBudgetsToCurrency("INR", BigDecimal("88.6")) }
+        assertTrue(budgets.single().rolloverEnabled)
+        assertEquals(LocalDate.now(), budgets.single().rolloverSince)
+    }
+
+    @Test
     fun `only active budgets are worth asking about`() = runBlocking {
         coEvery { dao.getActiveBudgets() } returns flowOf(emptyList())
         assertFalse(repository.hasActiveBudgets())

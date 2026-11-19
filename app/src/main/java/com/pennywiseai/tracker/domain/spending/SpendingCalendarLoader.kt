@@ -1,0 +1,35 @@
+package com.pennywiseai.tracker.domain.spending
+
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.domain.review.PeriodReviewLoader
+import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
+import java.time.LocalDate
+import java.time.YearMonth
+import javax.inject.Inject
+
+/**
+ * Loads a month of [SpendingCalendar] days over the same rows as Home and the reviews
+ * (selected profile, no ignored accounts), with what's still due from [today] on and the
+ * card bills still owed.
+ */
+class SpendingCalendarLoader @Inject constructor(
+    private val periodReviewLoader: PeriodReviewLoader,
+    private val upcomingPaymentsLoader: UpcomingPaymentsLoader,
+    private val userPreferencesRepository: UserPreferencesRepository,
+) {
+    fun observe(month: YearMonth, today: LocalDate): Flow<Map<LocalDate, CalendarDay>> {
+        val end = month.atEndOfMonth()
+        // For a month that's over, this is just the card bills from it still owed. For one
+        // ahead, schedules are walked from its first day, so a daily payment still shows.
+        val planned = upcomingPaymentsLoader.observe(today, end, from = month.atDay(1))
+        return combine(
+            periodReviewLoader.scopedRows(month.atDay(1), end),
+            planned,
+            userPreferencesRepository.countCreditCardAsExpense.distinctUntilChanged(),
+        ) { rows, bills, creditAsExpense ->
+            SpendingCalendar.days(month, rows, bills, creditAsExpense, today)
+        }
+    }
+}

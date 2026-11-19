@@ -20,6 +20,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.PlaylistAdd
 import androidx.compose.material.icons.automirrored.filled.ShowChart
+import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.*
@@ -46,7 +47,9 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.chipLabel
+import com.pennywiseai.tracker.presentation.common.filterIcon
 import com.pennywiseai.tracker.presentation.common.label
+import com.pennywiseai.tracker.presentation.common.shortLabel
 import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.ui.animations.pwExpand
 import com.pennywiseai.tracker.ui.components.*
@@ -187,14 +190,9 @@ fun TransactionsScreen(
         accountFilter != null ||
         tagFilter != null ||
         sortOption != SortOption.DATE_NEWEST
-    val advancedFilterCount = listOf(
-        categoryFilter != null || categoriesFilter != null,
-        selectedProfileId != null,
-        accountFilter != null,
-        tagFilter != null,
-        sortOption != SortOption.DATE_NEWEST
-    ).count { it }
     var showAdvancedFilters by rememberSaveable { mutableStateOf(hasAdvancedFilter) }
+    // The quick filters are the list's first item and the panel its second, right under them.
+    val panelInView by remember { derivedStateOf { listState.firstVisibleItemIndex == 0 } }
     // A drill-in (Insights, a budget) applies its filter after the first frame: open the panel then.
     LaunchedEffect(hasAdvancedFilter) { if (hasAdvancedFilter) showAdvancedFilters = true }
 
@@ -206,6 +204,62 @@ fun TransactionsScreen(
     val periodLabel = selectedPeriod.label
     val periodChipLabel = remember(selectedPeriod, budgetCycleStartDay, customRangeLabel, periodLabel) {
         selectedPeriod.chipLabel(budgetCycleStartDay, customRangeLabel, periodLabel)
+    }
+
+    // Everything narrowing or reordering the list except the search text, which shows
+    // in its own field. Each one is a removable chip under the search field, and their
+    // number is the count on the tune button.
+    val activeFilters = buildList {
+        if (selectedPeriod != TimePeriod.THIS_MONTH || customDateRange != null) {
+            add(
+                ActiveFilter("period", periodChipLabel, Icons.Default.CalendarMonth) {
+                    viewModel.clearCustomDateRange()
+                    viewModel.selectPeriod(TimePeriod.THIS_MONTH)
+                }
+            )
+        }
+        if (transactionTypeFilter != TransactionTypeFilter.ALL) {
+            add(
+                ActiveFilter("type", transactionTypeFilter.shortLabel(), transactionTypeFilter.filterIcon()) {
+                    viewModel.setTransactionTypeFilter(TransactionTypeFilter.ALL)
+                }
+            )
+        }
+        categoryFilterLabel(categoryFilter, categoriesFilter, availableCategories)?.let { label ->
+            add(
+                ActiveFilter("category", label, Icons.Default.Category) {
+                    viewModel.clearCategoryFilter()
+                    viewModel.clearCategoriesFilter()
+                }
+            )
+        }
+        if (selectedProfileId != null) {
+            val name = profiles.firstOrNull { it.id == selectedProfileId }?.displayName()
+                ?: stringResource(R.string.txn_list_filter_profile)
+            add(ActiveFilter("profile", name, Icons.Default.Person, viewModel::clearProfileFilter))
+        }
+        if (accountFilter != null) {
+            val label = accountOptions.firstOrNull { it.key == accountFilter }?.label
+                ?: stringResource(R.string.txn_list_filter_account)
+            add(ActiveFilter("account", label, Icons.Default.AccountBalanceWallet) { viewModel.setAccountFilter(null) })
+        }
+        tagFilter?.let { tag ->
+            add(ActiveFilter("tag", tag, Icons.Default.Sell) { viewModel.setTagFilter(null) })
+        }
+        if (hasCurrencyFilter) {
+            add(
+                ActiveFilter("currency", selectedCurrency, Icons.Default.CurrencyExchange) {
+                    viewModel.selectCurrency(primaryVisibleCurrency)
+                }
+            )
+        }
+        if (sortOption != SortOption.DATE_NEWEST) {
+            add(
+                ActiveFilter("sort", stringResource(sortOption.labelRes), Icons.AutoMirrored.Filled.Sort) {
+                    viewModel.setSortOption(SortOption.DATE_NEWEST)
+                }
+            )
+        }
     }
     // "November" over the title while it shows this calendar month; the period otherwise.
     // Re-read on every resume, so "Today" moves on when the app is reopened after midnight.
@@ -477,13 +531,39 @@ fun TransactionsScreen(
                 categoryFilter = categoryFilter,
                 focusRequester = searchFocusRequester,
                 filtersOpen = showAdvancedFilters,
-                advancedFilterCount = advancedFilterCount,
-                onToggleFilters = { showAdvancedFilters = !showAdvancedFilters },
+                activeFilterCount = activeFilters.size,
+                onToggleFilters = {
+                    // The panel is the list's second item: from further down, opening it (or
+                    // tapping again while it's out of view) brings it into view instead of
+                    // changing something off screen.
+                    when {
+                        !showAdvancedFilters -> {
+                            showAdvancedFilters = true
+                            if (!panelInView) scope.launch { listState.animateScrollToItem(0) }
+                        }
+                        !panelInView -> scope.launch { listState.animateScrollToItem(0) }
+                        else -> showAdvancedFilters = false
+                    }
+                },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = Dimensions.Padding.content)
                     .padding(top = Spacing.sm, bottom = Spacing.smd)
             )
+
+            // What's in force, under the search field and so always in view: each removable
+            // on its own, or all at once. While the open panel is on screen it says the same.
+            AnimatedVisibility(
+                visible = activeFilters.isNotEmpty() && !(showAdvancedFilters && panelInView) && !selectionMode,
+                enter = pwExpand(),
+                exit = pwCollapse()
+            ) {
+                ActiveFiltersRow(
+                    filters = activeFilters,
+                    onClearAll = viewModel::resetFilters,
+                    modifier = Modifier.padding(bottom = Spacing.smd)
+                )
+            }
 
             LazyColumn(
                 state = listState,

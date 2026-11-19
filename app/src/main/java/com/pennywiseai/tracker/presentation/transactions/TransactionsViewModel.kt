@@ -944,6 +944,11 @@ class TransactionsViewModel @Inject constructor(
         }
     }
 
+    /** All profiles, here only: like [resetFilters], Home's saved selection is left alone. */
+    fun clearProfileFilter() {
+        _selectedProfileId.value = null
+    }
+
     fun setSortOption(option: SortOption) {
         _sortOption.value = option
     }

@@ -17,6 +17,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextOverflow
@@ -43,7 +44,7 @@ private val QUICK_TYPE_FILTERS = listOf(
 /**
  * The Activity search field: a tall pill with the search glyph, a clear button
  * while there's a query, and a tune button that opens the advanced filters
- * ([filtersOpen]). A count on the tune button shows how many advanced filters are in force.
+ * ([filtersOpen]). A count on the tune button shows how many filters are in force.
  */
 @Composable
 internal fun ActivitySearchField(
@@ -52,10 +53,15 @@ internal fun ActivitySearchField(
     categoryFilter: String?,
     focusRequester: FocusRequester,
     filtersOpen: Boolean,
-    advancedFilterCount: Int,
+    activeFilterCount: Int,
     onToggleFilters: () -> Unit,
     modifier: Modifier = Modifier
 ) {
+    val filtersLabel = if (activeFilterCount > 0) {
+        pluralStringResource(R.plurals.txn_list_filters_active, activeFilterCount, activeFilterCount)
+    } else {
+        stringResource(R.string.txn_list_filters)
+    }
     Surface(
         modifier = modifier.height(Dimensions.Component.listItemMinHeight),
         shape = CircleShape,
@@ -116,11 +122,11 @@ internal fun ActivitySearchField(
                 onCheckedChange = { onToggleFilters() },
                 shapes = IconButtonDefaults.toggleableShapes()
             ) {
-                BadgedBox(badge = { if (advancedFilterCount > 0) Badge { Text(advancedFilterCount.toString()) } }) {
+                BadgedBox(badge = { if (activeFilterCount > 0) Badge { Text(activeFilterCount.toString()) } }) {
                     Icon(
                         imageVector = Icons.Default.Tune,
-                        contentDescription = stringResource(R.string.txn_list_filters),
-                        tint = if (filtersOpen || advancedFilterCount > 0) {
+                        contentDescription = filtersLabel,
+                        tint = if (filtersOpen || activeFilterCount > 0) {
                             MaterialTheme.colorScheme.primary
                         } else {
                             MaterialTheme.colorScheme.onSurfaceVariant
@@ -130,6 +136,76 @@ internal fun ActivitySearchField(
             }
         }
     }
+}
+
+/** One filter in force, as [ActiveFiltersRow] shows it; [onRemove] puts just it back to its default. */
+internal class ActiveFilter(
+    val key: String,
+    val label: String,
+    val icon: ImageVector,
+    val onRemove: () -> Unit
+)
+
+/**
+ * The filters in force as one row of removable chips, Clear all first so it's
+ * reachable however many there are.
+ */
+@Composable
+internal fun ActiveFiltersRow(
+    filters: List<ActiveFilter>,
+    onClearAll: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    LazyRow(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        contentPadding = PaddingValues(horizontal = Dimensions.Padding.content),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        item(key = "clearAll") { ClearFiltersChip(onClick = onClearAll, label = stringResource(R.string.txn_list_clear_filters)) }
+        items(filters.size, key = { filters[it].key }) { index ->
+            val filter = filters[index]
+            InputChip(
+                selected = true,
+                onClick = filter.onRemove,
+                label = { Text(filter.label, maxLines = 1, overflow = TextOverflow.Ellipsis) },
+                leadingIcon = {
+                    Icon(filter.icon, contentDescription = null, modifier = Modifier.size(InputChipDefaults.IconSize))
+                },
+                trailingIcon = {
+                    Icon(
+                        Icons.Default.Close,
+                        contentDescription = stringResource(R.string.txn_list_remove_filter, filter.label),
+                        modifier = Modifier.size(InputChipDefaults.IconSize)
+                    )
+                },
+                shape = MaterialTheme.shapes.medium,
+                colors = InputChipDefaults.inputChipColors(
+                    selectedContainerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    selectedLabelColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    selectedLeadingIconColor = MaterialTheme.colorScheme.onSecondaryContainer,
+                    selectedTrailingIconColor = MaterialTheme.colorScheme.onSecondaryContainer
+                ),
+                modifier = Modifier.animateItem()
+            )
+        }
+    }
+}
+
+@Composable
+private fun ClearFiltersChip(onClick: () -> Unit, label: String) {
+    AssistChip(
+        onClick = onClick,
+        label = { Text(label) },
+        leadingIcon = {
+            Icon(
+                imageVector = Icons.Default.ClearAll,
+                contentDescription = null,
+                modifier = Modifier.size(AssistChipDefaults.IconSize)
+            )
+        },
+        shape = CircleShape
+    )
 }
 
 /**
@@ -284,6 +360,10 @@ internal fun ActivityAdvancedFilters(
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
         contentPadding = PaddingValues(horizontal = Dimensions.Padding.content)
     ) {
+        // First, so it's in reach without scrolling the row.
+        if (hasAnyActiveFilter) {
+            item { ClearFiltersChip(onClick = onResetFilters, label = stringResource(R.string.txn_list_clear_filters)) }
+        }
         item {
             Box {
                 ExpressiveFilterChip(
@@ -513,23 +593,6 @@ internal fun ActivityAdvancedFilters(
                         )
                     }
                 }
-            }
-        }
-
-        if (hasAnyActiveFilter) {
-            item {
-                AssistChip(
-                    onClick = onResetFilters,
-                    label = { Text(stringResource(R.string.txn_list_clear_filters)) },
-                    leadingIcon = {
-                        Icon(
-                            imageVector = Icons.Default.Close,
-                            contentDescription = null,
-                            modifier = Modifier.size(Dimensions.Icon.small)
-                        )
-                    },
-                    shape = CircleShape
-                )
             }
         }
     }

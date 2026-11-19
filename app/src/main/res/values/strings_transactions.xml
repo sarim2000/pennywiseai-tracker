@@ -253,6 +253,11 @@
     <string name="txn_list_filter_category">Category</string>
     <string name="txn_list_filters">Filters</string>
     <string name="txn_list_filters_two">2 Filters</string>
+    <plurals name="txn_list_filters_active">
+        <item quantity="one">Filters, %1$d on</item>
+        <item quantity="other">Filters, %1$d on</item>
+    </plurals>
+    <string name="txn_list_remove_filter">Remove filter: %1$s</string>
     <string name="txn_list_categories_all_except">All except %1$s</string>
     <plurals name="txn_list_categories_count">
         <item quantity="one">%1$d category</item>

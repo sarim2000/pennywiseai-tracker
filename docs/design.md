@@ -247,7 +247,7 @@ the jobs the plain roles don't cover:
 
 Reference `MaterialTheme.shapes.*` rather than re-typing
 `RoundedCornerShape(16.dp)`. Cards use `large`; grouped-list interiors use
-`extraSmall`; pill shapes use `CircleShape`.
+`small`; pill shapes use `CircleShape`.
 
 Expressive accents use `MaterialShapes` (opt-in `ExperimentalMaterial3ExpressiveApi`):
 merchant avatars (`BrandIcon`, `LetterAvatar`) and the empty-state badge are

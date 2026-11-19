@@ -71,6 +71,7 @@ import com.pennywiseai.tracker.ui.components.toColorOr
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.readableOn
 import com.pennywiseai.tracker.ui.theme.success
 import com.pennywiseai.tracker.ui.theme.warning
 import com.pennywiseai.tracker.utils.AmountPrivacy
@@ -105,7 +106,8 @@ fun GoalStatusPill(progress: GoalProgress, modifier: Modifier = Modifier) {
         text = text,
         style = MaterialTheme.typography.labelMedium,
         fontWeight = FontWeight.SemiBold,
-        color = content,
+        // The wash pulls the fill toward the ink, so re-check the ink against it.
+        color = content.readableOn(listOf(container)),
         modifier = modifier
             .background(container, CircleShape)
             .padding(horizontal = Spacing.sm, vertical = Spacing.xxs),

@@ -20,6 +20,7 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.pennywiseai.tracker.ui.components.WavyMeter
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.readableOn
 
 /** A determinate data meter: the app's still wavy bar (see [WavyMeter]). */
 @Composable
@@ -66,7 +67,7 @@ internal fun PlanShapeBadge(
     )
 }
 
-/** [PlanShapeBadge] holding [icon] in its own [color]. */
+/** [PlanShapeBadge] holding [icon] in its own [color], darkened/lightened just enough to read on the wash. */
 @Composable
 internal fun PlanIconBadge(
     icon: ImageVector,
@@ -78,7 +79,8 @@ internal fun PlanIconBadge(
         Icon(
             imageVector = icon,
             contentDescription = null,
-            tint = color,
+            // A goal's colour is user-picked and can be pale; keep its hue but make it read.
+            tint = color.readableOn(listOf(color.tintOver())),
             modifier = Modifier.size(Dimensions.Icon.medium),
         )
     }

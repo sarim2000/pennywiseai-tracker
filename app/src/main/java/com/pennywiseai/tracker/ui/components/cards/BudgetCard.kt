@@ -32,6 +32,7 @@ import com.pennywiseai.tracker.ui.components.toColorOr
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.readableOn
 import com.pennywiseai.tracker.ui.theme.success
 import com.pennywiseai.tracker.ui.theme.warning
 import com.pennywiseai.tracker.utils.AmountPrivacy
@@ -190,13 +191,15 @@ internal fun BudgetStatusContent(
 /** Small tinted pill naming a status: "On track", "Getting close", "Reached". */
 @Composable
 private fun BudgetStatusChip(text: String, color: Color) {
+    val fill = color.copy(alpha = Dimensions.Alpha.categoryTint).compositeOver(MaterialTheme.colorScheme.surfaceContainerLow)
     Text(
         text = text,
         style = MaterialTheme.typography.labelMedium,
         fontWeight = FontWeight.SemiBold,
-        color = color,
+        // The wash pulls the fill toward the ink, so re-check the ink against it.
+        color = color.readableOn(listOf(fill)),
         modifier = Modifier
-            .background(color.copy(alpha = Dimensions.Alpha.categoryTint).compositeOver(MaterialTheme.colorScheme.surfaceContainerLow), CircleShape)
+            .background(fill, CircleShape)
             .padding(horizontal = Spacing.smd, vertical = Spacing.xxs),
     )
 }

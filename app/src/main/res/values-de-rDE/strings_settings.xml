@@ -410,7 +410,6 @@
     <!-- Privacy & Data -->
     <string name="faq_privacy_section">Datenschutz &amp; Daten</string>
     <string name="faq_data_secure_question">Sind meine Finanzdaten sicher?</string>
-    <string name="faq_data_secure_answer">Ja! Alle Daten bleiben auf deinem Gerät. Wir haben weder Server noch Cloud-Speicher. Das KI-Modell funktioniert lokal für vollständige Privatsphäre.</string>
     <string name="faq_backup_question">Kann ich meine Daten sichern?</string>
     <string name="faq_backup_answer">Derzeit werden nur Daten lokal gespeichert. Export/Sicherungsfunktionen sind für zukünftige Updates geplant.</string>
     <string name="faq_data_access_question">Welche Daten greift die App zu?</string>

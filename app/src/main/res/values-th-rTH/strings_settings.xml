@@ -402,7 +402,6 @@
     <!-- Privacy & Data -->
     <string name="faq_privacy_section">ความเป็นส่วนตัวและข้อมูล</string>
     <string name="faq_data_secure_question">ข้อมูลการเงินของฉันปลอดภัยไหม?</string>
-    <string name="faq_data_secure_answer">ปลอดภัย! ข้อมูลทั้งหมดอยู่ในเครื่องของคุณ เราไม่มีเซิร์ฟเวอร์หรือคลาวด์ โมเดล AI ทำงานในเครื่องเพื่อความเป็นส่วนตัวเต็มที่</string>
     <string name="faq_backup_question">สำรองข้อมูลได้ไหม?</string>
     <string name="faq_backup_answer">ตอนนี้ข้อมูลเก็บไว้ในเครื่องเท่านั้น ฟีเจอร์ส่งออก/สำรองข้อมูลมีแผนจะเพิ่มในอัปเดตต่อๆ ไป</string>
     <string name="faq_data_access_question">แอปเข้าถึงข้อมูลอะไรบ้าง?</string>

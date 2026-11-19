@@ -412,7 +412,6 @@
     <!-- Privacy & Data -->
     <string name="faq_privacy_section">Faragha &amp; Data</string>
     <string name="faq_data_secure_question">Je, data yangu ya kifedha iko salama?</string>
-    <string name="faq_data_secure_answer">Ndiyo! Data yote inabaki kwenye kifaa chako. Hatuna seva wala hifadhi ya wingu. Modeli ya AI inaendeshwa kwenye simu yako kwa faragha kamili.</string>
     <string name="faq_backup_question">Je, naweza kuhifadhi nakala ya data yangu?</string>
     <string name="faq_backup_answer">Kwa sasa, data inahifadhiwa kwenye kifaa tu. Vipengele vya kuhamisha/kuhifadhi nakala vimepangwa kwa masasisho yajayo.</string>
     <string name="faq_data_access_question">App inafikia data gani?</string>

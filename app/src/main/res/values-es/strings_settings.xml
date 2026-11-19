@@ -407,7 +407,6 @@
     <!-- Privacy & Data -->
     <string name="faq_privacy_section">Privacidad y datos</string>
     <string name="faq_data_secure_question">¿Mis datos financieros están seguros?</string>
-    <string name="faq_data_secure_answer">¡Sí! Todos los datos se quedan en tu dispositivo. No tenemos servidores ni almacenamiento en la nube. El modelo de AI funciona localmente para una privacidad total.</string>
     <string name="faq_backup_question">¿Puedo hacer una copia de seguridad de mis datos?</string>
     <string name="faq_backup_answer">Por ahora, los datos solo se guardan localmente. Las funciones de exportación y copia de seguridad están previstas para futuras actualizaciones.</string>
     <string name="faq_data_access_question">¿A qué datos accede la app?</string>

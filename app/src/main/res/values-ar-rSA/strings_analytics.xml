@@ -171,17 +171,8 @@
     <string name="budget_edit_resets_last_working_day">تتجدد في آخر يوم عمل من كل شهر</string>
     <string name="budget_edit_runs_once">تعمل لمرة واحدة، دون ترحيل</string>
     <string name="budget_edit_current_window">الفترة الحالية</string>
-    <string name="budget_edit_rollover">ترحيل المتبقي أو الزائد</string>
-    <string name="budget_edit_rollover_subtitle">يُضاف ما لم يُصرف إلى الفترة التالية ويُخصم منها ما زاد عن الميزانية، بحد أقصى قيمة ميزانية واحدة.</string>
-    <string name="budget_rollover_carried_in">الأساس %1$s + %2$s مُرحّل = %3$s</string>
-    <string name="budget_rollover_carried_out">الأساس %1$s − %2$s صرف زائد = %3$s</string>
-    <string name="budget_rollover_incomplete">لم يُرحَّل شيء: بعض مصروفات الفترة الماضية بلا سعر صرف. أضفه أو حدّثه من الإعدادات › العملة › أسعار الصرف.</string>
     <!-- Link under budget_rollover_incomplete; opens the Exchange Rates screen -->
-    <string name="budget_rollover_add_rate">إضافة سعر صرف</string>
     <!-- Shown while a budget is in the period rollover was turned on in, which carries nothing in -->
-    <string name="budget_rollover_starts_next_week">يبدأ الترحيل مع ميزانية الأسبوع القادم</string>
-    <string name="budget_rollover_starts_next_month">يبدأ الترحيل مع ميزانية الشهر القادم</string>
-    <string name="budget_history_carried">مُرحّل: %1$s</string>
     <!-- %1$s = start date, %2$s = end date, %3$s = reset rule (e.g. "Resets every Monday") -->
     <string name="budget_edit_window_caption">%1$s - %2$s · %3$s</string>
     <string name="budget_edit_category_limits">حدود الفئات (اختياري)</string>
@@ -210,7 +201,6 @@
     <string name="budget_history_current">الحالية</string>
     <string name="budget_history_live">مباشر · ما زال يتراكم</string>
     <string name="budget_history_frozen">مُثبّتة بتاريخ %1$s</string>
-    <string name="budget_history_not_started">لم تبدأ بعد</string>
     <string name="budget_history_categories">الفئات</string>
     <!-- %1$s = budget amount, %2$d = percent used -->
     <string name="budget_history_of_budget_percent">من %1$s · %2$d%%</string>
@@ -264,7 +254,6 @@
     <string name="category_edit_delete_message">سيُحذف \"%1$s\". ستحتفظ المعاملات الحالية بتسميتها الحالية. لا يمكن التراجع عن ذلك.</string>
     <!-- ══ Subscriptions screen ══ -->
     <string name="subscriptions_title">الاشتراكات</string>
-    <string name="subscriptions_back">الرجوع</string>
     <string name="subscriptions_add">إضافة اشتراك</string>
     <string name="subscriptions_undo">تراجع</string>
     <!-- %1$s = merchant name -->
@@ -338,6 +327,7 @@
     <string name="subscriptions_edit_paid_from">مدفوع من</string>
     <string name="subscriptions_edit_pick_account">اختيار حساب</string>
     <string name="subscriptions_edit_save">حفظ</string>
+    <!-- A plan that ends after a set number of payments (#1061). %1$d = paid, %2$d = total, %3$s = amount left -->
     <!-- Mark-as-paid results (snackbar); %1$s = merchant, %2$s = next payment date -->
     <string name="subscriptions_msg_marked_paid">تم تحديد %1$s كمدفوع · الدورة التالية في %2$s</string>
     <string name="subscriptions_msg_linked">تم ربط %1$s · الدورة التالية في %2$s</string>
@@ -346,6 +336,7 @@
     <string name="subscriptions_msg_not_found">تعذر العثور على هذا الاشتراك</string>
     <string name="subscriptions_msg_linked_existing">تم ربط %1$s بدفعة موجودة · الدورة التالية في %2$s</string>
     <string name="subscriptions_msg_linked_generic">تم الربط</string>
+    <!-- %1$s = merchant, %2$d = number of payments in the plan -->
     <!-- ══ Mark-as-paid sheet ══ -->
     <string name="mark_paid_eyebrow_paid">تحديد كمدفوع</string>
     <string name="mark_paid_eyebrow_received">تحديد كمستلَم</string>

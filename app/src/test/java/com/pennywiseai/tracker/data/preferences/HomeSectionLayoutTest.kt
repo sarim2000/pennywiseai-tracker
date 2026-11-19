@@ -125,4 +125,50 @@ class HomeSectionLayoutTest {
             HomeSectionLayout.withVisibility(threeSections, HomeSection.BUDGETS, true),
         )
     }
+
+    // Fresh-install default (Activity off) vs. every stored / upgraded layout.
+
+    @Test
+    fun `fresh install with no stored layout seeds Activity hidden`() {
+        val seeded = HomeSectionLayout.seedForFreshInstall(null)
+        val decoded = HomeSectionLayout.decode(seeded)
+        assertEquals(HomeSection.ACTIVITY to false, decoded.single { it.first == HomeSection.ACTIVITY })
+        assertEquals(HomeSection.entries.toList(), decoded.map { it.first })
+        assertEquals(HomeSection.entries.size - 1, decoded.count { it.second })
+    }
+
+    @Test
+    fun `absent value on an upgrade still decodes to all visible`() {
+        assertEquals(HomeSection.ACTIVITY to true, HomeSectionLayout.decode(null).single { it.first == HomeSection.ACTIVITY })
+    }
+
+    @Test
+    fun `a stored layout is never reseeded`() {
+        listOf("", "ACTIVITY", "!ACTIVITY", "BUDGETS,!UNSORTED").forEach {
+            assertEquals(it, null, HomeSectionLayout.seedForFreshInstall(it))
+        }
+    }
+
+    @Test
+    fun `explicit Activity stays visible and hidden Activity stays hidden`() {
+        assertEquals(HomeSection.ACTIVITY to true, HomeSectionLayout.decode("ACTIVITY").single { it.first == HomeSection.ACTIVITY })
+        assertEquals(HomeSection.ACTIVITY to false, HomeSectionLayout.decode("!ACTIVITY").single { it.first == HomeSection.ACTIVITY })
+    }
+
+    @Test
+    fun `legacy layout missing Activity gets it back visible`() {
+        val decoded = HomeSectionLayout.decode("SAFE_TO_SPEND,BUDGETS,RECENT_TRANSACTIONS")
+        assertEquals(HomeSection.ACTIVITY to true, decoded.single { it.first == HomeSection.ACTIVITY })
+    }
+
+    @Test
+    fun `reordered and hidden Unsorted keeps its place and state`() {
+        // Sections missing from the saved string slot in around these; the saved three keep their order.
+        val saved = setOf(HomeSection.RECENT_TRANSACTIONS, HomeSection.UNSORTED, HomeSection.BUDGETS)
+        val decoded = HomeSectionLayout.decode("RECENT_TRANSACTIONS,!UNSORTED,BUDGETS").filter { it.first in saved }
+        assertEquals(listOf(HomeSection.RECENT_TRANSACTIONS to true, HomeSection.UNSORTED to false, HomeSection.BUDGETS to true), decoded)
+        val full = HomeSection.entries.filter { it != HomeSection.UNSORTED } + HomeSection.UNSORTED
+        val moved = HomeSectionLayout.decode(full.joinToString(",") { it.name })
+        assertEquals(HomeSection.UNSORTED to true, moved.last())
+    }
 }

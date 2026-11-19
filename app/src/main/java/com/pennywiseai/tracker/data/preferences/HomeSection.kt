@@ -29,6 +29,20 @@ enum class HomeSection(val label: String) {
 object HomeSectionLayout {
     val DEFAULT: List<Pair<HomeSection, Boolean>> = HomeSection.entries.map { it to true }
 
+    /**
+     * What a brand-new install starts with: [DEFAULT] minus the Activity heatmap, which
+     * Insights already draws. Only ever written by [seedForFreshInstall]; an existing,
+     * restored or absent-on-upgrade layout keeps decoding to [DEFAULT].
+     */
+    val FRESH_INSTALL: List<Pair<HomeSection, Boolean>> = withVisibility(DEFAULT, HomeSection.ACTIVITY, false)
+
+    /**
+     * The value to store when onboarding finishes on a fresh install, or null to leave
+     * [stored] alone. Only an absent value is seeded: anything stored (even blank) is the
+     * user's or a restore's, and is never overwritten.
+     */
+    fun seedForFreshInstall(stored: String?): String? = if (stored == null) encode(FRESH_INSTALL) else null
+
     fun encode(layout: List<Pair<HomeSection, Boolean>>): String =
         layout.joinToString(",") { (section, visible) -> (if (visible) "" else "!") + section.name }
 

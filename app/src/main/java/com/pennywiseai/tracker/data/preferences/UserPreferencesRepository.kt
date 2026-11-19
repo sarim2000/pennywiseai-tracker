@@ -1529,9 +1529,18 @@ open class UserPreferencesRepository internal constructor(
         }
     }
 
-    suspend fun updateHasCompletedOnboarding(completed: Boolean) {
+    /**
+     * [freshInstall]: onboarding just finished on a new install (not the legacy
+     * auto-complete for upgraders), so Home starts from [HomeSectionLayout.FRESH_INSTALL]
+     * unless a layout is already stored.
+     */
+    suspend fun updateHasCompletedOnboarding(completed: Boolean, freshInstall: Boolean = false) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.HAS_COMPLETED_ONBOARDING] = completed
+            if (completed && freshInstall) {
+                HomeSectionLayout.seedForFreshInstall(preferences[PreferencesKeys.HOME_SECTIONS])
+                    ?.let { preferences[PreferencesKeys.HOME_SECTIONS] = it }
+            }
         }
     }
 

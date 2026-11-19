@@ -398,6 +398,20 @@ class UserPreferencesStorageGoldenTest {
     }
 
     @Test
+    fun `only a fresh onboarding seeds the Home layout, and never over a stored one`() = runBlocking {
+        // Legacy auto-complete for upgraders: no layout written.
+        repository.updateHasCompletedOnboarding(true)
+        assertNull(stored()[string("home_sections")])
+        // Fresh install: Activity starts hidden.
+        repository.updateHasCompletedOnboarding(true, freshInstall = true)
+        assertTrue("!ACTIVITY" in stored()[string("home_sections")].orEmpty().split(","))
+        // A stored (or restored) layout is left exactly as it is.
+        store.edit { it[string("home_sections")] = "ACTIVITY,!UNSORTED" }
+        repository.updateHasCompletedOnboarding(true, freshInstall = true)
+        assertEquals("ACTIVITY,!UNSORTED", stored()[string("home_sections")])
+    }
+
+    @Test
     fun `read fallbacks are unchanged`() = runBlocking {
         store.edit { it[string("base_currency")] = "EUR" }
         assertEquals("EUR", repository.displayCurrency.first())

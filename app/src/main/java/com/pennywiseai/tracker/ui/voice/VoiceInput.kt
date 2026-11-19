@@ -713,7 +713,7 @@ private fun VoiceLanguageMenu(voice: VoiceInput) {
         }
     }
     var showAll by remember(voice.menuOpen) { mutableStateOf(false) }
-    DropdownMenu(expanded = voice.menuOpen, onDismissRequest = { voice.menuOpen = false }) {
+    DropdownMenu(expanded = voice.menuOpen, onDismissRequest = { voice.menuOpen = false }, shape = MaterialTheme.shapes.large) {
         val current = voice.language
         val usable = voice.usable
         usable.forEachIndexed { index, tag ->

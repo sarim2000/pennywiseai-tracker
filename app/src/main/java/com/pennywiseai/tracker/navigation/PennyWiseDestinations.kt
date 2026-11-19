@@ -78,6 +78,10 @@ data object Chat : NavKey
 @Serializable
 data class TransactionDetail(val transactionId: Long) : NavKey
 
+/** Which form the Add screen opens on. */
+@Serializable
+enum class AddForm { TRANSACTION, SUBSCRIPTION }
+
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable
 data class AddTransaction(
@@ -95,6 +99,8 @@ data class AddTransaction(
     val type: String? = null,
     val dateTime: String? = null,
     val unrecognizedSmsId: Long? = null,
+    // Bills' "+" opens the Subscription form directly.
+    val form: AddForm = AddForm.TRANSACTION,
     // Unique per open, so two Add screens on the stack never share one ViewModel/draft
     // (Navigation 3 keys an entry's ViewModels by its key). Always encoded, so the
     // same value comes back after process death.

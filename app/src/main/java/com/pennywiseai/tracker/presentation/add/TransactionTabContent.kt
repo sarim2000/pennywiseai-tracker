@@ -4,17 +4,13 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.rounded.KeyboardArrowDown
+import androidx.compose.material.icons.rounded.MoreHoriz
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -27,10 +23,12 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
@@ -48,8 +46,10 @@ import com.pennywiseai.tracker.ui.components.AmountCalculatorSheet
 import com.pennywiseai.tracker.ui.components.CategoryChip
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
-import com.pennywiseai.tracker.ui.components.SelectedCategoryIcon
+import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.components.TagInputField
+import com.pennywiseai.tracker.ui.components.cards.GroupedList
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -57,110 +57,99 @@ import com.pennywiseai.tracker.ui.theme.money
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.time.format.DateTimeFormatter
-import java.util.Locale
+import java.time.format.FormatStyle
 
-// Reusable filled text field colors with no indicator
-@Composable
-private fun filledFieldColors() = TextFieldDefaults.colors(
-    focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-    unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-    focusedIndicatorColor = Color.Transparent,
-    unfocusedIndicatorColor = Color.Transparent,
-    focusedLabelColor = MaterialTheme.colorScheme.primary,
-    unfocusedLabelColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(0.7f),
-    disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-    disabledIndicatorColor = Color.Transparent,
-    disabledLabelColor = MaterialTheme.colorScheme.primary,
-    disabledTextColor = MaterialTheme.colorScheme.onSurface,
-    disabledTrailingIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
-    disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
-)
-
-private val topShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
-private val bottomShape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
-private val middleShape = RoundedCornerShape(4.dp)
-private val fullShape = RoundedCornerShape(16.dp)
-
-/** Which account picker the shared account dropdown is currently assigning to. */
+/** Which account picker the shared account menu is currently assigning to. */
 private enum class AccountPickerTarget { FROM, TO }
 
+/** The types on the face of the form; the rest sit under "More types" until picked. */
+private val MAIN_TYPES = listOf(TransactionType.EXPENSE, TransactionType.INCOME, TransactionType.TRANSFER)
+
 /**
- * Tappable account card used by the single-account picker and by both legs of a
- * TRANSFER. Shows the selected account (alias when set, else bank name, with a
- * ••last4 subtitle) or [placeholder], with a clear button when an account is
- * set. The alias line matches the dropdown items so the account doesn't change
- * name the moment the menu closes (#637).
+ * The accounts to pick from, grouped by type, with an optional "none" first. [accounts] is
+ * already narrowed by the caller (a transfer's legs share a currency and differ).
  */
 @Composable
-private fun AccountSelectorCard(
-    account: AccountBalanceEntity?,
-    placeholder: String,
-    shape: androidx.compose.ui.graphics.Shape,
-    onClick: () -> Unit,
-    onClear: () -> Unit
+internal fun AccountMenu(
+    expanded: Boolean,
+    accounts: List<AccountBalanceEntity>,
+    selected: AccountBalanceEntity?,
+    onPick: (AccountBalanceEntity?) -> Unit,
+    onDismiss: () -> Unit,
+    noneLabel: String? = null,
+    noneHint: String? = null
 ) {
-    Card(
-        onClick = onClick,
-        modifier = Modifier.fillMaxWidth(),
-        shape = shape,
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-        ),
-        border = null
-    ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = 12.dp, vertical = 16.dp),
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(12.dp)
-        ) {
-            Icon(
-                (account?.getAccountType() ?: AccountType.SAVINGS).icon,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+    DropdownMenu(expanded = expanded, onDismissRequest = onDismiss, shape = MaterialTheme.shapes.large) {
+        if (noneLabel != null) {
+            SelectableDropdownMenuItem(
+                selected = selected == null,
+                shapes = MenuDefaults.itemShape(0, 1),
+                colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
+                text = {
+                    Column {
+                        Text(noneLabel)
+                        noneHint?.let {
+                            Text(it, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                        }
+                    }
+                },
+                onClick = { onPick(null) },
+                leadingIcon = { Icon(Icons.Default.Block, contentDescription = null) },
+                selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
             )
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = account?.let { it.alias?.takeIf { a -> a.isNotBlank() } ?: it.bankName }
-                        ?: placeholder,
-                    style = MaterialTheme.typography.bodyLarge,
-                    color = if (account != null)
-                        MaterialTheme.colorScheme.onSurface
-                    else MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                if (account != null &&
-                    account.accountLast4 != AccountBalanceEntity.WALLET_ACCOUNT_MARKER) {
+        }
+        accounts.groupBy { it.getAccountType() }.forEach { (accountType, accountList) ->
+            DropdownMenuItem(
+                text = {
                     Text(
-                        text = "••${account.accountLast4}",
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = accountType.displayName(),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        fontWeight = FontWeight.Bold
                     )
-                }
-            }
-            if (account != null) {
-                IconButton(
-                    onClick = onClear,
-                    modifier = Modifier.size(24.dp),
-                    shapes = IconButtonDefaults.shapes()
-                ) {
-                    Icon(
-                        Icons.Default.Clear,
-                        contentDescription = stringResource(R.string.add_clear),
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-            Icon(
-                Icons.Rounded.KeyboardArrowDown,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                onClick = {},
+                enabled = false
             )
+            accountList.forEachIndexed { index, account ->
+                SelectableDropdownMenuItem(
+                    selected = selected?.id == account.id,
+                    shapes = MenuDefaults.itemShape(index, accountList.size),
+                    colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
+                    text = {
+                        Column {
+                            Text(account.displayLabel)
+                            Text(
+                                CurrencyFormatter.formatCurrency(account.balance, account.currency),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    },
+                    onClick = { onPick(account) },
+                    leadingIcon = { Icon(accountType.icon, contentDescription = null) },
+                    selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
+                )
+            }
         }
     }
 }
 
+/** The leading glyph of an account row: the account's type, or a generic bank. */
+@Composable
+internal fun AccountGlyph(account: AccountBalanceEntity?) {
+    Icon(
+        (account?.getAccountType() ?: AccountType.SAVINGS).icon,
+        contentDescription = null,
+        tint = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+}
+
+/**
+ * The transaction form, in the order a person fills it: type → amount → merchant →
+ * category / account / date → the optional rest folded under "More details" → Save,
+ * kept above the keyboard.
+ */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun TransactionTabContent(
@@ -178,14 +167,17 @@ fun TransactionTabContent(
     // Closing the picker would hand focus back to a text field and pop its keyboard up again.
     val focusManager = LocalFocusManager.current
     var showTimePicker by remember { mutableStateOf(false) }
-    var showCategoryMenu by remember { mutableStateOf(false) }
+    var showCategoryPicker by remember { mutableStateOf(false) }
+    var showMoreTypes by remember { mutableStateOf(false) }
     // Which account picker is open (null = closed). For a TRANSFER this routes the
-    // chosen account to either the FROM or TO card; for other types only FROM is used.
+    // chosen account to either the FROM or TO row; for other types only FROM is used.
     var accountPickerTarget by remember { mutableStateOf<AccountPickerTarget?>(null) }
-    var showCurrencyMenu by remember { mutableStateOf(false) }
     var showCalculator by rememberSaveable { mutableStateOf(false) }
+    var moreOpen by rememberSaveable { mutableStateOf(false) }
 
     val isTransfer = uiState.transactionType == TransactionType.TRANSFER
+    // A budget impact without its category can't be saved: keep that field in view.
+    val moreExpanded = moreOpen || (uiState.budgetImpactType != null && uiState.budgetCategory == null)
 
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
@@ -194,72 +186,73 @@ fun TransactionTabContent(
                 .imePadding()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = Dimensions.Padding.content, vertical = Dimensions.Padding.content),
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+            verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
-            // ── Amount ──
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                verticalAlignment = Alignment.Top
-            ) {
-                ExposedDropdownMenuBox(
-                    expanded = showCurrencyMenu,
-                    onExpandedChange = { showCurrencyMenu = it },
-                    modifier = Modifier.width(130.dp)
-                ) {
-                    TextField(
-                        value = "${CurrencyFormatter.getCurrencySymbol(uiState.currency)} ${uiState.currency}",
-                        onValueChange = {},
-                        readOnly = true,
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCurrencyMenu) },
-                        modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
-                        singleLine = true,
-                        shape = fullShape,
-                        colors = filledFieldColors()
-                    )
-                    ExposedDropdownMenu(
-                        expanded = showCurrencyMenu,
-                        onDismissRequest = { showCurrencyMenu = false }
+            // ── Type: the usual three, and the one picked under More types once it is ──
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                ConnectedChoiceRow(
+                    options = MAIN_TYPES + listOfNotNull(uiState.transactionType.takeIf { it !in MAIN_TYPES }),
+                    selected = uiState.transactionType,
+                    onSelect = viewModel::updateTransactionType,
+                    label = { stringResource(transactionTypeLabel(it)) },
+                    modifier = Modifier.weight(1f)
+                )
+                Box {
+                    IconButton(onClick = { showMoreTypes = true }, shapes = IconButtonDefaults.shapes()) {
+                        Icon(Icons.Rounded.MoreHoriz, contentDescription = stringResource(R.string.add_more_types))
+                    }
+                    DropdownMenu(
+                        expanded = showMoreTypes,
+                        onDismissRequest = { showMoreTypes = false },
+                        shape = MaterialTheme.shapes.large
                     ) {
-                        CurrencyFormatter.getSupportedCurrencies().forEach { currency ->
+                        TransactionType.entries.filter { it !in MAIN_TYPES }.forEach { type ->
                             DropdownMenuItem(
-                                text = { Text("${CurrencyFormatter.getCurrencySymbol(currency)} $currency") },
+                                text = { Text(stringResource(transactionTypeLabel(type))) },
                                 onClick = {
-                                    viewModel.updateTransactionCurrency(currency)
-                                    showCurrencyMenu = false
+                                    viewModel.updateTransactionType(type)
+                                    showMoreTypes = false
                                 }
                             )
                         }
                     }
                 }
-
-                TextField(
-                    value = uiState.amount,
-                    onValueChange = viewModel::updateTransactionAmount,
-                    label = { Text(stringResource(R.string.add_field_amount), fontWeight = FontWeight.SemiBold) },
-                    textStyle = MaterialTheme.typography.headlineSmall.money(),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    isError = uiState.amountError != null,
-                    supportingText = uiState.amountError?.let { { Text(it.asString()) } },
-                    trailingIcon = {
-                        IconButton(
-                            onClick = {
-                                // The sheet has its own keypad; the keyboard would cover it.
-                                focusManager.clearFocus()
-                                showCalculator = true
-                            },
-                            enabled = uiState.draftLoaded,
-                            shapes = IconButtonDefaults.shapes()
-                        ) {
-                            Icon(Icons.Default.Calculate, contentDescription = stringResource(R.string.calculator_open))
-                        }
-                    },
-                    modifier = Modifier.weight(1f),
-                    singleLine = true,
-                    shape = fullShape,
-                    colors = filledFieldColors()
-                )
             }
+
+            // ── Amount, its currency (a transfer's is the From account's) and the calculator ──
+            TextField(
+                value = uiState.amount,
+                onValueChange = viewModel::updateTransactionAmount,
+                label = { Text(stringResource(R.string.add_field_amount)) },
+                textStyle = MaterialTheme.typography.headlineSmall.money(),
+                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                isError = uiState.amountError != null,
+                supportingText = uiState.amountError?.let { { Text(it.asString()) } },
+                leadingIcon = {
+                    CurrencyButton(
+                        currency = uiState.entryCurrency,
+                        onPick = viewModel::updateTransactionCurrency,
+                        enabled = !(isTransfer && uiState.selectedAccount != null)
+                    )
+                },
+                trailingIcon = {
+                    IconButton(
+                        onClick = {
+                            // The sheet has its own keypad; the keyboard would cover it.
+                            focusManager.clearFocus()
+                            showCalculator = true
+                        },
+                        enabled = uiState.draftLoaded,
+                        shapes = IconButtonDefaults.shapes()
+                    ) {
+                        Icon(Icons.Default.Calculate, contentDescription = stringResource(R.string.calculator_open))
+                    }
+                },
+                modifier = Modifier.fillMaxWidth(),
+                singleLine = true,
+                shape = RoundedField.shape,
+                colors = RoundedField.colors()
+            )
             if (showCalculator) {
                 AmountCalculatorSheet(
                     initialAmount = uiState.amount,
@@ -272,494 +265,243 @@ fun TransactionTabContent(
                 )
             }
 
-            // ── Merchant + Notes + Reference (connected cards) ──
-            // Merchant is meaningless for a TRANSFER (it moves money between own
-            // accounts), so hide it and start the group at Notes.
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(1.5.dp)
-            ) {
-                if (!isTransfer) {
-                    TextField(
-                        value = uiState.merchant,
-                        onValueChange = viewModel::updateTransactionMerchant,
-                        label = { Text(stringResource(R.string.add_field_merchant), fontWeight = FontWeight.SemiBold) },
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = topShape,
-                        leadingIcon = { Icon(Icons.Default.Store, contentDescription = null) },
-                        isError = uiState.merchantError != null,
-                        supportingText = uiState.merchantError?.let { { Text(it.asString()) } },
-                        colors = filledFieldColors()
+            // ── Merchant: a transfer moves money between own accounts, so it has none ──
+            if (!isTransfer) {
+                TextField(
+                    value = uiState.merchant,
+                    onValueChange = viewModel::updateTransactionMerchant,
+                    label = { Text(stringResource(R.string.add_field_merchant)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
+                    modifier = Modifier.fillMaxWidth(),
+                    leadingIcon = { Icon(Icons.Default.Store, contentDescription = null) },
+                    isError = uiState.merchantError != null,
+                    supportingText = uiState.merchantError?.let { { Text(it.asString()) } },
+                    shape = RoundedField.shape,
+                    colors = RoundedField.colors()
+                )
+            }
+
+            // ── Category / Account (From + To for a transfer) / Date ──
+            val noAccount = stringResource(R.string.add_txn_no_account)
+            val select = stringResource(R.string.add_select)
+            val rows = 3
+            GroupedList {
+                if (isTransfer) {
+                    PickerRow(
+                        position = ListItemPosition.from(0, rows),
+                        label = stringResource(R.string.add_txn_from_account),
+                        value = uiState.selectedAccount?.displayLabel ?: select,
+                        onClick = { focusManager.clearFocus(); accountPickerTarget = AccountPickerTarget.FROM },
+                        leading = { AccountGlyph(uiState.selectedAccount) },
+                        menu = {
+                            AccountMenu(
+                                expanded = accountPickerTarget == AccountPickerTarget.FROM,
+                                accounts = accounts.filter { it.id != uiState.toAccount?.id },
+                                selected = uiState.selectedAccount,
+                                onPick = { viewModel.updateSelectedAccount(it); accountPickerTarget = null },
+                                onDismiss = { accountPickerTarget = null }
+                            )
+                        }
+                    )
+                    PickerRow(
+                        position = ListItemPosition.from(1, rows),
+                        label = stringResource(R.string.add_txn_to_account),
+                        value = uiState.toAccount?.displayLabel ?: select,
+                        onClick = { focusManager.clearFocus(); accountPickerTarget = AccountPickerTarget.TO },
+                        leading = { AccountGlyph(uiState.toAccount) },
+                        menu = {
+                            // Only a different account in the same currency can take the money.
+                            val from = uiState.selectedAccount
+                            AccountMenu(
+                                expanded = accountPickerTarget == AccountPickerTarget.TO,
+                                accounts = accounts.filter { from == null || (it.id != from.id && it.currency == from.currency) },
+                                selected = uiState.toAccount,
+                                onPick = { viewModel.updateToAccount(it); accountPickerTarget = null },
+                                onDismiss = { accountPickerTarget = null }
+                            )
+                        }
+                    )
+                } else {
+                    val selectedCategory = categories.find { it.name == uiState.category }
+                    PickerRow(
+                        position = ListItemPosition.from(0, rows),
+                        label = stringResource(R.string.add_field_category),
+                        value = categoryLabel(uiState.category),
+                        onClick = { focusManager.clearFocus(); showCategoryPicker = true },
+                        leading = {
+                            if (selectedCategory != null) {
+                                CategoryChip(category = selectedCategory, showText = false)
+                            } else {
+                                Icon(Icons.Default.Category, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            }
+                        },
+                        supporting = uiState.categoryError?.asString()
+                    )
+                    PickerRow(
+                        position = ListItemPosition.from(1, rows),
+                        label = stringResource(R.string.add_field_account),
+                        value = uiState.selectedAccount?.displayLabel ?: noAccount,
+                        valueColor = if (uiState.selectedAccount != null) {
+                            MaterialTheme.colorScheme.onSurface
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        },
+                        onClick = { focusManager.clearFocus(); accountPickerTarget = AccountPickerTarget.FROM },
+                        leading = { AccountGlyph(uiState.selectedAccount) },
+                        menu = {
+                            AccountMenu(
+                                expanded = accountPickerTarget == AccountPickerTarget.FROM,
+                                accounts = accounts,
+                                selected = uiState.selectedAccount,
+                                onPick = { viewModel.updateSelectedAccount(it); accountPickerTarget = null },
+                                onDismiss = { accountPickerTarget = null },
+                                noneLabel = noAccount,
+                                noneHint = stringResource(R.string.add_txn_no_account_hint)
+                            )
+                        }
                     )
                 }
+                PickerRow(
+                    position = ListItemPosition.from(2, rows),
+                    label = stringResource(R.string.add_field_date),
+                    value = uiState.date.format(AppDates.dateFormatter()),
+                    onClick = { focusManager.clearFocus(); showDatePicker = true },
+                    leading = { Icon(Icons.Default.CalendarToday, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+                )
+            }
 
+            // ── More details: time, notes, reference, tags, budget impact, receipt ──
+            val filled = listOfNotNull(
+                stringResource(R.string.add_detail_notes).takeIf { uiState.notes.isNotBlank() },
+                stringResource(R.string.add_detail_reference).takeIf { uiState.reference.isNotBlank() },
+                "${stringResource(R.string.add_detail_tags)} (${uiState.tags.size})".takeIf { uiState.tags.isNotEmpty() },
+                stringResource(R.string.txn_detail_budget_impact).takeIf { uiState.budgetImpactType != null },
+                stringResource(R.string.add_detail_receipt).takeIf { uiState.receiptUri != null }
+            )
+            val timeText = uiState.date.format(DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(AppDates.locale()))
+            GroupedList {
+                MoreDetailsRow(
+                    position = if (moreExpanded) ListItemPosition.Top else ListItemPosition.Single,
+                    expanded = moreExpanded,
+                    summary = filled.joinToString(" · ").ifEmpty { stringResource(R.string.add_more_details_hint) },
+                    onToggle = { moreOpen = !moreExpanded }
+                )
+                if (moreExpanded) {
+                    PickerRow(
+                        position = ListItemPosition.Bottom,
+                        label = stringResource(R.string.add_field_time),
+                        value = timeText,
+                        onClick = { focusManager.clearFocus(); showTimePicker = true },
+                        leading = { Icon(Icons.Default.Schedule, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant) }
+                    )
+                }
+            }
+            if (moreExpanded) {
                 TextField(
                     value = uiState.notes,
                     onValueChange = viewModel::updateTransactionNotes,
-                    label = { Text(stringResource(R.string.add_field_notes), fontWeight = FontWeight.SemiBold) },
+                    label = { Text(stringResource(R.string.add_field_notes)) },
                     modifier = Modifier.fillMaxWidth(),
-                    shape = if (isTransfer) topShape else middleShape,
                     leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) },
-                    colors = filledFieldColors()
+                    shape = RoundedField.shape,
+                    colors = RoundedField.colors()
                 )
-
                 TextField(
                     value = uiState.reference,
                     onValueChange = viewModel::updateTransactionReference,
-                    label = { Text(stringResource(R.string.add_field_reference), fontWeight = FontWeight.SemiBold) },
+                    label = { Text(stringResource(R.string.add_field_reference)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
-                    shape = bottomShape,
                     leadingIcon = { Icon(Icons.Default.Tag, contentDescription = null) },
-                    colors = filledFieldColors()
+                    shape = RoundedField.shape,
+                    colors = RoundedField.colors()
+                )
+                val allTagNames by viewModel.allTagNames.collectAsStateWithLifecycle()
+                TagInputField(
+                    selectedTags = uiState.tags,
+                    allTags = allTagNames,
+                    onAddTag = viewModel::addTransactionTag,
+                    onRemoveTag = viewModel::removeTransactionTag
+                )
+                if (uiState.transactionType == TransactionType.INCOME) {
+                    val activeBudgetCategories by viewModel.activeBudgetCategories.collectAsStateWithLifecycle()
+                    val refundCategories by viewModel.refundCategories.collectAsStateWithLifecycle()
+                    AddBudgetImpactSection(
+                        budgetImpactType = uiState.budgetImpactType,
+                        budgetCategory = uiState.budgetCategory,
+                        activeBudgetCategories = if (uiState.budgetImpactType == BudgetImpactType.DEDUCT_SPENT) refundCategories else activeBudgetCategories,
+                        onImpactTypeChange = viewModel::updateBudgetImpactType,
+                        onCategoryChange = viewModel::updateBudgetCategory
+                    )
+                }
+                ReceiptPickerSection(
+                    receiptUri = uiState.receiptUri,
+                    onReceiptSelected = { uri -> viewModel.updateReceiptUri(uri) },
+                    onReceiptRemoved = { viewModel.updateReceiptUri(null) },
+                    onCreateCameraUri = { viewModel.createCameraUri() }
                 )
             }
 
-            // ── Tags (create or select existing) ──
-            val allTagNames by viewModel.allTagNames.collectAsStateWithLifecycle()
-            TagInputField(
-                selectedTags = uiState.tags,
-                allTags = allTagNames,
-                onAddTag = viewModel::addTransactionTag,
-                onRemoveTag = viewModel::removeTransactionTag
-            )
-
-            // ── Transaction Type chips ──
-            FlowRow(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-            ) {
-                TransactionType.values().forEach { type ->
-                    FilterChip(
-                        selected = uiState.transactionType == type,
-                        shapes = FilterChipDefaults.shapes(),
-                        onClick = { viewModel.updateTransactionType(type) },
-                        label = {
-                            Text(stringResource(transactionTypeLabel(type)))
-                        },
-                        leadingIcon = if (uiState.transactionType == type) {
-                            {
-                                Icon(
-                                    Icons.Default.Check,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(Dimensions.Icon.small)
-                                )
-                            }
-                        } else null,
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primaryContainer,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow.copy(0.7f),
-                            labelColor = MaterialTheme.colorScheme.onSurface
-                        ),
-                        border = FilterChipDefaults.filterChipBorder(
-                            borderWidth = 0.dp,
-                            selected = uiState.transactionType == type,
-                            enabled = true
-                        )
-                    )
-                }
-            }
-
-            // ── Date + Time row ──
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // Date button
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .background(
-                            color = MaterialTheme.colorScheme.surfaceContainerLow,
-                            shape = RoundedCornerShape(Dimensions.CornerRadius.medium)
-                        )
-                        .padding(Spacing.sm)
-                        .clickable(
-                            onClick = { focusManager.clearFocus(); showDatePicker = true },
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() }
-                        ),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Row(
-                        modifier = Modifier.padding(vertical = Spacing.xs),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center
-                    ) {
-                        Icon(
-                            Icons.Default.CalendarToday,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurface
-                        )
-                        Spacer(Modifier.size(Spacing.sm))
-                        Column {
-                            Text(
-                                text = uiState.date.format(DateTimeFormatter.ofPattern("yyyy")),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = uiState.date.format(AppDates.pattern("dd MMMM")),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurface,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis
-                            )
-                        }
-                    }
-                }
-
-                // Time display
-                Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .padding(horizontal = Spacing.sm, vertical = Spacing.sm)
-                        .clickable { showTimePicker = true },
-                    contentAlignment = Alignment.CenterEnd
-                ) {
-                    Row(
-                        modifier = Modifier.fillMaxWidth(),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.End
-                    ) {
-                        val hour = if (uiState.date.hour % 12 == 0) 12 else uiState.date.hour % 12
-                        val minute = uiState.date.minute
-                        val amPm = if (uiState.date.hour < 12) "AM" else "PM"
-
-                        Box(
-                            modifier = Modifier
-                                .padding(Spacing.xs)
-                                .background(
-                                    color = MaterialTheme.colorScheme.primary.copy(0.2f),
-                                    shape = MaterialTheme.shapes.small
-                                )
-                        ) {
-                            Text(
-                                text = String.format("%02d", hour),
-                                color = MaterialTheme.colorScheme.primary,
-                                style = PennyWiseText.amountMedium,
-                                modifier = Modifier.padding(Spacing.xs)
-                            )
-                        }
-                        Text(
-                            text = ":",
-                            color = MaterialTheme.colorScheme.onSurface,
-                            style = PennyWiseText.amountMedium
-                        )
-                        Box(
-                            modifier = Modifier
-                                .padding(Spacing.xs)
-                                .background(
-                                    color = MaterialTheme.colorScheme.surfaceVariant,
-                                    shape = MaterialTheme.shapes.small
-                                )
-                        ) {
-                            Text(
-                                text = String.format("%02d", minute),
-                                color = MaterialTheme.colorScheme.onSurface,
-                                style = PennyWiseText.amountMedium,
-                                modifier = Modifier.padding(Spacing.xs)
-                            )
-                        }
-                        Box(modifier = Modifier.padding(Spacing.xs)) {
-                            Text(
-                                text = amPm,
-                                style = MaterialTheme.typography.labelLarge,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-            }
-
-            // ── Account(s) + Category (connected cards) ──
-            if (isTransfer) {
-                // Two account pickers: From (money out) and To (money in).
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(1.5.dp)
-                ) {
-                    AccountSelectorCard(
-                        account = uiState.selectedAccount,
-                        placeholder = stringResource(R.string.add_txn_from_account),
-                        shape = topShape,
-                        onClick = { accountPickerTarget = AccountPickerTarget.FROM },
-                        onClear = { viewModel.updateSelectedAccount(null) }
-                    )
-                    AccountSelectorCard(
-                        account = uiState.toAccount,
-                        placeholder = stringResource(R.string.add_txn_to_account),
-                        shape = bottomShape,
-                        onClick = { accountPickerTarget = AccountPickerTarget.TO },
-                        onClear = { viewModel.updateToAccount(null) }
-                    )
-                }
-            } else {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(1.5.dp)
-                ) {
-                    // Account card
-                    AccountSelectorCard(
-                        account = uiState.selectedAccount,
-                        placeholder = stringResource(R.string.add_txn_select_account),
-                        shape = topShape,
-                        onClick = { accountPickerTarget = AccountPickerTarget.FROM },
-                        onClear = { viewModel.updateSelectedAccount(null) }
-                    )
-
-                    // Category field
-                    ExposedDropdownMenuBox(
-                        expanded = showCategoryMenu,
-                        onExpandedChange = { showCategoryMenu = it },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        TextField(
-                            value = categoryLabel(uiState.category),
-                            onValueChange = {},
-                            label = { Text(stringResource(R.string.add_field_category), fontWeight = FontWeight.SemiBold) },
-                            readOnly = true,
-                            singleLine = true,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
-                            shape = bottomShape,
-                            leadingIcon = { SelectedCategoryIcon(categories.find { it.name == uiState.category }) },
-                            trailingIcon = {
-                                Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null)
-                            },
-                            isError = uiState.categoryError != null,
-                            supportingText = uiState.categoryError?.let { { Text(it.asString()) } },
-                            colors = filledFieldColors()
-                        )
-                    }
-                }
-            }
-
-            // A sheet, not the dropdown menu, so its search field can get the keyboard (#1058).
-            if (showCategoryMenu) {
-                QuickCategoryPickerSheet(
-                    currentCategory = uiState.category,
-                    categories = categories,
-                    onCategorySelected = {
-                        viewModel.updateTransactionCategory(it)
-                        showCategoryMenu = false
-                    },
-                    onDismiss = { showCategoryMenu = false },
-                    mostUsed = mostUsedCategories,
-                    onAddCategory = {
-                        showCategoryMenu = false
-                        addCategoryName = it
-                    }
-                )
-            }
-
-            addCategoryName?.let { initialName ->
-                CategoryEditDialog(
-                    defaultIsIncome = uiState.transactionType == TransactionType.INCOME,
-                    lockType = true,
-                    initialName = initialName,
-                    parentOptions = categories,
-                    onDismiss = { addCategoryName = null },
-                    onSave = { name, color, _, icon, parentId ->
-                        // Close only once the category is created and selected, so the
-                        // modal dialog blocks Save / type changes until it lands.
-                        viewModel.createAndSelectCategory(name, color, icon, parentId) { addCategoryName = null }
-                    }
-                )
-            }
-
-            // Account selection dropdown menu (shared by From/To pickers).
-            DropdownMenu(
-                expanded = accountPickerTarget != null,
-                onDismissRequest = { accountPickerTarget = null }
-            ) {
-                val target = accountPickerTarget
-                // "No account" only makes sense outside a transfer — both transfer
-                // legs must reference a real account to move money.
-                if (!isTransfer) {
-                    SelectableDropdownMenuItem(
-                        selected = uiState.selectedAccount == null,
-                        shapes = MenuDefaults.itemShape(0, 1),
-                        colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
-                        text = {
-                            Column {
-                                Text(stringResource(R.string.add_txn_no_account))
-                                Text(
-                                    stringResource(R.string.add_txn_no_account_hint),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        },
-                        onClick = {
-                            viewModel.updateSelectedAccount(null)
-                            accountPickerTarget = null
-                        },
-                        leadingIcon = { Icon(Icons.Default.Block, contentDescription = null) },
-                        selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
-                    )
-                    HorizontalDivider()
-                }
-                val selectedForTarget = when (target) {
-                    AccountPickerTarget.TO -> uiState.toAccount
-                    else -> uiState.selectedAccount
-                }
-                val groupedAccounts = accounts.groupBy { it.getAccountType() }
-                groupedAccounts.forEach { (accountType, accountList) ->
-                    DropdownMenuItem(
-                        text = {
-                            Text(
-                                text = accountType.displayName(),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                fontWeight = FontWeight.Bold
-                            )
-                        },
-                        onClick = {},
-                        enabled = false
-                    )
-                    accountList.forEachIndexed { index, account ->
-                        SelectableDropdownMenuItem(
-                            selected = selectedForTarget?.id == account.id,
-                            shapes = MenuDefaults.itemShape(index, accountList.size),
-                            colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
-                            text = {
-                                Column {
-                                    Text(account.displayLabel)
-                                    Text(
-                                        CurrencyFormatter.formatCurrency(account.balance, account.currency),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                            },
-                            onClick = {
-                                if (target == AccountPickerTarget.TO) {
-                                    viewModel.updateToAccount(account)
-                                } else {
-                                    viewModel.updateSelectedAccount(account)
-                                }
-                                accountPickerTarget = null
-                            },
-                            leadingIcon = {
-                                Icon(
-                                    accountType.icon,
-                                    contentDescription = null
-                                )
-                            },
-                            selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
-                        )
-                    }
-                }
-            }
-
-            // ── Budget Impact (INCOME only) ──
-            if (uiState.transactionType == TransactionType.INCOME) {
-                val activeBudgetCategories by viewModel.activeBudgetCategories.collectAsStateWithLifecycle()
-                val refundCategories by viewModel.refundCategories.collectAsStateWithLifecycle()
-                AddBudgetImpactSection(
-                    budgetImpactType = uiState.budgetImpactType,
-                    budgetCategory = uiState.budgetCategory,
-                    activeBudgetCategories = if (uiState.budgetImpactType == BudgetImpactType.DEDUCT_SPENT) refundCategories else activeBudgetCategories,
-                    onImpactTypeChange = viewModel::updateBudgetImpactType,
-                    onCategoryChange = viewModel::updateBudgetCategory
-                )
-            }
-
-            // ── Receipt ──
-            ReceiptPickerSection(
-                receiptUri = uiState.receiptUri,
-                onReceiptSelected = { uri -> viewModel.updateReceiptUri(uri) },
-                onReceiptRemoved = { viewModel.updateReceiptUri(null) },
-                onCreateCameraUri = { viewModel.createCameraUri() }
-            )
-
-            // Bottom padding for save button overlay
-            Spacer(modifier = Modifier.height(72.dp + Spacing.lg))
+            // Room for the Save bar laid over the end of the form.
+            Spacer(modifier = Modifier.height(Dimensions.Component.fab + Spacing.xxl))
         }
 
-        // ── Sticky Save Button ──
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .align(Alignment.BottomCenter)
-                // Fade in above the button only; behind it stays solid, so a
-                // disabled (translucent) Save never shows the form through it.
-                .background(
-                    brush = Brush.verticalGradient(
-                        colors = listOf(Color.Transparent, MaterialTheme.colorScheme.surface),
-                        endY = with(LocalDensity.current) { Spacing.lg.toPx() }
-                    )
-                ),
-            contentAlignment = Alignment.BottomCenter
-        ) {
-            Button(
-                onClick = { viewModel.saveTransaction(onSuccess = onSave) },
-                enabled = uiState.isValid && !uiState.isLoading,
-                modifier = Modifier
-                    .padding(top = Spacing.lg)
-                    .navigationBarsPadding()
-                    .padding(horizontal = Dimensions.Padding.content)
-                    .fillMaxWidth()
-                    .height(56.dp),
-                shapes = ButtonDefaults.shapes()
-            ) {
-                if (uiState.isLoading) {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(Dimensions.Icon.small),
-                        strokeWidth = 2.dp
-                    )
-                } else {
-                    Icon(Icons.Default.Done, contentDescription = null)
-                    Spacer(Modifier.width(Spacing.sm))
-                    Text(stringResource(R.string.add_save), style = MaterialTheme.typography.titleMedium)
+        // A sheet, not a dropdown menu, so its search field can get the keyboard (#1058).
+        if (showCategoryPicker) {
+            QuickCategoryPickerSheet(
+                currentCategory = uiState.category,
+                categories = categories,
+                onCategorySelected = {
+                    viewModel.updateTransactionCategory(it)
+                    showCategoryPicker = false
+                },
+                onDismiss = { showCategoryPicker = false },
+                mostUsed = mostUsedCategories,
+                onAddCategory = {
+                    showCategoryPicker = false
+                    addCategoryName = it
                 }
-            }
+            )
         }
-    }
 
-    // Date Picker Dialog
-    if (showDatePicker) {
-        val datePickerState = rememberDatePickerState(
-            initialSelectedDateMillis = uiState.date
-                .toLocalDate()
-                .atStartOfDay()
-                .toInstant(java.time.ZoneOffset.UTC)
-                .toEpochMilli()
+        addCategoryName?.let { initialName ->
+            CategoryEditDialog(
+                defaultIsIncome = uiState.transactionType == TransactionType.INCOME,
+                lockType = true,
+                initialName = initialName,
+                parentOptions = categories,
+                onDismiss = { addCategoryName = null },
+                onSave = { name, color, _, icon, parentId ->
+                    // Close only once the category is created and selected, so the
+                    // modal dialog blocks Save / type changes until it lands.
+                    viewModel.createAndSelectCategory(name, color, icon, parentId) { addCategoryName = null }
+                }
+            )
+        }
+
+        SaveBar(
+            error = uiState.error?.asString(),
+            enabled = uiState.isValid && !uiState.isLoading,
+            loading = uiState.isLoading,
+            onClick = { viewModel.saveTransaction(onSuccess = onSave) },
+            modifier = Modifier.align(Alignment.BottomCenter)
         )
-
-        DatePickerDialog(
-            onDismissRequest = { showDatePicker = false },
-            confirmButton = {
-                TextButton(
-                    onClick = {
-                        datePickerState.selectedDateMillis?.let { millis ->
-                            viewModel.updateTransactionDate(millis)
-                        }
-                        showDatePicker = false
-                    },
-                    shapes = ButtonDefaults.shapes()
-                ) { Text(stringResource(R.string.add_ok)) }
-            },
-            dismissButton = {
-                TextButton(onClick = { showDatePicker = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.add_cancel)) }
-            }
-        ) {
-            DatePicker(state = datePickerState)
-        }
     }
 
-    // Time Picker Dialog
+    if (showDatePicker) {
+        AddDatePickerDialog(
+            initial = uiState.date.toLocalDate(),
+            onPick = viewModel::updateTransactionDate,
+            onDismiss = { showDatePicker = false }
+        )
+    }
+
     if (showTimePicker) {
         val timePickerState = rememberTimePickerState(
             initialHour = uiState.date.hour,
             initialMinute = uiState.date.minute
         )
-
         AlertDialog(
             onDismissRequest = { showTimePicker = false },
             title = { Text(stringResource(R.string.add_select_time)) },
@@ -777,6 +519,62 @@ fun TransactionTabContent(
                 TextButton(onClick = { showTimePicker = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.add_cancel)) }
             }
         )
+    }
+}
+
+/**
+ * Save, pinned to the bottom above the keyboard, with a save failure said right above it
+ * (the draft stays, so the user can fix it and try again).
+ */
+@Composable
+internal fun SaveBar(
+    error: String?,
+    enabled: Boolean,
+    loading: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            // Fade in above the bar only; behind it stays solid, so a disabled
+            // (translucent) Save never shows the form through it.
+            .background(
+                brush = Brush.verticalGradient(
+                    colors = listOf(Color.Transparent, MaterialTheme.colorScheme.surface),
+                    endY = with(LocalDensity.current) { Spacing.lg.toPx() }
+                )
+            )
+            .imePadding()
+            .navigationBarsPadding()
+            .padding(horizontal = Dimensions.Padding.content)
+            .padding(top = Spacing.lg, bottom = Spacing.sm),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+    ) {
+        error?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.error,
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+            )
+        }
+        Button(
+            onClick = onClick,
+            enabled = enabled,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = Dimensions.Component.fab),
+            shapes = ButtonDefaults.shapes()
+        ) {
+            if (loading) {
+                LoadingIndicator(modifier = Modifier.size(Dimensions.Icon.medium))
+            } else {
+                Icon(Icons.Default.Done, contentDescription = null)
+                Spacer(Modifier.width(Spacing.sm))
+                Text(stringResource(R.string.add_save), style = MaterialTheme.typography.titleMedium)
+            }
+        }
     }
 }
 
@@ -917,6 +715,7 @@ private fun AddBudgetImpactSection(
                 onExpandedChange = { expanded = it }
             ) {
                 OutlinedTextField(
+                    shape = RoundedField.shape,
                     value = budgetCategory ?: stringResource(R.string.txn_detail_budget_select_category),
                     onValueChange = {},
                     readOnly = true,
@@ -929,7 +728,8 @@ private fun AddBudgetImpactSection(
                 )
                 ExposedDropdownMenu(
                     expanded = expanded,
-                    onDismissRequest = { expanded = false }
+                    onDismissRequest = { expanded = false },
+                    shape = MaterialTheme.shapes.large
                 ) {
                     if (activeBudgetCategories.isEmpty()) {
                         DropdownMenuItem(

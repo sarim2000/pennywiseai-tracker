@@ -77,4 +77,25 @@
     <string name="insights_chart_values">View chart values</string>
     <string name="insights_no_transactions">No transactions</string>
     <string name="insights_ask">Ask about your money</string>
+
+    <!-- rd:add -->
+    <string name="add_error_duplicate">This transaction is already saved</string>
+    <string name="add_more_types">More types</string>
+    <string name="add_field_account">Account</string>
+    <string name="add_field_date">Date</string>
+    <string name="add_field_time">Time</string>
+    <string name="add_field_currency">Currency: %1$s</string>
+    <string name="add_more_details_hint">Time, notes, tags, receipt</string>
+    <string name="add_sub_more_details_hint">Notes, instalments</string>
+    <string name="add_detail_notes">Notes</string>
+    <string name="add_detail_reference">Reference</string>
+    <string name="add_detail_tags">Tags</string>
+    <string name="add_detail_receipt">Receipt</string>
+    <string name="add_sub_next_payment">Next payment</string>
+    <string name="add_select">Select</string>
+    <string name="quick_add_all_categories">All categories</string>
+    <string name="quick_add_today">Today</string>
+    <string name="quick_add_yesterday">Yesterday</string>
+    <string name="quick_add_other_date">Other date</string>
+    <string name="quick_add_summary">%1$s · %2$s</string>
 </resources>

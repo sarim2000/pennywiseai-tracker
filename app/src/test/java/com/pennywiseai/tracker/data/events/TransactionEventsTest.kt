@@ -69,7 +69,7 @@ class TransactionEventsTest {
         val holder = Regex(""":\s*(?:[\w.]+\.)?AddTransactionUseCase\b""")
         val files = Konsist.scopeFromProduction(moduleName = "app").files
         val holders = files.filter { holder.containsMatchIn(it.text) }.map { it.name }.toSet()
-        assertEquals(setOf("AddViewModel", "QuickAddActivity", "ChatViewModel"), holders)
+        assertEquals(setOf("AddViewModel", "QuickAddViewModel", "ChatViewModel"), holders)
         // The chat card goes through executeAll, which announces nothing; its caller does.
         val chat = files.single { it.name == "ChatViewModel" }.text
         assertTrue(Regex("""addTransactionUseCase\.execute(Transfer)?\(""").find(chat) == null)

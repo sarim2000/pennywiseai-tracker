@@ -47,6 +47,9 @@ import com.pennywiseai.tracker.data.preferences.NavBarStyle
 import com.pennywiseai.tracker.presentation.accounts.AddAccountScreen
 import com.pennywiseai.tracker.presentation.accounts.ManageAccountsScreen
 import com.pennywiseai.tracker.presentation.accounts.ManageAccountsViewModel
+import com.pennywiseai.tracker.presentation.add.QuickAddDraft
+import com.pennywiseai.tracker.presentation.add.QuickAddSheet
+import com.pennywiseai.tracker.presentation.add.QuickAddViewModel
 import com.pennywiseai.tracker.presentation.chat.ChatTabViewModel
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.home.HomeScreen
@@ -107,6 +110,19 @@ internal fun transactionsFor(link: ChatLink) = Transactions(
     currencyOnly = true,
     profilePinned = true,
     profileId = link.profileId,
+)
+
+/** The full Add form, carrying what the quick sheet held so nothing is typed twice. */
+private fun QuickAddDraft.toRoute(form: AddForm = AddForm.TRANSACTION) = AddTransaction(
+    amount = amount.ifEmpty { null },
+    merchant = merchant.trim().ifEmpty { null },
+    category = category,
+    bankName = account?.bankName,
+    accountLast4 = account?.accountLast4,
+    currency = currency,
+    type = type.name,
+    dateTime = dateTime?.toString(),
+    form = form,
 )
 
 /** Pops this stack back to its first screen, which becomes [root]. */
@@ -313,6 +329,12 @@ fun MainScreen(
         openAsk()
     }
 
+    // The "+" (Home, Transactions): a quick sheet over the tabs. Its fuller paths open the
+    // Add screen above them; Bills' "+" opens that screen's Subscription form directly.
+    var quickAdd by rememberSaveable { mutableStateOf(false) }
+    val quickAddViewModel: QuickAddViewModel = hiltViewModel()
+    val openQuickAdd = { quickAdd = true }
+
     // Home's scan, for the Spotlight tutorial drawn over the bar (set by Home's entry).
     var scanSms by remember { mutableStateOf<(() -> Unit)?>(null) }
 
@@ -384,9 +406,7 @@ fun MainScreen(
                 onNavigateToSmsCheckup = {
                     openRoot(SmsCheckup)
                 },
-                onNavigateToAddScreen = {
-                    openRoot(AddTransaction())
-                },
+                onNavigateToAddScreen = openQuickAdd,
                 onTransactionClick = { transactionId ->
                     openRoot(TransactionDetail(transactionId))
                 },
@@ -438,9 +458,7 @@ fun MainScreen(
                     onTransactionClick = { transactionId ->
                         openRoot(TransactionDetail(transactionId))
                     },
-                    onAddTransactionClick = {
-                        openRoot(AddTransaction())
-                    }
+                    onAddTransactionClick = openQuickAdd
                 )
             }
         }
@@ -451,7 +469,7 @@ fun MainScreen(
                     backFrom(tab, key)
                 },
                 onAddSubscriptionClick = {
-                    openRoot(AddTransaction())
+                    openRoot(AddTransaction(form = AddForm.SUBSCRIPTION))
                 }
             )
         }
@@ -487,7 +505,7 @@ fun MainScreen(
                             )
                             PlanSection.BILLS -> SubscriptionsScreen(
                                 planTab = host,
-                                onAddSubscriptionClick = { openRoot(AddTransaction()) },
+                                onAddSubscriptionClick = { openRoot(AddTransaction(form = AddForm.SUBSCRIPTION)) },
                             )
                             PlanSection.GOALS -> PlanGoalsScreen(
                                 host = host,
@@ -729,6 +747,28 @@ fun MainScreen(
                     hazeState = hazeState,
                     dock = dockForTabs,
                     modifier = Modifier.align(Alignment.BottomCenter)
+                )
+            }
+
+            if (quickAdd) {
+                QuickAddSheet(
+                    listenFirst = false,
+                    onDismiss = { quickAdd = false },
+                    onSaved = { quickAdd = false },
+                    onMoreDetails = {
+                        quickAdd = false
+                        openRoot(it.toRoute())
+                    },
+                    onSubscription = {
+                        quickAdd = false
+                        openRoot(it.toRoute(AddForm.SUBSCRIPTION))
+                    },
+                    onAsk = {
+                        quickAddViewModel.askInChat(it)
+                        quickAdd = false
+                        openAsk()
+                    },
+                    viewModel = quickAddViewModel
                 )
             }
 

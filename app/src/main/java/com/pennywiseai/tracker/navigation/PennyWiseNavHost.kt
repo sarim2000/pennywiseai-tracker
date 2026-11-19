@@ -238,6 +238,7 @@ fun PennyWiseNavHost(
 
                     entry<AddTransaction> { key ->
                         com.pennywiseai.tracker.presentation.add.AddScreen(
+                            initialForm = key.form,
                             onNavigateBack = {
                                 backStack.pop(key)
                             }
@@ -482,7 +483,7 @@ fun PennyWiseNavHost(
                     entry<Subscriptions> { key ->
                         com.pennywiseai.tracker.presentation.subscriptions.SubscriptionsScreen(
                             onNavigateBack = { backStack.pop(key) },
-                            onAddSubscriptionClick = { backStack.navigate(AddTransaction()) },
+                            onAddSubscriptionClick = { backStack.navigate(AddTransaction(form = AddForm.SUBSCRIPTION)) },
                             showBack = true,
                         )
                     }

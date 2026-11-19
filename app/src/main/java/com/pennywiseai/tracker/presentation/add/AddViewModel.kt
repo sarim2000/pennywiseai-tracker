@@ -108,6 +108,9 @@ class AddViewModel @Inject constructor(
     // change supersedes a slower earlier one instead of landing stale. (#678)
     private var merchantSuggestionJob: Job? = null
 
+    // One save per open form; a failed or refused insert keeps the draft (see [SaveGate]).
+    private val saveGate = SaveGate()
+
     init {
         // Load base currency and set as default for both transaction and subscription
         viewModelScope.launch {
@@ -139,6 +142,14 @@ class AddViewModel @Inject constructor(
                     category = draftCategory ?: it.category,
                     currency = draftCurrency ?: it.currency,
                     date = draftDateTime ?: it.date
+                )
+            }
+            // The same draft starts the Subscription form, so switching forms keeps what was typed.
+            _subscriptionUiState.update {
+                it.copy(
+                    amount = draftAmount ?: it.amount,
+                    serviceName = draftMerchant ?: it.serviceName,
+                    currency = draftCurrency ?: it.currency
                 )
             }
             selectAccount(draftBankName, draftAccountLast4)
@@ -267,14 +278,14 @@ class AddViewModel @Inject constructor(
     // Transaction Tab Functions
     fun updateSelectedAccount(account: AccountBalanceEntity?) {
         _transactionUiState.update { currentState ->
-            // For a TRANSFER, the FROM account drives the entry currency so the
-            // two figures can't silently disagree (we never sum across currencies).
-            val currency = if (currentState.transactionType == TransactionType.TRANSFER && account != null) {
-                account.currency
-            } else {
-                currentState.currency
-            }
-            currentState.copy(selectedAccount = account, currency = currency)
+            // The account drives the entry currency (a balance moves by the raw amount, and
+            // we never sum across currencies); a To account in another currency is dropped.
+            val currency = account?.currency ?: currentState.currency
+            currentState.copy(
+                selectedAccount = account,
+                currency = currency,
+                toAccount = currentState.toAccount?.takeIf { it.currency == currency && it.id != account?.id }
+            )
         }
     }
 
@@ -463,7 +474,12 @@ class AddViewModel @Inject constructor(
 
     fun updateTransactionCurrency(currency: String) {
         _transactionUiState.update { currentState ->
-            currentState.copy(currency = currency)
+            // An account in another currency can't take this amount: drop it rather than mix.
+            currentState.copy(
+                currency = currency,
+                selectedAccount = currentState.selectedAccount?.takeIf { it.currency == currency },
+                toAccount = currentState.toAccount?.takeIf { it.currency == currency }
+            )
         }
     }
 
@@ -524,14 +540,11 @@ class AddViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            try {
-                _transactionUiState.update { it.copy(isLoading = true) }
-
+            val selectedAccount = state.selectedAccount
+            val outcome = saveGate.save {
+                _transactionUiState.update { it.copy(isLoading = true, error = null) }
                 val amount = BigDecimal(state.amount)
-                val selectedAccount = state.selectedAccount
-
                 val receiptPath = state.receiptUri?.let { receiptManager.saveReceipt(it) }
-
                 addTransactionUseCase.execute(
                     amount = amount,
                     merchant = state.merchant.trim(),
@@ -549,20 +562,35 @@ class AddViewModel @Inject constructor(
                     budgetCategory = state.budgetCategory,
                     budgetImpactType = state.budgetImpactType
                 )
-
-                com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(appContext)
-                com.pennywiseai.tracker.worker.MoneyAlertWorker.enqueue(appContext)
-                bookedFromSuggestion(selectedAccount)
-
-                onSuccess()
-            } catch (e: Exception) {
-                _transactionUiState.update { currentState ->
-                    currentState.copy(
-                        isLoading = false,
-                        error = e.message?.let { UiText.Plain(it) } ?: UiText.Res(R.string.add_error_save_transaction)
-                    )
-                }
             }
+            onTransactionOutcome(outcome, R.string.add_error_save_transaction, onSuccess) {
+                bookedFromSuggestion(selectedAccount)
+            }
+        }
+    }
+
+    /**
+     * Closes the form only on a confirmed row. The follow-ups (widgets, alerts, the SMS
+     * suggestion) run apart from it: one failing mustn't report a saved row as failed and
+     * have it entered twice.
+     */
+    private suspend fun onTransactionOutcome(
+        outcome: SaveOutcome,
+        failedMessage: Int,
+        onSuccess: () -> Unit,
+        followUp: suspend () -> Unit
+    ) {
+        when (outcome) {
+            SaveOutcome.Saved -> {
+                runCatching {
+                    followUp()
+                    com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(appContext)
+                    com.pennywiseai.tracker.worker.MoneyAlertWorker.enqueue(appContext)
+                }.onFailure { Log.w("AddViewModel", "After-save work failed", it) }
+                onSuccess()
+            }
+            SaveOutcome.Busy -> Unit
+            else -> _transactionUiState.update { it.copy(isLoading = false, error = outcome.message(failedMessage)) }
         }
     }
 
@@ -591,9 +619,8 @@ class AddViewModel @Inject constructor(
         onSuccess: () -> Unit
     ) {
         viewModelScope.launch {
-            try {
+            val outcome = saveGate.save {
                 _transactionUiState.update { it.copy(isLoading = true, error = null) }
-
                 addTransactionUseCase.executeTransfer(
                     amount = BigDecimal(state.amount),
                     date = state.date,
@@ -606,21 +633,11 @@ class AddViewModel @Inject constructor(
                     toBankName = to.bankName,
                     toLast4 = to.accountLast4
                 )
+            }
+            onTransactionOutcome(outcome, R.string.add_error_save_transfer, onSuccess) {
                 // A suggestion saved as a transfer is handled too (#994).
                 // The SMS speaks for one leg: the receiving account for a credit, the paying one otherwise.
                 bookedFromSuggestion(if (draftType == TransactionType.INCOME) to else from)
-
-                com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(appContext)
-                com.pennywiseai.tracker.worker.MoneyAlertWorker.enqueue(appContext)
-
-                onSuccess()
-            } catch (e: Exception) {
-                _transactionUiState.update { currentState ->
-                    currentState.copy(
-                        isLoading = false,
-                        error = e.message?.let { UiText.Plain(it) } ?: UiText.Res(R.string.add_error_save_transfer)
-                    )
-                }
             }
         }
     }
@@ -709,7 +726,10 @@ class AddViewModel @Inject constructor(
 
     fun updateSubscriptionCurrency(currency: String) {
         _subscriptionUiState.update { currentState ->
-            currentState.copy(currency = currency)
+            currentState.copy(
+                currency = currency,
+                selectedAccount = currentState.selectedAccount?.takeIf { it.currency == currency }
+            )
         }
     }
 
@@ -726,14 +746,11 @@ class AddViewModel @Inject constructor(
 
     fun saveSubscription(onSuccess: () -> Unit) {
         val state = _subscriptionUiState.value
-        Log.d("AddViewModel", "saveSubscription called with state: $state")
 
         // Validate all fields
         val serviceError = if (state.serviceName.isBlank()) UiText.Res(R.string.add_error_service_required) else null
         val amountError = validateAmount(state.amount)
         val categoryError = validateCategory(state.category)
-
-        Log.d("AddViewModel", "Validation - serviceError: $serviceError, amountError: $amountError, categoryError: $categoryError")
 
         if (serviceError != null || amountError != null || categoryError != null) {
             _subscriptionUiState.update { currentState ->
@@ -747,19 +764,11 @@ class AddViewModel @Inject constructor(
         }
 
         viewModelScope.launch {
-            try {
-                Log.d("AddViewModel", "Starting to save subscription...")
-                _subscriptionUiState.update { it.copy(isLoading = true) }
-
-                val amount = BigDecimal(state.amount)
-                Log.d("AddViewModel", "Calling addSubscriptionUseCase.execute with: " +
-                    "merchantName=${state.serviceName.trim()}, amount=$amount, " +
-                    "nextPaymentDate=${state.nextPaymentDate}, billingCycle=${state.billingCycle}, " +
-                    "category=${state.category}")
-
-                val subscriptionId = addSubscriptionUseCase.execute(
+            val outcome = saveGate.save {
+                _subscriptionUiState.update { it.copy(isLoading = true, error = null) }
+                addSubscriptionUseCase.execute(
                     merchantName = state.serviceName.trim(),
-                    amount = amount,
+                    amount = BigDecimal(state.amount),
                     nextPaymentDate = state.nextPaymentDate,
                     billingCycle = state.billingCycle,
                     category = state.category,
@@ -774,20 +783,16 @@ class AddViewModel @Inject constructor(
                     totalPayments = state.endsAfter,
                     paymentsMade = state.paymentsMade.toIntOrNull() ?: 0
                 )
-
-                Log.d("AddViewModel", "Subscription saved successfully with ID: $subscriptionId")
-                onSuccess()
-            } catch (e: Exception) {
-                Log.e("AddViewModel", "Error saving subscription", e)
-                e.printStackTrace()
-                _subscriptionUiState.update { currentState ->
-                    currentState.copy(
-                        isLoading = false,
-                        error = e.message?.let { UiText.Plain(it) } ?: UiText.Res(R.string.add_error_save_subscription)
-                    )
+            }
+            when (outcome) {
+                SaveOutcome.Saved -> onSuccess()
+                SaveOutcome.Busy -> Unit
+                else -> {
+                    (outcome as? SaveOutcome.Failed)?.let { Log.e("AddViewModel", "Error saving subscription", it.error) }
+                    _subscriptionUiState.update {
+                        it.copy(isLoading = false, error = outcome.message(R.string.add_error_save_subscription))
+                    }
                 }
-            } finally {
-                _subscriptionUiState.update { it.copy(isLoading = false) }
             }
         }
     }
@@ -816,6 +821,13 @@ class AddViewModel @Inject constructor(
             else -> null
         }
     }
+}
+
+/** What the form says when a save didn't land. */
+private fun SaveOutcome.message(failed: Int): UiText = when (this) {
+    SaveOutcome.Refused -> UiText.Res(R.string.add_error_duplicate)
+    is SaveOutcome.Failed -> error.message?.let { UiText.Plain(it) } ?: UiText.Res(failed)
+    else -> UiText.Res(failed)
 }
 
 // UI State Classes

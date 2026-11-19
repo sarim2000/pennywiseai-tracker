@@ -203,6 +203,21 @@ class ScanOutcomeRecorderTest {
     }
 
     @Test
+    fun `an owed window whose running record didn't land is stored before the scan reads`() = runTest {
+        every { preferences.lastScanRecord } returns flow { throw IOException("datastore broken") }
+        var writes = 0
+        coEvery { preferences.setLastScanRecord(any()) } answers {
+            if (++writes == 1) throw IOException("datastore busy") // the best-effort RUNNING record
+            written += firstArg<SmsScanRecord>()
+        }
+
+        recorder.run(isStopped = { false }) {
+            recorder.markFullWindow()
+            assertTrue("the marker is stored before any work", written.single().owesFullWindow)
+        }
+    }
+
+    @Test
     fun `a last record that can't be read keeps a whole-window retry instead of dropping it`() = runTest {
         recorder.run(isStopped = { false }) {
             recorder.markFullWindow()
@@ -237,6 +252,15 @@ class ScanOutcomeRecorderTest {
         assertTrue(thrown is IOException)
         assertFalse("nothing is read or deleted without the marker", readInbox)
         assertTrue("the failed record still tries to carry it", written.last().owesFullWindow)
+    }
+
+    @Test
+    fun `a scan's counts don't carry into the next run`() = runTest {
+        recorder.run(isStopped = { false }) { recorder.stats = countedStats().apply { failed.set(1) } }
+
+        runCatching { recorder.run(isStopped = { false }) { throw SecurityException("READ_SMS not granted") } }
+
+        assertEquals(SmsScanCounts(), written.last().counts)
     }
 
     @Test

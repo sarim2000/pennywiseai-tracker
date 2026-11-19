@@ -43,9 +43,13 @@ internal class ScanOutcomeRecorder(
     private var lastSucceededAt: Long? = null
     private var priorFailedSaveStreak = 0
 
+    /** The whole-window marker is stored: [markFullWindow] has nothing to write. */
+    private var fullWindowStored = false
+
     /** Runs [scan] and rethrows whatever it throws, once the outcome is recorded. */
     suspend fun <T> run(isStopped: () -> Boolean, scan: suspend () -> T): T {
         startedAt = clock()
+        stats = null
         val previous = previousRecord()
         lastSucceededAt = previous.getOrNull()?.lastSucceededAt
         // Unknown isn't "nothing owed": writing over an owed retry would let the next
@@ -53,7 +57,8 @@ internal class ScanOutcomeRecorder(
         fullWindow = previous.getOrNull()?.owesFullWindow ?: previous.isFailure
         priorFailedSaveStreak = previous.getOrNull()?.failedSaveStreak ?: 0
         givesUpOnFailedSaves = priorFailedSaveStreak >= SmsScanRecord.MAX_SAVE_RETRIES
-        record(running())
+        // A marker carried over only counts once it's stored; if not, markFullWindow stores it.
+        fullWindowStored = record(running()) && fullWindow
         val result = try {
             scan()
         } catch (e: Exception) {
@@ -73,9 +78,10 @@ internal class ScanOutcomeRecorder(
      * a rebuild would already have deleted the rows it means to read again.
      */
     suspend fun markFullWindow() {
-        if (fullWindow) return
+        if (fullWindowStored) return
         fullWindow = true
         preferences.setLastScanRecord(running())
+        fullWindowStored = true
     }
 
     private fun running() = SmsScanRecord(
@@ -118,14 +124,14 @@ internal class ScanOutcomeRecorder(
         Result.failure(e)
     }
 
-    /** Best effort: the check-up's record must never fail the scan itself. */
-    private suspend fun record(record: SmsScanRecord) {
-        try {
-            preferences.setLastScanRecord(record)
-        } catch (e: Exception) {
-            if (e is CancellationException) throw e
-            Log.e(TAG, "Couldn't record the scan outcome", e)
-        }
+    /** Best effort: the check-up's record must never fail the scan itself. False if it failed. */
+    private suspend fun record(record: SmsScanRecord): Boolean = try {
+        preferences.setLastScanRecord(record)
+        true
+    } catch (e: Exception) {
+        if (e is CancellationException) throw e
+        Log.e(TAG, "Couldn't record the scan outcome", e)
+        false
     }
 
     private companion object {

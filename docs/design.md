@@ -119,7 +119,8 @@ system bar) with a sliding selected indicator (`floatingNavIndicatorWidth` ×
 `floatingNavIndicatorHeight`, a `primary` tint at `Alpha.selectedIndicator`); a
 long-press names the tab. A tab's one primary action docks beside it as a 64dp
 `primary` squircle (`dockedActionCornerRadius` 20dp): Home and Transactions dock Add,
-the Plan tab docks Add budget / Add bill. The screen calls
+the Plan tab docks Add budget / Add bill / New goal (a section with nothing in it yet
+shows its own create button instead). The screen calls
 `DockNavAction(...)` when `LocalNavDock.current` is non-null and
 drops its own FAB, so the bar and the action never stack over content.
 

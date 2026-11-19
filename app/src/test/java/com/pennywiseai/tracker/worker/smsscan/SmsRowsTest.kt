@@ -18,6 +18,7 @@ class SmsRowsTest {
         val cursor = mockk<Cursor>(relaxed = true) {
             every { getColumnIndexOrThrow(any()) } returns 0
             every { moveToNext() } answers { ++row < 3 }
+            every { isAfterLast } answers { row >= 3 }
             every { getLong(any()) } answers { row.toLong() }
             every { getString(any()) } answers {
                 // What a row too big for the cursor window throws, every time it's read.
@@ -176,6 +177,22 @@ class SmsRowsTest {
         assertSame("the read's own error", inbox.windowError, thrown)
     }
 
+    @Test
+    fun `a read that stops short of the end without throwing reads on from where it stopped`() = runBlocking {
+        val rows = (0L until 5L).map { SmsRowKey(date = 1_000L + it, id = it) }
+        val inbox = FakeInbox(rows, dropsAt = setOf(3L))
+        val feed = Channel<ScannedSms>(Channel.UNLIMITED)
+        var unreadable = 0
+
+        val count = streamSmsSkippingBadRows(inbox::query, feed, onUnreadable = { unreadable++ })
+        feed.close()
+
+        assertEquals(listOf(0L, 1L, 2L, 3L, 4L), feed.toList().map { it.id })
+        assertEquals(5, count)
+        assertEquals(0, unreadable)
+        assertEquals(SmsRowKey(date = 1_002L, id = 2L), inbox.resumedAfter.last())
+    }
+
     private fun SmsRowKey?.next() = this?.let { it.id.toInt() + 1 } ?: 0
 
     /** Row [id] read on its own; reading [badRow] throws [error]. */
@@ -190,6 +207,7 @@ class SmsRowsTest {
         return mockk(relaxed = true) {
             every { getColumnIndexOrThrow(any()) } answers { SMS_PROJECTION.indexOf(firstArg()) }
             every { moveToNext() } answers { if (++row == badRow) throw error else row < 5 }
+            every { isAfterLast } answers { row >= 5 }
             every { getLong(any()) } answers { row.toLong() }
             every { getString(any()) } returns "text"
         }
@@ -215,7 +233,9 @@ private class FakeInbox(
     private val tooBig: Set<Long> = emptySet(),
     private val breaksRead: Set<Long> = emptySet(),
     private val ownQueryError: Exception? = null,
+    dropsAt: Set<Long> = emptySet(),
 ) {
+    private val dropsAt = dropsAt.toMutableSet()
     val windowError = IllegalStateException("Row too big to fit into CursorWindow")
     val resumedAfter = mutableListOf<SmsRowKey?>()
     private val rows = rows.sortedWith(compareBy({ it.date }, { it.id }))
@@ -233,6 +253,11 @@ private class FakeInbox(
         fun moveTo(next: Int): Boolean {
             pos = next
             val row = selected.getOrNull(pos) ?: return false
+            if (!keysOnly && only == null && dropsAt.remove(row.id)) {
+                // A provider that dies mid-read: Android logs the binder error, moves to -1, returns false.
+                pos = -1
+                return false
+            }
             if (!keysOnly && (row.id in tooBig || (only == null && row.id in breaksRead))) throw windowError
             return true
         }
@@ -240,6 +265,7 @@ private class FakeInbox(
             every { getColumnIndexOrThrow(any()) } answers { projection.indexOf(firstArg()) }
             every { moveToNext() } answers { moveTo(pos + 1) }
             every { moveToFirst() } answers { moveTo(0) }
+            every { isAfterLast } answers { pos >= selected.size }
             every { getLong(any()) } answers {
                 val row = selected[pos]
                 when (projection[firstArg()]) {

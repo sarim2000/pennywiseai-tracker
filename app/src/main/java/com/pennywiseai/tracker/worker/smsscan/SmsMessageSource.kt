@@ -380,7 +380,7 @@ private fun Exception.isRowTooBig(): Boolean =
  * read (one too big for the cursor window) is skipped and reported to [onUnreadable]:
  * failing the scan there would make every later scan fail at the same row, and new
  * messages would never be imported. A row without even a readable key, or a cursor that
- * breaks off as a whole, throws.
+ * breaks off as a whole (it throws, or stops short of the end), throws.
  */
 internal suspend fun streamSmsRows(
     c: Cursor,
@@ -417,5 +417,8 @@ internal suspend fun streamSmsRows(
         feed.send(sms)
         count++
     }
+    // moveToNext() is also false when the provider dies mid-read (the binder error is
+    // swallowed); only the end may finish the read, or the scan cursor skips unread rows.
+    check(c.isAfterLast) { "SMS read stopped before the end" }
     return count
 }

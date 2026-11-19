@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.presentation.plan
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -24,18 +25,22 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleButton
+import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.Immutable
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.style.TextOverflow
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.navigation.PlanSection
 import com.pennywiseai.tracker.presentation.goals.GoalsSection
@@ -75,36 +80,50 @@ private fun PlanSection.labelRes(): Int = when (this) {
 @Composable
 fun PlanSwitcher(host: PlanTabHost, modifier: Modifier = Modifier) {
     val options = PlanSection.entries
-    Row(
-        modifier = modifier.fillMaxWidth().selectableGroup(),
-        horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
-    ) {
-        options.forEachIndexed { index, option ->
-            val checked = option == host.section
-            ToggleButton(
-                checked = checked,
-                onCheckedChange = { host.onSelect(option) },
-                modifier = Modifier
-                    .weight(1f)
-                    .heightIn(min = Dimensions.Component.buttonHeight)
-                    .semantics { role = Role.RadioButton },
-                shapes = when (index) {
-                    0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
-                    options.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
-                    else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
-                },
-                contentPadding = ButtonDefaults.SmallContentPadding,
-            ) {
-                if (checked) {
-                    Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
-                    Spacer(Modifier.width(ButtonDefaults.IconSpacing))
-                }
-                Text(
-                    text = stringResource(option.labelRes()),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+    // A label that doesn't fit (large font, narrow screen) stacks the options full width
+    // rather than cutting a section name short.
+    var stacked by remember(LocalDensity.current.fontScale) { mutableStateOf(false) }
+    val option: @Composable (Int, Modifier) -> Unit = { index, itemModifier ->
+        val section = options[index]
+        val checked = section == host.section
+        ToggleButton(
+            checked = checked,
+            onCheckedChange = { host.onSelect(section) },
+            modifier = itemModifier
+                .heightIn(min = Dimensions.Component.buttonHeight)
+                .semantics { role = Role.RadioButton },
+            shapes = when {
+                stacked -> ToggleButtonDefaults.shapesFor(Dimensions.Component.buttonHeight)
+                index == 0 -> ButtonGroupDefaults.connectedLeadingButtonShapes()
+                index == options.lastIndex -> ButtonGroupDefaults.connectedTrailingButtonShapes()
+                else -> ButtonGroupDefaults.connectedMiddleButtonShapes()
+            },
+            contentPadding = ButtonDefaults.SmallContentPadding,
+        ) {
+            if (checked) {
+                Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
+                Spacer(Modifier.width(ButtonDefaults.IconSpacing))
             }
+            Text(
+                text = stringResource(section.labelRes()),
+                maxLines = 1,
+                onTextLayout = { if (it.hasVisualOverflow) stacked = true },
+            )
+        }
+    }
+    if (stacked) {
+        Column(
+            modifier = modifier.fillMaxWidth().selectableGroup(),
+            verticalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
+        ) {
+            options.indices.forEach { option(it, Modifier.fillMaxWidth()) }
+        }
+    } else {
+        Row(
+            modifier = modifier.fillMaxWidth().selectableGroup(),
+            horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
+        ) {
+            options.indices.forEach { option(it, Modifier.weight(1f)) }
         }
     }
 }

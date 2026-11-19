@@ -307,7 +307,7 @@ fun TransactionDetailScreen(
                 convertedAmount = convertedAmount,
                 splits = splits,
                 showSplitEditor = showSplitEditor,
-                hasSplits = hasSplits,
+                hasSplits = hasSplits == true,
                 loan = loan,
                 onNavigateToLoanDetail = onNavigateToLoanDetail,
                 onUnmarkLoanClick = {
@@ -329,7 +329,12 @@ fun TransactionDetailScreen(
                 },
                 onCategoryClick = {
                     // A split row's categories live in the editor's split section.
-                    if (hasSplits) viewModel.enterEditMode() else showCategoryPicker = true
+                    // Unknown yet (still loading): do nothing rather than guess.
+                    when (hasSplits) {
+                        true -> viewModel.enterEditMode()
+                        false -> showCategoryPicker = true
+                        null -> Unit
+                    }
                 },
                 onReportMistake = reportMistake,
                 onDelete = { viewModel.showDeleteDialog() },

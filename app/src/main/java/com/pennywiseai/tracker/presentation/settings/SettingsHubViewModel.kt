@@ -2,9 +2,11 @@ package com.pennywiseai.tracker.presentation.settings
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.pennywiseai.tracker.aiaccess.AiSessionState
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.CategoryRepository
+import com.pennywiseai.tracker.data.repository.WebhookRepository
 import com.pennywiseai.tracker.domain.repository.RuleRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.SharingStarted
@@ -25,14 +27,23 @@ class SettingsHubViewModel @Inject constructor(
     accountBalanceRepository: AccountBalanceRepository,
     ruleRepository: RuleRepository,
     categoryRepository: CategoryRepository,
+    webhookRepository: WebhookRepository,
+    aiSessionState: AiSessionState,
 ) : ViewModel() {
+
+    // Data leaves the phone only through an enabled webhook or a running AI access session.
+    private val isSharing = combine(
+        webhookRepository.observeProfiles().map { profiles -> profiles.any { it.enabled } },
+        aiSessionState.session.map { it != null },
+    ) { webhooks, ai -> webhooks || ai }
 
     val state: StateFlow<SettingsHubState> = combine(
         userPreferencesRepository.userPreferences,
         accountBalanceRepository.getAllLatestBalances().map { it.size },
         ruleRepository.getAllRules().map { rules -> rules.count { it.isActive } },
         categoryRepository.getVisibleCategories().map { it.size },
-    ) { prefs, accounts, activeRules, categories ->
+        isSharing,
+    ) { prefs, accounts, activeRules, categories, sharing ->
         SettingsHubState(
             name = prefs.userName,
             imageUri = prefs.profileImageUri,
@@ -42,6 +53,7 @@ class SettingsHubViewModel @Inject constructor(
             accountCount = accounts,
             activeRuleCount = activeRules,
             categoryCount = categories,
+            isSharing = sharing,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SettingsHubState())
 }
@@ -57,4 +69,6 @@ data class SettingsHubState(
     val accountCount: Int? = null,
     val activeRuleCount: Int? = null,
     val categoryCount: Int? = null,
+    /** A webhook or AI access is on, so some data does leave the phone. */
+    val isSharing: Boolean = false,
 )

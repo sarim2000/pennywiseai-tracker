@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.presentation.subscriptions
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -24,7 +25,6 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SheetValue
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberBottomSheetState
@@ -45,8 +45,8 @@ import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.domain.spending.RecurringSuggestion
 import com.pennywiseai.tracker.ui.components.BrandIcon
+import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
-import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
@@ -107,14 +107,14 @@ internal fun SuggestedSubscriptionItem(
     modifier: Modifier = Modifier,
     position: ListItemPosition = ListItemPosition.Single,
 ) {
-    Surface(
+    GroupedRow(
+        position = position,
         onClick = onReview,
-        modifier = modifier.fillMaxWidth(),
-        shape = position.toShape(),
-        color = MaterialTheme.colorScheme.surfaceContainerLow,
+        modifier = modifier,
+        contentPadding = PaddingValues(Dimensions.Padding.card),
     ) {
         Column(
-            modifier = Modifier.padding(Dimensions.Padding.card),
+            modifier = Modifier.weight(1f),
             verticalArrangement = Arrangement.spacedBy(Spacing.smd),
         ) {
             Row(

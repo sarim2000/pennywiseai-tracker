@@ -1,7 +1,6 @@
 package com.pennywiseai.tracker.presentation.accounts
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
@@ -13,10 +12,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.onClick
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -46,17 +46,21 @@ internal fun AccountBadge(name: String, kind: AccountBadgeKind, modifier: Modifi
         AccountBadgeKind.CARD -> MaterialShapes.Clover4Leaf.toShape() to colors.error
         AccountBadgeKind.LOAN -> MaterialShapes.SoftBurst.toShape() to colors.tertiary
     }
+    val fill = color.copy(alpha = Dimensions.Alpha.categoryTint)
+    // Tertiary is a fill, not ink: check the letter against the tint as it composites
+    // over each neutral surface (the row sits on one).
+    val ink = color.readableOn(colors.neutralSurfaces.map { fill.compositeOver(it) })
     Box(
         modifier = modifier
             .size(Dimensions.Icon.avatarLarge)
             .clip(shape)
-            .background(color.copy(alpha = Dimensions.Alpha.categoryTint)),
+            .background(fill),
         contentAlignment = Alignment.Center,
     ) {
         Text(
             text = name.trim().firstOrNull()?.uppercase() ?: "?",
             style = MaterialTheme.typography.titleMediumEmphasized,
-            color = color,
+            color = ink,
         )
     }
 }
@@ -75,25 +79,26 @@ internal fun AccountRowFrame(
     highlight: Boolean = false,
     content: @Composable ColumnScope.() -> Unit,
 ) {
-    val shape: Shape = position.toShape()
     val container = when {
         highlight -> MaterialTheme.colorScheme.errorContainer.copy(alpha = if (isHidden) 0.4f else 0.7f)
         isHidden -> MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f)
         else -> MaterialTheme.colorScheme.surfaceContainerLow
     }
-    Surface(
+    val clickLabel = stringResource(R.string.manage_accounts_more_options)
+    // Segmented list item, as GroupedRow: same resting corners plus the native
+    // press/focus morph. It has no onClickLabel, so the label rides on semantics.
+    SegmentedListItem(
+        onClick = onClick,
+        shapes = ListItemDefaults.shapes(shape = position.toShape()),
         modifier = modifier
             .fillMaxWidth()
-            .clip(shape)
-            .clickable(
-                onClickLabel = stringResource(R.string.manage_accounts_more_options),
-                role = Role.Button,
-                onClick = onClick,
-            ),
-        shape = shape,
-        color = container,
-        // Set outright: a translucent container matches no theme colour, so the default went black.
-        contentColor = MaterialTheme.colorScheme.onSurface,
+            .semantics { onClick(label = clickLabel) { onClick(); true } },
+        // Content colour set outright: a translucent container matches no theme colour, so the default went black.
+        colors = ListItemDefaults.segmentedColors(
+            containerColor = container,
+            contentColor = MaterialTheme.colorScheme.onSurface,
+        ),
+        contentPadding = PaddingValues(),
     ) {
         Column(
             modifier = Modifier

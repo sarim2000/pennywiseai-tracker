@@ -386,13 +386,13 @@ private fun HubRow(
     )
 }
 
-/** A small primary-coloured heading over a group of hub rows. */
+/** A small neutral heading over a group of hub rows. */
 @Composable
 private fun SettingsGroupHeader(title: String) {
     Text(
         text = title,
         style = MaterialTheme.typography.titleSmall,
-        color = MaterialTheme.colorScheme.primary,
+        color = MaterialTheme.colorScheme.onSurface,
         maxLines = 2,
         overflow = TextOverflow.Ellipsis,
         modifier = Modifier
@@ -429,12 +429,12 @@ private fun SettingsProfileHeader(state: SettingsHubState, modifier: Modifier = 
                 overflow = TextOverflow.Ellipsis,
             )
         }
-        PrivacyPill()
+        PrivacyPill(isSharing = state.isSharing)
     }
 }
 
 @Composable
-private fun PrivacyPill() {
+private fun PrivacyPill(isSharing: Boolean) {
     val success = MaterialTheme.colorScheme.success
     Surface(
         shape = MaterialTheme.shapes.extraLarge,
@@ -453,7 +453,9 @@ private fun PrivacyPill() {
                 modifier = Modifier.size(Dimensions.Icon.small),
             )
             Text(
-                text = stringResource(R.string.settings_profile_privacy_pill),
+                text = stringResource(
+                    if (isSharing) R.string.settings_profile_privacy_pill_sharing else R.string.settings_profile_privacy_pill,
+                ),
                 style = MaterialTheme.typography.labelLarge,
             )
         }
@@ -567,10 +569,11 @@ private fun SettingsShortcutTile(
                     .background(MaterialTheme.colorScheme.surfaceContainerLowest),
                 contentAlignment = Alignment.Center,
             ) {
+                // The badge is a neutral surface, so its icon takes neutral ink, not the tile's.
                 Icon(
                     tile.icon,
                     contentDescription = null,
-                    tint = tile.content,
+                    tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(Dimensions.Icon.medium),
                 )
             }

@@ -572,7 +572,7 @@ internal fun HomeUnsortedCard(
 
 /** Today, read again on every resume, so "Today" and "Tomorrow" move on past midnight. */
 @Composable
-private fun rememberToday(): LocalDate {
+internal fun rememberToday(): LocalDate {
     var today by remember { mutableStateOf(LocalDate.now()) }
     androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
         today = LocalDate.now()

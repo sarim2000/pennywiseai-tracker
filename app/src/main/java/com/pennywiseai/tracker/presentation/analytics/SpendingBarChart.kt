@@ -259,24 +259,28 @@ fun PeriodBarChart(
 ) {
     if (bars.isEmpty()) return
     val max = bars.maxOf { it.value }.takeIf { it > 0.0 } ?: 1.0
-    // Grow in once on first paint; later data changes retarget from where they stand.
-    var grown by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { grown = true }
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .height(Dimensions.Component.insightsChartHeight),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        verticalAlignment = Alignment.Bottom
-    ) {
-        bars.forEachIndexed { index, bar ->
-            key(bar.key) {
-                PeriodBarColumn(
-                    bar = bar,
-                    fraction = if (grown) (bar.value / max).toFloat().coerceIn(0f, 1f) else 0f,
-                    selected = index == bars.lastIndex,
-                    currency = currency
-                )
+    // One chart per currency: another currency's amounts share no axis with these,
+    // so a switch grows a fresh chart in instead of morphing the old bars.
+    key(currency) {
+        // Grow in once on first paint; later data changes retarget from where they stand.
+        var grown by remember { mutableStateOf(false) }
+        LaunchedEffect(Unit) { grown = true }
+        Row(
+            modifier = modifier
+                .fillMaxWidth()
+                .height(Dimensions.Component.insightsChartHeight),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalAlignment = Alignment.Bottom
+        ) {
+            bars.forEachIndexed { index, bar ->
+                key(bar.key) {
+                    PeriodBarColumn(
+                        bar = bar,
+                        fraction = if (grown) (bar.value / max).toFloat().coerceIn(0f, 1f) else 0f,
+                        selected = index == bars.lastIndex,
+                        currency = currency
+                    )
+                }
             }
         }
     }

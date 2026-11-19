@@ -634,32 +634,31 @@ private fun MonthDetails(
             Text(stringResource(R.string.home_breakdown_title), color = MaterialTheme.colorScheme.primary)
         }
 
-        if (accountBalances.isNotEmpty()) {
+        if (accountBalances.isNotEmpty() || creditCards.isNotEmpty()) {
             Spacer(modifier = Modifier.height(Spacing.sm))
             HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
             Spacer(modifier = Modifier.height(Spacing.md))
-            DetailHeading(stringResource(R.string.balance_card_accounts))
-            accountBalances.forEach { account ->
-                AccountLine(
-                    // Mobile-money wallets have no account number: just the service name.
-                    name = if (account.accountLast4 == AccountBalanceEntity.WALLET_ACCOUNT_MARKER) {
-                        account.bankName
-                    } else {
-                        "${account.bankName} •• ${account.accountLast4}"
-                    },
-                    // The account's own (pre-converted) currency, so an un-convertible
-                    // balance shows honestly as "$400", not mislabelled "MZN400".
-                    amount = if (isBalanceHidden) MASK else account.formatBalance(),
-                    onClick = { onAccountClick(account.bankName, account.accountLast4) }
-                )
+            if (accountBalances.isNotEmpty()) {
+                DetailHeading(stringResource(R.string.balance_card_accounts))
+                accountBalances.forEach { account ->
+                    AccountLine(
+                        // The alias when set; wallets show just the service name.
+                        name = account.displayLabel,
+                        // The account's own (pre-converted) currency, so an un-convertible
+                        // balance shows honestly as "$400", not mislabelled "MZN400".
+                        amount = if (isBalanceHidden) MASK else account.formatBalance(),
+                        onClick = { onAccountClick(account.bankName, account.accountLast4) }
+                    )
+                }
             }
 
             if (creditCards.isNotEmpty()) {
-                Spacer(modifier = Modifier.height(Spacing.sm))
+                // Credit-card-only users still see their cards (no bank list above).
+                if (accountBalances.isNotEmpty()) Spacer(modifier = Modifier.height(Spacing.sm))
                 DetailHeading(stringResource(R.string.balance_card_credit_cards))
                 creditCards.forEach { card ->
                     AccountLine(
-                        name = "${card.bankName} •• ${card.accountLast4}",
+                        name = card.displayLabel,
                         // The amount owed on the card, in the card's own currency (#684).
                         amount = if (isBalanceHidden) MASK else CurrencyFormatter.formatCurrency(card.balance, card.currency),
                         onClick = { onAccountClick(card.bankName, card.accountLast4) }
@@ -667,39 +666,42 @@ private fun MonthDetails(
                 }
             }
 
-            Spacer(modifier = Modifier.height(Spacing.xs))
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
-            Spacer(modifier = Modifier.height(Spacing.xs))
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.SpaceBetween,
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(R.string.balance_card_total),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurface,
-                    fontWeight = FontWeight.Bold
-                )
-                Text(
-                    text = if (isBalanceHidden) {
-                        MASK
-                    } else {
-                        "${CurrencyFormatter.formatCurrency(totalBalance, currency)}${if (isApproximate) "*" else ""}"
-                    },
-                    style = MaterialTheme.typography.titleSmall.money(),
-                    fontWeight = FontWeight.Bold,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-            }
-            if (isApproximate) {
+            // The total is the bank accounts' balance; with only cards it would read "0".
+            if (accountBalances.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(Spacing.xs))
-                Text(
-                    text = stringResource(R.string.balance_card_other_currency_note),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+                Spacer(modifier = Modifier.height(Spacing.xs))
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Text(
+                        text = stringResource(R.string.balance_card_total),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        fontWeight = FontWeight.Bold
+                    )
+                    Text(
+                        text = if (isBalanceHidden) {
+                            MASK
+                        } else {
+                            "${CurrencyFormatter.formatCurrency(totalBalance, currency)}${if (isApproximate) "*" else ""}"
+                        },
+                        style = MaterialTheme.typography.titleSmall.money(),
+                        fontWeight = FontWeight.Bold,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                }
+                if (isApproximate) {
+                    Spacer(modifier = Modifier.height(Spacing.xs))
+                    Text(
+                        text = stringResource(R.string.balance_card_other_currency_note),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
             // Named for where it goes: Net worth takes off cards and loans, so its
             // figure isn't this total.

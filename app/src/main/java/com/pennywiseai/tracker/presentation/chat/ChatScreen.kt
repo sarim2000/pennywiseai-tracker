@@ -10,6 +10,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.*
@@ -546,7 +547,10 @@ private fun ModelRequiredPrompt(
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
-        modifier = Modifier.padding(horizontal = Dimensions.Padding.dialog)
+        // Centred when it fits; scrolls at large font sizes in landscape.
+        modifier = Modifier
+            .verticalScroll(rememberScrollState())
+            .padding(horizontal = Dimensions.Padding.dialog)
     ) {
         Mascot(size = Dimensions.Component.chatHeroMascot, mood = MascotMood.Asleep)
         PrivacyNote()

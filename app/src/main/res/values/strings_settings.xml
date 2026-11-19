@@ -288,6 +288,7 @@
 
     <!-- Settings hub: the profile block and shortcut tiles -->
     <string name="settings_profile_privacy_pill">Your data never leaves this phone</string>
+    <string name="settings_profile_privacy_pill_sharing">Shared only where you turned it on</string>
     <plurals name="settings_tile_accounts_count">
         <item quantity="one">%1$d linked</item>
         <item quantity="other">%1$d linked</item>

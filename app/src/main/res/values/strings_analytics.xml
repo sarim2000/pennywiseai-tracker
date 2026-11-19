@@ -322,6 +322,7 @@
     <string name="subscriptions_paid_on">Paid %1$s</string>
     <string name="subscriptions_more_options">More options</string>
     <string name="subscriptions_menu_mark_paid">Mark as paid</string>
+    <string name="subscriptions_menu_mark_received">Mark as received</string>
     <string name="subscriptions_menu_view_source">View source</string>
     <string name="subscriptions_menu_edit">Edit</string>
     <string name="subscriptions_menu_end">End subscription</string>

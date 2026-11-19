@@ -237,6 +237,14 @@ fun MainScreen(
         selectTab(BottomNavItem.Plan)
     }
 
+    // An explicit "ask the owl" opens Ask itself, not whatever the Chat tab was left on
+    // (a tab tap still restores that). Does nothing while the Ask tab is hidden.
+    fun openAsk() {
+        if (BottomNavItem.Chat.route in themeState.hiddenNavTabs) return
+        tabStacks.getValue(BottomNavItem.Chat).resetTo(Chat)
+        selectTab(BottomNavItem.Chat)
+    }
+
     // Tab bar tap: show that tab as it was left; reselecting the tab on screen
     // pops it back to its first screen (as navigation-compose's popUpTo did).
     // Reads the tab from state at tap time: Compose memoizes `::onTabClick`, so a
@@ -302,9 +310,7 @@ fun MainScreen(
     LaunchedEffect(openChat, themeState.isLoading) {
         if (!openChat || themeState.isLoading) return@LaunchedEffect
         mainViewModel.chatOpened()
-        if (BottomNavItem.Chat.route in hiddenTabs) return@LaunchedEffect
-        tabStacks.getValue(BottomNavItem.Chat).resetTo(Chat)
-        selectTab(BottomNavItem.Chat)
+        openAsk()
     }
 
     // Home's scan, for the Spotlight tutorial drawn over the bar (set by Home's entry).
@@ -396,9 +402,7 @@ fun MainScreen(
                 onTransactionTypeClick = { type ->
                     open(tab, Transactions(type = type))
                 },
-                onOpenAssistant = {
-                    selectTab(BottomNavItem.Chat)
-                }.takeIf { BottomNavItem.Chat.route !in themeState.hiddenNavTabs },
+                onOpenAssistant = { openAsk() }.takeIf { BottomNavItem.Chat.route !in themeState.hiddenNavTabs },
                 onFabPositioned = { position ->
                     spotlightViewModel.updateFabPosition(position)
                 }
@@ -456,6 +460,10 @@ fun MainScreen(
             // The switch is screen state, not navigation: flipping sections doesn't stack up Back.
             var section by rememberSaveable(key) { mutableStateOf(key.section) }
             val fade = MaterialTheme.motionScheme.fastEffectsSpec<Float>()
+            // The section fading out docks into a dock nobody draws, so its Add can't
+            // fire once another section is picked (even one with no docked action).
+            val dock = LocalNavDock.current
+            val offstageDock = remember { NavDockState() }
             TabRoot(tab) {
                 AnimatedContent(
                     targetState = section,
@@ -463,27 +471,30 @@ fun MainScreen(
                     label = "planSection",
                 ) { shown ->
                     val host = PlanTabHost(shown) { section = it }
-                    when (shown) {
-                        PlanSection.BUDGETS -> com.pennywiseai.tracker.presentation.budgetgroups.BudgetGroupsScreen(
-                            planTab = host,
-                            onNavigateToGroupEdit = { openRoot(BudgetGroupEdit(it)) },
-                            onNavigateToHistory = { groupId, year, month -> openRoot(BudgetHistory(groupId, year, month)) },
-                            onNavigateToExchangeRates = { openRoot(ExchangeRates) },
-                            onNavigateToCategory = { category, yearMonth, currency ->
-                                openRoot(TransactionsWithFilter(category, yearMonth, currency))
-                            },
-                            onNavigateToGoal = { openRoot(GoalDetail(it)) },
-                            onNavigateToGoalEdit = { openRoot(GoalEdit(it)) },
-                        )
-                        PlanSection.BILLS -> SubscriptionsScreen(
-                            planTab = host,
-                            onAddSubscriptionClick = { openRoot(AddTransaction()) },
-                        )
-                        PlanSection.GOALS -> PlanGoalsScreen(
-                            host = host,
-                            onOpenGoal = { openRoot(GoalDetail(it)) },
-                            onCreateGoal = { openRoot(GoalEdit(-1L)) },
-                        )
+                    val shownDock = if (dock != null && shown != section) offstageDock else dock
+                    CompositionLocalProvider(LocalNavDock provides shownDock) {
+                        when (shown) {
+                            PlanSection.BUDGETS -> com.pennywiseai.tracker.presentation.budgetgroups.BudgetGroupsScreen(
+                                planTab = host,
+                                onNavigateToGroupEdit = { openRoot(BudgetGroupEdit(it)) },
+                                onNavigateToHistory = { groupId, year, month -> openRoot(BudgetHistory(groupId, year, month)) },
+                                onNavigateToExchangeRates = { openRoot(ExchangeRates) },
+                                onNavigateToCategory = { category, yearMonth, currency ->
+                                    openRoot(TransactionsWithFilter(category, yearMonth, currency))
+                                },
+                                onNavigateToGoal = { openRoot(GoalDetail(it)) },
+                                onNavigateToGoalEdit = { openRoot(GoalEdit(it)) },
+                            )
+                            PlanSection.BILLS -> SubscriptionsScreen(
+                                planTab = host,
+                                onAddSubscriptionClick = { openRoot(AddTransaction()) },
+                            )
+                            PlanSection.GOALS -> PlanGoalsScreen(
+                                host = host,
+                                onOpenGoal = { openRoot(GoalDetail(it)) },
+                                onCreateGoal = { openRoot(GoalEdit(-1L)) },
+                            )
+                        }
                     }
                 }
             }
@@ -492,11 +503,7 @@ fun MainScreen(
         entry<Analytics> { key ->
             TabRoot(tab) {
                 com.pennywiseai.tracker.presentation.analytics.AnalyticsScreen(
-                    onNavigateToChat = {
-                        if (BottomNavItem.Chat.route !in themeState.hiddenNavTabs) {
-                            open(tab, Chat)
-                        }
-                    },
+                    onNavigateToChat = { openAsk() },
                     onNavigateToTransactions = { drill ->
                         open(
                             tab,

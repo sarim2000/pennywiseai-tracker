@@ -45,6 +45,7 @@ import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.database.entity.BudgetWithCategories
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.presentation.home.heroBudget
+import com.pennywiseai.tracker.presentation.home.rememberToday
 import com.pennywiseai.tracker.presentation.plan.PlanHeroAmount
 import com.pennywiseai.tracker.presentation.plan.PlanHeroCard
 import com.pennywiseai.tracker.presentation.plan.PlanIconBadge
@@ -327,7 +328,9 @@ private fun BudgetGroupsContent(
     onAddRate: () -> Unit = {}
 ) {
     val summary = uiState.summary ?: return
-    val isCurrentMonth = YearMonth.of(uiState.selectedYear, uiState.selectedMonth) == YearMonth.now()
+    val today = rememberToday()
+    val selectedMonth = YearMonth.of(uiState.selectedYear, uiState.selectedMonth)
+    val isCurrentMonth = selectedMonth == YearMonth.from(today)
     val groupCount = summary.groups.size
     var deleteGroupId by remember { mutableStateOf<Long?>(null) }
     var deleteGroupName by remember { mutableStateOf("") }
@@ -354,9 +357,11 @@ private fun BudgetGroupsContent(
         // The same budget Home's hero leads with: an all-expenses spending limit
         // running today, monthly preferred. Summing every limit would count a
         // "Food" limit twice when an all-expenses one already covers it. None
-        // (or a past month) → just the month picker.
+        // (or another month, or a summary still loading for the picked month) → just the month picker.
         item(key = "hero") {
-            val hero = remember(summary) { summary.heroBudget(java.time.LocalDate.now()) }
+            val hero = remember(summary, today, isCurrentMonth, uiState.summaryMonth) {
+                summary.heroBudget(today).takeIf { isCurrentMonth && uiState.summaryMonth == selectedMonth }
+            }
             StaggeredEntrance(delayMs = 0L, skip = hasAnimated, modifier = Modifier.padding(top = BlockGap)) {
                 if (hero != null && hero.limit.signum() > 0) {
                     BudgetHeroCard(
@@ -676,7 +681,7 @@ private fun BudgetCard(
     }
     // Status reads the percent the bar is showing, so the colour turns as the bar
     // crosses 70/90% rather than before it gets there (as on Home's budget card).
-    val shownPercent = if (usedFraction >= 1f) pctUsed else usedFraction * 100f
+    val shownPercent = usedFraction * 100f
     val budgetColor = budget.color.toColorOr(MaterialTheme.colorScheme.primary)
     val scheme = MaterialTheme.colorScheme
     val (statusTarget, statusText) = when {
@@ -689,7 +694,8 @@ private fun BudgetCard(
     val statusColor by animateColorAsState(statusTarget, colorSpec, label = "budgetStatusColor")
     // The bar wears the budget's own colour while it's healthy; the pill stays semantic.
     val barColor by animateColorAsState(
-        if (shownPercent >= WARN_PERCENT || isOverBudget) statusTarget else budgetColor,
+        // Only a spending limit warns; a target nearing (or passing) its goal is good news.
+        if (isLimit && (shownPercent >= WARN_PERCENT || isOverBudget)) statusTarget else budgetColor,
         colorSpec,
         label = "budgetBarColor"
     )
@@ -743,7 +749,7 @@ private fun BudgetCard(
                                 currency
                             ),
                             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold).money(),
-                            color = if (isOverBudget) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                            color = if (isLimit && isOverBudget) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
                             maxLines = 1
                         )
                         Text(
@@ -920,6 +926,7 @@ private fun BudgetDetails(
                     actual = catSpending.actualAmount,
                     budgeted = catSpending.budgetAmount,
                     percentUsed = catSpending.percentageUsed,
+                    isLimit = groupSpending.group.budget.groupType == BudgetGroupType.LIMIT,
                     currency = currency,
                     onClick = { onCategoryClick(catSpending.categoryName) }
                 )
@@ -1000,10 +1007,12 @@ private fun CategorySpendRow(
     actual: BigDecimal,
     budgeted: BigDecimal,
     percentUsed: Float,
+    isLimit: Boolean,
     currency: String,
     onClick: () -> Unit
 ) {
     val statusColor: Color = when {
+        !isLimit -> MaterialTheme.colorScheme.primary
         percentUsed >= DANGER_PERCENT -> MaterialTheme.colorScheme.error
         percentUsed >= WARN_PERCENT -> MaterialTheme.colorScheme.warning
         else -> MaterialTheme.colorScheme.primary

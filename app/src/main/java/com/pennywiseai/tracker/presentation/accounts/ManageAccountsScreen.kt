@@ -364,35 +364,41 @@ fun ManageAccountsScreen(
 
                 if (visibleRegularAccounts.isNotEmpty()) {
                     item { AccountsSectionHeader(stringResource(R.string.manage_accounts_section_bank)) }
-                    itemsIndexed(visibleRegularAccounts) { index, account ->
-                        bankAccountItem(account, false, ListItemPosition.from(index, visibleRegularAccounts.size))
+                    itemsIndexed(visibleRegularAccounts, key = { _, a -> accountKey(a) }) { index, account ->
+                        Box(Modifier.animateItem()) {
+                            bankAccountItem(account, false, ListItemPosition.from(index, visibleRegularAccounts.size))
+                        }
                     }
                 }
 
                 if (uiState.orphanedCards.isNotEmpty()) {
                     item { AccountsSectionHeader(stringResource(R.string.manage_accounts_section_unlinked_cards)) }
-                    itemsIndexed(uiState.orphanedCards) { index, card ->
-                        OrphanedCardItem(
-                            card = card,
-                            accounts = allRegularAccounts,
-                            position = ListItemPosition.from(index, uiState.orphanedCards.size),
-                            onLinkToAccount = { accountLast4 ->
-                                viewModel.linkCardToAccount(card.id, accountLast4)
-                            },
-                            onDeleteCard = { cardId ->
-                                viewModel.deleteCard(cardId)
-                            },
-                            onUpdateCard = { bankName, cardType, nickname ->
-                                viewModel.updateCardDetails(card.id, bankName, cardType, nickname)
-                            }
-                        )
+                    itemsIndexed(uiState.orphanedCards, key = { _, c -> "card|${c.id}" }) { index, card ->
+                        Box(Modifier.animateItem()) {
+                            OrphanedCardItem(
+                                card = card,
+                                accounts = allRegularAccounts,
+                                position = ListItemPosition.from(index, uiState.orphanedCards.size),
+                                onLinkToAccount = { accountLast4 ->
+                                    viewModel.linkCardToAccount(card.id, accountLast4)
+                                },
+                                onDeleteCard = { cardId ->
+                                    viewModel.deleteCard(cardId)
+                                },
+                                onUpdateCard = { bankName, cardType, nickname ->
+                                    viewModel.updateCardDetails(card.id, bankName, cardType, nickname)
+                                }
+                            )
+                        }
                     }
                 }
 
                 if (visibleCreditCards.isNotEmpty()) {
                     item { AccountsSectionHeader(stringResource(R.string.manage_accounts_section_credit_cards)) }
-                    itemsIndexed(visibleCreditCards) { index, card ->
-                        creditCardItem(card, false, ListItemPosition.from(index, visibleCreditCards.size))
+                    itemsIndexed(visibleCreditCards, key = { _, a -> accountKey(a) }) { index, card ->
+                        Box(Modifier.animateItem()) {
+                            creditCardItem(card, false, ListItemPosition.from(index, visibleCreditCards.size))
+                        }
                     }
                 }
 
@@ -401,8 +407,10 @@ fun ManageAccountsScreen(
                 // label and leaves out the low-balance alert.
                 if (visibleLoanAccounts.isNotEmpty()) {
                     item { AccountsSectionHeader(stringResource(R.string.manage_accounts_section_loan_accounts)) }
-                    itemsIndexed(visibleLoanAccounts) { index, account ->
-                        bankAccountItem(account, false, ListItemPosition.from(index, visibleLoanAccounts.size))
+                    itemsIndexed(visibleLoanAccounts, key = { _, a -> accountKey(a) }) { index, account ->
+                        Box(Modifier.animateItem()) {
+                            bankAccountItem(account, false, ListItemPosition.from(index, visibleLoanAccounts.size))
+                        }
                     }
                 }
 
@@ -437,11 +445,13 @@ fun ManageAccountsScreen(
                     if (showHiddenAccounts) {
                         // One block under the header row: banks, then loans, then cards.
                         val hidden = hiddenRegularAccounts + hiddenLoanAccounts + hiddenCreditCards
-                        itemsIndexed(hidden) { index, account ->
+                        itemsIndexed(hidden, key = { _, a -> accountKey(a) }) { index, account ->
                             // The header row is the block's top, so no hidden row is.
                             val position = if (index == hidden.lastIndex) ListItemPosition.Bottom else ListItemPosition.Middle
-                            if (account.isCreditCard) creditCardItem(account, true, position)
-                            else bankAccountItem(account, true, position)
+                            Box(Modifier.animateItem()) {
+                                if (account.isCreditCard) creditCardItem(account, true, position)
+                                else bankAccountItem(account, true, position)
+                            }
                         }
                     }
                 }
@@ -654,6 +664,13 @@ private fun StatusBanner(
 }
 
 /**
+ * A row key from the logical account (bank + last digits), not the latest
+ * balance row's id, which changes with every new balance. Each account sits in
+ * exactly one list, so the key is unique across the screen.
+ */
+private fun accountKey(account: AccountBalanceEntity) = "account|${account.bankName}|${account.accountLast4}"
+
+/**
  * The two tonal cards heading the list: what the bank accounts hold and what the
  * cards owe. Each is totalled per currency, so a mixed set reads "₹1,250 · $600"
  * rather than one meaningless sum.
@@ -684,7 +701,7 @@ private fun AccountsSummaryCards(
             AccountsSummaryCard(
                 icon = Icons.Default.AccountBalance,
                 label = stringResource(R.string.manage_accounts_summary_held),
-                amount = CurrencyFormatter.formatByCurrency(held),
+                amount = CurrencyFormatter.formatByCurrency(held, keepSign = true),
                 container = MaterialTheme.colorScheme.primaryContainer,
                 content = MaterialTheme.colorScheme.onPrimaryContainer,
                 modifier = Modifier
@@ -697,7 +714,7 @@ private fun AccountsSummaryCards(
             AccountsSummaryCard(
                 icon = Icons.Default.CreditCard,
                 label = stringResource(R.string.manage_accounts_summary_owed),
-                amount = CurrencyFormatter.formatByCurrency(owed),
+                amount = CurrencyFormatter.formatByCurrency(owed, keepSign = true),
                 container = MaterialTheme.colorScheme.errorContainer,
                 content = MaterialTheme.colorScheme.onErrorContainer,
                 modifier = Modifier

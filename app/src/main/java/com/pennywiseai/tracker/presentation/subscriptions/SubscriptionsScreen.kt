@@ -320,11 +320,11 @@ fun SubscriptionsScreen(
                 }
             }
 
-            // Active subscriptions: one segmented block, soonest first.
+            // Active subscriptions: one segmented block, unpaid first (soonest first), then paid this cycle.
             if (uiState.activeSubscriptions.isNotEmpty()) {
                 item(key = "active-header") {
                     SectionHeaderV2(
-                        title = stringResource(R.string.plan_bills_next_payments),
+                        title = stringResource(R.string.subscriptions_active_section),
                         modifier = Modifier.padding(top = BlockGap, bottom = Spacing.Layout.headerToContent)
                     )
                 }
@@ -657,6 +657,7 @@ private fun SwipeableSubscriptionItem(
     val isIncome = subscription.direction == SubscriptionDirection.INCOME
     val amountColor = if (isIncome) MaterialTheme.colorScheme.income else MaterialTheme.colorScheme.spending
     val amountPrefix = if (isIncome) "+" else ""
+    val markLabel = if (isIncome) R.string.subscriptions_menu_mark_received else R.string.subscriptions_menu_mark_paid
     val shape = position.toShape()
 
     // Not rememberSaveable: a restored row (e.g. after Undo) must start at rest, or onDismiss re-fires.
@@ -710,7 +711,7 @@ private fun SwipeableSubscriptionItem(
                             // overflow's "View source", so the primary tap means the
                             // same thing for every row, SMS-detected or not.
                             .clickable(
-                                onClickLabel = stringResource(R.string.subscriptions_menu_mark_paid),
+                                onClickLabel = stringResource(markLabel),
                                 onClick = onTap
                             )
                             .padding(start = Spacing.md, top = Spacing.smd, bottom = Spacing.smd, end = Spacing.xs),
@@ -770,7 +771,7 @@ private fun SwipeableSubscriptionItem(
                                 onDismissRequest = { showMenu = false }
                             ) {
                                 DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.subscriptions_menu_mark_paid)) },
+                                    text = { Text(stringResource(markLabel)) },
                                     leadingIcon = { Icon(Icons.Default.CheckCircle, contentDescription = null) },
                                     onClick = {
                                         showMenu = false

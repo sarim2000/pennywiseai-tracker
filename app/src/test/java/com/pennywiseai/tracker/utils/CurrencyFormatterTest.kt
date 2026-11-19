@@ -120,6 +120,18 @@ class CurrencyFormatterTest {
     }
 
     @Test
+    fun `formatByCurrency keepSign signs each currency on its own`() {
+        // An overdrawn USD account beside a positive INR one: only USD is negative.
+        val out = CurrencyFormatter.formatByCurrency(
+            mapOf("USD" to Money(BigDecimal(-100), "USD"), "INR" to Money(BigDecimal(500), "INR")),
+            keepSign = true
+        )
+        val (inr, usd) = out.split(" · ")
+        assertTrue("USD must keep its minus: $out", usd.startsWith("-") && usd.contains("$"))
+        assertFalse("INR must stay positive: $out", inr.contains("-"))
+    }
+
+    @Test
     fun `formatByCurrency keeps the input currency when a single-currency total cancels to zero`() {
         // A USD-only group whose amounts cancel ($300 charge + $300 refund) must
         // still show "$0", not the INR fallback.

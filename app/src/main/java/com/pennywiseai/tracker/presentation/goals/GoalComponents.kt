@@ -5,6 +5,8 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -33,6 +35,7 @@ import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -171,6 +174,7 @@ fun GoalsHomeCard(goals: List<GoalProgress>, onOpenGoal: (Long) -> Unit, modifie
  * name and target, the percent saved, a flat meter, then saved / to go and its status.
  * [position] puts it in a segmented block; [index] picks its glyph's shape.
  */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
 fun GoalCard(
     progress: GoalProgress,
@@ -222,14 +226,17 @@ fun GoalCard(
                 )
             }
             PlanMeter(fraction = fraction, color = color, trackColor = MaterialTheme.colorScheme.surfaceVariant)
-            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            // Wraps the remainder below when both figures don't fit (large font), so neither is cut.
+            FlowRow(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                itemVerticalAlignment = Alignment.CenterVertically,
+            ) {
                 Text(
                     text = stringResource(R.string.goals_card_saved, CurrencyFormatter.formatCurrency(progress.saved, goal.currency)),
                     style = PennyWiseText.amountRow,
                     color = MaterialTheme.colorScheme.onSurface,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f),
+                    modifier = Modifier.padding(end = Spacing.sm),
                 )
                 val rest = when {
                     progress.over.signum() > 0 ->
@@ -243,7 +250,6 @@ fun GoalCard(
                         text = rest,
                         style = MaterialTheme.typography.bodyMedium.tabular(),
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1,
                     )
                 }
             }
@@ -326,12 +332,14 @@ fun GoalsSection(
         } else {
             GroupedList {
                 active.forEachIndexed { i, goal ->
-                    GoalCard(
-                        goal,
-                        onClick = { onOpenGoal(goal.goal.id) },
-                        index = i,
-                        position = ListItemPosition.from(i, active.size),
-                    )
+                    key(goal.goal.id) {
+                        GoalCard(
+                            goal,
+                            onClick = { onOpenGoal(goal.goal.id) },
+                            index = i,
+                            position = ListItemPosition.from(i, active.size),
+                        )
+                    }
                 }
             }
         }

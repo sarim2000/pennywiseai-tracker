@@ -279,7 +279,8 @@ fun RulesScreen(
                         onApplyToPast = {
                             selectedRuleForBatch = rule
                             showBatchApplyDialog = true
-                        }
+                        },
+                        modifier = Modifier.animateItem()
                     )
                 }
 
@@ -390,7 +391,8 @@ private fun RuleCard(
     onEdit: () -> Unit,
     onDuplicate: () -> Unit,
     onDelete: () -> Unit,
-    onApplyToPast: () -> Unit
+    onApplyToPast: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showActionsMenu by remember { mutableStateOf(false) }
@@ -399,7 +401,7 @@ private fun RuleCard(
     // An off rule keeps its words readable but loses its colour.
     val accent = if (rule.isActive) colors.primary else colors.onSurfaceVariant
 
-    Box {
+    Box(modifier = modifier) {
         Surface(
             modifier = Modifier
                 .fillMaxWidth()
@@ -519,9 +521,11 @@ private fun RuleCard(
                     onDuplicate()
                 }
             )
+            // The engine skips an off rule, so applying one to the past would match nothing.
             DropdownMenuItem(
                 text = { Text(stringResource(R.string.rules_menu_apply_past)) },
                 leadingIcon = { Icon(Icons.Default.History, contentDescription = null) },
+                enabled = rule.isActive,
                 onClick = {
                     showActionsMenu = false
                     onApplyToPast()

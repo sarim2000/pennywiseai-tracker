@@ -273,7 +273,8 @@ fun RulesScreen(
                             onNavigateToEditRule(rule.id)
                         },
                         onDuplicate = {
-                            onNavigateToDuplicateRule(rule.id)
+                            // A duplicate saves as a new rule, so it counts against the free-tier quota.
+                            if (canCreateMoreRules) onNavigateToDuplicateRule(rule.id) else showUpgradeSheet = true
                         },
                         onDelete = {
                             viewModel.deleteRule(rule.id)

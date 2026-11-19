@@ -184,6 +184,9 @@ fun MainScreen(
         BottomNavItem.Chat to rememberNavBackStack(Chat),
     )
     var currentTabRoute by rememberSaveable { mutableStateOf(BottomNavItem.Home.route) }
+    // The tab a link (e.g. Ask's "see your bills") jumped to Plan from: Back from Plan's
+    // first screen returns there instead of Home. Cleared by any other tab switch.
+    var planReturnRoute by rememberSaveable { mutableStateOf<String?>(null) }
     val currentTab = BottomNavItem.all.firstOrNull { it.route == currentTabRoute } ?: BottomNavItem.Home
     val stack = tabStacks.getValue(currentTab)
     val topKey = stack.last()
@@ -199,9 +202,12 @@ fun MainScreen(
         val tabStack = tabStacks.getValue(tab)
         when {
             tabStack.size > 1 -> tabStack.removeAt(tabStack.lastIndex)
-            // Back from a tab's first screen goes Home; the tab starts over plain.
+            // Back from a tab's first screen goes Home (or back to the tab a Plan link
+            // came from); the tab starts over plain.
             tab != BottomNavItem.Home -> {
-                currentTabRoute = BottomNavItem.Home.route
+                val returnRoute = planReturnRoute.takeIf { tab == BottomNavItem.Plan && it !in themeState.hiddenNavTabs }
+                planReturnRoute = null
+                currentTabRoute = returnRoute ?: BottomNavItem.Home.route
                 tabStack.resetTo(rootOf(tab))
             }
         }
@@ -237,6 +243,7 @@ fun MainScreen(
 
     fun selectTab(tab: BottomNavItem) {
         currentTabRoute = tab.route
+        planReturnRoute = null
     }
 
     // Budgets, bills and goals live in the Plan tab; opened from elsewhere it shows
@@ -251,6 +258,7 @@ fun MainScreen(
         }
         tabStacks.getValue(BottomNavItem.Plan).resetTo(Plan(section, request = System.nanoTime()))
         selectTab(BottomNavItem.Plan)
+        planReturnRoute = from.route.takeIf { from != BottomNavItem.Home && from != BottomNavItem.Plan }
     }
 
     // An explicit "ask the owl" opens Ask itself, not whatever the Chat tab was left on

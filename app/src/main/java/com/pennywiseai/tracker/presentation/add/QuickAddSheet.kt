@@ -55,8 +55,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.ui.platform.LocalResources
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.LiveRegionMode
 import androidx.compose.ui.semantics.collapse
@@ -311,9 +313,9 @@ private fun QuickAddForm(
     val amount = amountText.toBigDecimalOrNull()?.takeIf { it.signum() > 0 }
     val focus = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
-    val decimalComma = remember {
-        DecimalFormatSymbols.getInstance(context.resources.configuration.locales[0]).decimalSeparator == ','
-    }
+    val locale = LocalConfiguration.current.locales[0]
+    val decimalComma = remember(locale) { DecimalFormatSymbols.getInstance(locale).decimalSeparator == ',' }
+    val resources = LocalResources.current
     // Filled by voice: what's left is a tap on a category, not typing.
     LaunchedEffect(Unit) { if (heard == null || amountText.isEmpty()) focus.requestFocus() }
 
@@ -331,7 +333,7 @@ private fun QuickAddForm(
                     viewModel.afterSave()
                     Toast.makeText(
                         context,
-                        context.getString(R.string.quick_add_saved, CurrencyFormatter.formatCurrency(a, d.currency), CategoryMapping.label(context, c)),
+                        resources.getString(R.string.quick_add_saved, CurrencyFormatter.formatCurrency(a, d.currency), CategoryMapping.label(context, c)),
                         Toast.LENGTH_SHORT
                     ).show()
                     onSaved()

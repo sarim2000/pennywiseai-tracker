@@ -60,4 +60,13 @@ class BudgetStatusesTest {
         assertEquals(BigDecimal("500"), first.limit)
         assertEquals(LocalDate.parse("2026-11-01"), first.windowStart)
     }
+
+    @Test
+    fun `a limit rollover carried down to 0 still has a limit`() {
+        val carriedToZero = group(1).copy(totalBudget = BigDecimal.ZERO, carry = BigDecimal("-500"))
+        val noLimit = group(2).copy(totalBudget = BigDecimal.ZERO)
+        val statuses = budgetStatuses(summary(carriedToZero, noLimit), today)
+        assertEquals(listOf(true, false), statuses.map { it.hasLimit })
+        assertEquals(0, statuses.first().limit.signum())
+    }
 }

@@ -90,9 +90,10 @@ class InsightRulesTest {
         currency: String = "INR",
         incomplete: Boolean = false,
         start: String = "2026-11-01",
+        hasLimit: Boolean = BigDecimal(limit).signum() > 0,
     ) = BudgetStatus(
         id, "Budget $id", currency, BigDecimal(spent), BigDecimal(limit), elapsed, days,
-        LocalDate.parse(start), LocalDate.parse(start).plusDays(days - 1L), incomplete,
+        LocalDate.parse(start), LocalDate.parse(start).plusDays(days - 1L), incomplete, hasLimit,
     )
 
     private fun subscription(
@@ -172,6 +173,20 @@ class InsightRulesTest {
         // On the window's last day, spending exactly the limit is on budget.
         val lastDay = evaluate(budgets = listOf(budget(1, "3000", elapsed = 30))).single()
         assertEquals(BudgetsOnTrack(1), lastDay.fact)
+    }
+
+    @Test
+    fun `a limit rollover carried down to 0 is used up, and any spending is over it`() {
+        val usedUp = evaluate(budgets = listOf(budget(1, "0", limit = "0", hasLimit = true))).single()
+        assertEquals(InsightSeverity.ALERT, usedUp.severity)
+        assertEquals(BigDecimal.ZERO, (usedUp.fact as BudgetOver).limit.amount)
+        val over = evaluate(budgets = listOf(budget(1, "50", limit = "0", hasLimit = true), budget(2, "3500"))).facts<BudgetOver>()
+        // Nothing to spend at all sorts first.
+        assertEquals(listOf(BigDecimal("50"), BigDecimal("3500")), over.map { it.spent.amount })
+        // Nothing spent on the last day of the window is on budget, as with any limit.
+        assertTrue(evaluate(budgets = listOf(budget(1, "0", limit = "0", elapsed = 30, hasLimit = true))).none { it.fact is BudgetOver })
+        // A budget with no limit of its own still says nothing.
+        assertTrue(evaluate(budgets = listOf(budget(1, "50", limit = "0"))).isEmpty())
     }
 
     @Test

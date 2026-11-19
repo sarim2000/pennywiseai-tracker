@@ -4,7 +4,7 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.expandHorizontally
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -12,8 +12,8 @@ import androidx.compose.animation.shrinkHorizontally
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxHeight
@@ -21,7 +21,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
-import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
@@ -34,12 +33,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
-import androidx.compose.material3.PlainTooltip
 import androidx.compose.material3.Text
-import androidx.compose.material3.TooltipAnchorPosition
-import androidx.compose.material3.TooltipBox
-import androidx.compose.material3.TooltipDefaults
-import androidx.compose.material3.rememberTooltipState
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -50,11 +44,13 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
@@ -244,7 +240,6 @@ fun PennyWiseBottomNavigation(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FloatingNavPill(
     items: List<BottomNavItem>,
@@ -256,7 +251,7 @@ private fun FloatingNavPill(
     modifier: Modifier = Modifier,
 ) {
     val containerColor = MaterialTheme.colorScheme.surfaceContainerHigh
-    BoxWithConstraints(
+    Row(
         modifier = modifier
             .height(Dimensions.Component.floatingNavHeight)
             .shadow(
@@ -268,93 +263,91 @@ private fun FloatingNavPill(
                 if (blurEffects) Modifier.frostedBlur(hazeState) else Modifier
             )
             .background(containerColor.copy(alpha = if (blurEffects) 0.8f else 1f))
-            .padding(horizontal = Spacing.sm)
+            .padding(horizontal = Spacing.xs)
             .selectableGroup()
     ) {
-        val slotWidth = maxWidth / items.size
-        val indicatorWidth = minOf(slotWidth, Dimensions.Component.floatingNavIndicatorWidth)
-
-        // One indicator that slides between tabs, rather than one per tab.
-        if (selectedIndex >= 0) {
-            val indicatorOffset by animateDpAsState(
-                targetValue = slotWidth * selectedIndex + (slotWidth - indicatorWidth) / 2,
-                animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec(),
-                label = "navIndicatorOffset"
+        items.forEachIndexed { index, item ->
+            val selected = index == selectedIndex
+            val label = stringResource(item.titleRes)
+            val tint by animateColorAsState(
+                targetValue = if (selected) MaterialTheme.colorScheme.primary
+                else MaterialTheme.colorScheme.onSurfaceVariant,
+                animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
+                label = "navIconTint"
             )
-            Box(
+            // The indicator grows out from the icon (Expressive spring) rather than fading in place.
+            val shown by animateFloatAsState(
+                targetValue = if (selected) 1f else 0f,
+                animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
+                label = "navIndicator"
+            )
+            Column(
                 modifier = Modifier
-                    .align(Alignment.CenterStart)
-                    .offset(x = indicatorOffset)
-                    .size(indicatorWidth, Dimensions.Component.floatingNavIndicatorHeight)
-                    .clip(CircleShape)
-                    // A tint of primary rather than secondaryContainer, which
-                    // all but vanishes against the pill in light themes.
-                    .background(
-                        MaterialTheme.colorScheme.primary.copy(alpha = Dimensions.Alpha.selectedIndicator)
-                    )
-            )
-        }
-
-        Row(modifier = Modifier.fillMaxSize()) {
-            items.forEachIndexed { index, item ->
-                val selected = index == selectedIndex
-                val label = stringResource(item.titleRes)
-                val iconTint by animateColorAsState(
-                    targetValue = if (selected) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                    animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
-                    label = "navIconTint"
-                )
-                // Icon-only to keep the pill calm; long-press names the tab.
-                // TooltipBox doesn't forward Row weights, so a Box holds the slot.
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .selectable(
+                        selected = selected,
+                        onClick = { onSelect(item) },
+                        role = Role.Tab,
+                        interactionSource = null,
+                        indication = ripple(
+                            bounded = false,
+                            radius = Dimensions.Component.floatingNavIndicatorWidth / 2
+                        )
+                    ),
+                horizontalAlignment = Alignment.CenterHorizontally,
+                verticalArrangement = Arrangement.Center
+            ) {
                 Box(
-                    modifier = Modifier
-                        .weight(1f)
-                        .fillMaxHeight()
+                    modifier = Modifier.size(
+                        Dimensions.Component.floatingNavIndicatorWidth,
+                        Dimensions.Component.floatingNavIndicatorHeight
+                    ),
+                    contentAlignment = Alignment.Center
                 ) {
-                    TooltipBox(
-                        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(
-                            TooltipAnchorPosition.Above
-                        ),
-                        tooltip = { PlainTooltip { Text(label) } },
-                        state = rememberTooltipState(),
-                        modifier = Modifier.fillMaxSize()
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .selectable(
-                                    selected = selected,
-                                    onClick = { onSelect(item) },
-                                    role = Role.Tab,
-                                    interactionSource = null,
-                                    indication = ripple(
-                                        bounded = false,
-                                        radius = Dimensions.Component.floatingNavIndicatorHeight / 2
-                                    )
-                                ),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (item == BottomNavItem.Chat) {
-                                // The sliding indicator always marks selection here.
-                                ChatTabMascot(
-                                    label = label,
-                                    selected = selected,
-                                    mutedWhenUnselected = false,
-                                    size = Dimensions.Icon.medium,
-                                    reaction = chatReaction
-                                )
-                            } else {
-                                Icon(
-                                    imageVector = item.icon,
-                                    contentDescription = label,
-                                    tint = iconTint,
-                                    modifier = Modifier.size(Dimensions.Icon.medium)
-                                )
+                    Box(
+                        modifier = Modifier
+                            .matchParentSize()
+                            .graphicsLayer {
+                                scaleX = 0.5f + 0.5f * shown
+                                alpha = shown.coerceIn(0f, 1f)
                             }
-                        }
+                            .clip(CircleShape)
+                            // A tint of primary rather than secondaryContainer, which
+                            // all but vanishes against the pill in light themes.
+                            .background(
+                                MaterialTheme.colorScheme.primary.copy(alpha = Dimensions.Alpha.selectedIndicator)
+                            )
+                    )
+                    if (item == BottomNavItem.Chat) {
+                        // The indicator always marks selection here.
+                        ChatTabMascot(
+                            label = label,
+                            selected = selected,
+                            mutedWhenUnselected = false,
+                            size = Dimensions.Icon.medium,
+                            reaction = chatReaction
+                        )
+                    } else {
+                        Icon(
+                            imageVector = item.icon,
+                            contentDescription = label,
+                            tint = tint,
+                            modifier = Modifier.size(Dimensions.Icon.medium)
+                        )
                     }
                 }
+                // The icon already names the tab for TalkBack.
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = tint,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .padding(horizontal = Spacing.xxs)
+                        .clearAndSetSemantics {}
+                )
             }
         }
     }

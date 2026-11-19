@@ -58,6 +58,14 @@ data class SettingsPage(val section: SettingsSection) : NavKey
 @Serializable
 data object Categories : NavKey
 
+/** What the Plan tab shows. */
+@Serializable
+enum class PlanSection { BUDGETS, BILLS, GOALS }
+
+/** The Plan tab: budgets, bills and goals behind one switch. */
+@Serializable
+data class Plan(val section: PlanSection = PlanSection.BUDGETS) : NavKey
+
 @Serializable
 data object Analytics : NavKey
 

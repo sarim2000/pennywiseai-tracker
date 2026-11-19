@@ -42,6 +42,8 @@ import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
+import com.pennywiseai.tracker.presentation.plan.PlanSwitcher
+import com.pennywiseai.tracker.presentation.plan.PlanTabHost
 import com.pennywiseai.tracker.ui.animations.StaggeredEntrance
 import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.ui.animations.pwExpand
@@ -49,6 +51,9 @@ import com.pennywiseai.tracker.ui.animations.rememberEntranceDone
 import com.pennywiseai.tracker.ui.animations.staggerDelayMs
 import com.pennywiseai.tracker.ui.components.CategoryIcon
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
+import com.pennywiseai.tracker.ui.components.DockNavAction
+import com.pennywiseai.tracker.ui.components.LocalNavDock
+import com.pennywiseai.tracker.ui.components.NavDockAction
 import com.pennywiseai.tracker.ui.components.cards.PaceInfo
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.RolloverLine
@@ -87,16 +92,34 @@ fun BudgetGroupsScreen(
     onNavigateToGoal: (Long) -> Unit = {},
     onNavigateToGoalEdit: (Long) -> Unit = {},
     onNavigateToExchangeRates: () -> Unit = {},
-    createGoalOnOpen: Boolean = false
+    createGoalOnOpen: Boolean = false,
+    /** Set when drawn as the Plan tab's Budgets section; Goals then has its own section. */
+    planTab: PlanTabHost? = null,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val goalsSection: @Composable () -> Unit = {
-        com.pennywiseai.tracker.presentation.goals.GoalsSection(
-            onOpenGoal = onNavigateToGoal,
-            onCreateGoal = { onNavigateToGoalEdit(-1L) },
-            createOnOpen = createGoalOnOpen,
-            // With no budgets either, the budget card below is the screen's one mascot.
-            mascot = uiState.hasGroups
+    // In the Plan tab the switch takes the goals' slot at the top of the list.
+    val goalsSection: @Composable () -> Unit = if (planTab != null) {
+        { PlanSwitcher(planTab) }
+    } else {
+        {
+            com.pennywiseai.tracker.presentation.goals.GoalsSection(
+                onOpenGoal = onNavigateToGoal,
+                onCreateGoal = { onNavigateToGoalEdit(-1L) },
+                createOnOpen = createGoalOnOpen,
+                // With no budgets either, the budget card below is the screen's one mascot.
+                mascot = uiState.hasGroups
+            )
+        }
+    }
+    // With the floating nav bar, the Plan tab docks "Add budget" beside it instead of a FAB.
+    val dockAdd = planTab != null && LocalNavDock.current != null
+    if (dockAdd && uiState.hasGroups) {
+        DockNavAction(
+            NavDockAction(
+                icon = Icons.Default.Add,
+                contentDescription = stringResource(R.string.budgets_add),
+                onClick = { onNavigateToGroupEdit(-1L) },
+            )
         )
     }
 
@@ -111,8 +134,8 @@ fun BudgetGroupsScreen(
             CustomTitleTopAppBar(
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
-                title = stringResource(R.string.budgets_title),
-                hasBackButton = true,
+                title = stringResource(if (planTab != null) R.string.nav_plan else R.string.budgets_title),
+                hasBackButton = planTab == null,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.budgets_back))
@@ -122,7 +145,7 @@ fun BudgetGroupsScreen(
             )
         },
         floatingActionButton = {
-            if (uiState.hasGroups) {
+            if (uiState.hasGroups && !dockAdd) {
                 FloatingActionButton(onClick = { onNavigateToGroupEdit(-1L) }) {
                     Icon(Icons.Default.Add, contentDescription = stringResource(R.string.budgets_add))
                 }
@@ -151,6 +174,8 @@ fun BudgetGroupsScreen(
                     .background(MaterialTheme.colorScheme.background)
                     .padding(paddingValues)
                     .verticalScroll(rememberScrollState())
+                    // Clear of the floating nav bar laid over the Plan tab.
+                    .padding(bottom = if (planTab != null) Dimensions.Component.bottomBarHeight else Spacing.none)
             ) {
                 Box(Modifier.padding(Dimensions.Padding.content)) { goalsSection() }
                 MonthSelector(

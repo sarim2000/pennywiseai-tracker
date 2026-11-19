@@ -113,13 +113,20 @@ Also here: `progressBarHeight` (8dp — one height for budget, loan and download
 tracks), `legendDot` (10dp), `calendarDot` (6dp), `fab` (56dp), `fabBottomInset`,
 `fabScrollClearance`, `hairline` (0.5dp), `dividerThickness`.
 
-The Floating nav style is a pill of icon-only tabs (`floatingNavHeight` 64dp,
-`floatingNavBottomGap` 12dp above the system bar) with a sliding selected
-indicator (`floatingNavIndicatorWidth` × `floatingNavIndicatorHeight`, a
-`primary` tint at `Alpha.selectedIndicator`). A tab's one primary action docks
-beside it as a 64dp `primary` squircle (`dockedActionCornerRadius` 20dp): the
-screen calls `DockNavAction(...)` when `LocalNavDock.current` is non-null and
+The Floating nav style is a pill of five labelled tabs — Home · Activity · Plan ·
+Insights · Ask (`floatingNavHeight` 64dp, `floatingNavBottomGap` 12dp above the
+system bar). The selected tab's icon sits in an indicator
+(`floatingNavIndicatorWidth` × `floatingNavIndicatorHeight`, a `primary` tint at
+`Alpha.selectedIndicator`) that grows out from the icon on an Expressive spring;
+the label below takes `labelSmall`. A tab's one primary action docks beside it as
+a 64dp `primary` squircle (`dockedActionCornerRadius` 20dp): Home and Activity
+dock Add, the Plan tab docks Add budget / Add bill. The screen calls
+`DockNavAction(...)` when `LocalNavDock.current` is non-null and
 drops its own FAB, so the bar and the action never stack over content.
+
+Each tab's own first screen ends its header in the user's avatar, clipped to
+`MaterialShapes.Cookie9Sided` (`TabProfileButton`, fed by `LocalTabProfile`), which
+opens Settings. Pushed screens keep their back arrow instead.
 
 ### Elevation (`Dimensions.Elevation`)
 

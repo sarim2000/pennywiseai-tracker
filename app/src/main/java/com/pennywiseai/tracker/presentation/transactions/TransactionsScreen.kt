@@ -343,7 +343,7 @@ fun TransactionsScreen(
                 CustomTitleTopAppBar(
                     scrollBehaviorSmall = scrollBehaviorSmall,
                     scrollBehaviorLarge = scrollBehaviorLarge,
-                    title = stringResource(R.string.txn_list_title),
+                    title = stringResource(R.string.nav_transactions),
                     // The period chip row hides once the list scrolls; this keeps
                     // the active period readable in the collapsed bar.
                     subtitle = periodChipLabel,

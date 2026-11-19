@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.navigation
 
+import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedContentTransitionScope
 import androidx.compose.animation.ContentTransform
 import androidx.compose.animation.fadeIn
@@ -49,6 +50,8 @@ import com.pennywiseai.tracker.presentation.accounts.ManageAccountsViewModel
 import com.pennywiseai.tracker.presentation.chat.ChatTabViewModel
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.home.HomeScreen
+import com.pennywiseai.tracker.presentation.plan.PlanGoalsScreen
+import com.pennywiseai.tracker.presentation.plan.PlanTabHost
 import com.pennywiseai.tracker.presentation.settings.AppearanceScreen
 import com.pennywiseai.tracker.presentation.settings.FAQScreen
 import com.pennywiseai.tracker.presentation.settings.MascotPlaygroundScreen
@@ -63,8 +66,10 @@ import com.pennywiseai.tracker.ui.animations.pwPredictivePop
 import com.pennywiseai.tracker.ui.animations.pwPush
 import com.pennywiseai.tracker.ui.components.LocalHideNavBar
 import com.pennywiseai.tracker.ui.components.LocalNavDock
+import com.pennywiseai.tracker.ui.components.LocalTabProfile
 import com.pennywiseai.tracker.ui.components.NavDockState
 import com.pennywiseai.tracker.ui.components.SpotlightTutorial
+import com.pennywiseai.tracker.ui.components.TabProfile
 import com.pennywiseai.tracker.ui.components.WhatsNewDialog
 import com.pennywiseai.tracker.ui.components.mascot.rememberChatTabReaction
 import com.pennywiseai.tracker.ui.viewmodel.MainViewModel
@@ -77,6 +82,7 @@ import dev.chrisbanes.haze.hazeSource
 private fun tabOf(key: NavKey?): BottomNavItem? = when (key) {
     Home -> BottomNavItem.Home
     is Transactions -> BottomNavItem.Transactions
+    is Plan -> BottomNavItem.Plan
     Analytics -> BottomNavItem.Analytics
     Chat -> BottomNavItem.Chat
     else -> null
@@ -86,6 +92,7 @@ private fun tabOf(key: NavKey?): BottomNavItem? = when (key) {
 private fun rootOf(tab: BottomNavItem): NavKey = when (tab) {
     BottomNavItem.Home -> Home
     BottomNavItem.Transactions -> Transactions()
+    BottomNavItem.Plan -> Plan()
     BottomNavItem.Analytics -> Analytics
     BottomNavItem.Chat -> Chat
 }
@@ -156,6 +163,7 @@ fun MainScreen(
     val tabStacks = mapOf(
         BottomNavItem.Home to rememberNavBackStack(Home),
         BottomNavItem.Transactions to rememberNavBackStack(Transactions()),
+        BottomNavItem.Plan to rememberNavBackStack(Plan()),
         BottomNavItem.Analytics to rememberNavBackStack(Analytics),
         BottomNavItem.Chat to rememberNavBackStack(Chat),
     )
@@ -213,6 +221,20 @@ fun MainScreen(
 
     fun selectTab(tab: BottomNavItem) {
         currentTabRoute = tab.route
+    }
+
+    // Budgets, bills and goals live in the Plan tab; opened from elsewhere it shows
+    // fresh on that section. A hidden Plan tab falls back to the standalone screens.
+    fun openPlan(from: BottomNavItem, section: PlanSection) {
+        if (BottomNavItem.Plan.route in themeState.hiddenNavTabs) {
+            when (section) {
+                PlanSection.BILLS -> open(from, Subscriptions)
+                else -> openRoot(BudgetGroups())
+            }
+            return
+        }
+        tabStacks.getValue(BottomNavItem.Plan).resetTo(Plan(section))
+        selectTab(BottomNavItem.Plan)
     }
 
     // Tab bar tap: show that tab as it was left; reselecting the tab on screen
@@ -288,6 +310,17 @@ fun MainScreen(
     // Home's scan, for the Spotlight tutorial drawn over the bar (set by Home's entry).
     var scanSms by remember { mutableStateOf<(() -> Unit)?>(null) }
 
+    // A tab's own first screen ends its header in the avatar, which opens Settings in that tab.
+    val profile by mainViewModel.profile.collectAsStateWithLifecycle()
+
+    @Composable
+    fun TabRoot(tab: BottomNavItem, show: Boolean = true, content: @Composable () -> Unit) {
+        val tabProfile = profile?.takeIf { show }?.let { look ->
+            TabProfile(look.name, look.imageUri, look.backgroundColor) { open(tab, Settings) }
+        }
+        CompositionLocalProvider(LocalTabProfile provides tabProfile, content = content)
+    }
+
     // Entries read state through State objects (themeState), not captured values:
     // an entry's content is built once per back stack change.
     fun tabEntries(tab: BottomNavItem): (NavKey) -> NavEntry<NavKey> = withRouteArgs(entryProvider {
@@ -326,10 +359,13 @@ fun MainScreen(
                     openRoot(Achievements)
                 },
                 onNavigateToSubscriptions = {
-                    open(tab, Subscriptions)
+                    openPlan(tab, PlanSection.BILLS)
                 },
                 onNavigateToBudgets = {
-                    openRoot(BudgetGroups())
+                    openPlan(tab, PlanSection.BUDGETS)
+                },
+                onNavigateToGoals = {
+                    openPlan(tab, PlanSection.GOALS)
                 },
                 onNavigateToLoans = {
                     openRoot(Loans)
@@ -371,36 +407,39 @@ fun MainScreen(
         }
 
         entry<Transactions> { key ->
-            TransactionsScreen(
-                modifier = Modifier.imePadding(),
-                initialCategory = key.category,
-                initialMerchant = key.merchant,
-                initialPeriod = key.period,
-                initialCurrency = key.currency,
-                initialCustomStartEpochDay = key.startDate,
-                initialCustomEndEpochDay = key.endDate,
-                initialAccount = key.account,
-                initialTag = key.tag,
-                currencyOnly = key.currencyOnly,
-                profilePinned = key.profilePinned,
-                initialProfileId = key.profileId,
-                focusSearch = key.focusSearch,
-                initialTransactionType = key.type,
-                // No back arrow for a plain tab tap; show it for a filtered
-                // drill-down (Home category/search) so the user can return. (#635)
-                showBackButton = key != Transactions(),
-                // The bottom nav is overlaid on this route — always reserve clearance.
-                reserveBottomBarSpace = true,
-                onNavigateBack = {
-                    backFrom(tab, key)
-                },
-                onTransactionClick = { transactionId ->
-                    openRoot(TransactionDetail(transactionId))
-                },
-                onAddTransactionClick = {
-                    openRoot(AddTransaction())
-                }
-            )
+            // A filtered drill-down keeps its back arrow instead.
+            TabRoot(tab, show = key == Transactions()) {
+                TransactionsScreen(
+                    modifier = Modifier.imePadding(),
+                    initialCategory = key.category,
+                    initialMerchant = key.merchant,
+                    initialPeriod = key.period,
+                    initialCurrency = key.currency,
+                    initialCustomStartEpochDay = key.startDate,
+                    initialCustomEndEpochDay = key.endDate,
+                    initialAccount = key.account,
+                    initialTag = key.tag,
+                    currencyOnly = key.currencyOnly,
+                    profilePinned = key.profilePinned,
+                    initialProfileId = key.profileId,
+                    focusSearch = key.focusSearch,
+                    initialTransactionType = key.type,
+                    // No back arrow for a plain tab tap; show it for a filtered
+                    // drill-down (Home category/search) so the user can return. (#635)
+                    showBackButton = key != Transactions(),
+                    // The bottom nav is overlaid on this route — always reserve clearance.
+                    reserveBottomBarSpace = true,
+                    onNavigateBack = {
+                        backFrom(tab, key)
+                    },
+                    onTransactionClick = { transactionId ->
+                        openRoot(TransactionDetail(transactionId))
+                    },
+                    onAddTransactionClick = {
+                        openRoot(AddTransaction())
+                    }
+                )
+            }
         }
 
         entry<Subscriptions> { key ->
@@ -414,57 +453,98 @@ fun MainScreen(
             )
         }
 
-        entry<Analytics> { key ->
-            com.pennywiseai.tracker.presentation.analytics.AnalyticsScreen(
-                onNavigateToChat = {
-                    if (BottomNavItem.Chat.route !in themeState.hiddenNavTabs) {
-                        open(tab, Chat)
-                    }
-                },
-                onNavigateToTransactions = { drill ->
-                    open(
-                        tab,
-                        Transactions(
-                            category = drill.category,
-                            merchant = drill.merchant,
-                            period = drill.period,
-                            currency = drill.currency,
-                            startDate = drill.startDateEpochDay,
-                            endDate = drill.endDateEpochDay,
-                            account = drill.account,
-                            tag = drill.tag,
-                            type = drill.type
+        entry<Plan> { key ->
+            // The switch is screen state, not navigation: flipping sections doesn't stack up Back.
+            var section by rememberSaveable(key) { mutableStateOf(key.section) }
+            val fade = MaterialTheme.motionScheme.fastEffectsSpec<Float>()
+            TabRoot(tab) {
+                AnimatedContent(
+                    targetState = section,
+                    transitionSpec = { fadeIn(fade) togetherWith fadeOut(fade) },
+                    label = "planSection",
+                ) { shown ->
+                    val host = PlanTabHost(shown) { section = it }
+                    when (shown) {
+                        PlanSection.BUDGETS -> com.pennywiseai.tracker.presentation.budgetgroups.BudgetGroupsScreen(
+                            planTab = host,
+                            onNavigateToGroupEdit = { openRoot(BudgetGroupEdit(it)) },
+                            onNavigateToHistory = { groupId, year, month -> openRoot(BudgetHistory(groupId, year, month)) },
+                            onNavigateToExchangeRates = { openRoot(ExchangeRates) },
+                            onNavigateToCategory = { category, yearMonth, currency ->
+                                openRoot(TransactionsWithFilter(category, yearMonth, currency))
+                            },
+                            onNavigateToGoal = { openRoot(GoalDetail(it)) },
+                            onNavigateToGoalEdit = { openRoot(GoalEdit(it)) },
                         )
-                    )
-                },
-                onNavigateToHome = {
-                    selectTab(BottomNavItem.Home)
-                },
-                onNavigateToCalendar = {
-                    openRoot(SpendCalendar)
+                        PlanSection.BILLS -> SubscriptionsScreen(
+                            planTab = host,
+                            onAddSubscriptionClick = { openRoot(AddTransaction()) },
+                        )
+                        PlanSection.GOALS -> PlanGoalsScreen(
+                            host = host,
+                            onOpenGoal = { openRoot(GoalDetail(it)) },
+                            onCreateGoal = { openRoot(GoalEdit(-1L)) },
+                        )
+                    }
                 }
-            )
+            }
+        }
+
+        entry<Analytics> { key ->
+            TabRoot(tab) {
+                com.pennywiseai.tracker.presentation.analytics.AnalyticsScreen(
+                    onNavigateToChat = {
+                        if (BottomNavItem.Chat.route !in themeState.hiddenNavTabs) {
+                            open(tab, Chat)
+                        }
+                    },
+                    onNavigateToTransactions = { drill ->
+                        open(
+                            tab,
+                            Transactions(
+                                category = drill.category,
+                                merchant = drill.merchant,
+                                period = drill.period,
+                                currency = drill.currency,
+                                startDate = drill.startDateEpochDay,
+                                endDate = drill.endDateEpochDay,
+                                account = drill.account,
+                                tag = drill.tag,
+                                type = drill.type
+                            )
+                        )
+                    },
+                    onNavigateToHome = {
+                        selectTab(BottomNavItem.Home)
+                    },
+                    onNavigateToCalendar = {
+                        openRoot(SpendCalendar)
+                    }
+                )
+            }
         }
 
         entry<Chat> { key ->
-            // Hidden AI tab: don't start the chat (and its model) for
-            // the frame before the fallback to Home lands.
-            if (BottomNavItem.Chat.route !in themeState.hiddenNavTabs) {
-                com.pennywiseai.tracker.presentation.chat.ChatScreen(
-                    modifier = Modifier.imePadding(),
-                    onNavigateToSettings = {
-                        open(tab, SettingsPage(SettingsSection.AI))
-                    },
-                    onOpenLink = { link ->
-                        when (link) {
-                            is ChatLink -> open(tab, transactionsFor(link))
-                            is PlanLink -> when (link.plan) {
-                                PlanLink.Plan.BUDGETS -> openRoot(BudgetGroups())
-                                PlanLink.Plan.BILLS -> open(tab, Subscriptions)
+            TabRoot(tab) {
+                // Hidden AI tab: don't start the chat (and its model) for
+                // the frame before the fallback to Home lands.
+                if (BottomNavItem.Chat.route !in themeState.hiddenNavTabs) {
+                    com.pennywiseai.tracker.presentation.chat.ChatScreen(
+                        modifier = Modifier.imePadding(),
+                        onNavigateToSettings = {
+                            open(tab, SettingsPage(SettingsSection.AI))
+                        },
+                        onOpenLink = { link ->
+                            when (link) {
+                                is ChatLink -> open(tab, transactionsFor(link))
+                                is PlanLink -> when (link.plan) {
+                                    PlanLink.Plan.BUDGETS -> openPlan(tab, PlanSection.BUDGETS)
+                                    PlanLink.Plan.BILLS -> openPlan(tab, PlanSection.BILLS)
+                                }
                             }
                         }
-                    }
-                )
+                    )
+                }
             }
         }
 
@@ -618,7 +698,7 @@ fun MainScreen(
             // Wait for prefs so a hidden tab never flashes in on launch.
             // A pushed screen hides the bar with its own exit (it never slides with
             // the screen); it keeps the last tab selected while it leaves.
-            val onTabScreen = baseRoute in listOf("home", "transactions", "analytics", "chat")
+            val onTabScreen = BottomNavItem.all.any { it.route == baseRoute }
             val lastTabRoute = remember { arrayOf(baseRoute) }
             if (onTabScreen) lastTabRoute[0] = baseRoute
             if (!themeState.isLoading) {

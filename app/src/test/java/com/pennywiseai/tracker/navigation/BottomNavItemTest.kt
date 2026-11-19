@@ -14,7 +14,7 @@ class BottomNavItemTest {
         // The hidden-tabs preference and MainScreen's saved current tab hold these
         // strings. Renaming one would lose that state on update.
         assertEquals(
-            listOf("home", "transactions", "analytics", "chat"),
+            listOf("home", "transactions", "plan", "analytics", "chat"),
             BottomNavItem.all.map { it.route },
         )
     }
@@ -22,7 +22,7 @@ class BottomNavItemTest {
     @Test
     fun `nothing hidden by default shows every tab in order`() {
         assertEquals(
-            listOf(BottomNavItem.Home, BottomNavItem.Transactions, BottomNavItem.Analytics, BottomNavItem.Chat),
+            listOf(BottomNavItem.Home, BottomNavItem.Transactions, BottomNavItem.Plan, BottomNavItem.Analytics, BottomNavItem.Chat),
             BottomNavItem.visible(emptySet())
         )
     }
@@ -35,7 +35,7 @@ class BottomNavItemTest {
     @Test
     fun `hidden tabs drop out and the rest keep their order`() {
         assertEquals(
-            listOf(BottomNavItem.Home, BottomNavItem.Analytics),
+            listOf(BottomNavItem.Home, BottomNavItem.Plan, BottomNavItem.Analytics),
             BottomNavItem.visible(setOf("transactions", "chat"))
         )
     }

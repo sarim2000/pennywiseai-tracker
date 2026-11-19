@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -80,6 +81,7 @@ fun HomeScreen(
     onNavigateToShareStudio: () -> Unit = {},
     onNavigateToAchievements: () -> Unit = {},
     onNavigateToBudgets: () -> Unit = {},
+    onNavigateToGoals: () -> Unit = {},
     onNavigateToLoans: () -> Unit = {},
     onNavigateToTransactionGroups: () -> Unit = {},
     onLoanClick: (Long) -> Unit = {},
@@ -101,6 +103,7 @@ fun HomeScreen(
     var showUpgradeSheet by rememberSaveable { mutableStateOf(false) }
     val deletedTransaction by viewModel.deletedTransaction.collectAsStateWithLifecycle()
     val smsScanWorkInfo by viewModel.smsScanWorkInfo.collectAsStateWithLifecycle()
+    val lastScanAt by viewModel.lastScanAt.collectAsStateWithLifecycle()
     val groupSummaries by viewModel.groupSummaries.collectAsStateWithLifecycle()
     val goals by viewModel.goals.collectAsStateWithLifecycle()
     val homeSectionLayout by viewModel.homeSectionLayout.collectAsStateWithLifecycle()
@@ -131,6 +134,10 @@ fun HomeScreen(
 
     // Fixes happen in system Settings, so every check reruns on return.
     val context = LocalContext.current
+    // Walks the oldest unsorted spends through the quick category picker.
+    val sortUnsorted = {
+        context.startActivity(QuickCategoryPickerActivity.walk(context, unsorted.take(UNSORTED_WALK_SIZE), fromHome = true))
+    }
     val backgroundAccess: BackgroundAccessViewModel = hiltViewModel()
     val backgroundState by backgroundAccess.state.collectAsStateWithLifecycle()
     var canReceiveSms by remember { mutableStateOf(context.canReceiveSms()) }
@@ -288,12 +295,10 @@ fun HomeScreen(
                         profiles = uiState.profiles,
                         selectedProfileId = uiState.selectedProfileId,
                         showProfileFilterMenu = showProfileFilterMenu,
-                        showAddAction = navDock != null,
                         onUpgradeClick = { showUpgradeSheet = true },
                         onOpenProfileFilter = { showProfileFilterMenu = true },
                         onProfileSelected = { viewModel.updateSelectedProfile(it) },
                         onDismissProfileFilter = { showProfileFilterMenu = false },
-                        onNavigateToAddScreen = onNavigateToAddScreen,
                         onVoiceClick = onVoiceClick,
                         onMoreClick = { showMenuSheet = true }
                     )
@@ -305,14 +310,29 @@ fun HomeScreen(
                         profileBackgroundColor = uiState.profileBackgroundColor,
                         onAvatarClick = onNavigateToSettings,
                         onMenuClick = { showMenuSheet = true },
-                        onAddClick = onNavigateToAddScreen.takeIf { navDock != null },
+                        // Add is the bar's docked action (or the FAB stack's) now.
+                        onAddClick = null,
                         onVoiceClick = onVoiceClick,
                         profiles = uiState.profiles,
                         selectedProfileId = uiState.selectedProfileId,
                         onProfileSelected = { viewModel.updateSelectedProfile(it) },
                         isProEntitled = isProEntitled,
                         onUpgradeClick = { showUpgradeSheet = true },
-                        cycleEnd = currentCycleWindow.second
+                        cycleEnd = currentCycleWindow.second,
+                        status = {
+                            HomeSyncStatus(
+                                isScanning = uiState.isScanning,
+                                newCount = uiState.scanNewCount,
+                                lastScanAt = lastScanAt,
+                                onSync = { viewModel.scanSmsMessages() },
+                                onFullResync = {
+                                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                    showFullResyncDialog = true
+                                },
+                                // The FAB stack has its own Sync for the tutorial in the Normal nav style.
+                                onPositioned = scanHintTarget.takeIf { navDock != null }
+                            )
+                        }
                     )
                 }
             )
@@ -391,6 +411,20 @@ fun HomeScreen(
 
                 // Without SMS access nothing gets tracked: ask right under the balance card,
                 // above the fold, not at the bottom of the list behind the nav bar.
+                item(key = "shortcuts") {
+                    StaggeredEntrance(delayMs = 0L, skip = hasAnimated) {
+                        HomeShortcuts(
+                            unsortedCount = unsorted.size,
+                            onBudgets = onNavigateToBudgets,
+                            onBills = onNavigateToSubscriptions,
+                            onAccounts = onNavigateToManageAccounts,
+                            onUnsorted = sortUnsorted,
+                            onGoals = onNavigateToGoals,
+                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                        )
+                    }
+                }
+
                 if (!smsAccess.granted && !uiState.isLoading && uiState.recentItems.isEmpty()) {
                     item(key = "sms_access") {
                         SmsAccessCard(
@@ -537,11 +571,7 @@ fun HomeScreen(
                                     StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
                                         HomeUnsortedCard(
                                             count = unsorted.size,
-                                            onSort = {
-                                                context.startActivity(
-                                                    QuickCategoryPickerActivity.walk(context, unsorted.take(UNSORTED_WALK_SIZE), fromHome = true)
-                                                )
-                                            },
+                                            onSort = sortUnsorted,
                                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                                         )
                                     }
@@ -731,22 +761,13 @@ fun HomeScreen(
             }
 
             if (navDock != null) {
-                // Sync docks beside the floating nav bar; Add lives in the header.
-                val syncLabel = stringResource(R.string.home_fab_sync)
-                val fullResyncLabel = stringResource(R.string.home_resync_title)
+                // Add is Home's one main action, docked beside the floating nav bar.
+                // SMS are read on their own; the status under the greeting reads them now.
                 DockNavAction(
                     NavDockAction(
-                        icon = Icons.Default.Sync,
-                        contentDescription = syncLabel,
-                        onClick = { viewModel.scanSmsMessages() },
-                        onLongClick = {
-                            view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                            showFullResyncDialog = true
-                        },
-                        onLongClickLabel = fullResyncLabel,
-                        loading = uiState.isScanning,
-                        resultCount = uiState.scanNewCount,
-                        onPositioned = scanHintTarget
+                        icon = Icons.Default.Add,
+                        contentDescription = stringResource(R.string.home_fab_add),
+                        onClick = onNavigateToAddScreen,
                     )
                 )
             } else {

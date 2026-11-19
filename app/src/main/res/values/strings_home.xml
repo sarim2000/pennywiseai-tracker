@@ -35,6 +35,17 @@
     <string name="home_fab_sync">Sync SMS (long press for full resync)</string>
     <string name="home_fab_sync_hint">Hold for full resync</string>
     <string name="home_resync_title">Read messages again</string>
+    <string name="home_status_reading">Reading your SMS…</string>
+    <string name="home_status_never">Read your SMS now</string>
+    <string name="home_status_just_now">Updated just now</string>
+    <string name="home_status_updated">Updated %1$s</string>
+    <string name="home_status_read_now">Read SMS now</string>
+    <string name="home_shortcut_accounts">Accounts</string>
+    <string name="home_shortcut_unsorted">Unsorted</string>
+    <plurals name="home_status_new">
+        <item quantity="one">%d new from SMS</item>
+        <item quantity="other">%d new from SMS</item>
+    </plurals>
     <string name="home_resync_scan_again">Scan all messages again</string>
     <string name="home_resync_scan_again_desc">Adds anything that was missed. Your edits and all existing transactions stay as they are.</string>
     <string name="home_resync_rebuild">Rebuild from scratch</string>
@@ -92,9 +103,11 @@
 
     <!-- ══ Bottom navigation ══ -->
     <string name="nav_home">Home</string>
-    <string name="nav_transactions">Transactions</string>
-    <string name="nav_analytics">Analytics</string>
-    <string name="nav_chat">Chat</string>
+    <string name="nav_transactions">Activity</string>
+    <string name="nav_plan">Plan</string>
+    <string name="plan_bills">Bills</string>
+    <string name="nav_analytics">Insights</string>
+    <string name="nav_chat">Ask</string>
 
     <!-- ══ Shared components ══ -->
     <string name="expandable_list_view_less">View Less</string>

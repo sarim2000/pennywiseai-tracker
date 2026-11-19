@@ -176,7 +176,7 @@ fun AnalyticsScreen(
             CustomTitleTopAppBar(
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
-                title = stringResource(R.string.analytics_title),
+                title = stringResource(R.string.nav_analytics),
                 hazeState = hazeState,
                 actionContent = {
                     IconButton(onClick = onNavigateToCalendar, shapes = IconButtonDefaults.shapes()) {

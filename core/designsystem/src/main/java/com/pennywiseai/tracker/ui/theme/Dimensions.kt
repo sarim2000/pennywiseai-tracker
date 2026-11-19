@@ -149,12 +149,21 @@ object Dimensions {
         /** Widest a current value may get at the end of a settings row. */
         val rowValueMaxWidth = 96.dp
 
+        /** The shaped tile of a Home shortcut (Budgets, Bills, Accounts…). */
+        val shortcutTile = 56.dp
+
+        /** Height of a status pill such as Home's "Updated 5 min ago". */
+        val statusChipHeight = 32.dp
+
+        /** The Pro "membership ring" edging Home's avatar. */
+        val avatarRingWidth = 2.dp
+
         /** Height of the floating nav pill, and the side of the action docked beside it. */
         val floatingNavHeight = 64.dp
 
-        /** The selected-tab indicator inside the floating nav pill. */
-        val floatingNavIndicatorHeight = 48.dp
-        val floatingNavIndicatorWidth = 64.dp
+        /** The selected-tab indicator behind a tab's icon (its label sits below) in the floating nav pill. */
+        val floatingNavIndicatorHeight = 32.dp
+        val floatingNavIndicatorWidth = 52.dp
 
         /** Gap between the floating nav pill and the system navigation bar. */
         val floatingNavBottomGap = 12.dp

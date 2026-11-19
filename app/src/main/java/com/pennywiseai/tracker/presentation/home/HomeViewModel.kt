@@ -148,6 +148,10 @@ class HomeViewModel @Inject constructor(
     private val _smsScanWorkInfo = MutableStateFlow<WorkInfo?>(null)
     val smsScanWorkInfo: StateFlow<WorkInfo?> = _smsScanWorkInfo.asStateFlow()
 
+    /** When SMS were last read (epoch ms), for Home's status line; null if never. */
+    val lastScanAt: StateFlow<Long?> = userPreferencesRepository.getLastScanTimestamp()
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
     /**
      * Groups for the Home "Groups" section (#664). Groups were only reachable
      * through Settings / the recent list's incidental group cards; an empty

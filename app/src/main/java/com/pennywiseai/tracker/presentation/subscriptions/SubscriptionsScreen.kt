@@ -45,6 +45,8 @@ import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.domain.model.getAccountType
 import com.pennywiseai.tracker.domain.spending.RecurringCharge
 import com.pennywiseai.tracker.presentation.accounts.icon
+import com.pennywiseai.tracker.presentation.plan.PlanSwitcher
+import com.pennywiseai.tracker.presentation.plan.PlanTabHost
 import com.pennywiseai.tracker.ui.animations.StaggeredEntrance
 import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.ui.animations.pwExpand
@@ -52,6 +54,9 @@ import com.pennywiseai.tracker.ui.animations.rememberEntranceDone
 import com.pennywiseai.tracker.ui.animations.staggerDelayMs
 import com.pennywiseai.tracker.ui.components.*
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
+import com.pennywiseai.tracker.ui.components.DockNavAction
+import com.pennywiseai.tracker.ui.components.LocalNavDock
+import com.pennywiseai.tracker.ui.components.NavDockAction
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.cards.SummaryCardV2
@@ -84,6 +89,8 @@ fun SubscriptionsScreen(
     onAddSubscriptionClick: () -> Unit = {},
     // A tab root has no back arrow; opened over another screen (a calendar bill's link), it needs one.
     showBack: Boolean = false,
+    /** Set when drawn as the Plan tab's Bills section. */
+    planTab: PlanTabHost? = null,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val accounts by viewModel.accounts.collectAsStateWithLifecycle()
@@ -179,6 +186,18 @@ fun SubscriptionsScreen(
         }
     }
 
+    // With the floating nav bar, the Plan tab docks "Add" beside it instead of a FAB.
+    val dockAdd = planTab != null && LocalNavDock.current != null
+    if (dockAdd) {
+        DockNavAction(
+            NavDockAction(
+                icon = Icons.Default.Add,
+                contentDescription = stringResource(R.string.subscriptions_add),
+                onClick = onAddSubscriptionClick,
+            )
+        )
+    }
+
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         containerColor = Color.Transparent,
@@ -187,7 +206,7 @@ fun SubscriptionsScreen(
             CustomTitleTopAppBar(
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
-                title = stringResource(R.string.subscriptions_title),
+                title = stringResource(if (planTab != null) R.string.nav_plan else R.string.subscriptions_title),
                 hasBackButton = showBack,
                 navigationContent = {
                     if (showBack) {
@@ -203,7 +222,7 @@ fun SubscriptionsScreen(
             )
         },
         floatingActionButton = {
-            SmallFloatingActionButton(
+            if (!dockAdd) SmallFloatingActionButton(
                 onClick = onAddSubscriptionClick,
                 containerColor = MaterialTheme.colorScheme.secondaryContainer,
                 contentColor = MaterialTheme.colorScheme.onSecondaryContainer
@@ -226,11 +245,14 @@ fun SubscriptionsScreen(
                 start = Dimensions.Padding.content,
                 end = Dimensions.Padding.content,
                 top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
-                bottom = paddingValues.calculateBottomPadding()
+                bottom = if (planTab != null) Dimensions.Component.bottomBarHeight + Spacing.md
+                else paddingValues.calculateBottomPadding()
             ),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
             flingBehavior = rememberOverscrollFlingBehavior { lazyListState }
         ) {
+            planTab?.let { host -> item(key = "plan-switch") { PlanSwitcher(host) } }
+
             // Total Monthly Subscriptions Summary (0ms delay)
             item {
                 StaggeredEntrance(delayMs = 0L, skip = hasAnimated) {

@@ -44,12 +44,10 @@ internal fun HomeTopBarActions(
     profiles: List<ProfileEntity>,
     selectedProfileId: Long?,
     showProfileFilterMenu: Boolean,
-    showAddAction: Boolean,
     onUpgradeClick: () -> Unit,
     onOpenProfileFilter: () -> Unit,
     onProfileSelected: (Long?) -> Unit,
     onDismissProfileFilter: () -> Unit,
-    onNavigateToAddScreen: () -> Unit,
     onVoiceClick: (() -> Unit)?,
     onMoreClick: () -> Unit
 ) {
@@ -139,30 +137,6 @@ internal fun HomeTopBarActions(
                 Icon(
                     imageVector = Icons.Default.Mic,
                     contentDescription = stringResource(R.string.quick_add_voice_title),
-                    tint = MaterialTheme.colorScheme.inverseSurface,
-                    modifier = Modifier.size(Dimensions.Icon.medium)
-                )
-            }
-        }
-        if (showAddAction) {
-            Box(
-                modifier = Modifier
-                    .size(Dimensions.Component.iconButton)
-                    .clip(CircleShape)
-                    .background(
-                        color = if (blurEffects) containerColor.copy(0.5f) else containerColor,
-                        shape = CircleShape
-                    )
-                    .clickable(
-                        onClick = onNavigateToAddScreen,
-                        interactionSource = remember { MutableInteractionSource() },
-                        indication = null,
-                    ),
-                contentAlignment = Alignment.Center
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = stringResource(R.string.home_fab_add),
                     tint = MaterialTheme.colorScheme.inverseSurface,
                     modifier = Modifier.size(Dimensions.Icon.medium)
                 )

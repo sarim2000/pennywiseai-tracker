@@ -41,6 +41,7 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
 import com.pennywiseai.tracker.data.contacts.displayMerchantName
 import com.pennywiseai.tracker.data.model.ChatLink
+import com.pennywiseai.tracker.data.model.PlanLink
 import com.pennywiseai.tracker.data.preferences.NavBarStyle
 import com.pennywiseai.tracker.presentation.accounts.AddAccountScreen
 import com.pennywiseai.tracker.presentation.accounts.ManageAccountsScreen
@@ -451,8 +452,14 @@ fun MainScreen(
                     onNavigateToSettings = {
                         open(tab, SettingsPage(SettingsSection.AI))
                     },
-                    onOpenTransactions = { link ->
-                        open(tab, transactionsFor(link))
+                    onOpenLink = { link ->
+                        when (link) {
+                            is ChatLink -> open(tab, transactionsFor(link))
+                            is PlanLink -> when (link.plan) {
+                                PlanLink.Plan.BUDGETS -> openRoot(BudgetGroups())
+                                PlanLink.Plan.BILLS -> open(tab, Subscriptions)
+                            }
+                        }
                     }
                 )
             }

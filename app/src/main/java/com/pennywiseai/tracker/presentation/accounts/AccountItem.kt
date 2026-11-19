@@ -45,11 +45,11 @@ internal fun AccountBadge(name: String, kind: AccountBadgeKind, modifier: Modifi
     val colors = MaterialTheme.colorScheme
     val (shape, color) = when (kind) {
         AccountBadgeKind.BANK -> MaterialShapes.Cookie9Sided.toShape() to colors.primary
-        AccountBadgeKind.CARD -> MaterialShapes.Clover4Leaf.toShape() to colors.error
+        AccountBadgeKind.CARD -> MaterialShapes.Clover4Leaf.toShape() to colors.secondary
         AccountBadgeKind.LOAN -> MaterialShapes.SoftBurst.toShape() to colors.tertiary
     }
     val fill = color.copy(alpha = Dimensions.Alpha.categoryTint)
-    // Tertiary is a fill, not ink: check the letter against the tint as it composites
+    // Secondary and tertiary are fills, not ink: check the letter against the tint as it composites
     // over each neutral surface (the row sits on one).
     val ink = color.readableOn(colors.neutralSurfaces.map { fill.compositeOver(it) })
     Box(

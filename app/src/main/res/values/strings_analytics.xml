@@ -134,6 +134,35 @@
     <string name="budgets_chart_actual">Actual</string>
     <string name="budgets_chart_pace">Budget Pace</string>
 
+    <!-- ══ Plan tab: header and the Budgets section ══ -->
+    <string name="plan_overline">Budgets, bills &amp; goals</string>
+    <!-- %1$s = month name, e.g. "November" -->
+    <string name="plan_budget_month">%1$s budget</string>
+    <!-- Under the amount left. %1$s = the month's total limit -->
+    <string name="plan_budget_left_of">left of %1$s</string>
+    <!-- Under the amount overspent. %1$s = the month's total limit -->
+    <string name="plan_budget_over_of">over your %1$s limit</string>
+    <!-- %1$d = days left, %2$s = amount that can be spent each day -->
+    <plurals name="plan_budget_days_left_per_day">
+        <item quantity="one">%1$d day left · about %2$s a day</item>
+        <item quantity="other">%1$d days left · about %2$s a day</item>
+    </plurals>
+    <plurals name="plan_budget_days_left">
+        <item quantity="one">%1$d day left</item>
+        <item quantity="other">%1$d days left</item>
+    </plurals>
+    <string name="plan_budget_status_on_track">On track</string>
+    <string name="plan_budget_status_close">Getting close</string>
+    <string name="plan_budget_status_almost">Almost used up</string>
+    <string name="plan_budget_status_over">Over budget</string>
+    <!-- Under a budget's amount: what's left of it, or how far past it -->
+    <string name="plan_budget_left">left</string>
+    <string name="plan_budget_over">over</string>
+    <!-- %1$s = spent, %2$s = limit -->
+    <string name="plan_budget_spent_of">%1$s of %2$s spent</string>
+    <string name="plan_budget_show_details">Show details</string>
+    <string name="plan_budget_hide_details">Hide details</string>
+
     <!-- ══ Budget edit screen ══ -->
     <string name="budget_edit_title_edit">Edit Budget</string>
     <string name="budget_edit_title_new">New Budget</string>
@@ -360,5 +389,33 @@
     <string name="analytics_forecast_for">Forecast for %1$s</string>
     <string name="analytics_forecast_above_usual">About %1$s above your usual</string>
     <string name="analytics_forecast_stay_under">Spend under %1$s a day to stay at %2$s.</string>
+
+    <!-- ══ Insights tab (redesign) ══ -->
+    <!-- Small line above the Insights title -->
+    <string name="analytics_overline">Your spending</string>
+    <!-- Period picker: the third button, which opens the other periods -->
+    <string name="analytics_period_more">More</string>
+    <!-- Hero label; %1$s = the period, e.g. "November" or "Current FY" -->
+    <string name="analytics_hero_spent">Spent · %1$s</string>
+    <!-- Hero label for a non-spend type view; %1$s = type (e.g. "Income"), %2$s = period -->
+    <string name="analytics_hero_type">%1$s · %2$s</string>
+    <!-- Short financial-year label under a bar; %1$s = two-digit end year, e.g. "26" -->
+    <string name="analytics_fy_short">FY%1$s</string>
+    <!-- Change against the previous period. %1$d = percent, %2$s = previous period (e.g. "October") -->
+    <string name="analytics_change_less">%1$d%% less than %2$s</string>
+    <string name="analytics_change_more">%1$d%% more than %2$s</string>
+    <string name="analytics_change_same">Same as %1$s</string>
+    <!-- The period is still running, so it is compared with the same days of the previous one -->
+    <string name="analytics_change_less_so_far">%1$d%% less than this point in %2$s</string>
+    <string name="analytics_change_more_so_far">%1$d%% more than this point in %2$s</string>
+    <string name="analytics_change_same_so_far">Same as this point in %1$s</string>
+    <!-- %1$s = average amount of one transaction -->
+    <string name="analytics_avg_per_transaction">%1$s avg. per transaction</string>
+    <string name="analytics_where_it_went">Where it went</string>
+    <string name="analytics_top_merchants_title">Top merchants</string>
+    <string name="analytics_ask_title">Want the story behind it?</string>
+    <!-- A suggested question; %1$s = a month, e.g. "August" -->
+    <string name="analytics_ask_why_higher">“Why was %1$s higher than usual?”</string>
+    <string name="analytics_ask_generic">“Where did most of my money go?”</string>
 
 </resources>

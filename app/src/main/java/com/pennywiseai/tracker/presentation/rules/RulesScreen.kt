@@ -4,39 +4,52 @@ import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.Label
+import androidx.compose.material.icons.automirrored.filled.Notes
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.rules.RuleSharingCodec
+import com.pennywiseai.tracker.domain.model.rule.ActionType
+import com.pennywiseai.tracker.domain.model.rule.TransactionField
+import com.pennywiseai.tracker.domain.model.rule.TransactionRule
 import com.pennywiseai.tracker.domain.usecase.BatchApplyResult
 import com.pennywiseai.tracker.domain.usecase.DryRunResult
+import com.pennywiseai.tracker.ui.components.CategoryIcon
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
-import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
+import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
+import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -67,7 +80,7 @@ fun RulesScreen(
     ) { uri -> uri?.let { viewModel.importRules(it) } }
 
     var showBatchApplyDialog by remember { mutableStateOf(false) }
-    var selectedRuleForBatch by remember { mutableStateOf<com.pennywiseai.tracker.domain.model.rule.TransactionRule?>(null) }
+    var selectedRuleForBatch by remember { mutableStateOf<TransactionRule?>(null) }
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -75,6 +88,11 @@ fun RulesScreen(
 
     // Reset dialog state needs to be outside the lambda
     var showResetDialog by remember { mutableStateOf(false) }
+
+    val createRule = {
+        if (canCreateMoreRules) onNavigateToCreateRule()
+        else showUpgradeSheet = true
+    }
 
     Scaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
@@ -86,7 +104,14 @@ fun RulesScreen(
                 title = stringResource(R.string.rules_title),
                 hasBackButton = true,
                 navigationContent = {
-                    IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
+                    IconButton(
+                        onClick = onNavigateBack,
+                        colors = IconButtonDefaults.iconButtonColors(
+                            containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                            contentColor = MaterialTheme.colorScheme.onSurface
+                        ),
+                        shapes = IconButtonDefaults.shapes()
+                    ) {
                         Icon(
                             Icons.AutoMirrored.Filled.ArrowBack,
                             contentDescription = stringResource(R.string.rules_navigate_back)
@@ -145,15 +170,14 @@ fun RulesScreen(
             )
         },
         floatingActionButton = {
-            FloatingActionButton(
-                onClick = {
-                    if (canCreateMoreRules) onNavigateToCreateRule()
-                    else showUpgradeSheet = true
-                },
-                containerColor = MaterialTheme.colorScheme.primary
-            ) {
-                Icon(Icons.Default.Add, contentDescription = stringResource(R.string.rules_create_cd))
-            }
+            // Stays in reach however long the list grows (a starter set alone is a dozen rules).
+            ExtendedFloatingActionButton(
+                onClick = createRule,
+                icon = { Icon(Icons.Default.Add, contentDescription = null) },
+                text = { Text(stringResource(R.string.rules_new_rule)) },
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            )
         }
     ) { paddingValues ->
 
@@ -213,109 +237,59 @@ fun RulesScreen(
                 contentPadding = PaddingValues(
                     start = Dimensions.Padding.content,
                     end = Dimensions.Padding.content,
-                    top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
+                    top = paddingValues.calculateTopPadding(),
                     bottom = paddingValues.calculateBottomPadding() + Dimensions.Component.fabScrollClearance
                 ),
                 state = lazyListState,
                 flingBehavior = rememberOverscrollFlingBehavior { lazyListState },
-                verticalArrangement = Arrangement.spacedBy(Spacing.md)
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
-                // Info Card
-                item {
-                    // Use a primaryContainer background so the onPrimaryContainer icon/text
-                    // are legible. On the default surface card they're near-invisible in
-                    // dark mode (low-contrast primary tone on a dark surface).
-                    PennyWiseCardV2(
-                        modifier = Modifier.fillMaxWidth(),
-                        containerColor = MaterialTheme.colorScheme.primaryContainer
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.md)
-                        ) {
-                            Icon(
-                                Icons.Default.AutoAwesome,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.onPrimaryContainer
-                            )
-                            Column {
-                                Text(
-                                    text = stringResource(R.string.rules_auto_categorization_title),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                                Text(
-                                    text = stringResource(R.string.rules_auto_categorization_body),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onPrimaryContainer
-                                )
-                            }
-                        }
-                    }
+                // What a rule is, in a sentence, where the info card used to be.
+                item(key = "intro") {
+                    Text(
+                        text = stringResource(R.string.rules_intro),
+                        style = MaterialTheme.typography.bodyLarge,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.padding(start = Spacing.xs, end = Spacing.xs, bottom = Spacing.sm)
+                    )
                 }
 
-                // Group rules by category for better organization
-                item {
-                    val groupedRules = rules.groupBy { rule ->
-                        when {
-                            rule.name.contains("Food", ignoreCase = true) ||
-                                rule.name.contains("Fuel", ignoreCase = true) -> R.string.rules_group_daily
-
-                            rule.name.contains("Salary", ignoreCase = true) ||
-                                rule.name.contains("Cashback", ignoreCase = true) -> R.string.rules_group_income
-
-                            rule.name.contains("Rent", ignoreCase = true) ||
-                                rule.name.contains("EMI", ignoreCase = true) ||
-                                rule.name.contains("Subscription", ignoreCase = true) -> R.string.rules_group_recurring
-
-                            rule.name.contains("Investment", ignoreCase = true) ||
-                                rule.name.contains("Transfer", ignoreCase = true) -> R.string.rules_group_banking
-
-                            rule.name.contains("Healthcare", ignoreCase = true) -> R.string.rules_group_healthcare
-
-                            else -> R.string.rules_group_other
+                // One segmented block, in the order the engine runs them.
+                itemsIndexed(rules, key = { _, rule -> rule.id }) { index, rule ->
+                    // Re-read once "Apply to past" finishes, which adds applications.
+                    val usageCount by remember(rule.id, batchApplyResult) { viewModel.getRuleApplicationCount(rule.id) }
+                        .collectAsStateWithLifecycle(initialValue = null)
+                    RuleCard(
+                        rule = rule,
+                        usageCount = usageCount,
+                        position = ListItemPosition.from(index, rules.size),
+                        badgeShape = ruleBadgeShapes()[index % RULE_BADGE_SHAPE_COUNT],
+                        onToggle = { isActive ->
+                            viewModel.toggleRule(rule.id, isActive)
+                        },
+                        onEdit = {
+                            onNavigateToEditRule(rule.id)
+                        },
+                        onDuplicate = {
+                            onNavigateToDuplicateRule(rule.id)
+                        },
+                        onDelete = {
+                            viewModel.deleteRule(rule.id)
+                        },
+                        onApplyToPast = {
+                            selectedRuleForBatch = rule
+                            showBatchApplyDialog = true
                         }
-                    }
-
-                    groupedRules.forEach { (category, categoryRules) ->
-                        if (categoryRules.isNotEmpty()) {
-                            SectionHeaderV2(title = stringResource(category))
-
-                            categoryRules.forEach { rule ->
-                                RuleCard(
-                                    rule = rule,
-                                    onToggle = { isActive ->
-                                        viewModel.toggleRule(rule.id, isActive)
-                                    },
-                                    onEdit = {
-                                        onNavigateToEditRule(rule.id)
-                                    },
-                                    onDuplicate = {
-                                        onNavigateToDuplicateRule(rule.id)
-                                    },
-                                    onDelete = {
-                                        viewModel.deleteRule(rule.id)
-                                    },
-                                    onApplyToPast = {
-                                        selectedRuleForBatch = rule
-                                        showBatchApplyDialog = true
-                                    }
-                                )
-                            }
-                        }
-                    }
+                    )
                 }
 
                 // Help text at the bottom
-                item {
-                    Spacer(modifier = Modifier.height(Spacing.lg))
+                item(key = "footer") {
                     Text(
                         text = stringResource(R.string.rules_footer_info),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.padding(horizontal = Spacing.md)
+                        modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.md)
                     )
                 }
             }
@@ -354,25 +328,64 @@ fun RulesScreen(
     }
 }
 
-// The starter rule is stored in English: RuleTemplateService seeds it and the
-// grouping above matches on its name. Show it in the app's language until the
-// user edits it.
+// The starter rule is stored in English: RuleTemplateService seeds it under this
+// name. Show it in the app's language until the user edits it.
 private const val STARTER_RULE_NAME = "Small Payments to Food"
 private const val STARTER_RULE_DESCRIPTION = "Categorize small expense payments (under 200) as Food & Dining"
 
 @Composable
-private fun com.pennywiseai.tracker.domain.model.rule.TransactionRule.displayName(): String =
+private fun TransactionRule.displayName(): String =
     if (isSystemTemplate && name == STARTER_RULE_NAME) stringResource(R.string.rule_template_small_payments_name) else name
 
 @Composable
-private fun com.pennywiseai.tracker.domain.model.rule.TransactionRule.displayDescription(): String? =
+private fun TransactionRule.displayDescription(): String? =
     if (isSystemTemplate && name == STARTER_RULE_NAME && description == STARTER_RULE_DESCRIPTION)
         stringResource(R.string.rule_template_small_payments_description)
     else description
 
+/** Rule badges cycle through these, so neighbouring rules don't look alike. */
+private const val RULE_BADGE_SHAPE_COUNT = 4
+
+@Composable
+private fun ruleBadgeShapes(): List<Shape> = listOf(
+    MaterialShapes.Cookie9Sided.toShape(),
+    MaterialShapes.Clover4Leaf.toShape(),
+    MaterialShapes.Sunny.toShape(),
+    MaterialShapes.SoftBurst.toShape(),
+)
+
+/** What the rule mainly does, as a glyph: its category's own icon when it sets one. */
+@Composable
+private fun RuleGlyph(rule: TransactionRule, tint: Color) {
+    val first = rule.actions.firstOrNull()
+    if (first?.actionType == ActionType.SET && first.field == TransactionField.CATEGORY && first.value.isNotBlank()) {
+        CategoryIcon(category = first.value, size = Dimensions.Icon.medium, tint = tint)
+        return
+    }
+    val icon: ImageVector = when {
+        rule.actions.any { it.actionType == ActionType.BLOCK } -> Icons.Default.Block
+        first?.field == TransactionField.MERCHANT -> Icons.Default.Storefront
+        first?.field == TransactionField.TAGS -> Icons.AutoMirrored.Filled.Label
+        first?.field == TransactionField.NARRATION -> Icons.AutoMirrored.Filled.Notes
+        first?.field == TransactionField.TYPE -> Icons.Default.SwapHoriz
+        first?.field == TransactionField.TRANSFER_FROM_ACCOUNT ||
+            first?.field == TransactionField.TRANSFER_TO_ACCOUNT -> Icons.Default.SyncAlt
+        else -> Icons.Default.Rule
+    }
+    Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(Dimensions.Icon.medium))
+}
+
+/**
+ * One rule as two readable lines, WHEN it matches and THEN what it does, under
+ * its name and an on/off switch. A tap opens its actions (edit, duplicate, apply
+ * to past transactions, delete).
+ */
 @Composable
 private fun RuleCard(
-    rule: com.pennywiseai.tracker.domain.model.rule.TransactionRule,
+    rule: TransactionRule,
+    usageCount: Int?,
+    position: ListItemPosition,
+    badgeShape: Shape,
     onToggle: (Boolean) -> Unit,
     onEdit: () -> Unit,
     onDuplicate: () -> Unit,
@@ -381,161 +394,155 @@ private fun RuleCard(
 ) {
     var showDeleteDialog by remember { mutableStateOf(false) }
     var showActionsMenu by remember { mutableStateOf(false) }
-    PennyWiseCardV2(
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Row(
+    val colors = MaterialTheme.colorScheme
+    val shape = position.toShape()
+    // An off rule keeps its words readable but loses its colour.
+    val accent = if (rule.isActive) colors.primary else colors.onSurfaceVariant
+
+    Box {
+        Surface(
             modifier = Modifier
-                .fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.Top
+                .fillMaxWidth()
+                .clip(shape)
+                .clickable(
+                    onClickLabel = stringResource(R.string.rules_more_actions),
+                    role = Role.Button,
+                    onClick = { showActionsMenu = true }
+                ),
+            shape = shape,
+            color = colors.surfaceContainerLow
         ) {
             Column(
-                modifier = Modifier.weight(1f),
-                verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+                modifier = Modifier.padding(Dimensions.Padding.card),
+                verticalArrangement = Arrangement.spacedBy(Spacing.smd)
             ) {
-                Text(
-                    text = rule.displayName(),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium
-                )
-
-                rule.displayDescription()?.let { description ->
-                    Text(
-                        text = description,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.smd),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(Dimensions.Icon.avatarLarge)
+                            .clip(badgeShape)
+                            .background(if (rule.isActive) colors.primaryContainer else colors.surfaceContainerHighest),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        RuleGlyph(rule, tint = if (rule.isActive) colors.onPrimaryContainer else colors.onSurfaceVariant)
+                    }
+                    Column(
+                        modifier = Modifier.weight(1f),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.xxs)
+                    ) {
+                        Text(
+                            text = rule.displayName(),
+                            style = PennyWiseText.rowTitle,
+                            fontWeight = FontWeight.SemiBold,
+                            color = if (rule.isActive) colors.onSurface else colors.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        val meta = listOfNotNull(
+                            usageCount?.let { pluralStringResource(R.plurals.rules_used_times, it, it) },
+                            // Only a non-default priority is worth a mention.
+                            rule.priority.takeIf { it != 100 }?.let { stringResource(R.string.rules_priority_badge, it) }
+                        )
+                        if (meta.isNotEmpty()) {
+                            Text(
+                                text = meta.joinToString(" · "),
+                                style = PennyWiseText.metadata,
+                                color = colors.onSurfaceVariant
+                            )
+                        }
+                    }
+                    Switch(
+                        checked = rule.isActive,
+                        onCheckedChange = onToggle
                     )
                 }
 
-                // Show simple condition summary
-                val conditionSummary = when {
-                    rule.name.contains("Small Payments", ignoreCase = true) -> stringResource(R.string.rules_summary_small_payments)
-                    rule.name.contains("UPI Cashback", ignoreCase = true) -> stringResource(R.string.rules_summary_upi_cashback)
-                    rule.name.contains("Salary", ignoreCase = true) -> stringResource(R.string.rules_summary_salary)
-                    rule.name.contains("Rent", ignoreCase = true) -> stringResource(R.string.rules_summary_rent)
-                    rule.name.contains("EMI", ignoreCase = true) -> stringResource(R.string.rules_summary_emi)
-                    rule.name.contains("Investment", ignoreCase = true) -> stringResource(R.string.rules_summary_investment)
-                    rule.name.contains("Subscription", ignoreCase = true) -> stringResource(R.string.rules_summary_subscription)
-                    rule.name.contains("Fuel", ignoreCase = true) -> stringResource(R.string.rules_summary_fuel)
-                    rule.name.contains("Healthcare", ignoreCase = true) -> stringResource(R.string.rules_summary_healthcare)
-                    rule.name.contains("Transfer", ignoreCase = true) -> stringResource(R.string.rules_summary_transfer)
-                    else -> null
+                rule.displayDescription()?.takeIf { it.isNotBlank() }?.let { description ->
+                    Text(
+                        text = description,
+                        style = PennyWiseText.rowSubtitle,
+                        color = colors.onSurfaceVariant
+                    )
                 }
 
-                conditionSummary?.let {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(
-                            Icons.Default.Info,
-                            contentDescription = null,
-                            modifier = Modifier.size(Dimensions.Icon.small),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = it,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-
-                // Priority badge (only show for non-default priority)
-                if (rule.priority != 100) {
-                    Badge(
-                        containerColor = MaterialTheme.colorScheme.secondaryContainer
-                    ) {
-                        Text(
-                            text = stringResource(R.string.rules_priority_badge, rule.priority),
-                            style = MaterialTheme.typography.bodySmall
-                        )
+                val whenText = ruleConditionsText(rule.conditions)
+                val thenText = ruleActionsText(rule.actions)
+                if (whenText != null || thenText != null) {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                        val clauseCount = listOfNotNull(whenText, thenText).size
+                        whenText?.let {
+                            RuleClause(
+                                label = stringResource(R.string.rules_clause_when),
+                                text = it.capitalized(),
+                                labelContainer = colors.surfaceContainerLowest,
+                                labelContent = colors.onSurfaceVariant,
+                                position = ListItemPosition.from(0, clauseCount),
+                                emphasized = false
+                            )
+                        }
+                        thenText?.let {
+                            RuleClause(
+                                label = stringResource(R.string.rules_clause_then),
+                                text = it.capitalized(),
+                                labelContainer = accent,
+                                labelContent = if (rule.isActive) colors.onPrimary else colors.surfaceContainerLowest,
+                                position = ListItemPosition.from(clauseCount - 1, clauseCount),
+                                emphasized = rule.isActive
+                            )
+                        }
                     }
                 }
             }
+        }
 
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // More actions menu - only show when rule is active
-                if (rule.isActive) {
-                    Box {
-                        IconButton(
-                            onClick = { showActionsMenu = true },
-                            shapes = IconButtonDefaults.shapes()
-                        ) {
-                            Icon(
-                                Icons.Default.MoreVert,
-                                contentDescription = stringResource(R.string.rules_more_actions)
-                            )
-                        }
-
-                        DropdownMenu(
-                            expanded = showActionsMenu,
-                            onDismissRequest = { showActionsMenu = false }
-                        ) {
-                            // Edit rule
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.rules_menu_edit)) },
-                                leadingIcon = {
-                                    Icon(Icons.Default.Edit, contentDescription = null)
-                                },
-                                onClick = {
-                                    showActionsMenu = false
-                                    onEdit()
-                                }
-                            )
-
-                            // Duplicate rule (opens the editor prefilled as a new rule)
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.rules_menu_duplicate)) },
-                                leadingIcon = {
-                                    Icon(Icons.Default.ContentCopy, contentDescription = null)
-                                },
-                                onClick = {
-                                    showActionsMenu = false
-                                    onDuplicate()
-                                }
-                            )
-
-                            // Apply to past transactions
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.rules_menu_apply_past)) },
-                                leadingIcon = {
-                                    Icon(Icons.Default.History, contentDescription = null)
-                                },
-                                onClick = {
-                                    showActionsMenu = false
-                                    onApplyToPast()
-                                }
-                            )
-
-                            // Only show delete for custom rules
-                            if (!rule.isSystemTemplate) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.rules_delete_title)) },
-                                    leadingIcon = {
-                                        Icon(
-                                            Icons.Default.Delete,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.error
-                                        )
-                                    },
-                                    onClick = {
-                                        showActionsMenu = false
-                                        showDeleteDialog = true
-                                    }
-                                )
-                            }
-                        }
-                    }
+        DropdownMenu(
+            expanded = showActionsMenu,
+            onDismissRequest = { showActionsMenu = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.rules_menu_edit)) },
+                leadingIcon = { Icon(Icons.Default.Edit, contentDescription = null) },
+                onClick = {
+                    showActionsMenu = false
+                    onEdit()
                 }
-
-                Switch(
-                    checked = rule.isActive,
-                    onCheckedChange = onToggle
+            )
+            // Opens the editor prefilled as a new rule.
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.rules_menu_duplicate)) },
+                leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) },
+                onClick = {
+                    showActionsMenu = false
+                    onDuplicate()
+                }
+            )
+            DropdownMenuItem(
+                text = { Text(stringResource(R.string.rules_menu_apply_past)) },
+                leadingIcon = { Icon(Icons.Default.History, contentDescription = null) },
+                onClick = {
+                    showActionsMenu = false
+                    onApplyToPast()
+                }
+            )
+            // Only custom rules can be deleted; templates can be switched off.
+            if (!rule.isSystemTemplate) {
+                DropdownMenuItem(
+                    text = { Text(stringResource(R.string.rules_delete_title)) },
+                    leadingIcon = {
+                        Icon(
+                            Icons.Default.Delete,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.error
+                        )
+                    },
+                    colors = MenuDefaults.itemColors(textColor = MaterialTheme.colorScheme.error),
+                    onClick = {
+                        showActionsMenu = false
+                        showDeleteDialog = true
+                    }
                 )
             }
         }
@@ -568,6 +575,50 @@ private fun RuleCard(
         )
     }
 }
+
+/** One clause of a rule: a small WHEN / THEN tag, then the clause in words. */
+@Composable
+private fun RuleClause(
+    label: String,
+    text: String,
+    labelContainer: Color,
+    labelContent: Color,
+    position: ListItemPosition,
+    emphasized: Boolean,
+) {
+    Surface(
+        modifier = Modifier.fillMaxWidth(),
+        shape = position.toShape(),
+        color = MaterialTheme.colorScheme.surfaceContainerHigh
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = Spacing.smd, vertical = Spacing.smd),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.smd),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Surface(
+                shape = MaterialTheme.shapes.extraSmall,
+                color = labelContainer,
+                contentColor = labelContent
+            ) {
+                Text(
+                    text = label,
+                    style = PennyWiseText.overline,
+                    modifier = Modifier.padding(horizontal = Spacing.sm, vertical = Spacing.xxs)
+                )
+            }
+            Text(
+                text = text,
+                style = MaterialTheme.typography.bodyMedium,
+                fontWeight = if (emphasized) FontWeight.SemiBold else null,
+                color = MaterialTheme.colorScheme.onSurface,
+                modifier = Modifier.weight(1f)
+            )
+        }
+    }
+}
+
+private fun String.capitalized(): String = replaceFirstChar { it.titlecase(Locale.getDefault()) }
 
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable

@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.presentation.budgetgroups
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.animateContentSize
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
@@ -26,6 +27,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.pluralStringResource
@@ -40,10 +42,18 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
+import com.pennywiseai.tracker.data.database.entity.BudgetWithCategories
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
-import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
+import com.pennywiseai.tracker.presentation.home.heroBudget
+import com.pennywiseai.tracker.presentation.plan.PlanHeroAmount
+import com.pennywiseai.tracker.presentation.plan.PlanHeroCard
+import com.pennywiseai.tracker.presentation.plan.PlanIconBadge
+import com.pennywiseai.tracker.presentation.plan.PlanMeter
+import com.pennywiseai.tracker.presentation.plan.PlanShapeBadge
+import com.pennywiseai.tracker.presentation.plan.PlanStatusChip
 import com.pennywiseai.tracker.presentation.plan.PlanSwitcher
 import com.pennywiseai.tracker.presentation.plan.PlanTabHost
+import com.pennywiseai.tracker.presentation.plan.planOverline
 import com.pennywiseai.tracker.ui.animations.StaggeredEntrance
 import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.ui.animations.pwExpand
@@ -54,13 +64,15 @@ import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.DockNavAction
 import com.pennywiseai.tracker.ui.components.LocalNavDock
 import com.pennywiseai.tracker.ui.components.NavDockAction
+import com.pennywiseai.tracker.ui.components.cards.HomeHeroBudget
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.PaceInfo
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.RolloverLine
-import com.pennywiseai.tracker.ui.components.cards.budgetStatusColors
 import com.pennywiseai.tracker.ui.components.cards.paceInfoToggle
-import com.pennywiseai.tracker.ui.components.cards.tintedSurface
+import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.components.mascot.Mascot
+import com.pennywiseai.tracker.ui.components.mascot.MascotMood
 import com.pennywiseai.tracker.ui.components.mascot.MascotShape
 import com.pennywiseai.tracker.ui.components.toColorOr
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
@@ -77,9 +89,16 @@ import dev.chrisbanes.haze.hazeSource
 import ir.ehsannarmani.compose_charts.LineChart
 import ir.ehsannarmani.compose_charts.models.*
 import java.math.BigDecimal
+import java.math.RoundingMode
 import java.time.YearMonth
-import java.time.format.DateTimeFormatter
 import java.time.format.TextStyle
+
+/** Gap between the blocks of a Plan section (switch, hero, list); rows inside a block sit 2dp apart. */
+private val BlockGap = Spacing.smd
+
+/** Budget status thresholds (% used), the same Home's budget card turns at. */
+private const val WARN_PERCENT = 70f
+private const val DANGER_PERCENT = 90f
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -112,6 +131,8 @@ fun BudgetGroupsScreen(
         }
     }
     // With the floating nav bar, the Plan tab docks "Add budget" beside it instead of a FAB.
+    // That's the section's one add action: an "+ New budget" button at the end of the
+    // list as well would be a second control for the same thing.
     val dockAdd = planTab != null && LocalNavDock.current != null
     if (dockAdd && uiState.hasGroups) {
         DockNavAction(
@@ -135,6 +156,7 @@ fun BudgetGroupsScreen(
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 title = stringResource(if (planTab != null) R.string.nav_plan else R.string.budgets_title),
+                overline = if (planTab != null) planOverline() else null,
                 hasBackButton = planTab == null,
                 navigationContent = {
                     IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
@@ -177,7 +199,14 @@ fun BudgetGroupsScreen(
                     // Clear of the floating nav bar laid over the Plan tab.
                     .padding(bottom = if (planTab != null) Dimensions.Component.bottomBarHeight else Spacing.none)
             ) {
-                Box(Modifier.padding(Dimensions.Padding.content)) { goalsSection() }
+                Box(
+                    Modifier.padding(
+                        start = Dimensions.Padding.content,
+                        end = Dimensions.Padding.content,
+                        top = Spacing.sm,
+                        bottom = BlockGap
+                    )
+                ) { goalsSection() }
                 MonthSelector(
                     year = uiState.selectedYear,
                     month = uiState.selectedMonth,
@@ -231,6 +260,7 @@ private fun EmptyBudgetState(
             modifier = Modifier
                 .fillMaxWidth()
                 .padding(Dimensions.Padding.content),
+            shape = MaterialTheme.shapes.extraLarge,
             contentPadding = Dimensions.Padding.empty
         ) {
             Column(
@@ -301,46 +331,70 @@ private fun BudgetGroupsContent(
     val hasAnimated = rememberEntranceDone()
 
     val lazyListState = rememberLazyListState()
+    // Rows of one block sit a grouped-list gutter apart; blocks add [BlockGap] on top.
     LazyColumn(
         state = lazyListState,
         modifier = modifier.fillMaxSize().overScrollVertical(),
         contentPadding = PaddingValues(
             start = Dimensions.Padding.content,
             end = Dimensions.Padding.content,
-            top = Dimensions.Padding.content + topPadding,
+            top = Spacing.sm + topPadding,
             bottom = Dimensions.Component.bottomBarHeight + Spacing.md
         ),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
+        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap),
         flingBehavior = rememberOverscrollFlingBehavior { lazyListState }
     ) {
         // Goals (#914) sit above the spending budgets; they aren't month-based.
         item(key = "goals") { goalsSection() }
 
-        // Month Selector
-        item {
-            StaggeredEntrance(delayMs = 0L, skip = hasAnimated) {
-                MonthSelector(
-                    year = uiState.selectedYear,
-                    month = uiState.selectedMonth,
-                    isCurrentMonth = isCurrentMonth,
-                    onPrevious = onPreviousMonth,
-                    onNext = onNextMonth
-                )
+        // The same budget Home's hero leads with: an all-expenses spending limit
+        // running today, monthly preferred. Summing every limit would count a
+        // "Food" limit twice when an all-expenses one already covers it. None
+        // (or a past month) → just the month picker.
+        item(key = "hero") {
+            val hero = remember(summary) { summary.heroBudget(java.time.LocalDate.now()) }
+            StaggeredEntrance(delayMs = 0L, skip = hasAnimated, modifier = Modifier.padding(top = BlockGap)) {
+                if (hero != null && hero.limit.signum() > 0) {
+                    BudgetHeroCard(
+                        hero = hero,
+                        year = uiState.selectedYear,
+                        month = uiState.selectedMonth,
+                        isCurrentMonth = isCurrentMonth,
+                        onPrevious = onPreviousMonth,
+                        onNext = onNextMonth
+                    )
+                } else {
+                    MonthSelector(
+                        year = uiState.selectedYear,
+                        month = uiState.selectedMonth,
+                        isCurrentMonth = isCurrentMonth,
+                        onPrevious = onPreviousMonth,
+                        onNext = onNextMonth
+                    )
+                }
             }
         }
 
-        // Budget Cards
+        // Budget rows: one segmented block.
         itemsIndexed(
             items = summary.groups,
             key = { _, group -> group.group.budget.id }
         ) { index, groupSpending ->
-            StaggeredEntrance(delayMs = staggerDelayMs(index), skip = hasAnimated, modifier = Modifier.animateItem()) {
+            StaggeredEntrance(
+                delayMs = staggerDelayMs(index),
+                skip = hasAnimated,
+                modifier = Modifier
+                    .animateItem()
+                    .padding(top = if (index == 0) BlockGap else Spacing.none)
+            ) {
                 BudgetCard(
                     groupSpending = groupSpending,
                     currency = uiState.currency,
+                    index = index,
+                    position = ListItemPosition.from(index, groupCount),
                     isFirst = index == 0,
                     isLast = index == groupCount - 1,
-                    onClick = { onGroupClick(groupSpending.group.budget.id) },
+                    onEdit = { onGroupClick(groupSpending.group.budget.id) },
                     onDelete = {
                         deleteGroupId = groupSpending.group.budget.id
                         deleteGroupName = groupSpending.group.budget.name
@@ -384,6 +438,127 @@ private fun BudgetGroupsContent(
     }
 }
 
+/** "November" this year, "November 2025" for another year. */
+@Composable
+private fun monthLabel(year: Int, month: Int): String {
+    val yearMonth = YearMonth.of(year, month)
+    val pattern = if (year == YearMonth.now().year) "MMMM" else "MMMM yyyy"
+    return yearMonth.format(AppDates.pattern(pattern))
+}
+
+/**
+ * [hero] (Home's hero budget) as one figure: what's left of it, a meter and how much
+ * that leaves per day. Carries the month picker, since the figure is the month's.
+ */
+@Composable
+private fun BudgetHeroCard(
+    hero: HomeHeroBudget,
+    year: Int,
+    month: Int,
+    isCurrentMonth: Boolean,
+    onPrevious: () -> Unit,
+    onNext: () -> Unit
+) {
+    val currency = hero.currency
+    val limit = hero.limit
+    val spent = hero.spent
+    val remaining = hero.remaining
+    val isOver = remaining.signum() < 0
+    val usedTarget = spent.divide(limit, 4, RoundingMode.HALF_UP).toFloat().coerceIn(0f, 1f)
+    var target by remember { mutableFloatStateOf(0f) }
+    LaunchedEffect(usedTarget) { target = usedTarget }
+    val used by animateFloatAsState(target, MaterialTheme.motionScheme.slowEffectsSpec(), label = "heroMeter")
+
+    val onHero = MaterialTheme.colorScheme.onPrimary
+    val subtle = onHero.copy(alpha = Dimensions.Alpha.subtitle)
+
+    PlanHeroCard(
+        containerColor = MaterialTheme.colorScheme.primary,
+        contentColor = onHero
+    ) {
+        Row(verticalAlignment = Alignment.Top, horizontalArrangement = Arrangement.spacedBy(Spacing.md)) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                Text(
+                    // A monthly budget is named by the month, any other by its own name (as on Home).
+                    text = hero.name ?: stringResource(R.string.plan_budget_month, monthLabel(year, month)),
+                    style = MaterialTheme.typography.titleMedium,
+                    color = subtle,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                PlanHeroAmount(CurrencyFormatter.formatCurrency(remaining.abs(), currency))
+                Text(
+                    text = stringResource(
+                        if (isOver) R.string.plan_budget_over_of else R.string.plan_budget_left_of,
+                        CurrencyFormatter.formatCurrency(limit, currency)
+                    ),
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = subtle
+                )
+            }
+            // The gauge owl reads how much of the month's limit is used.
+            Mascot(
+                size = Dimensions.Component.planHeroMascot,
+                shape = MascotShape.Gauge,
+                value = used,
+                mood = if (isOver) MascotMood.Worried else MascotMood.Calm,
+                interactive = true
+            )
+        }
+
+        PlanMeter(
+            fraction = used,
+            color = onHero,
+            trackColor = onHero.copy(alpha = Dimensions.Alpha.disabled)
+        )
+
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            val days = hero.daysLeft
+            Text(
+                text = when {
+                    isCurrentMonth && days > 0 && !isOver && hero.perDay.signum() > 0 ->
+                        pluralStringResource(
+                            R.plurals.plan_budget_days_left_per_day,
+                            days,
+                            days,
+                            CurrencyFormatter.formatCurrency(hero.perDay, currency)
+                        )
+                    isCurrentMonth && days > 0 -> pluralStringResource(R.plurals.plan_budget_days_left, days, days)
+                    else -> stringResource(
+                        R.string.budgets_spent_of,
+                        CurrencyFormatter.formatCurrency(spent, currency),
+                        CurrencyFormatter.formatCurrency(limit, currency)
+                    )
+                },
+                style = MaterialTheme.typography.bodyMedium,
+                color = subtle,
+                modifier = Modifier.weight(1f)
+            )
+            val navColors = IconButtonDefaults.iconButtonColors(
+                contentColor = onHero,
+                disabledContentColor = onHero.copy(alpha = Dimensions.Alpha.disabled)
+            )
+            IconButton(onClick = onPrevious, colors = navColors, shapes = IconButtonDefaults.shapes()) {
+                Icon(
+                    Icons.AutoMirrored.Filled.KeyboardArrowLeft,
+                    contentDescription = stringResource(R.string.budgets_previous_month)
+                )
+            }
+            IconButton(
+                onClick = onNext,
+                enabled = !isCurrentMonth,
+                colors = navColors,
+                shapes = IconButtonDefaults.shapes()
+            ) {
+                Icon(
+                    Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = stringResource(R.string.budgets_next_month)
+                )
+            }
+        }
+    }
+}
+
 @Composable
 private fun MonthSelector(
     year: Int,
@@ -402,7 +577,6 @@ private fun MonthSelector(
     ) {
         FilledTonalIconButton(
             onClick = onPrevious,
-            modifier = Modifier.size(36.dp),
             shapes = IconButtonDefaults.shapes()
         ) {
             Icon(
@@ -415,7 +589,7 @@ private fun MonthSelector(
         Spacer(modifier = Modifier.width(Spacing.md))
 
         Surface(
-            shape = RoundedCornerShape(50),
+            shape = CircleShape,
             color = MaterialTheme.colorScheme.secondaryContainer
         ) {
             Text(
@@ -432,7 +606,6 @@ private fun MonthSelector(
         FilledTonalIconButton(
             onClick = onNext,
             enabled = !isCurrentMonth,
-            modifier = Modifier.size(36.dp),
             shapes = IconButtonDefaults.shapes()
         ) {
             Icon(
@@ -444,13 +617,35 @@ private fun MonthSelector(
     }
 }
 
+/** A budget's leading glyph: its one category's own icon, else a glyph for its kind in the budget's colour. */
+@Composable
+private fun BudgetBadge(group: BudgetWithCategories, index: Int) {
+    val single = group.categories.singleOrNull()?.takeIf { !group.budget.includeAllCategories }
+    if (single != null) {
+        val color = CategoryMapping.colorFor(single.categoryName)
+        PlanShapeBadge(color = color, index = index) {
+            CategoryIcon(category = single.categoryName, size = Dimensions.Icon.medium, tint = color)
+        }
+    } else {
+        val icon: ImageVector = when (group.budget.groupType) {
+            BudgetGroupType.LIMIT -> Icons.Default.AccountBalanceWallet
+            BudgetGroupType.TARGET -> Icons.Default.Savings
+            BudgetGroupType.EXPECTED -> Icons.Default.EventRepeat
+        }
+        PlanIconBadge(icon = icon, color = group.budget.color.toColorOr(MaterialTheme.colorScheme.primary), index = index)
+    }
+}
+
+/** One budget: glyph, name and status, what's left, a meter and the spend. Tap for the breakdown and actions. */
 @Composable
 private fun BudgetCard(
     groupSpending: BudgetGroupSpending,
     currency: String,
+    index: Int,
+    position: ListItemPosition,
     isFirst: Boolean = false,
     isLast: Boolean = false,
-    onClick: () -> Unit,
+    onEdit: () -> Unit,
     onDelete: () -> Unit,
     onMoveUp: () -> Unit,
     onMoveDown: () -> Unit,
@@ -460,430 +655,420 @@ private fun BudgetCard(
     modifier: Modifier = Modifier
 ) {
     val budget = groupSpending.group.budget
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by rememberSaveable(budget.id) { mutableStateOf(false) }
 
     val pctUsed = groupSpending.percentageUsed
     val isOverBudget = groupSpending.remaining < BigDecimal.ZERO
+    val isLimit = budget.groupType == BudgetGroupType.LIMIT
 
-    var animatedProgress by remember { mutableFloatStateOf(0f) }
-    val animatedProgressState by animateFloatAsState(
-        targetValue = animatedProgress,
+    var targetFraction by remember { mutableFloatStateOf(0f) }
+    val usedFraction by animateFloatAsState(
+        targetValue = targetFraction,
         animationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
         label = "progressAnimation"
     )
-
     LaunchedEffect(pctUsed) {
-        animatedProgress = (pctUsed / 100f).coerceIn(0f, 1f)
+        targetFraction = (pctUsed / 100f).coerceIn(0f, 1f)
     }
-
+    // Status reads the percent the bar is showing, so the colour turns as the bar
+    // crosses 70/90% rather than before it gets there (as on Home's budget card).
+    val shownPercent = if (usedFraction >= 1f) pctUsed else usedFraction * 100f
     val budgetColor = budget.color.toColorOr(MaterialTheme.colorScheme.primary)
-    val (statusColor, onStatusColor) = budgetStatusColors(pctUsed)
-    // The bar wears the budget's own color while it's healthy; the pill and
-    // hero text stay semantic so a red budget at 36% doesn't read as danger.
-    val barColor = if (pctUsed >= 70f) statusColor else budgetColor
+    val scheme = MaterialTheme.colorScheme
+    val (statusTarget, statusText) = when {
+        isOverBudget -> scheme.error to stringResource(R.string.plan_budget_status_over)
+        shownPercent >= DANGER_PERCENT -> scheme.error to stringResource(R.string.plan_budget_status_almost)
+        shownPercent >= WARN_PERCENT -> scheme.warning to stringResource(R.string.plan_budget_status_close)
+        else -> scheme.success to stringResource(R.string.plan_budget_status_on_track)
+    }
+    val colorSpec = MaterialTheme.motionScheme.fastEffectsSpec<Color>()
+    val statusColor by animateColorAsState(statusTarget, colorSpec, label = "budgetStatusColor")
+    // The bar wears the budget's own colour while it's healthy; the pill stays semantic.
+    val barColor by animateColorAsState(
+        if (shownPercent >= WARN_PERCENT || isOverBudget) statusTarget else budgetColor,
+        colorSpec,
+        label = "budgetBarColor"
+    )
 
-    PennyWiseCardV2(
-        onClick = { expanded = !expanded },
+    Surface(
         modifier = modifier.fillMaxWidth(),
-        containerColor = budgetColor.tintedSurface()
+        shape = position.toShape(),
+        color = MaterialTheme.colorScheme.surfaceContainerLow
     ) {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
-                .animateContentSize(
-                    animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec()
+                .clickable(
+                    onClickLabel = stringResource(
+                        if (expanded) R.string.plan_budget_hide_details else R.string.plan_budget_show_details
+                    ),
+                    onClick = { expanded = !expanded }
                 )
+                .animateContentSize(animationSpec = MaterialTheme.motionScheme.defaultSpatialSpec())
+                .padding(Dimensions.Padding.card),
+            verticalArrangement = Arrangement.spacedBy(Spacing.smd)
         ) {
-            // Row 1: Budget name + percentage pill + action buttons
+            // Glyph · name + status · amount left
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.smd)
+            ) {
+                BudgetBadge(groupSpending.group, index)
+                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    Text(
+                        text = budget.name,
+                        style = MaterialTheme.typography.titleMedium,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    if (groupSpending.hasLimit) {
+                        // A spending limit gets a verdict; a savings target or expected
+                        // bills just their progress, since "almost used up" means nothing there.
+                        PlanStatusChip(
+                            text = if (isLimit) statusText else stringResource(R.string.budgets_percent, pctUsed.toInt()),
+                            color = if (isLimit) statusColor else MaterialTheme.colorScheme.primary
+                        )
+                    }
+                }
+                if (groupSpending.hasLimit) {
+                    Column(horizontalAlignment = Alignment.End, verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
+                        Text(
+                            text = CurrencyFormatter.formatCurrency(
+                                if (isOverBudget) groupSpending.remaining.abs() else groupSpending.remaining,
+                                currency
+                            ),
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold).money(),
+                            color = if (isOverBudget) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1
+                        )
+                        Text(
+                            text = stringResource(if (isOverBudget) R.string.plan_budget_over else R.string.plan_budget_left),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+                }
+            }
+
+            if (groupSpending.hasLimit) {
+                PlanMeter(
+                    fraction = usedFraction,
+                    color = barColor,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
+                )
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
+                    Text(
+                        text = stringResource(
+                            R.string.plan_budget_spent_of,
+                            CurrencyFormatter.formatCurrency(groupSpending.totalActual, currency),
+                            CurrencyFormatter.formatCurrency(groupSpending.totalBudget, currency)
+                        ),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    BudgetWindowLine(groupSpending, currency, isLimit)
+                    RolloverLine(groupSpending, currency, onAddRate = onAddRate)
+                }
+            } else if (groupSpending.isTrackingAllExpenses) {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
+                    Text(
+                        text = stringResource(R.string.budgets_spent, CurrencyFormatter.formatCurrency(groupSpending.totalActual, currency)),
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold).money(),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = stringResource(R.string.budgets_tracking_all),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // Breakdown: pace chart, categories, and the budget's actions.
+            AnimatedVisibility(
+                visible = expanded,
+                enter = pwExpand(),
+                exit = pwCollapse()
+            ) {
+                BudgetDetails(
+                    groupSpending = groupSpending,
+                    currency = currency,
+                    isFirst = isFirst,
+                    isLast = isLast,
+                    onEdit = onEdit,
+                    onDelete = onDelete,
+                    onMoveUp = onMoveUp,
+                    onMoveDown = onMoveDown,
+                    onViewHistory = onViewHistory,
+                    onCategoryClick = onCategoryClick
+                )
+            }
+        }
+    }
+}
+
+/**
+ * When the budget's own window renews ("Resets in 5 days · day 1"), plus what's
+ * left to spend per day for a spending limit. Each budget keeps its own cadence,
+ * so a weekly budget's countdown differs from the month's.
+ */
+@Composable
+private fun BudgetWindowLine(groupSpending: BudgetGroupSpending, currency: String, isLimit: Boolean) {
+    val isOverBudget = groupSpending.remaining < BigDecimal.ZERO
+    val remainingAbs = groupSpending.remaining.abs()
+    val dateFormatter = AppDates.dayMonthFormatter()
+    val locale = LocalConfiguration.current.locales[0]
+    val subtitleText = when {
+        groupSpending.daysRemaining == 0 && groupSpending.daysElapsed >= groupSpending.windowDays -> stringResource(R.string.budgets_finished)
+        isOverBudget -> stringResource(R.string.budgets_over_by, CurrencyFormatter.formatCurrency(remainingAbs, currency))
+        groupSpending.periodType == BudgetPeriodType.WEEKLY -> {
+            val renewalIn = (groupSpending.daysRemaining - 1).coerceAtLeast(0)
+            val weekdayName = java.time.DayOfWeek.of((groupSpending.group.budget.weekStartDay ?: 1).coerceIn(1, 7))
+                .getDisplayName(TextStyle.FULL, locale)
+            if (renewalIn == 0) {
+                stringResource(R.string.budgets_resets_today_weekly, weekdayName)
+            } else {
+                pluralStringResource(R.plurals.budgets_resets_in_weekly, renewalIn, renewalIn, weekdayName)
+            }
+        }
+        groupSpending.periodType == BudgetPeriodType.MONTHLY -> {
+            val startDay = groupSpending.group.budget.monthStartDay
+                ?: groupSpending.windowStart.dayOfMonth
+            val renewalIn = (groupSpending.daysRemaining - 1).coerceAtLeast(0)
+            if (renewalIn == 0) {
+                stringResource(R.string.budgets_resets_today_monthly, startDay)
+            } else {
+                pluralStringResource(R.plurals.budgets_resets_in_monthly, renewalIn, renewalIn, startDay)
+            }
+        }
+        groupSpending.periodType == BudgetPeriodType.CUSTOM -> {
+            val range = stringResource(
+                R.string.budgets_date_range,
+                groupSpending.windowStart.format(dateFormatter),
+                groupSpending.windowEnd.format(dateFormatter)
+            )
+            if (groupSpending.daysRemaining >= 1) {
+                // >1 counts the days after today; ==1 reads as "1 day" (unchanged behaviour).
+                val left = (groupSpending.daysRemaining - 1).coerceAtLeast(1)
+                pluralStringResource(R.plurals.budgets_runs_days_remaining, left, range, left)
+            } else {
+                stringResource(R.string.budgets_runs_finished, range)
+            }
+        }
+        else -> pluralStringResource(
+            R.plurals.budgets_days_remaining,
+            groupSpending.daysRemaining,
+            groupSpending.daysRemaining
+        )
+    }
+    // Per day only for a spending limit: it means nothing for a savings target or expected bills.
+    val showDaily = isLimit && groupSpending.dailyAllowance > BigDecimal.ZERO
+    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Text(
+            text = subtitleText,
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        if (showDaily) {
+            Text(
+                text = stringResource(R.string.budget_card_per_day, CurrencyFormatter.formatCurrency(groupSpending.dailyAllowance, currency)),
+                style = PennyWiseText.amountSmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1
+            )
+        }
+    }
+}
+
+/** The expanded part of a budget: pace chart, per-category spend and the budget's actions. */
+@Composable
+private fun BudgetDetails(
+    groupSpending: BudgetGroupSpending,
+    currency: String,
+    isFirst: Boolean,
+    isLast: Boolean,
+    onEdit: () -> Unit,
+    onDelete: () -> Unit,
+    onMoveUp: () -> Unit,
+    onMoveDown: () -> Unit,
+    onViewHistory: () -> Unit,
+    onCategoryClick: (String) -> Unit
+) {
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+    ) {
+        // Per-budget spending pace chart
+        if (groupSpending.dailyCumulativeSpending.size >= 2 && groupSpending.dailyBudgetPace.isNotEmpty()) {
+            SpendingPaceChart(
+                cumulativeSpending = groupSpending.dailyCumulativeSpending,
+                budgetPace = groupSpending.dailyBudgetPace,
+                currency = currency
+            )
+        }
+
+        if (groupSpending.categorySpending.isNotEmpty()) {
+            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
+            groupSpending.categorySpending.forEach { catSpending ->
+                CategorySpendRow(
+                    categoryName = catSpending.categoryName,
+                    actual = catSpending.actualAmount,
+                    budgeted = catSpending.budgetAmount,
+                    percentUsed = catSpending.percentageUsed,
+                    currency = currency,
+                    onClick = { onCategoryClick(catSpending.categoryName) }
+                )
+            }
+        }
+
+        // Actions: edit up front; history, reordering and delete in the overflow.
+        Row(
+            modifier = Modifier.fillMaxWidth().padding(top = Spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+        ) {
+            FilledTonalButton(onClick = onEdit, shapes = ButtonDefaults.shapes()) {
+                Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
+                Spacer(Modifier.width(ButtonDefaults.IconSpacing))
+                Text(stringResource(R.string.budgets_edit))
+            }
+            Spacer(Modifier.weight(1f))
+            Box {
+                var showMenu by remember { mutableStateOf(false) }
+                IconButton(onClick = { showMenu = true }, shapes = IconButtonDefaults.shapes()) {
+                    Icon(
+                        Icons.Default.MoreVert,
+                        contentDescription = stringResource(R.string.budgets_more_options),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                DropdownMenu(
+                    expanded = showMenu,
+                    onDismissRequest = { showMenu = false }
+                ) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.budgets_view_history)) },
+                        onClick = {
+                            showMenu = false
+                            onViewHistory()
+                        },
+                        leadingIcon = { Icon(Icons.Default.History, contentDescription = null) }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.budgets_move_up)) },
+                        onClick = {
+                            showMenu = false
+                            onMoveUp()
+                        },
+                        leadingIcon = { Icon(Icons.Default.KeyboardArrowUp, contentDescription = null) },
+                        enabled = !isFirst
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.budgets_move_down)) },
+                        onClick = {
+                            showMenu = false
+                            onMoveDown()
+                        },
+                        leadingIcon = { Icon(Icons.Default.KeyboardArrowDown, contentDescription = null) },
+                        enabled = !isLast
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.budgets_delete), color = MaterialTheme.colorScheme.error) },
+                        onClick = {
+                            showMenu = false
+                            onDelete()
+                        },
+                        leadingIcon = {
+                            Icon(Icons.Default.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                        }
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** One category inside an expanded budget: its spend against its own share, when it has one. */
+@Composable
+private fun CategorySpendRow(
+    categoryName: String,
+    actual: BigDecimal,
+    budgeted: BigDecimal,
+    percentUsed: Float,
+    currency: String,
+    onClick: () -> Unit
+) {
+    val statusColor: Color = when {
+        percentUsed >= DANGER_PERCENT -> MaterialTheme.colorScheme.error
+        percentUsed >= WARN_PERCENT -> MaterialTheme.colorScheme.warning
+        else -> MaterialTheme.colorScheme.primary
+    }
+    val categoryColor = CategoryMapping.colorFor(categoryName)
+
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clip(MaterialTheme.shapes.small)
+            .clickable(onClick = onClick)
+            .padding(vertical = Spacing.sm, horizontal = Spacing.xs),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.smd)
+    ) {
+        Box(
+            modifier = Modifier
+                .size(Dimensions.Icon.avatar)
+                .clip(CircleShape)
+                .background(categoryColor.copy(alpha = Dimensions.Alpha.categoryTint)),
+            contentAlignment = Alignment.Center
+        ) {
+            CategoryIcon(category = categoryName, size = Dimensions.Icon.inline, tint = categoryColor)
+        }
+
+        Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = budget.name,
-                    style = MaterialTheme.typography.titleSmall.copy(
-                        fontWeight = FontWeight.SemiBold
-                    ),
+                    text = categoryLabel(categoryName),
+                    style = PennyWiseText.rowTitle,
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.weight(1f)
+                    modifier = Modifier.weight(1f, fill = false)
                 )
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    if (groupSpending.hasLimit) {
-                        Text(
-                            text = stringResource(R.string.budgets_percent, pctUsed.toInt()),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = onStatusColor,
-                            modifier = Modifier
-                                .background(
-                                    color = statusColor,
-                                    shape = RoundedCornerShape(50)
-                                )
-                                .padding(horizontal = Spacing.sm, vertical = 2.dp)
-                        )
-                    }
-                    IconButton(
-                        onClick = onClick,
-                        modifier = Modifier.size(32.dp),
-                        shapes = IconButtonDefaults.shapes()
-                    ) {
-                        Icon(
-                            Icons.Default.Edit,
-                            contentDescription = stringResource(R.string.budgets_edit),
-                            modifier = Modifier.size(Dimensions.Icon.small),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    IconButton(
-                        onClick = onDelete,
-                        modifier = Modifier.size(32.dp),
-                        shapes = IconButtonDefaults.shapes()
-                    ) {
-                        Icon(
-                            Icons.Default.Delete,
-                            contentDescription = stringResource(R.string.budgets_delete),
-                            modifier = Modifier.size(Dimensions.Icon.small),
-                            tint = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
-                        )
-                    }
-                    Box {
-                        var showMenu by remember { mutableStateOf(false) }
-                        IconButton(
-                            onClick = { showMenu = true },
-                            modifier = Modifier.size(32.dp),
-                            shapes = IconButtonDefaults.shapes()
-                        ) {
-                            Icon(
-                                Icons.Default.MoreVert,
-                                contentDescription = stringResource(R.string.budgets_more_options),
-                                modifier = Modifier.size(Dimensions.Icon.small),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                        DropdownMenu(
-                            expanded = showMenu,
-                            onDismissRequest = { showMenu = false }
-                        ) {
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.budgets_view_history)) },
-                                onClick = {
-                                    showMenu = false
-                                    onViewHistory()
-                                },
-                                leadingIcon = {
-                                    Icon(Icons.Default.History, contentDescription = null)
-                                }
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.budgets_move_up)) },
-                                onClick = {
-                                    showMenu = false
-                                    onMoveUp()
-                                },
-                                leadingIcon = {
-                                    Icon(Icons.Default.KeyboardArrowUp, contentDescription = null)
-                                },
-                                enabled = !isFirst
-                            )
-                            DropdownMenuItem(
-                                text = { Text(stringResource(R.string.budgets_move_down)) },
-                                onClick = {
-                                    showMenu = false
-                                    onMoveDown()
-                                },
-                                leadingIcon = {
-                                    Icon(Icons.Default.KeyboardArrowDown, contentDescription = null)
-                                },
-                                enabled = !isLast
-                            )
-                        }
-                    }
+                if (budgeted > BigDecimal.ZERO) {
+                    Text(
+                        text = stringResource(R.string.budgets_percent, percentUsed.toInt()),
+                        style = MaterialTheme.typography.labelMedium.tabular(),
+                        fontWeight = FontWeight.SemiBold,
+                        color = statusColor
+                    )
                 }
             }
-
-            if (groupSpending.hasLimit) {
-                Spacer(modifier = Modifier.height(Spacing.sm))
-
-                // Row 2: Custom rounded progress bar
-                val barShape = RoundedCornerShape(50)
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(Dimensions.Component.progressBarHeight)
-                        .clip(barShape)
-                        .background(barColor.copy(alpha = 0.15f))
-                ) {
-                    Box(
-                        modifier = Modifier
-                            .fillMaxWidth(fraction = animatedProgressState)
-                            .fillMaxHeight()
-                            .clip(barShape)
-                            .background(barColor)
-                    )
-                }
-
-                Spacer(modifier = Modifier.height(Spacing.md))
-
-                // Row 3: Remaining amount (hero) + what's left to spend per
-                // day. Spending limits only — "per day" means nothing for a
-                // savings target or expected bills.
-                val remainingAbs = groupSpending.remaining.abs()
-                val showDaily = groupSpending.group.budget.groupType == BudgetGroupType.LIMIT &&
-                    groupSpending.dailyAllowance > BigDecimal.ZERO
-                // FlowRow: when there isn't room (narrow card, large font) the
-                // per-day label wraps below instead of squeezing the hero amount.
-                FlowRow(
-                    modifier = Modifier.fillMaxWidth(),
-                    itemVerticalAlignment = Alignment.Bottom,
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                ) {
-                    Text(
-                        text = if (isOverBudget) {
-                            stringResource(R.string.budgets_over_budget, CurrencyFormatter.formatCurrency(remainingAbs, currency))
-                        } else {
-                            stringResource(
-                                R.string.budgets_remaining,
-                                CurrencyFormatter.formatCurrency(groupSpending.remaining.coerceAtLeast(BigDecimal.ZERO), currency)
-                            )
-                        },
-                        style = MaterialTheme.typography.titleLarge.copy(
-                            fontWeight = FontWeight.Bold
-                        ).money(),
-                        color = statusColor,
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    if (showDaily) {
-                        Text(
-                            text = stringResource(R.string.budget_card_per_day, CurrencyFormatter.formatCurrency(groupSpending.dailyAllowance, currency)),
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1
-                        )
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(Spacing.xs))
-
-                // Row 4: Per-cadence renewal countdown — always framed
-                // as "Resets in X days" so the user knows when the
-                // budget's window ends. The displayed window is the
-                // budget's own current window (Jun 29..Jul 5 even when
-                // the page is the July view) so this number is
-                // consistent across month views.
-                val dateFormatter = AppDates.dayMonthFormatter()
-                val locale = LocalConfiguration.current.locales[0]
-                val subtitleText = when {
-                    groupSpending.daysRemaining == 0 && groupSpending.daysElapsed >= groupSpending.windowDays -> stringResource(R.string.budgets_finished)
-                    isOverBudget -> stringResource(R.string.budgets_over_by, CurrencyFormatter.formatCurrency(remainingAbs, currency))
-                    groupSpending.periodType == BudgetPeriodType.WEEKLY -> {
-                        val renewalIn = (groupSpending.daysRemaining - 1).coerceAtLeast(0)
-                        val weekdayName = java.time.DayOfWeek.of((groupSpending.group.budget.weekStartDay ?: 1).coerceIn(1, 7))
-                            .getDisplayName(TextStyle.FULL, locale)
-                        if (renewalIn == 0) {
-                            stringResource(R.string.budgets_resets_today_weekly, weekdayName)
-                        } else {
-                            pluralStringResource(R.plurals.budgets_resets_in_weekly, renewalIn, renewalIn, weekdayName)
-                        }
-                    }
-                    groupSpending.periodType == BudgetPeriodType.MONTHLY -> {
-                        val startDay = groupSpending.group.budget.monthStartDay
-                            ?: groupSpending.windowStart.dayOfMonth
-                        val renewalIn = (groupSpending.daysRemaining - 1).coerceAtLeast(0)
-                        if (renewalIn == 0) {
-                            stringResource(R.string.budgets_resets_today_monthly, startDay)
-                        } else {
-                            pluralStringResource(R.plurals.budgets_resets_in_monthly, renewalIn, renewalIn, startDay)
-                        }
-                    }
-                    groupSpending.periodType == BudgetPeriodType.CUSTOM -> {
-                        val range = stringResource(
-                            R.string.budgets_date_range,
-                            groupSpending.windowStart.format(dateFormatter),
-                            groupSpending.windowEnd.format(dateFormatter)
-                        )
-                        if (groupSpending.daysRemaining >= 1) {
-                            // >1 counts the days after today; ==1 reads as "1 day" (unchanged behaviour).
-                            val left = (groupSpending.daysRemaining - 1).coerceAtLeast(1)
-                            pluralStringResource(R.plurals.budgets_runs_days_remaining, left, range, left)
-                        } else {
-                            stringResource(R.string.budgets_runs_finished, range)
-                        }
-                    }
-                    else -> pluralStringResource(
-                        R.plurals.budgets_days_remaining,
-                        groupSpending.daysRemaining,
-                        groupSpending.daysRemaining
-                    )
-                }
-                Text(
-                    text = subtitleText,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+            if (budgeted > BigDecimal.ZERO) {
+                PlanMeter(
+                    fraction = percentUsed / 100f,
+                    color = statusColor,
+                    trackColor = MaterialTheme.colorScheme.surfaceVariant
                 )
-
-                Spacer(modifier = Modifier.height(Spacing.xs))
-
-                // Row 5: Spent X of Y
                 Text(
                     text = stringResource(
-                        R.string.budgets_spent_of,
-                        CurrencyFormatter.formatCurrency(groupSpending.totalActual, currency),
-                        CurrencyFormatter.formatCurrency(groupSpending.totalBudget, currency)
+                        R.string.plan_budget_spent_of,
+                        CurrencyFormatter.formatCurrency(actual, currency),
+                        CurrencyFormatter.formatCurrency(budgeted, currency)
                     ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                RolloverLine(groupSpending, currency, onAddRate = onAddRate)
-            } else if (groupSpending.isTrackingAllExpenses) {
-                Spacer(modifier = Modifier.height(Spacing.sm))
+            } else {
                 Text(
-                    text = stringResource(R.string.budgets_spent, CurrencyFormatter.formatCurrency(groupSpending.totalActual, currency)),
-                    style = MaterialTheme.typography.titleLarge.copy(
-                        fontWeight = FontWeight.Bold
-                    ).money(),
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                Spacer(modifier = Modifier.height(Spacing.xs))
-                Text(
-                    text = stringResource(R.string.budgets_tracking_all),
-                    style = MaterialTheme.typography.bodySmall,
+                    text = CurrencyFormatter.formatCurrency(actual, currency),
+                    style = PennyWiseText.amountSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-            }
-
-            // Expandable category list + pace chart
-            AnimatedVisibility(
-                visible = expanded,
-                enter = pwExpand(),
-                exit = pwCollapse()
-            ) {
-                Column(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.xs)
-                ) {
-                    // Per-budget spending pace chart
-                    if (groupSpending.dailyCumulativeSpending.size >= 2 && groupSpending.dailyBudgetPace.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(Spacing.xs))
-                        SpendingPaceChart(
-                            cumulativeSpending = groupSpending.dailyCumulativeSpending,
-                            budgetPace = groupSpending.dailyBudgetPace,
-                            currency = currency
-                        )
-                    }
-
-                    if (groupSpending.categorySpending.isNotEmpty()) {
-                        Spacer(modifier = Modifier.height(Spacing.xs))
-                        HorizontalDivider(
-                            color = MaterialTheme.colorScheme.outlineVariant
-                        )
-                        Spacer(modifier = Modifier.height(Spacing.xs))
-
-                        groupSpending.categorySpending.forEach { catSpending ->
-                            val catPctUsed = catSpending.percentageUsed
-                            val catStatusColor: Color = when {
-                                catPctUsed >= 90f -> MaterialTheme.colorScheme.error
-                                catPctUsed >= 70f -> MaterialTheme.colorScheme.warning
-                                else -> MaterialTheme.colorScheme.primary
-                            }
-
-                            val categoryInfo = CategoryMapping.categories[catSpending.categoryName]
-                                ?: CategoryMapping.categories["Others"]!!
-
-                            Row(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clip(RoundedCornerShape(Spacing.sm))
-                                    .clickable { onCategoryClick(catSpending.categoryName) }
-                                    .padding(vertical = Spacing.sm, horizontal = Spacing.xs),
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                            ) {
-                                // Category icon in colored circle
-                                Box(
-                                    modifier = Modifier
-                                        .size(36.dp)
-                                        .clip(CircleShape)
-                                        .background(CategoryMapping.colorFor(catSpending.categoryName).copy(alpha = 0.12f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    CategoryIcon(
-                                        category = catSpending.categoryName,
-                                        size = 18.dp,
-                                        tint = CategoryMapping.colorFor(catSpending.categoryName)
-                                    )
-                                }
-
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = categoryLabel(catSpending.categoryName),
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            fontWeight = FontWeight.Medium,
-                                            // Explicit: the card's tinted container doesn't supply a
-                                            // content colour, so this inherited black in dark mode.
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            modifier = Modifier.weight(1f, fill = false)
-                                        )
-                                        if (catSpending.budgetAmount > BigDecimal.ZERO) {
-                                            Text(
-                                                text = stringResource(R.string.budgets_percent, catPctUsed.toInt()),
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = catStatusColor
-                                            )
-                                        }
-                                    }
-
-                                    if (catSpending.budgetAmount > BigDecimal.ZERO) {
-                                        Spacer(modifier = Modifier.height(Spacing.xs))
-                                        val catBarShape = RoundedCornerShape(50)
-                                        Box(
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .height(4.dp)
-                                                .clip(catBarShape)
-                                                .background(catStatusColor.copy(alpha = 0.15f))
-                                        ) {
-                                            Box(
-                                                modifier = Modifier
-                                                    .fillMaxWidth(fraction = (catPctUsed / 100f).coerceIn(0f, 1f))
-                                                    .fillMaxHeight()
-                                                    .clip(catBarShape)
-                                                    .background(catStatusColor)
-                                            )
-                                        }
-                                        Spacer(modifier = Modifier.height(Spacing.xs))
-                                        Text(
-                                            text = stringResource(
-                                                R.string.budgets_amount_of,
-                                                CurrencyFormatter.formatCurrency(catSpending.actualAmount, currency),
-                                                CurrencyFormatter.formatCurrency(catSpending.budgetAmount, currency)
-                                            ),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    } else {
-                                        Text(
-                                            text = CurrencyFormatter.formatCurrency(catSpending.actualAmount, currency),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
             }
         }
     }
@@ -968,7 +1153,7 @@ private fun SpendingPaceChart(
         ) {
             Box(
                 modifier = Modifier
-                    .size(8.dp)
+                    .size(Dimensions.Component.legendDot)
                     .clip(CircleShape)
                     .background(spendingColor)
             )
@@ -985,7 +1170,7 @@ private fun SpendingPaceChart(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(8.dp)
+                        .size(Dimensions.Component.legendDot)
                         .clip(CircleShape)
                         .background(themeColors.onSurfaceVariant.copy(alpha = 0.4f))
                 )

@@ -3,7 +3,6 @@ package com.pennywiseai.tracker.presentation.chat
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -13,9 +12,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
-import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -26,6 +23,7 @@ import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
 import androidx.compose.ui.res.pluralStringResource
@@ -34,7 +32,6 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDirection
-import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
@@ -47,11 +44,13 @@ import com.pennywiseai.tracker.data.repository.QuickAction
 import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.ui.animations.pwExpand
 import com.pennywiseai.tracker.ui.animations.pwFadeIn
+import com.pennywiseai.tracker.ui.animations.pwFadeOut
 import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.mascot.Mascot
 import com.pennywiseai.tracker.ui.components.mascot.MascotMood
+import com.pennywiseai.tracker.ui.components.mascot.MascotShape
 import com.pennywiseai.tracker.ui.components.mascot.REACTION_HOLD_MS
 import com.pennywiseai.tracker.ui.components.mascot.typingGaze
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
@@ -170,20 +169,30 @@ fun ChatScreen(
     // The model screen's owl sleeps; the first LOADING after it wakes it, once.
     var modelWasAsleep by remember { mutableStateOf(false) }
 
-    // Scroll behaviors for TopAppBar
+    // The tab header: overline + big title + avatar, folding into the small bar once a
+    // long conversation is scrolled.
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
-    val scrollBehaviorLarge = scrollBehaviorSmall
+    val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val hazeState = remember { HazeState() }
 
     Scaffold(
-        modifier = modifier,
+        modifier = modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         containerColor = Color.Transparent,
         topBar = {
             CustomTitleTopAppBar(
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
-                title = stringResource(R.string.chat_title),
-                hazeState = hazeState
+                title = stringResource(R.string.nav_chat),
+                overline = stringResource(R.string.chat_overline),
+                hazeState = hazeState,
+                actionContent = {
+                    // Quick answers get saved without a model too, so they have to be
+                    // clearable without one.
+                    ClearChatAction(
+                        visible = messages.isNotEmpty() && modelState != ModelState.LOADING,
+                        onClear = viewModel::clearChat
+                    )
+                }
             )
         }
     ) { paddingValues ->
@@ -202,9 +211,6 @@ fun ChatScreen(
                     Column(
                         modifier = Modifier.fillMaxSize()
                     ) {
-                        // Quick answers get saved here too, so they have to be clearable without a model.
-                        ClearChatBar(visible = messages.isNotEmpty(), onClear = viewModel::clearChat)
-
                         // If no messages, show the download prompt centered
                         if (messages.isEmpty()) {
                             Box(
@@ -213,51 +219,15 @@ fun ChatScreen(
                                     .fillMaxWidth(),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Column(
-                                    horizontalAlignment = Alignment.CenterHorizontally,
-                                    verticalArrangement = Arrangement.spacedBy(Spacing.md),
-                                    modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
-                                ) {
-                                    Mascot(size = Dimensions.Icon.extraLarge, mood = MascotMood.Asleep)
-                                    Text(
-                                        text = stringResource(if (isDownloading) R.string.chat_downloading_model else R.string.chat_model_required_title),
-                                        style = MaterialTheme.typography.headlineSmall
-                                    )
-                                    Text(
-                                        text = if (isDownloading) stringResource(R.string.chat_download_progress, downloadedMB, totalMB) else stringResource(R.string.chat_model_required_body),
-                                        style = MaterialTheme.typography.bodyMedium,
-                                        textAlign = TextAlign.Center,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    if (isDownloading) {
-                                        LinearWavyProgressIndicator(
-                                            progress = { downloadProgress / 100f },
-                                            modifier = Modifier.fillMaxWidth()
-                                        )
-                                        OutlinedButton(onClick = { viewModel.cancelDownload() }, shapes = ButtonDefaults.shapes()) {
-                                            Icon(
-                                                Icons.Default.Close,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(Dimensions.Icon.small)
-                                            )
-                                            Spacer(modifier = Modifier.width(Spacing.xs))
-                                            Text(stringResource(R.string.chat_cancel))
-                                        }
-                                    } else {
-                                        Button(onClick = { viewModel.startModelDownload() }, shapes = ButtonDefaults.shapes()) {
-                                            Icon(
-                                                Icons.Default.Download,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(Dimensions.Icon.small)
-                                            )
-                                            Spacer(modifier = Modifier.width(Spacing.xs))
-                                            Text(stringResource(R.string.chat_download_with_size, totalMB))
-                                        }
-                                    }
-                                    TextButton(onClick = onNavigateToSettings, shapes = ButtonDefaults.shapes()) {
-                                        Text(stringResource(R.string.chat_settings))
-                                    }
-                                }
+                                ModelRequiredPrompt(
+                                    isDownloading = isDownloading,
+                                    downloadProgress = downloadProgress,
+                                    downloadedMB = downloadedMB,
+                                    totalMB = totalMB,
+                                    onDownload = viewModel::startModelDownload,
+                                    onCancel = viewModel::cancelDownload,
+                                    onSettings = onNavigateToSettings
+                                )
                             }
                         } else {
                             // Show existing messages (read-only)
@@ -267,13 +237,8 @@ fun ChatScreen(
                                     .weight(1f)
                                     .fillMaxWidth()
                                     .overScrollVertical(),
-                                contentPadding = PaddingValues(
-                                    start = Dimensions.Padding.content,
-                                    end = Dimensions.Padding.content,
-                                    top = Dimensions.Padding.content,
-                                    bottom = Spacing.lg
-                                ),
-                                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                                contentPadding = chatListPadding(),
+                                verticalArrangement = Arrangement.spacedBy(Spacing.smd),
                                 flingBehavior = rememberOverscrollFlingBehavior { listState }
                             ) {
                                 items(messages, key = { it.id }) { message ->
@@ -305,88 +270,19 @@ fun ChatScreen(
                             enabled = !uiState.isLoading && !isConfirming,
                             onAsk = viewModel::runQuickAction
                         )
-                        Spacer(modifier = Modifier.height(Spacing.sm))
-
-                        // Show model required banner at bottom
-                        Surface(
-                            modifier = Modifier.fillMaxWidth(),
-                            color = MaterialTheme.colorScheme.tertiaryContainer,
-                            tonalElevation = 3.dp
-                        ) {
-                            if (isDownloading) {
-                                Column(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(Dimensions.Padding.content),
-                                    verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.fillMaxWidth(),
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween
-                                    ) {
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                text = stringResource(R.string.chat_downloading_model),
-                                                style = MaterialTheme.typography.titleSmall,
-                                                fontWeight = FontWeight.Bold
-                                            )
-                                            Text(
-                                                text = stringResource(R.string.chat_download_progress, downloadedMB, totalMB),
-                                                style = MaterialTheme.typography.bodySmall
-                                            )
-                                        }
-                                        OutlinedButton(
-                                            onClick = { viewModel.cancelDownload() },
-                                            modifier = Modifier.padding(start = Spacing.sm),
-                                            shapes = ButtonDefaults.shapes()
-                                        ) {
-                                            Text(stringResource(R.string.chat_cancel))
-                                        }
-                                    }
-                                    LinearWavyProgressIndicator(
-                                        progress = { downloadProgress / 100f },
-                                        modifier = Modifier.fillMaxWidth()
-                                    )
-                                }
-                            } else {
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(Dimensions.Padding.content),
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.SpaceBetween
-                                ) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(
-                                            text = stringResource(R.string.chat_model_required_short),
-                                            style = MaterialTheme.typography.titleSmall,
-                                            fontWeight = FontWeight.Bold
-                                        )
-                                        Text(
-                                            // 1.6 GB via the system Download Manager; some phones (Samsung
-                                            // with Data saver) won't start it on mobile data.
-                                            text = stringResource(R.string.chat_model_size_hint),
-                                            style = MaterialTheme.typography.bodySmall
-                                        )
-                                    }
-                                    Button(
-                                        onClick = { viewModel.startModelDownload() },
-                                        modifier = Modifier.padding(start = Spacing.sm),
-                                        shapes = ButtonDefaults.shapes()
-                                    ) {
-                                        Icon(
-                                            Icons.Default.Download,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(Dimensions.Icon.small)
-                                        )
-                                        Spacer(modifier = Modifier.width(Spacing.xs))
-                                        Text(stringResource(R.string.chat_download))
-                                    }
-                                }
-                            }
+                        // With no messages the centred prompt above already holds these controls.
+                        if (messages.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(Spacing.sm))
+                            ModelRequiredBanner(
+                                isDownloading = isDownloading,
+                                downloadProgress = downloadProgress,
+                                downloadedMB = downloadedMB,
+                                totalMB = totalMB,
+                                onDownload = viewModel::startModelDownload,
+                                onCancel = viewModel::cancelDownload
+                            )
                         }
-                        Spacer(modifier = Modifier.height(Dimensions.Component.bottomBarHeight))
+                        Spacer(modifier = Modifier.height(Spacing.smd + Dimensions.Component.bottomBarHeight))
                     }
                 }
 
@@ -399,7 +295,8 @@ fun ChatScreen(
                         ) {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
-                                verticalArrangement = Arrangement.spacedBy(Spacing.md)
+                                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                                modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                             ) {
                                 // Straight from the model screen, the sleeping owl wakes up (the
                                 // lids open through a blink) and gets to work; otherwise, or with
@@ -413,15 +310,21 @@ fun ChatScreen(
                                         awake = true
                                     }
                                 }
-                                Mascot(size = Dimensions.Icon.extraLarge, mood = if (awake) MascotMood.Thinking else MascotMood.Asleep)
+                                Mascot(
+                                    size = Dimensions.Component.chatHeroMascot,
+                                    mood = if (awake) MascotMood.Thinking else MascotMood.Asleep
+                                )
+                                Spacer(modifier = Modifier.height(Spacing.sm))
                                 Text(
                                     text = stringResource(R.string.chat_initializing_model),
-                                    style = MaterialTheme.typography.bodyLarge
+                                    style = MaterialTheme.typography.titleLargeEmphasized,
+                                    textAlign = TextAlign.Center
                                 )
                                 Text(
                                     text = stringResource(R.string.chat_initializing_hint),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    textAlign = TextAlign.Center
                                 )
                             }
                         }
@@ -438,8 +341,6 @@ fun ChatScreen(
                                 DeveloperInfoCard(chatStats = chatStats)
                             }
 
-                            ClearChatBar(visible = messages.isNotEmpty(), onClear = viewModel::clearChat)
-
                             // Messages list
                             LazyColumn(
                                 state = listState,
@@ -447,13 +348,8 @@ fun ChatScreen(
                                     .weight(1f)
                                     .fillMaxWidth()
                                     .overScrollVertical(),
-                                contentPadding = PaddingValues(
-                                    start = Dimensions.Padding.content,
-                                    end = Dimensions.Padding.content,
-                                    top = Dimensions.Padding.content,
-                                    bottom = Spacing.lg
-                                ),
-                                verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+                                contentPadding = chatListPadding(),
+                                verticalArrangement = Arrangement.spacedBy(Spacing.smd),
                                 flingBehavior = rememberOverscrollFlingBehavior { listState },
                                 reverseLayout = false
                             ) {
@@ -530,9 +426,7 @@ fun ChatScreen(
                                                     timestamp = System.currentTimeMillis()
                                                 ),
                                                 modifier = Modifier.animateItem(fadeInSpec = null, fadeOutSpec = null),
-                                                isStreaming = true,
-                                                // The saved reply takes this place with its mascot: no reflow, no jump.
-                                                reserveMascot = true
+                                                isStreaming = true
                                             )
                                         } else {
                                             // One status line per request, picked when the wait starts,
@@ -550,115 +444,58 @@ fun ChatScreen(
                                 enter = pwExpand(),
                                 exit = pwCollapse()
                             ) {
-                                PennyWiseCardV2(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(horizontal = Dimensions.Padding.content),
-                                    colors = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.errorContainer
-                                    )
-                                ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth(),
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Text(
-                                            text = uiState.error?.asString().orEmpty(),
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onErrorContainer,
-                                            modifier = Modifier.weight(1f)
-                                        )
-                                        IconButton(onClick = { viewModel.clearError() }, shapes = IconButtonDefaults.shapes()) {
-                                            Icon(
-                                                Icons.Default.Close,
-                                                contentDescription = stringResource(R.string.chat_dismiss),
-                                                tint = MaterialTheme.colorScheme.onErrorContainer
-                                            )
-                                        }
-                                    }
-                                }
+                                ChatErrorCard(
+                                    message = uiState.error?.asString().orEmpty(),
+                                    onDismiss = viewModel::clearError
+                                )
                             }
 
-                            // Input field
-                            Surface(
-                                modifier = Modifier.fillMaxWidth(),
-                                color = MaterialTheme.colorScheme.surface,
-                                tonalElevation = 3.dp
+                            // Suggestions (or the mic's status) over the composer pill.
+                            Column(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(bottom = Spacing.smd),
+                                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                             ) {
-                                Column {
-                                    if (voice.available && (voice.active || voice.note != null)) {
-                                        VoiceStatusBar(voice)
-                                    } else {
-                                        QuickActionChips(
-                                            suggestions = suggestions,
-                                            enabled = !uiState.isLoading && !isConfirming,
-                                            onAsk = viewModel::runQuickAction,
-                                            leading = { if (voice.available) VoiceLanguageChip(voice) }
-                                        )
-                                    }
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(Dimensions.Padding.content),
-                                        verticalAlignment = Alignment.Bottom
-                                    ) {
-                                        OutlinedTextField(
-                                            value = inputText,
-                                            onValueChange = { inputText = it },
-                                            modifier = Modifier
-                                                .weight(1f)
-                                                .focusRequester(focusRequester),
-                                            placeholder = { Text(stringResource(R.string.chat_input_placeholder)) },
-                                            enabled = !uiState.isLoading,
-                                            // Words land here as they're heard; editable once the mic stops.
-                                            readOnly = voice.active,
-                                            trailingIcon = if (voice.available) {
-                                                {
-                                                    VoiceMicButton(
-                                                        voice = voice,
-                                                        // Stop always works; only a new recording waits for the chat.
-                                                        enabled = voice.active || (!uiState.isLoading && !isConfirming),
-                                                        onTap = { voice.toggle(inputText) }
-                                                    )
-                                                }
-                                            } else {
-                                                null
-                                            },
-                                            maxLines = 3,
-                                            // Arabic from the mic (or typed) reads right to left.
-                                            textStyle = LocalTextStyle.current.copy(textDirection = TextDirection.Content),
-                                            shape = MaterialTheme.shapes.extraLarge
-                                        )
-
-                                        Spacer(modifier = Modifier.width(Spacing.sm))
-
-                                        FilledIconButton(
-                                            onClick = {
-                                                viewModel.sendMessage(inputText)
-                                                inputText = ""
-                                                // Keep keyboard open by requesting focus
-                                                focusRequester.requestFocus()
-                                            },
-                                            enabled = inputText.isNotBlank() && !uiState.isLoading && !isConfirming && !voice.active,
-                                            modifier = Modifier.size(48.dp),
-                                            shapes = IconButtonDefaults.shapes()
-                                        ) {
-                                            if (uiState.isLoading) {
-                                                CircularProgressIndicator(
-                                                    modifier = Modifier.size(Dimensions.Icon.medium),
-                                                    strokeWidth = 2.dp
-                                                )
-                                            } else {
-                                                Icon(
-                                                    Icons.AutoMirrored.Filled.Send,
-                                                    contentDescription = stringResource(R.string.chat_send)
-                                                )
-                                            }
-                                        }
-                                    }
+                                if (voice.available && (voice.active || voice.note != null)) {
+                                    VoiceStatusBar(voice)
+                                } else {
+                                    QuickActionChips(
+                                        suggestions = suggestions,
+                                        enabled = !uiState.isLoading && !isConfirming,
+                                        onAsk = viewModel::runQuickAction,
+                                        leading = { if (voice.available) VoiceLanguageChip(voice) }
+                                    )
                                 }
+                                ChatComposer(
+                                    text = inputText,
+                                    onTextChange = { inputText = it },
+                                    enabled = !uiState.isLoading,
+                                    // Words land here as they're heard; editable once the mic stops.
+                                    readOnly = voice.active,
+                                    canSend = inputText.isNotBlank() && !uiState.isLoading && !isConfirming && !voice.active,
+                                    isSending = uiState.isLoading,
+                                    onSend = {
+                                        viewModel.sendMessage(inputText)
+                                        inputText = ""
+                                        // Keep keyboard open by requesting focus
+                                        focusRequester.requestFocus()
+                                    },
+                                    focusRequester = focusRequester,
+                                    trailing = if (voice.available) {
+                                        {
+                                            VoiceMicButton(
+                                                voice = voice,
+                                                // Stop always works; only a new recording waits for the chat.
+                                                enabled = voice.active || (!uiState.isLoading && !isConfirming),
+                                                onTap = { voice.toggle(inputText) }
+                                            )
+                                        }
+                                    } else {
+                                        null
+                                    },
+                                    modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                                )
                             }
                             // The bottom nav hides while the keyboard is up, so its
                             // clearance would just leave a gap above the keyboard.
@@ -667,6 +504,287 @@ fun ChatScreen(
                             }
                         }
                     }
+                }
+            }
+        }
+    }
+}
+
+/** The conversation's gutters: the hero sits close under the header, the last row clear of the chips. */
+private fun chatListPadding() = PaddingValues(
+    start = Dimensions.Padding.content,
+    end = Dimensions.Padding.content,
+    top = Spacing.sm,
+    bottom = Spacing.md
+)
+
+/** Clear chat, in the header; it's only there while there's something to clear. */
+@Composable
+private fun ClearChatAction(visible: Boolean, onClear: () -> Unit) {
+    AnimatedVisibility(visible = visible, enter = pwFadeIn(), exit = pwFadeOut()) {
+        IconButton(onClick = onClear, shapes = IconButtonDefaults.shapes()) {
+            Icon(
+                Icons.Default.DeleteSweep,
+                contentDescription = stringResource(R.string.chat_clear_chat)
+            )
+        }
+    }
+}
+
+/** No model yet: the sleeping owl, why, and the download (or its progress). */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun ModelRequiredPrompt(
+    isDownloading: Boolean,
+    downloadProgress: Int,
+    downloadedMB: Long,
+    totalMB: Long,
+    onDownload: () -> Unit,
+    onCancel: () -> Unit,
+    onSettings: () -> Unit
+) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        modifier = Modifier.padding(horizontal = Dimensions.Padding.dialog)
+    ) {
+        Mascot(size = Dimensions.Component.chatHeroMascot, mood = MascotMood.Asleep)
+        PrivacyNote()
+        Spacer(modifier = Modifier.height(Spacing.xs))
+        Text(
+            text = stringResource(if (isDownloading) R.string.chat_downloading_model else R.string.chat_model_required_title),
+            style = MaterialTheme.typography.headlineSmallEmphasized,
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = if (isDownloading) stringResource(R.string.chat_download_progress, downloadedMB, totalMB) else stringResource(R.string.chat_model_required_body),
+            style = MaterialTheme.typography.bodyLarge,
+            textAlign = TextAlign.Center,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        Spacer(modifier = Modifier.height(Spacing.sm))
+        if (isDownloading) {
+            LinearWavyProgressIndicator(
+                progress = { downloadProgress / 100f },
+                modifier = Modifier.fillMaxWidth()
+            )
+            OutlinedButton(onClick = onCancel, shapes = ButtonDefaults.shapes()) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = null,
+                    modifier = Modifier.size(Dimensions.Icon.small)
+                )
+                Spacer(modifier = Modifier.width(Spacing.xs))
+                Text(stringResource(R.string.chat_cancel))
+            }
+        } else {
+            Button(onClick = onDownload, shapes = ButtonDefaults.shapes()) {
+                Icon(
+                    Icons.Default.Download,
+                    contentDescription = null,
+                    modifier = Modifier.size(Dimensions.Icon.small)
+                )
+                Spacer(modifier = Modifier.width(Spacing.xs))
+                Text(stringResource(R.string.chat_download_with_size, totalMB))
+            }
+        }
+        TextButton(onClick = onSettings, shapes = ButtonDefaults.shapes()) {
+            Text(stringResource(R.string.chat_settings))
+        }
+    }
+}
+
+/** Under an existing conversation with no model: download it (or follow the download). */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun ModelRequiredBanner(
+    isDownloading: Boolean,
+    downloadProgress: Int,
+    downloadedMB: Long,
+    totalMB: Long,
+    onDownload: () -> Unit,
+    onCancel: () -> Unit
+) {
+    PennyWiseCardV2(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Dimensions.Padding.content),
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
+    ) {
+        if (isDownloading) {
+            Column(
+                modifier = Modifier.fillMaxWidth(),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+            ) {
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween
+                ) {
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = stringResource(R.string.chat_downloading_model),
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold
+                        )
+                        Text(
+                            text = stringResource(R.string.chat_download_progress, downloadedMB, totalMB),
+                            style = MaterialTheme.typography.bodyMedium
+                        )
+                    }
+                    OutlinedButton(
+                        onClick = onCancel,
+                        modifier = Modifier.padding(start = Spacing.sm),
+                        shapes = ButtonDefaults.shapes()
+                    ) {
+                        Text(stringResource(R.string.chat_cancel))
+                    }
+                }
+                LinearWavyProgressIndicator(
+                    progress = { downloadProgress / 100f },
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        } else {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = stringResource(R.string.chat_model_required_short),
+                        style = MaterialTheme.typography.titleMedium,
+                        fontWeight = FontWeight.SemiBold
+                    )
+                    Text(
+                        // 1.6 GB via the system Download Manager; some phones (Samsung
+                        // with Data saver) won't start it on mobile data.
+                        text = stringResource(R.string.chat_model_size_hint),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+                Button(
+                    onClick = onDownload,
+                    modifier = Modifier.padding(start = Spacing.sm),
+                    shapes = ButtonDefaults.shapes()
+                ) {
+                    Icon(
+                        Icons.Default.Download,
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimensions.Icon.small)
+                    )
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text(stringResource(R.string.chat_download))
+                }
+            }
+        }
+    }
+}
+
+/** A failed request, above the composer; dismissable. */
+@Composable
+private fun ChatErrorCard(message: String, onDismiss: () -> Unit) {
+    PennyWiseCardV2(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Dimensions.Padding.content)
+            .padding(bottom = Spacing.sm),
+        shape = MaterialTheme.shapes.extraLarge,
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.errorContainer
+        )
+    ) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = message,
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onErrorContainer,
+                modifier = Modifier.weight(1f)
+            )
+            IconButton(onClick = onDismiss, shapes = IconButtonDefaults.shapes()) {
+                Icon(
+                    Icons.Default.Close,
+                    contentDescription = stringResource(R.string.chat_dismiss),
+                    tint = MaterialTheme.colorScheme.onErrorContainer
+                )
+            }
+        }
+    }
+}
+
+/**
+ * The big pill the user types in: the text (with the mic at its end) and a filled round
+ * send button. It grows to three lines; its corners stay round at every height.
+ */
+@Composable
+private fun ChatComposer(
+    text: String,
+    onTextChange: (String) -> Unit,
+    enabled: Boolean,
+    readOnly: Boolean,
+    canSend: Boolean,
+    isSending: Boolean,
+    onSend: () -> Unit,
+    focusRequester: FocusRequester,
+    trailing: (@Composable () -> Unit)?,
+    modifier: Modifier = Modifier
+) {
+    val clear = Color.Transparent
+    Surface(
+        modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.extraLarge,
+        color = MaterialTheme.colorScheme.surfaceContainerHigh
+    ) {
+        Row(
+            modifier = Modifier.padding(end = Spacing.xs),
+            verticalAlignment = Alignment.Bottom
+        ) {
+            TextField(
+                value = text,
+                onValueChange = onTextChange,
+                modifier = Modifier
+                    .weight(1f)
+                    .focusRequester(focusRequester),
+                placeholder = { Text(stringResource(R.string.chat_input_placeholder)) },
+                enabled = enabled,
+                readOnly = readOnly,
+                trailingIcon = trailing,
+                maxLines = 3,
+                // Arabic from the mic (or typed) reads right to left.
+                textStyle = LocalTextStyle.current.copy(textDirection = TextDirection.Content),
+                colors = TextFieldDefaults.colors(
+                    focusedContainerColor = clear,
+                    unfocusedContainerColor = clear,
+                    disabledContainerColor = clear,
+                    focusedIndicatorColor = clear,
+                    unfocusedIndicatorColor = clear,
+                    disabledIndicatorColor = clear
+                )
+            )
+            FilledIconButton(
+                onClick = onSend,
+                enabled = canSend,
+                modifier = Modifier
+                    .padding(vertical = Spacing.xs)
+                    .size(Dimensions.Component.minTouchTarget),
+                shapes = IconButtonDefaults.shapes()
+            ) {
+                if (isSending) {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(Dimensions.Icon.medium),
+                        strokeWidth = Spacing.xxs
+                    )
+                } else {
+                    Icon(
+                        Icons.Default.ArrowUpward,
+                        contentDescription = stringResource(R.string.chat_send)
+                    )
                 }
             }
         }
@@ -694,7 +812,7 @@ fun DeveloperInfoCard(
             .padding(horizontal = Dimensions.Padding.content)
             .padding(bottom = Spacing.sm),
         colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
         ),
         onClick = { isExpanded = !isExpanded }
     ) {
@@ -750,9 +868,7 @@ fun DeveloperInfoCard(
                     .padding(top = Spacing.sm),
                 verticalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
-                HorizontalDivider(
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.2f)
-                )
+                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant)
 
                 Spacer(modifier = Modifier.height(Spacing.xs))
 
@@ -816,24 +932,57 @@ internal fun showsHero(messages: List<com.pennywiseai.tracker.data.database.enti
     !isLoading && messages.isNotEmpty() && messages.none { it.isUser }
 
 /**
- * The empty chat's owl: a tap pokes it, a drag has it look around, and while the user
- * types it watches the input below. Decorative: TalkBack skips it.
+ * The empty chat's owl, large, over the privacy promise: a tap pokes it, a drag has it
+ * look around, and while the user types it watches the input below. The owl is
+ * decorative: TalkBack skips it and reads the note.
  */
 @Composable
 private fun ChatHero(happy: Boolean, typedLength: Int, modifier: Modifier = Modifier) {
-    Box(
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(vertical = Spacing.lg),
-        contentAlignment = Alignment.Center
+            .padding(bottom = Spacing.sm),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Spacing.smd)
     ) {
         Mascot(
-            size = Dimensions.Icon.extraLarge,
+            size = Dimensions.Component.chatHeroMascot,
             mood = if (happy) MascotMood.Happy else MascotMood.Calm,
             look = if (typedLength > 0) typingGaze(typedLength) else null,
             interactive = true,
             alive = true
         )
+        PrivacyNote()
+    }
+}
+
+/** "Runs on this phone · nothing is uploaded": a small tonal pill with a lock. */
+@Composable
+private fun PrivacyNote(modifier: Modifier = Modifier) {
+    Surface(
+        modifier = modifier,
+        shape = CircleShape,
+        color = MaterialTheme.colorScheme.tertiaryContainer,
+        contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+    ) {
+        Row(
+            modifier = Modifier
+                .heightIn(min = Dimensions.Component.statusChipHeight)
+                .padding(horizontal = Spacing.smd, vertical = Spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+        ) {
+            Icon(
+                Icons.Default.Lock,
+                contentDescription = null,
+                modifier = Modifier.size(Dimensions.Icon.small)
+            )
+            Text(
+                text = stringResource(R.string.chat_privacy_note),
+                style = MaterialTheme.typography.labelLarge,
+                textAlign = TextAlign.Center
+            )
+        }
     }
 }
 
@@ -845,44 +994,67 @@ private val THINKING_LINES = listOf(
     R.string.chat_thinking_one_moment
 )
 
+/** The wait for a reply: the owl thinks in its avatar spot, the status in a reply bubble. */
 @Composable
 fun TypingIndicator(
     modifier: Modifier = Modifier,
     status: String? = null
 ) {
     Row(
-        modifier = modifier.fillMaxWidth(),
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(end = REPLY_END_INSET),
         horizontalArrangement = Arrangement.Start
     ) {
-        PennyWiseCardV2(
-            modifier = Modifier.widthIn(max = 280.dp),
-            colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.secondaryContainer
-            )
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(Spacing.smd),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                // The owl thinks while the reply is on its way; with animations removed it
-                // holds a still thinking pose.
-                Mascot(size = Dimensions.Icon.large, mood = MascotMood.Thinking)
-                if (status != null) {
-                    Text(
-                        text = status,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                }
+        // The owl thinks while the reply is on its way; with animations removed it
+        // holds a still thinking pose.
+        Mascot(size = Dimensions.Icon.large, mood = MascotMood.Thinking)
+        Spacer(modifier = Modifier.width(Spacing.sm))
+        if (status != null) {
+            ChatBubble(isUser = false, modifier = Modifier.weight(1f, fill = false)) {
+                Text(
+                    text = status,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
             }
         }
     }
 }
 
+/** How far a user bubble stays from the start edge, and a reply from the end: about 80% wide at most. */
+private val USER_START_INSET = Spacing.xxxl
+private val REPLY_END_INSET = Spacing.lg
+
 /**
- * One chat message. The latest assistant reply has a [topic]: its mascot stands at the
- * reply's start, with "Saved" by the time for a confirmed Add. [reserveMascot] keeps that
- * space for a reply still on its way, so the saved one lands without moving.
+ * A message bubble: big rounded corners, with the one by the speaker tighter. The user's
+ * own are primary; replies sit on surfaceContainer beside the owl.
+ */
+@Composable
+private fun ChatBubble(
+    isUser: Boolean,
+    modifier: Modifier = Modifier,
+    content: @Composable ColumnScope.() -> Unit
+) {
+    val shapes = MaterialTheme.shapes
+    val tail = shapes.extraSmall.topStart
+    Surface(
+        modifier = modifier.animateContentSize(MaterialTheme.motionScheme.defaultSpatialSpec()),
+        shape = if (isUser) shapes.extraLarge.copy(topEnd = tail) else shapes.extraLarge.copy(topStart = tail),
+        color = if (isUser) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceContainer,
+        contentColor = if (isUser) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.smd),
+            verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+            content = content
+        )
+    }
+}
+
+/**
+ * One chat message. Every reply has the owl at its start; the latest one's owl takes the
+ * [topic]'s shape, with "Saved" by the time for a confirmed Add.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -891,39 +1063,33 @@ fun ChatMessageItem(
     modifier: Modifier = Modifier,
     isStreaming: Boolean = false,
     topic: ReplyTopic? = null,
-    reserveMascot: Boolean = false,
     celebrating: Boolean = false,
     links: List<ReplyLink> = emptyList(),
     onOpenLink: (ReplyLink) -> Unit = {}
 ) {
     val timeFormat = remember { SimpleDateFormat("h:mm a", Locale.getDefault()) }
+    val isUser = message.isUser
 
     Row(
-        modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = if (message.isUser) Arrangement.End else Arrangement.Start
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(
+                start = if (isUser) USER_START_INSET else Spacing.none,
+                end = if (isUser) Spacing.none else REPLY_END_INSET
+            ),
+        horizontalArrangement = if (isUser) Arrangement.End else Arrangement.Start
     ) {
-        if (!message.isUser) ReplyMascotSlot(visible = reserveMascot || topic != null, topic = topic, celebrating = celebrating)
-        PennyWiseCardV2(
-            modifier = Modifier
-                .widthIn(max = 280.dp)
-                .animateContentSize(MaterialTheme.motionScheme.defaultSpatialSpec()),
-            colors = CardDefaults.cardColors(
-                containerColor = if (message.isUser)
-                    MaterialTheme.colorScheme.primaryContainer
-                else
-                    MaterialTheme.colorScheme.secondaryContainer
-            )
-        ) {
+        if (!isUser) {
+            ReplyAvatar(topic = topic, celebrating = celebrating)
+            Spacer(modifier = Modifier.width(Spacing.sm))
+        }
+        ChatBubble(isUser = isUser, modifier = Modifier.weight(1f, fill = false)) {
             Text(
                 // Amounts are baked into the stored text; mask them on screen only.
                 text = com.pennywiseai.tracker.utils.CurrencyFormatter.maskAmountsIn(message.message),
                 // Direction from the text itself: an English reply in the Arabic UI was laid
                 // out right to left, so ".Hi! I'm PennyWise AI" put the full stop first (#1057).
-                style = MaterialTheme.typography.bodyMedium.copy(textDirection = TextDirection.Content),
-                color = if (message.isUser)
-                    MaterialTheme.colorScheme.onPrimaryContainer
-                else
-                    MaterialTheme.colorScheme.onSecondaryContainer
+                style = MaterialTheme.typography.bodyLarge.copy(textDirection = TextDirection.Content)
             )
 
             // The transactions behind the figures above, for this session only.
@@ -933,25 +1099,24 @@ fun ChatMessageItem(
                 }
             }
 
-            Spacer(modifier = Modifier.height(Spacing.xs))
-
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
                 if (isStreaming) {
                     CircularProgressIndicator(
-                        modifier = Modifier.size(12.dp),
-                        strokeWidth = 1.dp
+                        modifier = Modifier.size(Dimensions.Icon.tiny),
+                        strokeWidth = Spacing.xxs,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
                 Text(
                     text = timeFormat.format(Date(message.timestamp)),
                     style = MaterialTheme.typography.labelSmall,
-                    color = if (message.isUser)
-                        MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.7f)
+                    color = if (isUser)
+                        MaterialTheme.colorScheme.onPrimary.copy(alpha = Dimensions.Alpha.subtitle)
                     else
-                        MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
+                        MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 if (topic?.saved == true) SavedBadge()
             }
@@ -976,48 +1141,38 @@ private fun ChatLinkChip(link: ReplyLink, onClick: () -> Unit) {
                 modifier = Modifier.size(AssistChipDefaults.IconSize)
             )
         },
-        colors = AssistChipDefaults.assistChipColors(labelColor = color, leadingIconContentColor = color),
-        border = AssistChipDefaults.assistChipBorder(enabled = true, borderColor = color.copy(alpha = 0.4f))
+        shape = MaterialTheme.shapes.medium,
+        colors = AssistChipDefaults.assistChipColors(
+            containerColor = MaterialTheme.colorScheme.secondaryContainer,
+            labelColor = color,
+            leadingIconContentColor = color
+        ),
+        border = null
     )
 }
 
 /**
- * The space at a reply's start for its mascot. It closes toward the start when the reply
- * stops being the latest (a new request), so the bubble slides back instead of jumping.
+ * The owl at a reply's start. The latest reply's owl turns into the shape of what it
+ * answered and shows its mood; it starts as the plain calm owl, so the shape and a happy
+ * reply's hop arrive as a change and play. Outside the beat after a save it is calm, and
+ * once the reply stops being the latest it turns back into the owl.
  */
 @Composable
-private fun ReplyMascotSlot(visible: Boolean, topic: ReplyTopic?, celebrating: Boolean) {
-    // The mascot leaves with the slot, not before it.
+private fun ReplyAvatar(topic: ReplyTopic?, celebrating: Boolean) {
+    // The figure stays while the shape fades back to the owl.
     var shown by remember { mutableStateOf(topic) }
     if (topic != null && topic != shown) shown = topic
-    val motion = MaterialTheme.motionScheme
-    AnimatedVisibility(
-        visible = visible,
-        enter = expandHorizontally(motion.fastSpatialSpec(), expandFrom = Alignment.Start) + fadeIn(motion.fastEffectsSpec()),
-        exit = shrinkHorizontally(motion.fastSpatialSpec(), shrinkTowards = Alignment.Start) + fadeOut(motion.fastEffectsSpec())
-    ) {
-        Row {
-            Box(modifier = Modifier.size(Dimensions.Icon.large)) {
-                shown?.let { ReplyMascot(it, celebrating) }
-            }
-            Spacer(modifier = Modifier.width(Spacing.sm))
-        }
+    val targetShape = topic?.shape ?: MascotShape.Owl
+    val targetMood = when {
+        topic == null -> MascotMood.Calm
+        topic.mood == MascotMood.Happy && !celebrating -> MascotMood.Calm
+        else -> topic.mood
     }
-}
-
-/**
- * The reply's mascot fades in as the reply lands. It starts calm, so a happy reply's
- * mood arrives as a change and its hop plays; outside the beat after a save it is calm.
- */
-@Composable
-private fun ReplyMascot(topic: ReplyTopic, celebrating: Boolean) {
-    val target = if (topic.mood == MascotMood.Happy && !celebrating) MascotMood.Calm else topic.mood
+    var shape by remember { mutableStateOf(MascotShape.Owl) }
     var mood by remember { mutableStateOf(MascotMood.Calm) }
-    LaunchedEffect(target) { mood = target }
-    val appear = remember { MutableTransitionState(false) }.apply { targetState = true }
-    AnimatedVisibility(visibleState = appear, enter = pwFadeIn()) {
-        Mascot(size = Dimensions.Icon.large, shape = topic.shape, mood = mood, value = topic.value)
-    }
+    LaunchedEffect(targetShape) { shape = targetShape }
+    LaunchedEffect(targetMood) { mood = targetMood }
+    Mascot(size = Dimensions.Icon.large, shape = shape, mood = mood, value = shown?.value ?: 0f)
 }
 
 /** "Saved" by a confirmed Add's time. Silent to TalkBack: the reply's own text says the same. */
@@ -1078,6 +1233,7 @@ private fun PendingActionCard(
     val isDelete = action is com.pennywiseai.tracker.data.model.PendingChatAction.Delete
     PennyWiseCardV2(
         modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(
             containerColor = if (isDelete) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.tertiaryContainer
         )
@@ -1103,7 +1259,8 @@ private fun PendingActionCard(
 
 /**
  * M8: one-tap prompts the app handles itself, no model involved: only those that apply now
- * ([ChatViewModel.suggestions]). [onAsk] gets the question as the chip says it.
+ * ([ChatViewModel.suggestions]). [onAsk] gets the question as the chip says it. Tonal chips
+ * with no outline, in one scrolling row over the composer.
  */
 @Composable
 private fun QuickActionChips(
@@ -1116,8 +1273,9 @@ private fun QuickActionChips(
         modifier = Modifier
             .fillMaxWidth()
             .horizontalScroll(rememberScrollState())
-            .padding(start = Dimensions.Padding.content, end = Dimensions.Padding.content, top = Spacing.sm),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+            .padding(horizontal = Dimensions.Padding.content),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically
     ) {
         leading()
         suggestions.forEach { suggestion ->
@@ -1129,49 +1287,14 @@ private fun QuickActionChips(
             SuggestionChip(
                 onClick = { onAsk(suggestion.action, label) },
                 label = { Text(label) },
-                enabled = enabled
+                enabled = enabled,
+                shape = MaterialTheme.shapes.medium,
+                colors = SuggestionChipDefaults.suggestionChipColors(
+                    containerColor = MaterialTheme.colorScheme.secondaryContainer,
+                    labelColor = MaterialTheme.colorScheme.onSecondaryContainer
+                ),
+                border = null
             )
-        }
-    }
-}
-
-@Composable
-private fun ColumnScope.ClearChatBar(visible: Boolean, onClear: () -> Unit) {
-    AnimatedVisibility(
-        visible = visible,
-        enter = pwExpand(),
-        exit = pwCollapse()
-    ) {
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            color = MaterialTheme.colorScheme.surface,
-            tonalElevation = 1.dp
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(
-                        horizontal = Dimensions.Padding.content,
-                        vertical = Spacing.sm
-                    ),
-                horizontalArrangement = Arrangement.End
-            ) {
-                TextButton(
-                    onClick = onClear,
-                    colors = ButtonDefaults.textButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    ),
-                    shapes = ButtonDefaults.shapes()
-                ) {
-                    Icon(
-                        Icons.Default.Delete,
-                        contentDescription = null,
-                        modifier = Modifier.size(Dimensions.Icon.small)
-                    )
-                    Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text(stringResource(R.string.chat_clear_chat))
-                }
-            }
         }
     }
 }

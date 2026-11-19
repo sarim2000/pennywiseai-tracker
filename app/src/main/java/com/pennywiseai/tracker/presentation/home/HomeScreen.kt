@@ -27,7 +27,6 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.work.WorkInfo
 import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.data.preferences.CoverStyle
 import com.pennywiseai.tracker.data.preferences.HomeSection
 import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
 import com.pennywiseai.tracker.domain.review.ReviewKind
@@ -37,7 +36,6 @@ import com.pennywiseai.tracker.receiver.QuickCategoryPickerActivity
 import com.pennywiseai.tracker.ui.animations.StaggeredEntrance
 import com.pennywiseai.tracker.ui.animations.rememberEntranceDone
 import com.pennywiseai.tracker.ui.animations.staggerDelayMs
-import com.pennywiseai.tracker.ui.components.CoverGradientBanner
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.DockNavAction
 import com.pennywiseai.tracker.ui.components.GreetingCard
@@ -70,11 +68,9 @@ import java.math.BigDecimal
 fun HomeScreen(
     viewModel: HomeViewModel = hiltViewModel(),
     onAccountClick: (bankName: String, accountLast4: String) -> Unit,
-    coverStyle: CoverStyle = CoverStyle.AURORA,
     blurEffects: Boolean = false,
     onNavigateToSettings: () -> Unit = {},
     onNavigateToTransactions: () -> Unit = {},
-    onNavigateToTransactionsWithSearch: () -> Unit = {},
     onNavigateToSubscriptions: () -> Unit = {},
     onNavigateToReview: (ReviewKind) -> Unit = {},
     onNavigateToNetWorth: (currency: String) -> Unit = {},
@@ -93,6 +89,8 @@ fun HomeScreen(
     onGroupClick: (Long) -> Unit = {},
     onGoalClick: (Long) -> Unit = {},
     onTransactionTypeClick: (String?) -> Unit = {},
+    /** Opens the Ask tab from the owl's nudge; null while that tab is hidden. */
+    onOpenAssistant: (() -> Unit)? = null,
     onFabPositioned: (Rect) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -153,6 +151,12 @@ fun HomeScreen(
     val trackingIssue = trackingProblem(smsAccess.granted && canReceiveSms, backgroundState)
         .takeIf { resumedAtMillis >= trackingCardSnoozedUntil }
 
+    // The hero leads with the overall budget when there is one (in its one currency).
+    val heroBudget = remember(uiState.budgetSummary) {
+        uiState.budgetSummary?.heroBudget(java.time.LocalDate.now())
+    }
+    val nudge = homeNudge(heroBudget, uiState.spendForecast, uiState.isBalanceHidden)
+
     val snackbarHostState = remember { SnackbarHostState() }
     val scope = rememberCoroutineScope()
 
@@ -195,9 +199,6 @@ fun HomeScreen(
 
     // Haze state for TopAppBar blur
     val hazeState = remember { HazeState() }
-
-    // Haze state for banner blur effect
-    val hazeStateBanner = remember { HazeState() }
 
     // LazyColumn scroll state for overscroll physics
     val lazyListState = rememberLazyListState()
@@ -318,7 +319,6 @@ fun HomeScreen(
                         onProfileSelected = { viewModel.updateSelectedProfile(it) },
                         isProEntitled = isProEntitled,
                         onUpgradeClick = { showUpgradeSheet = true },
-                        cycleEnd = currentCycleWindow.second,
                         status = {
                             HomeSyncStatus(
                                 isScanning = uiState.isScanning,
@@ -339,18 +339,7 @@ fun HomeScreen(
         }
     ) { paddingValues ->
         Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
-            // Banner gradient at y=0 — paints behind the transparent TopAppBar
-            if (coverStyle != CoverStyle.NONE) {
-                CoverGradientBanner(
-                    coverStyle = coverStyle,
-                    hazeStateBanner = hazeStateBanner,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.TopCenter)
-                )
-            }
-
-            // LazyColumn scrolls over the banner
+            // Home sits on the plain background, like every other tab.
             LazyColumn(
                 state = lazyListState,
                 modifier = Modifier
@@ -366,8 +355,8 @@ fun HomeScreen(
                 ),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
-                // 1. Balance Card (0ms delay)
-                item {
+                // 1. The hero: what's left in the overall budget, or this month's spending.
+                item(key = "hero") {
                     StaggeredEntrance(delayMs = 0L, skip = hasAnimated) {
                         if (!uiState.isBalanceReady) {
                             BalanceCardSkeleton(
@@ -376,9 +365,6 @@ fun HomeScreen(
                         } else {
                             com.pennywiseai.tracker.ui.components.cards.BalanceCard(
                                 modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                                blurEffects = blurEffects,
-                                hazeState = hazeStateBanner,
-                                userName = uiState.userName,
                                 totalBalance = uiState.totalBalance,
                                 monthlyChange = uiState.monthlyChange,
                                 monthlyChangePercent = uiState.monthlyChangePercent,
@@ -387,7 +373,6 @@ fun HomeScreen(
                                 currentMonthExpenses = uiState.currentMonthExpenses,
                                 currentMonthLent = uiState.currentMonthLent,
                                 currentMonthTotal = uiState.currentMonthTotal,
-                                balanceHistory = uiState.balanceHistory,
                                 spendingHistory = uiState.spendingHistory,
                                 lastMonthSpendingHistory = uiState.lastMonthSpendingHistory,
                                 lastMonthSpending = uiState.lastMonthExpenses,
@@ -400,11 +385,27 @@ fun HomeScreen(
                                 onShowBreakdown = { viewModel.showBreakdownDialog() },
                                 accountBalances = uiState.accountBalances,
                                 creditCards = uiState.creditCards,
-                                totalAvailableCredit = uiState.totalAvailableCredit,
-                                forecast = uiState.spendForecast,
+                                budget = heroBudget,
+                                cycleEnd = currentCycleWindow.second,
+                                onOpen = if (heroBudget != null) onNavigateToBudgets else onNavigateToTransactions,
                                 onAccountClick = onAccountClick,
                                 onOpenNetWorth = { onNavigateToNetWorth(uiState.selectedCurrency) }
                             )
+                        }
+                    }
+                }
+
+                // 2. The owl's one line on where the month is heading.
+                if (uiState.isBalanceReady) {
+                    nudge?.let { line ->
+                        item(key = "nudge") {
+                            StaggeredEntrance(delayMs = 0L, skip = hasAnimated) {
+                                HomeNudgeCard(
+                                    nudge = line,
+                                    onAsk = onOpenAssistant,
+                                    modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                                )
+                            }
                         }
                     }
                 }
@@ -625,56 +626,44 @@ fun HomeScreen(
                             }
                         }
                         HomeSection.RECENT_TRANSACTIONS -> {
-                            // 3. Recent Transactions Section
+                            // 3. Recent: heading and rows in one item, so the heading sits
+                            // close to what it labels.
                             item(key = section.name) {
                                 StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
-                                    HomeRecentTransactionsHeader(
-                                        onNavigateToTransactionsWithSearch = onNavigateToTransactionsWithSearch,
-                                        onNavigateToTransactions = onNavigateToTransactions
-                                    )
-                                }
-                            }
-
-                            if (uiState.isLoading) {
-                                item(key = "${section.name}_body") {
-                                    Column(
-                                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                                        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.listGap)
-                                    ) {
-                                        repeat(5) {
-                                            TransactionItemSkeleton()
+                                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                                        HomeSectionHeader(
+                                            title = stringResource(R.string.home_section_recent),
+                                            onSeeAll = onNavigateToTransactions,
+                                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                                        )
+                                        when {
+                                            uiState.isLoading -> Column(
+                                                modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                                                verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)
+                                            ) {
+                                                repeat(5) {
+                                                    TransactionItemSkeleton()
+                                                }
+                                            }
+                                            // No button: the SMS access card at the top is the one place that asks.
+                                            uiState.recentItems.isEmpty() && !smsAccess.granted -> PennyWiseEmptyState(
+                                                icon = Icons.Default.Sync,
+                                                headline = stringResource(R.string.home_empty_headline),
+                                                description = stringResource(R.string.sms_access_empty_body),
+                                                modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                                            )
+                                            uiState.recentItems.isEmpty() -> HomeRecentTransactionsEmptyState(
+                                                onScanSms = { viewModel.scanSmsMessages() }
+                                            )
+                                            else -> HomeRecentTransactionsList(
+                                                recentItems = uiState.recentItems,
+                                                accountBalances = uiState.accountBalances,
+                                                isUnifiedMode = uiState.isUnifiedMode,
+                                                selectedCurrency = uiState.selectedCurrency,
+                                                onTransactionClick = onTransactionClick,
+                                                onGroupClick = onGroupClick
+                                            )
                                         }
-                                    }
-                                }
-                            } else if (uiState.recentItems.isEmpty() && !smsAccess.granted) {
-                                // No button: the SMS access card at the top is the one place that asks.
-                                item(key = "${section.name}_body") {
-                                    PennyWiseEmptyState(
-                                        icon = Icons.Default.Sync,
-                                        headline = stringResource(R.string.home_empty_headline),
-                                        description = stringResource(R.string.sms_access_empty_body),
-                                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
-                                    )
-                                }
-                            } else if (uiState.recentItems.isEmpty()) {
-                                item(key = "${section.name}_body") {
-                                    StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
-                                        HomeRecentTransactionsEmptyState(
-                                            onScanSms = { viewModel.scanSmsMessages() }
-                                        )
-                                    }
-                                }
-                            } else {
-                                item(key = "${section.name}_body") {
-                                    StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
-                                        HomeRecentTransactionsList(
-                                            recentItems = uiState.recentItems,
-                                            accountBalances = uiState.accountBalances,
-                                            isUnifiedMode = uiState.isUnifiedMode,
-                                            selectedCurrency = uiState.selectedCurrency,
-                                            onTransactionClick = onTransactionClick,
-                                            onGroupClick = onGroupClick
-                                        )
                                     }
                                 }
                             }
@@ -690,8 +679,6 @@ fun HomeScreen(
                                             isUnifiedMode = uiState.isUnifiedMode,
                                             selectedCurrency = uiState.selectedCurrency,
                                             isBalanceHidden = uiState.isBalanceHidden,
-                                            blurEffects = blurEffects,
-                                            hazeStateBanner = hazeStateBanner,
                                             onNavigateToManageAccounts = onNavigateToManageAccounts,
                                             onAccountClick = onAccountClick,
                                             onToggleBalanceVisibility = { viewModel.toggleBalanceVisibility() }
@@ -705,15 +692,8 @@ fun HomeScreen(
                             if (uiState.upcomingSubscriptions.isNotEmpty()) {
                                 item(key = section.name) {
                                     StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
-                                        HomeSubscriptionsSection(
+                                        HomeComingUpSection(
                                             upcomingSubscriptions = uiState.upcomingSubscriptions,
-                                            upcomingSubscriptionsTotal = uiState.upcomingSubscriptionsTotal,
-                                            upcomingSubscriptionsByCurrency = uiState.upcomingSubscriptionsByCurrency,
-                                            nextDueSubscription = uiState.nextDueSubscription,
-                                            isUnifiedMode = uiState.isUnifiedMode,
-                                            selectedCurrency = uiState.selectedCurrency,
-                                            blurEffects = blurEffects,
-                                            hazeStateBanner = hazeStateBanner,
                                             onNavigateToSubscriptions = onNavigateToSubscriptions
                                         )
                                     }
@@ -746,9 +726,7 @@ fun HomeScreen(
                             item(key = section.name) {
                                 StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
                                     HomeActivitySection(
-                                        transactionHeatmap = uiState.transactionHeatmap,
-                                        blurEffects = blurEffects,
-                                        hazeStateBanner = hazeStateBanner
+                                        transactionHeatmap = uiState.transactionHeatmap
                                     )
                                 }
                             }

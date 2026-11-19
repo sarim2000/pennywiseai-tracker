@@ -560,23 +560,81 @@ class AnalyticsViewModel @Inject constructor(
                 // Get top category info
                 val topCategory = categoryBreakdown.firstOrNull()
 
-                // Month-end forecast: this cycle only, in a spend view. "Usual" re-runs this
+                // The periods before this one, most recent first: budget cycles for the
+                // month periods, financial years for the FY. All time and custom ranges
+                // have no natural predecessor, so they get no history.
+                val historyKind = when {
+                    filterState.period.followsBudgetCycle -> PeriodKind.CYCLE
+                    filterState.period == TimePeriod.CURRENT_FY -> PeriodKind.FINANCIAL_YEAR
+                    else -> null
+                }
+                val previousRanges = when (historyKind) {
+                    PeriodKind.CYCLE -> {
+                        val startDay = userPreferencesRepository.getBudgetCycleStartDay()
+                        generateSequence(BudgetCycle.previousCycle(dateRange, startDay)) {
+                            BudgetCycle.previousCycle(it, startDay)
+                        }.take(HISTORY_PERIODS - 1).toList()
+                    }
+                    PeriodKind.FINANCIAL_YEAR -> (1 until HISTORY_PERIODS).map { n ->
+                        dateRange.first.minusYears(n.toLong()) to dateRange.first.minusYears(n - 1L).minusDays(1)
+                    }
+                    null -> emptyList()
+                }
+                // One query over every previous period, bucketed in memory below: the
+                // history used to cost a query per period on each database emission.
+                val historyRows = previousRanges.lastOrNull()?.let { oldest ->
+                    val span = oldest.first to previousRanges.first().second
+                    scopeTransactions(
+                        if (isUnified) {
+                            transactionRepository.getTransactionsWithSplitsFiltered(span.first, span.second).first()
+                        } else {
+                            transactionRepository.getTransactionsWithSplitsFiltered(span.first, span.second, displayCurrency).first()
+                        }
+                    )
+                }.orEmpty()
+
+                // This view's net total over a previous range (same filters, refunds
+                // netted), from [historyRows] with the range query's own bounds; null
+                // when the range has no rows at all.
+                suspend fun spendIn(range: Pair<LocalDate, LocalDate>): BigDecimal? {
+                    val from = range.first.atStartOfDay()
+                    val to = range.second.atTime(23, 59, 59)
+                    val rows = historyRows.filter {
+                        val at = it.transaction.dateTime
+                        !at.isBefore(from) && !at.isAfter(to)
+                    }
+                    return if (rows.isEmpty()) null else netSpend(rows, filterState.typeFilter, categoryFilterSet, parentOf, isUnified, displayCurrency)
+                }
+                val previousSpend = previousRanges.map { spendIn(it) }
+                val periodHistory = historyKind?.let { kind ->
+                    val today = LocalDate.now()
+                    val inProgress = !today.isAfter(dateRange.second)
+                    // A running period is compared with the same number of days of the
+                    // one before, not its full total: day 10 against a whole month always
+                    // reads as "less".
+                    val change = previousRanges.firstOrNull()?.let { prev ->
+                        val prevSpend = previousSpend.first() ?: return@let null
+                        val base = if (inProgress) {
+                            val elapsed = ChronoUnit.DAYS.between(dateRange.first, today)
+                            spendIn(prev.first to minOf(prev.first.plusDays(elapsed), prev.second)) ?: BigDecimal.ZERO
+                        } else prevSpend
+                        PeriodChange.of(totalSpending, base, PeriodSpend(prev.first, prev.second, prevSpend, true), inProgress)
+                    }
+                    val past = previousRanges.zip(previousSpend) { range, spend ->
+                        PeriodSpend(range.first, range.second, spend ?: BigDecimal.ZERO, spend != null)
+                    }.reversed()
+                    PeriodHistory(
+                        kind = kind,
+                        currency = displayCurrency,
+                        periods = past + PeriodSpend(dateRange.first, dateRange.second, totalSpending, true),
+                        change = change
+                    )
+                }
+
+                // Month-end forecast: this cycle only, in a spend view. "Usual" is this
                 // view's total (same filters, refunds netted) over the previous cycles.
                 val forecast = if (filterState.period == TimePeriod.THIS_MONTH && filterState.typeFilter.netsRefunds) {
-                    val startDay = userPreferencesRepository.getBudgetCycleStartDay()
-                    val previous = generateSequence(BudgetCycle.previousCycle(dateRange, startDay)) {
-                        BudgetCycle.previousCycle(it, startDay)
-                    }.take(SpendForecast.USUAL_PERIODS).toList().map { (start, end) ->
-                        val rows = scopeTransactions(
-                            if (isUnified) {
-                                transactionRepository.getTransactionsWithSplitsFiltered(start, end).first()
-                            } else {
-                                transactionRepository.getTransactionsWithSplitsFiltered(start, end, displayCurrency).first()
-                            }
-                        )
-                        if (rows.isEmpty()) null else netSpend(rows, filterState.typeFilter, categoryFilterSet, parentOf, isUnified, displayCurrency)
-                    }
-                    SpendForecast.of(totalSpending, displayCurrency, dateRange.first, dateRange.second, LocalDate.now(), previous)
+                    SpendForecast.of(totalSpending, displayCurrency, dateRange.first, dateRange.second, LocalDate.now(), previousSpend)
                 } else null
 
                 AnalyticsUiState(
@@ -598,7 +656,8 @@ class AnalyticsViewModel @Inject constructor(
                     tagBreakdown = tagBreakdown,
                     tagsOverlap = tagsOverlap,
                     dayOfWeekBreakdown = dayOfWeekBreakdown,
-                    forecast = forecast
+                    forecast = forecast,
+                    periodHistory = periodHistory
                 )
             }
         }
@@ -854,7 +913,54 @@ data class AnalyticsUiState(
     val tagsOverlap: Boolean = false,
     // Mon–Sun in the locale's week order; reuses TagData's name/amount/share shape.
     val dayOfWeekBreakdown: List<TagData> = emptyList(),
-    val forecast: SpendForecast? = null
+    val forecast: SpendForecast? = null,
+    // The selected period and the ones before it, for the Insights hero chart;
+    // null for All time and custom ranges.
+    val periodHistory: PeriodHistory? = null
+)
+
+/** Bars in the Insights hero chart: the selected period and the five before it. */
+internal const val HISTORY_PERIODS = 6
+
+enum class PeriodKind { CYCLE, FINANCIAL_YEAR }
+
+/** One period's net total in the view's currency. */
+data class PeriodSpend(
+    val start: LocalDate,
+    val end: LocalDate,
+    val amount: BigDecimal,
+    /** False when the period had no rows at all: drawn as an empty stub, not a figure. */
+    val hasData: Boolean
+)
+
+/** The selected period against the one before it. */
+data class PeriodChange(
+    val previous: PeriodSpend,
+    /** Whole-number size of the change; the direction is [isUp]. */
+    val percent: Int,
+    val isUp: Boolean,
+    /** The selected period is still running, so it was compared with the same days of [previous]. */
+    val toDate: Boolean
+) {
+    companion object {
+        /** Null when there is nothing to compare with (no spend in the base). */
+        fun of(current: BigDecimal, base: BigDecimal, previous: PeriodSpend, toDate: Boolean): PeriodChange? {
+            if (base.signum() <= 0) return null
+            val percent = (current - base).abs()
+                .multiply(BigDecimal(100))
+                .divide(base, 0, java.math.RoundingMode.HALF_UP)
+                .toInt()
+            return PeriodChange(previous, percent, current > base, toDate)
+        }
+    }
+}
+
+/** One currency's history: [periods] run oldest first and end with the selected period. */
+data class PeriodHistory(
+    val kind: PeriodKind,
+    val currency: String,
+    val periods: List<PeriodSpend>,
+    val change: PeriodChange?
 )
 
 data class AccountBreakdownData(

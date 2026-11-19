@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
@@ -52,14 +53,15 @@ fun HomeShortcuts(
     modifier: Modifier = Modifier,
 ) {
     val colors = MaterialTheme.colorScheme
+    // Four equal columns, so the shapes line up with the cards above and below.
     Row(
         modifier = modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.SpaceEvenly,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         Shortcut(
             label = stringResource(R.string.budgets_title),
             icon = Icons.Default.DonutLarge,
-            shape = MaterialShapes.Cookie9Sided.toShape(),
+            shape = MaterialShapes.Clover4Leaf.toShape(),
             container = colors.primaryContainer,
             content = colors.onPrimaryContainer,
             onClick = onBudgets,
@@ -67,7 +69,7 @@ fun HomeShortcuts(
         Shortcut(
             label = stringResource(R.string.plan_bills),
             icon = Icons.AutoMirrored.Filled.ReceiptLong,
-            shape = MaterialShapes.Clover4Leaf.toShape(),
+            shape = MaterialShapes.Sunny.toShape(),
             container = colors.tertiaryContainer,
             content = colors.onTertiaryContainer,
             onClick = onBills,
@@ -75,7 +77,7 @@ fun HomeShortcuts(
         Shortcut(
             label = stringResource(R.string.home_shortcut_accounts),
             icon = Icons.Default.AccountBalance,
-            shape = MaterialShapes.Sunny.toShape(),
+            shape = MaterialShapes.SoftBurst.toShape(),
             container = colors.secondaryContainer,
             content = colors.onSecondaryContainer,
             onClick = onAccounts,
@@ -84,7 +86,7 @@ fun HomeShortcuts(
             Shortcut(
                 label = stringResource(R.string.home_shortcut_unsorted),
                 icon = Icons.Default.Sell,
-                shape = MaterialShapes.SoftBurst.toShape(),
+                shape = MaterialShapes.Cookie9Sided.toShape(),
                 container = colors.surfaceContainerHighest,
                 content = colors.onSurface,
                 onClick = onUnsorted,
@@ -94,7 +96,7 @@ fun HomeShortcuts(
             Shortcut(
                 label = stringResource(R.string.goals_section_title),
                 icon = Icons.Default.Flag,
-                shape = MaterialShapes.SoftBurst.toShape(),
+                shape = MaterialShapes.Cookie9Sided.toShape(),
                 container = colors.surfaceContainerHighest,
                 content = colors.onSurface,
                 onClick = onGoals,
@@ -104,7 +106,7 @@ fun HomeShortcuts(
 }
 
 @Composable
-private fun Shortcut(
+private fun RowScope.Shortcut(
     label: String,
     icon: ImageVector,
     shape: Shape,
@@ -115,11 +117,12 @@ private fun Shortcut(
 ) {
     Column(
         modifier = Modifier
+            .weight(1f)
             .clip(MaterialTheme.shapes.large)
             .clickable(role = Role.Button, onClick = onClick)
-            .padding(Spacing.xs),
+            .padding(vertical = Spacing.xs),
         horizontalAlignment = Alignment.CenterHorizontally,
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
         BadgedBox(
             badge = {
@@ -139,7 +142,7 @@ private fun Shortcut(
         }
         Text(
             text = label,
-            style = MaterialTheme.typography.labelMedium,
+            style = MaterialTheme.typography.labelLarge,
             color = MaterialTheme.colorScheme.onSurface,
             textAlign = TextAlign.Center,
             maxLines = 1,

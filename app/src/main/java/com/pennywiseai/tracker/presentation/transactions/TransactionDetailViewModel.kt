@@ -258,6 +258,65 @@ class TransactionDetailViewModel @Inject constructor(
         }
     }
 
+    /**
+     * The category picked from the detail screen's Category chip, while the screen
+     * offers to remember it for this merchant ("Remember"); null when it isn't.
+     * Offered only after the user picks one there, and only when the merchant's
+     * learned category differs, so it never nags about a choice already saved.
+     */
+    private val _ruleSuggestion = MutableStateFlow<String?>(null)
+    val ruleSuggestion: StateFlow<String?> = _ruleSuggestion.asStateFlow()
+
+    /** A one-off confirmation for the snackbar ("Got it, I'll remember"); cleared once shown. */
+    private val _notice = MutableStateFlow<UiText?>(null)
+    val notice: StateFlow<UiText?> = _notice.asStateFlow()
+
+    fun clearNotice() {
+        _notice.value = null
+    }
+
+    /**
+     * Sets this transaction's category from the read-only view, without the editor.
+     * Writes only the category, like the list's swipe-to-change, then offers to
+     * remember the pick for the merchant's future SMS.
+     */
+    fun quickUpdateCategory(category: String) {
+        viewModelScope.launch {
+            val txn = _transaction.value ?: return@launch
+            if (txn.category == category) return@launch
+            try {
+                transactionRepository.updateCategory(txn.id, category)
+                _transaction.value = transactionRepository.getTransactionById(txn.id)
+                com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
+                val learned = merchantMappingRepository.getCategoryForMerchant(txn.merchantName)
+                _ruleSuggestion.value = category.takeIf {
+                    it != learned && !com.pennywiseai.tracker.ui.components.cards.isUnsortedCategory(it)
+                }
+            } catch (e: Exception) {
+                _errorMessage.value = UiText.Res(R.string.txn_detail_error_update_category, listOf(e.message.toString()))
+            }
+        }
+    }
+
+    /** "Remember": a merchant mapping, so future SMS from this merchant land in the suggested category. */
+    fun acceptRuleSuggestion() {
+        val category = _ruleSuggestion.value ?: return
+        val merchant = _transaction.value?.merchantName ?: return
+        _ruleSuggestion.value = null
+        viewModelScope.launch {
+            try {
+                merchantMappingRepository.setMapping(merchant, category)
+                _notice.value = UiText.Res(R.string.txn_detail_remember_saved)
+            } catch (e: Exception) {
+                _errorMessage.value = UiText.Res(R.string.txn_detail_error_update_category, listOf(e.message.toString()))
+            }
+        }
+    }
+
+    fun dismissRuleSuggestion() {
+        _ruleSuggestion.value = null
+    }
+
     // Split-related state
     private val _splits = MutableStateFlow<List<SplitItem>>(emptyList())
     val splits: StateFlow<List<SplitItem>> = _splits.asStateFlow()

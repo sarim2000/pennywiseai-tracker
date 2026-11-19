@@ -2,19 +2,19 @@ package com.pennywiseai.tracker.presentation.settings
 
 import android.content.Intent
 import android.net.Uri
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -36,10 +36,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
@@ -55,264 +60,290 @@ import com.pennywiseai.tracker.navigation.ManageAccounts
 import com.pennywiseai.tracker.navigation.Rules
 import com.pennywiseai.tracker.navigation.SettingsPage
 import com.pennywiseai.tracker.navigation.SettingsSection
+import com.pennywiseai.tracker.presentation.applock.AppLockViewModel
 import com.pennywiseai.tracker.presentation.paywall.UpgradeSheet
+import com.pennywiseai.tracker.ui.animations.pwFadeIn
+import com.pennywiseai.tracker.ui.animations.pwFadeOut
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
+import com.pennywiseai.tracker.ui.components.ProfileAvatar
 import com.pennywiseai.tracker.ui.components.SupportDevelopmentDialog
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.IconTile
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.RowLabels
-import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.ui.theme.blue_dark
-import com.pennywiseai.tracker.ui.theme.blue_light
-import com.pennywiseai.tracker.ui.theme.green_dark
-import com.pennywiseai.tracker.ui.theme.green_light
-import com.pennywiseai.tracker.ui.theme.grey_dark
-import com.pennywiseai.tracker.ui.theme.grey_light
-import com.pennywiseai.tracker.ui.theme.indigo_dark
-import com.pennywiseai.tracker.ui.theme.indigo_light
-import com.pennywiseai.tracker.ui.theme.orange_dark
-import com.pennywiseai.tracker.ui.theme.orange_light
-import com.pennywiseai.tracker.ui.theme.pink_dark
-import com.pennywiseai.tracker.ui.theme.pink_light
-import com.pennywiseai.tracker.ui.theme.purple_dark
-import com.pennywiseai.tracker.ui.theme.purple_light
-import com.pennywiseai.tracker.ui.theme.red_dark
-import com.pennywiseai.tracker.ui.theme.red_light
-import com.pennywiseai.tracker.ui.theme.teal_dark
-import com.pennywiseai.tracker.ui.theme.teal_light
+import com.pennywiseai.tracker.ui.theme.success
 import com.pennywiseai.tracker.ui.theme.yellow_dark
 import com.pennywiseai.tracker.ui.theme.yellow_light
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 
-/** The Settings hub: one row per page, so everything is two taps away (#1056). */
+/**
+ * The Settings hub, opened from the avatar, so it doubles as the profile page: who
+ * the user is, shortcuts to what they open most, then one row per page so everything
+ * is two taps away (#1056).
+ */
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsScreen(
     onNavigateBack: () -> Unit,
     onNavigate: (NavKey) -> Unit,
     modifier: Modifier = Modifier,
     settingsViewModel: SettingsViewModel = hiltViewModel(),
+    hubViewModel: SettingsHubViewModel = hiltViewModel(),
+    appLockViewModel: AppLockViewModel = hiltViewModel(),
 ) {
     val context = LocalContext.current
     val isProEntitled by settingsViewModel.isProEntitled.collectAsStateWithLifecycle()
+    val hub by hubViewModel.state.collectAsStateWithLifecycle()
+    val appLock by appLockViewModel.uiState.collectAsStateWithLifecycle()
     var showUpgradeSheet by remember { mutableStateOf(false) }
     var showSupportDialog by remember { mutableStateOf(false) }
     // F-Droid builds have no Play billing, so they show a "Support development"
     // tip jar instead of the (un-buyable) Pro upsell. Play builds keep Pro.
     val isFdroidBuild = com.pennywiseai.tracker.BuildConfig.IS_FDROID_BUILD
 
-    SettingsPageScaffold(
-        title = stringResource(R.string.settings_title),
-        onNavigateBack = onNavigateBack,
+    val scrollState = rememberScrollState()
+    // The bar names the page only once the profile block that heads it has scrolled away.
+    var profileHeight by remember { mutableIntStateOf(0) }
+    val showBarTitle by remember { derivedStateOf { profileHeight > 0 && scrollState.value >= profileHeight } }
+
+    PennyWiseScaffold(
         modifier = modifier,
-    ) {
-        // Top of Settings on purpose: highest-discoverability slot.
-        SettingsGroup {
-            if (isFdroidBuild) {
-                SettingsNavItem(
-                    icon = Icons.Default.Favorite,
-                    iconBgColor = yellow_light,
-                    iconTint = yellow_dark,
-                    title = stringResource(R.string.support_title),
-                    subtitle = stringResource(R.string.support_subtitle),
-                    onClick = { showSupportDialog = true },
-                    position = ListItemPosition.Single,
+        customTopBar = {
+            TopAppBar(
+                title = {
+                    AnimatedVisibility(visible = showBarTitle, enter = pwFadeIn(), exit = pwFadeOut()) {
+                        Text(stringResource(R.string.settings_title))
+                    }
+                },
+                navigationIcon = { SettingsNavigationContent(onNavigateBack) },
+                colors = TopAppBarDefaults.topAppBarColors(
+                    containerColor = MaterialTheme.colorScheme.background,
+                    scrolledContainerColor = MaterialTheme.colorScheme.background,
+                ),
+            )
+        },
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .background(MaterialTheme.colorScheme.background)
+                .overScrollVertical()
+                .verticalScroll(scrollState)
+                .padding(paddingValues)
+                .padding(horizontal = Dimensions.Padding.content)
+                .padding(bottom = Spacing.Layout.scrollBottomPadding),
+            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            SettingsProfileHeader(
+                state = hub,
+                modifier = Modifier.onSizeChanged { profileHeight = it.height },
+            )
+
+            // What people came to Settings for most, one tap away instead of a page deep.
+            SettingsShortcutTiles(state = hub, onNavigate = onNavigate)
+
+            // Its own block, high on the page: the highest-discoverability slot.
+            SettingsGroup {
+                if (isFdroidBuild) {
+                    SettingsNavItem(
+                        icon = Icons.Default.Favorite,
+                        iconBgColor = yellow_light,
+                        iconTint = yellow_dark,
+                        title = stringResource(R.string.support_title),
+                        subtitle = stringResource(R.string.support_subtitle),
+                        onClick = { showSupportDialog = true },
+                        position = ListItemPosition.Single,
+                    )
+                } else {
+                    // Paid users see "Active" so the row reads as status; free users
+                    // see "Upgrade" so it reads as a call to action.
+                    SettingsNavItem(
+                        icon = Icons.Default.WorkspacePremium,
+                        iconBgColor = yellow_light,
+                        iconTint = yellow_dark,
+                        title = if (isProEntitled) stringResource(R.string.settings_pro_title_active) else stringResource(R.string.settings_pro_title_upgrade),
+                        subtitle = if (isProEntitled) {
+                            stringResource(R.string.settings_pro_subtitle_active)
+                        } else {
+                            stringResource(R.string.settings_pro_subtitle_upgrade)
+                        },
+                        onClick = { showUpgradeSheet = true },
+                        position = ListItemPosition.Single,
+                    )
+                }
+            }
+
+            fun open(section: SettingsSection) = onNavigate(SettingsPage(section))
+
+            SettingsGroupHeader(stringResource(R.string.settings_hub_money))
+            SettingsGroup {
+                HubRow(
+                    icon = Icons.Default.Sms,
+                    title = stringResource(R.string.settings_tracking_title),
+                    subtitle = stringResource(R.string.settings_tracking_summary),
+                    onClick = { open(SettingsSection.TRACKING) },
+                    position = ListItemPosition.Top,
                 )
-            } else {
-                // Row content adapts to entitlement state — paid users see
-                // "Active" so the row reads as status, free users see "Upgrade"
-                // so it reads as a call-to-action.
-                SettingsNavItem(
-                    icon = Icons.Default.AutoAwesome,
-                    iconBgColor = yellow_light,
-                    iconTint = yellow_dark,
-                    title = if (isProEntitled) stringResource(R.string.settings_pro_title_active) else stringResource(R.string.settings_pro_title_upgrade),
-                    subtitle = if (isProEntitled) {
-                        stringResource(R.string.settings_pro_subtitle_active)
-                    } else {
-                        stringResource(R.string.settings_pro_subtitle_upgrade)
-                    },
-                    onClick = { showUpgradeSheet = true },
-                    position = ListItemPosition.Single,
+                HubRow(
+                    icon = Icons.Default.AccountBalance,
+                    title = stringResource(R.string.settings_accounts_categories_title),
+                    subtitle = stringResource(R.string.settings_accounts_categories_summary),
+                    onClick = { open(SettingsSection.ACCOUNTS) },
+                    position = ListItemPosition.Middle,
+                )
+                HubRow(
+                    icon = Icons.Default.AccountBalanceWallet,
+                    title = stringResource(R.string.settings_planning_title),
+                    subtitle = stringResource(R.string.settings_planning_summary),
+                    onClick = { open(SettingsSection.PLANNING) },
+                    position = ListItemPosition.Middle,
+                )
+                HubRow(
+                    icon = Icons.Default.CurrencyExchange,
+                    title = stringResource(R.string.settings_currency_section),
+                    subtitle = stringResource(R.string.settings_currency_summary),
+                    onClick = { open(SettingsSection.CURRENCY) },
+                    position = ListItemPosition.Bottom,
+                    trailingText = hub.baseCurrency,
                 )
             }
-        }
 
-        // What people came to Settings for most, one tap away instead of a page deep.
-        SettingsShortcutTiles(onNavigate = onNavigate)
+            SettingsGroupHeader(stringResource(R.string.settings_hub_app))
+            SettingsGroup {
+                HubRow(
+                    icon = Icons.Default.Palette,
+                    title = stringResource(R.string.settings_appearance_title),
+                    subtitle = stringResource(R.string.settings_appearance_subtitle),
+                    onClick = { onNavigate(Appearance) },
+                    position = ListItemPosition.Top,
+                    trailingText = stringResource(
+                        when (hub.isDarkTheme) {
+                            null -> R.string.appearance_mode_system
+                            true -> R.string.appearance_mode_dark
+                            false -> R.string.appearance_mode_light
+                        }
+                    ),
+                )
+                HubRow(
+                    icon = Icons.Default.Language,
+                    title = stringResource(R.string.settings_formats_title),
+                    subtitle = stringResource(R.string.settings_formats_summary),
+                    onClick = { open(SettingsSection.FORMATS) },
+                    position = ListItemPosition.Middle,
+                )
+                HubRow(
+                    icon = Icons.Default.Notifications,
+                    title = stringResource(R.string.settings_notifications_section),
+                    subtitle = stringResource(R.string.settings_notifications_summary),
+                    onClick = { open(SettingsSection.NOTIFICATIONS) },
+                    position = ListItemPosition.Bottom,
+                )
+            }
 
-        fun open(section: SettingsSection) = onNavigate(SettingsPage(section))
+            SettingsGroupHeader(stringResource(R.string.settings_hub_privacy_data))
+            SettingsGroup {
+                // App lock is the one switch worth having right here; the rest of
+                // Security (timeout, shake to hide) stays a page away.
+                SettingsSwitchRow(
+                    icon = Icons.Default.Fingerprint,
+                    iconBgColor = hubIconContainer(),
+                    iconTint = hubIconContent(),
+                    title = stringResource(R.string.settings_app_lock_title),
+                    subtitle = if (appLock.canUseBiometric) {
+                        stringResource(R.string.settings_app_lock_subtitle)
+                    } else {
+                        appLock.biometricCapability.errorMessageRes?.let { stringResource(it) }.orEmpty()
+                    },
+                    checked = appLock.isLockEnabled,
+                    onCheckedChange = { appLockViewModel.setAppLockEnabled(it) },
+                    // Turning it off always works, even after the screen lock was removed.
+                    enabled = appLock.canUseBiometric || appLock.isLockEnabled,
+                    position = ListItemPosition.Top,
+                )
+                HubRow(
+                    icon = Icons.Default.Lock,
+                    title = stringResource(R.string.settings_security_section),
+                    subtitle = stringResource(R.string.settings_security_summary),
+                    onClick = { open(SettingsSection.SECURITY) },
+                    position = ListItemPosition.Middle,
+                )
+                HubRow(
+                    icon = Icons.Default.Backup,
+                    title = stringResource(R.string.settings_data_section),
+                    subtitle = stringResource(R.string.settings_data_summary),
+                    onClick = { open(SettingsSection.DATA) },
+                    position = ListItemPosition.Bottom,
+                )
+            }
 
-        SectionHeaderV2(title = stringResource(R.string.settings_hub_money))
-        SettingsGroup {
-            SettingsNavItem(
-                icon = Icons.Default.Sms,
-                iconBgColor = orange_light,
-                iconTint = orange_dark,
-                title = stringResource(R.string.settings_tracking_title),
-                subtitle = stringResource(R.string.settings_tracking_summary),
-                onClick = { open(SettingsSection.TRACKING) },
-                position = ListItemPosition.Top
-            )
-            SettingsNavItem(
-                icon = Icons.Default.AccountBalance,
-                iconBgColor = red_light,
-                iconTint = red_dark,
-                title = stringResource(R.string.settings_accounts_categories_title),
-                subtitle = stringResource(R.string.settings_accounts_categories_summary),
-                onClick = { open(SettingsSection.ACCOUNTS) },
-                position = ListItemPosition.Middle
-            )
-            SettingsNavItem(
-                icon = Icons.Default.AccountBalanceWallet,
-                iconBgColor = green_light,
-                iconTint = green_dark,
-                title = stringResource(R.string.settings_planning_title),
-                subtitle = stringResource(R.string.settings_planning_summary),
-                onClick = { open(SettingsSection.PLANNING) },
-                position = ListItemPosition.Middle
-            )
-            SettingsNavItem(
-                icon = Icons.Default.CurrencyExchange,
-                iconBgColor = teal_light,
-                iconTint = teal_dark,
-                title = stringResource(R.string.settings_currency_section),
-                subtitle = stringResource(R.string.settings_currency_summary),
-                onClick = { open(SettingsSection.CURRENCY) },
-                position = ListItemPosition.Bottom
-            )
-        }
+            SettingsGroupHeader(stringResource(R.string.settings_hub_advanced))
+            SettingsGroup {
+                HubRow(
+                    icon = Icons.Default.AutoAwesome,
+                    title = stringResource(R.string.settings_ai_section),
+                    subtitle = stringResource(R.string.settings_ai_summary),
+                    onClick = { open(SettingsSection.AI) },
+                    position = ListItemPosition.Top,
+                )
+                HubRow(
+                    icon = Icons.Default.Code,
+                    title = stringResource(R.string.settings_developer_section),
+                    subtitle = stringResource(R.string.settings_developer_summary),
+                    onClick = { open(SettingsSection.DEVELOPER) },
+                    position = ListItemPosition.Bottom,
+                )
+            }
 
-        SectionHeaderV2(title = stringResource(R.string.settings_personalization_section))
-        SettingsGroup {
-            SettingsNavItem(
-                icon = Icons.Default.Palette,
-                iconBgColor = orange_light,
-                iconTint = orange_dark,
-                title = stringResource(R.string.settings_appearance_title),
-                subtitle = stringResource(R.string.settings_appearance_subtitle),
-                onClick = { onNavigate(Appearance) },
-                position = ListItemPosition.Top
-            )
-            SettingsNavItem(
-                icon = Icons.Default.Language,
-                iconBgColor = blue_light,
-                iconTint = blue_dark,
-                title = stringResource(R.string.settings_formats_title),
-                subtitle = stringResource(R.string.settings_formats_summary),
-                onClick = { open(SettingsSection.FORMATS) },
-                position = ListItemPosition.Middle
-            )
-            SettingsNavItem(
-                icon = Icons.Default.Notifications,
-                iconBgColor = indigo_light,
-                iconTint = indigo_dark,
-                title = stringResource(R.string.settings_notifications_section),
-                subtitle = stringResource(R.string.settings_notifications_summary),
-                onClick = { open(SettingsSection.NOTIFICATIONS) },
-                position = ListItemPosition.Bottom
-            )
-        }
+            SettingsGroupHeader(stringResource(R.string.settings_hub_help))
+            SettingsGroup {
+                HubRow(
+                    icon = Icons.AutoMirrored.Filled.Help,
+                    title = stringResource(R.string.settings_help_faq_title),
+                    subtitle = stringResource(R.string.settings_help_faq_subtitle),
+                    onClick = { onNavigate(Faq) },
+                    position = ListItemPosition.Top,
+                )
+                HubRow(
+                    icon = Icons.AutoMirrored.Filled.MenuBook,
+                    title = stringResource(R.string.settings_user_guide_title),
+                    subtitle = stringResource(R.string.settings_user_guide_subtitle),
+                    onClick = {
+                        context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(Constants.Links.USER_GUIDE_URL)))
+                    },
+                    position = ListItemPosition.Middle,
+                    trailingIcon = Icons.AutoMirrored.Filled.OpenInNew,
+                )
+                HubRow(
+                    icon = Icons.Default.BugReport,
+                    title = stringResource(R.string.settings_report_issue_title),
+                    subtitle = stringResource(R.string.settings_report_issue_subtitle),
+                    onClick = {
+                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/sarim2000/pennywiseai-tracker/issues/new/choose"))
+                        context.startActivity(intent)
+                    },
+                    position = ListItemPosition.Bottom,
+                    trailingIcon = Icons.AutoMirrored.Filled.OpenInNew,
+                )
+            }
 
-        SectionHeaderV2(title = stringResource(R.string.settings_hub_privacy_data))
-        SettingsGroup {
-            SettingsNavItem(
-                icon = Icons.Default.Lock,
-                iconBgColor = red_light,
-                iconTint = red_dark,
-                title = stringResource(R.string.settings_security_section),
-                subtitle = stringResource(R.string.settings_security_summary),
-                onClick = { open(SettingsSection.SECURITY) },
-                position = ListItemPosition.Top
-            )
-            SettingsNavItem(
-                icon = Icons.Default.Backup,
-                iconBgColor = purple_light,
-                iconTint = purple_dark,
-                title = stringResource(R.string.settings_data_section),
-                subtitle = stringResource(R.string.settings_data_summary),
-                onClick = { open(SettingsSection.DATA) },
-                position = ListItemPosition.Bottom
-            )
-        }
-
-        SectionHeaderV2(title = stringResource(R.string.settings_hub_advanced))
-        SettingsGroup {
-            SettingsNavItem(
-                icon = Icons.Default.AutoAwesome,
-                iconBgColor = yellow_light,
-                iconTint = yellow_dark,
-                title = stringResource(R.string.settings_ai_section),
-                subtitle = stringResource(R.string.settings_ai_summary),
-                onClick = { open(SettingsSection.AI) },
-                position = ListItemPosition.Top
-            )
-            SettingsNavItem(
-                icon = Icons.Default.Code,
-                iconBgColor = grey_light,
-                iconTint = grey_dark,
-                title = stringResource(R.string.settings_developer_section),
-                subtitle = stringResource(R.string.settings_developer_summary),
-                onClick = { open(SettingsSection.DEVELOPER) },
-                position = ListItemPosition.Bottom
-            )
-        }
-
-        SectionHeaderV2(title = stringResource(R.string.settings_support_section))
-        SettingsGroup {
-            SettingsNavItem(
-                icon = Icons.AutoMirrored.Filled.Help,
-                iconBgColor = pink_light,
-                iconTint = pink_dark,
-                title = stringResource(R.string.settings_help_faq_title),
-                subtitle = stringResource(R.string.settings_help_faq_subtitle),
-                onClick = { onNavigate(Faq) },
-                position = ListItemPosition.Top
-            )
-            SettingsNavItem(
-                icon = Icons.AutoMirrored.Filled.MenuBook,
-                iconBgColor = teal_light,
-                iconTint = teal_dark,
-                title = stringResource(R.string.settings_user_guide_title),
-                subtitle = stringResource(R.string.settings_user_guide_subtitle),
-                onClick = {
-                    context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(Constants.Links.USER_GUIDE_URL)))
-                },
-                position = ListItemPosition.Middle,
-                trailingIcon = Icons.AutoMirrored.Filled.OpenInNew
-            )
-            SettingsNavItem(
-                icon = Icons.Default.BugReport,
-                iconBgColor = blue_light,
-                iconTint = blue_dark,
-                title = stringResource(R.string.settings_report_issue_title),
-                subtitle = stringResource(R.string.settings_report_issue_subtitle),
-                onClick = {
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/sarim2000/pennywiseai-tracker/issues/new/choose"))
-                    context.startActivity(intent)
-                },
-                position = ListItemPosition.Bottom,
-                trailingIcon = Icons.AutoMirrored.Filled.OpenInNew
+            // App Version
+            Text(
+                text = stringResource(R.string.settings_app_version, com.pennywiseai.tracker.BuildConfig.VERSION_NAME),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = Spacing.md),
+                textAlign = TextAlign.Center
             )
         }
-
-        // App Version
-        Spacer(modifier = Modifier.height(Spacing.sm))
-        Text(
-            text = stringResource(R.string.settings_app_version, com.pennywiseai.tracker.BuildConfig.VERSION_NAME),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.fillMaxWidth(),
-            textAlign = TextAlign.Center
-        )
-        Spacer(modifier = Modifier.height(Spacing.md))
     }
 
     if (showUpgradeSheet) {
@@ -321,6 +352,246 @@ fun SettingsScreen(
 
     if (showSupportDialog) {
         SupportDevelopmentDialog(onDismiss = { showSupportDialog = false })
+    }
+}
+
+// The hub's rows lead with a neutral circle, so the coloured tiles above stay the
+// only colour on the page and the labels carry the rows.
+@Composable
+private fun hubIconContainer(): Color = MaterialTheme.colorScheme.surfaceContainerHighest
+
+@Composable
+private fun hubIconContent(): Color = MaterialTheme.colorScheme.onSurfaceVariant
+
+@Composable
+private fun HubRow(
+    icon: ImageVector,
+    title: String,
+    subtitle: String,
+    onClick: () -> Unit,
+    position: ListItemPosition,
+    trailingText: String? = null,
+    trailingIcon: ImageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+) {
+    SettingsNavItem(
+        icon = icon,
+        iconBgColor = hubIconContainer(),
+        iconTint = hubIconContent(),
+        title = title,
+        subtitle = subtitle,
+        onClick = onClick,
+        position = position,
+        trailingText = trailingText,
+        trailingIcon = trailingIcon,
+    )
+}
+
+/** A small primary-coloured heading over a group of hub rows. */
+@Composable
+private fun SettingsGroupHeader(title: String) {
+    Text(
+        text = title,
+        style = MaterialTheme.typography.titleSmall,
+        color = MaterialTheme.colorScheme.primary,
+        maxLines = 2,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier
+            .padding(start = Spacing.sm, top = Spacing.md)
+            .semantics { heading() },
+    )
+}
+
+/** The user, big and centred, with the app's one promise under their name. */
+@Composable
+private fun SettingsProfileHeader(state: SettingsHubState, modifier: Modifier = Modifier) {
+    Column(
+        modifier = modifier
+            .fillMaxWidth()
+            .padding(bottom = Spacing.sm),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+    ) {
+        ProfileAvatar(
+            name = state.name,
+            imageUri = state.imageUri,
+            backgroundColor = state.backgroundColor,
+            size = Dimensions.Icon.extraLarge,
+            shape = MaterialShapes.Cookie9Sided.toShape(),
+            initialsStyle = MaterialTheme.typography.headlineLargeEmphasized,
+        )
+        if (state.name.isNotBlank()) {
+            Text(
+                text = state.name,
+                style = MaterialTheme.typography.headlineMediumEmphasized,
+                color = MaterialTheme.colorScheme.onSurface,
+                textAlign = TextAlign.Center,
+                maxLines = 2,
+                overflow = TextOverflow.Ellipsis,
+            )
+        }
+        PrivacyPill()
+    }
+}
+
+@Composable
+private fun PrivacyPill() {
+    val success = MaterialTheme.colorScheme.success
+    Surface(
+        shape = MaterialTheme.shapes.extraLarge,
+        color = success.copy(alpha = Dimensions.Alpha.categoryTint),
+        contentColor = MaterialTheme.colorScheme.onSurface,
+    ) {
+        Row(
+            modifier = Modifier.padding(horizontal = Spacing.smd, vertical = Spacing.xs),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+        ) {
+            Icon(
+                Icons.Default.Lock,
+                contentDescription = null,
+                tint = success,
+                modifier = Modifier.size(Dimensions.Icon.small),
+            )
+            Text(
+                text = stringResource(R.string.settings_profile_privacy_pill),
+                style = MaterialTheme.typography.labelLarge,
+            )
+        }
+    }
+}
+
+/** One shortcut tile: what it opens, a cheap count under it, and its corner of the 2×2 block. */
+private class ShortcutTile(
+    val title: String,
+    val subtitle: String?,
+    val icon: ImageVector,
+    val badge: Shape,
+    val container: Color,
+    val content: Color,
+    val target: NavKey,
+)
+
+@Composable
+private fun SettingsShortcutTiles(state: SettingsHubState, onNavigate: (NavKey) -> Unit) {
+    val colors = MaterialTheme.colorScheme
+    val tiles = listOf(
+        ShortcutTile(
+            title = stringResource(R.string.manage_accounts_title),
+            subtitle = state.accountCount?.let { pluralStringResource(R.plurals.settings_tile_accounts_count, it, it) },
+            icon = Icons.Default.AccountBalance,
+            badge = MaterialShapes.Cookie9Sided.toShape(),
+            container = colors.primaryContainer,
+            content = colors.onPrimaryContainer,
+            target = ManageAccounts,
+        ),
+        ShortcutTile(
+            title = stringResource(R.string.rules_title),
+            subtitle = state.activeRuleCount?.let { pluralStringResource(R.plurals.settings_tile_rules_count, it, it) },
+            icon = Icons.Default.Rule,
+            badge = MaterialShapes.Clover4Leaf.toShape(),
+            container = colors.tertiaryContainer,
+            content = colors.onTertiaryContainer,
+            target = Rules,
+        ),
+        ShortcutTile(
+            title = stringResource(R.string.categories_title),
+            subtitle = state.categoryCount?.let { pluralStringResource(R.plurals.settings_tile_categories_count, it, it) },
+            icon = Icons.Default.Category,
+            badge = MaterialShapes.Sunny.toShape(),
+            container = colors.secondaryContainer,
+            content = colors.onSecondaryContainer,
+            target = Categories,
+        ),
+        ShortcutTile(
+            title = stringResource(R.string.import_statement_title),
+            subtitle = stringResource(R.string.settings_tile_import_subtitle),
+            icon = Icons.Default.UploadFile,
+            badge = MaterialShapes.Flower.toShape(),
+            container = colors.surfaceContainerHighest,
+            content = colors.onSurface,
+            target = ImportStatement,
+        ),
+    )
+    // The block's outer corners are big and its inner ones small, like a grouped list.
+    val big = Dimensions.CornerRadius.extraLarge
+    val small = Dimensions.CornerRadius.medium
+    val corners = listOf(
+        RoundedCornerShape(topStart = big, topEnd = small, bottomEnd = small, bottomStart = small),
+        RoundedCornerShape(topStart = small, topEnd = big, bottomEnd = small, bottomStart = small),
+        RoundedCornerShape(topStart = small, topEnd = small, bottomEnd = small, bottomStart = big),
+        RoundedCornerShape(topStart = small, topEnd = small, bottomEnd = big, bottomStart = small),
+    )
+    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        tiles.chunked(2).forEachIndexed { row, pair ->
+            Row(
+                modifier = Modifier.height(IntrinsicSize.Min),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+            ) {
+                pair.forEachIndexed { column, tile ->
+                    SettingsShortcutTile(
+                        tile = tile,
+                        shape = corners[row * 2 + column],
+                        onClick = { onNavigate(tile.target) },
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight(),
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SettingsShortcutTile(
+    tile: ShortcutTile,
+    shape: Shape,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier,
+) {
+    Surface(
+        onClick = onClick,
+        shape = shape,
+        color = tile.container,
+        contentColor = tile.content,
+        modifier = modifier,
+    ) {
+        Column(
+            modifier = Modifier.padding(Dimensions.Padding.card),
+            verticalArrangement = Arrangement.spacedBy(Spacing.smd),
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(Dimensions.Icon.avatarLarge)
+                    .clip(tile.badge)
+                    .background(MaterialTheme.colorScheme.surfaceContainerLowest),
+                contentAlignment = Alignment.Center,
+            ) {
+                Icon(
+                    tile.icon,
+                    contentDescription = null,
+                    tint = tile.content,
+                    modifier = Modifier.size(Dimensions.Icon.medium),
+                )
+            }
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
+                Text(
+                    text = tile.title,
+                    style = MaterialTheme.typography.titleMedium,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis,
+                )
+                if (tile.subtitle != null) {
+                    Text(
+                        text = tile.subtitle,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = LocalContentColor.current.copy(alpha = Dimensions.Alpha.subtitle),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                }
+            }
+        }
     }
 }
 
@@ -575,88 +846,6 @@ private fun SettingsNavigationContent(onNavigateBack: () -> Unit) {
                 imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                 contentDescription = stringResource(R.string.settings_back),
                 modifier = Modifier.size(Dimensions.Icon.inline)
-            )
-        }
-    }
-}
-
-@Composable
-private fun SettingsShortcutTiles(onNavigate: (NavKey) -> Unit) {
-    val colors = MaterialTheme.colorScheme
-    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            SettingsShortcutTile(
-                title = stringResource(R.string.manage_accounts_title),
-                icon = Icons.Default.AccountBalance,
-                container = colors.primaryContainer,
-                content = colors.onPrimaryContainer,
-                onClick = { onNavigate(ManageAccounts) },
-                modifier = Modifier.weight(1f),
-            )
-            SettingsShortcutTile(
-                title = stringResource(R.string.rules_title),
-                icon = Icons.Default.Rule,
-                container = colors.tertiaryContainer,
-                content = colors.onTertiaryContainer,
-                onClick = { onNavigate(Rules) },
-                modifier = Modifier.weight(1f),
-            )
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-            SettingsShortcutTile(
-                title = stringResource(R.string.categories_title),
-                icon = Icons.Default.Category,
-                container = colors.secondaryContainer,
-                content = colors.onSecondaryContainer,
-                onClick = { onNavigate(Categories) },
-                modifier = Modifier.weight(1f),
-            )
-            SettingsShortcutTile(
-                title = stringResource(R.string.import_statement_title),
-                icon = Icons.Default.UploadFile,
-                container = colors.surfaceContainerHighest,
-                content = colors.onSurface,
-                onClick = { onNavigate(ImportStatement) },
-                modifier = Modifier.weight(1f),
-            )
-        }
-    }
-}
-
-@Composable
-private fun SettingsShortcutTile(
-    title: String,
-    icon: ImageVector,
-    container: Color,
-    content: Color,
-    onClick: () -> Unit,
-    modifier: Modifier = Modifier,
-) {
-    Surface(
-        onClick = onClick,
-        shape = MaterialTheme.shapes.extraLarge,
-        color = container,
-        contentColor = content,
-        modifier = modifier,
-    ) {
-        Column(
-            modifier = Modifier.padding(Dimensions.Padding.card),
-            verticalArrangement = Arrangement.spacedBy(Spacing.smd),
-        ) {
-            Box(
-                modifier = Modifier
-                    .size(Dimensions.Icon.avatar)
-                    .clip(MaterialShapes.Cookie9Sided.toShape())
-                    .background(MaterialTheme.colorScheme.surface.copy(alpha = Dimensions.Alpha.surface)),
-                contentAlignment = Alignment.Center,
-            ) {
-                Icon(icon, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.inline))
-            }
-            Text(
-                text = title,
-                style = MaterialTheme.typography.titleSmall,
-                maxLines = 2,
-                overflow = TextOverflow.Ellipsis,
             )
         }
     }

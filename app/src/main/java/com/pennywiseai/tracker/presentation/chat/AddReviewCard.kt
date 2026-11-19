@@ -99,6 +99,7 @@ internal fun AddReviewCard(
     val fg = MaterialTheme.colorScheme.onTertiaryContainer
     PennyWiseCardV2(
         modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {

@@ -15,12 +15,10 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.domain.model.rule.*
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
-import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import dev.chrisbanes.haze.HazeState
@@ -574,122 +572,11 @@ fun CreateRuleScreen(
                             fontWeight = FontWeight.Medium
                         )
                         Text(
-                            text = run {
-                                val conditionTexts = conditions.map { condition ->
-                                    val fieldName = stringResource(
-                                        when (condition.field) {
-                                            TransactionField.AMOUNT -> R.string.rules_preview_field_amount
-                                            TransactionField.TYPE -> R.string.rules_preview_field_type
-                                            TransactionField.CATEGORY -> R.string.rules_preview_field_category
-                                            TransactionField.MERCHANT -> R.string.rules_preview_field_merchant
-                                            TransactionField.NARRATION -> R.string.rules_preview_field_description
-                                            TransactionField.SMS_TEXT -> R.string.rules_preview_field_sms_text
-                                            TransactionField.BANK_NAME -> R.string.rules_preview_field_bank
-                                            TransactionField.TRANSACTION_TIME -> R.string.rules_preview_field_time
-                                            TransactionField.TRANSACTION_HOUR -> R.string.rules_preview_field_hour
-                                            TransactionField.TRANSACTION_DAY_OF_WEEK -> R.string.rules_preview_field_day_of_week
-                                            TransactionField.TRANSACTION_DAY_OF_MONTH -> R.string.rules_preview_field_day_of_month
-                                            TransactionField.TRANSACTION_DATE -> R.string.rules_preview_field_date
-                                            TransactionField.ACCOUNT -> R.string.rules_preview_field_account
-                                            TransactionField.TAGS -> R.string.rules_preview_field_tags
-                                            TransactionField.TRANSFER_FROM_ACCOUNT -> R.string.rules_preview_field_transfer_from_account
-                                            TransactionField.TRANSFER_TO_ACCOUNT -> R.string.rules_preview_field_transfer_to_account
-                                        }
-                                    )
-                                    val operatorText = stringResource(
-                                        when {
-                                            // before/after reads as time; amounts compare as numbers.
-                                            condition.field == TransactionField.AMOUNT && condition.operator == ConditionOperator.LESS_THAN -> R.string.rules_preview_op_less_than
-                                            condition.field == TransactionField.AMOUNT && condition.operator == ConditionOperator.GREATER_THAN -> R.string.rules_preview_op_greater_than
-                                            else -> when (condition.operator) {
-                                                ConditionOperator.LESS_THAN -> R.string.rules_preview_op_before
-                                                ConditionOperator.GREATER_THAN -> R.string.rules_preview_op_after
-                                                ConditionOperator.LESS_THAN_OR_EQUAL -> R.string.rules_preview_op_at_or_before
-                                                ConditionOperator.GREATER_THAN_OR_EQUAL -> R.string.rules_preview_op_at_or_after
-                                                ConditionOperator.EQUALS -> R.string.rules_preview_op_is
-                                                ConditionOperator.CONTAINS -> R.string.rules_preview_op_contains
-                                                ConditionOperator.STARTS_WITH -> R.string.rules_preview_op_starts_with
-                                                ConditionOperator.IN -> R.string.rules_preview_op_is_any_of
-                                                ConditionOperator.NOT_EQUALS -> R.string.rules_preview_op_is_not
-                                                else -> R.string.rules_preview_op_matches
-                                            }
-                                        }
-                                    )
-                                    val valueText = when (condition.field) {
-                                        TransactionField.TYPE -> ruleTransactionTypeLabel(condition.value)
-                                        TransactionField.CATEGORY -> categoryLabel(condition.value)
-                                        TransactionField.TRANSACTION_DAY_OF_WEEK ->
-                                            condition.value.split(",").map { day ->
-                                                RULE_DAYS_OF_WEEK.firstOrNull { it.first == day.trim() }
-                                                    ?.let { stringResource(it.second) } ?: day
-                                            }.joinToString(", ")
-                                        TransactionField.ACCOUNT -> {
-                                            val parts = condition.value.split("||")
-                                            if (parts.size == 2) {
-                                                AccountBalanceEntity.accountLabel(parts[0], parts[1])
-                                            } else {
-                                                condition.value
-                                            }
-                                        }
-                                        else -> condition.value
-                                    }
-                                    stringResource(R.string.rules_preview_condition, fieldName, operatorText, valueText)
-                                }
-                                val actionTexts = actions.map { action ->
-                                    if (action.actionType == ActionType.BLOCK) {
-                                        stringResource(R.string.rules_preview_action_block)
-                                    } else if (action.field == TransactionField.TAGS) {
-                                        stringResource(
-                                            if (action.actionType == ActionType.ADD_TAG) R.string.rules_preview_action_add_tag
-                                            else R.string.rules_preview_action_remove_tag,
-                                            action.value
-                                        )
-                                    } else {
-                                        val fieldName = stringResource(
-                                            when (action.field) {
-                                                TransactionField.CATEGORY -> R.string.rules_preview_field_category
-                                                TransactionField.MERCHANT -> R.string.rules_preview_field_merchant
-                                                TransactionField.TYPE -> R.string.rules_preview_field_type
-                                                TransactionField.NARRATION -> R.string.rules_preview_field_description
-                                                TransactionField.BANK_NAME -> R.string.rules_preview_field_account
-                                                TransactionField.TRANSFER_FROM_ACCOUNT -> R.string.rules_preview_field_transfer_from_account
-                                                TransactionField.TRANSFER_TO_ACCOUNT -> R.string.rules_preview_field_transfer_to_account
-                                                else -> R.string.rules_preview_field_generic
-                                            }
-                                        )
-                                        // Show user-friendly labels for transaction types in actions too
-                                        val displayValue = if (action.field == TransactionField.TYPE) {
-                                            ruleTransactionTypeLabel(action.value)
-                                        } else if (action.field == TransactionField.CATEGORY) {
-                                            categoryLabel(action.value)
-                                        } else if (action.field == TransactionField.TRANSFER_FROM_ACCOUNT ||
-                                            action.field == TransactionField.TRANSFER_TO_ACCOUNT
-                                        ) {
-                                            parseRuleAccountKey(action.value)
-                                                ?.let { (bank, last4) -> AccountBalanceEntity.accountLabel(bank, last4) }
-                                                ?: action.value
-                                        } else {
-                                            action.value
-                                        }
-                                        when (action.actionType) {
-                                            ActionType.APPEND -> stringResource(R.string.rules_preview_action_append, displayValue, fieldName)
-                                            ActionType.PREPEND -> stringResource(R.string.rules_preview_action_prepend, displayValue, fieldName)
-                                            ActionType.CLEAR -> stringResource(R.string.rules_preview_action_clear, fieldName)
-                                            else -> stringResource(R.string.rules_preview_action_set, fieldName, displayValue)
-                                        }
-                                    }
-                                }
-                                stringResource(
-                                    R.string.rules_preview_sentence,
-                                    joinPreviewConditions(
-                                        conditionTexts,
-                                        conditions.map { it.logicalOperator },
-                                        andFormat = stringResource(R.string.rules_preview_conditions_and),
-                                        orFormat = stringResource(R.string.rules_preview_conditions_or)
-                                    ),
-                                    actionTexts.reduce { acc, text -> stringResource(R.string.rules_preview_actions_and, acc, text) }
-                                )
-                            },
+                            text = stringResource(
+                                R.string.rules_preview_sentence,
+                                ruleConditionsText(conditions).orEmpty(),
+                                ruleActionsText(actions).orEmpty()
+                            ),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSecondaryContainer
                         )

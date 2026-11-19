@@ -69,6 +69,9 @@ object Dimensions {
 
         /** A primary tint marking the selected tab in the floating nav bar. */
         const val selectedIndicator = 0.18f
+
+        /** A category colour washed behind its own glyph (transaction rows, detail badge). */
+        const val categoryTint = 0.14f
     }
 
     // ── Icon sizes ────────────────────────────────────────────────────────
@@ -101,6 +104,10 @@ object Dimensions {
 
         /** The merchant avatar heading a detail screen (transaction detail). */
         val hero = 56.dp
+
+        /** The category badge heading the transaction detail screen, and its glyph. */
+        val detailBadge = 92.dp
+        val detailBadgeGlyph = 44.dp
 
         /** The glyph inside an empty-state circle. */
         val emptyStateGlyph = 32.dp
@@ -137,8 +144,11 @@ object Dimensions {
         /** The same bar with a subtitle line — one M3 subtitle step (24dp) taller. */
         val appBarExpandedHeightWithSubtitle = 134.dp
 
+        /** Top row of a tab root's expanded bar: no back button, so just an inset above the title. */
+        val appBarTabTopRow = 16.dp
+
         /** Home's expanded bar, tall enough to hold the GreetingCard. */
-        val homeAppBarExpandedHeight = 150.dp
+        val homeAppBarExpandedHeight = 158.dp
 
         /** The year review's month bars. */
         val reviewBarHeight = 72.dp
@@ -150,7 +160,7 @@ object Dimensions {
         val rowValueMaxWidth = 96.dp
 
         /** The shaped tile of a Home shortcut (Budgets, Bills, Accounts…). */
-        val shortcutTile = 56.dp
+        val shortcutTile = 64.dp
 
         /** Height of a status pill such as Home's "Updated 5 min ago". */
         val statusChipHeight = 32.dp
@@ -223,6 +233,14 @@ object Dimensions {
         val goalRingLarge = 168.dp
         val goalRingLargeStroke = 12.dp
 
+        /** Insights hero: the period-history chart, its widest bar and its shortest non-zero bar. */
+        val insightsChartHeight = 160.dp
+        val insightsBarMaxWidth = 32.dp
+        val insightsBarMinHeight = 12.dp
+
+        /** The gauge owl on the Plan tab's budget hero card. */
+        val planHeroMascot = 64.dp
+
         /** One column of a spreadsheet preview (statement import's column mapping, #13). */
         val tableCellWidth = 112.dp
 
@@ -247,6 +265,9 @@ object Dimensions {
          * that also have a bottom nav bar.
          */
         val fabScrollClearance = 112.dp
+
+        /** The owl heading the empty Ask chat and its model screens. */
+        val chatHeroMascot = 112.dp
     }
 
     // ── Motion ────────────────────────────────────────────────────────────

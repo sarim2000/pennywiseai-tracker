@@ -283,6 +283,24 @@
     <string name="settings_hub_money">Your money</string>
     <string name="settings_hub_privacy_data">Privacy &amp; data</string>
     <string name="settings_hub_advanced">Advanced</string>
+    <string name="settings_hub_app">App</string>
+    <string name="settings_hub_help">Help</string>
+
+    <!-- Settings hub: the profile block and shortcut tiles -->
+    <string name="settings_profile_privacy_pill">Your data never leaves this phone</string>
+    <plurals name="settings_tile_accounts_count">
+        <item quantity="one">%1$d linked</item>
+        <item quantity="other">%1$d linked</item>
+    </plurals>
+    <plurals name="settings_tile_rules_count">
+        <item quantity="one">%1$d active</item>
+        <item quantity="other">%1$d active</item>
+    </plurals>
+    <plurals name="settings_tile_categories_count">
+        <item quantity="one">%1$d category</item>
+        <item quantity="other">%1$d categories</item>
+    </plurals>
+    <string name="settings_tile_import_subtitle">Bank or UPI statement</string>
 
     <!-- Settings hub: what each page holds. Keep to one line. -->
     <string name="settings_tracking_title">Automatic tracking</string>

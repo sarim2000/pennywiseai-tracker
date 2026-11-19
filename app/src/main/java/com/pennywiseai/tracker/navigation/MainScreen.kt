@@ -335,16 +335,12 @@ fun MainScreen(
                 onAccountClick = { bankName, accountLast4 ->
                     openRoot(AccountDetail(bankName = bankName, accountLast4 = accountLast4))
                 },
-                coverStyle = themeState.coverStyle,
                 blurEffects = themeState.blurEffectsEnabled,
                 onNavigateToSettings = {
                     open(tab, Settings)
                 },
                 onNavigateToTransactions = {
                     open(tab, Transactions())
-                },
-                onNavigateToTransactionsWithSearch = {
-                    open(tab, Transactions(focusSearch = true))
                 },
                 onNavigateToReview = { kind ->
                     openRoot(com.pennywiseai.tracker.navigation.Review(kind.name))
@@ -400,6 +396,9 @@ fun MainScreen(
                 onTransactionTypeClick = { type ->
                     open(tab, Transactions(type = type))
                 },
+                onOpenAssistant = {
+                    selectTab(BottomNavItem.Chat)
+                }.takeIf { BottomNavItem.Chat.route !in themeState.hiddenNavTabs },
                 onFabPositioned = { position ->
                     spotlightViewModel.updateFabPosition(position)
                 }
@@ -519,7 +518,8 @@ fun MainScreen(
                     },
                     onNavigateToCalendar = {
                         openRoot(SpendCalendar)
-                    }
+                    },
+                    askAvailable = BottomNavItem.Chat.route !in themeState.hiddenNavTabs
                 )
             }
         }

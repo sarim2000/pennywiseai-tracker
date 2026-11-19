@@ -329,12 +329,19 @@ handling — no raw `Scaffold`. Pass `title` for its plain top bar, or a
 scaffold also takes `snackbarHost`; tab screens under the overlaid nav bar pad
 it by `Dimensions.Component.bottomBarHeight`.
 
-- `CustomTitleTopAppBar`'s expanded bar is the M3 Expressive
-  `LargeFlexibleTopAppBar`; the collapsed bar is a centred single-row bar.
-  Expanded heights are the `Dimensions.Component.appBarExpandedHeight*` and
-  `homeAppBarExpandedHeight` tokens — no dp literals.
-- Titles use `titleLarge` collapsed and `headlineMediumEmphasized` expanded
+- `CustomTitleTopAppBar`'s expanded bar on a pushed screen (back button) is the
+  M3 Expressive `LargeFlexibleTopAppBar`, with heights from the
+  `Dimensions.Component.appBarExpandedHeight*` tokens. A tab root has no back
+  button, so it gets its own header with no empty top row: optional **overline**,
+  the big title, then the screen's actions and the tab avatar on the same row,
+  starting `appBarTabTopRow` under the status bar. Home puts its greeting there.
+  Both collapse into the same single-row bar.
+- Titles use `titleLarge` collapsed and `headlineLargeEmphasized` expanded
   (one of the emphasized hero moments below).
+- **Overline** (optional): a short label above a tab's title ("November" over
+  "Activity", "Your spending" over "Insights").
+- Screens sit on the flat `background`. No gradient or cover banner behind a
+  header.
 - **Subtitle** (optional, on `CustomTitleTopAppBar`): one short line of context the
   screen would otherwise lose on scroll — e.g. Transactions shows the active
   period, because its period chip hides when the list scrolls. It shows in

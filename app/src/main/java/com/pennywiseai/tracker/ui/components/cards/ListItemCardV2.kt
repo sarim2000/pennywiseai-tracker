@@ -90,6 +90,8 @@ fun ListItemCardV2(
     amount: String,
     modifier: Modifier = Modifier,
     amountColor: Color = MaterialTheme.colorScheme.onSurface,
+    /** The metadata line's colour; a row that needs attention passes an accent role. */
+    subtitleColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     leadingContent: @Composable (() -> Unit)? = null,
     trailingContent: @Composable (() -> Unit)? = null,
     shape: CornerBasedShape = MaterialTheme.shapes.large,
@@ -127,7 +129,7 @@ fun ListItemCardV2(
                     Text(
                         text = subtitle,
                         style = PennyWiseText.metadata,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = subtitleColor,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )

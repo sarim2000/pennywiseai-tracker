@@ -1,25 +1,33 @@
 package com.pennywiseai.tracker.presentation.transactions
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.Input
-import androidx.compose.material.icons.automirrored.filled.ShowChart
-import androidx.compose.material.icons.automirrored.filled.TrendingDown
-import androidx.compose.material.icons.automirrored.filled.TrendingUp
+import androidx.compose.material.icons.automirrored.outlined.Chat
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.AccountBalance
+import androidx.compose.material.icons.outlined.AccountBalanceWallet
+import androidx.compose.material.icons.outlined.Business
+import androidx.compose.material.icons.outlined.Category
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.EditNote
+import androidx.compose.material.icons.outlined.Flag
+import androidx.compose.material.icons.outlined.Person
+import androidx.compose.material.icons.outlined.Schedule
+import androidx.compose.material.icons.outlined.Sell
+import androidx.compose.material.icons.outlined.Warning
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.pluralStringResource
@@ -27,7 +35,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.pennywiseai.tracker.R
@@ -43,21 +51,40 @@ import com.pennywiseai.tracker.ui.LocalNavAnimatedVisibilityScope
 import com.pennywiseai.tracker.ui.LocalSharedTransitionScope
 import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.ui.animations.pwExpand
-import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.components.SettledCheck
 import com.pennywiseai.tracker.ui.components.SplitBreakdownCard
 import com.pennywiseai.tracker.ui.components.SplitItem
+import com.pennywiseai.tracker.ui.components.cards.GroupedColumn
+import com.pennywiseai.tracker.ui.components.cards.GroupedList
+import com.pennywiseai.tracker.ui.components.cards.GroupedRow
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
+import com.pennywiseai.tracker.ui.components.cards.RowLabels
+import com.pennywiseai.tracker.ui.components.cards.TransactionAvatar
+import com.pennywiseai.tracker.ui.components.cards.isUnsortedCategory
+import com.pennywiseai.tracker.ui.components.mascot.Mascot
+import com.pennywiseai.tracker.ui.components.mascot.MascotMood
+import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.sharedElementIcon
 import com.pennywiseai.tracker.ui.theme.*
-import com.pennywiseai.tracker.ui.theme.Dimensions
-import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.spending
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
 
 // ==================== Clean detail read-only view ====================
+
+/** One row of a detail group, drawn at the [ListItemPosition] the group gives it. */
+private typealias DetailRowSlot = @Composable (ListItemPosition) -> Unit
+
+/** A connected block of detail rows: rounded outer corners, 2dp gutters. */
+@Composable
+private fun DetailGroup(rows: List<DetailRowSlot>) {
+    if (rows.isEmpty()) return
+    GroupedList {
+        rows.forEachIndexed { index, row -> row(ListItemPosition.from(index, rows.size)) }
+    }
+}
 
 @Composable
 internal fun TransactionReceipt(
@@ -74,7 +101,199 @@ internal fun TransactionReceipt(
     accountProfileId: Long? = null,
     towardGoals: @Composable () -> Unit = {},
     splitWith: @Composable () -> Unit = {},
-    whatWasThis: @Composable () -> Unit = {}
+    whatWasThis: @Composable () -> Unit = {},
+    onCategoryClick: () -> Unit = {},
+    onEditClick: () -> Unit = {},
+    onReportMistake: () -> Unit = {},
+    onDelete: () -> Unit = {}
+) {
+    // Prefer the user's saved alias (#583); else the contact-resolved name when
+    // that toggle is on. The raw merchant is still what the editor shows.
+    val merchantDisplay = LocalMerchantDisplay.current
+    val currentAlias by viewModel.currentMerchantAlias.collectAsStateWithLifecycle()
+    val merchantName = currentAlias ?: merchantDisplay(transaction.merchantName) ?: transaction.merchantName
+    val ruleSuggestion by viewModel.ruleSuggestion.collectAsStateWithLifecycle()
+    val unsorted = isUnsortedCategory(transaction.category) && !(hasSplits && splits.isNotEmpty())
+
+    Column(
+        modifier = Modifier.fillMaxWidth(),
+        verticalArrangement = Arrangement.spacedBy(Spacing.md)
+    ) {
+        DetailHero(
+            transaction = transaction,
+            merchantName = merchantName,
+            settled = settled,
+            primaryCurrency = primaryCurrency,
+            convertedAmount = convertedAmount,
+            loan = loan,
+            onNavigateToLoanDetail = onNavigateToLoanDetail,
+            onUnmarkLoanClick = onUnmarkLoanClick
+        )
+
+        DetailGroup(
+            primaryRows(
+                transaction = transaction,
+                splits = splits,
+                hasSplits = hasSplits,
+                onCategoryClick = onCategoryClick,
+                onEditClick = onEditClick
+            )
+        )
+
+        if (ruleSuggestion != null) {
+            RuleSuggestionCard(
+                // The raw merchant: that is what the saved category is keyed on.
+                text = stringResource(R.string.txn_detail_remember_prompt, transaction.merchantName, categoryLabel(ruleSuggestion!!)),
+                onCreate = viewModel::acceptRuleSuggestion,
+                onDismiss = viewModel::dismissRuleSuggestion
+            )
+        } else if (unsorted) {
+            MascotNote(
+                text = stringResource(R.string.txn_detail_uncategorized_hint),
+                mood = MascotMood.Thinking,
+                containerColor = MaterialTheme.colorScheme.tertiaryContainer,
+                contentColor = MaterialTheme.colorScheme.onTertiaryContainer
+            )
+        }
+
+        whatWasThis()
+
+        // ── Exclude from analytics (#451) ──
+        GroupedRow(
+            position = ListItemPosition.Single,
+            onClick = { viewModel.setExcludedFromAnalytics(!transaction.excludedFromAnalytics) }
+        ) {
+            DetailIcon(Icons.Default.QueryStats)
+            RowLabels(
+                title = stringResource(R.string.txn_detail_exclude_analytics_title),
+                subtitle = stringResource(R.string.txn_detail_exclude_analytics_subtitle)
+            )
+            // Display-only — the row's click is the single toggle handler
+            // so a tap can't fire the VM call twice (Greptile #454).
+            Switch(
+                checked = transaction.excludedFromAnalytics,
+                onCheckedChange = null
+            )
+        }
+
+        towardGoals()
+
+        splitWith()
+
+        // ── The rest of what the SMS said ──
+        val detailTags by viewModel.transactionTags.collectAsStateWithLifecycle()
+        val accountCurrency by viewModel.accountCurrency.collectAsStateWithLifecycle()
+        val discrepancy by viewModel.balanceDiscrepancy.collectAsStateWithLifecycle()
+        DetailGroup(
+            moreRows(
+                transaction = transaction,
+                tags = detailTags,
+                accountProfileId = accountProfileId,
+                accountCurrency = accountCurrency,
+                discrepancy = discrepancy
+            )
+        )
+        discrepancy?.let { d -> BalanceAdjustmentAction(d, viewModel) }
+
+        // ── Receipt Section ──
+        val receiptUri by viewModel.receiptUri.collectAsStateWithLifecycle()
+        receiptUri?.let { uri ->
+            GroupedColumn(
+                position = ListItemPosition.Single,
+                modifier = Modifier
+                    .clip(MaterialTheme.shapes.large)
+                    .clickable { viewModel.showFullScreenReceipt() }
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+                ) {
+                    DetailIcon(Icons.Default.Receipt)
+                    Text(
+                        text = stringResource(R.string.txn_detail_receipt),
+                        style = PennyWiseText.rowTitle,
+                        modifier = Modifier.weight(1f)
+                    )
+                    Text(
+                        text = stringResource(R.string.txn_detail_receipt_tap_to_view),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+                AsyncImage(
+                    model = uri,
+                    contentDescription = stringResource(R.string.txn_detail_receipt),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .heightIn(max = RECEIPT_PREVIEW_MAX_HEIGHT)
+                        .clip(MaterialTheme.shapes.medium),
+                    contentScale = ContentScale.Crop
+                )
+            }
+        }
+
+        val receiptMissing by viewModel.receiptMissing.collectAsStateWithLifecycle()
+        if (receiptUri == null && receiptMissing) {
+            GroupedRow(position = ListItemPosition.Single) {
+                DetailIcon(Icons.Default.Receipt)
+                Text(
+                    text = stringResource(R.string.txn_detail_receipt_missing),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+        }
+
+        // ── Split Breakdown ──
+        if (hasSplits && splits.isNotEmpty()) {
+            SplitBreakdownCard(
+                splits = splits,
+                currency = transaction.currency
+            )
+        }
+
+        // ── SMS Section ──
+        if (!transaction.smsBody.isNullOrBlank()) {
+            OriginalSmsSection(smsBody = transaction.smsBody)
+        }
+
+        // ── Actions ──
+        DetailGroup(
+            buildList {
+                add { position ->
+                    GroupedRow(position = position, onClick = onReportMistake) {
+                        DetailIcon(Icons.Outlined.Flag)
+                        Text(stringResource(R.string.txn_detail_report_mistake), style = MaterialTheme.typography.bodyLarge, modifier = Modifier.weight(1f))
+                    }
+                }
+                add { position ->
+                    GroupedRow(position = position, onClick = onDelete) {
+                        DetailIcon(Icons.Outlined.Delete, tint = MaterialTheme.colorScheme.error)
+                        Text(
+                            stringResource(R.string.txn_detail_delete_transaction),
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = MaterialTheme.colorScheme.error,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+            }
+        )
+    }
+}
+
+/** Badge, merchant, the big amount and an "Expense · Wed, Nov 19" chip, centred. */
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+@Composable
+private fun DetailHero(
+    transaction: TransactionEntity,
+    merchantName: String,
+    settled: Boolean,
+    primaryCurrency: String,
+    convertedAmount: BigDecimal?,
+    loan: LoanEntity?,
+    onNavigateToLoanDetail: (Long) -> Unit,
+    onUnmarkLoanClick: () -> Unit
 ) {
     val typeColor = when (transaction.transactionType) {
         TransactionType.INCOME -> MaterialTheme.colorScheme.income
@@ -86,668 +305,555 @@ internal fun TransactionReceipt(
     val sign = when (transaction.transactionType) {
         TransactionType.INCOME -> "+"
         TransactionType.EXPENSE -> "-"
-        TransactionType.CREDIT -> ""
-        TransactionType.TRANSFER -> ""
-        TransactionType.INVESTMENT -> ""
+        TransactionType.CREDIT, TransactionType.TRANSFER, TransactionType.INVESTMENT -> ""
     }
-
     val sharedTransitionScope = LocalSharedTransitionScope.current
     val animatedVisibilityScope = LocalNavAnimatedVisibilityScope.current
 
     Column(
-        modifier = Modifier.fillMaxWidth(),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md)
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(horizontal = Spacing.sm)
+            .padding(bottom = Spacing.xs),
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
-        // ── Hero Header ──
-        Surface(
-            modifier = Modifier.fillMaxWidth(),
-            shape = MaterialTheme.shapes.extraLarge,
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
-            tonalElevation = Dimensions.Elevation.raisedCard
+        val heroIconModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
+            with(sharedTransitionScope) {
+                sharedElementIcon(
+                    key = "brand_icon_${transaction.id}",
+                    animatedVisibilityScope = animatedVisibilityScope
+                )
+            }
+        } else {
+            Modifier
+        }
+        SettledCheck(settled = settled, size = Dimensions.Icon.detailBadge, modifier = heroIconModifier) {
+            TransactionAvatar(
+                merchantName = transaction.merchantName,
+                category = transaction.category,
+                size = Dimensions.Icon.detailBadge,
+                glyphSize = Dimensions.Icon.detailBadgeGlyph,
+                shape = MaterialShapes.Cookie9Sided.toShape()
+            )
+        }
+
+        Text(
+            text = merchantName,
+            style = MaterialTheme.typography.titleLarge,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.padding(top = Spacing.xs)
+        )
+
+        val amountStyle = MaterialTheme.typography.displayMediumEmphasized.money()
+        Text(
+            text = CurrencyFormatter.signed(sign, transaction.formatAmount()),
+            style = amountStyle,
+            color = typeColor,
+            textAlign = TextAlign.Center,
+            maxLines = 1,
+            autoSize = TextAutoSize.StepBased(
+                minFontSize = PennyWiseText.autoSizeFloor,
+                maxFontSize = amountStyle.fontSize
+            )
+        )
+
+        if (transaction.currency.isNotEmpty() &&
+            !transaction.currency.equals(primaryCurrency, ignoreCase = true) &&
+            convertedAmount != null
         ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(horizontal = Spacing.lg, vertical = Spacing.lg),
-                horizontalAlignment = Alignment.CenterHorizontally
-            ) {
-                val heroIconModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {
-                    with(sharedTransitionScope) {
-                        sharedElementIcon(
-                            key = "brand_icon_${transaction.id}",
-                            animatedVisibilityScope = animatedVisibilityScope
-                        )
-                    }
-                } else {
-                    Modifier
-                }
-                SettledCheck(settled = settled, size = Dimensions.Icon.hero, modifier = heroIconModifier) {
-                    BrandIcon(
-                        merchantName = transaction.merchantName,
-                        category = transaction.category,
-                        size = Dimensions.Icon.hero,
-                        showBackground = true
-                    )
-                }
+            Text(
+                text = "≈ ${CurrencyFormatter.formatCurrency(convertedAmount, primaryCurrency)}",
+                style = MaterialTheme.typography.bodyMedium.tabular(),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
 
-                Spacer(modifier = Modifier.height(Spacing.sm))
-
-                // Prefer the user's saved alias (#583); else the contact-resolved
-                // name when that toggle is on. The raw merchant is still what the
-                // Edit field below renders so users can correct mis-detections.
-                val merchantDisplay = LocalMerchantDisplay.current
-                val currentAlias by viewModel.currentMerchantAlias.collectAsStateWithLifecycle()
+        // "Expense · Wed, Nov 19"
+        val typeLabel = stringResource(transactionTypeLabel(transaction.transactionType))
+        val dateLabel = transaction.dateTime.format(AppDates.pattern("EEE")) + ", " +
+            transaction.dateTime.format(AppDates.dayMonthFormatter())
+        Surface(
+            shape = CircleShape,
+            color = MaterialTheme.colorScheme.surfaceContainerHigh,
+            modifier = Modifier.heightIn(min = Dimensions.Component.chipHeight)
+        ) {
+            Box(contentAlignment = Alignment.Center, modifier = Modifier.padding(horizontal = Spacing.smd, vertical = Spacing.xs)) {
                 Text(
-                    text = currentAlias
-                        ?: merchantDisplay(transaction.merchantName)
-                        ?: transaction.merchantName,
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    textAlign = TextAlign.Center
+                    text = "$typeLabel · $dateLabel",
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
+            }
+        }
 
-                Spacer(modifier = Modifier.height(Spacing.sm))
-
-                // Transaction type chip
-                val typeLabel = stringResource(
-                    when (transaction.transactionType) {
-                        TransactionType.INCOME -> R.string.txn_type_income
-                        TransactionType.EXPENSE -> R.string.txn_type_expense
-                        TransactionType.CREDIT -> R.string.txn_type_credit
-                        TransactionType.TRANSFER -> R.string.txn_type_transfer
-                        TransactionType.INVESTMENT -> R.string.txn_type_investment
-                    }
-                )
-                val typeIcon = when (transaction.transactionType) {
-                    TransactionType.INCOME -> Icons.AutoMirrored.Filled.TrendingUp
-                    TransactionType.EXPENSE -> Icons.AutoMirrored.Filled.TrendingDown
-                    TransactionType.CREDIT -> Icons.Default.CreditCard
-                    TransactionType.TRANSFER -> Icons.Default.SwapHoriz
-                    TransactionType.INVESTMENT -> Icons.AutoMirrored.Filled.ShowChart
-                }
+        // Loan chip
+        if (loan != null) {
+            val loanColor = MaterialTheme.colorScheme.loan
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+            ) {
                 SuggestionChip(
-                    onClick = {},
+                    onClick = { onNavigateToLoanDetail(loan.id) },
                     label = {
+                        // This row's own role on the loan: a repayment isn't "Borrowed from".
+                        val principal = LoanMath.isPrincipal(loan.direction, transaction.transactionType)
                         Text(
-                            text = typeLabel,
+                            text = stringResource(
+                                when {
+                                    loan.direction == LoanDirection.LENT && principal -> R.string.txn_detail_loan_lent_to
+                                    loan.direction == LoanDirection.LENT -> R.string.txn_detail_loan_repaid_by
+                                    principal -> R.string.txn_detail_loan_borrowed_from
+                                    else -> R.string.txn_detail_loan_repaid_to
+                                },
+                                loan.personName
+                            ),
                             style = MaterialTheme.typography.labelMedium,
                             fontWeight = FontWeight.SemiBold
                         )
                     },
                     icon = {
                         Icon(
-                            typeIcon,
+                            Icons.Default.SwapHoriz,
                             contentDescription = null,
                             modifier = Modifier.size(Dimensions.Icon.small),
-                            tint = typeColor
+                            tint = loanColor
                         )
                     },
                     colors = SuggestionChipDefaults.suggestionChipColors(
-                        containerColor = typeColor.copy(alpha = 0.12f),
-                        labelColor = typeColor,
-                        iconContentColor = typeColor
+                        containerColor = loanColor.copy(alpha = Dimensions.Alpha.categoryTint),
+                        labelColor = loanColor,
+                        iconContentColor = loanColor
                     ),
-                    border = null as androidx.compose.foundation.BorderStroke?
+                    shape = CircleShape,
+                    border = null
                 )
-
-                // Loan chip
-                val loanColor = MaterialTheme.colorScheme.loan
-                Spacer(modifier = Modifier.height(Spacing.xs))
-                if (loan != null) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-                    ) {
-                        SuggestionChip(
-                            onClick = { onNavigateToLoanDetail(loan.id) },
-                            label = {
-                                // This row's own role on the loan: a repayment isn't "Borrowed from".
-                                val principal = LoanMath.isPrincipal(loan.direction, transaction.transactionType)
-                                Text(
-                                    text = stringResource(
-                                        when {
-                                            loan.direction == LoanDirection.LENT && principal -> R.string.txn_detail_loan_lent_to
-                                            loan.direction == LoanDirection.LENT -> R.string.txn_detail_loan_repaid_by
-                                            principal -> R.string.txn_detail_loan_borrowed_from
-                                            else -> R.string.txn_detail_loan_repaid_to
-                                        },
-                                        loan.personName
-                                    ),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            },
-                            icon = {
-                                Icon(
-                                    Icons.Default.SwapHoriz,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(Dimensions.Icon.small),
-                                    tint = loanColor
-                                )
-                            },
-                            colors = SuggestionChipDefaults.suggestionChipColors(
-                                containerColor = loanColor.copy(alpha = 0.12f),
-                                labelColor = loanColor,
-                                iconContentColor = loanColor
-                            ),
-                            border = null
-                        )
-                        // Unmark-as-loan (#444): removes the loan link; deletes the
-                        // loan too if no other transactions are linked.
-                        IconButton(onClick = onUnmarkLoanClick, shapes = IconButtonDefaults.shapes()) {
-                            Icon(
-                                Icons.Default.Close,
-                                contentDescription = stringResource(R.string.txn_detail_unmark_loan),
-                                modifier = Modifier.size(Dimensions.Icon.small),
-                                tint = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                    LoanPartLine(transaction)
-                }
-
-                Spacer(modifier = Modifier.height(Spacing.sm))
-
-                Text(
-                    text = CurrencyFormatter.signed(sign, transaction.formatAmount()),
-                    style = PennyWiseText.heroAmount,
-                    color = typeColor,
-                    textAlign = TextAlign.Center,
-                    maxLines = 1,
-                    autoSize = TextAutoSize.StepBased(
-                        minFontSize = PennyWiseText.autoSizeFloor,
-                        maxFontSize = PennyWiseText.heroAmount.fontSize
-                    )
-                )
-
-                if (transaction.currency.isNotEmpty() &&
-                    !transaction.currency.equals(primaryCurrency, ignoreCase = true) &&
-                    convertedAmount != null
-                ) {
-                    Text(
-                        text = "\u2248 ${CurrencyFormatter.formatCurrency(convertedAmount, primaryCurrency)}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-
-        whatWasThis()
-
-        // ── Exclude from analytics (#451) ── placed above the detail rows so its
-        // Switch never sits under the bottom-right floating action buttons.
-        Surface(
-            modifier = Modifier
-                .fillMaxWidth()
-                .clip(RoundedCornerShape(12.dp)),
-            color = MaterialTheme.colorScheme.surfaceContainerLow,
-            shape = RoundedCornerShape(12.dp)
-        ) {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { viewModel.setExcludedFromAnalytics(!transaction.excludedFromAnalytics) }
-                    .padding(Spacing.md),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-            ) {
-                Icon(
-                    Icons.Default.QueryStats,
-                    contentDescription = null,
-                    modifier = Modifier.size(Dimensions.Icon.medium),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = stringResource(R.string.txn_detail_exclude_analytics_title),
-                        style = MaterialTheme.typography.titleSmall,
-                        fontWeight = FontWeight.SemiBold
-                    )
-                    Text(
-                        text = stringResource(R.string.txn_detail_exclude_analytics_subtitle),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                // Display-only — the Row's clickable is the single toggle handler
-                // so a tap can't fire the VM call twice (Greptile #454).
-                Switch(
-                    checked = transaction.excludedFromAnalytics,
-                    onCheckedChange = null
-                )
-            }
-        }
-
-        towardGoals()
-
-        splitWith()
-
-        // ── Details Section ──
-        Column(modifier = Modifier.fillMaxWidth()) {
-            // Date & Time
-            DetailInfoRow(
-                icon = Icons.Default.CalendarToday,
-                label = stringResource(R.string.txn_detail_label_date_time),
-                value = transaction.dateTime.format(
-                    AppDates.dateTimeFormatter(weekday = true)
-                )
-            )
-
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-
-            // Category
-            val categoryValue = if (hasSplits && splits.isNotEmpty()) {
-                pluralStringResource(R.plurals.txn_detail_split_categories, splits.size, splits.size)
-            } else {
-                categoryLabel(transaction.category)
-            }
-            DetailInfoRow(
-                icon = Icons.Default.Category,
-                label = stringResource(R.string.txn_detail_label_category),
-                value = categoryValue
-            )
-
-            // Bank
-            transaction.bankName?.let {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                DetailInfoRow(
-                    icon = Icons.Default.AccountBalance,
-                    label = stringResource(R.string.txn_detail_label_bank),
-                    value = it
-                )
-            }
-
-            // Description
-            transaction.description?.let {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                DetailInfoRow(
-                    icon = Icons.Default.Description,
-                    label = stringResource(R.string.txn_detail_label_description),
-                    value = CurrencyFormatter.maskAmountsIn(it)
-                )
-            }
-
-            // Tags
-            val detailTags by viewModel.transactionTags.collectAsStateWithLifecycle()
-            if (detailTags.isNotEmpty()) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                DetailInfoRow(
-                    icon = Icons.Default.Sell,
-                    label = pluralStringResource(R.plurals.txn_detail_label_tags, detailTags.size),
-                    value = detailTags.joinToString(", ")
-                )
-            }
-
-            // Recurring
-            if (transaction.isRecurring) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                DetailInfoRow(
-                    icon = Icons.Default.Repeat,
-                    label = stringResource(R.string.txn_detail_label_status),
-                    value = stringResource(R.string.txn_detail_status_recurring)
-                )
-            }
-
-            // Classification
-            val effectiveProfileId = transaction.profileId ?: accountProfileId
-            val isEffectivelyBusiness = effectiveProfileId == ProfileEntity.BUSINESS_ID
-            HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-            DetailInfoRow(
-                icon = if (isEffectivelyBusiness) Icons.Default.Business else Icons.Default.Person,
-                label = stringResource(R.string.txn_detail_label_classification),
-                value = if (isEffectivelyBusiness) stringResource(R.string.txn_detail_business) else stringResource(R.string.txn_detail_personal)
-            )
-
-            // Account info. A leg on an account without a number (a Cash account
-            // is ("Cash", "")) shows its name instead of a blank chip (#913).
-            fun maskedLeg(account: String, bank: String?): String = when {
-                account.isBlank() -> bank ?: account
-                account.length > 4 -> "*".repeat(account.length - 4) + account.takeLast(4)
-                else -> account
-            }
-            if (transaction.fromAccount != null && transaction.toAccount != null) {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                TransferFlowRow(
-                    fromValue = maskedLeg(transaction.fromAccount, transaction.fromBankName),
-                    toValue = maskedLeg(transaction.toAccount, transaction.toBankName)
-                )
-            } else {
-                transaction.accountNumber?.takeIf { it.isNotBlank() }?.let {
-                    if (transaction.fromAccount == null && transaction.toAccount == null) {
-                        HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                        val masked = if (it.length > 4) {
-                            "*".repeat(it.length - 4) + it.takeLast(4)
-                        } else it
-                        DetailInfoRow(
-                            icon = Icons.Default.AccountBalanceWallet,
-                            label = stringResource(R.string.txn_detail_label_account),
-                            value = masked
-                        )
-                    }
-                }
-                transaction.fromAccount?.let { from ->
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                    DetailInfoRow(
-                        icon = Icons.Default.Output,
-                        label = stringResource(R.string.txn_detail_label_from),
-                        value = maskedLeg(from, transaction.fromBankName)
-                    )
-                }
-                transaction.toAccount?.let { to ->
-                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                    val masked = maskedLeg(to, transaction.toBankName)
-                    DetailInfoRow(
-                        icon = Icons.AutoMirrored.Filled.Input,
-                        label = stringResource(R.string.txn_detail_label_to),
-                        value = masked
-                    )
-                }
-            }
-
-            // Balance
-            transaction.balanceAfter?.let {
-                val accountCurrency by viewModel.accountCurrency.collectAsStateWithLifecycle()
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                DetailInfoRow(
-                    icon = Icons.Default.AccountBalanceWallet,
-                    label = stringResource(R.string.txn_detail_label_balance),
-                    value = CurrencyFormatter.formatCurrency(it, accountCurrency ?: transaction.currency)
-                )
-            }
-
-            // Bank balance vs. ledger prediction (#734/#135): surface the gap and
-            // offer to record it as an untracked transaction.
-            val discrepancy by viewModel.balanceDiscrepancy.collectAsStateWithLifecycle()
-            discrepancy?.let { d ->
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                DetailInfoRow(
-                    icon = Icons.Default.Warning,
-                    label = stringResource(R.string.txn_detail_label_balance_mismatch),
-                    value = stringResource(
-                        R.string.txn_detail_balance_mismatch_since,
-                        CurrencyFormatter.formatCurrency(d.delta.abs(), d.currency),
-                        CurrencyFormatter.formatCurrency(d.expected, d.currency),
-                        // Where the check starts (the previous balance SMS), so moving an
-                        // adjustment outside it explains a mismatch coming back (#1022).
-                        d.since?.format(AppDates.dayMonthTimeFormatter()).orEmpty()
-                    )
-                )
-                val adding by viewModel.isAddingAdjustment.collectAsStateWithLifecycle()
-                var showAdjustmentSheet by rememberSaveable { mutableStateOf(false) }
-                if (showAdjustmentSheet) {
-                    BalanceAdjustmentSheet(
-                        discrepancy = d,
-                        viewModel = viewModel,
-                        onDismiss = { showAdjustmentSheet = false }
-                    )
-                }
-                TextButton(
-                    onClick = { showAdjustmentSheet = true },
-                    enabled = !adding,
-                    modifier = Modifier.fillMaxWidth(),
-                    shapes = ButtonDefaults.shapes()
-                ) {
-                    Text(
-                        stringResource(
-                            if (d.delta.signum() < 0) R.string.txn_detail_add_untracked_expense
-                            else R.string.txn_detail_add_untracked_income,
-                            CurrencyFormatter.formatCurrency(d.delta.abs(), d.currency)
-                        )
-                    )
-                }
-            }
-
-            // Reference number (prefer extracted reference, fallback to SMS sender)
-            val referenceValue = transaction.reference ?: transaction.smsSender
-            referenceValue?.let {
-                HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
-                DetailInfoRow(
-                    icon = Icons.Default.Tag,
-                    label = stringResource(R.string.txn_detail_label_reference),
-                    value = it
-                )
-            }
-        }
-
-        // ── Receipt Section ──
-        val receiptUri by viewModel.receiptUri.collectAsStateWithLifecycle()
-        receiptUri?.let { uri ->
-            Surface(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clip(RoundedCornerShape(12.dp))
-                    .clickable { viewModel.showFullScreenReceipt() },
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                shape = RoundedCornerShape(12.dp)
-            ) {
-                Column(modifier = Modifier.padding(Spacing.md)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                    ) {
-                        Icon(
-                            Icons.Default.Receipt,
-                            contentDescription = null,
-                            modifier = Modifier.size(Dimensions.Icon.medium),
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Text(
-                            text = stringResource(R.string.txn_detail_receipt),
-                            style = MaterialTheme.typography.titleSmall,
-                            fontWeight = FontWeight.SemiBold
-                        )
-                        Spacer(modifier = Modifier.weight(1f))
-                        Text(
-                            text = stringResource(R.string.txn_detail_receipt_tap_to_view),
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    Spacer(modifier = Modifier.height(Spacing.sm))
-                    AsyncImage(
-                        model = uri,
-                        contentDescription = stringResource(R.string.txn_detail_receipt),
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .heightIn(max = 200.dp)
-                            .clip(RoundedCornerShape(8.dp)),
-                        contentScale = ContentScale.Crop
-                    )
-                }
-            }
-        }
-
-        val receiptMissing by viewModel.receiptMissing.collectAsStateWithLifecycle()
-        if (receiptUri == null && receiptMissing) {
-            Surface(
-                modifier = Modifier.fillMaxWidth(),
-                color = MaterialTheme.colorScheme.surfaceContainerLow,
-                shape = MaterialTheme.shapes.medium
-            ) {
-                Row(
-                    modifier = Modifier.padding(Spacing.md),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                ) {
+                // Unmark-as-loan (#444): removes the loan link; deletes the
+                // loan too if no other transactions are linked.
+                IconButton(onClick = onUnmarkLoanClick, shapes = IconButtonDefaults.shapes()) {
                     Icon(
-                        Icons.Default.Receipt,
-                        contentDescription = null,
-                        modifier = Modifier.size(Dimensions.Icon.medium),
+                        Icons.Default.Close,
+                        contentDescription = stringResource(R.string.txn_detail_unmark_loan),
+                        modifier = Modifier.size(Dimensions.Icon.small),
                         tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Text(
-                        text = stringResource(R.string.txn_detail_receipt_missing),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
                 }
             }
-        }
-
-        // ── SMS Section ──
-        if (!transaction.smsBody.isNullOrBlank()) {
-            ExpandableSmsSection(smsBody = transaction.smsBody)
-        }
-
-        // ── Split Breakdown ──
-        if (hasSplits && splits.isNotEmpty()) {
-            SplitBreakdownCard(
-                splits = splits,
-                currency = transaction.currency
-            )
+            LoanPartLine(transaction)
         }
     }
 }
 
+/** Category (a tinted dropdown chip), Account, Date and Note. */
 @Composable
-private fun DetailInfoRow(
+private fun primaryRows(
+    transaction: TransactionEntity,
+    splits: List<SplitItem>,
+    hasSplits: Boolean,
+    onCategoryClick: () -> Unit,
+    onEditClick: () -> Unit
+): List<DetailRowSlot> {
+    val isSplit = hasSplits && splits.isNotEmpty()
+    val categoryText = when {
+        isSplit -> pluralStringResource(R.plurals.txn_detail_split_categories, splits.size, splits.size)
+        isUnsortedCategory(transaction.category) -> stringResource(R.string.home_section_unsorted)
+        else -> categoryLabel(transaction.category)
+    }
+    val categoryColor = when {
+        isSplit -> MaterialTheme.colorScheme.primary
+        isUnsortedCategory(transaction.category) -> MaterialTheme.colorScheme.tertiary
+        else -> CategoryMapping.colorFor(transaction.category)
+    }
+    // Account, or both legs of a paired transfer. An account without a number
+    // (a Cash account is ("Cash", "")) shows its name instead of a blank (#913).
+    val accountText = transaction.accountNumber?.takeIf { it.isNotBlank() }?.let { number ->
+        listOfNotNull(transaction.bankName, "••" + number.takeLast(4)).joinToString(" ")
+    } ?: transaction.bankName
+    val showTransferLegs = transaction.fromAccount != null && transaction.toAccount != null
+    // A one-legged transfer shows its leg under the details below instead.
+    val hasLeg = transaction.fromAccount != null || transaction.toAccount != null
+    val note = transaction.description?.takeIf { it.isNotBlank() }
+
+    return buildList {
+        add { position ->
+            GroupedRow(position = position, onClick = onCategoryClick) {
+                DetailIcon(Icons.Outlined.Category)
+                Text(
+                    stringResource(R.string.txn_detail_label_category),
+                    style = MaterialTheme.typography.bodyLarge,
+                    modifier = Modifier.weight(1f)
+                )
+                CategoryDropdownChip(text = categoryText, color = categoryColor)
+            }
+        }
+        if (showTransferLegs) {
+            add { position ->
+                GroupedRow(position = position) {
+                    TransferFlowRow(
+                        fromValue = maskedLeg(transaction.fromAccount!!, transaction.fromBankName),
+                        toValue = maskedLeg(transaction.toAccount!!, transaction.toBankName)
+                    )
+                }
+            }
+        } else if (accountText != null && !hasLeg) {
+            add { position ->
+                DetailValueRow(position, Icons.Outlined.AccountBalance, stringResource(R.string.txn_detail_label_account), accountText)
+            }
+        }
+        add { position ->
+            DetailValueRow(
+                position,
+                Icons.Outlined.Schedule,
+                stringResource(R.string.txn_detail_label_date),
+                transaction.dateTime.format(AppDates.dateTimeFormatter(weekday = true))
+            )
+        }
+        add { position ->
+            GroupedRow(position = position, onClick = onEditClick) {
+                DetailIcon(Icons.Outlined.EditNote)
+                Text(
+                    stringResource(R.string.txn_detail_label_note),
+                    style = MaterialTheme.typography.bodyLarge
+                )
+                if (note != null) {
+                    Text(
+                        text = CurrencyFormatter.maskAmountsIn(note),
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        textAlign = TextAlign.End,
+                        maxLines = 3,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                } else {
+                    Spacer(Modifier.weight(1f))
+                    Text(
+                        stringResource(R.string.txn_detail_note_add),
+                        style = MaterialTheme.typography.labelLarge,
+                        color = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+        }
+    }
+}
+
+/** Tags, recurring, classification, one-sided transfer legs, balance, mismatch, reference. */
+@Composable
+private fun moreRows(
+    transaction: TransactionEntity,
+    tags: List<String>,
+    accountProfileId: Long?,
+    accountCurrency: String?,
+    discrepancy: com.pennywiseai.tracker.data.ledger.BalanceDiscrepancy?
+): List<DetailRowSlot> {
+    val effectiveProfileId = transaction.profileId ?: accountProfileId
+    val isEffectivelyBusiness = effectiveProfileId == ProfileEntity.BUSINESS_ID
+    val tagsLabel = pluralStringResource(R.plurals.txn_detail_label_tags, tags.size)
+    val recurringLabel = stringResource(R.string.txn_detail_label_status)
+    val recurringValue = stringResource(R.string.txn_detail_status_recurring)
+    val classificationLabel = stringResource(R.string.txn_detail_label_classification)
+    val classificationValue = stringResource(if (isEffectivelyBusiness) R.string.txn_detail_business else R.string.txn_detail_personal)
+    val fromLabel = stringResource(R.string.txn_detail_label_from)
+    val toLabel = stringResource(R.string.txn_detail_label_to)
+    val balanceLabel = stringResource(R.string.txn_detail_label_balance)
+    val mismatchLabel = stringResource(R.string.txn_detail_label_balance_mismatch)
+    val referenceLabel = stringResource(R.string.txn_detail_label_reference)
+    val mismatchValue = discrepancy?.let { d ->
+        stringResource(
+            R.string.txn_detail_balance_mismatch_since,
+            CurrencyFormatter.formatCurrency(d.delta.abs(), d.currency),
+            CurrencyFormatter.formatCurrency(d.expected, d.currency),
+            // Where the check starts (the previous balance SMS), so moving an
+            // adjustment outside it explains a mismatch coming back (#1022).
+            d.since?.format(AppDates.dayMonthTimeFormatter()).orEmpty()
+        )
+    }
+    val pairedTransfer = transaction.fromAccount != null && transaction.toAccount != null
+
+    return buildList {
+        if (tags.isNotEmpty()) {
+            add { DetailValueRow(it, Icons.Outlined.Sell, tagsLabel, tags.joinToString(", ")) }
+        }
+        if (transaction.isRecurring) {
+            add { DetailValueRow(it, Icons.Default.Repeat, recurringLabel, recurringValue) }
+        }
+        add {
+            DetailValueRow(
+                it,
+                if (isEffectivelyBusiness) Icons.Outlined.Business else Icons.Outlined.Person,
+                classificationLabel,
+                classificationValue
+            )
+        }
+        if (!pairedTransfer) {
+            transaction.fromAccount?.let { from ->
+                add { DetailValueRow(it, Icons.Default.Output, fromLabel, maskedLeg(from, transaction.fromBankName)) }
+            }
+            transaction.toAccount?.let { to ->
+                add { DetailValueRow(it, Icons.AutoMirrored.Filled.Input, toLabel, maskedLeg(to, transaction.toBankName)) }
+            }
+        }
+        transaction.balanceAfter?.let { balance ->
+            add {
+                DetailValueRow(
+                    it,
+                    Icons.Outlined.AccountBalanceWallet,
+                    balanceLabel,
+                    CurrencyFormatter.formatCurrency(balance, accountCurrency ?: transaction.currency)
+                )
+            }
+        }
+        if (mismatchValue != null) {
+            add { DetailValueRow(it, Icons.Outlined.Warning, mismatchLabel, mismatchValue) }
+        }
+        // Reference number (prefer extracted reference, fallback to SMS sender)
+        (transaction.reference ?: transaction.smsSender)?.let { reference ->
+            add { DetailValueRow(it, Icons.Default.Tag, referenceLabel, reference) }
+        }
+    }
+}
+
+/** Offers to record a balance mismatch as an untracked transaction (#734/#135). */
+@Composable
+private fun BalanceAdjustmentAction(
+    discrepancy: com.pennywiseai.tracker.data.ledger.BalanceDiscrepancy,
+    viewModel: TransactionDetailViewModel
+) {
+    val adding by viewModel.isAddingAdjustment.collectAsStateWithLifecycle()
+    var showAdjustmentSheet by rememberSaveable { mutableStateOf(false) }
+    if (showAdjustmentSheet) {
+        BalanceAdjustmentSheet(
+            discrepancy = discrepancy,
+            viewModel = viewModel,
+            onDismiss = { showAdjustmentSheet = false }
+        )
+    }
+    FilledTonalButton(
+        onClick = { showAdjustmentSheet = true },
+        enabled = !adding,
+        modifier = Modifier.fillMaxWidth(),
+        shapes = ButtonDefaults.shapes()
+    ) {
+        Text(
+            stringResource(
+                if (discrepancy.delta.signum() < 0) R.string.txn_detail_add_untracked_expense
+                else R.string.txn_detail_add_untracked_income,
+                CurrencyFormatter.formatCurrency(discrepancy.delta.abs(), discrepancy.currency)
+            )
+        )
+    }
+}
+
+/** A leg's account: its last four digits masked, or the bank name when it has no number. */
+private fun maskedLeg(account: String, bank: String?): String = when {
+    account.isBlank() -> bank ?: account
+    account.length > 4 -> "••" + account.takeLast(4)
+    else -> account
+}
+
+@Composable
+private fun DetailIcon(icon: ImageVector, tint: Color = MaterialTheme.colorScheme.onSurfaceVariant) {
+    Icon(
+        icon,
+        contentDescription = null,
+        modifier = Modifier.size(Dimensions.Icon.medium),
+        tint = tint
+    )
+}
+
+/** Label on the left, its value right-aligned. */
+@Composable
+private fun DetailValueRow(
+    position: ListItemPosition,
     icon: ImageVector,
     label: String,
     value: String
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Spacing.xs, vertical = Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(12.dp)
-    ) {
-        Icon(
-            icon,
-            contentDescription = null,
-            modifier = Modifier.size(Dimensions.Icon.medium),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
+    GroupedRow(position = position) {
+        DetailIcon(icon)
         Text(
             text = label,
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+            style = MaterialTheme.typography.bodyLarge
         )
-        Spacer(modifier = Modifier.weight(1f))
         Text(
             text = value,
             style = MaterialTheme.typography.bodyMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface
+            fontWeight = FontWeight.Medium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.End,
+            modifier = Modifier.weight(1f)
         )
     }
 }
 
+/** The category's name on a wash of its colour, with a dropdown chevron. */
 @Composable
-private fun TransferFlowRow(
+private fun CategoryDropdownChip(text: String, color: Color) {
+    Surface(
+        shape = CircleShape,
+        color = color.copy(alpha = Dimensions.Alpha.categoryTint),
+        contentColor = color,
+        modifier = Modifier.heightIn(min = Dimensions.Component.chipHeight)
+    ) {
+        Row(
+            modifier = Modifier.padding(start = Spacing.smd, end = Spacing.sm, top = Spacing.xs, bottom = Spacing.xs),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+        ) {
+            Text(
+                text = text,
+                style = MaterialTheme.typography.labelLarge,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+            Icon(
+                Icons.Default.ExpandMore,
+                contentDescription = stringResource(R.string.txn_list_change_category),
+                modifier = Modifier.size(Dimensions.Icon.inline)
+            )
+        }
+    }
+}
+
+/** The owl beside a short line, on a tonal card. */
+@Composable
+private fun MascotNote(
+    text: String,
+    mood: MascotMood,
+    containerColor: Color,
+    contentColor: Color,
+    actions: (@Composable RowScope.() -> Unit)? = null
+) {
+    Surface(
+        shape = MaterialTheme.shapes.extraLarge,
+        color = containerColor,
+        contentColor = contentColor,
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(Spacing.md),
+            verticalArrangement = Arrangement.spacedBy(Spacing.smd)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.smd)
+            ) {
+                Mascot(size = Dimensions.Icon.avatarLarge, mood = mood)
+                Text(
+                    text = text,
+                    style = MaterialTheme.typography.bodyMedium,
+                    fontWeight = FontWeight.Medium,
+                    modifier = Modifier.weight(1f)
+                )
+            }
+            if (actions != null) {
+                Row(
+                    modifier = Modifier.padding(start = Dimensions.Icon.avatarLarge + Spacing.smd),
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    content = actions
+                )
+            }
+        }
+    }
+}
+
+/** "Always put X in Y?" after a category pick: Remember / Not now. */
+@Composable
+private fun RuleSuggestionCard(text: String, onCreate: () -> Unit, onDismiss: () -> Unit) {
+    MascotNote(
+        text = text,
+        mood = MascotMood.Happy,
+        containerColor = MaterialTheme.colorScheme.primaryContainer,
+        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+    ) {
+        Button(onClick = onCreate, shapes = ButtonDefaults.shapes()) {
+            Text(stringResource(R.string.txn_detail_remember))
+        }
+        TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+            Text(stringResource(R.string.txn_detail_remember_not_now))
+        }
+    }
+}
+
+@Composable
+private fun RowScope.TransferFlowRow(
     fromValue: String,
     toValue: String
 ) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .padding(horizontal = Spacing.xs, vertical = Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-    ) {
-        Icon(
-            Icons.Default.SwapHoriz,
-            contentDescription = null,
-            modifier = Modifier.size(Dimensions.Icon.medium),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Surface(
-            shape = RoundedCornerShape(8.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant,
-            tonalElevation = 1.dp
-        ) {
-            Text(
-                text = fromValue,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = Spacing.sm)
-            )
-        }
-
-        Icon(
-            Icons.AutoMirrored.Filled.ArrowForward,
-            contentDescription = null,
-            modifier = Modifier.size(Dimensions.Icon.small),
-            tint = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-
-        Surface(
-            shape = RoundedCornerShape(8.dp),
-            color = MaterialTheme.colorScheme.surfaceVariant,
-            tonalElevation = 1.dp
-        ) {
-            Text(
-                text = toValue,
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = Spacing.sm)
-            )
-        }
-    }
+    DetailIcon(Icons.Default.SwapHoriz)
+    Text(
+        text = fromValue,
+        style = MaterialTheme.typography.bodyLarge,
+        fontWeight = FontWeight.Medium,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier.weight(1f, fill = false)
+    )
+    Icon(
+        Icons.AutoMirrored.Filled.ArrowForward,
+        contentDescription = null,
+        modifier = Modifier.size(Dimensions.Icon.small),
+        tint = MaterialTheme.colorScheme.onSurfaceVariant
+    )
+    Text(
+        text = toValue,
+        style = MaterialTheme.typography.bodyLarge,
+        fontWeight = FontWeight.Medium,
+        maxLines = 1,
+        overflow = TextOverflow.Ellipsis,
+        modifier = Modifier.weight(1f, fill = false)
+    )
 }
 
+/** "Original SMS" as a row that opens onto the message in a mono, inset block. */
 @Composable
-private fun ExpandableSmsSection(smsBody: String) {
-    var expanded by remember { mutableStateOf(false) }
-
-    OutlinedCard(
-        modifier = Modifier.fillMaxWidth(),
-        shape = RoundedCornerShape(12.dp),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant)
-    ) {
-        Column {
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { expanded = !expanded }
-                    .padding(horizontal = Spacing.md, vertical = Spacing.sm),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+private fun OriginalSmsSection(smsBody: String) {
+    var expanded by rememberSaveable { mutableStateOf(false) }
+    GroupedList {
+        GroupedRow(
+            position = if (expanded) ListItemPosition.Top else ListItemPosition.Single,
+            onClick = { expanded = !expanded }
+        ) {
+            DetailIcon(Icons.AutoMirrored.Outlined.Chat)
+            Text(
+                stringResource(R.string.txn_detail_original_sms),
+                style = MaterialTheme.typography.bodyLarge,
+                modifier = Modifier.weight(1f)
+            )
+            Icon(
+                if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                contentDescription = stringResource(if (expanded) R.string.txn_detail_sms_hide else R.string.txn_detail_sms_show),
+                tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier.size(Dimensions.Icon.medium)
+            )
+        }
+        AnimatedVisibility(
+            visible = expanded,
+            enter = pwExpand(),
+            exit = pwCollapse()
+        ) {
+            GroupedColumn(position = ListItemPosition.Bottom) {
+                Surface(
+                    shape = MaterialTheme.shapes.large,
+                    color = MaterialTheme.colorScheme.surfaceContainerHigh,
+                    modifier = Modifier.fillMaxWidth()
                 ) {
-                    Icon(
-                        Icons.AutoMirrored.Filled.Chat,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(Dimensions.Icon.small)
-                    )
                     Text(
-                        text = if (expanded) stringResource(R.string.txn_detail_sms_hide) else stringResource(R.string.txn_detail_sms_show),
-                        style = MaterialTheme.typography.labelLarge,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        text = CurrencyFormatter.maskAmountsIn(smsBody),
+                        style = MaterialTheme.typography.bodySmall.copy(fontFamily = FontFamily.Monospace),
+                        modifier = Modifier.padding(Spacing.smd)
                     )
                 }
-                Icon(
-                    if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(Dimensions.Icon.medium)
-                )
-            }
-
-            AnimatedVisibility(
-                visible = expanded,
-                enter = pwExpand(),
-                exit = pwCollapse()
-            ) {
-                Text(
-                    text = CurrencyFormatter.maskAmountsIn(smsBody),
-                    style = MaterialTheme.typography.bodySmall.copy(
-                        fontFamily = FontFamily.Monospace
-                    ),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = Spacing.md, end = Spacing.md, bottom = Spacing.md)
-                )
             }
         }
     }
 }
+
+/** Caps the inline receipt preview; the full image opens on tap. */
+private val RECEIPT_PREVIEW_MAX_HEIGHT = Dimensions.Component.dialogListMaxHeight / 2
 
 /**
  * How a loan-linked row divides: the part on the loan and the part that counts

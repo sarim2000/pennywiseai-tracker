@@ -33,18 +33,15 @@ import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.yellow_dark
-import com.pennywiseai.tracker.utils.AppDates
-import java.time.LocalDate
 import java.time.LocalTime
-import java.time.temporal.ChronoUnit
 
 @Composable
 fun GreetingCard(
@@ -64,34 +61,19 @@ fun GreetingCard(
     onProfileSelected: (Long?) -> Unit = {},
     isProEntitled: Boolean = false,
     onUpgradeClick: () -> Unit = {},
-    // The last day of the user's current budget cycle. When null, the
-    // subtitle falls back to the calendar month's end. The "X days left in
-    // <month>" line then tracks the cycle (e.g. "4 days left in October" on
-    // Oct 20 with startDay=25, where the cycle ends Oct 24).
-    cycleEnd: LocalDate? = null,
     /** A line under the name, e.g. when SMS were last read. */
     status: (@Composable () -> Unit)? = null,
 ) {
-    val today = LocalDate.now()
-    val (daysLeft, hour) = remember(today, cycleEnd) {
-        // Prefer the cycle's end over the calendar month's end so the
-        // "X days left" hint lines up with the budget / spending windows.
-        val lastDay = cycleEnd ?: today.withDayOfMonth(today.lengthOfMonth())
-        ChronoUnit.DAYS.between(today, lastDay).toInt() to LocalTime.now().hour
-    }
-    val monthName = today.month.getDisplayName(java.time.format.TextStyle.FULL, AppDates.locale())
-    val subtitle = when {
-        daysLeft == 0 -> stringResource(R.string.greeting_last_day_of_month, monthName)
-        daysLeft <= 7 -> pluralStringResource(R.plurals.greeting_days_left_in_month, daysLeft, daysLeft, monthName)
-        else -> stringResource(
-            when (hour) {
-                in 5..11 -> R.string.greeting_good_morning
-                in 12..16 -> R.string.greeting_good_afternoon
-                in 17..21 -> R.string.greeting_good_evening
-                else -> R.string.greeting_good_night
-            }
-        )
-    }
+    // Time of day only: the hero card's chips carry "11 days left".
+    val hour = remember { LocalTime.now().hour }
+    val greeting = stringResource(
+        when (hour) {
+            in 5..11 -> R.string.greeting_good_morning
+            in 12..16 -> R.string.greeting_good_afternoon
+            in 17..21 -> R.string.greeting_good_evening
+            else -> R.string.greeting_good_night
+        }
+    )
 
     Column(
         modifier = modifier
@@ -103,15 +85,15 @@ fun GreetingCard(
             // Greeting over a big name: the Expressive header every tab shares.
             Column(modifier = Modifier.weight(1f)) {
                 Text(
-                    text = subtitle,
-                    style = MaterialTheme.typography.titleSmall,
+                    text = greeting,
+                    style = MaterialTheme.typography.bodyLarge,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
                     text = userName.ifBlank { stringResource(R.string.greeting_default_user_name) },
-                    style = MaterialTheme.typography.headlineMediumEmphasized,
+                    style = MaterialTheme.typography.headlineLargeEmphasized,
                     color = MaterialTheme.colorScheme.onBackground,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
@@ -158,6 +140,7 @@ fun GreetingCard(
                 size = Dimensions.Icon.avatarLarge,
                 shape = cookie,
                 contentDescription = userName,
+                initialsStyle = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                 modifier = Modifier
                     .drawWithContent {
                         drawContent()

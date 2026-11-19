@@ -24,6 +24,7 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.Dp
 import coil3.compose.AsyncImage
@@ -77,6 +78,8 @@ fun ProfileAvatar(
     shape: Shape,
     modifier: Modifier = Modifier,
     contentDescription: String? = null,
+    /** The initials' style when there is no picture; a big avatar passes a bigger one. */
+    initialsStyle: TextStyle = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
 ) {
     Box(
         modifier = Modifier
@@ -108,7 +111,7 @@ fun ProfileAvatar(
                 }
                 Text(
                     text = initials,
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                    style = initialsStyle,
                     color = MaterialTheme.colorScheme.onPrimaryContainer,
                 )
             }

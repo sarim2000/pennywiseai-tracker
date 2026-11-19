@@ -1,30 +1,34 @@
 package com.pennywiseai.tracker.presentation.accounts
 
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.*
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
-import androidx.compose.material.icons.filled.Link
 import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.foundation.BorderStroke
+import androidx.compose.material.icons.filled.Link
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
-import com.pennywiseai.tracker.utils.CurrencyFormatter
-import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
-import com.pennywiseai.tracker.ui.theme.*
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
+import com.pennywiseai.tracker.ui.components.cards.toShape
+import com.pennywiseai.tracker.ui.theme.*
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 
 @Composable
 internal fun OrphanedCardItem(
     card: com.pennywiseai.tracker.data.database.entity.CardEntity,
     accounts: List<com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity>,
+    position: ListItemPosition = ListItemPosition.Single,
     onLinkToAccount: (String) -> Unit,
     onDeleteCard: (Long) -> Unit,
     onUpdateCard: (
@@ -36,70 +40,75 @@ internal fun OrphanedCardItem(
     var showLinkDialog by remember { mutableStateOf(false) }
     var showEditDialog by remember { mutableStateOf(false) }
     var expandedSource by remember { mutableStateOf(false) }
-    
-    Card(
+    val shape = position.toShape()
+
+    Surface(
         modifier = Modifier
             .fillMaxWidth()
+            .clip(shape)
             .clickable { expandedSource = !expandedSource },
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.surfaceVariant
-        )
+        shape = shape,
+        color = MaterialTheme.colorScheme.surfaceContainerLow
     ) {
-        Column(modifier = Modifier.padding(Dimensions.Padding.content)) {
+        Column(
+            modifier = Modifier.padding(Dimensions.Padding.card),
+            verticalArrangement = Arrangement.spacedBy(Spacing.smd)
+        ) {
             Row(
                 modifier = Modifier.fillMaxWidth(),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(
-                    imageVector = Icons.Default.CreditCard,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Column(modifier = Modifier.weight(1f)) {
+                AccountBadge(name = card.bankName, kind = AccountBadgeKind.CARD)
+                Column(
+                    modifier = Modifier.weight(1f),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.xxs)
+                ) {
                     Text(
                         text = "${card.bankName} ••${card.cardLast4}",
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium
+                        style = PennyWiseText.rowTitle,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
                     )
                     Text(
                         text = if (card.cardType == com.pennywiseai.tracker.data.database.entity.CardType.CREDIT) stringResource(R.string.manage_accounts_unlinked_credit_card) else stringResource(R.string.manage_accounts_unlinked_debit_card),
-                        style = MaterialTheme.typography.bodySmall,
+                        style = PennyWiseText.rowSubtitle,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     // Show last known balance if available
                     if (card.lastBalance != null) {
                         Text(
                             text = stringResource(R.string.manage_accounts_last_balance, CurrencyFormatter.formatCurrency(card.lastBalance, card.currency)),
-                            style = MaterialTheme.typography.bodySmall,
+                            style = PennyWiseText.metadata,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                    // Show source SMS that triggered card detection
-                    if (card.lastBalanceSource != null) {
-                        Text(
-                            text = if (expandedSource) {
-                                stringResource(R.string.manage_accounts_card_sms, card.lastBalanceSource)
-                            } else {
-                                stringResource(R.string.manage_accounts_card_sms_truncated, card.lastBalanceSource.take(80))
-                            },
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = if (expandedSource) Int.MAX_VALUE else 2,
-                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(Spacing.sm))
+            // Show source SMS that triggered card detection
+            if (card.lastBalanceSource != null) {
+                Text(
+                    text = if (expandedSource) {
+                        stringResource(R.string.manage_accounts_card_sms, card.lastBalanceSource)
+                    } else {
+                        stringResource(R.string.manage_accounts_card_sms_truncated, card.lastBalanceSource.take(80))
+                    },
+                    style = PennyWiseText.metadata,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = if (expandedSource) Int.MAX_VALUE else 2,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.padding(start = AccountRowIndent)
+                )
+            }
 
             Row(
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(start = AccountRowIndent),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
-                OutlinedButton(
-                    modifier = Modifier.weight(1f),
+                FilledTonalButton(
                     onClick = { showLinkDialog = true },
                     shapes = ButtonDefaults.shapes()
                 ) {
@@ -112,40 +121,25 @@ internal fun OrphanedCardItem(
                     Text(stringResource(R.string.manage_accounts_action_link))
                 }
 
-                OutlinedButton(
-                    modifier = Modifier.weight(1f),
-                    onClick = { showEditDialog = true },
-                    shapes = ButtonDefaults.shapes()
-                ) {
+                IconButton(onClick = { showEditDialog = true }, shapes = IconButtonDefaults.shapes()) {
                     Icon(
                         Icons.Default.Edit,
-                        contentDescription = null,
-                        modifier = Modifier.size(Dimensions.Icon.small)
+                        contentDescription = stringResource(R.string.manage_accounts_action_edit),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant
                     )
-                    Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text(stringResource(R.string.manage_accounts_action_edit))
                 }
 
-                OutlinedButton(
-                    modifier = Modifier.weight(1f),
-                    onClick = { onDeleteCard(card.id) },
-                    colors = ButtonDefaults.outlinedButtonColors(
-                        contentColor = MaterialTheme.colorScheme.error
-                    ),
-                    shapes = ButtonDefaults.shapes()
-                ) {
+                IconButton(onClick = { onDeleteCard(card.id) }, shapes = IconButtonDefaults.shapes()) {
                     Icon(
                         Icons.Default.Delete,
-                        contentDescription = null,
-                        modifier = Modifier.size(Dimensions.Icon.small)
+                        contentDescription = stringResource(R.string.accounts_action_delete),
+                        tint = MaterialTheme.colorScheme.error
                     )
-                    Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text(stringResource(R.string.accounts_action_delete))
                 }
             }
         }
     }
-    
+
     if (showLinkDialog) {
         LinkCardDialog(
             card = card,
@@ -261,7 +255,7 @@ private fun LinkCardDialog(
     onConfirm: (String) -> Unit
 ) {
     var selectedAccount by remember { mutableStateOf<String?>(null) }
-    
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {

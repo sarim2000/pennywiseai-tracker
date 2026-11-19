@@ -2,11 +2,13 @@ package com.pennywiseai.tracker.presentation.transactions
 
 import android.view.HapticFeedbackConstants
 import androidx.activity.compose.BackHandler
+import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.ExperimentalFoundationApi
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyItemScope
@@ -35,6 +37,8 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
@@ -43,6 +47,8 @@ import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.chipLabel
 import com.pennywiseai.tracker.presentation.common.label
+import com.pennywiseai.tracker.ui.animations.pwCollapse
+import com.pennywiseai.tracker.ui.animations.pwExpand
 import com.pennywiseai.tracker.ui.components.*
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
@@ -55,6 +61,7 @@ import com.pennywiseai.tracker.utils.DateRangeUtils
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
+import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
@@ -173,13 +180,16 @@ fun TransactionsScreen(
     val listState = rememberSaveable(saver = LazyListState.Saver) {
         LazyListState()
     }
-    val collapseThresholdPx = with(density) { 48.dp.roundToPx() }
-    val collapseTransactionHeader by remember(collapseThresholdPx) {
-        derivedStateOf {
-            listState.firstVisibleItemIndex > 0 ||
-                listState.firstVisibleItemScrollOffset > collapseThresholdPx
-        }
-    }
+    // Filters other than search, type and period: behind the search field's tune button.
+    val hasAdvancedFilter = categoryFilter != null ||
+        categoriesFilter != null ||
+        selectedProfileId != null ||
+        accountFilter != null ||
+        tagFilter != null ||
+        sortOption != SortOption.DATE_NEWEST
+    var showAdvancedFilters by rememberSaveable { mutableStateOf(hasAdvancedFilter) }
+    // A drill-in (Insights, a budget) applies its filter after the first frame: open the panel then.
+    LaunchedEffect(hasAdvancedFilter) { if (hasAdvancedFilter) showAdvancedFilters = true }
 
     // Cache expensive operations
     val timePeriods = remember { TimePeriod.values().toList() }
@@ -189,6 +199,21 @@ fun TransactionsScreen(
     val periodLabel = selectedPeriod.label
     val periodChipLabel = remember(selectedPeriod, budgetCycleStartDay, customRangeLabel, periodLabel) {
         selectedPeriod.chipLabel(budgetCycleStartDay, customRangeLabel, periodLabel)
+    }
+    // "November" over the title while it shows this calendar month; the period otherwise.
+    // Re-read on every resume, so "Today" moves on when the app is reopened after midnight.
+    var today by remember { mutableStateOf(LocalDate.now()) }
+    LifecycleEventEffect(Lifecycle.Event.ON_RESUME) { today = LocalDate.now() }
+    val isCalendarMonth = selectedPeriod == TimePeriod.THIS_MONTH && budgetCycleStartDay == 1
+    val headerOverline = if (isCalendarMonth) {
+        today.month.getDisplayName(java.time.format.TextStyle.FULL_STANDALONE, AppDates.locale())
+    } else {
+        periodChipLabel
+    }
+    val spentLabel = if (isCalendarMonth) {
+        stringResource(R.string.txn_list_spent_in, today.month.getDisplayName(java.time.format.TextStyle.SHORT_STANDALONE, AppDates.locale()))
+    } else {
+        stringResource(R.string.txn_list_spent)
     }
 
     // Apply initial filters only once when screen is first created
@@ -344,9 +369,9 @@ fun TransactionsScreen(
                     scrollBehaviorSmall = scrollBehaviorSmall,
                     scrollBehaviorLarge = scrollBehaviorLarge,
                     title = stringResource(R.string.nav_transactions),
-                    // The period chip row hides once the list scrolls; this keeps
-                    // the active period readable in the collapsed bar.
-                    subtitle = periodChipLabel,
+                    // The period chip scrolls away with the list; this keeps the
+                    // active period readable above the title.
+                    overline = headerOverline,
                     hasBackButton = showBackButton,
                     navigationContent = {
                         IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
@@ -414,314 +439,267 @@ fun TransactionsScreen(
             }
         }
     ) { paddingValues ->
+        val sections = remember(uiState.transactions, sortOption) { daySections(uiState.transactions, sortOption) }
+        val displayCurrency = if (isUnifiedMode) selectedCurrency else null
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .hazeSource(hazeState)
                 .padding(top = paddingValues.calculateTopPadding())
         ) {
-            TransactionFilterHeader(
-                searchQuery = searchQuery,
+            ActivitySearchField(
+                query = searchQuery,
+                onQueryChange = viewModel::updateSearchQuery,
                 categoryFilter = categoryFilter,
-                selectedPeriod = selectedPeriod,
-                customRangeLabel = customRangeLabel,
-                periodChipLabel = periodChipLabel,
-                transactionTypeFilter = transactionTypeFilter,
-                categoryLabel = categoryFilterLabel(categoryFilter, categoriesFilter, availableCategories),
-                hasCategoryFilter = categoryFilter != null || categoriesFilter != null,
-                selectedCategories = categoriesFilter?.toSet()
-                    ?: categoryFilter?.let { setOf(it) }
-                    ?: availableCategories.toSet(),
-                onCategoryToggled = { viewModel.toggleCategory(it, availableCategories) },
-                selectedProfileName = profiles.firstOrNull { it.id == selectedProfileId }?.displayName() ?: stringResource(R.string.txn_list_filter_profile),
-                hasProfileFilter = selectedProfileId != null,
-                hasAnyActiveFilter = hasAnyActiveFilter,
-                showSortMenu = showSortMenu,
-                showPeriodMenu = showPeriodMenu,
-                showTypeMenu = showTypeMenu,
-                showMoreFiltersMenu = showMoreFiltersMenu,
-                showAccountMenu = showAccountMenu,
-                showTagMenu = showTagMenu,
-                collapsed = collapseTransactionHeader && !showPeriodMenu && !showTypeMenu && !showMoreFiltersMenu && !showAccountMenu && !showTagMenu,
-                sortOption = sortOption,
-                timePeriods = timePeriods,
-                availableCategories = availableCategories,
-                profiles = profiles,
-                selectedProfileId = selectedProfileId,
-                accountOptions = accountOptions,
-                accountFilter = accountFilter,
-                availableTags = availableTags,
-                tagFilter = tagFilter,
-                onSearchQueryChange = viewModel::updateSearchQuery,
-                onSortClick = { showSortMenu = true },
-                onSortDismiss = { showSortMenu = false },
-                onSortSelected = { option ->
-                    viewModel.setSortOption(option)
-                    showSortMenu = false
-                },
-                onPeriodClick = { showPeriodMenu = true },
-                onPeriodDismiss = { showPeriodMenu = false },
-                onPeriodSelected = { period ->
-                    if (period == TimePeriod.CUSTOM) {
-                        showDateRangePicker = true
-                    } else {
-                        viewModel.selectPeriod(period)
-                    }
-                    showPeriodMenu = false
-                },
-                onTypeClick = { showTypeMenu = true },
-                onTypeDismiss = { showTypeMenu = false },
-                onTransactionTypeSelected = { typeFilter ->
-                    view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                    viewModel.setTransactionTypeFilter(typeFilter)
-                    showTypeMenu = false
-                },
-                onMoreFiltersClick = { showMoreFiltersMenu = true },
-                onMoreFiltersDismiss = { showMoreFiltersMenu = false },
-                onCategorySelected = { category ->
-                    if (category == null) {
-                        // "All categories" clears both the single and the ticked-list filter
-                        viewModel.clearCategoryFilter()
-                        viewModel.clearCategoriesFilter()
-                    } else {
-                        viewModel.setCategoryFilter(category)
-                    }
-                    showMoreFiltersMenu = false
-                },
-                onProfileSelected = { profileId ->
-                    view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                    viewModel.setSelectedProfile(profileId)
-                    showMoreFiltersMenu = false
-                },
-                onAccountClick = { showAccountMenu = true },
-                onAccountDismiss = { showAccountMenu = false },
-                onAccountSelected = { accountKey ->
-                    view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                    viewModel.setAccountFilter(accountKey)
-                    showAccountMenu = false
-                },
-                onTagClick = { showTagMenu = true },
-                onTagDismiss = { showTagMenu = false },
-                onTagSelected = { tag ->
-                    view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                    viewModel.setTagFilter(tag)
-                    showTagMenu = false
-                },
-                onResetFilters = viewModel::resetFilters,
                 focusRequester = searchFocusRequester,
+                filtersOpen = showAdvancedFilters,
+                hasAdvancedFilter = hasAdvancedFilter,
+                onToggleFilters = { showAdvancedFilters = !showAdvancedFilters },
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = Dimensions.Padding.content)
-                    .padding(top = Spacing.sm)
+                    .padding(top = Spacing.sm, bottom = Spacing.smd)
             )
 
-            // Transaction List
-            when {
-                uiState.isLoading -> {
-                    LazyColumn(
-                        modifier = Modifier.fillMaxSize(),
-                        contentPadding = PaddingValues(
-                            start = Dimensions.Padding.content,
-                            end = Dimensions.Padding.content,
-                            top = Spacing.md,
-                            bottom = paddingValues.calculateBottomPadding() + bottomBarClearance
-                        ),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
-                    ) {
-                        item {
-                            TransactionTotalsCard(
-                                income = filteredTotals.income,
-                                expenses = filteredTotals.expenses,
-                                netBalance = filteredTotals.netBalance,
-                                currency = selectedCurrency,
-                                availableCurrencies = availableCurrencies,
-                                onCurrencySelected = { viewModel.selectCurrency(it) },
-                                isUnifiedMode = isUnifiedMode,
-                                isLoading = true,
-                                modifier = Modifier.padding(bottom = Spacing.sm)
-                            )
-                        }
-                        items(8) {
-                            TransactionItemSkeleton()
-                        }
-                    }
-                }
-                uiState.transactions.isEmpty() -> {
-                    EmptyTransactionsState(
-                        searchQuery = searchQuery,
+            LazyColumn(
+                state = listState,
+                modifier = Modifier.fillMaxSize().overScrollVertical(),
+                contentPadding = PaddingValues(
+                    bottom = paddingValues.calculateBottomPadding() + bottomBarClearance + Spacing.Layout.scrollBottomPadding
+                ),
+                flingBehavior = rememberOverscrollFlingBehavior { listState }
+            ) {
+                item(key = "quickFilters", contentType = "quickFilters") {
+                    ActivityQuickFilters(
+                        transactionTypeFilter = transactionTypeFilter,
+                        onTransactionTypeSelected = { typeFilter ->
+                            view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                            viewModel.setTransactionTypeFilter(typeFilter)
+                        },
+                        periodChipLabel = periodChipLabel,
                         selectedPeriod = selectedPeriod,
-                        onAddClick = onAddTransactionClick
+                        timePeriods = timePeriods,
+                        showPeriodMenu = showPeriodMenu,
+                        onPeriodClick = { showPeriodMenu = true },
+                        onPeriodDismiss = { showPeriodMenu = false },
+                        onPeriodSelected = { period ->
+                            if (period == TimePeriod.CUSTOM) {
+                                showDateRangePicker = true
+                            } else {
+                                viewModel.selectPeriod(period)
+                            }
+                            showPeriodMenu = false
+                        },
+                        currencyPicker = if (availableCurrencies.size > 1 && !isUnifiedMode) {
+                            {
+                                CurrencyPickerPill(
+                                    selectedCurrency = selectedCurrency,
+                                    availableCurrencies = availableCurrencies,
+                                    onCurrencySelected = { viewModel.selectCurrency(it) }
+                                )
+                            }
+                        } else {
+                            null
+                        }
                     )
                 }
-                else -> {
-                    LazyColumn(
-                        state = listState,
-                        modifier = Modifier.fillMaxSize().overScrollVertical(),
-                        contentPadding = PaddingValues(
-                            start = Dimensions.Padding.content,
-                            end = Dimensions.Padding.content,
-                            top = Spacing.md,
-                            bottom = paddingValues.calculateBottomPadding() + bottomBarClearance
-                        ),
-                        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap),
-                        flingBehavior = rememberOverscrollFlingBehavior { listState }
+
+                item(key = "advancedFilters", contentType = "advancedFilters") {
+                    AnimatedVisibility(
+                        visible = showAdvancedFilters,
+                        enter = pwExpand(),
+                        exit = pwCollapse()
                     ) {
-                        stickyHeader(contentType = "totals") {
-                            Surface(
-                                // Match the Scaffold's `background` so AMOLED-style
-                                // themes (true-black bg + tinted surface) don't paint
-                                // a visible slab behind the sticky totals card.
-                                color = MaterialTheme.colorScheme.background,
-                                modifier = Modifier.fillMaxWidth()
+                        ActivityAdvancedFilters(
+                            transactionTypeFilter = transactionTypeFilter,
+                            categoryLabel = categoryFilterLabel(categoryFilter, categoriesFilter, availableCategories),
+                            hasCategoryFilter = categoryFilter != null || categoriesFilter != null,
+                            selectedCategories = categoriesFilter?.toSet()
+                                ?: categoryFilter?.let { setOf(it) }
+                                ?: availableCategories.toSet(),
+                            onCategoryToggled = { viewModel.toggleCategory(it, availableCategories) },
+                            selectedProfileName = profiles.firstOrNull { it.id == selectedProfileId }?.displayName() ?: stringResource(R.string.txn_list_filter_profile),
+                            hasProfileFilter = selectedProfileId != null,
+                            hasAnyActiveFilter = hasAnyActiveFilter,
+                            showSortMenu = showSortMenu,
+                            showTypeMenu = showTypeMenu,
+                            showMoreFiltersMenu = showMoreFiltersMenu,
+                            showAccountMenu = showAccountMenu,
+                            showTagMenu = showTagMenu,
+                            sortOption = sortOption,
+                            availableCategories = availableCategories,
+                            profiles = profiles,
+                            selectedProfileId = selectedProfileId,
+                            accountOptions = accountOptions,
+                            accountFilter = accountFilter,
+                            availableTags = availableTags,
+                            tagFilter = tagFilter,
+                            onSortClick = { showSortMenu = true },
+                            onSortDismiss = { showSortMenu = false },
+                            onSortSelected = { option ->
+                                viewModel.setSortOption(option)
+                                showSortMenu = false
+                            },
+                            onTypeClick = { showTypeMenu = true },
+                            onTypeDismiss = { showTypeMenu = false },
+                            onTransactionTypeSelected = { typeFilter ->
+                                view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                                viewModel.setTransactionTypeFilter(typeFilter)
+                                showTypeMenu = false
+                            },
+                            onMoreFiltersClick = { showMoreFiltersMenu = true },
+                            onMoreFiltersDismiss = { showMoreFiltersMenu = false },
+                            onCategorySelected = { category ->
+                                if (category == null) {
+                                    // "All categories" clears both the single and the ticked-list filter
+                                    viewModel.clearCategoryFilter()
+                                    viewModel.clearCategoriesFilter()
+                                } else {
+                                    viewModel.setCategoryFilter(category)
+                                }
+                                showMoreFiltersMenu = false
+                            },
+                            onProfileSelected = { profileId ->
+                                view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                                viewModel.setSelectedProfile(profileId)
+                                showMoreFiltersMenu = false
+                            },
+                            onAccountClick = { showAccountMenu = true },
+                            onAccountDismiss = { showAccountMenu = false },
+                            onAccountSelected = { accountKey ->
+                                view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                                viewModel.setAccountFilter(accountKey)
+                                showAccountMenu = false
+                            },
+                            onTagClick = { showTagMenu = true },
+                            onTagDismiss = { showTagMenu = false },
+                            onTagSelected = { tag ->
+                                view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+                                viewModel.setTagFilter(tag)
+                                showTagMenu = false
+                            },
+                            onResetFilters = viewModel::resetFilters,
+                            modifier = Modifier.padding(top = Spacing.sm)
+                        )
+                    }
+                }
+
+                // The summary tiles. In selection mode they total just the
+                // selected rows (#634) and stick, so the sum stays in view.
+                val summary: @Composable () -> Unit = {
+                    val cardTotals = if (selectionMode) selectionTotals else filteredTotals
+                    ActivitySummaryTiles(
+                        totals = cardTotals,
+                        extra = extraTotalFor(cardTotals, transactionTypeFilter, selectionMode),
+                        // What's left of the picked rows, e.g. a salary less the rent (#634).
+                        showNet = selectionMode,
+                        currency = selectedCurrency,
+                        spentLabel = spentLabel,
+                        isLoading = uiState.isLoading,
+                        modifier = Modifier
+                            .background(MaterialTheme.colorScheme.background)
+                            .padding(horizontal = Dimensions.Padding.content)
+                            .padding(top = Spacing.smd, bottom = Spacing.xs)
+                    )
+                }
+                if (selectionMode) {
+                    stickyHeader(key = "summary", contentType = "summary") { summary() }
+                } else {
+                    item(key = "summary", contentType = "summary") { summary() }
+                }
+
+                // Show info banner when viewing budget transactions
+                if (categoriesFromBudget) {
+                    item(key = "budgetNotice", contentType = "budgetNotice") {
+                        Surface(
+                            color = MaterialTheme.colorScheme.secondaryContainer,
+                            shape = MaterialTheme.shapes.medium,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = Dimensions.Padding.content)
+                                .padding(top = Spacing.sm)
+                        ) {
+                            Row(
+                                modifier = Modifier.padding(Spacing.smd),
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
-                                // In selection mode the sticky card shows the totals of
-                                // just the selected rows (#634); otherwise the filtered-list
-                                // totals. The fourth tile is picked by [extraTotalFor].
-                                val cardTotals = if (selectionMode) selectionTotals else filteredTotals
-                                TransactionTotalsCard(
-                                    income = cardTotals.income,
-                                    expenses = cardTotals.expenses,
-                                    netBalance = cardTotals.netBalance,
-                                    extra = extraTotalFor(cardTotals, transactionTypeFilter, selectionMode),
-                                    title = if (selectionMode) {
-                                        stringResource(R.string.txn_list_selected_count, selectedIds.size)
-                                    } else {
-                                        null
-                                    },
-                                    currency = selectedCurrency,
-                                    availableCurrencies = availableCurrencies,
-                                    onCurrencySelected = { viewModel.selectCurrency(it) },
-                                    isUnifiedMode = isUnifiedMode,
-                                    isLoading = uiState.isLoading,
-                                    modifier = Modifier.padding(bottom = Spacing.sm)
+                                Icon(
+                                    imageVector = Icons.Default.Info,
+                                    contentDescription = null,
+                                    modifier = Modifier.size(Dimensions.Icon.small),
+                                    tint = MaterialTheme.colorScheme.onSecondaryContainer
+                                )
+                                Text(
+                                    text = stringResource(R.string.txn_list_budget_split_notice),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer
                                 )
                             }
                         }
+                    }
+                }
 
-                        // Show info banner when viewing budget transactions
-                        if (categoriesFromBudget) {
-                            item(contentType = "budgetNotice") {
-                                Surface(
-                                    color = MaterialTheme.colorScheme.secondaryContainer,
-                                    shape = MaterialTheme.shapes.small,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(bottom = Spacing.sm)
-                                ) {
-                                    Row(
-                                        modifier = Modifier.padding(Spacing.sm),
-                                        horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Info,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(Dimensions.Icon.small),
-                                            tint = MaterialTheme.colorScheme.onSecondaryContainer
-                                        )
-                                        Text(
-                                            text = stringResource(R.string.txn_list_budget_split_notice),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSecondaryContainer
-                                        )
-                                    }
-                                }
-                            }
+                when {
+                    uiState.isLoading -> {
+                        item(key = "skeletonGap") { Spacer(Modifier.height(Spacing.md)) }
+                        items(8, contentType = { "skeleton" }) {
+                            TransactionItemSkeleton(
+                                modifier = Modifier
+                                    .padding(horizontal = Dimensions.Padding.content)
+                                    .padding(bottom = Spacing.Layout.groupedListGap)
+                            )
                         }
-
-                        // Iterate through date groups in order
-                        listOf(
-                            DateGroup.TODAY,
-                            DateGroup.YESTERDAY,
-                            DateGroup.THIS_WEEK,
-                            DateGroup.EARLIER
-                        ).forEach { dateGroup ->
-                            uiState.groupedTransactions[dateGroup]?.let { transactions ->
-                                // Date group header
-                                val headerContent: @Composable LazyItemScope.(Int) -> Unit = { _ ->
-                                    TransactionDateHeader(title = stringResource(dateGroup.labelRes))
-                                }
-                                stickyHeader(contentType = "dateHeader", content = headerContent)
-
-                                // Transactions in this group
-                                itemsIndexed(
-                                    items = transactions,
-                                    key = { _, transaction -> transaction.id },
-                                    contentType = { _, _ -> "transaction" }
-                                ) { index, transaction ->
-                                    val isSelected = transaction.id in selectedIds
-                                    // Selected highlight via the Card's container colour — the prior
-                                    // Modifier.background on a wrapping Box was painted *under* the
-                                    // Card and was completely covered by the Card's own surface, so
-                                    // selection had no visible effect.
-                                    val rowContainerColor = if (isSelected)
-                                        MaterialTheme.colorScheme.primaryContainer
-                                    else null
-
-                                    // Long-press now lives on TransactionItem's own
-                                    // gesture surface (Material combinedClickable),
-                                    // which cooperates with the parent SwipeToDismissBox
-                                    // — fixes bulk-edit not firing in nested gesture
-                                    // contexts.
-                                    val longPressToggle = {
-                                        view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
-                                        viewModel.toggleSelection(transaction.id)
-                                    }
-                                    if (selectionMode) {
-                                        com.pennywiseai.tracker.ui.components.cards.TransactionItem(
-                                            modifier = Modifier.animateItem(),
-                                            transaction = transaction,
-                                            showDate = dateGroup == DateGroup.THIS_WEEK || dateGroup == DateGroup.EARLIER,
-                                            listItemPosition = ListItemPosition.from(index, transactions.size),
-                                            convertedAmount = convertedAmounts[transaction.id],
-                                            splitShare = uiState.splitShares?.shareOf(transaction),
-                                            displayCurrency = if (isUnifiedMode) selectedCurrency else null,
-                                            profileAccountKeys = profileAccountKeys,
-                                            onClick = { viewModel.toggleSelection(transaction.id) },
-                                            onLongClick = longPressToggle,
-                                            containerColor = rowContainerColor
-                                        )
-                                    } else {
-                                        Column(Modifier.animateItem()) {
-                                            SwipeToEditCategory(
-                                                transaction = transaction,
-                                                onRequestEdit = { pendingCategoryEditId = it.id }
-                                            ) {
-                                                com.pennywiseai.tracker.ui.components.cards.TransactionItem(
-                                                    transaction = transaction,
-                                                    showDate = dateGroup == DateGroup.THIS_WEEK || dateGroup == DateGroup.EARLIER,
-                                                    listItemPosition = ListItemPosition.from(index, transactions.size),
-                                                    convertedAmount = convertedAmounts[transaction.id],
-                                                    splitShare = uiState.splitShares?.shareOf(transaction),
-                                                    displayCurrency = if (isUnifiedMode) selectedCurrency else null,
-                                                    profileAccountKeys = profileAccountKeys,
-                                                    onClick = { onTransactionClick(transaction.id) },
-                                                    onLongClick = longPressToggle
-                                                )
-                                            }
-                                            // Self-transfer suggestion (#385): show the affordance on
-                                            // the EXPENSE row only so each pair surfaces once.
-                                            val partnerId = transferPartnerOf[transaction.id]
-                                            if (partnerId != null &&
-                                                transaction.transactionType == TransactionType.EXPENSE
-                                            ) {
-                                                AssistChip(
-                                                    onClick = { viewModel.markPairAsTransfer(transaction.id, partnerId) },
-                                                    label = { Text(stringResource(R.string.txn_list_mark_as_transfer)) },
-                                                    leadingIcon = {
-                                                        Icon(
-                                                            imageVector = Icons.Default.SwapHoriz,
-                                                            contentDescription = null,
-                                                            modifier = Modifier.size(Dimensions.Icon.small)
-                                                        )
-                                                    },
-                                                    modifier = Modifier.padding(start = Spacing.sm, top = Spacing.xs)
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
+                    }
+                    uiState.transactions.isEmpty() -> item(key = "empty", contentType = "empty") {
+                        EmptyTransactionsState(
+                            searchQuery = searchQuery,
+                            selectedPeriod = selectedPeriod,
+                            onAddClick = onAddTransactionClick
+                        )
+                    }
+                    else -> sections.forEach { section ->
+                        val day = section.date
+                        if (day != null) {
+                            stickyHeader(key = "day_$day", contentType = "dayHeader") {
+                                ActivityDayHeader(
+                                    title = dayTitle(day, today),
+                                    net = dayNet(section.rows, uiState.splitShares, convertedAmounts, displayCurrency),
+                                    modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                                )
                             }
+                        } else {
+                            item(key = "sortedGap") { Spacer(Modifier.height(Spacing.md)) }
+                        }
+                        itemsIndexed(
+                            items = section.rows,
+                            key = { _, transaction -> transaction.id },
+                            contentType = { _, _ -> "transaction" }
+                        ) { index, transaction ->
+                            ActivityRow(
+                                transaction = transaction,
+                                position = ListItemPosition.from(index, section.rows.size),
+                                showDate = day == null,
+                                selectionMode = selectionMode,
+                                isSelected = transaction.id in selectedIds,
+                                convertedAmount = convertedAmounts[transaction.id],
+                                splitShare = uiState.splitShares?.shareOf(transaction),
+                                displayCurrency = displayCurrency,
+                                profileAccountKeys = profileAccountKeys,
+                                transferPartnerId = transferPartnerOf[transaction.id],
+                                onOpen = { onTransactionClick(transaction.id) },
+                                onToggleSelection = { viewModel.toggleSelection(transaction.id) },
+                                onLongPress = {
+                                    view.performHapticFeedback(HapticFeedbackConstants.LONG_PRESS)
+                                    viewModel.toggleSelection(transaction.id)
+                                },
+                                onRequestCategoryEdit = { pendingCategoryEditId = it.id },
+                                onMarkAsTransfer = { partnerId -> viewModel.markPairAsTransfer(transaction.id, partnerId) },
+                                modifier = Modifier
+                                    .animateItem()
+                                    .padding(horizontal = Dimensions.Padding.content)
+                                    .padding(bottom = Spacing.Layout.groupedListGap)
+                            )
                         }
                     }
                 }
@@ -822,5 +800,69 @@ fun TransactionsScreen(
     // Hardware back exits selection mode instead of leaving the screen.
     BackHandler(enabled = selectionMode) {
         viewModel.clearSelection()
+    }
+}
+
+/**
+ * One Activity row: swipe left to change the category, long-press to start
+ * selecting; in selection mode a tap toggles it instead. A suggested self-transfer
+ * pair (#385) offers "Mark as transfer" under its expense leg only, so each
+ * pair surfaces once.
+ */
+@Composable
+private fun ActivityRow(
+    transaction: com.pennywiseai.tracker.data.database.entity.TransactionEntity,
+    position: ListItemPosition,
+    showDate: Boolean,
+    selectionMode: Boolean,
+    isSelected: Boolean,
+    convertedAmount: java.math.BigDecimal?,
+    splitShare: java.math.BigDecimal?,
+    displayCurrency: String?,
+    profileAccountKeys: Map<Long, Set<String>>,
+    transferPartnerId: Long?,
+    onOpen: () -> Unit,
+    onToggleSelection: () -> Unit,
+    onLongPress: () -> Unit,
+    onRequestCategoryEdit: (com.pennywiseai.tracker.data.database.entity.TransactionEntity) -> Unit,
+    onMarkAsTransfer: (Long) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val row: @Composable () -> Unit = {
+        com.pennywiseai.tracker.ui.components.cards.TransactionItem(
+            transaction = transaction,
+            showDate = showDate,
+            listItemPosition = position,
+            convertedAmount = convertedAmount,
+            splitShare = splitShare,
+            displayCurrency = displayCurrency,
+            profileAccountKeys = profileAccountKeys,
+            onClick = if (selectionMode) onToggleSelection else onOpen,
+            // Long-press lives on the row's own gesture surface, which cooperates
+            // with the swipe box around it (bulk-edit didn't fire when nested).
+            onLongClick = onLongPress,
+            containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else null
+        )
+    }
+    if (selectionMode) {
+        Box(modifier) { row() }
+        return
+    }
+    Column(modifier) {
+        SwipeToEditCategory(transaction = transaction, onRequestEdit = onRequestCategoryEdit) { row() }
+        if (transferPartnerId != null && transaction.transactionType == TransactionType.EXPENSE) {
+            AssistChip(
+                onClick = { onMarkAsTransfer(transferPartnerId) },
+                label = { Text(stringResource(R.string.txn_list_mark_as_transfer)) },
+                leadingIcon = {
+                    Icon(
+                        imageVector = Icons.Default.SwapHoriz,
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimensions.Icon.small)
+                    )
+                },
+                modifier = Modifier.padding(start = Spacing.sm, top = Spacing.xs)
+            )
+        }
     }
 }

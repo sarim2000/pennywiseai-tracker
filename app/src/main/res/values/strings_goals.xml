@@ -20,6 +20,11 @@
     <string name="goals_archived">Archived</string>
     <string name="goals_due_on">Due %1$s</string>
     <string name="goals_ring_description">%1$d%% saved</string>
+    <!-- Goal card in the Plan tab. %1$s = target amount, %2$s = due date -->
+    <string name="goals_card_target">Goal %1$s · by %2$s</string>
+    <!-- %1$s = amount -->
+    <string name="goals_card_saved">%1$s saved</string>
+    <string name="goals_card_to_go">%1$s to go</string>
     <plurals name="goals_months_left">
         <item quantity="one">%d month left</item>
         <item quantity="other">%d months left</item>

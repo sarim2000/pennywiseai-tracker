@@ -71,7 +71,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.preferences.AccentColor
 import com.pennywiseai.tracker.data.preferences.AppFont
-import com.pennywiseai.tracker.data.preferences.CoverStyle
 import com.pennywiseai.tracker.data.preferences.NavBarStyle
 import com.pennywiseai.tracker.data.preferences.ThemeStyle
 import com.pennywiseai.tracker.navigation.BottomNavItem
@@ -84,7 +83,6 @@ import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.IconTile
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
-import com.pennywiseai.tracker.ui.components.getCoverGradientColors
 import com.pennywiseai.tracker.ui.effects.BlurredAnimatedVisibility
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -259,17 +257,6 @@ fun AppearanceScreen(
                         )
                     }
                 }
-
-                // Cover Style Section
-                SectionHeaderV2(
-                    title = stringResource(R.string.appearance_cover_section),
-                    modifier = Modifier.padding(start = Dimensions.Padding.content)
-                )
-                CoverStyleSelector(
-                    currentStyle = themeUiState.coverStyle,
-                    isDark = themeUiState.isDarkTheme ?: isSystemInDarkTheme(),
-                    onStyleSelected = { themeViewModel.updateCoverStyle(it) }
-                )
 
                 // Font Selection Section
                 SectionHeaderV2(
@@ -673,67 +660,6 @@ private fun NavBarStyleSelector(
                         color = if (currentStyle == NavBarStyle.NORMAL)
                             MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = 0.7f)
                         else MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-    }
-}
-
-// --- Cover Style Selector ---
-
-@Composable
-private fun CoverStyleSelector(
-    currentStyle: CoverStyle,
-    isDark: Boolean,
-    onStyleSelected: (CoverStyle) -> Unit
-) {
-    LazyRow(
-        modifier = Modifier.padding(horizontal = Spacing.md),
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-        contentPadding = PaddingValues(vertical = Spacing.xs)
-    ) {
-        items(CoverStyle.entries.toList()) { style ->
-            val isSelected = currentStyle == style
-
-            Box(
-                modifier = Modifier
-                    .size(width = 80.dp, height = 56.dp)
-                    .clip(MaterialTheme.shapes.medium)
-                    .then(
-                        if (style == CoverStyle.NONE) {
-                            Modifier.background(MaterialTheme.colorScheme.surfaceContainerLow)
-                        } else {
-                            Modifier.background(
-                                Brush.verticalGradient(
-                                    colors = getCoverGradientColors(style, isDark, forPreview = true)
-                                )
-                            )
-                        }
-                    )
-                    .then(
-                        if (isSelected) Modifier.border(
-                            width = 3.dp,
-                            color = MaterialTheme.colorScheme.primary,
-                            shape = MaterialTheme.shapes.medium
-                        ) else Modifier
-                    )
-                    .clickable { onStyleSelected(style) },
-                contentAlignment = Alignment.Center
-            ) {
-                if (style == CoverStyle.NONE) {
-                    Text(
-                        text = stringResource(R.string.appearance_cover_none),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                if (isSelected) {
-                    Icon(
-                        Icons.Default.Check,
-                        contentDescription = stringResource(R.string.appearance_cover_selected),
-                        tint = Color.White,
-                        modifier = Modifier.size(Dimensions.Icon.medium)
                     )
                 }
             }

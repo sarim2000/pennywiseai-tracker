@@ -10,4 +10,12 @@
         <item quantity="one">in %1$d day</item>
         <item quantity="other">in %1$d days</item>
     </plurals>
+
+    <!-- ══ Plan tab: Bills section ══ -->
+    <string name="plan_bills_hero_title">Subscriptions &amp; bills</string>
+    <!-- After the monthly total, e.g. "$59.46 a month" -->
+    <string name="plan_bills_per_month">a month</string>
+    <string name="plan_bills_next_payments">Next payments</string>
+    <!-- %1$s = when it's due (e.g. "Due tomorrow"), %2$s = the account it's paid from -->
+    <string name="plan_bills_due_from">%1$s · %2$s</string>
 </resources>

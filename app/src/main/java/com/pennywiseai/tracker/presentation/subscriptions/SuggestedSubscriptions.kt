@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.presentation.subscriptions
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
@@ -11,9 +12,9 @@ import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -22,9 +23,10 @@ import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedTextField
+import androidx.compose.material3.SheetValue
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.SheetValue
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -43,9 +45,11 @@ import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.domain.spending.RecurringSuggestion
 import com.pennywiseai.tracker.ui.components.BrandIcon
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
+import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -91,79 +95,84 @@ private fun suggestionAmount(suggestion: RecurringSuggestion): String =
         CurrencyFormatter.formatCurrency(suggestion.amount, suggestion.currency)
     }
 
-/** One suggested bill: what repeats and how often, with Review / Not recurring. */
+/**
+ * One suggested bill: what repeats and how often, with Review / Not recurring.
+ * [position] places it in the segmented Suggested block.
+ */
 @Composable
 internal fun SuggestedSubscriptionItem(
     suggestion: RecurringSuggestion,
     onReview: () -> Unit,
     onDismiss: () -> Unit,
     modifier: Modifier = Modifier,
+    position: ListItemPosition = ListItemPosition.Single,
 ) {
-    PennyWiseCardV2(
-        modifier = modifier.fillMaxWidth(),
+    Surface(
         onClick = onReview,
-        contentPadding = 0.dp,
+        modifier = modifier.fillMaxWidth(),
+        shape = position.toShape(),
+        color = MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(start = Dimensions.Padding.content, top = Dimensions.Padding.content, end = Dimensions.Padding.content),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-            verticalAlignment = Alignment.CenterVertically,
+        Column(
+            modifier = Modifier.padding(Dimensions.Padding.card),
+            verticalArrangement = Arrangement.spacedBy(Spacing.smd),
         ) {
-            BrandIcon(merchantName = suggestion.merchantName, category = suggestion.category, size = 40.dp)
-            Column(modifier = Modifier.weight(1f)) {
-                Text(
-                    text = suggestion.merchantName,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-                Text(
-                    text = stringResource(
-                        R.string.subscription_suggestion_pattern,
-                        billingCycleLabel(suggestion.billingCycle),
-                        pluralStringResource(
-                            R.plurals.subscription_suggestion_payments,
-                            suggestion.payments.size,
-                            suggestion.payments.size
-                        )
-                    ),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
-            }
-            Column(horizontalAlignment = Alignment.End) {
-                Text(
-                    text = suggestionAmount(suggestion),
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.SemiBold,
-                )
-                if (suggestion.isVariable) {
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.smd),
+                verticalAlignment = Alignment.CenterVertically,
+            ) {
+                BrandIcon(merchantName = suggestion.merchantName, category = suggestion.category, size = Dimensions.Icon.avatarLarge)
+                Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
                     Text(
-                        text = stringResource(R.string.subscription_suggestion_varies),
-                        style = MaterialTheme.typography.bodySmall,
+                        text = suggestion.merchantName,
+                        style = MaterialTheme.typography.titleMedium,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                    Text(
+                        text = stringResource(
+                            R.string.subscription_suggestion_pattern,
+                            billingCycleLabel(suggestion.billingCycle),
+                            pluralStringResource(
+                                R.plurals.subscription_suggestion_payments,
+                                suggestion.payments.size,
+                                suggestion.payments.size
+                            )
+                        ),
+                        style = PennyWiseText.rowSubtitle,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
                     )
                 }
+                Column(horizontalAlignment = Alignment.End) {
+                    Text(
+                        text = suggestionAmount(suggestion),
+                        style = PennyWiseText.amountRow,
+                    )
+                    if (suggestion.isVariable) {
+                        Text(
+                            text = stringResource(R.string.subscription_suggestion_varies),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                }
             }
-        }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
-            horizontalArrangement = Arrangement.End,
-            verticalAlignment = Alignment.CenterVertically,
-        ) {
-            TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
-                Text(stringResource(R.string.subscription_suggestion_not_recurring))
-            }
-            Spacer(Modifier.width(Spacing.xs))
-            FilledTonalButton(onClick = onReview, shapes = ButtonDefaults.shapes()) {
-                Text(stringResource(R.string.subscription_suggestion_review))
+            // Under the text, clear of the icon: the yes / no of "is this recurring?".
+            // FlowRow: at a large font the second button wraps instead of clipping.
+            FlowRow(
+                modifier = Modifier.padding(start = Dimensions.Icon.avatarLarge + Spacing.smd),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs),
+            ) {
+                Button(onClick = onReview, shapes = ButtonDefaults.shapes()) {
+                    Text(stringResource(R.string.subscription_suggestion_review))
+                }
+                FilledTonalButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+                    Text(stringResource(R.string.subscription_suggestion_not_recurring))
+                }
             }
         }
     }

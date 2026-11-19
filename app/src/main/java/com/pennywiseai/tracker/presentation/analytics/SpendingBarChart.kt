@@ -1,34 +1,54 @@
 package com.pennywiseai.tracker.presentation.analytics
 
-import com.pennywiseai.tracker.utils.AppDates
-
 import androidx.compose.animation.AnimatedContent
+import androidx.compose.animation.core.Animatable
+import androidx.compose.animation.core.AnimationVector1D
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
-import androidx.compose.animation.core.Animatable
-import androidx.compose.animation.core.AnimationVector1D
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.background
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.RowScope
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.widthIn
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Text
 import androidx.compose.runtime.*
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.drawText
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.ui.components.BalancePoint
-import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.utils.CurrencyFormatter
+import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
+import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.utils.AppDates
+import com.pennywiseai.tracker.utils.CurrencyFormatter
+import java.time.LocalDate
 import java.time.LocalDateTime
 import java.time.format.DateTimeFormatter
 import kotlin.math.abs
@@ -71,7 +91,9 @@ private fun BarChartCanvas(frame: BarFrame, growIn: Boolean, height: Int) {
     val themeColors = MaterialTheme.colorScheme
     val textMeasurer = rememberTextMeasurer()
 
-    val barColor = themeColors.primary.copy(alpha = 0.8f)
+    // Tonal bars with the latest one solid, as in the Insights hero chart.
+    val barColor = themeColors.primaryContainer
+    val latestBarColor = themeColors.primary
     val gridColor = themeColors.onSurface.copy(alpha = 0.1f)
     val labelColor = themeColors.onSurface.copy(alpha = 0.7f)
     val valueLabelColor = themeColors.onSurface.copy(alpha = 0.7f)
@@ -174,13 +196,13 @@ private fun BarChartCanvas(frame: BarFrame, growIn: Boolean, height: Int) {
             val x = startOffset + index * (barThickness + 8.dp.toPx())
             val barTop = chartBottom - barHeight
 
-            // Draw bar
+            // Draw bar: a pill, the latest bucket in the solid accent
             if (barHeight > 0f) {
                 drawRoundRect(
-                    color = barColor,
+                    color = if (index == chartData.lastIndex) latestBarColor else barColor,
                     topLeft = Offset(mx(x, barThickness), barTop),
                     size = Size(barThickness, barHeight),
-                    cornerRadius = CornerRadius(6.dp.toPx(), 6.dp.toPx())
+                    cornerRadius = CornerRadius(barThickness / 2f, barThickness / 2f)
                 )
             }
 
@@ -216,6 +238,117 @@ private fun BarChartCanvas(frame: BarFrame, growIn: Boolean, height: Int) {
                 }
             }
         }
+    }
+}
+
+/** One bar of [PeriodBarChart]: a whole period's total, already labelled. */
+@Immutable
+data class PeriodBar(val key: LocalDate, val label: String, val value: Double, val hasData: Boolean)
+
+/**
+ * The Insights hero chart: one rounded pill per period, tonal bars with the
+ * selected (last) period solid, its compact amount above and its name below.
+ * No axis: six bars read at a glance, and every bar carries its own figure.
+ * A period with no data at all draws as a short empty stub.
+ */
+@Composable
+fun PeriodBarChart(
+    bars: List<PeriodBar>,
+    currency: String,
+    modifier: Modifier = Modifier
+) {
+    if (bars.isEmpty()) return
+    val max = bars.maxOf { it.value }.takeIf { it > 0.0 } ?: 1.0
+    // Grow in once on first paint; later data changes retarget from where they stand.
+    var grown by remember { mutableStateOf(false) }
+    LaunchedEffect(Unit) { grown = true }
+    Row(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(Dimensions.Component.insightsChartHeight),
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        verticalAlignment = Alignment.Bottom
+    ) {
+        bars.forEachIndexed { index, bar ->
+            key(bar.key) {
+                PeriodBarColumn(
+                    bar = bar,
+                    fraction = if (grown) (bar.value / max).toFloat().coerceIn(0f, 1f) else 0f,
+                    selected = index == bars.lastIndex,
+                    currency = currency
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RowScope.PeriodBarColumn(bar: PeriodBar, fraction: Float, selected: Boolean, currency: String) {
+    val colors = MaterialTheme.colorScheme
+    val shown by animateFloatAsState(
+        targetValue = fraction,
+        animationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
+        label = "period_bar"
+    )
+    val label = PennyWiseText.chartLabel
+    Column(
+        modifier = Modifier
+            .weight(1f)
+            .fillMaxHeight()
+            .semantics(mergeDescendants = true) {},
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.Bottom
+    ) {
+        if (bar.hasData) {
+            Text(
+                text = CurrencyFormatter.formatAbbreviated(bar.value, currency),
+                style = label,
+                color = if (selected) colors.onSurface else colors.onSurfaceVariant,
+                fontWeight = if (selected) FontWeight.Bold else null,
+                maxLines = 1,
+                autoSize = TextAutoSize.StepBased(
+                    minFontSize = PennyWiseText.autoSizeFloor,
+                    maxFontSize = label.fontSize
+                )
+            )
+            Spacer(Modifier.height(Spacing.xs))
+        }
+        // The bar fills a fraction of what's left after the labels; a fraction of the whole
+        // column would push the month label out on the tallest bars.
+        Box(modifier = Modifier.weight(1f).fillMaxWidth(), contentAlignment = Alignment.BottomCenter) {
+            Box(
+                modifier = Modifier
+                    // widthIn before fillMaxWidth: the other way round the column's
+                    // fixed width would win over the cap.
+                    .widthIn(max = Dimensions.Component.insightsBarMaxWidth)
+                    .fillMaxWidth()
+                    .then(
+                        if (bar.hasData && bar.value > 0.0) {
+                            Modifier
+                                .heightIn(min = Dimensions.Component.insightsBarMinHeight)
+                                .fillMaxHeight(shown)
+                        } else {
+                            Modifier.height(Dimensions.Component.progressBarHeight)
+                        }
+                    )
+                    .clip(CircleShape)
+                    .background(
+                        when {
+                            !bar.hasData || bar.value <= 0.0 -> colors.surfaceContainerHighest
+                            selected -> colors.primary
+                            else -> colors.primaryContainer
+                        }
+                    )
+            )
+        }
+        Spacer(Modifier.height(Spacing.sm))
+        Text(
+            text = bar.label,
+            style = MaterialTheme.typography.labelMedium,
+            color = colors.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
     }
 }
 

@@ -133,6 +133,8 @@ private fun TagLegendItem(
         else MaterialTheme.colorScheme.surfaceContainerHigh,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
+        val ink = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
+        val subInk = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
         Box(
             modifier = Modifier
                 .size(Dimensions.Component.legendDot)
@@ -143,7 +145,7 @@ private fun TagLegendItem(
             Text(
                 text = label,
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface
+                color = ink
             )
             // Each figure stays whole; the percentage moves to the next line when it
             // doesn't fit. In Arabic "(١٠٠%)" broke before its closing parenthesis (#1057).
@@ -151,12 +153,14 @@ private fun TagLegendItem(
                 Text(
                     text = CurrencyFormatter.formatAbbreviated(value, currency),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = subInk,
+                    softWrap = false
                 )
                 Text(
                     text = stringResource(R.string.analytics_pie_percent, percentage),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = subInk,
+                    softWrap = false
                 )
             }
         }

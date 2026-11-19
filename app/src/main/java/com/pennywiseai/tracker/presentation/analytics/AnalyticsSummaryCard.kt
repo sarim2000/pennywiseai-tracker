@@ -145,7 +145,8 @@ private fun PeriodChangeChip(change: PeriodChange, kind: PeriodKind, typeFilter:
     }
     val colors = MaterialTheme.colorScheme
     val (container, content) = when (good) {
-        true -> colors.success.copy(alpha = Dimensions.Alpha.ghost) to colors.success
+        // Green ink isn't checked on its own tint; the arrow and words carry the direction.
+        true -> colors.success.copy(alpha = Dimensions.Alpha.ghost) to colors.onSurface
         false -> colors.errorContainer to colors.onErrorContainer
         null -> colors.secondaryContainer to colors.onSecondaryContainer
     }

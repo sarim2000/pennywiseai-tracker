@@ -166,6 +166,8 @@ private fun PieLegendItem(
         else MaterialTheme.colorScheme.surfaceContainerHigh,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
+        val ink = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
+        val subInk = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
         // The category's own icon rather than a bare swatch (#827), in a disc of
         // the slice colour so the row still maps to the chart. The disc carries
         // the colour rather than the glyph, because a custom emoji (#760) can't
@@ -189,7 +191,7 @@ private fun PieLegendItem(
             Text(
                 text = categoryLabel(label),
                 style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface
+                color = ink
             )
             // Each figure stays whole; the percentage moves to the next line when it
             // doesn't fit. In Arabic "(١٠٠%)" broke before its closing parenthesis (#1057).
@@ -197,12 +199,14 @@ private fun PieLegendItem(
                 Text(
                     text = CurrencyFormatter.formatAbbreviated(value, currency),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = subInk,
+                    softWrap = false
                 )
                 Text(
                     text = stringResource(R.string.analytics_pie_percent, percentage),
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = subInk,
+                    softWrap = false
                 )
             }
         }

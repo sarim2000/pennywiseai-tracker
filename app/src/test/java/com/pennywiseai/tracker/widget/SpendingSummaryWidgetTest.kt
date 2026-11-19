@@ -21,6 +21,12 @@ class SpendingSummaryWidgetTest {
 
     @Test
     fun `ignores a budget with no limit`() {
-        assertNull(budgetIn(budget.copy(totalLimit = BigDecimal.ZERO), "JOD"))
+        assertNull(budgetIn(budget.copy(totalLimit = BigDecimal.ZERO, hasLimit = false), "JOD"))
+    }
+
+    @Test
+    fun `keeps a limit rollover carried down to 0`() {
+        val usedUp = budget.copy(totalLimit = BigDecimal.ZERO, remaining = BigDecimal("-30"), hasLimit = true)
+        assertEquals(usedUp, budgetIn(usedUp, "JOD"))
     }
 }

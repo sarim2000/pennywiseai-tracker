@@ -111,7 +111,6 @@
     <string name="txn_detail_label_to">A</string>
     <string name="txn_detail_label_balance">Saldo</string>
     <string name="txn_detail_label_balance_mismatch">El saldo no coincide</string>
-    <string name="txn_detail_balance_mismatch_value">Diferencia de %1$s · se esperaba %2$s</string>
     <string name="txn_detail_add_untracked_expense">Agregar gasto no registrado de %1$s</string>
     <string name="txn_detail_add_untracked_income">Agregar ingreso no registrado de %1$s</string>
     <string name="txn_detail_adjustment_title_expense">Gasto no registrado</string>

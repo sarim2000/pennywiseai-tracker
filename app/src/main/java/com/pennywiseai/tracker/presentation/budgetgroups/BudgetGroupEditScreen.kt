@@ -9,6 +9,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.BasicTextField
@@ -31,6 +32,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.input.ImeAction
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
@@ -351,6 +353,24 @@ fun BudgetGroupEditScreen(
                                     style = MaterialTheme.typography.bodyMedium
                                 )
                             }
+                        }
+
+                        if (uiState.rolloverAvailable) {
+                            HorizontalDivider(
+                                color = MaterialTheme.colorScheme.outlineVariant.copy(
+                                    alpha = Dimensions.Alpha.divider
+                                )
+                            )
+                            RolloverRow(
+                                checked = uiState.rolloverEnabled,
+                                onCheckedChange = viewModel::updateRollover,
+                                startsNext = when {
+                                    !uiState.rolloverStartsNextPeriod() -> null
+                                    uiState.periodType == BudgetPeriodType.WEEKLY ->
+                                        stringResource(R.string.budget_rollover_starts_next_week)
+                                    else -> stringResource(R.string.budget_rollover_starts_next_month)
+                                }
+                            )
                         }
                     }
                 }
@@ -971,6 +991,42 @@ private fun MonthAnchorRow(
                 Icon(Icons.Default.KeyboardArrowUp, contentDescription = stringResource(R.string.budget_edit_increase_day))
             }
         }
+    }
+}
+
+/**
+ * Rollover on or off; the whole row is the switch's touch target. [startsNext]:
+ * when it begins, while this period carries nothing in.
+ */
+@Composable
+private fun RolloverRow(checked: Boolean, onCheckedChange: (Boolean) -> Unit, startsNext: String? = null) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .heightIn(min = 48.dp)
+            .toggleable(value = checked, role = Role.Switch, onValueChange = onCheckedChange),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = stringResource(R.string.budget_edit_rollover),
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Text(
+                text = stringResource(R.string.budget_edit_rollover_subtitle),
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            if (startsNext != null) {
+                Text(
+                    text = startsNext,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+        Spacer(modifier = Modifier.width(Spacing.sm))
+        Switch(checked = checked, onCheckedChange = null)
     }
 }
 

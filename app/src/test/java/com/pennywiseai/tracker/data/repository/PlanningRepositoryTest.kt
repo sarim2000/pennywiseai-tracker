@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.data.repository
 
+import com.pennywiseai.tracker.data.database.dao.CategoryDao
+import com.pennywiseai.tracker.data.database.dao.SubscriptionDao
 import com.pennywiseai.tracker.data.database.entity.BudgetCategoryEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
@@ -8,12 +10,22 @@ import com.pennywiseai.tracker.data.database.entity.BudgetWithCategories
 import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionState
+import com.pennywiseai.tracker.data.model.BillsDue
+import io.mockk.every
 import io.mockk.mockk
+import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flowOf
+import kotlinx.coroutines.flow.toList
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.test.UnconfinedTestDispatcher
+import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.math.BigDecimal
 import java.time.LocalDate
 
+@OptIn(ExperimentalCoroutinesApi::class)
 class PlanningRepositoryTest {
     private val today = LocalDate.of(2026, 11, 16)
 
@@ -177,5 +189,21 @@ class PlanningRepositoryTest {
         )
         assertEquals(emptyList<String>(), due.overdue.map { it.merchantName })
         assertEquals(listOf("Coffee club" to today, "Gym" to LocalDate.of(2026, 11, 20)), due.upcoming.map { it.merchantName to it.nextPaymentDate })
+    }
+
+    @Test
+    fun `a bill paid drops out of the bills due as its date moves on`() = runTest {
+        val rows = MutableStateFlow(listOf(bill("Rent", today.minusDays(2)), bill("Gym", today.plusDays(3))))
+        val categoryDao = mockk<CategoryDao> { every { getAllCategories() } returns flowOf(emptyList()) }
+        val subscriptionDao = mockk<SubscriptionDao> { every { getActiveSubscriptions() } returns rows }
+        val planning = PlanningRepository(mockk(), SubscriptionRepository(subscriptionDao, categoryDao), categoryDao)
+        val seen = mutableListOf<BillsDue>()
+        backgroundScope.launch(UnconfinedTestDispatcher(testScheduler)) { planning.observeBillsDue(today).toList(seen) }
+        assertEquals(listOf("Rent"), seen.last().overdue.map { it.merchantName })
+
+        // Marked paid: its date moves a cycle on, out of the week.
+        rows.value = listOf(bill("Rent", today.minusDays(2).plusMonths(1)), bill("Gym", today.plusDays(3)))
+        assertEquals(emptyList<String>(), seen.last().overdue.map { it.merchantName })
+        assertEquals(listOf("Gym"), seen.last().upcoming.map { it.merchantName })
     }
 }

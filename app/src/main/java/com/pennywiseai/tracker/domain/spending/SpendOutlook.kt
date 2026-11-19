@@ -76,7 +76,22 @@ data class SpendForecast(
  * A payment due on [dueDate], in its own currency. A card bill ([isCardBill]) past
  * its due date is still owed, so it stays in the window ([SafeToSpend.billsInWindow]).
  */
-data class Bill(val name: String, val amount: Money, val dueDate: LocalDate, val isCardBill: Boolean = false)
+data class Bill(
+    val name: String,
+    val amount: Money,
+    val dueDate: LocalDate,
+    /** What the bill is for, so a screen can open it; null when not known. */
+    val source: BillSource? = null,
+) {
+    val isCardBill: Boolean get() = source is BillSource.Card
+}
+
+/** Where a [Bill] comes from. */
+sealed interface BillSource {
+    data object Subscription : BillSource
+    data object Recurring : BillSource
+    data class Card(val bankName: String, val accountLast4: String) : BillSource
+}
 
 /**
  * Money free to spend in one currency until the period ends: spendable balance

@@ -34,6 +34,7 @@ import androidx.lifecycle.compose.LifecycleEventEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil3.compose.AsyncImage
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
@@ -394,6 +395,11 @@ fun TransactionDetailScreen(
                         WhatWasThis.SAVING -> {
                             viewModel.enterEditMode()
                             viewModel.updateTransactionType(TransactionType.INVESTMENT)
+                        }
+                        // Same as picking Refund under Budget impact; the user picks the category.
+                        WhatWasThis.REFUND -> {
+                            viewModel.enterEditMode()
+                            viewModel.updateBudgetImpactType(BudgetImpactType.DEDUCT_SPENT)
                         }
                         // Pairs the other leg if it arrived, else opens the editor.
                         WhatWasThis.OWN_TRANSFER -> viewModel.answerOwnTransfer()

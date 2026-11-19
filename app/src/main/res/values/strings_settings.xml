@@ -524,7 +524,7 @@
     <!-- Privacy & Data -->
     <string name="faq_privacy_section">Privacy &amp; Data</string>
     <string name="faq_data_secure_question">Is my financial data secure?</string>
-    <string name="faq_data_secure_answer">Yes! All data stays on your device. We don\'t have servers or cloud storage. The AI model runs locally for complete privacy.</string>
+    <string name="faq_data_secure_answer">Yes. Your transactions and SMS are stored only on your phone, and the AI model runs on it too. The app goes online only to download the model, fetch exchange rates, and, if you turn it on, let an AI assistant you connect ask your phone questions through a relay that stores none of the answers.</string>
     <string name="faq_backup_question">Can I backup my data?</string>
     <string name="faq_backup_answer">Currently, data is stored locally only. Export/backup features are planned for future updates.</string>
     <string name="faq_data_access_question">What data does the app access?</string>

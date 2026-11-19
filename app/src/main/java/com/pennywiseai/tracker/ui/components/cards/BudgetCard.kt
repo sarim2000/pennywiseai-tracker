@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.ui.components.cards
 
+import androidx.annotation.StringRes
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateFloatAsState
@@ -7,8 +8,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.defaultMinSize
@@ -20,6 +23,7 @@ import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.ReadOnlyComposable
@@ -51,6 +55,8 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
+import com.pennywiseai.tracker.data.repository.CarryGap
+import com.pennywiseai.tracker.domain.spending.BudgetRollover
 import com.pennywiseai.tracker.domain.spending.budgetPace
 import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.ui.animations.pwExpand
@@ -147,7 +153,7 @@ fun BudgetCard(
                 )
             }
 
-            if (groupSpending.totalBudget > BigDecimal.ZERO) {
+            if (groupSpending.hasLimit) {
                 Text(
                     text = stringResource(R.string.budget_card_percent, pillPercent),
                     // Tabular figures: the counting percent doesn't jitter in width.
@@ -178,7 +184,7 @@ fun BudgetCard(
 
         // Row 2: Custom rounded progress bar. Stays flat (a data meter); a
         // thin "today" tick marks where an even spend would be.
-        if (groupSpending.totalBudget > BigDecimal.ZERO) {
+        if (groupSpending.hasLimit) {
             val barShape = RoundedCornerShape(50)
             val tickColor = MaterialTheme.colorScheme.onSurface
             Box(
@@ -348,8 +354,88 @@ fun BudgetCard(
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
+        RolloverLine(groupSpending, currency, color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f))
     }
 }
+
+/**
+ * How a rolled-over budget's limit is made up: "Base X + Y carried over = Z", or
+ * why nothing carried, or, in the period rollover was turned on in, when it starts.
+ * Nothing at all when rollover is off, or carried exactly 0 after its first period.
+ * [color]: the "Spent X of Y" line's above it. [onAddRate] opens Exchange Rates, offered when a missing
+ * rate stopped the carry.
+ */
+@Composable
+fun RolloverLine(
+    groupSpending: BudgetGroupSpending,
+    currency: String,
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    onAddRate: (() -> Unit)? = null
+) {
+    val budget = groupSpending.group.budget
+    if (!budget.rolloverEnabled) return
+    RolloverLine(
+        limit = groupSpending.totalBudget,
+        carry = groupSpending.carry,
+        gap = groupSpending.carryGap,
+        currency = currency,
+        startsNext = budget.periodType.takeIf {
+            BudgetRollover.isFirstPeriod(budget, groupSpending.windowStart, groupSpending.windowEnd)
+        },
+        modifier = modifier,
+        color = color,
+        onAddRate = onAddRate
+    )
+}
+
+/**
+ * [RolloverLine] for a [limit] (in [currency]) that already has [carry] in it.
+ * [startsNext]: this is rollover's first period, of that cadence.
+ */
+@Composable
+fun RolloverLine(
+    limit: BigDecimal,
+    carry: BigDecimal,
+    gap: CarryGap?,
+    currency: String,
+    startsNext: BudgetPeriodType? = null,
+    modifier: Modifier = Modifier,
+    color: Color = MaterialTheme.colorScheme.onSurfaceVariant,
+    onAddRate: (() -> Unit)? = null
+) {
+    val text = when {
+        gap != null -> stringResource(gap.message)
+        carry.signum() != 0 -> stringResource(
+            if (carry.signum() > 0) R.string.budget_rollover_carried_in else R.string.budget_rollover_carried_out,
+            CurrencyFormatter.formatCurrency(limit - carry, currency),
+            CurrencyFormatter.formatCurrency(carry.abs(), currency),
+            CurrencyFormatter.formatCurrency(limit, currency)
+        )
+        startsNext == BudgetPeriodType.WEEKLY -> stringResource(R.string.budget_rollover_starts_next_week)
+        startsNext == BudgetPeriodType.MONTHLY -> stringResource(R.string.budget_rollover_starts_next_month)
+        else -> return
+    }
+    Column(modifier = modifier) {
+        Text(
+            text = text,
+            style = MaterialTheme.typography.bodySmall,
+            color = color
+        )
+        if (gap == CarryGap.NO_RATE && onAddRate != null) {
+            TextButton(onClick = onAddRate, contentPadding = PaddingValues(horizontal = 0.dp)) {
+                Text(stringResource(R.string.budget_rollover_add_rate))
+            }
+        }
+    }
+}
+
+/** Why nothing carried over. */
+@get:StringRes
+internal val CarryGap.message: Int
+    get() = when (this) {
+        CarryGap.NO_RATE -> R.string.budget_rollover_incomplete
+    }
 
 /**
  * Small pill that names the budget's cadence at a glance: 🔁 Weekly /

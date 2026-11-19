@@ -691,17 +691,15 @@ private fun AccountsSummaryCards(
             .height(IntrinsicSize.Min),
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
-        if (bankAccounts.isNotEmpty()) {
-            val held = bankAccounts.sumByCurrency(
-                currencySelector = {
-                    CurrencyFormatter.resolveAccountCurrency(
-                        sourceType = it.sourceType,
-                        storedCurrency = it.currency,
-                        bankName = it.bankName
-                    )
-                },
-                amountSelector = { it.balance }
+        val accountCurrency = { account: AccountBalanceEntity ->
+            CurrencyFormatter.resolveAccountCurrency(
+                sourceType = account.sourceType,
+                storedCurrency = account.currency,
+                bankName = account.bankName
             )
+        }
+        if (bankAccounts.isNotEmpty()) {
+            val held = bankAccounts.sumByCurrency(currencySelector = accountCurrency, amountSelector = { it.balance })
             AccountsSummaryCard(
                 icon = Icons.Default.AccountBalance,
                 label = stringResource(R.string.manage_accounts_summary_held),
@@ -714,7 +712,7 @@ private fun AccountsSummaryCards(
             )
         }
         if (creditCards.isNotEmpty()) {
-            val owed = creditCards.sumByCurrency(currencySelector = { it.currency }, amountSelector = { it.balance })
+            val owed = creditCards.sumByCurrency(currencySelector = accountCurrency, amountSelector = { it.balance })
             AccountsSummaryCard(
                 icon = Icons.Default.CreditCard,
                 label = stringResource(R.string.manage_accounts_summary_owed),

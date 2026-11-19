@@ -126,7 +126,7 @@
     <string name="txn_detail_label_to">To</string>
     <string name="txn_detail_label_balance">Balance</string>
     <string name="txn_detail_label_balance_mismatch">Balance mismatch</string>
-    <string name="txn_detail_balance_mismatch_value">Off by %1$s · expected %2$s</string>
+    <string name="txn_detail_balance_mismatch_since">Off by %1$s · expected %2$s since %3$s</string>
     <string name="txn_detail_add_untracked_expense">Add %1$s untracked expense</string>
     <string name="txn_detail_add_untracked_income">Add %1$s untracked income</string>
     <string name="txn_detail_adjustment_title_expense">Untracked expense</string>

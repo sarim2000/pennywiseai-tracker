@@ -119,7 +119,6 @@
     <string name="txn_detail_label_to">Куды</string>
     <string name="txn_detail_label_balance">Баланс</string>
     <string name="txn_detail_label_balance_mismatch">Баланс не супадае</string>
-    <string name="txn_detail_balance_mismatch_value">Розніца %1$s · чакалася %2$s</string>
     <string name="txn_detail_add_untracked_expense">Дадаць неўлічаны выдатак %1$s</string>
     <string name="txn_detail_add_untracked_income">Дадаць неўлічаны даход %1$s</string>
     <string name="txn_detail_adjustment_title_expense">Неўлічаны выдатак</string>

@@ -1,7 +1,9 @@
 package com.pennywiseai.tracker.domain.smsimport
 
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 class SmsScanRecordTest {
@@ -79,5 +81,21 @@ class SmsScanRecordTest {
 
         assertEquals(setOf(LastScanStatus.FAILED, LastScanStatus.CANCELLED, LastScanStatus.INTERRUPTED), endedEarly)
         assertEquals(endedEarly + LastScanStatus.SAVE_FAILED, flagged)
+    }
+
+    @Test
+    fun `a replaced scan's late outcome doesn't overwrite the scan that replaced it`() {
+        val replacement = SmsScanRecord(SmsScanState.RUNNING, startedAt = 2_000L, fullWindow = true)
+        val lateCancel = SmsScanRecord(SmsScanState.CANCELLED, startedAt = 1_000L, finishedAt = 3_000L)
+
+        assertFalse(lateCancel.mayReplace(replacement))
+        assertFalse("nor once the replacement finished", lateCancel.mayReplace(replacement.copy(state = SmsScanState.SUCCEEDED)))
+        assertTrue("a scan's own outcome replaces its running record", lateCancel.mayReplace(lateCancel.copy(state = SmsScanState.RUNNING)))
+        assertTrue("a new scan always starts its record", replacement.mayReplace(lateCancel))
+        assertTrue(lateCancel.mayReplace(null))
+        assertTrue(
+            "a finished record of an earlier scan is replaced",
+            lateCancel.mayReplace(SmsScanRecord(SmsScanState.SUCCEEDED, startedAt = 500L)),
+        )
     }
 }

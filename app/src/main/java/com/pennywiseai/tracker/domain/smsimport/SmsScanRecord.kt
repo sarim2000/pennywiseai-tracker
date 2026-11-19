@@ -67,6 +67,15 @@ data class SmsScanRecord(
     val owesFullWindow: Boolean
         get() = fullWindow && (state != SmsScanState.SUCCEEDED || (counts.failed > 0 && !gaveUpOnFailedSaves))
 
+    /**
+     * Whether this record may be stored over [current]. A scan replaced mid-run can write
+     * its outcome after its replacement started, even after it finished; that late write
+     * must not overwrite the newer scan's record and its whole-window marker. A scan's
+     * RUNNING record always lands: nothing is newer than a scan that is just starting.
+     */
+    fun mayReplace(current: SmsScanRecord?): Boolean =
+        state == SmsScanState.RUNNING || current == null || current.startedAt <= startedAt
+
     fun toJson(): String = json.encodeToString(serializer(), this)
 
     companion object {

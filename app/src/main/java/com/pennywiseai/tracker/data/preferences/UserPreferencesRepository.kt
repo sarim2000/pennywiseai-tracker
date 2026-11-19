@@ -781,7 +781,8 @@ open class UserPreferencesRepository internal constructor(
 
     override suspend fun setLastScanRecord(record: SmsScanRecord) {
         dataStore.edit { preferences ->
-            preferences[PreferencesKeys.LAST_SCAN_RECORD] = record.toJson()
+            val current = SmsScanRecord.fromJson(preferences[PreferencesKeys.LAST_SCAN_RECORD])
+            if (record.mayReplace(current)) preferences[PreferencesKeys.LAST_SCAN_RECORD] = record.toJson()
         }
     }
 

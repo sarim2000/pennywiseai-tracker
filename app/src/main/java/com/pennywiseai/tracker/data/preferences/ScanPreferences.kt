@@ -36,6 +36,7 @@ interface ScanPreferences {
     /**
      * How the latest scan went, for the SMS check-up. Device-only, and separate from
      * [getLastScanTimestamp], the incremental-scan cursor, which only a success moves.
+     * A record that may not replace the stored one ([SmsScanRecord.mayReplace]) is dropped.
      */
     val lastScanRecord: Flow<SmsScanRecord?>
     suspend fun setLastScanRecord(record: SmsScanRecord)

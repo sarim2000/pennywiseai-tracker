@@ -465,9 +465,12 @@ internal fun TransactionReceipt(
                     icon = Icons.Default.Warning,
                     label = stringResource(R.string.txn_detail_label_balance_mismatch),
                     value = stringResource(
-                        R.string.txn_detail_balance_mismatch_value,
+                        R.string.txn_detail_balance_mismatch_since,
                         CurrencyFormatter.formatCurrency(d.delta.abs(), d.currency),
-                        CurrencyFormatter.formatCurrency(d.expected, d.currency)
+                        CurrencyFormatter.formatCurrency(d.expected, d.currency),
+                        // Where the check starts (the previous balance SMS), so moving an
+                        // adjustment outside it explains a mismatch coming back (#1022).
+                        d.since?.format(AppDates.dayMonthTimeFormatter()).orEmpty()
                     )
                 )
                 val adding by viewModel.isAddingAdjustment.collectAsStateWithLifecycle()

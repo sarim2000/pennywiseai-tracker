@@ -15,6 +15,7 @@ import com.pennywiseai.tracker.data.model.ChatLink
 import com.pennywiseai.tracker.data.model.ChatScope
 import com.pennywiseai.tracker.data.model.PendingChatAction
 import com.pennywiseai.tracker.data.model.PeriodSpending
+import com.pennywiseai.tracker.data.model.PlanLink
 import com.pennywiseai.tracker.data.model.SpendingComparison
 import com.pennywiseai.tracker.data.model.SpendingFilter
 import com.pennywiseai.tracker.data.model.SpendingQuery
@@ -545,7 +546,7 @@ class ChatTurnTest {
         repository.answerQuickAction(QuickAction.MONTH_SPEND)
         verify { context.getString(R.string.chat_reply_month_spend, "1 Nov–16 Nov · عمل") }
         // Its link opens that profile's rows, whatever Home shows by the time it's tapped.
-        assertEquals(listOf(ProfileEntity.BUSINESS_ID), repository.links.value[saved.last().id]?.map { it.profileId })
+        assertEquals(listOf(ProfileEntity.BUSINESS_ID), repository.links.value[saved.last().id]?.map { (it as ChatLink).profileId })
 
         // A comparison covers the same profile, so it says so too.
         val w = SpendingComparison.Window(LocalDateTime.of(2026, 11, 1, 0, 0), LocalDateTime.of(2026, 11, 16, 23, 59))
@@ -553,7 +554,7 @@ class ChatTurnTest {
         coEvery { aiContext.compareSpending(any(), any(), any(), any()) } returns rows
         repository.answerQuickAction(QuickAction.COMPARE_MONTH)
         verify { context.getString(R.string.chat_reply_compare_title, "1 Nov–16 Nov", "1 Nov–16 Nov · عمل") }
-        assertEquals(listOf(ProfileEntity.BUSINESS_ID, ProfileEntity.BUSINESS_ID), repository.links.value[saved.last().id]?.map { it.profileId })
+        assertEquals(listOf(ProfileEntity.BUSINESS_ID, ProfileEntity.BUSINESS_ID), repository.links.value[saved.last().id]?.map { (it as ChatLink).profileId })
 
         // A renamed one shows as the user named it.
         coEvery { aiContext.compareSpending(any(), any(), any(), any()) } returns rows.copy(profile = business.copy(name = "Shop"))
@@ -1191,7 +1192,7 @@ class ChatTurnTest {
         assertEquals(SpendingFilter(SpendingComparison.Window(oct1.atStartOfDay(), oct31.atTime(LocalTime.MAX))), filter.captured)
         // Another year's days say so: "1 Oct" alone would read as this October.
         assertTrue(reply, reply.startsWith("SPENT 1 Oct 2024–31 Oct 2024\n"))
-        assertEquals(listOf(oct1 to oct31), repository.links.value[saved.last().id]?.map { it.start to it.end })
+        assertEquals(listOf(oct1 to oct31), repository.links.value[saved.last().id]?.map { (it as ChatLink).start to it.end })
 
         // A merchant's figure, but no link: the list's search also reads notes and SMS text.
         events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, mapOf("merchant" to "Starbucks", "category" to "all")))
@@ -1325,7 +1326,7 @@ class ChatTurnTest {
             events = listOf(LlmEvent.ToolCall(PennyWiseTools.QUERY_SPENDING, args))
             send("how much this month?")
             // Whatever Home shows by the time the link is tapped.
-            assertEquals(args.toString(), listOf(ProfileEntity.BUSINESS_ID), repository.links.value[saved.last().id]?.map { it.profileId })
+            assertEquals(args.toString(), listOf(ProfileEntity.BUSINESS_ID), repository.links.value[saved.last().id]?.map { (it as ChatLink).profileId })
         }
     }
 
@@ -1446,5 +1447,45 @@ class ChatTurnTest {
         assertEquals("UNKNOWN", send("How much salary did I receive this month?"))
         coVerify(exactly = 0) { aiContext.spending(any(), any()) }
         coVerify(exactly = 0) { aiContext.categoryIncome(any(), any(), any()) }
+    }
+
+    @Test
+    fun `the bills and budget prompts are answered by code, with the screen that shows them`() = runTest {
+        every { context.getString(R.string.chat_reply_bills_overdue) } returns "OVERDUE"
+        every { context.getString(R.string.chat_reply_bills_due, any()) } answers { "DUE ${(args[1] as Array<*>)[0]}" }
+        every { context.getString(R.string.chat_reply_budgets_title) } returns "BUDGETS"
+        every { context.getString(R.string.chat_reply_budget_left, any(), any(), any(), any(), any()) } returns "LEFT"
+        every { context.getString(R.string.budgets_title) } returns "Budgets"
+        every { context.getString(R.string.subscriptions_title) } returns "Subscriptions"
+        every { context.getString(R.string.chat_link_open, any()) } answers { "OPEN ${(args[1] as Array<*>)[0]}" }
+        coEvery { planning.billsDue(any(), any()) } returns BillsDue(
+            LocalDate.of(2026, 11, 23),
+            overdue = listOf(SubscriptionEntity(merchantName = "Rent", amount = BigDecimal("3000"), nextPaymentDate = LocalDate.of(2026, 11, 13), currency = "SAR")),
+            upcoming = emptyList(),
+        )
+        coEvery { planning.budgets(any()) } returns listOf(
+            BudgetStatus("Food", "SAR", BigDecimal("2000"), BigDecimal("500"), LocalDate.of(2026, 11, 1), LocalDate.of(2026, 11, 30)),
+        )
+
+        // The question as its chip said it, the answer read fresh, never the model's.
+        repository.answerQuickAction(QuickAction.BILLS, "1 bill overdue")
+        assertEquals("1 bill overdue", saved[saved.size - 2].message)
+        assertTrue(saved[saved.size - 2].isUser)
+        assertEquals("OVERDUE", saved.last().message.lines().first())
+        assertEquals(listOf(PlanLink("OPEN Subscriptions", PlanLink.Plan.BILLS)), repository.links.value[saved.last().id])
+        assertEquals(PennyWiseTools.PLANNING_STATUS, repository.lastReply.value?.tool)
+        assertEquals(null, repository.lastReply.value?.share)
+        coVerify(exactly = 0) { llmService.sendMessageEvents(any()) }
+
+        repository.answerQuickAction(QuickAction.BUDGETS, "Budget remaining")
+        assertEquals(listOf("BUDGETS", "LEFT"), saved.last().message.lines())
+        assertEquals(listOf(PlanLink("OPEN Budgets", PlanLink.Plan.BUDGETS)), repository.links.value[saved.last().id])
+        assertEquals(0.25f, repository.lastReply.value?.share)
+
+        // Asked in words, the same answer opens the same screen.
+        events = listOf(LlmEvent.ToolCall(PennyWiseTools.PLANNING_STATUS, mapOf("kind" to "budgets")))
+        send("how much budget is left?")
+        assertEquals(listOf(PlanLink("OPEN Budgets", PlanLink.Plan.BUDGETS)), repository.links.value[saved.last().id])
+        assertEquals(0.25f, repository.lastReply.value?.share)
     }
 }

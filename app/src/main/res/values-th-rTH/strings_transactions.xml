@@ -108,7 +108,6 @@
     <string name="txn_detail_label_to">ไปยัง</string>
     <string name="txn_detail_label_balance">ยอดคงเหลือ</string>
     <string name="txn_detail_label_balance_mismatch">ยอดคงเหลือไม่ตรงกัน</string>
-    <string name="txn_detail_balance_mismatch_value">ต่างกัน %1$s · ควรเป็น %2$s</string>
     <string name="txn_detail_add_untracked_expense">เพิ่มค่าใช้จ่ายที่ไม่ได้บันทึก %1$s</string>
     <string name="txn_detail_add_untracked_income">เพิ่มรายได้ที่ไม่ได้บันทึก %1$s</string>
     <string name="txn_detail_adjustment_title_expense">ค่าใช้จ่ายที่ไม่ได้บันทึก</string>

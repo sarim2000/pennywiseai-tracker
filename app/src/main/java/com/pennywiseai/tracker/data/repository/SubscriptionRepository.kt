@@ -1,67 +1,67 @@
 package com.pennywiseai.tracker.data.repository
 
-import com.pennywiseai.tracker.data.database.entity.currentNameFor
-import com.pennywiseai.tracker.data.database.dao.SubscriptionDao
-import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
-import com.pennywiseai.tracker.data.database.entity.TransactionEntity
-import com.pennywiseai.tracker.data.database.entity.SubscriptionState
-import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
-import com.pennywiseai.tracker.domain.spending.RecurringCharge
+import android.util.Log
+import com.pennywiseai.parser.core.MandateInfo
+import com.pennywiseai.parser.core.bank.FederalBankParser
 import com.pennywiseai.parser.core.bank.HDFCBankParser
 import com.pennywiseai.parser.core.bank.IndianBankParser
 import com.pennywiseai.parser.core.bank.SBIBankParser
-import com.pennywiseai.parser.core.bank.FederalBankParser
-import com.pennywiseai.parser.core.MandateInfo
 import com.pennywiseai.shared.domain.mapping.SharedCategoryMapping
+import com.pennywiseai.tracker.data.database.dao.SubscriptionDao
+import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
+import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
+import com.pennywiseai.tracker.data.database.entity.SubscriptionState
+import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.entity.currentNameFor
+import com.pennywiseai.tracker.domain.spending.RecurringCharge
 import kotlinx.coroutines.flow.Flow
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import javax.inject.Inject
 import javax.inject.Singleton
-import android.util.Log
 
 @Singleton
 class SubscriptionRepository @Inject constructor(
     private val subscriptionDao: SubscriptionDao,
     private val categoryDao: com.pennywiseai.tracker.data.database.dao.CategoryDao
 ) {
-    
+
     companion object {
         private const val TAG = "SubscriptionRepository"
     }
-    
-    fun getAllSubscriptions(): Flow<List<SubscriptionEntity>> = 
+
+    fun getAllSubscriptions(): Flow<List<SubscriptionEntity>> =
         subscriptionDao.getAllSubscriptions()
-    
+
     fun getActiveSubscriptions(): Flow<List<SubscriptionEntity>> =
         subscriptionDao.getActiveSubscriptions()
 
     fun getEndedSubscriptions(): Flow<List<SubscriptionEntity>> =
         subscriptionDao.getSubscriptionsByState(SubscriptionState.ENDED)
-    
+
     fun getUpcomingSubscriptions(daysAhead: Int = 7): Flow<List<SubscriptionEntity>> {
         val futureDate = LocalDate.now().plusDays(daysAhead.toLong())
         return subscriptionDao.getUpcomingSubscriptions(futureDate)
     }
-    
-    suspend fun getSubscriptionById(id: Long): SubscriptionEntity? = 
+
+    suspend fun getSubscriptionById(id: Long): SubscriptionEntity? =
         subscriptionDao.getSubscriptionById(id)
-    
-    suspend fun insertSubscription(subscription: SubscriptionEntity): Long = 
+
+    suspend fun insertSubscription(subscription: SubscriptionEntity): Long =
         subscriptionDao.insertSubscription(subscription)
-    
-    suspend fun updateSubscription(subscription: SubscriptionEntity) = 
+
+    suspend fun updateSubscription(subscription: SubscriptionEntity) =
         subscriptionDao.updateSubscription(subscription)
-    
-    suspend fun updateSubscriptionState(id: Long, state: SubscriptionState) = 
+
+    suspend fun updateSubscriptionState(id: Long, state: SubscriptionState) =
         subscriptionDao.updateSubscriptionState(id, state)
-    
+
     suspend fun hideSubscription(id: Long) {
         Log.d(TAG, "Hiding subscription with ID: $id")
         updateSubscriptionState(id, SubscriptionState.HIDDEN)
     }
-    
+
     suspend fun unhideSubscription(id: Long) =
         updateSubscriptionState(id, SubscriptionState.ACTIVE)
 
@@ -83,10 +83,10 @@ class SubscriptionRepository @Inject constructor(
      */
     suspend fun reactivateSubscription(id: Long) =
         updateSubscriptionState(id, SubscriptionState.ACTIVE)
-    
-    suspend fun deleteSubscription(id: Long) = 
+
+    suspend fun deleteSubscription(id: Long) =
         subscriptionDao.deleteSubscriptionById(id)
-    
+
     /**
      * Creates or updates a subscription from HDFC E-Mandate info
      */
@@ -95,7 +95,7 @@ class SubscriptionRepository @Inject constructor(
         bankName: String = "HDFC Bank",
         smsBody: String? = null
     ): Long = createOrUpdateFromMandate(eMandateInfo, bankName, smsBody)
-    
+
     /**
      * Active EXPENSE subscriptions billed by [merchantName] in [currency]. Merchant
      * names compare by [RecurringCharge.merchantKey], so case and punctuation
@@ -136,7 +136,7 @@ class SubscriptionRepository @Inject constructor(
         val advanced = advance(chargeDate, current.billingCycle)
         val next = current.nextPaymentDate?.takeIf { it.isAfter(advanced) } ?: advanced
         val paidAt = current.lastPaidAt?.takeIf { it.isAfter(chargeDate) } ?: chargeDate
-        subscriptionDao.markPaid(current.id, paidAt, next)
+        writePayment(current, paidAt, next)
     }
 
     /**
@@ -174,11 +174,20 @@ class SubscriptionRepository @Inject constructor(
             subscription.id, dueDate, advance(dueDate, subscription.billingCycle), SubscriptionState.ACTIVE
         ) > 0
 
-    /** See [SubscriptionDao.markPaid]. */
-    suspend fun markPaid(subscriptionId: Long, paidAt: LocalDate, nextPaymentDate: LocalDate) =
-        subscriptionDao.markPaid(subscriptionId, paidAt, nextPaymentDate)
-    
-    
+    /**
+     * A payment of the cycle that moves the schedule to [nextPaymentDate]; a plan's
+     * last payment ends it instead ([RecurringCharge.afterPayment]). Reads the
+     * current row, so call inside a transaction, like [recordCharge].
+     */
+    suspend fun markPaid(subscriptionId: Long, paidAt: LocalDate, nextPaymentDate: LocalDate) {
+        subscriptionDao.getSubscriptionById(subscriptionId)?.let { writePayment(it, paidAt, nextPaymentDate) }
+    }
+
+    private suspend fun writePayment(current: SubscriptionEntity, paidAt: LocalDate, next: LocalDate) {
+        val paid = RecurringCharge.afterPayment(current, paidAt, next)
+        subscriptionDao.markPaid(current.id, paidAt, paid.nextPaymentDate, paid.paymentsMade, paid.state)
+    }
+
     /**
      * Creates or updates a subscription from Indian Bank Mandate info
      */
@@ -187,7 +196,7 @@ class SubscriptionRepository @Inject constructor(
         bankName: String = "Indian Bank",
         smsBody: String? = null
     ): Long = createOrUpdateFromMandate(mandateInfo, bankName, smsBody)
-    
+
     /**
      * Creates or updates a subscription from SBI UPI-Mandate info
      */
@@ -237,9 +246,9 @@ class SubscriptionRepository @Inject constructor(
         }
 
         Log.d(TAG, "Unified Mandate lookup - Bank: $bankName, Merchant: ${mandateInfo.merchant}, " +
-                  "Amount: ${mandateInfo.amount}, UMN: ${mandateInfo.umn}, " +
-                  "Next Date: $nextPaymentDate, Existing: ${existing?.let { "ID=${it.id}, State=${it.state}, " +
-                  "StoredDate=${it.nextPaymentDate}" } ?: "NOT FOUND"}")
+            "Amount: ${mandateInfo.amount}, UMN: ${mandateInfo.umn}, " +
+            "Next Date: $nextPaymentDate, Existing: ${existing?.let { "ID=${it.id}, State=${it.state}, " +
+                "StoredDate=${it.nextPaymentDate}" } ?: "NOT FOUND"}")
 
         val subscription = if (existing != null) {
             // ENDED is terminal — the user explicitly cancelled and we never
@@ -260,26 +269,26 @@ class SubscriptionRepository @Inject constructor(
             // Check if this is a hidden subscription that should be reactivated
             // Only reactivate if the new payment date is LATER than the stored date
             val shouldReactivate = existing.state == SubscriptionState.HIDDEN &&
-                                  nextPaymentDate.isAfter(existing.nextPaymentDate) &&
-                                  nextPaymentDate.isAfter(LocalDate.now())
+                nextPaymentDate.isAfter(existing.nextPaymentDate) &&
+                nextPaymentDate.isAfter(LocalDate.now())
 
             Log.d(TAG, "Subscription state check - Hidden: ${existing.state == SubscriptionState.HIDDEN}, " +
-                      "New date after stored: ${nextPaymentDate.isAfter(existing.nextPaymentDate)}, " +
-                      "New date is future: ${nextPaymentDate.isAfter(LocalDate.now())}, " +
-                      "Should reactivate: $shouldReactivate")
+                "New date after stored: ${nextPaymentDate.isAfter(existing.nextPaymentDate)}, " +
+                "New date is future: ${nextPaymentDate.isAfter(LocalDate.now())}, " +
+                "Should reactivate: $shouldReactivate")
 
             // If hidden and payment date hasn't changed, don't update
             if (existing.state == SubscriptionState.HIDDEN && !shouldReactivate) {
                 // Return the existing ID without any updates
                 Log.d(TAG, "Subscription ${existing.id} is HIDDEN and won't be reactivated " +
-                          "(payment date not newer). Skipping update.")
+                    "(payment date not newer). Skipping update.")
                 return existing.id
             }
 
             // Update existing subscription (reactivate if needed)
             if (shouldReactivate) {
                 Log.i(TAG, "REACTIVATING subscription ${existing.id} - ${existing.merchantName} " +
-                          "(old date: ${existing.nextPaymentDate}, new date: $nextPaymentDate)")
+                    "(old date: ${existing.nextPaymentDate}, new date: $nextPaymentDate)")
             }
             existing.copy(
                 amount = mandateInfo.amount,
@@ -296,7 +305,7 @@ class SubscriptionRepository @Inject constructor(
         } else {
             // Create new subscription
             Log.d(TAG, "Creating NEW subscription - Bank: $bankName, Merchant: ${mandateInfo.merchant}, " +
-                      "Amount: ${mandateInfo.amount}, Date: $nextPaymentDate")
+                "Amount: ${mandateInfo.amount}, Date: $nextPaymentDate")
             SubscriptionEntity(
                 merchantName = mandateInfo.merchant,
                 amount = mandateInfo.amount,

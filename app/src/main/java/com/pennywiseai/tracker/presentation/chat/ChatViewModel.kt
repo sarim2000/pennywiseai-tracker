@@ -31,6 +31,7 @@ import kotlinx.coroutines.flow.catch
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -49,6 +50,7 @@ class ChatViewModel @Inject constructor(
     private val transactionRepository: com.pennywiseai.tracker.data.repository.TransactionRepository,
     private val modelDownloader: ModelDownloader,
     private val transactionEvents: TransactionEvents,
+    private val chatSuggestions: com.pennywiseai.tracker.data.repository.ChatSuggestions,
     @com.pennywiseai.tracker.core.ApplicationScope private val appScope: kotlinx.coroutines.CoroutineScope,
     private val chatDrafts: ChatDraftInbox,
 ) : ViewModel() {
@@ -101,8 +103,24 @@ class ChatViewModel @Inject constructor(
     private val _uiState = MutableStateFlow(ChatUiState())
     val uiState: StateFlow<ChatUiState> = _uiState.asStateFlow()
 
-    /** Each reply's links to the transactions behind its figures, by message id. */
-    val links: StateFlow<Map<String, List<com.pennywiseai.tracker.data.model.ChatLink>>> = llmRepository.links
+    /** Each reply's links to the transactions or screen behind it, by message id. */
+    val links: StateFlow<Map<String, List<com.pennywiseai.tracker.data.model.ReplyLink>>> = llmRepository.links
+
+    // Read again each time Chat comes back: a bill's "overdue" and a budget's window move with the day.
+    private val today = MutableStateFlow(java.time.LocalDate.now())
+
+    /** The suggested prompts that apply now, kept current as bills are paid and budgets spent. */
+    @OptIn(kotlinx.coroutines.ExperimentalCoroutinesApi::class)
+    val suggestions: StateFlow<List<com.pennywiseai.tracker.data.repository.ChatSuggestion>> = today
+        .flatMapLatest { chatSuggestions.observe(it) }
+        .catch { e ->
+            // Suggestions are a convenience: a failed read must not take the chat down with it,
+            // nor the standing questions, which need nothing read up front.
+            android.util.Log.w("ChatViewModel", "Suggestions unavailable (${e.javaClass.simpleName})")
+            emit(com.pennywiseai.tracker.data.repository.ChatSuggestions.STANDING)
+        }
+        // The standing questions show from the first frame; what needs doing joins as it's read.
+        .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), com.pennywiseai.tracker.data.repository.ChatSuggestions.STANDING)
 
     private val _currentResponse = MutableStateFlow("")
     val currentResponse: StateFlow<String> = _currentResponse.asStateFlow()
@@ -214,6 +232,7 @@ class ChatViewModel @Inject constructor(
     private val modelOwner = Any()
 
     fun onScreenShown() {
+        today.value = java.time.LocalDate.now()
         releaseJob?.cancel()
         llmRepository.claimModel(modelOwner)
         warmUpWhenReady() // a no-op when the model is still loaded
@@ -369,15 +388,18 @@ class ChatViewModel @Inject constructor(
         }
     }
 
-    /** M8: answered by code, so it works before the model loads. Shares the send's job: clearing stops it too. */
-    fun runQuickAction(action: com.pennywiseai.tracker.data.repository.QuickAction) {
+    /**
+     * M8: answered by code, so it works before the model loads. Shares the send's job: clearing
+     * stops it too. [question] is the prompt as its chip said it; the answer is read fresh.
+     */
+    fun runQuickAction(action: com.pennywiseai.tracker.data.repository.QuickAction, question: String) {
         if (_uiState.value.isLoading || _isConfirming.value) return
         llmRepository.clearPendingAction()
         // Claimed before launching, so a second tap or a send can't start alongside it.
         _uiState.value = _uiState.value.copy(isLoading = true, error = null, replyTopic = null)
         sendJob = viewModelScope.launch {
             try {
-                llmRepository.answerQuickAction(action)
+                llmRepository.answerQuickAction(action, question)
             } catch (e: Exception) {
                 _uiState.value = _uiState.value.copy(error = sendErrorText(e, R.string.chat_error_send_failed))
             } finally {

@@ -1,8 +1,5 @@
 package com.pennywiseai.tracker.presentation.analytics
 
-import androidx.compose.ui.res.pluralStringResource
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.Crossfade
@@ -18,8 +15,6 @@ import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
-import com.pennywiseai.tracker.ui.effects.overScrollVertical
-import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
@@ -34,36 +29,41 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
+import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.common.chipLabel
+import com.pennywiseai.tracker.presentation.common.filterIcon
 import com.pennywiseai.tracker.presentation.common.label
-import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
+import com.pennywiseai.tracker.presentation.common.shortLabel
 import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.ui.animations.pwExpand
 import com.pennywiseai.tracker.ui.components.*
+import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.cards.ListItemCardV2
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
-import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
-import com.pennywiseai.tracker.presentation.common.filterIcon
-import com.pennywiseai.tracker.presentation.common.shortLabel
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
+import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.*
-import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.AppDates
+import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.DateRangeUtils
-import androidx.compose.ui.graphics.Color
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import java.math.BigDecimal
-import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 private enum class CategoryViewType { CHART, LIST }
 
@@ -87,7 +87,8 @@ fun AnalyticsScreen(
     viewModel: AnalyticsViewModel = hiltViewModel(),
     onNavigateToChat: () -> Unit = {},
     onNavigateToTransactions: (TransactionsDrillDown) -> Unit = {},
-    onNavigateToHome: () -> Unit = {}
+    onNavigateToHome: () -> Unit = {},
+    onNavigateToCalendar: () -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val selectedPeriod by viewModel.selectedPeriod.collectAsStateWithLifecycle()
@@ -153,15 +154,15 @@ fun AnalyticsScreen(
     }
     val primaryVisibleCurrency = availableCurrencies.firstOrNull() ?: selectedCurrency
     val hasCurrencyFilter = !isUnifiedMode &&
-            availableCurrencies.size > 1 &&
-            selectedCurrency.isNotBlank() &&
-            !selectedCurrency.equals(primaryVisibleCurrency, ignoreCase = true)
+        availableCurrencies.size > 1 &&
+        selectedCurrency.isNotBlank() &&
+        !selectedCurrency.equals(primaryVisibleCurrency, ignoreCase = true)
     val hasActiveAnalyticsFilter = selectedPeriod != TimePeriod.THIS_MONTH ||
-            customDateRange != null ||
-            transactionTypeFilter != defaultTypeFilter ||
-            categoryFilter != null ||
-            accountFilter != null ||
-            hasCurrencyFilter
+        customDateRange != null ||
+        transactionTypeFilter != defaultTypeFilter ||
+        categoryFilter != null ||
+        accountFilter != null ||
+        hasCurrencyFilter
 
     // Scroll behaviors for collapsible TopAppBar
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
@@ -176,489 +177,493 @@ fun AnalyticsScreen(
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 title = stringResource(R.string.analytics_title),
-                hazeState = hazeState
+                hazeState = hazeState,
+                actionContent = {
+                    IconButton(onClick = onNavigateToCalendar, shapes = IconButtonDefaults.shapes()) {
+                        Icon(Icons.Default.CalendarViewMonth, contentDescription = stringResource(R.string.calendar_open))
+                    }
+                }
             )
         }
     ) { paddingValues ->
-    // Data swaps here fade on effects specs: no full-width slides, no overshoot.
-    val motion = MaterialTheme.motionScheme
+        // Data swaps here fade on effects specs: no full-width slides, no overshoot.
+        val motion = MaterialTheme.motionScheme
 
-    LazyColumn(
-        state = listState,
-        modifier = Modifier
-            .fillMaxSize()
-            .overScrollVertical()
-            .hazeSource(hazeState)
-            .background(MaterialTheme.colorScheme.background),
-        contentPadding = PaddingValues(
-            start = Dimensions.Padding.content,
-            end = Dimensions.Padding.content,
-            top = paddingValues.calculateTopPadding() + Spacing.md,
-            bottom = Dimensions.Component.bottomBarHeight + Spacing.md
-        ),
-        verticalArrangement = Arrangement.spacedBy(Spacing.md),
-        flingBehavior = rememberOverscrollFlingBehavior { listState }
-    ) {
-        item {
-            AnalyticsFilterBar(
-                selectedPeriod = selectedPeriod,
-                customRangeLabel = customRangeLabel,
-                periodChipLabel = periodChipLabel,
-                timePeriods = timePeriods,
-                transactionTypeFilter = transactionTypeFilter,
-                defaultTypeFilter = defaultTypeFilter,
-                selectedCurrency = selectedCurrency,
-                availableCurrencies = availableCurrencies,
-                isUnifiedMode = isUnifiedMode,
-                categoryFilter = categoryFilter,
-                availableCategories = uiState.availableCategories,
-                profiles = profiles,
-                selectedProfileId = selectedProfileId,
-                accountOptions = accountOptions,
-                accountFilter = accountFilter,
-                groupBy = groupBy,
-                isProEntitled = isProEntitled,
-                showGroupByMenu = showGroupByMenu,
-                showPeriodMenu = showPeriodMenu,
-                showTypeMenu = showTypeMenu,
-                showCurrencyMenu = showCurrencyMenu,
-                showCategoryMenu = showCategoryMenu,
-                showProfileMenu = showProfileMenu,
-                showAccountMenu = showAccountMenu,
-                hasActiveFilter = hasActiveAnalyticsFilter,
-                onGroupByClick = { showGroupByMenu = true },
-                onGroupByDismiss = { showGroupByMenu = false },
-                onGroupBySelected = { option ->
-                    showGroupByMenu = false
-                    // A Pro grouping without Pro opens the upgrade sheet; the view stays put.
-                    if (option.allowedFor(isProEntitled) == option) {
-                        viewModel.setGroupBy(option)
-                    } else {
-                        showUpgradeSheet = true
-                    }
-                },
-                onPeriodClick = { showPeriodMenu = true },
-                onPeriodDismiss = { showPeriodMenu = false },
-                onPeriodSelected = { period ->
-                    if (period == TimePeriod.CUSTOM) {
-                        showDateRangePicker = true
-                    } else {
-                        viewModel.selectPeriod(period)
-                    }
-                    showPeriodMenu = false
-                },
-                onTypeClick = { showTypeMenu = true },
-                onTypeDismiss = { showTypeMenu = false },
-                onTypeSelected = { typeFilter ->
-                    viewModel.setTransactionTypeFilter(typeFilter)
-                    showTypeMenu = false
-                },
-                onCurrencyClick = { showCurrencyMenu = true },
-                onCurrencyDismiss = { showCurrencyMenu = false },
-                onCurrencySelected = { currency ->
-                    viewModel.selectCurrency(currency)
-                    showCurrencyMenu = false
-                },
-                onCategoryClick = { showCategoryMenu = true },
-                onCategoryDismiss = { showCategoryMenu = false },
-                onCategorySelected = { category ->
-                    if (category == null) {
-                        viewModel.clearCategoryFilter()
-                    } else {
-                        viewModel.setCategoryFilter(category)
-                    }
-                    showCategoryMenu = false
-                },
-                onProfileClick = { showProfileMenu = true },
-                onProfileDismiss = { showProfileMenu = false },
-                onProfileSelected = { profileId ->
-                    viewModel.selectProfile(profileId)
-                    showProfileMenu = false
-                },
-                onAccountClick = { showAccountMenu = true },
-                onAccountDismiss = { showAccountMenu = false },
-                onAccountSelected = { accountKey ->
-                    viewModel.setAccountFilter(accountKey)
-                    showAccountMenu = false
-                },
-                onResetFilters = {
-                    viewModel.selectPeriod(TimePeriod.THIS_MONTH)
-                    viewModel.resetTransactionTypeFilter()
-                    viewModel.clearCategoryFilter()
-                    viewModel.setAccountFilter(null)
-                    if (!isUnifiedMode && primaryVisibleCurrency.isNotBlank()) {
-                        viewModel.selectCurrency(primaryVisibleCurrency)
-                    }
-                    showPeriodMenu = false
-                    showTypeMenu = false
-                    showCurrencyMenu = false
-                    showCategoryMenu = false
-                    showAccountMenu = false
-                }
-            )
-        }
-
-        // Analytics Summary Card
-        if (uiState.totalSpending > BigDecimal.ZERO || uiState.transactionCount > 0) {
+        LazyColumn(
+            state = listState,
+            modifier = Modifier
+                .fillMaxSize()
+                .overScrollVertical()
+                .hazeSource(hazeState)
+                .background(MaterialTheme.colorScheme.background),
+            contentPadding = PaddingValues(
+                start = Dimensions.Padding.content,
+                end = Dimensions.Padding.content,
+                top = paddingValues.calculateTopPadding() + Spacing.md,
+                bottom = Dimensions.Component.bottomBarHeight + Spacing.md
+            ),
+            verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            flingBehavior = rememberOverscrollFlingBehavior { listState }
+        ) {
             item {
-                AnalyticsSummaryCard(
-                    totalAmount = uiState.totalSpending,
-                    transactionCount = uiState.transactionCount,
-                    averageAmount = uiState.averageAmount,
-                    topCategory = uiState.topCategory,
-                    topCategoryPercentage = uiState.topCategoryPercentage,
-                    currency = uiState.currency,
-                    isLoading = uiState.isLoading,
-                    forecast = uiState.forecast
+                AnalyticsFilterBar(
+                    selectedPeriod = selectedPeriod,
+                    customRangeLabel = customRangeLabel,
+                    periodChipLabel = periodChipLabel,
+                    timePeriods = timePeriods,
+                    transactionTypeFilter = transactionTypeFilter,
+                    defaultTypeFilter = defaultTypeFilter,
+                    selectedCurrency = selectedCurrency,
+                    availableCurrencies = availableCurrencies,
+                    isUnifiedMode = isUnifiedMode,
+                    categoryFilter = categoryFilter,
+                    availableCategories = uiState.availableCategories,
+                    profiles = profiles,
+                    selectedProfileId = selectedProfileId,
+                    accountOptions = accountOptions,
+                    accountFilter = accountFilter,
+                    groupBy = groupBy,
+                    isProEntitled = isProEntitled,
+                    showGroupByMenu = showGroupByMenu,
+                    showPeriodMenu = showPeriodMenu,
+                    showTypeMenu = showTypeMenu,
+                    showCurrencyMenu = showCurrencyMenu,
+                    showCategoryMenu = showCategoryMenu,
+                    showProfileMenu = showProfileMenu,
+                    showAccountMenu = showAccountMenu,
+                    hasActiveFilter = hasActiveAnalyticsFilter,
+                    onGroupByClick = { showGroupByMenu = true },
+                    onGroupByDismiss = { showGroupByMenu = false },
+                    onGroupBySelected = { option ->
+                        showGroupByMenu = false
+                        // A Pro grouping without Pro opens the upgrade sheet; the view stays put.
+                        if (option.allowedFor(isProEntitled) == option) {
+                            viewModel.setGroupBy(option)
+                        } else {
+                            showUpgradeSheet = true
+                        }
+                    },
+                    onPeriodClick = { showPeriodMenu = true },
+                    onPeriodDismiss = { showPeriodMenu = false },
+                    onPeriodSelected = { period ->
+                        if (period == TimePeriod.CUSTOM) {
+                            showDateRangePicker = true
+                        } else {
+                            viewModel.selectPeriod(period)
+                        }
+                        showPeriodMenu = false
+                    },
+                    onTypeClick = { showTypeMenu = true },
+                    onTypeDismiss = { showTypeMenu = false },
+                    onTypeSelected = { typeFilter ->
+                        viewModel.setTransactionTypeFilter(typeFilter)
+                        showTypeMenu = false
+                    },
+                    onCurrencyClick = { showCurrencyMenu = true },
+                    onCurrencyDismiss = { showCurrencyMenu = false },
+                    onCurrencySelected = { currency ->
+                        viewModel.selectCurrency(currency)
+                        showCurrencyMenu = false
+                    },
+                    onCategoryClick = { showCategoryMenu = true },
+                    onCategoryDismiss = { showCategoryMenu = false },
+                    onCategorySelected = { category ->
+                        if (category == null) {
+                            viewModel.clearCategoryFilter()
+                        } else {
+                            viewModel.setCategoryFilter(category)
+                        }
+                        showCategoryMenu = false
+                    },
+                    onProfileClick = { showProfileMenu = true },
+                    onProfileDismiss = { showProfileMenu = false },
+                    onProfileSelected = { profileId ->
+                        viewModel.selectProfile(profileId)
+                        showProfileMenu = false
+                    },
+                    onAccountClick = { showAccountMenu = true },
+                    onAccountDismiss = { showAccountMenu = false },
+                    onAccountSelected = { accountKey ->
+                        viewModel.setAccountFilter(accountKey)
+                        showAccountMenu = false
+                    },
+                    onResetFilters = {
+                        viewModel.selectPeriod(TimePeriod.THIS_MONTH)
+                        viewModel.resetTransactionTypeFilter()
+                        viewModel.clearCategoryFilter()
+                        viewModel.setAccountFilter(null)
+                        if (!isUnifiedMode && primaryVisibleCurrency.isNotBlank()) {
+                            viewModel.selectCurrency(primaryVisibleCurrency)
+                        }
+                        showPeriodMenu = false
+                        showTypeMenu = false
+                        showCurrencyMenu = false
+                        showCategoryMenu = false
+                        showAccountMenu = false
+                    }
                 )
             }
-        }
 
-        // Chart Section with Type Selector
-        if (uiState.spendingTrend.size >= 2) {
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    SectionHeaderV2(
-                        title = stringResource(R.string.analytics_trends),
-                        action = {
-                            Button(
-                                onClick = { showChartTypeSelector = !showChartTypeSelector },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = MaterialTheme.colorScheme.primaryContainer,
-                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
-                                ),
-                                contentPadding = PaddingValues(horizontal = Spacing.smd, vertical = Spacing.xs),
-                                shapes = ButtonDefaults.shapes()
-                            ) {
-                                Icon(
-                                    imageVector = when (chartType) {
-                                        ChartType.LINE -> Icons.AutoMirrored.Filled.ShowChart
-                                        ChartType.BAR -> Icons.Default.BarChart
-                                        ChartType.HEATMAP -> Icons.Default.GridView
-                                    },
-                                    contentDescription = null,
-                                    modifier = Modifier.size(Dimensions.Icon.small)
-                                )
-                                Spacer(modifier = Modifier.width(Spacing.xs))
-                                Text(
-                                    text = when (chartType) {
-                                        ChartType.LINE -> stringResource(R.string.analytics_chart_line)
-                                        ChartType.BAR -> stringResource(R.string.analytics_chart_bar)
-                                        ChartType.HEATMAP -> stringResource(R.string.analytics_chart_heatmap)
-                                    },
-                                    style = MaterialTheme.typography.labelMedium
-                                )
-                            }
-                        }
+            // Analytics Summary Card
+            if (uiState.totalSpending > BigDecimal.ZERO || uiState.transactionCount > 0) {
+                item {
+                    AnalyticsSummaryCard(
+                        totalAmount = uiState.totalSpending,
+                        transactionCount = uiState.transactionCount,
+                        averageAmount = uiState.averageAmount,
+                        topCategory = uiState.topCategory,
+                        topCategoryPercentage = uiState.topCategoryPercentage,
+                        currency = uiState.currency,
+                        isLoading = uiState.isLoading,
+                        forecast = uiState.forecast
                     )
+                }
+            }
 
-                    // Expandable chart type selector card
-                    AnimatedVisibility(
-                        visible = showChartTypeSelector,
-                        enter = pwExpand(),
-                        exit = pwCollapse()
-                    ) {
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(top = Spacing.sm),
-                            colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                            ),
-                            shape = MaterialTheme.shapes.medium
-                        ) {
-                            ChartType.entries.forEach { type ->
-                                Row(
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .clip(MaterialTheme.shapes.medium)
-                                        .clickable {
-                                            viewModel.setChartType(type)
-                                            showChartTypeSelector = false
-                                        }
-                                        .padding(horizontal = Spacing.md, vertical = Dimensions.Padding.listRowVertical),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.CenterVertically
+            // Chart Section with Type Selector
+            if (uiState.spendingTrend.size >= 2) {
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        SectionHeaderV2(
+                            title = stringResource(R.string.analytics_trends),
+                            action = {
+                                Button(
+                                    onClick = { showChartTypeSelector = !showChartTypeSelector },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = MaterialTheme.colorScheme.primaryContainer,
+                                        contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                                    ),
+                                    contentPadding = PaddingValues(horizontal = Spacing.smd, vertical = Spacing.xs),
+                                    shapes = ButtonDefaults.shapes()
                                 ) {
+                                    Icon(
+                                        imageVector = when (chartType) {
+                                            ChartType.LINE -> Icons.AutoMirrored.Filled.ShowChart
+                                            ChartType.BAR -> Icons.Default.BarChart
+                                            ChartType.HEATMAP -> Icons.Default.GridView
+                                        },
+                                        contentDescription = null,
+                                        modifier = Modifier.size(Dimensions.Icon.small)
+                                    )
+                                    Spacer(modifier = Modifier.width(Spacing.xs))
+                                    Text(
+                                        text = when (chartType) {
+                                            ChartType.LINE -> stringResource(R.string.analytics_chart_line)
+                                            ChartType.BAR -> stringResource(R.string.analytics_chart_bar)
+                                            ChartType.HEATMAP -> stringResource(R.string.analytics_chart_heatmap)
+                                        },
+                                        style = MaterialTheme.typography.labelMedium
+                                    )
+                                }
+                            }
+                        )
+
+                        // Expandable chart type selector card
+                        AnimatedVisibility(
+                            visible = showChartTypeSelector,
+                            enter = pwExpand(),
+                            exit = pwCollapse()
+                        ) {
+                            Card(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(top = Spacing.sm),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                                ),
+                                shape = MaterialTheme.shapes.medium
+                            ) {
+                                ChartType.entries.forEach { type ->
                                     Row(
-                                        horizontalArrangement = Arrangement.spacedBy(Spacing.smd),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .clip(MaterialTheme.shapes.medium)
+                                            .clickable {
+                                                viewModel.setChartType(type)
+                                                showChartTypeSelector = false
+                                            }
+                                            .padding(horizontal = Spacing.md, vertical = Dimensions.Padding.listRowVertical),
+                                        horizontalArrangement = Arrangement.SpaceBetween,
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Icon(
-                                            imageVector = when (type) {
-                                                ChartType.LINE -> Icons.AutoMirrored.Filled.ShowChart
-                                                ChartType.BAR -> Icons.Default.BarChart
-                                                ChartType.HEATMAP -> Icons.Default.GridView
-                                            },
-                                            contentDescription = null,
-                                            tint = if (chartType == type)
-                                                MaterialTheme.colorScheme.primary
-                                            else MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                        Text(
-                                            text = when (type) {
-                                                ChartType.LINE -> stringResource(R.string.analytics_chart_line_full)
-                                                ChartType.BAR -> stringResource(R.string.analytics_chart_bar_full)
-                                                ChartType.HEATMAP -> stringResource(R.string.analytics_chart_heatmap)
-                                            },
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = if (chartType == type)
-                                                MaterialTheme.colorScheme.primary
-                                            else MaterialTheme.colorScheme.onSurface
-                                        )
-                                    }
-                                    if (chartType == type) {
-                                        Icon(
-                                            Icons.Default.Check,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(Dimensions.Icon.medium)
-                                        )
+                                        Row(
+                                            horizontalArrangement = Arrangement.spacedBy(Spacing.smd),
+                                            verticalAlignment = Alignment.CenterVertically
+                                        ) {
+                                            Icon(
+                                                imageVector = when (type) {
+                                                    ChartType.LINE -> Icons.AutoMirrored.Filled.ShowChart
+                                                    ChartType.BAR -> Icons.Default.BarChart
+                                                    ChartType.HEATMAP -> Icons.Default.GridView
+                                                },
+                                                contentDescription = null,
+                                                tint = if (chartType == type)
+                                                    MaterialTheme.colorScheme.primary
+                                                else MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            Text(
+                                                text = when (type) {
+                                                    ChartType.LINE -> stringResource(R.string.analytics_chart_line_full)
+                                                    ChartType.BAR -> stringResource(R.string.analytics_chart_bar_full)
+                                                    ChartType.HEATMAP -> stringResource(R.string.analytics_chart_heatmap)
+                                                },
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = if (chartType == type)
+                                                    MaterialTheme.colorScheme.primary
+                                                else MaterialTheme.colorScheme.onSurface
+                                            )
+                                        }
+                                        if (chartType == type) {
+                                            Icon(
+                                                Icons.Default.Check,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.size(Dimensions.Icon.medium)
+                                            )
+                                        }
                                     }
                                 }
                             }
                         }
-                    }
 
-                    // Chart display with crossfade transition
-                    Crossfade(
-                        targetState = chartType,
-                        animationSpec = motion.defaultEffectsSpec(),
-                        label = "chart_transition"
-                    ) { type ->
-                        // The trend's own currency, set with the data in one state: the
-                        // picker's selectedCurrency flips first, which labelled the old
-                        // figures with the new symbol for a frame.
-                        val trendCurrency = uiState.currency.ifEmpty { selectedCurrency }
-                        when (type) {
-                            ChartType.LINE -> BalanceChart(
-                                primaryCurrency = trendCurrency,
-                                balanceHistory = uiState.spendingTrend,
-                                height = 220
-                            )
-                            ChartType.BAR -> SpendingBarChart(
-                                primaryCurrency = trendCurrency,
-                                data = uiState.spendingTrend,
-                                height = 220
-                            )
-                            ChartType.HEATMAP -> SpendingHeatmap(
-                                data = uiState.spendingTrend
+                        // Chart display with crossfade transition
+                        Crossfade(
+                            targetState = chartType,
+                            animationSpec = motion.defaultEffectsSpec(),
+                            label = "chart_transition"
+                        ) { type ->
+                            // The trend's own currency, set with the data in one state: the
+                            // picker's selectedCurrency flips first, which labelled the old
+                            // figures with the new symbol for a frame.
+                            val trendCurrency = uiState.currency.ifEmpty { selectedCurrency }
+                            when (type) {
+                                ChartType.LINE -> BalanceChart(
+                                    primaryCurrency = trendCurrency,
+                                    balanceHistory = uiState.spendingTrend,
+                                    height = 220
+                                )
+                                ChartType.BAR -> SpendingBarChart(
+                                    primaryCurrency = trendCurrency,
+                                    data = uiState.spendingTrend,
+                                    height = 220
+                                )
+                                ChartType.HEATMAP -> SpendingHeatmap(
+                                    data = uiState.spendingTrend
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // Category Breakdown Section with Pie/List toggle
+            if (groupBy == AnalyticsGroupBy.CATEGORY && uiState.categoryBreakdown.isNotEmpty()) {
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        SectionHeaderV2(
+                            title = stringResource(R.string.analytics_top_categories),
+                            action = {
+                                IconButton(onClick = {
+                                    categoryViewType = if (categoryViewType == CategoryViewType.CHART) {
+                                        CategoryViewType.LIST
+                                    } else {
+                                        CategoryViewType.CHART
+                                    }
+                                }, shapes = IconButtonDefaults.shapes()) {
+                                    Icon(
+                                        imageVector = if (categoryViewType == CategoryViewType.CHART)
+                                            Icons.AutoMirrored.Filled.List
+                                        else Icons.Default.PieChart,
+                                        contentDescription = stringResource(R.string.analytics_toggle_view),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        )
+
+                        // Animated content swap
+                        AnimatedContent(
+                            targetState = categoryViewType,
+                            transitionSpec = {
+                                fadeIn(motion.defaultEffectsSpec()) togetherWith
+                                    fadeOut(motion.fastEffectsSpec()) using
+                                    SizeTransform(clip = false) { _, _ -> motion.defaultSpatialSpec() }
+                            },
+                            label = "category_view_transition"
+                        ) { viewType ->
+                            when (viewType) {
+                                CategoryViewType.CHART -> CategoryPieChart(
+                                    categories = uiState.categoryBreakdown,
+                                    currency = selectedCurrency,
+                                    onCategoryClick = { category ->
+                                        drillDown(TransactionsDrillDown(category = category.name))
+                                    }
+                                )
+                                CategoryViewType.LIST -> CategoryBreakdownCard(
+                                    categories = uiState.categoryBreakdown,
+                                    currency = selectedCurrency,
+                                    onCategoryClick = { category ->
+                                        drillDown(TransactionsDrillDown(category = category.name))
+                                    }
+                                )
+                            }
+                        }
+
+                        // Explain why the bars can sum above the headline total: refunds are
+                        // netted in full off the total, but a category bar can't go negative (#704).
+                        if (uiState.refundNettedFromTotal > BigDecimal.ZERO) {
+                            Text(
+                                text = stringResource(
+                                    R.string.analytics_refund_note,
+                                    CurrencyFormatter.formatCurrency(uiState.refundNettedFromTotal, selectedCurrency)
+                                ),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = Spacing.sm)
                             )
                         }
                     }
                 }
             }
-        }
 
-        // Category Breakdown Section with Pie/List toggle
-        if (groupBy == AnalyticsGroupBy.CATEGORY && uiState.categoryBreakdown.isNotEmpty()) {
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    SectionHeaderV2(
-                        title = stringResource(R.string.analytics_top_categories),
-                        action = {
-                            IconButton(onClick = {
-                                categoryViewType = if (categoryViewType == CategoryViewType.CHART) {
-                                    CategoryViewType.LIST
-                                } else {
-                                    CategoryViewType.CHART
+            // Tag Breakdown Section with Pie/List toggle
+            if (groupBy == AnalyticsGroupBy.TAG && uiState.tagBreakdown.isNotEmpty()) {
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        SectionHeaderV2(
+                            title = stringResource(R.string.analytics_top_tags),
+                            action = {
+                                IconButton(onClick = {
+                                    tagViewType = if (tagViewType == CategoryViewType.CHART) {
+                                        CategoryViewType.LIST
+                                    } else {
+                                        CategoryViewType.CHART
+                                    }
+                                }, shapes = IconButtonDefaults.shapes()) {
+                                    Icon(
+                                        imageVector = if (tagViewType == CategoryViewType.CHART)
+                                            Icons.AutoMirrored.Filled.List
+                                        else Icons.Default.PieChart,
+                                        contentDescription = stringResource(R.string.analytics_toggle_view),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
                                 }
-                            }, shapes = IconButtonDefaults.shapes()) {
-                                Icon(
-                                    imageVector = if (categoryViewType == CategoryViewType.CHART)
-                                        Icons.AutoMirrored.Filled.List
-                                    else Icons.Default.PieChart,
-                                    contentDescription = stringResource(R.string.analytics_toggle_view),
-                                    tint = MaterialTheme.colorScheme.primary
+                            }
+                        )
+
+                        AnimatedContent(
+                            targetState = tagViewType,
+                            transitionSpec = {
+                                fadeIn(motion.defaultEffectsSpec()) togetherWith
+                                    fadeOut(motion.fastEffectsSpec()) using
+                                    SizeTransform(clip = false) { _, _ -> motion.defaultSpatialSpec() }
+                            },
+                            label = "tag_view_transition"
+                        ) { viewType ->
+                            when (viewType) {
+                                CategoryViewType.CHART -> TagPieChart(
+                                    tags = uiState.tagBreakdown,
+                                    currency = selectedCurrency,
+                                    onTagClick = { tag ->
+                                        if (!tag.isUntagged) drillDown(TransactionsDrillDown(tag = tag.name))
+                                    }
+                                )
+                                CategoryViewType.LIST -> TagBreakdownCard(
+                                    tags = uiState.tagBreakdown,
+                                    currency = selectedCurrency,
+                                    onTagClick = { tag ->
+                                        drillDown(TransactionsDrillDown(tag = tag.name))
+                                    }
                                 )
                             }
                         }
-                    )
 
-                    // Animated content swap
-                    AnimatedContent(
-                        targetState = categoryViewType,
-                        transitionSpec = {
-                            fadeIn(motion.defaultEffectsSpec()) togetherWith
-                                fadeOut(motion.fastEffectsSpec()) using
-                                SizeTransform(clip = false) { _, _ -> motion.defaultSpatialSpec() }
-                        },
-                        label = "category_view_transition"
-                    ) { viewType ->
-                        when (viewType) {
-                            CategoryViewType.CHART -> CategoryPieChart(
-                                categories = uiState.categoryBreakdown,
-                                currency = selectedCurrency,
-                                onCategoryClick = { category ->
-                                    drillDown(TransactionsDrillDown(category = category.name))
-                                }
-                            )
-                            CategoryViewType.LIST -> CategoryBreakdownCard(
-                                categories = uiState.categoryBreakdown,
-                                currency = selectedCurrency,
-                                onCategoryClick = { category ->
-                                    drillDown(TransactionsDrillDown(category = category.name))
-                                }
+                        if (uiState.tagsOverlap) {
+                            Text(
+                                text = stringResource(R.string.analytics_tag_overlap_note),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(horizontal = Spacing.sm)
                             )
                         }
                     }
+                }
+            }
 
-                    // Explain why the bars can sum above the headline total: refunds are
-                    // netted in full off the total, but a category bar can't go negative (#704).
-                    if (uiState.refundNettedFromTotal > BigDecimal.ZERO) {
-                        Text(
-                            text = stringResource(
-                                R.string.analytics_refund_note,
-                                CurrencyFormatter.formatCurrency(uiState.refundNettedFromTotal, selectedCurrency)
-                            ),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = Spacing.sm)
+            // Day-of-week breakdown: there's no Transactions filter for a weekday, so rows don't drill in.
+            if (groupBy == AnalyticsGroupBy.DAY_OF_WEEK && uiState.dayOfWeekBreakdown.isNotEmpty()) {
+                item {
+                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        SectionHeaderV2(title = stringResource(R.string.analytics_by_day_of_week))
+                        val barColor = MaterialTheme.colorScheme.primary
+                        TagBreakdownCard(
+                            tags = uiState.dayOfWeekBreakdown,
+                            currency = selectedCurrency,
+                            title = null,
+                            visibleItemCount = uiState.dayOfWeekBreakdown.size,
+                            barColor = { barColor },
+                            onTagClick = null
                         )
                     }
                 }
             }
-        }
 
-        // Tag Breakdown Section with Pie/List toggle
-        if (groupBy == AnalyticsGroupBy.TAG && uiState.tagBreakdown.isNotEmpty()) {
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            // Top Merchants Section
+            if (groupBy == AnalyticsGroupBy.MERCHANT && uiState.topMerchants.isNotEmpty()) {
+                item {
                     SectionHeaderV2(
-                        title = stringResource(R.string.analytics_top_tags),
-                        action = {
-                            IconButton(onClick = {
-                                tagViewType = if (tagViewType == CategoryViewType.CHART) {
-                                    CategoryViewType.LIST
-                                } else {
-                                    CategoryViewType.CHART
-                                }
-                            }, shapes = IconButtonDefaults.shapes()) {
-                                Icon(
-                                    imageVector = if (tagViewType == CategoryViewType.CHART)
-                                        Icons.AutoMirrored.Filled.List
-                                    else Icons.Default.PieChart,
-                                    contentDescription = stringResource(R.string.analytics_toggle_view),
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
+                        title = stringResource(R.string.analytics_top_merchants)
                     )
+                }
 
-                    AnimatedContent(
-                        targetState = tagViewType,
-                        transitionSpec = {
-                            fadeIn(motion.defaultEffectsSpec()) togetherWith
-                                fadeOut(motion.fastEffectsSpec()) using
-                                SizeTransform(clip = false) { _, _ -> motion.defaultSpatialSpec() }
-                        },
-                        label = "tag_view_transition"
-                    ) { viewType ->
-                        when (viewType) {
-                            CategoryViewType.CHART -> TagPieChart(
-                                tags = uiState.tagBreakdown,
-                                currency = selectedCurrency,
-                                onTagClick = { tag ->
-                                    if (!tag.isUntagged) drillDown(TransactionsDrillDown(tag = tag.name))
-                                }
-                            )
-                            CategoryViewType.LIST -> TagBreakdownCard(
-                                tags = uiState.tagBreakdown,
-                                currency = selectedCurrency,
-                                onTagClick = { tag ->
-                                    drillDown(TransactionsDrillDown(tag = tag.name))
-                                }
-                            )
-                        }
-                    }
-
-                    if (uiState.tagsOverlap) {
-                        Text(
-                            text = stringResource(R.string.analytics_tag_overlap_note),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(horizontal = Spacing.sm)
+                // All Merchants with expandable list
+                item {
+                    ExpandableList(
+                        items = uiState.topMerchants,
+                        visibleItemCount = 3,
+                        modifier = Modifier.fillMaxWidth()
+                    ) { merchant ->
+                        MerchantListItem(
+                            merchant = merchant,
+                            currency = selectedCurrency,
+                            onClick = {
+                                drillDown(TransactionsDrillDown(merchant = merchant.name))
+                            }
                         )
                     }
                 }
             }
-        }
 
-        // Day-of-week breakdown: there's no Transactions filter for a weekday, so rows don't drill in.
-        if (groupBy == AnalyticsGroupBy.DAY_OF_WEEK && uiState.dayOfWeekBreakdown.isNotEmpty()) {
-            item {
-                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    SectionHeaderV2(title = stringResource(R.string.analytics_by_day_of_week))
-                    val barColor = MaterialTheme.colorScheme.primary
-                    TagBreakdownCard(
-                        tags = uiState.dayOfWeekBreakdown,
-                        currency = selectedCurrency,
-                        title = null,
-                        visibleItemCount = uiState.dayOfWeekBreakdown.size,
-                        barColor = { barColor },
-                        onTagClick = null
+            // By Account Section
+            if (groupBy == AnalyticsGroupBy.ACCOUNT && uiState.accountBreakdown.isNotEmpty()) {
+                item {
+                    SectionHeaderV2(
+                        title = stringResource(R.string.analytics_by_account)
                     )
+                }
+
+                item {
+                    ExpandableList(
+                        items = uiState.accountBreakdown,
+                        visibleItemCount = 3,
+                        modifier = Modifier.fillMaxWidth()
+                    ) { account ->
+                        AccountBreakdownListItem(
+                            account = account,
+                            currency = selectedCurrency,
+                            onClick = { drillDown(TransactionsDrillDown(account = account.key)) }
+                        )
+                    }
+                }
+            }
+
+            // Empty state
+            if (uiState.topMerchants.isEmpty() && uiState.categoryBreakdown.isEmpty() && !uiState.isLoading) {
+                item {
+                    EmptyAnalyticsState(onScanSmsClick = onNavigateToHome)
                 }
             }
         }
-
-        // Top Merchants Section
-        if (groupBy == AnalyticsGroupBy.MERCHANT && uiState.topMerchants.isNotEmpty()) {
-            item {
-                SectionHeaderV2(
-                    title = stringResource(R.string.analytics_top_merchants)
-                )
-            }
-
-            // All Merchants with expandable list
-            item {
-                ExpandableList(
-                    items = uiState.topMerchants,
-                    visibleItemCount = 3,
-                    modifier = Modifier.fillMaxWidth()
-                ) { merchant ->
-                    MerchantListItem(
-                        merchant = merchant,
-                        currency = selectedCurrency,
-                        onClick = {
-                            drillDown(TransactionsDrillDown(merchant = merchant.name))
-                        }
-                    )
-                }
-            }
-        }
-
-
-        // By Account Section
-        if (groupBy == AnalyticsGroupBy.ACCOUNT && uiState.accountBreakdown.isNotEmpty()) {
-            item {
-                SectionHeaderV2(
-                    title = stringResource(R.string.analytics_by_account)
-                )
-            }
-
-            item {
-                ExpandableList(
-                    items = uiState.accountBreakdown,
-                    visibleItemCount = 3,
-                    modifier = Modifier.fillMaxWidth()
-                ) { account ->
-                    AccountBreakdownListItem(
-                        account = account,
-                        currency = selectedCurrency,
-                        onClick = { drillDown(TransactionsDrillDown(account = account.key)) }
-                    )
-                }
-            }
-        }
-
-        // Empty state
-        if (uiState.topMerchants.isEmpty() && uiState.categoryBreakdown.isEmpty() && !uiState.isLoading) {
-            item {
-                EmptyAnalyticsState(onScanSmsClick = onNavigateToHome)
-            }
-        }
-    }
     }
 
     if (showDateRangePicker) {

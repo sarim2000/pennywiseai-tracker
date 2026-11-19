@@ -405,6 +405,7 @@ internal fun EditHomeSectionsSheet(
 private fun HomeSection.titleRes(): Int = when (this) {
     HomeSection.SAFE_TO_SPEND -> R.string.home_section_safe_to_spend
     HomeSection.BUDGETS -> R.string.home_section_budgets
+    HomeSection.UNSORTED -> R.string.home_section_unsorted
     HomeSection.GOALS -> R.string.home_section_goals
     HomeSection.LOANS -> R.string.home_section_loans
     HomeSection.GROUPS -> R.string.home_section_groups

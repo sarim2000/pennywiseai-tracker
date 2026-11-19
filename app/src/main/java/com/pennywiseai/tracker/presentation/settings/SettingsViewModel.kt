@@ -954,7 +954,7 @@ class SettingsViewModel @Inject constructor(
 
     fun updateBudgetCycleStartDay(day: Int) {
         viewModelScope.launch {
-            userPreferencesRepository.updateBudgetCycleStartDay(day)
+            budgetGroupRepository.updateBudgetCycleStartDay(day)
         }
     }
 

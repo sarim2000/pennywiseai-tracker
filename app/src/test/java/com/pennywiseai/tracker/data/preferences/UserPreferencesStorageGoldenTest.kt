@@ -155,7 +155,7 @@ class UserPreferencesStorageGoldenTest {
         // Home and recurring suggestions.
         assertEquals(
             listOf(
-                "SAFE_TO_SPEND", "BUDGETS", "RECENT_TRANSACTIONS", "ACCOUNTS", "SUBSCRIPTIONS",
+                "SAFE_TO_SPEND", "BUDGETS", "UNSORTED", "RECENT_TRANSACTIONS", "ACCOUNTS", "SUBSCRIPTIONS",
                 "LOANS", "GOALS", "GROUPS", "MONEY_IN_MOTION", "ACTIVITY"
             ).map { it to true },
             repository.homeSectionLayout.first().map { (section, visible) -> section.name to visible }

@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.widget
 
 import android.content.Context
+import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
@@ -16,6 +17,7 @@ object BudgetWidgetDataStore {
 
     private val TOTAL_SPENT = stringPreferencesKey("total_spent")
     private val TOTAL_LIMIT = stringPreferencesKey("total_limit")
+    private val HAS_LIMIT = booleanPreferencesKey("has_limit")
     private val REMAINING = stringPreferencesKey("remaining")
     private val PERCENTAGE_USED = floatPreferencesKey("percentage_used")
     private val DAILY_ALLOWANCE = stringPreferencesKey("daily_allowance")
@@ -27,9 +29,11 @@ object BudgetWidgetDataStore {
 
     fun getData(context: Context): Flow<BudgetWidgetData> {
         return context.widgetDataStore.data.map { prefs ->
+            val totalLimit = prefs[TOTAL_LIMIT]?.toBigDecimalOrNull() ?: BigDecimal.ZERO
             BudgetWidgetData(
                 totalSpent = prefs[TOTAL_SPENT]?.toBigDecimalOrNull() ?: BigDecimal.ZERO,
-                totalLimit = prefs[TOTAL_LIMIT]?.toBigDecimalOrNull() ?: BigDecimal.ZERO,
+                totalLimit = totalLimit,
+                hasLimit = prefs[HAS_LIMIT] ?: (totalLimit.signum() > 0),
                 remaining = prefs[REMAINING]?.toBigDecimalOrNull() ?: BigDecimal.ZERO,
                 percentageUsed = prefs[PERCENTAGE_USED] ?: 0f,
                 dailyAllowance = prefs[DAILY_ALLOWANCE]?.toBigDecimalOrNull() ?: BigDecimal.ZERO,
@@ -49,6 +53,7 @@ object BudgetWidgetDataStore {
         context.widgetDataStore.edit { prefs ->
             prefs[TOTAL_SPENT] = data.totalSpent.toPlainString()
             prefs[TOTAL_LIMIT] = data.totalLimit.toPlainString()
+            prefs[HAS_LIMIT] = data.hasLimit
             prefs[REMAINING] = data.remaining.toPlainString()
             prefs[PERCENTAGE_USED] = data.percentageUsed
             prefs[DAILY_ALLOWANCE] = data.dailyAllowance.toPlainString()

@@ -126,7 +126,7 @@
     <string name="txn_detail_label_to">To</string>
     <string name="txn_detail_label_balance">Balance</string>
     <string name="txn_detail_label_balance_mismatch">Balance mismatch</string>
-    <string name="txn_detail_balance_mismatch_value">Off by %1$s · expected %2$s</string>
+    <string name="txn_detail_balance_mismatch_since">Off by %1$s · expected %2$s since %3$s</string>
     <string name="txn_detail_add_untracked_expense">Add %1$s untracked expense</string>
     <string name="txn_detail_add_untracked_income">Add %1$s untracked income</string>
     <string name="txn_detail_adjustment_title_expense">Untracked expense</string>
@@ -320,6 +320,10 @@
     <string name="add_sub_cycle_weekly">Weekly</string>
     <string name="add_sub_service_name">Service Name *</string>
     <string name="add_sub_paid_from">Paid from (optional)</string>
+    <string name="add_sub_ends_after">Ends after (payments)</string>
+    <string name="add_sub_ends_after_hint">Optional. For an EMI or instalment plan; leave blank if it keeps renewing</string>
+    <string name="add_sub_already_paid">Already paid (payments)</string>
+    <string name="add_sub_already_paid_error">Must be less than Ends after</string>
     <string name="add_sub_no_account">No account</string>
     <string name="add_sub_no_account_hint">Won\'t affect any balance</string>
     <string name="add_error_transfer_select_accounts">Select both a From and To account</string>
@@ -499,6 +503,8 @@
     <string name="what_was_this_split_hint">Only your share counts as spending</string>
     <string name="what_was_this_saving">Saving or investment</string>
     <string name="what_was_this_saving_hint">Gold, a fund, a deposit. Not spending</string>
+    <string name="what_was_this_refund">Refund</string>
+    <string name="what_was_this_refund_hint">Comes off a category\'s spending</string>
     <string name="what_was_this_transfer">Between my accounts</string>
     <string name="what_was_this_transfer_hint">Not spending or income</string>
     <string name="own_transfer_partner_title">Is this the other side?</string>

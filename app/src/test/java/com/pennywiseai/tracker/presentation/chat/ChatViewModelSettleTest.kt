@@ -96,6 +96,7 @@ class ChatViewModelSettleTest {
             every { progress } returns MutableStateFlow(ModelDownloader.Progress())
         },
         transactionEvents = events,
+        chatSuggestions = mockk(relaxed = true),
         appScope = kotlinx.coroutines.CoroutineScope(kotlinx.coroutines.Dispatchers.Unconfined),
         chatDrafts = ChatDraftInbox(),
     )

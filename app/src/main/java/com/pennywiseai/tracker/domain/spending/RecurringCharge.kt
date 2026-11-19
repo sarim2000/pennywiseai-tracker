@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.domain.spending
 
+import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
+import com.pennywiseai.tracker.data.database.entity.SubscriptionState
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -79,6 +81,58 @@ object RecurringCharge {
     fun isRetap(lastPaid: LocalDate, cycleAfterLastPaid: LocalDate, scheduled: LocalDate, today: LocalDate): Boolean =
         today.isBefore(cycleAfterLastPaid) &&
             (today.isBefore(scheduled.minusDays(EARLY_PAY_DAYS)) || today.isBefore(lastPaid.plusDays(EARLY_PAY_DAYS)))
+
+    /**
+     * [date] moved [times] billing cycles on (back, when negative). Months and years
+     * use calendar arithmetic, so "Monthly" lands on the same day of the month, not
+     * 30 days on. An unknown cycle moves monthly, so a hand-made row never stays put.
+     */
+    fun advance(date: LocalDate, billingCycle: String, times: Long = 1): LocalDate =
+        when (billingCycle.uppercase()) {
+            "WEEKLY" -> date.plusWeeks(times)
+            "MONTHLY" -> date.plusMonths(times)
+            "QUARTERLY" -> date.plusMonths(3L * times)
+            "SEMI-ANNUAL", "SEMI ANNUAL", "SEMIANNUAL" -> date.plusMonths(6L * times)
+            "ANNUAL", "YEARLY" -> date.plusYears(times)
+            else -> date.plusMonths(times)
+        }
+
+    /**
+     * The next payment as the Subscriptions screen shows it: [scheduled], moved on a
+     * [billingCycle] at a time while it's in the past. Each step counts from
+     * [scheduled], so a bill due on the 31st comes back to the 31st after February.
+     * A payment due today stays today: a paid bill has already moved on
+     * ([com.pennywiseai.tracker.data.repository.SubscriptionRepository.recordCharge]),
+     * so one still on today hasn't been seen paid. Anything else that names a
+     * subscription's next date reads this, so the two never disagree.
+     */
+    fun nextPaymentShown(scheduled: LocalDate, billingCycle: String, today: LocalDate): LocalDate {
+        var cycles = 0L
+        var next = scheduled
+        while (next.isBefore(today)) next = advance(scheduled, billingCycle, ++cycles)
+        return next
+    }
+
+    /**
+     * [sub] once a payment on [paidAt] has moved its schedule to [next]. A plan with
+     * [SubscriptionEntity.totalPayments] counts the payment, and its last one ends
+     * the plan where it stands: ENDED, so reminders and the totals drop it, with
+     * the date left on the payment just made rather than a cycle that won't come.
+     */
+    fun afterPayment(sub: SubscriptionEntity, paidAt: LocalDate, next: LocalDate): SubscriptionEntity {
+        val total = sub.totalPayments ?: return sub.copy(lastPaidAt = paidAt, nextPaymentDate = next)
+        val made = sub.paymentsMade + 1
+        return if (made < total) {
+            sub.copy(lastPaidAt = paidAt, nextPaymentDate = next, paymentsMade = made)
+        } else {
+            sub.copy(lastPaidAt = paidAt, paymentsMade = made, state = SubscriptionState.ENDED)
+        }
+    }
+
+    /** What's left to pay on a plan: one [SubscriptionEntity.amount] per payment left. Null for one with no end. */
+    fun amountLeft(sub: SubscriptionEntity): BigDecimal? = sub.totalPayments?.let { total ->
+        sub.amount.multiply(BigDecimal((total - sub.paymentsMade).coerceAtLeast(0)))
+    }
 
     const val EARLY_PAY_DAYS = 3L
     const val DUE_WINDOW_DAYS = 5L

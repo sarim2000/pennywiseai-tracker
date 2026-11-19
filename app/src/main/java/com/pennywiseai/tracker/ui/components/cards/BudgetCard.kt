@@ -65,6 +65,8 @@ internal fun BudgetStatusContent(
     currency: String,
     hero: Boolean = false,
     dense: Boolean = false,
+    /** One line and a dense meter: name, status and the one amount (Home's rows). */
+    compact: Boolean = false,
     headingAction: @Composable () -> Unit = {}
 ) {
     val budget = spending.group.budget
@@ -93,6 +95,28 @@ internal fun BudgetStatusContent(
         else -> null
     }
 
+    val amountText = when (budget.groupType) {
+        BudgetGroupType.LIMIT -> if (spending.hasLimit) {
+            stringResource(
+                if (isOver) R.string.budget_card_over_budget else R.string.plan_budget_remaining,
+                CurrencyFormatter.formatCurrency(spending.remaining.abs(), currency)
+            )
+        } else {
+            stringResource(R.string.budgets_spent, actual)
+        }
+        BudgetGroupType.TARGET -> stringResource(R.string.goals_card_saved, actual)
+        BudgetGroupType.EXPECTED -> if (spending.hasLimit) {
+            stringResource(R.string.plan_budget_expected, limit)
+        } else {
+            stringResource(R.string.budgets_spent, actual)
+        }
+    }
+    val amountColor = when {
+        hero -> scheme.onPrimaryContainer
+        tracksSpending && isOver && !AmountPrivacy.hidden -> scheme.error
+        else -> scheme.onSurface
+    }
+
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
             FlowRow(
@@ -117,33 +141,17 @@ internal fun BudgetStatusContent(
                     )
                 }
             }
+            if (compact) Text(amountText, style = PennyWiseText.amountRow, color = amountColor, maxLines = 1)
             headingAction()
         }
 
-        Text(
-            text = when (budget.groupType) {
-                BudgetGroupType.LIMIT -> if (spending.hasLimit) {
-                    stringResource(
-                        if (isOver) R.string.budget_card_over_budget else R.string.plan_budget_remaining,
-                        CurrencyFormatter.formatCurrency(spending.remaining.abs(), currency)
-                    )
-                } else {
-                    stringResource(R.string.budgets_spent, actual)
-                }
-                BudgetGroupType.TARGET -> stringResource(R.string.goals_card_saved, actual)
-                BudgetGroupType.EXPECTED -> if (spending.hasLimit) {
-                    stringResource(R.string.plan_budget_expected, limit)
-                } else {
-                    stringResource(R.string.budgets_spent, actual)
-                }
-            },
-            style = if (hero) PennyWiseText.heroAmount else PennyWiseText.amountLarge,
-            color = when {
-                hero -> scheme.onPrimaryContainer
-                tracksSpending && isOver && !AmountPrivacy.hidden -> scheme.error
-                else -> scheme.onSurface
-            }
-        )
+        if (!compact) {
+            Text(
+                text = amountText,
+                style = if (hero) PennyWiseText.heroAmount else PennyWiseText.amountLarge,
+                color = amountColor
+            )
+        }
 
         if (spending.hasLimit && !AmountPrivacy.hidden) {
             WavyMeter(
@@ -154,8 +162,14 @@ internal fun BudgetStatusContent(
                     else -> color
                 },
                 trackColor = scheme.surfaceContainerHighest,
-                dense = dense
+                dense = dense || compact
             )
+        }
+        if (compact) {
+            if (spending.needsExchangeRate(currency)) {
+                BudgetStatusChip(stringResource(R.string.plan_budget_missing_rate), scheme.warning)
+            }
+            return@Column
         }
 
         val summary = when {

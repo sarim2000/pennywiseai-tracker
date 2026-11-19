@@ -252,8 +252,12 @@ Reference `MaterialTheme.shapes.*` rather than re-typing
 Expressive accents use `MaterialShapes` (opt-in `ExperimentalMaterial3ExpressiveApi`):
 merchant avatars (`BrandIcon`, `LetterAvatar`) and the empty-state badge are
 `MaterialShapes.Cookie9Sided.toShape()`. Keep these to identity/hero glyphs —
-not containers or buttons. Home's shortcut tiles are the one deliberate exception:
-each destination keeps its own shape (Clover, Sunny, SoftBurst, Cookie) as its glyph.
+not containers or buttons.
+
+Home shows one money answer: the hero (what's left, or this month's spending) with
+Safe to spend as a row at its foot. The sections under it are compact rows with one
+amount each (budgets: name, status, what's left; accounts: bank, last 4, balance) and
+share one heading, `HomeSectionHeader` ("See all", or "Manage" for accounts).
 
 ---
 

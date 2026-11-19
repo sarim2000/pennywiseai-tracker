@@ -208,7 +208,10 @@ internal fun EditHomeSectionsSheet(
                             },
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                     ) {
-                        Icon(
+                        // Safe to spend is a line in the hero: it shows or hides, it doesn't move.
+                        val movable = section != HomeSection.SAFE_TO_SPEND
+                        if (!movable) Spacer(Modifier.size(Dimensions.Component.minTouchTarget))
+                        if (movable) Icon(
                             Icons.Default.DragIndicator,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -273,8 +276,8 @@ internal fun EditHomeSectionsSheet(
                                 .weight(1f)
                                 .semantics {
                                     customActions = listOfNotNull(
-                                        CustomAccessibilityAction(moveUp) { onMoveSection(section, -1); true }.takeIf { i > 0 },
-                                        CustomAccessibilityAction(moveDown) { onMoveSection(section, +1); true }.takeIf { i < items.lastIndex }
+                                        CustomAccessibilityAction(moveUp) { onMoveSection(section, -1); true }.takeIf { movable && i > 0 },
+                                        CustomAccessibilityAction(moveDown) { onMoveSection(section, +1); true }.takeIf { movable && i < items.lastIndex }
                                     )
                                 }
                         )

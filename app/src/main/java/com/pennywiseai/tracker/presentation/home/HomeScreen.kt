@@ -105,6 +105,7 @@ fun HomeScreen(
     val groupSummaries by viewModel.groupSummaries.collectAsStateWithLifecycle()
     val goals by viewModel.goals.collectAsStateWithLifecycle()
     val homeSectionLayout by viewModel.homeSectionLayout.collectAsStateWithLifecycle()
+    val showSafeToSpend = homeSectionLayout.any { it.first == HomeSection.SAFE_TO_SPEND && it.second }
     val reviewPrompt by viewModel.reviewPrompt.collectAsStateWithLifecycle()
     val showProHomeCard by viewModel.showProHomeCard.collectAsStateWithLifecycle()
     val paydaySuggestion by viewModel.paydaySuggestion.collectAsStateWithLifecycle()
@@ -380,7 +381,25 @@ fun HomeScreen(
                                 budget = heroBudget,
                                 cycleEnd = currentCycleWindow.second,
                                 onOpen = if (heroBudget != null) onNavigateToBudgets else onNavigateToTransactions,
-                                onOpenNetWorth = { onNavigateToNetWorth(uiState.selectedCurrency) }
+                                onOpenNetWorth = { onNavigateToNetWorth(uiState.selectedCurrency) },
+                                // Safe to spend is the hero's foot, not a second money card under it.
+                                footer = safeToSpend?.takeIf { showSafeToSpend }?.let { state ->
+                                    {
+                                        SafeToSpendLine(
+                                            state = state,
+                                            isBalanceHidden = uiState.isBalanceHidden,
+                                            onReveal = { viewModel.toggleBalanceVisibility() },
+                                            onOpenBreakdown = { showSafeToSpendSheet = true },
+                                            // The budget caps it at the hero's "left": show per day, not that figure twice.
+                                            // A tighter budget than the hero's can set it too; then it's news.
+                                            repeatsHero = heroBudget != null && state.primary.isCapped &&
+                                                state.primary.currency == heroBudget.currency &&
+                                                state.primary.amount.compareTo(
+                                                    heroBudget.remaining.max(java.math.BigDecimal.ZERO)
+                                                ) == 0,
+                                        )
+                                    }
+                                }
                             )
                         }
                     }
@@ -388,18 +407,6 @@ fun HomeScreen(
 
                 // Without SMS access nothing gets tracked: ask right under the balance card,
                 // above the fold, not at the bottom of the list behind the nav bar.
-                item(key = "shortcuts") {
-                    StaggeredEntrance(delayMs = 0L, skip = hasAnimated) {
-                        HomeShortcuts(
-                            onBudgets = onNavigateToBudgets,
-                            onBills = onNavigateToSubscriptions,
-                            onGoals = onNavigateToGoals,
-                            onAccounts = onNavigateToManageAccounts,
-                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
-                        )
-                    }
-                }
-
                 if (!smsAccess.granted && !uiState.isLoading && uiState.recentItems.isEmpty()) {
                     item(key = "sms_access") {
                         SmsAccessCard(
@@ -495,7 +502,7 @@ fun HomeScreen(
                 // line doesn't drag the promo up under the balance card.
                 val promoAfter = visibleSections.firstOrNull { section ->
                     when (section) {
-                        HomeSection.SAFE_TO_SPEND -> safeToSpend != null
+                        HomeSection.SAFE_TO_SPEND -> false // ponytail: a line in the hero, not a row of its own
                         HomeSection.BUDGETS -> carouselBudgets != null
                         HomeSection.UNSORTED -> unsorted.isNotEmpty()
                         HomeSection.GOALS -> goals.isNotEmpty()
@@ -510,29 +517,8 @@ fun HomeScreen(
                 for ((index, section) in visibleSections.withIndex()) {
                     val delayMs = staggerDelayMs(index)
                     when (section) {
-                        HomeSection.SAFE_TO_SPEND -> {
-                            // Only once there's a spendable account with a balance.
-                            safeToSpend?.let { state ->
-                                item(key = section.name) {
-                                    StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
-                                        SafeToSpendCard(
-                                            state = state,
-                                            isBalanceHidden = uiState.isBalanceHidden,
-                                            onReveal = { viewModel.toggleBalanceVisibility() },
-                                            onOpenBreakdown = { showSafeToSpendSheet = true },
-                                            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-                                            // The budget caps it at the hero's "left": don't show that figure twice.
-                                            // A tighter budget than the hero's can set it too; then it's news.
-                                            repeatsHero = heroBudget != null && state.primary.isCapped &&
-                                                state.primary.currency == heroBudget.currency &&
-                                                state.primary.amount.compareTo(
-                                                    heroBudget.remaining.max(java.math.BigDecimal.ZERO)
-                                                ) == 0,
-                                        )
-                                    }
-                                }
-                            }
-                        }
+                        // Drawn as the hero's footer; its entry only shows or hides it.
+                        HomeSection.SAFE_TO_SPEND -> Unit
                         HomeSection.BUDGETS -> {
                             // 2. Budget Carousel
                             carouselBudgets?.let { summary ->
@@ -612,7 +598,7 @@ fun HomeScreen(
                             // close to what it labels.
                             item(key = section.name) {
                                 StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
-                                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                                    Column(verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)) {
                                         HomeSectionHeader(
                                             title = stringResource(R.string.home_section_recent),
                                             onSeeAll = onNavigateToTransactions,
@@ -658,12 +644,8 @@ fun HomeScreen(
                                         HomeAccountsSection(
                                             accountBalances = uiState.accountBalances,
                                             creditCards = uiState.creditCards,
-                                            isUnifiedMode = uiState.isUnifiedMode,
-                                            selectedCurrency = uiState.selectedCurrency,
-                                            isBalanceHidden = uiState.isBalanceHidden,
                                             onNavigateToManageAccounts = onNavigateToManageAccounts,
-                                            onAccountClick = onAccountClick,
-                                            onToggleBalanceVisibility = { viewModel.toggleBalanceVisibility() }
+                                            onAccountClick = onAccountClick
                                         )
                                     }
                                 }

@@ -40,7 +40,6 @@
     <string name="home_status_just_now">Updated just now</string>
     <string name="home_status_updated">Updated %1$s</string>
     <string name="home_status_read_now">Read SMS now</string>
-    <string name="home_shortcut_accounts">Accounts</string>
     <string name="home_shortcut_unsorted">Unsorted</string>
     <plurals name="home_status_new">
         <item quantity="one">%d new from SMS</item>
@@ -458,7 +457,8 @@
     <string name="safe_to_spend_breakdown">Bank balance %1$s − %2$s in bills due before %3$s</string>
     <string name="safe_to_spend_capped">Capped by your budget: %1$s left</string>
     <string name="safe_to_spend_per_day_headline">%1$s a day</string>
-    <string name="safe_to_spend_budget_per_day">Your budget\'s left, spread until %1$s, including today</string>
+    <string name="home_hero_budget_limit">%1$s budget</string>
+    <string name="safe_to_spend_line">%1$s · %2$s a day</string>
     <string name="safe_to_spend_other_currencies">Plus %1$s, kept separate</string>
     <string name="safe_to_spend_until">Safe to spend until %1$s</string>
     <string name="safe_to_spend_accounts">Bank balance</string>

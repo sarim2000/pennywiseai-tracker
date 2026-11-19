@@ -6,6 +6,7 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
@@ -21,6 +22,7 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.SheetValue
+import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberBottomSheetState
@@ -42,12 +44,12 @@ import com.pennywiseai.tracker.domain.spending.SafeToSpend
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.SHORT_DATE
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.money
 import com.pennywiseai.tracker.ui.theme.spending
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.Money
@@ -61,41 +63,74 @@ private fun List<SafeToSpend>.formatAmounts() =
     CurrencyFormatter.formatByCurrency(associate { it.currency to Money(it.amount, it.currency) })
 
 /**
- * Home "Safe to spend" card: one figure and one line (per day, or why there's none),
- * plus the incomplete-data cue. Balances, bills and other currencies are in the sheet.
- * Follows the global hide-amounts flag like [CashFlowCard]: while hidden, a tap reveals;
- * once shown, a tap opens the breakdown sheet.
+ * Home's "Safe to spend", as one row at the foot of the hero: the figure (per day when the
+ * budget caps it at what the hero already shows as left) and the incomplete-data cue.
+ * Balances, bills and other currencies are in the sheet. Follows the global hide-amounts
+ * flag: while hidden, a tap reveals; once shown, a tap opens the breakdown sheet.
  */
 @Composable
-fun SafeToSpendCard(
+fun SafeToSpendLine(
     state: SafeToSpendUi,
     isBalanceHidden: Boolean,
     onReveal: () -> Unit,
     onOpenBreakdown: () -> Unit,
     modifier: Modifier = Modifier,
-    /** True when the budget caps the figure at what Home's hero already shows as left: lead with per day instead. */
+    /** True when the budget caps the figure at what Home's hero already shows as left: per day only. */
     repeatsHero: Boolean = false,
 ) {
     val primary = state.primary
-    val perDayLead = primary.perDay?.takeIf { repeatsHero }
-    PennyWiseCardV2(
+    val perDay = primary.perDay
+    val dueBefore = state.periodEnd.plusDays(1).format(SHORT_DATE)
+    val short = primary.amount.signum() < 0
+    Surface(
+        onClick = if (isBalanceHidden) onReveal else onOpenBreakdown,
         modifier = modifier.fillMaxWidth(),
-        contentPadding = Spacing.md,
-        onClick = if (isBalanceHidden) onReveal else onOpenBreakdown
+        shape = MaterialTheme.shapes.large,
+        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        contentColor = MaterialTheme.colorScheme.onSurface,
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = stringResource(R.string.safe_to_spend_title),
-                style = MaterialTheme.typography.titleSmall,
-                fontWeight = FontWeight.SemiBold,
-                color = MaterialTheme.colorScheme.onSurface,
-                modifier = Modifier.weight(1f)
-            )
+        Row(
+            modifier = Modifier
+                .heightIn(min = Dimensions.Component.minTouchTarget)
+                .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+        ) {
+            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
+                Text(
+                    text = stringResource(R.string.safe_to_spend_title),
+                    style = MaterialTheme.typography.labelLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = when {
+                        isBalanceHidden -> MASK
+                        perDay != null && repeatsHero -> stringResource(
+                            R.string.safe_to_spend_per_day_headline,
+                            CurrencyFormatter.formatCurrency(perDay, primary.currency)
+                        )
+                        perDay != null -> stringResource(
+                            R.string.safe_to_spend_line,
+                            primary.formatAmount(),
+                            CurrencyFormatter.formatCurrency(perDay, primary.currency)
+                        )
+                        short -> stringResource(R.string.safe_to_spend_short, dueBefore)
+                        // Budget used up: the cap, not "nothing left after bills", sets it.
+                        primary.isCapped -> primary.formatAmount()
+                        else -> stringResource(R.string.safe_to_spend_none_left, dueBefore)
+                    },
+                    style = MaterialTheme.typography.titleMedium.money(),
+                    fontWeight = FontWeight.SemiBold,
+                    color = if (short && !isBalanceHidden) MaterialTheme.colorScheme.error
+                    else MaterialTheme.colorScheme.onSurface
+                )
+                if (!isBalanceHidden) IncompleteLine(state.cardsNeedingBill.size)
+            }
             if (isBalanceHidden) {
                 Text(
                     text = stringResource(R.string.safe_to_spend_tap_to_show),
                     style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.primary
+                    color = MaterialTheme.colorScheme.onSurface
                 )
             } else {
                 Icon(
@@ -106,36 +141,6 @@ fun SafeToSpendCard(
                 )
             }
         }
-        Spacer(Modifier.height(Spacing.xs))
-        Text(
-            text = when {
-                isBalanceHidden -> MASK
-                perDayLead != null -> stringResource(
-                    R.string.safe_to_spend_per_day_headline,
-                    CurrencyFormatter.formatCurrency(perDayLead, primary.currency)
-                )
-                else -> primary.formatAmount()
-            },
-            style = PennyWiseText.amountLarge,
-            fontWeight = FontWeight.Bold,
-            color = if (!isBalanceHidden && primary.amount.signum() < 0) MaterialTheme.colorScheme.error
-            else MaterialTheme.colorScheme.onSurface
-        )
-        if (isBalanceHidden) return@PennyWiseCardV2
-
-        val dueBefore = state.periodEnd.plusDays(1).format(SHORT_DATE)
-        Spacer(Modifier.height(Spacing.xs))
-        // One line: per day when there is some, otherwise the budget cap that set it.
-        if (perDayLead != null) {
-            Text(
-                text = stringResource(R.string.safe_to_spend_budget_per_day, state.periodEnd.format(SHORT_DATE)),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        } else if (!PerDayLine(primary, state.periodEnd.format(SHORT_DATE), dueBefore)) {
-            CappedLine(primary)
-        }
-        IncompleteLine(state.cardsNeedingBill.size)
     }
 }
 
@@ -143,7 +148,6 @@ fun SafeToSpendCard(
 @Composable
 private fun IncompleteLine(cards: Int) {
     if (cards == 0) return
-    Spacer(Modifier.height(Spacing.xxs))
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
         Icon(
             imageVector = Icons.Outlined.Info,
@@ -193,7 +197,7 @@ private fun PerDayLine(s: SafeToSpend, until: String, dueBefore: String): Boolea
     return true
 }
 
-/** Breakdown behind [SafeToSpendCard]: accounts counted, bills due, and the total. */
+/** Breakdown behind [SafeToSpendLine]: accounts counted, bills due, and the total. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SafeToSpendSheet(

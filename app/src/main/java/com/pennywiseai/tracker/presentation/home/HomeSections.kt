@@ -25,13 +25,13 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
 import com.pennywiseai.tracker.data.database.entity.formatAmount
+import com.pennywiseai.tracker.data.database.entity.formatBalance
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.data.repository.GoalProgress
 import com.pennywiseai.tracker.data.repository.GroupSummary
 import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
-import com.pennywiseai.tracker.ui.components.cards.AccountCarousel
 import com.pennywiseai.tracker.ui.components.cards.BudgetCarousel
 import com.pennywiseai.tracker.ui.components.cards.GroupCard
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
@@ -66,26 +66,18 @@ internal fun HomeBudgetsSection(
     Column(
         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
     ) {
-        SectionHeaderV2(
+        HomeSectionHeader(
             title = stringResource(R.string.home_section_budgets),
-            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-            action = {
-                TextButton(onClick = onNavigateToBudgets, shapes = ButtonDefaults.shapes()) {
-                    Text(stringResource(R.string.home_view_all))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        modifier = Modifier.size(Dimensions.Icon.small)
-                    )
-                }
-            }
+            onSeeAll = onNavigateToBudgets,
+            modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
         )
         BudgetCarousel(
             summary = summary,
             onClick = onNavigateToBudgets,
             onCreateBudget = onNavigateToBudgets,
             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-            excludeBudgetId = excludeBudgetId
+            excludeBudgetId = excludeBudgetId,
+            compact = true
         )
     }
 }
@@ -99,19 +91,10 @@ internal fun HomeGoalsSection(
     Column(
         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
     ) {
-        SectionHeaderV2(
+        HomeSectionHeader(
             title = stringResource(R.string.home_section_goals),
-            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-            action = {
-                TextButton(onClick = onViewAll, shapes = ButtonDefaults.shapes()) {
-                    Text(stringResource(R.string.home_view_all))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        modifier = Modifier.size(Dimensions.Icon.small)
-                    )
-                }
-            }
+            onSeeAll = onViewAll,
+            modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
         )
         com.pennywiseai.tracker.presentation.goals.GoalsHomeCard(
             goals = goals,
@@ -130,19 +113,10 @@ internal fun HomeLoansSection(
     Column(
         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
     ) {
-        SectionHeaderV2(
+        HomeSectionHeader(
             title = stringResource(R.string.home_section_loans),
-            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-            action = {
-                TextButton(onClick = onNavigateToLoans, shapes = ButtonDefaults.shapes()) {
-                    Text(stringResource(R.string.home_view_all))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        modifier = Modifier.size(Dimensions.Icon.small)
-                    )
-                }
-            }
+            onSeeAll = onNavigateToLoans,
+            modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
         )
         Box(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
             ActiveLoansSummaryCard(
@@ -225,19 +199,10 @@ internal fun HomeGroupsSection(
     Column(
         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
     ) {
-        SectionHeaderV2(
+        HomeSectionHeader(
             title = stringResource(R.string.home_section_groups),
-            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-            action = {
-                TextButton(onClick = onNavigateToTransactionGroups, shapes = ButtonDefaults.shapes()) {
-                    Text(stringResource(R.string.home_view_all))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        modifier = Modifier.size(Dimensions.Icon.small)
-                    )
-                }
-            }
+            onSeeAll = onNavigateToTransactionGroups,
+            modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
         )
         LazyRow(
             contentPadding = PaddingValues(horizontal = Dimensions.Padding.content),
@@ -253,47 +218,30 @@ internal fun HomeGroupsSection(
     }
 }
 
-/**
- * A Home section's heading: a big title, and a tonal "See all" pill when the section
- * has a fuller screen behind it.
- */
+/** Every Home section's heading: the shared section title, and "See all" when there's a fuller screen behind it. */
 @Composable
 internal fun HomeSectionHeader(
     title: String,
     onSeeAll: (() -> Unit)?,
     modifier: Modifier = Modifier,
+    actionLabel: String = stringResource(R.string.home_see_all),
 ) {
-    Row(
-        modifier = modifier
-            .fillMaxWidth()
-            .padding(start = Spacing.sm)
-            .defaultMinSize(minHeight = Dimensions.Component.minTouchTarget),
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        Text(
-            text = title,
-            style = MaterialTheme.typography.titleLarge,
-            color = MaterialTheme.colorScheme.onSurface,
-            maxLines = 2,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier
-                .weight(1f)
-                .semantics { heading() }
-        )
-        if (onSeeAll != null) {
-            FilledTonalButton(
-                onClick = onSeeAll,
-                shapes = ButtonDefaults.shapes(),
-                contentPadding = ButtonDefaults.contentPaddingFor(ButtonDefaults.ExtraSmallContainerHeight),
-                modifier = Modifier.heightIn(min = ButtonDefaults.ExtraSmallContainerHeight)
-            ) {
-                Text(
-                    text = stringResource(R.string.home_see_all),
-                    style = ButtonDefaults.textStyleFor(ButtonDefaults.ExtraSmallContainerHeight)
-                )
+    SectionHeaderV2(
+        title = title,
+        modifier = modifier,
+        action = onSeeAll?.let { onClick ->
+            {
+                TextButton(onClick = onClick, shapes = ButtonDefaults.shapes()) {
+                    Text(actionLabel)
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimensions.Icon.small)
+                    )
+                }
             }
         }
-    }
+    )
 }
 
 @Composable
@@ -364,44 +312,65 @@ internal fun HomeRecentTransactionsList(
     }
 }
 
+/**
+ * The accounts as compact rows: bank, last 4 and type, and the balance in the account's own
+ * currency (pre-converted in unified mode when a rate was found). Low balances say so in error.
+ * Hidden amounts follow Home's one eye, on the hero.
+ */
 @Composable
 internal fun HomeAccountsSection(
     accountBalances: List<AccountBalanceEntity>,
     creditCards: List<AccountBalanceEntity>,
-    isUnifiedMode: Boolean,
-    selectedCurrency: String,
-    isBalanceHidden: Boolean,
     onNavigateToManageAccounts: () -> Unit,
     onAccountClick: (bankName: String, accountLast4: String) -> Unit,
-    onToggleBalanceVisibility: () -> Unit
 ) {
+    val accounts = accountBalances + creditCards
     Column(
         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
     ) {
-        SectionHeaderV2(
+        HomeSectionHeader(
             title = stringResource(R.string.home_section_accounts),
-            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-            action = {
-                TextButton(onClick = onNavigateToManageAccounts, shapes = ButtonDefaults.shapes()) {
-                    Text(stringResource(R.string.home_manage))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        modifier = Modifier.size(Dimensions.Icon.small)
+            onSeeAll = onNavigateToManageAccounts,
+            actionLabel = stringResource(R.string.home_manage),
+            modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+        )
+        GroupedList(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
+            accounts.forEachIndexed { index, account ->
+                val isCard = index >= accountBalances.size
+                // Matches Manage Accounts' low-balance alert (#509).
+                val isLow = !isCard && account.lowBalanceThreshold?.let { account.balance <= it } == true
+                val subtitle = listOfNotNull(
+                    "••${account.accountLast4}".takeIf { account.accountLast4 != AccountBalanceEntity.WALLET_ACCOUNT_MARKER },
+                    stringResource(
+                        when {
+                            isLow -> R.string.account_card_low_balance
+                            isCard -> R.string.account_card_type_credit
+                            else -> R.string.account_card_type_savings
+                        }
+                    )
+                ).joinToString(" · ")
+                GroupedRow(
+                    position = ListItemPosition.from(index, accounts.size),
+                    onClick = { onAccountClick(account.bankName, account.accountLast4) },
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.smd)
+                ) {
+                    BrandIcon(merchantName = account.bankName, size = Dimensions.Icon.list, showBackground = true)
+                    RowLabels(
+                        title = account.bankName,
+                        subtitle = subtitle,
+                        subtitleColor = if (isLow) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                        subtitleMaxLines = 1
+                    )
+                    // A card's figure is what's owed on it, not its limit.
+                    Text(
+                        text = account.formatBalance(),
+                        style = PennyWiseText.amountRow,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1
                     )
                 }
             }
-        )
-        AccountCarousel(
-            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-            bankAccounts = accountBalances,
-            creditCards = creditCards,
-            onAccountClick = onAccountClick,
-            isUnifiedMode = isUnifiedMode,
-            selectedCurrency = selectedCurrency,
-            isAmountHidden = isBalanceHidden,
-            onToggleAmountsHidden = { onToggleBalanceVisibility() }
-        )
+        }
     }
 }
 
@@ -422,7 +391,7 @@ internal fun HomeComingUpSection(
     }
     Column(
         modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
     ) {
         HomeSectionHeader(
             title = stringResource(R.string.home_section_coming_up),
@@ -502,8 +471,9 @@ internal fun HomeActivitySection(
     Column(
         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
     ) {
-        SectionHeaderV2(
+        HomeSectionHeader(
             title = stringResource(R.string.home_section_activity),
+            onSeeAll = null,
             modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
         )
         com.pennywiseai.tracker.ui.components.cards.HeatmapWidget(

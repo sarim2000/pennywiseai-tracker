@@ -55,7 +55,6 @@
     <string name="mascot_playground_grid_body">Tap one to show it above.</string>
     <!-- rd:home -->
     <!-- Home hero under the budget meter: "₹4,264 spent of ₹40,000"; both are formatted amounts -->
-    <string name="home_hero_spent_of_limit">%1$s spent of %2$s</string>
     <string name="home_hero_view_budget">View budget</string>
     <string name="home_hero_see_transactions">Transactions</string>
     <!-- Home row: this month's transactions still in Others -->

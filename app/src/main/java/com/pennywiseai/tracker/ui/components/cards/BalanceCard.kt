@@ -105,11 +105,12 @@ data class HomeHeroBudget(
 }
 
 /**
- * Home's hero: a big tonal card. With an overall [budget] it leads with what's left to
- * spend, a wavy meter, "spent of limit · days left" and where the pace is heading; without
- * one, with this month's spending in [currency] and how it compares to last month. Tapping
- * it opens the month's detail (sparkline, income/expenses/saved, balance); its one labelled
- * action opens that budget or the month's transactions ([onOpen]).
+ * Home's hero: a big tonal card with one figure. With an overall [budget] it leads with
+ * what's left to spend, a wavy meter and the days left; without one, with this month's
+ * spending in [currency] and how it compares to last month. [footer] (Safe to spend) sits
+ * at its foot. Tapping it opens the month's detail (the limit, the pace, sparkline,
+ * income/expenses/saved, balance) with links to that budget or the month's transactions
+ * ([onOpen]).
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -144,6 +145,8 @@ fun BalanceCard(
     onOpen: () -> Unit = {},
     /** Opens Net worth from a labelled link in the expanded card; null hides the link. */
     onOpenNetWorth: (() -> Unit)? = null,
+    /** A row at the card's foot, under the opened detail: Home's Safe to spend. */
+    footer: (@Composable () -> Unit)? = null,
     modifier: Modifier = Modifier,
 ) {
     // The month's figure is Home's hero: a tonal primary card, its text and chips
@@ -219,26 +222,11 @@ fun BalanceCard(
                     // A long amount shrinks to fit rather than wrapping mid-number.
                     autoSize = TextAutoSize.StepBased(PennyWiseText.autoSizeFloor, heroStyle.fontSize),
                 )
-                if (budget != null) {
-                    // Hidden amounts hide the meter too: a known limit and its fill give the spend away.
-                    if (!isBalanceHidden) BudgetMeter(budget = budget)
-                    Text(
-                        text = stringResource(
-                            R.string.home_hero_spent_of_limit,
-                            hidden(budget.spent, budget.currency),
-                            hidden(budget.limit, budget.currency)
-                        ) + " · " + daysLeftText(budget.daysLeft),
-                        style = MaterialTheme.typography.bodyMedium.tabular(),
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
+                // Hidden amounts hide the meter too: a known limit and its fill give the spend away.
+                if (budget != null && !isBalanceHidden) BudgetMeter(budget = budget)
                 HeroFooter(
-                    line = if (budget != null) paceText(budget, hidden) else monthLine(cycleEnd),
-                    lineColor = when {
-                        budget != null -> if ((budget.pace?.signum() ?: 0) < 0) MaterialTheme.colorScheme.expense
-                        else MaterialTheme.colorScheme.onSurface
-                        else -> MaterialTheme.colorScheme.onSurface
-                    },
+                    line = if (budget != null) daysLeftText(budget.daysLeft) else monthLine(cycleEnd),
+                    lineColor = MaterialTheme.colorScheme.onSurface,
                     trailing = if (budget == null && changeText != null) changeText else null,
                     trailingColor = changeColor,
                     chevronRotation = chevronRotation,
@@ -252,8 +240,23 @@ fun BalanceCard(
                 ) {
                     Column {
                         if (budget != null) {
-                            // The month's spending is already in "spent of limit" and under
-                            // Expenses below; only its currency and the change on last month are new.
+                            Spacer(modifier = Modifier.height(Spacing.md))
+                            // The limit only: what's spent is under Expenses below.
+                            Text(
+                                text = stringResource(R.string.home_hero_budget_limit, hidden(budget.limit, budget.currency)),
+                                style = MaterialTheme.typography.bodyLarge.tabular(),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                            paceText(budget, hidden)?.let { pace ->
+                                Text(
+                                    text = pace,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = if ((budget.pace?.signum() ?: 0) < 0) MaterialTheme.colorScheme.expense
+                                    else MaterialTheme.colorScheme.onSurface
+                                )
+                            }
+                            // The month's spending is under Expenses below; only its currency
+                            // and the change on last month are new here.
                             if (showCurrencyChip || changeText != null) {
                                 Spacer(modifier = Modifier.height(Spacing.md))
                                 FlowRow(
@@ -290,6 +293,7 @@ fun BalanceCard(
                         )
                     }
                 }
+                footer?.invoke()
             }
         }
     }

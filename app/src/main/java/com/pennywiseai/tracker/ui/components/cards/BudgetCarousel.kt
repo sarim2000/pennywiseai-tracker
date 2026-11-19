@@ -40,7 +40,9 @@ fun BudgetCarousel(
     onCreateBudget: () -> Unit = {},
     modifier: Modifier = Modifier,
     /** The budget Home's hero already shows; left out here so it isn't shown twice. */
-    excludeBudgetId: Long? = null
+    excludeBudgetId: Long? = null,
+    /** Compact rows, one per budget, instead of the paged cards. */
+    compact: Boolean = false
 ) {
     val groups = summary.groups.filter { it.group.budget.id != excludeBudgetId }
     // Every budget is already on the hero: nothing to add, and certainly not "create a budget".
@@ -97,7 +99,15 @@ fun BudgetCarousel(
         return
     }
 
-    if (groups.size == 1) {
+    if (compact) {
+        GroupedList(modifier = modifier) {
+            groups.forEachIndexed { index, group ->
+                GroupedRow(position = ListItemPosition.from(index, groups.size), onClick = onClick) {
+                    BudgetStatusContent(group, summary.currency, compact = true)
+                }
+            }
+        }
+    } else if (groups.size == 1) {
         BudgetCard(
             groupSpending = groups.first(),
             currency = summary.currency,

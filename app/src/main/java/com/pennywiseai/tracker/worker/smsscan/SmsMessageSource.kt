@@ -40,16 +40,6 @@ internal class DeviceSmsMessageSource(private val context: Context) : SmsMessage
         streamRcsToChannel(feed, scanStartMillis / 1000)
     }
 
-    private companion object {
-        val SMS_PROJECTION = arrayOf(
-            Telephony.Sms._ID,
-            Telephony.Sms.ADDRESS,
-            Telephony.Sms.DATE,
-            Telephony.Sms.BODY,
-            Telephony.Sms.TYPE
-        )
-    }
-
     /** Fast COUNT-only query — reads zero message bodies. */
     private suspend fun countSmsMessages(scanStartTime: Long): Int {
         var count = 0
@@ -128,21 +118,32 @@ internal class DeviceSmsMessageSource(private val context: Context) : SmsMessage
     ) {
         var count = 0
         try {
-            // No cursor means the provider failed, not an empty inbox (that is a cursor
-            // with no rows); reading it as empty would advance the scan cursor.
-            val cursor = context.contentResolver.query(
-                Telephony.Sms.CONTENT_URI,
-                SMS_PROJECTION,
-                "${Telephony.Sms.TYPE} = ? AND ${Telephony.Sms.DATE} >= ?",
-                arrayOf(Telephony.Sms.MESSAGE_TYPE_INBOX.toString(), scanStartTime.toString()),
-                "${Telephony.Sms.DATE} ASC"
-            ) ?: throw IllegalStateException("SMS query returned no cursor")
-            count = cursor.use { streamSmsRows(it, feed, onUnreadable) }
+            count = streamSmsSkippingBadRows({ projection, after, only -> querySms(projection, scanStartTime, after, only) }, feed, onUnreadable)
         } catch (e: Exception) {
             if (e !is CancellationException) Log.e(TAG, "SMS read broke off", e)
             throw e
         }
         Log.i(TAG, "Streamed $count SMS messages to pipeline")
+    }
+
+    /** Inbox SMS since [scanStartTime], as [SmsQuery] asks; oldest first, a stable order to resume in. */
+    private fun querySms(projection: Array<String>, scanStartTime: Long, after: SmsRowKey?, only: SmsRowKey?): Cursor? {
+        var selection = "${Telephony.Sms.TYPE} = ? AND ${Telephony.Sms.DATE} >= ?"
+        var args = arrayOf(Telephony.Sms.MESSAGE_TYPE_INBOX.toString(), scanStartTime.toString())
+        if (only != null) {
+            selection += " AND ${Telephony.Sms._ID} = ?"
+            args += only.id.toString()
+        } else if (after != null) {
+            selection += " AND (${Telephony.Sms.DATE} > ? OR (${Telephony.Sms.DATE} = ? AND ${Telephony.Sms._ID} > ?))"
+            args += arrayOf(after.date.toString(), after.date.toString(), after.id.toString())
+        }
+        return context.contentResolver.query(
+            Telephony.Sms.CONTENT_URI,
+            projection,
+            selection,
+            args,
+            "${Telephony.Sms.DATE} ASC, ${Telephony.Sms._ID} ASC"
+        )
     }
 
     /**
@@ -252,13 +253,115 @@ internal class DeviceSmsMessageSource(private val context: Context) : SmsMessage
     } catch (_: Exception) { json }
 }
 
+internal val SMS_PROJECTION = arrayOf(
+    Telephony.Sms._ID,
+    Telephony.Sms.ADDRESS,
+    Telephony.Sms.DATE,
+    Telephony.Sms.BODY,
+    Telephony.Sms.TYPE
+)
+
+/** Just a row's place in the feed's order: small enough to load where the full row can't. */
+internal val SMS_KEY_PROJECTION = arrayOf(Telephony.Sms._ID, Telephony.Sms.DATE)
+
+/** Times one scan's SMS read may break off and resume before it calls the inbox broken. */
+private const val MAX_RESUMES = 20
+
+/** Where a read is in the feed's order (date, then _id). */
+internal data class SmsRowKey(val date: Long, val id: Long)
+
+/**
+ * Queries inbox SMS in [projection]: just the row at [only] when it's given, else the rows
+ * after [after] (all when null), oldest first by date, then _id.
+ */
+internal typealias SmsQuery = (projection: Array<String>, after: SmsRowKey?, only: SmsRowKey?) -> Cursor?
+
+private class NoSmsCursor : IllegalStateException("SMS query returned no cursor")
+
+/**
+ * Streams the inbox from [query] into [feed] and returns how many messages it sent. When
+ * the read breaks off (a row too big for the cursor window throws from moveToNext(), or
+ * from the query when it comes first), a key-only query finds the next row and that row
+ * is read on its own. Only if it fails there too is it reported to [onUnreadable] and
+ * stepped over, so one bad row can't fail every later scan; otherwise the read resumes
+ * where it was. A provider that can't list keys, no cursor, and lost access all throw,
+ * and the scan keeps its cursor.
+ */
+internal suspend fun streamSmsSkippingBadRows(
+    query: SmsQuery,
+    feed: SendChannel<ScannedSms>,
+    onUnreadable: () -> Unit,
+): Int {
+    var after: SmsRowKey? = null
+    var count = 0
+    var resumes = 0
+    while (true) {
+        val error = try {
+            // No cursor means the provider failed, not an empty inbox (that is a cursor
+            // with no rows); reading it as empty would advance the scan cursor.
+            val cursor = query(SMS_PROJECTION, after, null) ?: throw NoSmsCursor()
+            // Counted per row: a read that breaks off throws away streamSmsRows' own count.
+            cursor.use { c ->
+                streamSmsRows(c, feed, onUnreadable) { key, sent ->
+                    after = key
+                    if (sent) count++
+                }
+            }
+            return count
+        } catch (e: Exception) {
+            if (e is CancellationException || e is SecurityException || e is NoSmsCursor) throw e
+            e
+        }
+        if (++resumes > MAX_RESUMES) throw error
+        val next = probe(error) {
+            query(SMS_KEY_PROJECTION, after, null)?.use { c ->
+                if (c.moveToFirst()) SmsRowKey(date = c.getLong(1), id = c.getLong(0)) else null
+            } ?: throw error
+        }
+        if (next != null && !rowLoads(query, next, error)) {
+            Log.w(TAG, "Skipped an SMS row the cursor couldn't load: ${error.javaClass.simpleName}")
+            onUnreadable()
+            after = next
+        }
+        // Otherwise the break wasn't that row's (a passing failure, or the row is gone): read on from where it stopped.
+    }
+}
+
+/** Runs [block]; a failure there is the provider's, so the read's own [error] is what throws. */
+private inline fun <T> probe(error: Exception, block: () -> T): T = try {
+    block()
+} catch (e: Exception) {
+    if (e is SecurityException) throw e
+    throw error
+}
+
+/** Whether [key]'s row reads on its own; true if it's gone. A provider that answers no cursor throws [error]. */
+private fun rowLoads(query: SmsQuery, key: SmsRowKey, error: Exception): Boolean {
+    val cursor = probe(error) { query(SMS_PROJECTION, null, key) } ?: throw error
+    return try {
+        cursor.use { c ->
+            if (c.moveToFirst()) SMS_PROJECTION.forEach { c.getString(c.getColumnIndexOrThrow(it)) }
+        }
+        true
+    } catch (e: Exception) {
+        if (e is SecurityException) throw e
+        false
+    }
+}
+
 /**
  * Sends each SMS row of [c] into [feed] and returns how many it sent. A row that can't be
  * read (one too big for the cursor window) is skipped and reported to [onUnreadable]:
  * failing the scan there would make every later scan fail at the same row, and new
- * messages would never be imported. A cursor that breaks off as a whole still throws.
+ * messages would never be imported. A row without even a readable key, or a cursor that
+ * breaks off as a whole, throws.
  */
-internal suspend fun streamSmsRows(c: Cursor, feed: SendChannel<ScannedSms>, onUnreadable: () -> Unit): Int {
+internal suspend fun streamSmsRows(
+    c: Cursor,
+    feed: SendChannel<ScannedSms>,
+    onUnreadable: () -> Unit,
+    onRead: (key: SmsRowKey, sent: Boolean) -> Unit = { _, _ -> },
+): Int {
     val idIdx = c.getColumnIndexOrThrow(Telephony.Sms._ID)
     val addressIdx = c.getColumnIndexOrThrow(Telephony.Sms.ADDRESS)
     val dateIdx = c.getColumnIndexOrThrow(Telephony.Sms.DATE)
@@ -276,10 +379,15 @@ internal suspend fun streamSmsRows(c: Cursor, feed: SendChannel<ScannedSms>, onU
             )
         } catch (e: Exception) {
             if (e is SecurityException) throw e
+            // Without its key the cursor may not be on a row at all (Android 8 can move on with
+            // a window that lacks it): let the caller find the row instead of guessing.
+            val key = runCatching { SmsRowKey(c.getLong(dateIdx), c.getLong(idIdx)) }.getOrNull() ?: throw e
             Log.w(TAG, "Skipped an SMS row that couldn't be read: ${e.javaClass.simpleName}")
             onUnreadable()
+            onRead(key, false)
             continue
         }
+        onRead(SmsRowKey(sms.timestamp, sms.id), true)
         feed.send(sms)
         count++
     }

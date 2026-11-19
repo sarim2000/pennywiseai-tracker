@@ -154,8 +154,9 @@ fun HomeScreen(
         .takeIf { resumedAtMillis >= trackingCardSnoozedUntil }
 
     // The hero leads with the overall budget when there is one (in its one currency).
-    val heroBudget = remember(uiState.budgetSummary) {
-        uiState.budgetSummary?.heroBudget(java.time.LocalDate.now())
+    val today = rememberToday()
+    val heroBudget = remember(uiState.budgetSummary, today) {
+        uiState.budgetSummary?.heroBudget(today)
     }
     // The carousel leaves out the budget the hero already shows; with nothing else, no section.
     val carouselBudgets = uiState.budgetSummary?.takeIf { summary ->
@@ -560,7 +561,7 @@ fun HomeScreen(
                                     StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
                                         HomeGoalsSection(
                                             goals = goals,
-                                            onNavigateToBudgets = onNavigateToBudgets,
+                                            onViewAll = onNavigateToGoals,
                                             onGoalClick = onGoalClick
                                         )
                                     }

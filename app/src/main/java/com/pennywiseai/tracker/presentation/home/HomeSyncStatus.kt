@@ -22,7 +22,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.rememberUpdatedState
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -60,6 +62,11 @@ fun HomeSyncStatus(
         lastScanAt == null -> stringResource(R.string.home_status_never)
         // Up to date: nothing worth a pill.
         else -> return
+    }
+    // When the pill goes away, tell the spotlight so it stops covering a control that isn't there.
+    if (onPositioned != null) {
+        val report by rememberUpdatedState(onPositioned)
+        DisposableEffect(Unit) { onDispose { report(Rect.Zero) } }
     }
     val accent = MaterialTheme.colorScheme.primary
     Surface(

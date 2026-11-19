@@ -16,10 +16,10 @@ import javax.inject.Inject
 class SpotlightViewModel @Inject constructor(
     private val userPreferencesRepository: UserPreferencesRepository
 ) : ViewModel() {
-    
+
     private val _spotlightState = MutableStateFlow(SpotlightState())
     val spotlightState: StateFlow<SpotlightState> = _spotlightState.asStateFlow()
-    
+
     init {
         viewModelScope.launch {
             val preferences = userPreferencesRepository.userPreferences.first()
@@ -28,14 +28,15 @@ class SpotlightViewModel @Inject constructor(
             )
         }
     }
-    
+
     fun updateFabPosition(position: Rect) {
         _spotlightState.value = _spotlightState.value.copy(
-            fabPosition = position,
+            // An empty rect means the target left the screen: stop pointing at it.
+            fabPosition = position.takeUnless { it.isEmpty },
             showTutorial = _spotlightState.value.shouldShowTutorial
         )
     }
-    
+
     fun dismissTutorial() {
         _spotlightState.value = _spotlightState.value.copy(
             showTutorial = false,
@@ -45,7 +46,7 @@ class SpotlightViewModel @Inject constructor(
             userPreferencesRepository.markScanTutorialShown()
         }
     }
-    
+
     data class SpotlightState(
         val showTutorial: Boolean = false,
         val shouldShowTutorial: Boolean = false,

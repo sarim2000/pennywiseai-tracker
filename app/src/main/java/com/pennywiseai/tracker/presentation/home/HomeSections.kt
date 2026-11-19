@@ -93,7 +93,7 @@ internal fun HomeBudgetsSection(
 @Composable
 internal fun HomeGoalsSection(
     goals: List<GoalProgress>,
-    onNavigateToBudgets: () -> Unit,
+    onViewAll: () -> Unit,
     onGoalClick: (Long) -> Unit
 ) {
     Column(
@@ -103,7 +103,7 @@ internal fun HomeGoalsSection(
             title = stringResource(R.string.home_section_goals),
             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
             action = {
-                TextButton(onClick = onNavigateToBudgets, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = onViewAll, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.home_view_all))
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
@@ -561,5 +561,14 @@ internal fun rememberToday(): LocalDate {
         today = LocalDate.now()
         onPauseOrDispose { }
     }
+    // And at midnight while Home stays open, so "Due today" turns into "Overdue" on time.
+    LaunchedEffect(today) {
+        val untilTomorrow = java.time.Duration.between(java.time.LocalDateTime.now(), today.plusDays(1).atStartOfDay())
+        kotlinx.coroutines.delay(untilTomorrow.toMillis().coerceAtLeast(0) + MIDNIGHT_SLACK_MILLIS)
+        today = LocalDate.now()
+    }
     return today
 }
+
+/** A second past midnight, so the clock has surely turned when the date is read again. */
+private const val MIDNIGHT_SLACK_MILLIS = 1_000L

@@ -48,9 +48,11 @@ internal class ScanOutcomeRecorder(
 
     /** Runs [scan] and rethrows whatever it throws, once the outcome is recorded. */
     suspend fun <T> run(isStopped: () -> Boolean, scan: suspend () -> T): T {
-        startedAt = clock()
         stats = null
         val previous = previousRecord()
+        // Always after the stored scan's start, even when the clock reads the same or went
+        // back: the late outcome of a scan this one replaced must never pass for newer.
+        startedAt = maxOf(clock(), previous.getOrNull()?.let { it.startedAt + 1 } ?: 0L)
         lastSucceededAt = previous.getOrNull()?.lastSucceededAt
         // Unknown isn't "nothing owed": writing over an owed retry would let the next
         // ordinary scan skip messages that failed, so read the whole window instead.

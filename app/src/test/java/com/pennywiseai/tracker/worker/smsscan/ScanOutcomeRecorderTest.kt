@@ -255,6 +255,20 @@ class ScanOutcomeRecorderTest {
     }
 
     @Test
+    fun `a scan starts after the one it replaced, on the same millisecond or a clock that went back`() = runTest {
+        for (clock in listOf(5_000L, 1_000L)) {
+            val replaced = SmsScanRecord(SmsScanState.RUNNING, startedAt = 5_000L, fullWindow = true)
+            stored.value = replaced
+            now = clock
+
+            recorder.run(isStopped = { false }) {
+                val lateCancel = replaced.copy(state = SmsScanState.CANCELLED, finishedAt = clock)
+                assertFalse("clock $clock", lateCancel.mayReplace(stored.value))
+            }
+        }
+    }
+
+    @Test
     fun `a scan's counts don't carry into the next run`() = runTest {
         recorder.run(isStopped = { false }) { recorder.stats = countedStats().apply { failed.set(1) } }
 

@@ -413,7 +413,6 @@
     <!-- Privacy & Data -->
     <string name="faq_privacy_section">गोपनीयता र डेटा</string>
     <string name="faq_data_secure_question">के मेरो आर्थिक डेटा सुरक्षित छ?</string>
-    <string name="faq_data_secure_answer">हो! सबै डेटा तपाईंकै डिभाइसमा रहन्छ। हाम्रो कुनै सर्भर वा क्लाउड स्टोरेज छैन। पूर्ण गोपनीयताको लागि AI मोडेल डिभाइसमै चल्छ।</string>
     <string name="faq_backup_question">के म आफ्नो डेटा ब्याकअप गर्न सक्छु?</string>
     <string name="faq_backup_answer">हाल डेटा डिभाइसमा मात्र राखिन्छ। निर्यात/ब्याकअप सुविधाहरू आगामी अपडेटमा ल्याउने योजना छ।</string>
     <string name="faq_data_access_question">एपले कुन डेटा पहुँच गर्छ?</string>

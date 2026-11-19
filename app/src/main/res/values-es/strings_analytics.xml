@@ -135,6 +135,8 @@
     <string name="budget_edit_resets_on_day">Se reinicia el día %1$d de cada mes</string>
     <string name="budget_edit_runs_once">Una sola vez, sin arrastre</string>
     <string name="budget_edit_current_window">Período actual</string>
+    <!-- Link under budget_rollover_incomplete; opens the Exchange Rates screen -->
+    <!-- Shown while a budget is in the period rollover was turned on in, which carries nothing in -->
     <!-- %1$s = start date, %2$s = end date, %3$s = reset rule (e.g. "Resets every Monday") -->
     <string name="budget_edit_category_limits">Límites por categoría (opcional)</string>
     <string name="budget_edit_no_categories">No hay categorías. Este presupuesto seguirá todos los gastos.</string>

@@ -141,6 +141,8 @@
     <string name="budget_edit_resets_on_day">Reinicia no dia %1$d de cada mês</string>
     <string name="budget_edit_runs_once">Executa uma vez, sem prorrogação</string>
     <string name="budget_edit_current_window">Janela atual</string>
+    <!-- Link under budget_rollover_incomplete; opens the Exchange Rates screen -->
+    <!-- Shown while a budget is in the period rollover was turned on in, which carries nothing in -->
     <!-- %1$s = start date, %2$s = end date, %3$s = reset rule (e.g. "Resets every Monday") -->
     <string name="budget_edit_window_caption">%1$s – %2$s · %3$s</string>
     <string name="budget_edit_category_limits">Limites das Categorias (opcional)</string>

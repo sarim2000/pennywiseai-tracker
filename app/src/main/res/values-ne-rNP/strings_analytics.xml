@@ -137,6 +137,8 @@
     <string name="budget_edit_resets_on_day">हरेक महिनाको %1$d गते रिसेट हुन्छ</string>
     <string name="budget_edit_runs_once">एक पटक मात्र चल्छ, बाँकी रकम सर्दैन</string>
     <string name="budget_edit_current_window">हालको अवधि</string>
+    <!-- Link under budget_rollover_incomplete; opens the Exchange Rates screen -->
+    <!-- Shown while a budget is in the period rollover was turned on in, which carries nothing in -->
     <!-- %1$s = start date, %2$s = end date, %3$s = reset rule (e.g. "Resets every Monday") -->
     <string name="budget_edit_category_limits">वर्ग सीमाहरू (ऐच्छिक)</string>
     <string name="budget_edit_no_categories">कुनै वर्ग थपिएको छैन। यो बजेटले सबै खर्च ट्र्याक गर्नेछ।</string>

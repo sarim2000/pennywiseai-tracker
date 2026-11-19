@@ -434,7 +434,6 @@
     <!-- Privacy & Data -->
     <string name="faq_privacy_section">Прыватнасць і даныя</string>
     <string name="faq_data_secure_question">Ці ў бяспецы мае фінансавыя даныя?</string>
-    <string name="faq_data_secure_answer">Так! Усе даныя застаюцца на вашай прыладзе. У нас няма сервераў або воблачнага сховішча. Мадэль AI працуе лакальна, каб забяспечыць поўную прыватнасць.</string>
     <string name="faq_backup_question">Ці магу я рабіць рэзервовую копію даных?</string>
     <string name="faq_backup_answer">Пакуль даныя захоўваюцца толькі лакальна. Функцыі экспарту і рэзервовага капіявання плануюцца ў наступных абнаўленнях.</string>
     <string name="faq_data_access_question">Да якіх даных праграма мае доступ?</string>

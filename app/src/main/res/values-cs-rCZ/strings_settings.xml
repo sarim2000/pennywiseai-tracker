@@ -438,7 +438,6 @@
     <!-- Privacy & Data -->
     <string name="faq_privacy_section">Soukromí &amp; Data</string>
     <string name="faq_data_secure_question">Jsou moje finanční údaje bezpečné?</string>
-    <string name="faq_data_secure_answer">Ano! Všechna data zůstávají na vašem zařízení. Nemáme servery ani cloudové úložiště. Model AI běží lokálně pro úplné soukromí.</string>
     <string name="faq_backup_question">Mohu zálohovat svá data?</string>
     <string name="faq_backup_answer">V současné době jsou data uložena pouze lokálně. Export/zálohy funkce jsou naplánovány pro budoucí aktualizace.</string>
     <string name="faq_data_access_question">Jaká data k aplikaci přistupují?</string>

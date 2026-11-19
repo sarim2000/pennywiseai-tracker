@@ -130,6 +130,8 @@
     <string name="budget_edit_resets_on_day">รีเซ็ตทุกวันที่ %1$d ของเดือน</string>
     <string name="budget_edit_runs_once">ใช้ครั้งเดียว ไม่ยกยอด</string>
     <string name="budget_edit_current_window">รอบปัจจุบัน</string>
+    <!-- Link under budget_rollover_incomplete; opens the Exchange Rates screen -->
+    <!-- Shown while a budget is in the period rollover was turned on in, which carries nothing in -->
     <!-- %1$s = start date, %2$s = end date, %3$s = reset rule (e.g. "Resets every Monday") -->
     <string name="budget_edit_category_limits">วงเงินตามหมวดหมู่ (ไม่บังคับ)</string>
     <string name="budget_edit_no_categories">ยังไม่ได้เพิ่มหมวดหมู่ งบประมาณนี้จะติดตามค่าใช้จ่ายทั้งหมด</string>

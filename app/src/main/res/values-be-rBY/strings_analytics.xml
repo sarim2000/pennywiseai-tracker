@@ -150,6 +150,8 @@
     <string name="budget_edit_resets_on_day">Абнаўляецца %1$d-га чысла кожнага месяца</string>
     <string name="budget_edit_runs_once">Дзейнічае адзін раз, без пераносу рэшты</string>
     <string name="budget_edit_current_window">Бягучы перыяд</string>
+    <!-- Link under budget_rollover_incomplete; opens the Exchange Rates screen -->
+    <!-- Shown while a budget is in the period rollover was turned on in, which carries nothing in -->
     <!-- %1$s = start date, %2$s = end date, %3$s = reset rule (e.g. "Resets every Monday") -->
     <string name="budget_edit_category_limits">Ліміты па катэгорыях (неабавязкова)</string>
     <string name="budget_edit_no_categories">Катэгорыі не дададзены. Гэты бюджэт будзе ўлічваць усе выдаткі.</string>

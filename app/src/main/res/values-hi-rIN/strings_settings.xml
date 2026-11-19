@@ -413,7 +413,6 @@
     <!-- Privacy & Data -->
     <string name="faq_privacy_section">प्राइवेसी और डेटा</string>
     <string name="faq_data_secure_question">क्या मेरा वित्तीय डेटा सुरक्षित है?</string>
-    <string name="faq_data_secure_answer">हाँ! सारा डेटा आपके डिवाइस पर ही रहता है। हमारे पास कोई सर्वर या क्लाउड स्टोरेज नहीं है। पूरी प्राइवेसी के लिए AI मॉडल भी फ़ोन पर ही चलता है।</string>
     <string name="faq_backup_question">क्या मैं अपने डेटा का बैकअप ले सकता हूँ?</string>
     <string name="faq_backup_answer">अभी डेटा सिर्फ़ फ़ोन पर ही सेव होता है। निर्यात/बैकअप फ़ीचर आने वाले अपडेट में लाने की योजना है।</string>
     <string name="faq_data_access_question">ऐप कौन-सा डेटा एक्सेस करता है?</string>

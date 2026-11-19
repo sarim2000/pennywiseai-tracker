@@ -137,6 +137,8 @@
     <string name="budget_edit_resets_on_day">Inaanza upya tarehe %1$d ya kila mwezi</string>
     <string name="budget_edit_runs_once">Mara moja tu, bila kuhamisha salio</string>
     <string name="budget_edit_current_window">Kipindi cha sasa</string>
+    <!-- Link under budget_rollover_incomplete; opens the Exchange Rates screen -->
+    <!-- Shown while a budget is in the period rollover was turned on in, which carries nothing in -->
     <!-- %1$s = start date, %2$s = end date, %3$s = reset rule (e.g. "Resets every Monday") -->
     <string name="budget_edit_category_limits">Vikomo vya Kategoria (si lazima)</string>
     <string name="budget_edit_no_categories">Hakuna kategoria zilizoongezwa. Bajeti hii itafuatilia matumizi yote.</string>

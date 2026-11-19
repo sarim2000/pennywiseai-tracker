@@ -438,7 +438,6 @@
     <!-- Privacy & Data -->
     <string name="faq_privacy_section">Конфиденциальность &amp; Данные</string>
     <string name="faq_data_secure_question">Безопасны ли мои финансовые данные?</string>
-    <string name="faq_data_secure_answer">Да! Все данные остаются на вашем устройстве. У нас нет серверов или облачных хранилищ. Модель ИИ работает локально для полной конфиденциальности.</string>
     <string name="faq_backup_question">Могу ли я сделать резервную копию своих данных?</string>
     <string name="faq_backup_answer">В настоящее время данные хранятся только локально. Экспорт/резервное копирование планируется для будущих обновлений.</string>
     <string name="faq_data_access_question">Какие данные имеют доступ к приложению?</string>

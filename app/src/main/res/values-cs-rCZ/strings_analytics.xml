@@ -155,6 +155,8 @@
     <string name="budget_edit_resets_on_day">Resetuje se na den %1$d každého měsíce</string>
     <string name="budget_edit_runs_once">Spustí jednou, bez překlopení</string>
     <string name="budget_edit_current_window">Aktuální okno</string>
+    <!-- Link under budget_rollover_incomplete; opens the Exchange Rates screen -->
+    <!-- Shown while a budget is in the period rollover was turned on in, which carries nothing in -->
     <!-- %1$s = start date, %2$s = end date, %3$s = reset rule (e.g. "Resets every Monday") -->
     <string name="budget_edit_window_caption">%1$s – %2$s · %3$s</string>
     <string name="budget_edit_category_limits">Limity kategorií (volitelné)</string>

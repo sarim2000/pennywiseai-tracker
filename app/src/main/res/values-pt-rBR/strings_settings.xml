@@ -413,7 +413,6 @@
     <!-- Privacy & Data -->
     <string name="faq_privacy_section">Privacidade &amp; Dados</string>
     <string name="faq_data_secure_question">Meus dados financeiros estão seguros?</string>
-    <string name="faq_data_secure_answer">Sim! Todos os dados permanecem no seu dispositivo. Não temos servidores ou armazenamento em nuvem. O modelo de IA é executado localmente para total privacidade.</string>
     <string name="faq_backup_question">Posso fazer backup dos meus dados?</string>
     <string name="faq_backup_answer">Atualmente, os dados são armazenados apenas localmente. Recursos de exportação/backup estão planejados para futuras atualizações.</string>
     <string name="faq_data_access_question">Quais dados o aplicativo acessa?</string>

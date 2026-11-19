@@ -292,6 +292,9 @@ class TransactionDetailViewModel @Inject constructor(
         viewModelScope.launch {
             val txn = _transaction.value ?: return@launch
             if (txn.category == category) return@launch
+            // Publish first: an edit opened while the write is in flight must copy the new
+            // category, or its full-row save would put the old one back.
+            _transaction.value = txn.copy(category = category)
             try {
                 transactionRepository.updateCategory(txn.id, category)
                 _transaction.value = transactionRepository.getTransactionById(txn.id)
@@ -301,6 +304,7 @@ class TransactionDetailViewModel @Inject constructor(
                     category != learned && !com.pennywiseai.tracker.ui.components.cards.isUnsortedCategory(category)
                 }
             } catch (e: Exception) {
+                if (_transaction.value?.id == txn.id && _transaction.value?.category == category) _transaction.value = txn
                 _errorMessage.value = UiText.Res(R.string.txn_detail_error_update_category, listOf(e.message.toString()))
             }
         }

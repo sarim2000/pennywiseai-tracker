@@ -511,6 +511,17 @@ class InsightRulesTest {
     }
 
     @Test
+    fun `a bill paid twice is neither another's new price nor its payment`() {
+        // Two plans at one merchant; the 50 one was charged twice, the 100 one not at all.
+        val insights = evaluate(
+            rows = listOf(tx("2026-11-18", "50", merchant = "Streamer"), tx("2026-11-19", "50", merchant = "Streamer")),
+            subscriptions = listOf(subscription(1, "50", "2026-11-20"), subscription(2, "100", "2026-11-20")),
+        )
+        assertTrue(insights.facts<PriceChange>().isEmpty())
+        assertEquals(Money(BigDecimal("100"), "INR"), insights.facts<BillsDue>().single().total)
+    }
+
+    @Test
     fun `a charge ingestion recorded against one bill does not also settle another`() = runBlocking {
         // Two bills at one merchant: one on an account, one that could be paid from any.
         val stored = mutableListOf(

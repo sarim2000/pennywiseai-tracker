@@ -60,6 +60,8 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextAlign
@@ -576,6 +578,11 @@ private fun NavBarStyleSelector(
             GroupedRow(
                 position = ListItemPosition.from(index, options.size),
                 onClick = { onStyleSelected(style) },
+                // The RadioButton has no callback, so the row carries the state TalkBack reads.
+                modifier = Modifier.semantics {
+                    role = Role.RadioButton
+                    this.selected = selected
+                },
                 containerColor = if (selected) {
                     MaterialTheme.colorScheme.secondaryContainer
                 } else {
@@ -588,7 +595,11 @@ private fun NavBarStyleSelector(
                     Text(
                         text = stringResource(subtitle),
                         style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (selected) {
+                            MaterialTheme.colorScheme.onSecondaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
                     )
                 }
             }
@@ -637,6 +648,11 @@ private fun FontSelector(
             GroupedRow(
                 position = ListItemPosition.from(index, options.size),
                 onClick = { onFontSelected(option.font) },
+                // The RadioButton has no callback, so the row carries the state TalkBack reads.
+                modifier = Modifier.semantics {
+                    role = Role.RadioButton
+                    this.selected = selected
+                },
                 containerColor = if (selected) {
                     MaterialTheme.colorScheme.secondaryContainer
                 } else {
@@ -654,7 +670,11 @@ private fun FontSelector(
                         text = option.subtitle,
                         style = MaterialTheme.typography.bodyMedium,
                         fontFamily = option.family,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = if (selected) {
+                            MaterialTheme.colorScheme.onSecondaryContainer
+                        } else {
+                            MaterialTheme.colorScheme.onSurfaceVariant
+                        }
                     )
                 }
             }

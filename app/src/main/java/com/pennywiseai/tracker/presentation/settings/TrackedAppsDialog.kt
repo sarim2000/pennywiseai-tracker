@@ -36,6 +36,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.ImageBitmap
 import androidx.compose.ui.graphics.asImageBitmap
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
 import androidx.core.graphics.drawable.toBitmap
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -161,7 +166,11 @@ fun TrackedAppsDialog(
                             GroupedRow(
                                 position = ListItemPosition.from(index, shown.size),
                                 onClick = { viewModel.setTracked(app.packageName, !checked) },
-                                modifier = Modifier.animateItem(),
+                                // The Checkbox has no callback, so the row carries the state TalkBack reads.
+                                modifier = Modifier.animateItem().semantics {
+                                    role = Role.Checkbox
+                                    toggleableState = ToggleableState(checked)
+                                },
                             ) {
                                 Checkbox(checked = checked, onCheckedChange = null)
                                 app.icon?.let {

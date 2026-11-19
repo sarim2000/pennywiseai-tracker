@@ -45,6 +45,8 @@ import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.heading
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.selected
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -815,6 +817,11 @@ internal fun SettingsChoiceSheet(
                         choice.onSelect()
                         scope.launch { sheetState.hide() }.invokeOnCompletion { onDismiss() }
                     },
+                    // The RadioButton has no callback, so the row carries the state TalkBack reads.
+                    modifier = Modifier.semantics {
+                        role = Role.RadioButton
+                        selected = choice.selected
+                    },
                     containerColor = if (choice.selected) {
                         MaterialTheme.colorScheme.secondaryContainer
                     } else {
@@ -828,7 +835,11 @@ internal fun SettingsChoiceSheet(
                             Text(
                                 text = choice.description,
                                 style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                color = if (choice.selected) {
+                                    MaterialTheme.colorScheme.onSecondaryContainer
+                                } else {
+                                    MaterialTheme.colorScheme.onSurfaceVariant
+                                }
                             )
                         }
                     }

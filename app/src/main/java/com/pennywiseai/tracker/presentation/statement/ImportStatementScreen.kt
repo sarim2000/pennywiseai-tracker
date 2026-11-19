@@ -25,6 +25,11 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -633,9 +638,15 @@ private fun PreviewContent(
             GroupedRow(
                 position = ListItemPosition.from(i, newIndices.size),
                 onClick = { onToggle(index) },
-                modifier = Modifier.padding(
-                    bottom = if (i < newIndices.lastIndex) Spacing.Layout.groupedListGap else Spacing.none
-                ),
+                modifier = Modifier
+                    .padding(
+                        bottom = if (i < newIndices.lastIndex) Spacing.Layout.groupedListGap else Spacing.none
+                    )
+                    // The Checkbox has no callback, so the row carries the state TalkBack reads.
+                    .semantics {
+                        role = Role.Checkbox
+                        toggleableState = ToggleableState(checked)
+                    },
             ) {
                 Checkbox(checked = checked, onCheckedChange = null)
                 TransactionLine(

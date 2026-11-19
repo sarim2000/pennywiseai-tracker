@@ -18,11 +18,13 @@ import com.pennywiseai.tracker.data.database.entity.parentNameOf
 import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.preferences.BudgetPreferences
 import com.pennywiseai.tracker.domain.model.BudgetCycle
+import com.pennywiseai.tracker.domain.spending.BudgetRollover
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import java.math.BigDecimal
 import java.math.RoundingMode
@@ -60,14 +62,34 @@ class BudgetGroupRepository @Inject constructor(
         val now = LocalDateTime.now()
         budgetDao.updateBudgetsAndCategories(
             budgetDao.getAllBudgets().first()
-                .map { it.copy(limitAmount = converted(it.limitAmount), currency = currency, updatedAt = now) },
+                .map {
+                    val moved = it.copy(limitAmount = converted(it.limitAmount), currency = currency, updatedAt = now)
+                    moved.copy(rolloverSince = BudgetRollover.sinceAfterEdit(it, moved, now.toLocalDate()))
+                },
             budgetDao.getAllBudgetCategories().first()
                 .map { it.copy(budgetAmount = converted(it.budgetAmount)) }
         )
     }
 
+    /**
+     * Sets the global budget cycle start day. A rollover budget whose period follows
+     * it starts its rollover again, as a change of its own period would. The budgets
+     * go first: stopped halfway, the day is still the old one and a retry finds the
+     * change to make; a budget already restarted only carries nothing this period.
+     */
+    suspend fun updateBudgetCycleStartDay(day: Int) {
+        val before = userPreferencesRepository.getBudgetCycleStartDay()
+        val today = LocalDate.now()
+        budgetDao.getAllBudgets().first().forEach { budget ->
+            val since = BudgetRollover.sinceAfterCycleStartDayChange(budget, today, before, day)
+            if (since != budget.rolloverSince) budgetDao.updateRolloverSince(budget.id, since)
+        }
+        userPreferencesRepository.updateBudgetCycleStartDay(day)
+    }
+
     /** Sub-category name → parent name; a parent budget row also counts its children (#374). */
     suspend fun parentOf(): Map<String, String> = categoryDao.getAllCategoriesList().parentNameOf()
+
     private suspend fun expandWithChildren(names: Set<String>): Set<String> =
         categoryDao.getAllCategoriesList().expandWithChildren(names)
 
@@ -121,7 +143,9 @@ class BudgetGroupRepository @Inject constructor(
         monthStartDay: Int? = null,
         // For CUSTOM: the literal start date the user picked.
         startDate: LocalDate? = null,
-        endDate: LocalDate? = null
+        endDate: LocalDate? = null,
+        // Weekly / monthly spending limits only; ignored for anything else.
+        rollover: Boolean = false
     ): Long {
         val resolvedDisplayOrder = if (displayOrder < 0) budgetDao.getMaxDisplayOrder() + 1 else displayOrder
         val totalAmount = limitAmount ?: buckets.fold(BigDecimal.ZERO) { acc, b -> acc + b.amount }
@@ -158,8 +182,9 @@ class BudgetGroupRepository @Inject constructor(
             groupType = groupType,
             displayOrder = resolvedDisplayOrder,
             createdAt = LocalDateTime.now(),
-            updatedAt = LocalDateTime.now()
-        )
+            updatedAt = LocalDateTime.now(),
+            rolloverEnabled = rollover && BudgetRollover.isAvailable(groupType, periodType)
+        ).let { it.copy(rolloverSince = BudgetRollover.sinceAfterEdit(null, it, now)) }
 
         val budgetId = budgetDao.insertBudget(budget)
 
@@ -190,7 +215,9 @@ class BudgetGroupRepository @Inject constructor(
         weekStartDay: Int? = null,
         monthStartDay: Int? = null,
         startDate: LocalDate? = null,
-        endDate: LocalDate? = null
+        endDate: LocalDate? = null,
+        // Null keeps the budget's setting; off wherever rollover isn't available.
+        rollover: Boolean? = null
     ) {
         val existing = budgetDao.getBudgetById(budgetId) ?: return
         val totalAmount = limitAmount ?: buckets.fold(BigDecimal.ZERO) { acc, b -> acc + b.amount }
@@ -223,21 +250,26 @@ class BudgetGroupRepository @Inject constructor(
             }
         }
 
+        val updated = existing.copy(
+            name = name,
+            groupType = groupType,
+            color = color,
+            currency = currency ?: existing.currency,
+            limitAmount = totalAmount,
+            periodType = effectivePeriod,
+            startDate = newStart,
+            endDate = newEnd,
+            weekStartDay = newWeek,
+            monthStartDay = newMonth,
+            includeAllCategories = buckets.isEmpty(),
+            updatedAt = LocalDateTime.now(),
+            rolloverEnabled = (rollover ?: existing.rolloverEnabled) && BudgetRollover.isAvailable(groupType, effectivePeriod)
+        )
+        // New categories or type buckets: last period's spending isn't what this one counts.
+        val sameScope = budgetDao.getCategoriesForBudgetList(budgetId).map { it.categoryName to it.matchType }.toSet() ==
+            buckets.map { it.name to it.matchType }.toSet()
         budgetDao.updateBudget(
-            existing.copy(
-                name = name,
-                groupType = groupType,
-                color = color,
-                currency = currency ?: existing.currency,
-                limitAmount = totalAmount,
-                periodType = effectivePeriod,
-                startDate = newStart,
-                endDate = newEnd,
-                weekStartDay = newWeek,
-                monthStartDay = newMonth,
-                includeAllCategories = buckets.isEmpty(),
-                updatedAt = LocalDateTime.now()
-            )
+            updated.copy(rolloverSince = BudgetRollover.sinceAfterEdit(existing, updated, now, globalStartDay, sameScope))
         )
 
         budgetDao.deleteCategoriesForBudget(budgetId)
@@ -446,12 +478,24 @@ class BudgetGroupRepository @Inject constructor(
             val queryEnd = maxEnd
             val queryStart = minStart
 
-            transactionSplitDao.getTransactionsWithSplitsFiltered(
-                queryStart.atStartOfDay(),
-                queryEnd.atTime(23, 59, 59),
-                currency
-            ).map { allTxs0 ->
+            // Rollover reads last period in every currency: observed alongside, so a
+            // late or edited transaction back there updates the carry too.
+            val carryWindows = perBudgetWindows.mapNotNull { (g, windows) ->
+                if (windows.isEmpty()) return@mapNotNull null
+                val displayWindow = if (isCurrentMonth) resolveBudgetWindow(g.budget, today, startDay) else windows.last()
+                carryWindow(g.budget, displayWindow, startDay)?.let { g.budget.id to it }
+            }.toMap()
+
+            combine(
+                transactionSplitDao.getTransactionsWithSplitsFiltered(
+                    queryStart.atStartOfDay(),
+                    queryEnd.atTime(23, 59, 59),
+                    currency
+                ),
+                carryTransactions(carryWindows.values)
+            ) { allTxs0, carryTxs ->
                 val allTxs = allTxs0.forTotals()
+                val parentOf = parentOf()
                 val groupSpendings = perBudgetWindows.map { (group, windows) ->
                     val budget = group.budget
                     if (windows.isEmpty()) {
@@ -498,7 +542,7 @@ class BudgetGroupRepository @Inject constructor(
                                 val cap = if (isLive) today else monthEnd
                                 PastWindowSpending(
                                     window = w,
-                                    spent = getBudgetWindowFilteredSpend(group, transactionsByWindow[w].orEmpty()),
+                                    spent = getBudgetWindowFilteredSpend(group, transactionsByWindow[w].orEmpty(), parentOf),
                                     capDate = cap,
                                     isLive = isLive
                                 )
@@ -516,7 +560,9 @@ class BudgetGroupRepository @Inject constructor(
                             monthEnd = monthEnd,
                             currency = currency,
                             displayedCapDate = if (isCurrentWeekInCurrentMonth(displayWindow, today, isCurrentMonth)) today else monthEnd,
-                            displayedIsLive = isCurrentWeekInCurrentMonth(displayWindow, today, isCurrentMonth)
+                            displayedIsLive = isCurrentWeekInCurrentMonth(displayWindow, today, isCurrentMonth),
+                            carry = carryIn(currency, group, carryWindows[budget.id]?.let { carryTxs.within(it) }, parentOf),
+                            parentOf = parentOf
                         )
                     }
                 }
@@ -636,8 +682,18 @@ class BudgetGroupRepository @Inject constructor(
                 prevCycleQueryEnd = null
             }
 
-            val unionMinStart = if (prevCycleQueryStart != null && prevCycleQueryStart.isBefore(queryStart)) prevCycleQueryStart else queryStart
-            val unionMaxEnd = if (prevCycleQueryEnd != null && prevCycleQueryEnd.isAfter(queryEnd)) prevCycleQueryEnd else queryEnd
+            // Rollover's source periods are part of the one observed range, so a late or
+            // edited transaction back there updates the carry too.
+            val carryWindows = groups.mapNotNull { group ->
+                val displayed = if (isCurrentMonth) {
+                    resolveBudgetWindow(group.budget, today, startDay)
+                } else {
+                    windowsForMonth(group.budget, year, month, startDay).lastOrNull() ?: BudgetWindow(monthStart, monthStart, 0)
+                }
+                carryWindow(group.budget, displayed, startDay)?.let { group.budget.id to it }
+            }.toMap()
+            val unionMinStart = (listOfNotNull(queryStart, prevCycleQueryStart) + carryWindows.values.map { it.start }).min()
+            val unionMaxEnd = (listOfNotNull(queryEnd, prevCycleQueryEnd) + carryWindows.values.map { it.end }).max()
 
             transactionSplitDao.getTransactionsWithSplitsAllCurrencies(
                 unionMinStart.atStartOfDay(),
@@ -683,6 +739,7 @@ class BudgetGroupRepository @Inject constructor(
                     }
                 } else emptyList()
 
+                val carrySources = carryWindows.mapValues { (_, w) -> unionTxs0.within(w) }
                 BudgetGroupSpendingRaw(
                     budgetsWithCategories = groups,
                     windowedSpend = windowed,
@@ -693,7 +750,9 @@ class BudgetGroupRepository @Inject constructor(
                     isCurrentMonth = isCurrentMonth,
                     prevCycleTransactions = prevCycleTransactions,
                     allTransactions = allTransactions.distinctBy { it.transaction.id },
-                    currentWindows = currentWindows
+                    currentWindows = currentWindows,
+                    carrySources = carrySources,
+                    parentOf = parentOf()
                 )
             }
         }
@@ -728,20 +787,25 @@ class BudgetGroupRepository @Inject constructor(
      *
      * Falls back to [sumExpensesForWindow] for tracking-all budgets
      * (no per-category allocations) — they include every expense.
+     *
+     * A budget with rollover on is added up with [budgetSpend] instead, the way its
+     * carry is, so what it shows spent is what it carries from.
      */
     private suspend fun getBudgetWindowFilteredSpend(
         group: BudgetWithCategories,
-        transactions: List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>
+        transactions: List<com.pennywiseai.tracker.data.database.entity.TransactionWithSplits>,
+        parentOf: Map<String, String>
     ): BigDecimal {
+        if (group.budget.rolloverEnabled) return budgetSpend(group, transactions, parentOf, asIs).amount
         if (group.categories.isEmpty()) return sumExpensesForWindow(transactions)
         val (categoryAmounts, _, typeAmounts) = aggregateBudgetCategorySpending(
-            parentOf = parentOf(),
+            parentOf = parentOf,
             transactions = transactions,
             convertSplit = { _, amount -> amount },
             convertIncome = { tx -> tx.amount }
         )
         // Sum the configured rows (parent rows already include their children — #374).
-        val catNames = group.categories.withoutCoveredChildren(parentOf())
+        val catNames = group.categories.withoutCoveredChildren(parentOf)
             .filter { it.matchType == null }.map { it.categoryName }.toSet()
         val matchTypes = group.categories.mapNotNull { it.matchType }.toSet()
         val catTotal = categoryAmounts.filterKeys { it in catNames }.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
@@ -785,6 +849,78 @@ class BudgetGroupRepository @Inject constructor(
         !today.isAfter(window.end)
 
     /**
+     * Rollover: the full period [budget] carries into [window] from, or null when it
+     * carries nothing. A [window] that hasn't started carries nothing yet: the period
+     * before it may still be running (a future month opened on the Budgets screen).
+     */
+    private fun carryWindow(budget: BudgetEntity, window: BudgetWindow, startDay: Int): BudgetWindow? =
+        if (window.days < 1 || window.start.isAfter(LocalDate.now())) null
+        else BudgetRollover.sourceWindow(budget, window, startDay)
+
+    /** Every transaction, in every currency, across [windows]; observed, so edits back there re-emit. */
+    private fun carryTransactions(windows: Collection<BudgetWindow>): Flow<List<TransactionWithSplits>> =
+        if (windows.isEmpty()) {
+            flowOf(emptyList())
+        } else {
+            transactionSplitDao.getTransactionsWithSplitsAllCurrencies(
+                windows.minOf { it.start }.atStartOfDay(),
+                windows.maxOf { it.end }.atTime(23, 59, 59)
+            )
+        }
+
+    private fun List<TransactionWithSplits>.within(window: BudgetWindow) = filter {
+        val d = it.transaction.dateTime.toLocalDate()
+        !d.isBefore(window.start) && !d.isAfter(window.end)
+    }
+
+    /**
+     * Rollover, read once (Budget History): every transaction, in every currency, of
+     * the full period [budget] carries into [window] from. Null when it carries nothing,
+     * including for a [window] that hasn't started.
+     */
+    private suspend fun carrySource(budget: BudgetEntity, window: BudgetWindow, startDay: Int): List<TransactionWithSplits>? =
+        carryWindow(budget, window, startDay)?.let { carryTransactions(listOf(it)).first() }
+
+    /**
+     * [group]'s carry in [currency] from [previous]. Without [convert] it counts only
+     * [currency]'s transactions, as the budget's own spend does (the same match as
+     * [TransactionSplitDao.getTransactionsWithSplitsFiltered]): other currencies
+     * aren't in its spend, so they don't change what it carries either.
+     */
+    private suspend fun carryIn(
+        currency: String,
+        group: BudgetWithCategories,
+        previous: List<TransactionWithSplits>?,
+        parentOf: Map<String, String>,
+        convert: (suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?)? = null
+    ): BudgetCarry = budgetCarry(group, previous?.countedIn(currency, convert), currency, currency, parentOf, convert.orAsIs())
+
+    /**
+     * Budget History's transactions in [window]: every currency in unified mode
+     * ([convert] set, as the Budgets card counts them), else only [currency]'s.
+     */
+    private suspend fun historyTransactions(
+        window: BudgetWindow,
+        end: LocalDate,
+        currency: String,
+        convert: (suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?)?
+    ): List<TransactionWithSplits> = if (convert != null) {
+        transactionSplitDao.getTransactionsWithSplitsAllCurrencies(window.start.atStartOfDay(), end.atTime(23, 59, 59))
+    } else {
+        transactionSplitDao.getTransactionsWithSplitsFiltered(window.start.atStartOfDay(), end.atTime(23, 59, 59), currency)
+    }.first().forTotals()
+
+    private fun List<TransactionWithSplits>.countedIn(
+        currency: String,
+        convert: (suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?)?
+    ) = if (convert != null) this else filter { it.transaction.currency == currency }
+
+    private fun (suspend(fromCurrency: String, amount: BigDecimal) -> BigDecimal?)?.orAsIs(): suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal? = this ?: asIs
+
+    /** Native mode's [budgetSpend] converter: amounts are already in the budget's currency. */
+    private val asIs: suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal? = { _, amount -> amount }
+
+    /**
      * Per-window history for a single budget at the selected (year, month).
      * Powers the Budget History screen — one entry per window, with
      * the cap date so the screen can label each row as "Live" or
@@ -793,12 +929,16 @@ class BudgetGroupRepository @Inject constructor(
      * For the current month, the week containing today is live (cap =
      * today); every other week is frozen at the month end. For a
      * historical month, every week is frozen at the month end.
+     *
+     * [convert]: unified mode, how every currency's spending (and the carry's) converts
+     * into [currency], as on the Budgets card; null counts [currency] only.
      */
     suspend fun getBudgetHistoryForMonth(
         budget: BudgetEntity,
         year: Int,
         month: Int,
-        currency: String
+        currency: String,
+        convert: (suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?)? = null
     ): List<PastWindowSpending> {
         val today = LocalDate.now()
         val startDay = userPreferencesRepository.getBudgetCycleStartDay()
@@ -809,27 +949,26 @@ class BudgetGroupRepository @Inject constructor(
         // Resolve the group once so the per-window spend query doesn't
         // re-hit the dao for every window.
         val group = getGroupOrFallback(budget)
+        val parentOf = parentOf()
         return windows.map { w ->
             val isLive = isCurrentWeekInCurrentMonth(w, today, isCurrentMonth)
             val cap = if (isLive) today else monthEnd
             val effectiveEnd = if (cap.isBefore(w.end)) cap else w.end
-            val txs = transactionSplitDao.getTransactionsWithSplitsFiltered(
-                w.start.atStartOfDay(),
-                effectiveEnd.atTime(23, 59, 59),
-                currency
-            ).first().forTotals()
             // Use the per-category-filtered total so the per-row spend
             // matches the per-category breakdown shown in the
-            // "View breakdown" bottom sheet (the previous shape used
-            // sumExpensesForWindow which counted every EXPENSE in
-            // the date range, including ones outside the budget's
-            // categories — a 43k row vs 8k breakdown mismatch).
-            val spent = getBudgetWindowFilteredSpend(group, txs)
+            // "View breakdown" bottom sheet. A rollover budget counts as its
+            // card and its carry do (every currency in unified mode).
+            val spent = if (budget.rolloverEnabled) {
+                budgetSpend(group, historyTransactions(w, effectiveEnd, currency, convert), parentOf, convert.orAsIs()).amount
+            } else {
+                getBudgetWindowFilteredSpend(group, historyTransactions(w, effectiveEnd, currency, null), parentOf)
+            }
             PastWindowSpending(
                 window = w,
                 spent = spent,
                 capDate = cap,
-                isLive = isLive
+                isLive = isLive,
+                carry = carrySource(budget, w, startDay)?.let { carryIn(currency, group, it, parentOf, convert) }
             )
         }
     }
@@ -839,23 +978,24 @@ class BudgetGroupRepository @Inject constructor(
      * Budget History "View breakdown" bottom sheet — same shape as the
      * Budget Groups page's per-card category list, but scoped to one
      * window (one week for Weekly, one cycle for Monthly, the literal
-     * range for One-time).
+     * range for One-time). [convert]: as in [getBudgetHistoryForMonth].
      */
     suspend fun getBudgetWindowBreakdown(
         budget: BudgetEntity,
         window: BudgetWindow,
-        currency: String
+        currency: String,
+        convert: (suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?)? = null
     ): WindowBreakdown {
-        val txs = transactionSplitDao.getTransactionsWithSplitsFiltered(
-            window.start.atStartOfDay(),
-            window.end.atTime(23, 59, 59),
-            currency
-        ).first().forTotals()
+        // Rollover budgets count every currency in unified mode, as their card does.
+        val rollover = budget.rolloverEnabled
+        val txs = historyTransactions(window, window.end, currency, convert.takeIf { rollover })
+        val converter = convert.takeIf { rollover }.orAsIs()
+        val parentOf = parentOf()
         val (categoryAmounts, categoryLimitBoosts, typeAmounts) = aggregateBudgetCategorySpending(
-            parentOf = parentOf(),
+            parentOf = parentOf,
             transactions = txs,
-            convertSplit = { _, amount -> amount },
-            convertIncome = { tx -> tx.amount }
+            convertSplit = converter,
+            convertIncome = { tx -> converter(tx.currency, tx.amount) }
         )
         val groups = budgetDao.getActiveBudgetsWithCategories().first()
         val group = groups.firstOrNull { it.budget.id == budget.id }
@@ -893,28 +1033,31 @@ class BudgetGroupRepository @Inject constructor(
             // card's behaviour for isTrackingAllExpenses = true.
             emptyList()
         }
-        val totalBudget = (group?.budget?.limitAmount ?: BigDecimal.ZERO).let { gLimit ->
-            if (gLimit > BigDecimal.ZERO) gLimit
-            else categorySpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
+        val counted = group ?: BudgetWithCategories(budget, emptyList())
+        val carry = carrySource(budget, window, userPreferencesRepository.getBudgetCycleStartDay())?.let {
+            carryIn(currency, counted, it, parentOf, convert)
         }
-        val totalActual = if (categorySpending.isNotEmpty()) {
-            categorySpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
-        } else {
+        val totalBudget = (group?.budget?.limitAmount ?: BigDecimal.ZERO).let { gLimit ->
+            (carry ?: BudgetCarry.none(currency)).appliedTo(
+                if (gLimit > BigDecimal.ZERO) gLimit
+                else categorySpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
+            )
+        }
+        val totalActual = when {
+            rollover -> budgetSpend(counted, txs, parentOf, converter).amount
+            categorySpending.isNotEmpty() -> categorySpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
             // No per-cat breakdown → report the window total. For
             // tracking-all budgets the helper falls back to the
-            // unfiltered sumExpensesForWindow; for budgets that simply
-            // have no spend in this window it returns zero.
-            getBudgetWindowFilteredSpend(
-                group ?: BudgetWithCategories(budget = budget, categories = emptyList()),
-                txs
-            )
+            // unfiltered sumExpensesForWindow.
+            else -> getBudgetWindowFilteredSpend(counted, txs, parentOf)
         }
         return WindowBreakdown(
             window = window,
             categorySpending = categorySpending,
             totalBudget = totalBudget,
             totalActual = totalActual,
-            isTrackingAll = group?.categories?.isEmpty() == true
+            isTrackingAll = group?.categories?.isEmpty() == true,
+            carry = carry
         )
     }
 
@@ -929,7 +1072,9 @@ class BudgetGroupRepository @Inject constructor(
         monthEnd: LocalDate = displayWindow.end,
         currency: String,
         displayedCapDate: LocalDate = displayWindow.end,
-        displayedIsLive: Boolean = false
+        displayedIsLive: Boolean = false,
+        carry: BudgetCarry = BudgetCarry.none(currency),
+        parentOf: Map<String, String> = emptyMap()
     ): BudgetGroupSpending {
         val budget = group.budget
         val displayTxs = transactionsByWindow[displayWindow].orEmpty()
@@ -944,12 +1089,13 @@ class BudgetGroupRepository @Inject constructor(
         }
 
         val (categoryAmounts, categoryLimitBoosts, typeAmounts) = aggregateBudgetCategorySpending(
-            parentOf = parentOf(),
+            parentOf = parentOf,
             transactions = displayTxs,
-            convertSplit = { _, amount -> amount },
+            convertSplit = asIs,
             convertIncome = { tx -> tx.amount }
         )
-
+        // Rollover: added up as the carry is, so what shows spent is what carries.
+        val rolloverSpent = if (budget.rolloverEnabled) budgetSpend(group, displayTxs, parentOf, asIs).amount else null
         val totalAllExpenses = categoryAmounts.values.fold(BigDecimal.ZERO) { acc, amount -> acc + amount } +
             typeAmounts.values.fold(BigDecimal.ZERO) { acc, amount -> acc + amount }
 
@@ -1017,12 +1163,10 @@ class BudgetGroupRepository @Inject constructor(
 
         val isTrackingAll = group.categories.isEmpty()
         val groupSpending = if (isTrackingAll) {
-            val totalBudget = group.budget.limitAmount
-            val totalActual = totalAllExpenses
+            val totalBudget = carry.appliedTo(group.budget.limitAmount)
+            val totalActual = rolloverSpent ?: totalAllExpenses
             val remaining = totalBudget - totalActual
-            val pctUsed = if (totalBudget > BigDecimal.ZERO) {
-                percentOf(totalActual, totalBudget)
-            } else 0f
+            val pctUsed = budgetPercentUsed(totalActual, totalBudget, carry.amount.amount)
             val dailyAllowance = if (daysRemaining > 0 && remaining > BigDecimal.ZERO) {
                 remaining.divide(BigDecimal(daysRemaining), 0, RoundingMode.HALF_UP)
             } else BigDecimal.ZERO
@@ -1046,7 +1190,9 @@ class BudgetGroupRepository @Inject constructor(
                 periodType = budget.periodType,
                 previousWindows = previousWindows,
                 displayedCapDate = displayedCapDate,
-                displayedIsLive = displayedIsLive
+                displayedIsLive = displayedIsLive,
+                carry = carry.amount.amount,
+                carryGap = carry.gap
             )
         } else {
             val catSpending = group.categories.map { cat ->
@@ -1072,17 +1218,18 @@ class BudgetGroupRepository @Inject constructor(
                     dailySpend = dailySpend
                 )
             }
-            val totalBudget = if (group.budget.limitAmount > BigDecimal.ZERO) {
-                group.budget.limitAmount
-            } else {
-                catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
-            }
-            val covered = group.categories.withoutCoveredChildren(parentOf()).map { it.categoryName }.toSet()
-            val totalActual = catSpending.filter { it.categoryName in covered }.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
+            val totalBudget = carry.appliedTo(
+                if (group.budget.limitAmount > BigDecimal.ZERO) {
+                    group.budget.limitAmount
+                } else {
+                    catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
+                }
+            )
+            val covered = group.categories.withoutCoveredChildren(parentOf).map { it.categoryName }.toSet()
+            val totalActual = rolloverSpent
+                ?: catSpending.filter { it.categoryName in covered }.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
             val remaining = totalBudget - totalActual
-            val pctUsed = if (totalBudget > BigDecimal.ZERO) {
-                percentOf(totalActual, totalBudget)
-            } else 0f
+            val pctUsed = budgetPercentUsed(totalActual, totalBudget, carry.amount.amount)
             val dailyAllowance = if (daysRemaining > 0 && remaining > BigDecimal.ZERO) {
                 remaining.divide(BigDecimal(daysRemaining), 0, RoundingMode.HALF_UP)
             } else BigDecimal.ZERO
@@ -1108,7 +1255,9 @@ class BudgetGroupRepository @Inject constructor(
                 periodType = budget.periodType,
                 previousWindows = previousWindows,
                 displayedCapDate = displayedCapDate,
-                displayedIsLive = displayedIsLive
+                displayedIsLive = displayedIsLive,
+                carry = carry.amount.amount,
+                carryGap = carry.gap
             )
         }
         return groupSpending
@@ -1131,8 +1280,7 @@ class BudgetGroupRepository @Inject constructor(
  *    accumulates ADD_TO_LIMIT (Extra budget) amounts into
  *    `categoryLimitBoosts`.
  *  - counts only each transaction's `forTotals()` part: analytics-excluded rows
- *    and the loan portion of loan-linked rows are left out, matching
- *    [BudgetGroupRepository.sumExpensesForWindow] — a loan isn't discretionary
+ *    and the loan portion of loan-linked rows are left out — a loan isn't discretionary
  *    spend, but your own share of a split bill is.
  *
  * `convertSplit` and `convertIncome` let callers project amounts into a

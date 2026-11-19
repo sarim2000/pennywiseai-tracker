@@ -349,7 +349,10 @@ private fun Figure(label: String, value: String) {
             text = value,
             style = PennyWiseText.amountRow,
             maxLines = 1,
-            autoSize = TextAutoSize.StepBased(PennyWiseText.autoSizeFloor, PennyWiseText.amountRow.fontSize),
+            autoSize = TextAutoSize.StepBased(
+                minFontSize = PennyWiseText.autoSizeFloor,
+                maxFontSize = PennyWiseText.amountRow.fontSize,
+            ),
         )
     }
 }

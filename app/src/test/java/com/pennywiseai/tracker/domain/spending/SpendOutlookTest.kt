@@ -189,7 +189,7 @@ class SpendOutlookTest {
         val r = SafeToSpend.calculate(
             listOf(Money(d("10000"), "INR")),
             listOf(
-                Bill("Card", Money(d("2500"), "INR"), LocalDate.of(2026, 10, 20), isCardBill = true),
+                Bill("Card", Money(d("2500"), "INR"), LocalDate.of(2026, 10, 20), source = BillSource.Card("Bank", "1234")),
                 Bill("Old", Money(d("500"), "INR"), LocalDate.of(2026, 10, 20)),
             ),
             today, end,

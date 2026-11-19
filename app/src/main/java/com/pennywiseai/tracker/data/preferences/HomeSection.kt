@@ -3,8 +3,8 @@ package com.pennywiseai.tracker.data.preferences
 /**
  * The toggleable / reorderable sections of the Home screen (#770). Declaration
  * order is the default display order: decisions first (what can I spend, am I
- * over budget, did the app catch my spending), reference detail last. The fixed
- * header (balance card) is deliberately not here.
+ * over budget, what still needs a category, did the app catch my spending),
+ * reference detail last. The fixed header (balance card) is deliberately not here.
  *
  * [visibleByDefault] false: a new user and an existing layout both get the section
  * hidden, for the user to turn on in Home's section settings.
@@ -12,6 +12,7 @@ package com.pennywiseai.tracker.data.preferences
 enum class HomeSection(val label: String, val visibleByDefault: Boolean = true) {
     SAFE_TO_SPEND("Safe to spend"),
     BUDGETS("Budgets"),
+    UNSORTED("Needs a category"),
     INSIGHTS("Insights", visibleByDefault = false),
     RECENT_TRANSACTIONS("Recent Transactions"),
     ACCOUNTS("Bank Accounts"),

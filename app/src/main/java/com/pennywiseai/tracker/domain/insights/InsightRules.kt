@@ -45,8 +45,13 @@ data class BudgetStatus(
     val windowEnd: LocalDate,
     /** Some spending had no exchange rate, so [spent] reads low. */
     val incomplete: Boolean = false,
+    /**
+     * The budget has a limit of its own. Rollover can carry it down to a [limit] of 0:
+     * used up, not missing ([com.pennywiseai.tracker.data.repository.BudgetGroupSpending.hasLimit]).
+     */
+    val hasLimit: Boolean = limit.signum() > 0,
 ) {
-    val isRunning: Boolean get() = limit.signum() > 0 && daysElapsed in 1..windowDays
+    val isRunning: Boolean get() = hasLimit && limit.signum() >= 0 && daysElapsed in 1..windowDays
 
     /** A weekly budget's week 2 is news again after week 1 was dismissed. */
     internal val windowKey: String get() = "$id@$windowStart"
@@ -104,8 +109,13 @@ object InsightRules {
     internal fun budgets(budgets: List<BudgetStatus>, period: String): List<Insight> {
         val running = budgets.filter { it.isRunning }
         val flagged = running.mapNotNull { b ->
-            val pace = budgetPace(b.spent, b.limit, b.daysElapsed, b.windowDays) ?: return@mapNotNull null
-            if (pace.daysOver < 1 && !pace.isOverBudget) return@mapNotNull null
+            // A limit rollover carried down to 0 has no pace: it's used up, or over.
+            val pace = budgetPace(b.spent, b.limit, b.daysElapsed, b.windowDays)
+            if (pace == null) {
+                if (b.limit.signum() > 0 || (b.spent.signum() <= 0 && b.daysElapsed == b.windowDays)) return@mapNotNull null
+            } else if (pace.daysOver < 1 && !pace.isOverBudget) {
+                return@mapNotNull null
+            }
             val spent = Money(b.spent, b.currency)
             val limit = Money(b.limit, b.currency)
             val daysLeft = b.windowDays - b.daysElapsed + 1
@@ -113,7 +123,7 @@ object InsightRules {
             val perDayLeft = (b.limit - b.spent).divide(BigDecimal(daysLeft), 0, RoundingMode.HALF_UP)
             when {
                 // Nothing left a day with days to go reads as used up, not as "0 a day".
-                pace.isOverBudget || perDayLeft.signum() <= 0 -> Insight(
+                pace == null || pace.isOverBudget || perDayLeft.signum() <= 0 -> Insight(
                     id("budget_over", period, b.currency, b.windowKey), InsightSeverity.ALERT, b.currency,
                     BudgetOver(b.name, spent, limit, b.incomplete), InsightAction.OpenBudgets,
                 )
@@ -204,7 +214,7 @@ object InsightRules {
             canPay(sub, charge) && inWindow(sub, charge) && RecurringCharge.sameAmount(sub.amount, charge.amount)
         }.keys
         val repriced = claim(dues.keys.filter { it.id !in paid }, unclaimed, closestToDue) { sub, charge ->
-            canPay(sub, charge) && inWindow(sub, charge) &&
+            canPay(sub, charge) && inWindow(sub, charge) && !paysAtItsPrice(subscriptions, charge) &&
                 RecurringCharge.isPriceChange(sub.amount, dues.getValue(sub), charge.amount, charge.dateTime.toLocalDate())
         }.keys
         // Each bill with its subscription, so the id can name which ones are due.
@@ -246,14 +256,7 @@ object InsightRules {
     ): List<Insight> {
         val charges = review.detail?.paymentRows.orEmpty()
             .filter { it.dateTime.toLocalDate() in review.range.start..review.range.end }
-        // A charge at the exact amount of a subscription due around then is that one's
-        // payment, not another's new price. One due months away (an annual plan) can't claim it.
-        val unclaimed = withoutRecorded(subscriptions, charges).filterNot { charge ->
-            subscriptions.any {
-                canPay(it, charge) && RecurringCharge.sameAmount(it.amount, charge.amount) &&
-                    dueNear(it, charge.dateTime.toLocalDate())
-            }
-        }.toMutableList()
+        val unclaimed = withoutRecorded(subscriptions, charges).filterNot { paysAtItsPrice(subscriptions, it) }.toMutableList()
         val latestFirst = { _: SubscriptionEntity -> compareByDescending<TransactionEntity> { it.dateTime } }
         val repriced = claim(subscriptions, unclaimed, latestFirst) { sub, charge ->
             val date = charge.dateTime.toLocalDate()
@@ -408,6 +411,18 @@ object InsightRules {
             .sumByCurrency({ it.currency }) { SubscriptionCost.monthlyEquivalent(it.amount, it.billingCycle) }
 
     /**
+     * A charge at the exact amount of a subscription due around then is that one's payment,
+     * even a second one, and never another's new price: one due months away (an annual plan)
+     * can't claim it. A real new price at a sibling's amount is missed, rather than a bill
+     * paid twice reading as another's new price (or settling it while it's still due).
+     */
+    private fun paysAtItsPrice(subscriptions: Collection<SubscriptionEntity>, charge: TransactionEntity) =
+        subscriptions.any {
+            canPay(it, charge) && RecurringCharge.sameAmount(it.amount, charge.amount) &&
+                dueNear(it, charge.dateTime.toLocalDate())
+        }
+
+    /**
      * Whether a payment of [sub] falls within [RecurringCharge.DUE_WINDOW_DAYS] of [date]:
      * the scheduled one around it, or the one before. One with no schedule might.
      */
@@ -492,6 +507,8 @@ object InsightRules {
             is BudgetPace -> f.projected to f.limit
             else -> return BigDecimal.ZERO
         }
+        // Nothing left to spend at all sorts first.
+        if (limit.amount.signum() <= 0) return BigDecimal(Int.MAX_VALUE)
         return spent.amount.divide(limit.amount, 4, RoundingMode.HALF_UP)
     }
 

@@ -112,7 +112,6 @@
     <string name="txn_detail_label_to">Kwenda</string>
     <string name="txn_detail_label_balance">Salio</string>
     <string name="txn_detail_label_balance_mismatch">Salio halilingani</string>
-    <string name="txn_detail_balance_mismatch_value">Tofauti ya %1$s · lilitarajiwa %2$s</string>
     <string name="txn_detail_add_untracked_expense">Ongeza matumizi %1$s yasiyorekodiwa</string>
     <string name="txn_detail_add_untracked_income">Ongeza mapato %1$s yasiyorekodiwa</string>
     <string name="txn_detail_adjustment_title_expense">Matumizi yasiyorekodiwa</string>

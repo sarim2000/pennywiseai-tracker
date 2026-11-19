@@ -220,6 +220,9 @@ object Dimensions {
         /** The colour dot beside a chart legend entry. */
         val legendDot = 10.dp
 
+        /** The dot under a calendar day that has a payment due. */
+        val calendarDot = 6.dp
+
         /** Tallest a scrolling list inside a dialog grows (Track Other Apps, #994). */
         val dialogListMaxHeight = 360.dp
 

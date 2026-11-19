@@ -179,5 +179,6 @@ internal fun budgetStatuses(summary: BudgetOverallSummary, today: LocalDate): Li
                 windowStart = it.windowStart,
                 windowEnd = it.windowEnd,
                 incomplete = it.hasUnconvertedSpend,
+                hasLimit = it.hasLimit,
             )
         }

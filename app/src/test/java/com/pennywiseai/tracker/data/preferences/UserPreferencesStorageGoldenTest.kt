@@ -155,9 +155,9 @@ class UserPreferencesStorageGoldenTest {
         // Home and recurring suggestions.
         assertEquals(
             listOf(
-                "SAFE_TO_SPEND", "SHORTCUTS", "UNSORTED", "RECENT_TRANSACTIONS", "SUBSCRIPTIONS", "BUDGETS", "GOALS",
+                "SAFE_TO_SPEND", "SHORTCUTS", "UNSORTED", "INSIGHTS", "RECENT_TRANSACTIONS", "SUBSCRIPTIONS", "BUDGETS", "GOALS",
                 "ACCOUNTS", "LOANS", "GROUPS", "MONEY_IN_MOTION", "ACTIVITY"
-            ).map { it to true },
+            ).map { it to (it != "INSIGHTS") },
             repository.homeSectionLayout.first().map { (section, visible) -> section.name to visible }
         )
         assertEquals(emptySet<String>(), repository.safeToSpendExcludedAccounts.first())
@@ -503,8 +503,9 @@ class UserPreferencesStorageGoldenTest {
         assertEquals(true, stored()[bool("scheduled_folder_backup_enabled")])
         repository.setScheduledFolderBackupTreeUri("content://test/tree")
         assertEquals("content://test/tree", stored()[string("scheduled_folder_backup_tree_uri")])
-        repository.setScheduledFolderBackupLastTimestamp(7_500L)
+        repository.recordScheduledFolderBackup(7_500L, skippedReceipts = 2)
         assertEquals(7_500L, stored()[long("scheduled_folder_backup_last_timestamp")])
+        assertEquals(2, stored()[int("scheduled_folder_backup_last_skipped_receipts")])
         repository.setExportIncludeReceipts(false)
         assertEquals(false, stored()[bool("export_include_receipts")])
         repository.setFolderBackupIncludeReceipts(true)
@@ -592,6 +593,44 @@ class UserPreferencesStorageGoldenTest {
 
         repository.releaseRecurringOffer("merchant-1", today)
         assertEquals(emptySet<String>(), stored()[log])
+    }
+
+    @Test
+    fun `dismissed insights last for their own cycle`() = runBlocking {
+        val dismissed = stringSet("dismissed_insights")
+        val octBudget = "budget_over:v2:2026-10-01:all:INR:1@2026-10-01"
+        val octSavings = "savings_rate:v2:2026-10-01:all:INR:cycle:WARNING"
+        val novBudget = "budget_over:v2:2026-11-01:all:INR:1@2026-11-01"
+
+        repository.dismissInsight(octBudget)
+        repository.dismissInsight(octSavings)
+        assertEquals(2, stored()[dismissed]?.size)
+
+        // A new cycle's dismissal drops the last cycle's: their ids can't come back anyway.
+        repository.dismissInsight(novBudget)
+        assertEquals(setOf(novBudget), stored()[dismissed])
+
+        // A last-cycle card still on screen across the boundary doesn't drop this cycle's.
+        repository.dismissInsight(octSavings)
+        assertEquals(setOf(novBudget, octSavings), stored()[dismissed])
+        repository.restoreInsight(octSavings)
+
+        repository.restoreInsight(novBudget)
+        assertEquals(emptySet<String>(), stored()[dismissed])
+    }
+
+    @Test
+    fun `one profile's dismissal is its own`() = runBlocking {
+        val dismissed = stringSet("dismissed_insights")
+        val personal = "card_use:v2:2026-11-01:p1:INR:Test Bank_1111:ALERT"
+        val business = "card_use:v2:2026-11-01:p2:INR:Test Bank_1111:ALERT"
+
+        repository.dismissInsight(personal)
+        repository.dismissInsight(business)
+        assertEquals(setOf(personal, business), stored()[dismissed])
+
+        repository.restoreInsight(personal)
+        assertEquals(setOf(business), stored()[dismissed])
     }
 
     @Test

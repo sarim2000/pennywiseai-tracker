@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.presentation.rules
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -20,6 +21,7 @@ import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import dev.chrisbanes.haze.HazeState
@@ -314,24 +316,21 @@ fun CreateRuleScreen(
 
             // Rule name and description
             TextField(
-                value = ruleName,
-                onValueChange = { ruleName = it },
+                state = rememberSyncedTextFieldState(ruleName) { ruleName = it },
                 label = { Text(stringResource(R.string.rules_name_label)) },
                 placeholder = { Text(stringResource(R.string.rules_name_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true,
+                lineLimits = TextFieldLineLimits.SingleLine,
                 shape = RoundedField.shape,
                 colors = RoundedField.colors()
             )
 
             TextField(
-                value = description,
-                onValueChange = { description = it },
+                state = rememberSyncedTextFieldState(description) { description = it },
                 label = { Text(stringResource(R.string.rules_description_label)) },
                 placeholder = { Text(stringResource(R.string.rules_description_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
-                minLines = 2,
-                maxLines = 3,
+                lineLimits = TextFieldLineLimits.MultiLine(minHeightInLines = 2, maxHeightInLines = 3),
                 shape = RoundedField.shape,
                 colors = RoundedField.colors()
             )

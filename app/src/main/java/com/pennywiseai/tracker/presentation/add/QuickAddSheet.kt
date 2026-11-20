@@ -18,6 +18,9 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.List
@@ -58,7 +61,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
-import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalResources
@@ -78,19 +80,18 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.model.VoiceEntry
 import com.pennywiseai.tracker.domain.model.AmountInput
-import com.pennywiseai.tracker.ui.components.AmountCursorAtEnd
 import com.pennywiseai.tracker.ui.components.AmountKeyboardBar
 import com.pennywiseai.tracker.ui.components.CategoryChip
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
 import com.pennywiseai.tracker.ui.components.RoundedField
-import com.pennywiseai.tracker.ui.components.amountFieldValue
 import com.pennywiseai.tracker.ui.components.amountSumHint
 import com.pennywiseai.tracker.ui.components.cards.GroupedColumn
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.RowLabels
+import com.pennywiseai.tracker.ui.components.rememberAmountInputTransformation
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -107,7 +108,6 @@ import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.withTimeoutOrNull
-import java.text.DecimalFormatSymbols
 import java.time.Instant
 import java.time.LocalDate
 import java.time.ZoneOffset
@@ -301,8 +301,8 @@ private fun QuickAddForm(
 ) {
     val context = LocalContext.current
     // Saveable: a rotation, the dark theme or a font size change recreates the sheet.
-    var amountText by rememberSaveable { mutableStateOf(heard?.amount?.stripTrailingZeros()?.toPlainString().orEmpty()) }
-    var where by rememberSaveable { mutableStateOf(heard?.merchant.orEmpty()) }
+    val amountState = rememberTextFieldState(heard?.amount?.stripTrailingZeros()?.toPlainString().orEmpty())
+    val whereState = rememberTextFieldState(heard?.merchant.orEmpty())
     var category by rememberSaveable { mutableStateOf(heard?.category) }
     var income by rememberSaveable { mutableStateOf(heard?.type == TransactionType.INCOME) }
     var currency by rememberSaveable { mutableStateOf(heard?.currency ?: setup.baseCurrency) }
@@ -325,28 +325,24 @@ private fun QuickAddForm(
     val gate = remember { SaveGate() }
     val scope = rememberCoroutineScope()
     // The field takes a sum too ("120+35"), typed with the operator row above the keyboard.
-    val amount = AmountInput.value(amountText, MinorUnits.digits(currency))?.takeIf { it.signum() > 0 }
+    val amount = AmountInput.value(amountState.text.toString(), MinorUnits.digits(currency))?.takeIf { it.signum() > 0 }
     var amountFocused by remember { mutableStateOf(false) }
-    var amountCursor by remember { mutableStateOf(AmountCursorAtEnd) }
     val focus = remember { FocusRequester() }
     val focusManager = LocalFocusManager.current
-    val locale = LocalConfiguration.current.locales[0]
-    val decimalComma = remember(locale) { DecimalFormatSymbols.getInstance(locale).decimalSeparator == ',' }
     val resources = LocalResources.current
     // Filled by voice: what's left is a tap on a category, not typing.
-    LaunchedEffect(Unit) { if (heard == null || amountText.isEmpty()) focus.requestFocus() }
+    LaunchedEffect(Unit) { if (heard == null || amountState.text.isEmpty()) focus.requestFocus() }
 
     /** A finished sum becomes its result, so what's saved or handed on is what the field shows. */
     fun foldAmount() {
-        AmountInput.fold(amountText, MinorUnits.digits(currency))?.let {
-            amountText = it
-            amountCursor = AmountCursorAtEnd
+        AmountInput.fold(amountState.text.toString(), MinorUnits.digits(currency))?.let {
+            amountState.setTextAndPlaceCursorAtEnd(it)
         }
     }
 
     fun draft(t: TransactionType = type): QuickAddDraft {
         foldAmount()
-        return QuickAddDraft(amountText, where, category, t, currency, account, day)
+        return QuickAddDraft(amountState.text.toString(), whereState.text.toString(), category, t, currency, account, day)
     }
 
     fun save() {
@@ -418,15 +414,10 @@ private fun QuickAddForm(
                 },
                 label = { stringResource(if (it) R.string.txn_type_income else R.string.txn_type_expense) }
             )
-            val sumHint = amountSumHint(amountText, currency)
+            val sumHint = amountSumHint(amountState.text.toString(), currency)
             OutlinedTextField(
-                value = amountFieldValue(amountText, amountCursor),
-                onValueChange = { typed ->
-                    AmountInput.normalize(typed.text, decimalComma)?.let {
-                        amountText = it
-                        amountCursor = if (it == typed.text) typed.selection else AmountCursorAtEnd
-                    }
-                },
+                state = amountState,
+                inputTransformation = rememberAmountInputTransformation(currency),
                 label = { Text(stringResource(R.string.add_field_amount)) },
                 leadingIcon = {
                     CurrencyButton(currency, onPick = { picked ->
@@ -439,7 +430,7 @@ private fun QuickAddForm(
                     })
                 },
                 textStyle = MaterialTheme.typography.headlineSmall.money(),
-                singleLine = true,
+                lineLimits = TextFieldLineLimits.SingleLine,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal, imeAction = ImeAction.Next),
                 supportingText = sumHint?.let { hint -> { Text(hint.text) } },
                 isError = sumHint?.isError == true,
@@ -454,10 +445,9 @@ private fun QuickAddForm(
                     }
             )
             OutlinedTextField(
-                value = where,
-                onValueChange = { where = it },
+                state = whereState,
                 placeholder = { Text(stringResource(R.string.quick_add_where_hint)) },
-                singleLine = true,
+                lineLimits = TextFieldLineLimits.SingleLine,
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words, imeAction = ImeAction.Done),
                 shape = RoundedField.shape,
                 modifier = Modifier.fillMaxWidth()
@@ -599,8 +589,7 @@ private fun QuickAddForm(
         if (amountFocused && WindowInsets.isImeVisible) {
             AmountKeyboardBar(
                 onOperator = { op ->
-                    amountText = AmountInput.append(amountText, op)
-                    amountCursor = AmountCursorAtEnd
+                    amountState.setTextAndPlaceCursorAtEnd(AmountInput.append(amountState.text.toString(), op))
                 },
                 onEquals = ::foldAmount,
                 onDone = {

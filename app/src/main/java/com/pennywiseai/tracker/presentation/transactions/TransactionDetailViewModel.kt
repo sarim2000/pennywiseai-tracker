@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import android.content.Intent
 import android.net.Uri
 import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
@@ -20,6 +21,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.ledger.BalanceDiscrepancy
 import com.pennywiseai.tracker.data.mapper.withTransferAccount
 import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
+import com.pennywiseai.tracker.data.receipt.ReceiptFiles
 import com.pennywiseai.tracker.data.receipt.ReceiptManager
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.BudgetGroupRepository
@@ -43,6 +45,7 @@ import com.pennywiseai.tracker.domain.model.rule.TransactionField
 import com.pennywiseai.tracker.domain.model.rule.TransactionRule
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.LearnCategoryUseCase
+import com.pennywiseai.tracker.presentation.add.message
 import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.ui.components.SplitItem
 import com.pennywiseai.tracker.ui.components.pickerDefault
@@ -558,8 +561,10 @@ class TransactionDetailViewModel @Inject constructor(
         _budgetCategory.value = _transaction.value?.budgetCategory
         _isEditMode.value = true
         _errorMessage.value = null
+        cancelReceiptCheck()
         _pendingReceiptUri.value = null
         _receiptRemoved.value = false
+        _receiptError.value = null
 
         // Seed the editable tag list from the persisted tags.
         _transaction.value?.let { txn ->
@@ -596,8 +601,10 @@ class TransactionDetailViewModel @Inject constructor(
         _existingTransactionCount.value = 0
         _merchantAlias.value = ""
         _originalMerchantAlias = ""
+        cancelReceiptCheck()
         _pendingReceiptUri.value = null
         _receiptRemoved.value = false
+        _receiptError.value = null
 
         // Reset split state to original values
         _splits.value = _originalSplits.value
@@ -966,6 +973,7 @@ class TransactionDetailViewModel @Inject constructor(
 
     fun saveChanges() {
         val toSave = _editableTransaction.value ?: return
+        if (_checkingReceipt.value) return
 
         // Validate before saving
         if (toSave.merchantName.isBlank()) {
@@ -1055,18 +1063,20 @@ class TransactionDetailViewModel @Inject constructor(
             }
             _isSaving.value = true
             try {
-                // Handle receipt changes
-                var newReceiptPath = toSave.receiptPath
+                // Handle receipt changes. The new file is saved first, so a failed one
+                // leaves the old receipt in place and the edit open. The old file is
+                // only deleted once the whole save has gone through (see below).
                 val pendingUri = _pendingReceiptUri.value
-
-                if (_receiptRemoved.value || pendingUri != null) {
-                    // Delete old receipt file if it exists
-                    toSave.receiptPath?.let { receiptManager.deleteReceipt(it) }
-                    newReceiptPath = null
+                val savedReceiptPath = pendingUri?.let { uri ->
+                    receiptManager.saveReceipt(uri) ?: run {
+                        _receiptError.value = UiText.Res(R.string.add_receipt_save_failed)
+                        return@launch
+                    }
                 }
-
-                if (pendingUri != null) {
-                    newReceiptPath = receiptManager.saveReceipt(pendingUri)
+                val newReceiptPath = when {
+                    pendingUri != null -> savedReceiptPath
+                    _receiptRemoved.value -> null
+                    else -> toSave.receiptPath
                 }
 
                 // Reconcile the bank with the selected account so the balance
@@ -1099,9 +1109,15 @@ class TransactionDetailViewModel @Inject constructor(
                     lentSharesTotal = if (persisted != null) persisted.lentSharesTotal else toSave.lentSharesTotal
                 )
 
-                accountBalanceRepository.pinManualOpenings(_transaction.value, normalizedTransaction)
+                persistReceiptChange(
+                    oldPath = toSave.receiptPath,
+                    newPath = newReceiptPath,
+                    deleteReceipt = receiptManager::deleteReceipt
+                ) {
+                    accountBalanceRepository.pinManualOpenings(_transaction.value, normalizedTransaction)
 
-                transactionRepository.updateTransaction(normalizedTransaction)
+                    transactionRepository.updateTransaction(normalizedTransaction)
+                }
 
                 // Persist the edited tag set (create-or-select handled in repo).
                 tagRepository.setTagsForTransaction(normalizedTransaction.id, _editableTags.value)
@@ -1182,6 +1198,9 @@ class TransactionDetailViewModel @Inject constructor(
                 // Whatever is stored for the saved merchant is now the truth.
                 val trimmedAlias = merchantAliasRepository.getAliasForMerchant(newMerchantName) ?: ""
 
+                // Only now: a step above that failed leaves the edit open on the old
+                // receipt, and a cancel would show a deleted file.
+                discardReplacedReceipt(toSave.receiptPath, newReceiptPath, receiptManager::deleteReceipt)
                 _transaction.value = normalizedTransaction
                 loadReceiptUri(normalizedTransaction)
                 _pendingReceiptUri.value = null
@@ -1371,14 +1390,59 @@ class TransactionDetailViewModel @Inject constructor(
     fun showFullScreenReceipt() { _showFullScreenReceipt.value = true }
     fun hideFullScreenReceipt() { _showFullScreenReceipt.value = false }
 
+    // Shown under the receipt picker: a PDF that was turned away, or a save that failed.
+    private val _receiptError = MutableStateFlow<UiText?>(null)
+    val receiptError: StateFlow<UiText?> = _receiptError.asStateFlow()
+
+    // A picked receipt is still being checked; Save waits for it.
+    private val _checkingReceipt = MutableStateFlow(false)
+    val checkingReceipt: StateFlow<Boolean> = _checkingReceipt.asStateFlow()
+
+    // The check of the receipt last picked; a newer pick or a removal cancels it.
+    private var receiptCheck: Job? = null
+
+    /** Stops checking the file just picked (a provider can stall); the receipt already chosen stays. */
+    fun cancelReceiptCheck() {
+        receiptCheck?.cancel()
+        _checkingReceipt.value = false
+    }
+
     fun updatePendingReceiptUri(uri: Uri?) {
+        cancelReceiptCheck()
+        if (uri == null) {
+            setPendingReceipt(null)
+            return
+        }
+        // A PDF is checked as it's picked, so a bad one never waits until Save.
+        _checkingReceipt.value = true
+        _receiptError.value = null
+        receiptCheck = viewModelScope.launch {
+            val problem = receiptManager.checkReceipt(uri)
+            if (problem == null) setPendingReceipt(uri) else _receiptError.value = problem.message()
+            _checkingReceipt.value = false
+        }
+    }
+
+    private fun setPendingReceipt(uri: Uri?) {
         _pendingReceiptUri.value = uri
         _receiptRemoved.value = false
+        _receiptError.value = null
     }
 
     fun removeReceipt() {
+        cancelReceiptCheck()
         _pendingReceiptUri.value = null
         _receiptRemoved.value = true
+        _receiptError.value = null
+    }
+
+    /** Opens a PDF receipt in another app, which may read it until it closes. Null when there's none. */
+    fun pdfReceiptViewIntent(): Intent? {
+        val path = _transaction.value?.receiptPath?.takeIf { ReceiptFiles.isPdfPath(it) } ?: return null
+        val uri = receiptManager.shareableUri(path) ?: return null
+        return Intent(Intent.ACTION_VIEW)
+            .setDataAndType(uri, ReceiptManager.PDF_MIME)
+            .addFlags(Intent.FLAG_GRANT_READ_URI_PERMISSION)
     }
 
     fun createCameraUri(): Uri = receiptManager.createCameraUri()
@@ -1389,10 +1453,13 @@ class TransactionDetailViewModel @Inject constructor(
     val receiptMissing: StateFlow<Boolean> = _receiptMissing.asStateFlow()
 
     private fun loadReceiptUri(transaction: TransactionEntity) {
+        // Cleared first, so a receipt removed in an edit doesn't linger on screen.
+        _receiptUri.value = null
         _receiptMissing.value = false
         transaction.receiptPath?.let { path ->
-            val file = receiptManager.getReceiptFile(path)
-            if (file.exists()) {
+            // A restored backup's path is untrusted: only a file directly in receipts/ is shown.
+            val file = receiptManager.storedReceiptFile(path)
+            if (file != null && file.exists()) {
                 _receiptUri.value = file.toUri()
             } else {
                 _receiptMissing.value = true
@@ -1575,6 +1642,34 @@ internal fun merchantKeyForApply(originalMerchant: String?, savedMerchant: Strin
 
 /** A typed reference number as stored: trimmed, and null when blank (#996). */
 internal fun normalizeReference(raw: String?): String? = raw?.trim()?.ifEmpty { null }
+
+/**
+ * Runs [persist], which writes a row whose receipt goes from [oldPath] to [newPath].
+ * If it fails, the just-saved new file is deleted and the old one kept. The old file
+ * is left for [discardReplacedReceipt] once the whole save is done. A cancellation
+ * deletes nothing: the write may already have committed, and an orphaned file is
+ * harmless where a dangling path is not.
+ */
+internal suspend fun persistReceiptChange(
+    oldPath: String?,
+    newPath: String?,
+    deleteReceipt: (String) -> Unit,
+    persist: suspend () -> Unit
+) {
+    try {
+        persist()
+    } catch (e: kotlinx.coroutines.CancellationException) {
+        throw e
+    } catch (e: Exception) {
+        if (newPath != null && newPath != oldPath) deleteReceipt(newPath)
+        throw e
+    }
+}
+
+/** Deletes the receipt a finished save replaced or removed; called after every step of the save. */
+internal fun discardReplacedReceipt(oldPath: String?, newPath: String?, deleteReceipt: (String) -> Unit) {
+    if (oldPath != null && oldPath != newPath) deleteReceipt(oldPath)
+}
 
 internal sealed class AliasWrite {
     data class Set(val merchant: String, val alias: String) : AliasWrite()

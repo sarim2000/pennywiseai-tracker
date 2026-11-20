@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.ui.components
 
 import android.content.ActivityNotFoundException
+import android.content.ClipData
 import android.content.Context
 import android.content.Intent
 import android.net.Uri
@@ -25,12 +26,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.R
@@ -42,6 +44,7 @@ import com.pennywiseai.tracker.ui.theme.readableOn
 import com.pennywiseai.tracker.ui.theme.yellow_dark
 import com.pennywiseai.tracker.ui.theme.yellow_light
 import com.pennywiseai.tracker.ui.theme.yellow_on_light
+import kotlinx.coroutines.launch
 
 /**
  * The "Support development" tip-jar dialog. Shared so both the Settings entry
@@ -59,7 +62,8 @@ fun SupportDevelopmentDialog(onDismiss: () -> Unit) {
     val context = LocalContext.current
     val vpa = stringResource(R.string.support_upi_vpa)
     val payeeName = stringResource(R.string.support_payee_name)
-    val clipboard = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
     val copiedMsg = stringResource(R.string.support_copied_toast)
     val noUpiAppMsg = stringResource(R.string.support_no_upi_app)
 
@@ -95,7 +99,7 @@ fun SupportDevelopmentDialog(onDismiss: () -> Unit) {
                         modifier = Modifier.weight(1f)
                     )
                     IconButton(onClick = {
-                        clipboard.setText(AnnotatedString(vpa))
+                        scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("UPI ID", vpa))) }
                         Toast.makeText(context, copiedMsg, Toast.LENGTH_SHORT).show()
                     }, shapes = IconButtonDefaults.shapes()) {
                         Icon(

@@ -222,7 +222,6 @@
     <string name="txn_list_filter_account">Compte client</string>
     <string name="txn_list_filter_category">Catégorie</string>
     <string name="txn_list_filters">Filtres</string>
-    <string name="txn_list_filters_two">2 Filtres</string>
     <string name="txn_list_categories_all_except">Tout sauf %1$s</string>
     <plurals name="txn_list_categories_count">
         <item quantity="one">%1$d catégorie</item>

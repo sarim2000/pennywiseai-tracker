@@ -82,6 +82,7 @@ fun TransactionDetailScreen(
     val isEditMode by viewModel.isEditMode.collectAsStateWithLifecycle()
     val editableTransaction by viewModel.editableTransaction.collectAsStateWithLifecycle()
     val isSaving by viewModel.isSaving.collectAsStateWithLifecycle()
+    val checkingReceipt by viewModel.checkingReceipt.collectAsStateWithLifecycle()
     val saveSuccess by viewModel.saveSuccess.collectAsStateWithLifecycle()
     val errorMessage by viewModel.errorMessage.collectAsStateWithLifecycle()
     val applyToAllFromMerchant by viewModel.applyToAllFromMerchant.collectAsStateWithLifecycle()
@@ -210,7 +211,8 @@ fun TransactionDetailScreen(
     }
 
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
+        // Only the editor has a collapsing bar that consumes scroll.
+        modifier = if (isEditMode) Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection) else Modifier,
         containerColor = MaterialTheme.colorScheme.background,
         snackbarHost = { SnackbarHost(hostState = snackbarHostState) { data -> Snackbar(data, shape = MaterialTheme.shapes.large) } },
         // Transaction actions live in the top-bar overflow menu and the rows at
@@ -232,7 +234,7 @@ fun TransactionDetailScreen(
                     actionContent = {
                         TextButton(
                             onClick = { viewModel.saveChanges() },
-                            enabled = !isSaving,
+                            enabled = !isSaving && !checkingReceipt,
                             shapes = ButtonDefaults.shapes()
                         ) {
                             if (isSaving) {

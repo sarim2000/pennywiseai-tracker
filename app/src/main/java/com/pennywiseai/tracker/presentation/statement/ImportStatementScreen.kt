@@ -12,6 +12,9 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.TextObfuscationMode
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -51,6 +54,7 @@ import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -539,10 +543,9 @@ private fun <T> Picker(label: String, options: List<Pair<T, String>>, selected: 
     var expanded by remember { mutableStateOf(false) }
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
         OutlinedTextField(
-            value = options.firstOrNull { it.first == selected }?.second.orEmpty(),
-            onValueChange = {},
+            state = rememberSyncedTextFieldState(options.firstOrNull { it.first == selected }?.second.orEmpty()) {},
             readOnly = true,
-            singleLine = true,
+            lineLimits = TextFieldLineLimits.SingleLine,
             label = { Text(label) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
@@ -1016,23 +1019,22 @@ private fun PdfPasswordDialog(
     onSubmit: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var password by remember { mutableStateOf("") }
+    // Plain remember, not saveable: the password must not land in saved instance state.
+    val passwordState = remember { TextFieldState() }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.import_statement_password_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Text(stringResource(R.string.import_statement_password_body))
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it },
+                OutlinedSecureTextField(
+                    state = passwordState,
+                    textObfuscationMode = TextObfuscationMode.Hidden,
                     label = { Text(stringResource(R.string.import_statement_password_label)) },
-                    singleLine = true,
                     isError = wrongPassword,
                     supportingText = if (wrongPassword) {
                         { Text(stringResource(R.string.import_statement_password_wrong)) }
                     } else null,
-                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                         keyboardType = androidx.compose.ui.text.input.KeyboardType.Password
                     ),
@@ -1042,7 +1044,7 @@ private fun PdfPasswordDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSubmit(password) }, enabled = password.isNotEmpty(), shapes = ButtonDefaults.shapes()) {
+            TextButton(onClick = { onSubmit(passwordState.text.toString()) }, enabled = passwordState.text.isNotEmpty(), shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.import_statement_password_open))
             }
         },

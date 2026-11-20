@@ -149,13 +149,9 @@ fun TransactionsScreen(
     // without making the entity Parcelable; we look up the live row from the
     // current list when rendering the sheet.
     var pendingCategoryEditId by rememberSaveable { mutableStateOf<Long?>(null) }
-    var showSortMenu by remember { mutableStateOf(false) } // Menu doesn't need saving
     var showDateRangePicker by rememberSaveable { mutableStateOf(false) }
     var showPeriodMenu by remember { mutableStateOf(false) }
-    var showTypeMenu by remember { mutableStateOf(false) }
-    var showMoreFiltersMenu by remember { mutableStateOf(false) }
-    var showAccountMenu by remember { mutableStateOf(false) }
-    var showTagMenu by remember { mutableStateOf(false) }
+    var showFiltersSheet by rememberSaveable { mutableStateOf(false) }
 
     // Focus management for search field
     val searchFocusRequester = remember { FocusRequester() }
@@ -184,19 +180,6 @@ fun TransactionsScreen(
     val listState = rememberSaveable(saver = LazyListState.Saver) {
         LazyListState()
     }
-    // Filters other than search, type and period: behind the search field's tune button.
-    val hasAdvancedFilter = categoryFilter != null ||
-        categoriesFilter != null ||
-        selectedProfileId != null ||
-        accountFilter != null ||
-        tagFilter != null ||
-        sortOption != SortOption.DATE_NEWEST
-    var showAdvancedFilters by rememberSaveable { mutableStateOf(hasAdvancedFilter) }
-    // The quick filters are the list's first item and the panel its second, right under them.
-    val panelInView by remember { derivedStateOf { listState.firstVisibleItemIndex == 0 } }
-    // A drill-in (Insights, a budget) applies its filter after the first frame: open the panel then.
-    LaunchedEffect(hasAdvancedFilter) { if (hasAdvancedFilter) showAdvancedFilters = true }
-
     // Cache expensive operations
     val timePeriods = remember { TimePeriod.values().toList() }
     val customRangeLabel = remember(customDateRange, AppDates.dateFormatStyle) {
@@ -540,20 +523,10 @@ fun TransactionsScreen(
                 onQueryChange = viewModel::updateSearchQuery,
                 categoryFilter = categoryFilter,
                 focusRequester = searchFocusRequester,
-                filtersOpen = showAdvancedFilters,
                 activeFilterCount = activeFilters.size,
-                onToggleFilters = {
-                    // The panel is the list's second item: from further down, opening it (or
-                    // tapping again while it's out of view) brings it into view instead of
-                    // changing something off screen.
-                    when {
-                        !showAdvancedFilters -> {
-                            showAdvancedFilters = true
-                            if (!panelInView) scope.launch { listState.animateScrollToItem(0) }
-                        }
-                        !panelInView -> scope.launch { listState.animateScrollToItem(0) }
-                        else -> showAdvancedFilters = false
-                    }
+                onOpenFilters = {
+                    keyboardController?.hide()
+                    showFiltersSheet = true
                 },
                 modifier = Modifier
                     .fillMaxWidth()
@@ -563,9 +536,9 @@ fun TransactionsScreen(
             )
 
             // What's in force, under the search field and so always in view: each removable
-            // on its own, or all at once. While the open panel is on screen it says the same.
+            // on its own, or all at once.
             AnimatedVisibility(
-                visible = activeFilters.isNotEmpty() && !(showAdvancedFilters && panelInView) && !selectionMode,
+                visible = activeFilters.isNotEmpty() && !selectionMode,
                 enter = pwExpand(),
                 exit = pwCollapse()
             ) {
@@ -617,86 +590,6 @@ fun TransactionsScreen(
                             null
                         }
                     )
-                }
-
-                item(key = "advancedFilters", contentType = "advancedFilters") {
-                    AnimatedVisibility(
-                        visible = showAdvancedFilters,
-                        enter = pwExpand(),
-                        exit = pwCollapse()
-                    ) {
-                        ActivityAdvancedFilters(
-                            transactionTypeFilter = transactionTypeFilter,
-                            categoryLabel = categoryFilterLabel(categoryFilter, categoriesFilter, availableCategories),
-                            hasCategoryFilter = categoryFilter != null || categoriesFilter != null,
-                            selectedCategories = categoriesFilter?.toSet()
-                                ?: categoryFilter?.let { setOf(it) }
-                                ?: availableCategories.toSet(),
-                            onCategoryToggled = { viewModel.toggleCategory(it, availableCategories) },
-                            selectedProfileName = profiles.firstOrNull { it.id == selectedProfileId }?.displayName() ?: stringResource(R.string.txn_list_filter_profile),
-                            hasProfileFilter = selectedProfileId != null,
-                            hasAnyActiveFilter = hasAnyActiveFilter,
-                            showSortMenu = showSortMenu,
-                            showTypeMenu = showTypeMenu,
-                            showMoreFiltersMenu = showMoreFiltersMenu,
-                            showAccountMenu = showAccountMenu,
-                            showTagMenu = showTagMenu,
-                            sortOption = sortOption,
-                            availableCategories = availableCategories,
-                            profiles = profiles,
-                            selectedProfileId = selectedProfileId,
-                            accountOptions = accountOptions,
-                            accountFilter = accountFilter,
-                            availableTags = availableTags,
-                            tagFilter = tagFilter,
-                            onSortClick = { showSortMenu = true },
-                            onSortDismiss = { showSortMenu = false },
-                            onSortSelected = { option ->
-                                viewModel.setSortOption(option)
-                                showSortMenu = false
-                            },
-                            onTypeClick = { showTypeMenu = true },
-                            onTypeDismiss = { showTypeMenu = false },
-                            onTransactionTypeSelected = { typeFilter ->
-                                view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                                viewModel.setTransactionTypeFilter(typeFilter)
-                                showTypeMenu = false
-                            },
-                            onMoreFiltersClick = { showMoreFiltersMenu = true },
-                            onMoreFiltersDismiss = { showMoreFiltersMenu = false },
-                            onCategorySelected = { category ->
-                                if (category == null) {
-                                    // "All categories" clears both the single and the ticked-list filter
-                                    viewModel.clearCategoryFilter()
-                                    viewModel.clearCategoriesFilter()
-                                } else {
-                                    viewModel.setCategoryFilter(category)
-                                }
-                                showMoreFiltersMenu = false
-                            },
-                            onProfileSelected = { profileId ->
-                                view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                                viewModel.setSelectedProfile(profileId)
-                                showMoreFiltersMenu = false
-                            },
-                            onAccountClick = { showAccountMenu = true },
-                            onAccountDismiss = { showAccountMenu = false },
-                            onAccountSelected = { accountKey ->
-                                view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                                viewModel.setAccountFilter(accountKey)
-                                showAccountMenu = false
-                            },
-                            onTagClick = { showTagMenu = true },
-                            onTagDismiss = { showTagMenu = false },
-                            onTagSelected = { tag ->
-                                view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
-                                viewModel.setTagFilter(tag)
-                                showTagMenu = false
-                            },
-                            onResetFilters = viewModel::resetFilters,
-                            modifier = Modifier.padding(top = Spacing.sm)
-                        )
-                    }
                 }
 
                 // The summary tiles. In selection mode they total just the
@@ -844,6 +737,41 @@ fun TransactionsScreen(
             },
             initialStartDate = customDateRange?.first,
             initialEndDate = customDateRange?.second
+        )
+    }
+
+    if (showFiltersSheet) {
+        val picked: (() -> Unit) -> Unit = { change ->
+            view.performHapticFeedback(HapticFeedbackConstants.CONFIRM)
+            change()
+        }
+        TransactionFiltersSheet(
+            resultCount = uiState.transactions.size,
+            hasAnyFilter = hasAnyActiveFilter || sortOption != SortOption.DATE_NEWEST,
+            sortOption = sortOption,
+            onSortSelected = { picked { viewModel.setSortOption(it) } },
+            transactionTypeFilter = transactionTypeFilter,
+            onTypeSelected = { picked { viewModel.setTransactionTypeFilter(it) } },
+            accountOptions = accountOptions,
+            accountFilter = accountFilter,
+            onAccountSelected = { picked { viewModel.setAccountFilter(it) } },
+            profiles = profiles,
+            selectedProfileId = selectedProfileId,
+            onProfileSelected = { picked { viewModel.setSelectedProfile(it) } },
+            availableTags = availableTags,
+            tagFilter = tagFilter,
+            onTagSelected = { picked { viewModel.setTagFilter(it) } },
+            availableCategories = availableCategories,
+            selectedCategories = categoriesFilter?.toSet() ?: setOfNotNull(categoryFilter),
+            onCategoryToggled = { picked { viewModel.toggleCategory(it) } },
+            onAllCategories = {
+                picked {
+                    viewModel.clearCategoryFilter()
+                    viewModel.clearCategoriesFilter()
+                }
+            },
+            onClearAll = viewModel::resetFilters,
+            onDismiss = { showFiltersSheet = false }
         )
     }
 

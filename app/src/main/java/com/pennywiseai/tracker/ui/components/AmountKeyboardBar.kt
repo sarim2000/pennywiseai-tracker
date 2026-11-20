@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material3.FilledIconButton
@@ -17,13 +18,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.text.TextRange
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.Dp
 import com.pennywiseai.shared.domain.money.MinorUnits
 import com.pennywiseai.tracker.R
@@ -32,6 +33,7 @@ import com.pennywiseai.tracker.domain.model.AmountInput
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import java.text.DecimalFormatSymbols
 
 /**
  * The row above the keyboard while an amount field has focus: `+ − × ÷` type a
@@ -96,16 +98,38 @@ private fun OperatorKey(label: String, description: String, size: Dp, onClick: (
     }
 }
 
-/** Where an amount field's cursor goes when its text is set from outside: the end. */
-val AmountCursorAtEnd = TextRange(Int.MAX_VALUE)
+/**
+ * Keeps an amount field's text in [AmountInput]'s form: a keystroke that can't be an
+ * amount or a sum, or is finer than [currency] counts ("1.234" in INR), is turned away.
+ * A ',' is the point where the device writes it so.
+ */
+@Composable
+fun rememberAmountInputTransformation(currency: String): InputTransformation {
+    val locale = LocalConfiguration.current.locales[0]
+    val decimalComma = remember(locale) { DecimalFormatSymbols.getInstance(locale).decimalSeparator == ',' }
+    return remember(currency, decimalComma) { amountInputTransformation({ MinorUnits.digits(currency) }, { decimalComma }) }
+}
+
+internal fun amountInputTransformation(fractionDigits: () -> Int, decimalComma: () -> Boolean) = InputTransformation {
+    val typed = asCharSequence().toString()
+    when (val text = normalizeAmount(typed, fractionDigits(), decimalComma(), before = originalText.toString())) {
+        null -> revertAllChanges()
+        typed -> Unit
+        else -> replace(0, length, text)
+    }
+}
 
 /**
- * An amount field's value: typing keeps the cursor where it was ([cursor] is the last
- * selection); text set from outside (an operator from the bar, a folded sum) uses
- * [AmountCursorAtEnd], so what's typed next lands after it.
+ * [AmountInput.normalize], also turning away an edit that leaves an operand with more decimals
+ * than [fractionDigits] and more than [before] had: after a switch to a currency with fewer
+ * decimals, deleting them still works.
  */
-fun amountFieldValue(text: String, cursor: TextRange): TextFieldValue =
-    TextFieldValue(text, TextRange(cursor.start.coerceIn(0, text.length), cursor.end.coerceIn(0, text.length)))
+internal fun normalizeAmount(typed: String, fractionDigits: Int, decimalComma: Boolean, before: String = ""): String? {
+    fun decimals(text: String) = text.split(*AmountInput.OPERATORS.toCharArray()).maxOf { it.substringAfter('.', "").length }
+    return AmountInput.normalize(typed, decimalComma)?.takeIf { text ->
+        decimals(text) <= fractionDigits || decimals(text) <= decimals(AmountInput.normalize(before, decimalComma).orEmpty())
+    }
+}
 
 /** What an amount field holding a sum says under it; [isError] for a sum that can't be an amount. */
 class AmountSumHint(val text: String, val isError: Boolean)

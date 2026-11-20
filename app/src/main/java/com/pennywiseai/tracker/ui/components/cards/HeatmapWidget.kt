@@ -116,55 +116,50 @@ fun HeatmapWidget(
                         }
                     }
 
-                    // Heatmap grid
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(gapSize),
-                        modifier = Modifier
-                            .horizontalScroll(scrollState)
-                            .padding(bottom = Spacing.sm)
-                    ) {
-                        for (w in 0 until weeksToShow) {
-                            Column(verticalArrangement = Arrangement.spacedBy(gapSize)) {
-                                for (d in 0 until 7) {
-                                    val date = startDate.plusWeeks(w.toLong()).plusDays(d.toLong())
-                                    val epochDay = date.toEpochDay()
-                                    val count = transactionHeatmap[epochDay] ?: 0
+                    // The grid and its month labels scroll together: it opens on the latest
+                    // weeks, so labels pinned outside the scroll named months from its start.
+                    Column(Modifier.horizontalScroll(scrollState)) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(gapSize),
+                            modifier = Modifier.padding(bottom = Spacing.sm)
+                        ) {
+                            for (w in 0 until weeksToShow) {
+                                Column(verticalArrangement = Arrangement.spacedBy(gapSize)) {
+                                    for (d in 0 until 7) {
+                                        val date = startDate.plusWeeks(w.toLong()).plusDays(d.toLong())
+                                        val epochDay = date.toEpochDay()
+                                        val count = transactionHeatmap[epochDay] ?: 0
 
-                                    val color = when {
-                                        date > today -> emptyColor
-                                        count == 0 -> emptyColor
-                                        count == 1 -> steps[0]
-                                        count == 2 -> steps[1]
-                                        count in 3..4 -> steps[2]
-                                        else -> steps[3]
+                                        val color = when {
+                                            date > today || count == 0 -> emptyColor
+                                            count == 1 -> steps[0]
+                                            count == 2 -> steps[1]
+                                            count in 3..4 -> steps[2]
+                                            else -> steps[3]
+                                        }
+
+                                        Box(
+                                            modifier = Modifier
+                                                .size(cellSize)
+                                                .clip(MaterialTheme.shapes.small)
+                                                .background(color)
+                                        )
                                     }
-
-                                    Box(
-                                        modifier = Modifier
-                                            .size(cellSize)
-                                            .clip(MaterialTheme.shapes.small)
-                                            .background(color)
-                                    )
                                 }
                             }
                         }
-                    }
-                }
 
-                // Month labels
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = dayLabelWidth)
-                ) {
-                    monthLabels.forEach { (weekIndex, label) ->
-                        val xOffset = (weekIndex * (cellSize + gapSize).value).dp
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.offset(x = xOffset)
-                        )
+                        // Month labels, as wide as the grid so the latest month isn't cut off.
+                        Box(Modifier.width(cellSize * weeksToShow + gapSize * (weeksToShow - 1))) {
+                            monthLabels.forEach { (weekIndex, label) ->
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.offset(x = (cellSize + gapSize) * weekIndex)
+                                )
+                            }
+                        }
                     }
                 }
             }

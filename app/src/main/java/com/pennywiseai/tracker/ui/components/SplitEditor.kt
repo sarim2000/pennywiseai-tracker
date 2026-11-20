@@ -4,6 +4,7 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
@@ -22,6 +23,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.icons.categoryLabel
+import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -230,10 +232,9 @@ private fun SplitRow(
             modifier = Modifier.fillMaxWidth()
         ) {
             TextField(
-                value = categoryLabel(split.category),
-                onValueChange = {},
+                state = rememberSyncedTextFieldState(categoryLabel(split.category)) {},
                 readOnly = true,
-                singleLine = true,
+                lineLimits = TextFieldLineLimits.SingleLine,
                 modifier = Modifier
                     .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                     .fillMaxWidth(),
@@ -291,11 +292,11 @@ private fun SplitRow(
             )
             val amountSum = amount.sumHint
             TextField(
-                value = amount.value,
-                onValueChange = amount::onValueChange,
+                state = amount.state,
+                inputTransformation = amount.inputTransformation,
                 isError = amountSum?.isError == true,
                 supportingText = amountSum.orSupporting(),
-                singleLine = true,
+                lineLimits = TextFieldLineLimits.SingleLine,
                 modifier = Modifier.weight(1f).then(amount.modifier),
                 textStyle = MaterialTheme.typography.bodyMedium,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),

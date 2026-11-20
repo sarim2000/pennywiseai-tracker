@@ -231,7 +231,6 @@
     <string name="txn_list_filter_account">Рахунак</string>
     <string name="txn_list_filter_category">Катэгорыя</string>
     <string name="txn_list_filters">Фільтры</string>
-    <string name="txn_list_filters_two">2 фільтры</string>
     <string name="txn_list_categories_all_except">Усе, акрамя %1$s</string>
     <plurals name="txn_list_categories_count">
         <item quantity="one">%1$d катэгорыя</item>

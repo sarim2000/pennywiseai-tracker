@@ -57,7 +57,7 @@ class BackupImporter @Inject constructor(
             }
 
             // Import based on strategy
-            val result = when (strategy) {
+            var result = when (strategy) {
                 ImportStrategy.REPLACE_ALL -> replaceAllData(backup)
                 ImportStrategy.MERGE -> mergeData(backup)
                 ImportStrategy.SELECTIVE -> mergeData(backup) // For now, same as merge
@@ -80,7 +80,8 @@ class BackupImporter @Inject constructor(
                 val referenced = database.transactionDao().getAllTransactions().first()
                     .mapNotNullTo(HashSet()) { it.receiptPath }
                 val restored = BackupReceipts.restore(context.filesDir, backup.receipts, referenced)
-                Log.i("BackupImporter", "Restored $restored of ${backup.receipts.size} receipt photos")
+                Log.i("BackupImporter", "Restored ${restored.written} of ${backup.receipts.size} receipts")
+                if (restored.skipped > 0) result = result.copy(skippedReceipts = restored.skipped)
             }
             result
         } catch (e: Exception) {

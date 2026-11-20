@@ -11,6 +11,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.input.InputTransformation
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -85,6 +88,7 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -95,7 +99,7 @@ fun SubscriptionsScreen(
     viewModel: SubscriptionsViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit = {},
     onAddSubscriptionClick: () -> Unit = {},
-    // A tab root has no back arrow; opened over another screen (a calendar bill's link), it needs one.
+    // A tab root has no back arrow; opened over another screen (an insight's or a calendar bill's link), it needs one.
     showBack: Boolean = false,
     /** Set when drawn as the Plan tab's Bills section. */
     planTab: PlanTabHost? = null,
@@ -230,6 +234,15 @@ fun SubscriptionsScreen(
     // menu (edit, mark paid, …) is the bill's detail, so no sheet opens.
     var focusPending by rememberSaveable { mutableStateOf(focusBillId != null) }
     var highlightId by remember { mutableStateOf<Long?>(null) }
+    // Its row as the list stands now: suggestions can still arrive above it once the bills are in.
+    val focusIndex by rememberUpdatedState(
+        if (!focusPending) {
+            null
+        } else {
+            groups.entries.firstOrNull { (_, bills) -> bills.any { it.id == focusBillId } }
+                ?.let { (section, bills) -> billIndex(section, bills.indexOfFirst { it.id == focusBillId }) }
+        }
+    )
     LaunchedEffect(uiState.isLoading) {
         if (!focusPending || uiState.isLoading) return@LaunchedEffect
         // An ended, hidden or deleted bill isn't here: just the list.
@@ -244,11 +257,16 @@ fun SubscriptionsScreen(
             BillSection.UNDATED -> showUndated = true
             BillSection.OVERDUE, BillSection.UPCOMING -> Unit
         }
-        val index = billIndex(section, bills.indexOfFirst { it.id == focusBillId })
-        // Wait out the layout from before its section opened: the row at that index has to be this bill.
-        val info = snapshotFlow { lazyListState.layoutInfo }.first { info ->
-            info.totalItemsCount > index && info.visibleItemsInfo.none { it.index == index && it.key != focusBillId }
+        // Wait out the layout from before its section opened: the row at its index has to be
+        // this bill. Bounded, so a list that never settles still gets the scroll.
+        val settled = withTimeoutOrNull(FOCUS_SETTLE_MILLIS) {
+            snapshotFlow { focusIndex to lazyListState.layoutInfo }.first { (index, info) ->
+                index != null && info.totalItemsCount > index &&
+                    info.visibleItemsInfo.none { it.index == index && it.key != focusBillId }
+            }
         }
+        val index = settled?.first ?: focusIndex ?: billIndex(section, bills.indexOfFirst { it.id == focusBillId })
+        val info = lazyListState.layoutInfo
         val row = info.visibleItemsInfo.firstOrNull { it.key == focusBillId }
         if (row == null || row.offset < 0 || row.offset + row.size > info.viewportEndOffset - info.afterContentPadding) {
             lazyListState.scrollToItem(index)
@@ -525,6 +543,9 @@ private val BlockGap = Spacing.smd
 
 /** How long the bill Plan was opened on stays tinted. */
 private const val FOCUS_HIGHLIGHT_MILLIS = 1500L
+
+/** How long a focused bill waits for its row to be laid out before scrolling anyway. */
+private const val FOCUS_SETTLE_MILLIS = 2000L
 
 internal enum class BillSection(@get:StringRes val title: Int) {
     OVERDUE(R.string.plan_bills_overdue),
@@ -966,6 +987,13 @@ private fun SubscriptionLabels(
     }
 }
 
+/** A payment count: digits only, at most three. */
+private val EDIT_PAYMENT_COUNT_INPUT = InputTransformation {
+    val typed = asCharSequence().toString()
+    val filtered = typed.filter { it.isDigit() }.take(3)
+    if (filtered != typed) replace(0, length, filtered)
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EditSubscriptionDialog(
@@ -974,9 +1002,11 @@ private fun EditSubscriptionDialog(
     onDismiss: () -> Unit,
     onSave: (merchantName: String, amount: BigDecimal, nextDate: LocalDate?, category: String?, account: AccountBalanceEntity?, accountChanged: Boolean, totalPayments: Int?, paymentsMade: Int) -> Unit
 ) {
-    var merchantName by remember { mutableStateOf(subscription.merchantName) }
+    val merchantNameState = rememberTextFieldState(subscription.merchantName)
+    val merchantName = merchantNameState.text.toString()
     var amountText by remember { mutableStateOf(subscription.amount.toPlainString()) }
-    var category by remember { mutableStateOf(subscription.category.orEmpty()) }
+    val categoryState = rememberTextFieldState(subscription.category.orEmpty())
+    val category = categoryState.text.toString()
     var nextDate by remember { mutableStateOf(subscription.nextPaymentDate) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showAccountMenu by remember { mutableStateOf(false) }
@@ -1007,10 +1037,12 @@ private fun EditSubscriptionDialog(
         }
     }
     // Blank = no end. "Already paid" starts at the count so far and must leave a payment to make.
-    var totalPaymentsText by remember { mutableStateOf(subscription.totalPayments?.toString().orEmpty()) }
-    var paymentsMadeText by remember {
-        mutableStateOf(subscription.paymentsMade.takeIf { subscription.totalPayments != null }?.toString().orEmpty())
-    }
+    val totalPaymentsState = rememberTextFieldState(subscription.totalPayments?.toString().orEmpty())
+    val totalPaymentsText = totalPaymentsState.text.toString()
+    val paymentsMadeState = rememberTextFieldState(
+        subscription.paymentsMade.takeIf { subscription.totalPayments != null }?.toString().orEmpty()
+    )
+    val paymentsMadeText = paymentsMadeState.text.toString()
     val totalPayments = totalPaymentsText.toIntOrNull()?.takeIf { it > 0 }
     val paymentsMade = paymentsMadeText.toIntOrNull() ?: 0
     val totalPaymentsError = totalPaymentsText.isNotEmpty() && totalPayments == null
@@ -1030,20 +1062,19 @@ private fun EditSubscriptionDialog(
                 ) {
                     OutlinedTextField(
                         shape = RoundedField.shape,
-                        value = merchantName,
-                        onValueChange = { merchantName = it },
+                        state = merchantNameState,
                         label = { Text(stringResource(R.string.subscriptions_edit_name)) },
-                        singleLine = true,
+                        lineLimits = TextFieldLineLimits.SingleLine,
                         modifier = Modifier.fillMaxWidth()
                     )
                     val amount = rememberAmountEntry(amountText, { amountText = it.filter { c -> c.isDigit() || c == '.' } }, subscription.currency)
                     val amountSum = amount.sumHint
                     OutlinedTextField(
                         shape = RoundedField.shape,
-                        value = amount.value,
-                        onValueChange = amount::onValueChange,
+                        state = amount.state,
+                        inputTransformation = amount.inputTransformation,
                         label = { Text(stringResource(R.string.subscriptions_edit_amount, subscription.currency)) },
-                        singleLine = true,
+                        lineLimits = TextFieldLineLimits.SingleLine,
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                             keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
                         ),
@@ -1061,21 +1092,20 @@ private fun EditSubscriptionDialog(
                     }
                     OutlinedTextField(
                         shape = RoundedField.shape,
-                        value = category,
-                        onValueChange = { category = it },
+                        state = categoryState,
                         label = { Text(stringResource(R.string.subscriptions_edit_category)) },
-                        singleLine = true,
+                        lineLimits = TextFieldLineLimits.SingleLine,
                         modifier = Modifier.fillMaxWidth()
                     )
                     // Ends after N payments (#1061). Scheduled income is booked without counting, so expenses only.
                     if (subscription.direction == SubscriptionDirection.EXPENSE) {
                         OutlinedTextField(
                             shape = RoundedField.shape,
-                            value = totalPaymentsText,
-                            onValueChange = { totalPaymentsText = it.filter { c -> c.isDigit() }.take(3) },
+                            state = totalPaymentsState,
+                            inputTransformation = EDIT_PAYMENT_COUNT_INPUT,
                             label = { Text(stringResource(R.string.subscriptions_edit_ends_after)) },
                             isError = totalPaymentsError,
-                            singleLine = true,
+                            lineLimits = TextFieldLineLimits.SingleLine,
                             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                                 keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
                             ),
@@ -1084,14 +1114,14 @@ private fun EditSubscriptionDialog(
                         if (totalPaymentsText.isNotEmpty()) {
                             OutlinedTextField(
                                 shape = RoundedField.shape,
-                                value = paymentsMadeText,
-                                onValueChange = { paymentsMadeText = it.filter { c -> c.isDigit() }.take(3) },
+                                state = paymentsMadeState,
+                                inputTransformation = EDIT_PAYMENT_COUNT_INPUT,
                                 label = { Text(stringResource(R.string.add_sub_already_paid)) },
                                 supportingText = if (paymentsMadeError) {
                                     { Text(stringResource(R.string.add_sub_already_paid_error)) }
                                 } else null,
                                 isError = paymentsMadeError,
-                                singleLine = true,
+                                lineLimits = TextFieldLineLimits.SingleLine,
                                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                                     keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
                                 ),

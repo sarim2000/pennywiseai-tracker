@@ -12,6 +12,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Checkbox
@@ -26,10 +28,7 @@ import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -120,7 +119,7 @@ fun TrackedAppsDialog(
 ) {
     val apps by viewModel.apps.collectAsStateWithLifecycle()
     val tracked by viewModel.tracked.collectAsStateWithLifecycle()
-    var query by rememberSaveable { mutableStateOf("") }
+    val queryState = rememberTextFieldState()
     LaunchedEffect(Unit) { viewModel.loadApps() }
     // Picked apps first, as they were when the dialog opened: re-sorting on every tap would move the row away.
     val pickedAtOpen = remember { viewModel.tracked.value }
@@ -141,10 +140,9 @@ fun TrackedAppsDialog(
                     }
                 }
                 OutlinedTextField(
-                    value = query,
-                    onValueChange = { query = it },
+                    state = queryState,
                     placeholder = { Text(stringResource(R.string.settings_tracked_apps_search)) },
-                    singleLine = true,
+                    lineLimits = TextFieldLineLimits.SingleLine,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedField.shape
                 )
@@ -154,6 +152,7 @@ fun TrackedAppsDialog(
                         LoadingIndicator()
                     }
                 } else {
+                    val query = queryState.text.toString()
                     val shown = list
                         .filter { query.isBlank() || it.label.contains(query.trim(), ignoreCase = true) }
                         .sortedByDescending { it.packageName in pickedAtOpen }

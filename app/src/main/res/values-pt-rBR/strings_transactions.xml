@@ -223,7 +223,6 @@
     <string name="txn_list_filter_account">conta</string>
     <string name="txn_list_filter_category">categoria</string>
     <string name="txn_list_filters">Filtros</string>
-    <string name="txn_list_filters_two">2 Filtros</string>
     <string name="txn_list_categories_all_except">Todos, exceto %1$s</string>
     <plurals name="txn_list_categories_count">
         <item quantity="one">Categoria %1$d</item>

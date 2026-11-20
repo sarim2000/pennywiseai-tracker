@@ -3,6 +3,8 @@ package com.pennywiseai.tracker.presentation.accounts
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.filled.CheckCircle
@@ -176,9 +178,9 @@ private fun EditCardDialog(
         nickname: String?
     ) -> Unit
 ) {
-    var bankName by remember { mutableStateOf(card.bankName) }
+    val bankNameState = rememberTextFieldState(card.bankName)
     var cardType by remember { mutableStateOf(card.cardType) }
-    var nickname by remember { mutableStateOf(card.nickname.orEmpty()) }
+    val nicknameState = rememberTextFieldState(card.nickname.orEmpty())
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -193,10 +195,9 @@ private fun EditCardDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 OutlinedTextField(
-                    value = bankName,
-                    onValueChange = { bankName = it },
+                    state = bankNameState,
                     label = { Text(stringResource(R.string.manage_accounts_bank_label)) },
-                    singleLine = true,
+                    lineLimits = TextFieldLineLimits.SingleLine,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedField.shape
                 )
@@ -225,10 +226,9 @@ private fun EditCardDialog(
                     )
                 }
                 OutlinedTextField(
-                    value = nickname,
-                    onValueChange = { nickname = it },
+                    state = nicknameState,
                     label = { Text(stringResource(R.string.manage_accounts_nickname_label)) },
-                    singleLine = true,
+                    lineLimits = TextFieldLineLimits.SingleLine,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedField.shape
                 )
@@ -237,9 +237,9 @@ private fun EditCardDialog(
         confirmButton = {
             TextButton(
                 onClick = {
-                    onConfirm(bankName, cardType, nickname.ifBlank { null })
+                    onConfirm(bankNameState.text.toString(), cardType, nicknameState.text.toString().ifBlank { null })
                 },
-                enabled = bankName.isNotBlank(),
+                enabled = bankNameState.text.isNotBlank(),
                 shapes = ButtonDefaults.shapes()
             ) { Text(stringResource(R.string.accounts_action_save)) }
         },

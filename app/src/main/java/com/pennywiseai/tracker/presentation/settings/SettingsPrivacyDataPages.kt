@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -31,6 +32,7 @@ import com.pennywiseai.tracker.ui.animations.pwExpand
 import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
+import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.AppDates
 
@@ -112,11 +114,13 @@ internal fun DataPage(
     val isProEntitled by settingsViewModel.isProEntitled.collectAsStateWithLifecycle()
     val importExportMessage by settingsViewModel.importExportMessage.collectAsStateWithLifecycle()
     val exportedBackupFile by settingsViewModel.exportedBackupFile.collectAsStateWithLifecycle()
+    val exportSkippedReceipts by settingsViewModel.exportSkippedReceipts.collectAsStateWithLifecycle()
     val deleteAllTransactionsCount by settingsViewModel.deleteAllTransactionsCount.collectAsStateWithLifecycle()
     val isDeletingAllTransactions by settingsViewModel.isDeletingAllTransactions.collectAsStateWithLifecycle()
     val deleteAllTransactionsResult by settingsViewModel.deleteAllTransactionsResult.collectAsStateWithLifecycle()
     val scheduledFolderBackupEnabled by settingsViewModel.scheduledFolderBackupEnabled.collectAsStateWithLifecycle(initialValue = false)
     val scheduledFolderBackupLastTimestamp by settingsViewModel.scheduledFolderBackupLastTimestamp.collectAsStateWithLifecycle(initialValue = null)
+    val scheduledFolderBackupLastSkippedReceipts by settingsViewModel.scheduledFolderBackupLastSkippedReceipts.collectAsStateWithLifecycle(initialValue = 0)
     val exportIncludeReceipts by settingsViewModel.exportIncludeReceipts.collectAsStateWithLifecycle(initialValue = true)
     val folderBackupIncludeReceipts by settingsViewModel.folderBackupIncludeReceipts.collectAsStateWithLifecycle(initialValue = false)
     val requestFolderPicker by settingsViewModel.requestFolderPicker.collectAsStateWithLifecycle()
@@ -226,7 +230,16 @@ internal fun DataPage(
                     val formatted = java.time.Instant.ofEpochMilli(timestamp)
                         .atZone(java.time.ZoneId.systemDefault())
                         .format(AppDates.dateTimeFormatter())
-                    stringResource(R.string.settings_backup_now_last_backup, formatted)
+                    if (scheduledFolderBackupLastSkippedReceipts > 0) {
+                        pluralStringResource(
+                            R.plurals.settings_backup_now_last_backup_skipped_receipts,
+                            scheduledFolderBackupLastSkippedReceipts,
+                            formatted,
+                            scheduledFolderBackupLastSkippedReceipts
+                        )
+                    } else {
+                        stringResource(R.string.settings_backup_now_last_backup, formatted)
+                    }
                 } ?: stringResource(R.string.settings_backup_now_subtitle),
                 onClick = { settingsViewModel.backupToFolderNow() },
                 position = ListItemPosition.Middle
@@ -304,9 +317,8 @@ internal fun DataPage(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     OutlinedTextField(
-                        value = confirmationText,
-                        onValueChange = { confirmationText = it },
-                        singleLine = true,
+                        state = rememberSyncedTextFieldState(confirmationText) { confirmationText = it },
+                        lineLimits = TextFieldLineLimits.SingleLine,
                         enabled = !isDeletingAllTransactions,
                         label = { Text(stringResource(R.string.settings_delete_all_dialog_type_to_confirm, confirmWord)) },
                         modifier = Modifier.fillMaxWidth(),
@@ -389,7 +401,17 @@ internal fun DataPage(
             title = { Text(stringResource(R.string.settings_save_backup_title)) },
             text = {
                 Column {
-                    Text(stringResource(R.string.settings_save_backup_created))
+                    Text(
+                        if (exportSkippedReceipts > 0) {
+                            pluralStringResource(
+                                R.plurals.settings_backup_created_skipped_receipts,
+                                exportSkippedReceipts,
+                                exportSkippedReceipts
+                            )
+                        } else {
+                            stringResource(R.string.settings_save_backup_created)
+                        }
+                    )
                     Spacer(modifier = Modifier.height(Spacing.sm))
                     Text(stringResource(R.string.settings_save_backup_choose), style = MaterialTheme.typography.bodyMedium)
                 }

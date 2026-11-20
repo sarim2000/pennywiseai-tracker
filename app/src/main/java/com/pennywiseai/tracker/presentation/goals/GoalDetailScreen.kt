@@ -16,6 +16,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -79,6 +81,7 @@ import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.orSupporting
 import com.pennywiseai.tracker.ui.components.rememberAmountEntry
+import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -393,7 +396,7 @@ private fun MoneySheet(
     var amount by rememberSaveable { mutableStateOf(existing?.amount?.abs()?.stripTrailingZeros()?.toPlainString().orEmpty()) }
     var currency by rememberSaveable { mutableStateOf(goalCurrency) }
     var date by remember { mutableStateOf(existing?.date ?: LocalDate.now()) }
-    var note by rememberSaveable { mutableStateOf(existing?.note.orEmpty()) }
+    val noteState = rememberTextFieldState(existing?.note.orEmpty())
     var manual by rememberSaveable { mutableStateOf("") }
     var showDatePicker by remember { mutableStateOf(false) }
     val askManual = state.error == MoneyError.NO_RATE || manual.isNotEmpty()
@@ -444,10 +447,10 @@ private fun MoneySheet(
                     val amountSum = amountEntry.sumHint
                     OutlinedTextField(
                         shape = RoundedField.shape,
-                        value = amountEntry.value,
-                        onValueChange = amountEntry::onValueChange,
+                        state = amountEntry.state,
+                        inputTransformation = amountEntry.inputTransformation,
                         label = { Text(stringResource(R.string.goal_money_amount)) },
-                        singleLine = true,
+                        lineLimits = TextFieldLineLimits.SingleLine,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         isError = amountSum?.isError ?: (amountError != null),
                         supportingText = amountSum.orSupporting(amountError?.let { { Text(it) } }),
@@ -464,11 +467,11 @@ private fun MoneySheet(
                     val manualSum = manualEntry.sumHint
                     OutlinedTextField(
                         shape = RoundedField.shape,
-                        value = manualEntry.value,
-                        onValueChange = manualEntry::onValueChange,
+                        state = manualEntry.state,
+                        inputTransformation = manualEntry.inputTransformation,
                         label = { Text(stringResource(R.string.goal_money_converted, goalCurrency)) },
                         prefix = { Text(CurrencyFormatter.getCurrencySymbol(goalCurrency)) },
-                        singleLine = true,
+                        lineLimits = TextFieldLineLimits.SingleLine,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         isError = manualSum?.isError == true,
                         supportingText = manualSum.orSupporting(),
@@ -477,8 +480,7 @@ private fun MoneySheet(
                 }
                 OutlinedTextField(
                     shape = RoundedField.shape,
-                    value = date.format(goalDateFormat),
-                    onValueChange = {},
+                    state = rememberSyncedTextFieldState(date.format(goalDateFormat)) {},
                     readOnly = true,
                     label = { Text(stringResource(R.string.goal_money_date)) },
                     trailingIcon = {
@@ -490,10 +492,9 @@ private fun MoneySheet(
                 )
                 OutlinedTextField(
                     shape = RoundedField.shape,
-                    value = note,
-                    onValueChange = { note = it },
+                    state = noteState,
                     label = { Text(stringResource(R.string.goal_money_note)) },
-                    singleLine = true,
+                    lineLimits = TextFieldLineLimits.SingleLine,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 if (state.error == MoneyError.FAILED) {
@@ -507,7 +508,7 @@ private fun MoneySheet(
                     }
                     Box(Modifier.weight(1f))
                     Button(
-                        onClick = { onSave(amount.toAmountIn(currency), currency, date, note, manual.toAmountIn(goalCurrency)?.takeIf { it.signum() > 0 }) },
+                        onClick = { onSave(amount.toAmountIn(currency), currency, date, noteState.text.toString(), manual.toAmountIn(goalCurrency)?.takeIf { it.signum() > 0 }) },
                         enabled = !state.saving && isManualAmountOk(manual, goalCurrency),
                         shapes = ButtonDefaults.shapes(),
                     ) { Text(stringResource(R.string.goal_money_save)) }

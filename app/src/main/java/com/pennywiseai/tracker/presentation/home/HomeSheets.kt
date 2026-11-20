@@ -7,6 +7,7 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Insights
@@ -51,6 +52,7 @@ import com.pennywiseai.tracker.ui.theme.*
 internal fun HomeMenuSheet(
     sheetState: SheetState,
     onDismiss: () -> Unit,
+    onOpenInsights: () -> Unit,
     onOpenReview: () -> Unit,
     onOpenShareCard: () -> Unit,
     onOpenAchievements: () -> Unit,
@@ -62,8 +64,9 @@ internal fun HomeMenuSheet(
         Triple(R.string.home_resync_title, Icons.Default.Sync, onReadAgain),
         // Reorder / hide Home sections (#770).
         Triple(R.string.home_menu_edit_home, Icons.Default.Tune, onEditHome),
+        Triple(R.string.insights_title, Icons.Default.Insights, onOpenInsights),
         // Week, cycle and year reviews, whatever the Home banner is offering.
-        Triple(R.string.review_title, Icons.Default.Insights, onOpenReview),
+        Triple(R.string.review_title, Icons.Default.DateRange, onOpenReview),
         // The share card, and the achievements that feed it.
         Triple(R.string.home_menu_share_card, Icons.Default.Share, onOpenShareCard),
         Triple(R.string.achievements_title, Icons.Default.EmojiEvents, onOpenAchievements),
@@ -355,6 +358,7 @@ private fun HomeSection.titleRes(): Int = when (this) {
     HomeSection.SHORTCUTS -> R.string.home_section_shortcuts
     HomeSection.BUDGETS -> R.string.home_section_budgets
     HomeSection.UNSORTED -> R.string.home_section_unsorted
+    HomeSection.INSIGHTS -> R.string.home_section_insights
     HomeSection.GOALS -> R.string.home_section_goals
     HomeSection.LOANS -> R.string.home_section_loans
     HomeSection.GROUPS -> R.string.home_section_groups

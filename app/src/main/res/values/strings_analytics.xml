@@ -42,6 +42,13 @@
         <item quantity="one">%1$d transaction</item>
         <item quantity="other">%1$d transactions</item>
     </plurals>
+    <string name="insights_category_share_label">Share</string>
+    <string name="insights_category_share_value">%1$d%%</string>
+    <string name="insights_category_count_label">Transactions</string>
+    <string name="insights_category_average_label">Average</string>
+    <string name="insights_category_top_merchants">Top merchants</string>
+    <string name="insights_category_see_transactions">See transactions</string>
+    <string name="insights_category_focus">Show only this category here</string>
     <plurals name="analytics_transaction_count_subscription">
         <item quantity="one">%1$d transaction • Subscription</item>
         <item quantity="other">%1$d transactions • Subscription</item>

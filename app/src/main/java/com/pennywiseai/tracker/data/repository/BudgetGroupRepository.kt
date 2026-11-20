@@ -87,7 +87,8 @@ class BudgetGroupRepository @Inject constructor(
         userPreferencesRepository.updateBudgetCycleStartDay(day)
     }
 
-    private suspend fun parentOf(): Map<String, String> = categoryDao.getAllCategoriesList().parentNameOf()
+    /** Sub-category name → parent name; a parent budget row also counts its children (#374). */
+    suspend fun parentOf(): Map<String, String> = categoryDao.getAllCategoriesList().parentNameOf()
 
     private suspend fun expandWithChildren(names: Set<String>): Set<String> =
         categoryDao.getAllCategoriesList().expandWithChildren(names)

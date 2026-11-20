@@ -3,6 +3,8 @@ package com.pennywiseai.tracker.presentation.add
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.InputTransformation
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -27,12 +29,20 @@ import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.orSupporting
 import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.icons.categoryLabel
+import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.money
 import com.pennywiseai.tracker.utils.AppDates
 
 private val BILLING_CYCLES = listOf("Monthly", "Quarterly", "Semi-Annual", "Annual", "Weekly")
+
+/** A payment count, as the view model keeps it: digits only, at most three. */
+private val PAYMENT_COUNT_INPUT = InputTransformation {
+    val typed = asCharSequence().toString()
+    val filtered = typed.filter { it.isDigit() }.take(3)
+    if (filtered != typed) replace(0, length, filtered)
+}
 
 /**
  * The subscription form: direction → name → amount → cadence / next date / category /
@@ -88,10 +98,9 @@ fun SubscriptionTabContent(
             }
 
             TextField(
-                value = uiState.serviceName,
-                onValueChange = viewModel::updateSubscriptionService,
+                state = rememberSyncedTextFieldState(uiState.serviceName, viewModel::updateSubscriptionService),
                 label = { Text(stringResource(R.string.add_sub_service_name)) },
-                singleLine = true,
+                lineLimits = TextFieldLineLimits.SingleLine,
                 keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                 modifier = Modifier.fillMaxWidth(),
                 leadingIcon = { Icon(Icons.Default.Subscriptions, contentDescription = null) },
@@ -105,8 +114,8 @@ fun SubscriptionTabContent(
             val amount = rememberAmountEntry(uiState.amount, viewModel::updateSubscriptionAmount, uiState.currency)
             val amountSum = amount.sumHint
             TextField(
-                value = amount.value,
-                onValueChange = amount::onValueChange,
+                state = amount.state,
+                inputTransformation = amount.inputTransformation,
                 label = { Text(stringResource(R.string.add_field_amount)) },
                 textStyle = MaterialTheme.typography.headlineSmall.money(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -114,7 +123,7 @@ fun SubscriptionTabContent(
                 supportingText = amountSum.orSupporting(uiState.amountError?.let { { Text(it.asString()) } }),
                 leadingIcon = { CurrencyButton(uiState.currency, viewModel::updateSubscriptionCurrency) },
                 modifier = Modifier.fillMaxWidth().then(amount.modifier),
-                singleLine = true,
+                lineLimits = TextFieldLineLimits.SingleLine,
                 shape = RoundedField.shape,
                 colors = RoundedField.colors()
             )
@@ -223,8 +232,7 @@ fun SubscriptionTabContent(
             )
             if (moreExpanded) {
                 TextField(
-                    value = uiState.notes,
-                    onValueChange = viewModel::updateSubscriptionNotes,
+                    state = rememberSyncedTextFieldState(uiState.notes, viewModel::updateSubscriptionNotes),
                     label = { Text(stringResource(R.string.add_field_notes)) },
                     modifier = Modifier.fillMaxWidth(),
                     leadingIcon = { Icon(Icons.Default.Description, contentDescription = null) },
@@ -234,13 +242,13 @@ fun SubscriptionTabContent(
                 // Ends after N payments (#1061): an EMI or instalment plan stops on its last one.
                 if (!isIncome) {
                     TextField(
-                        value = uiState.totalPayments,
-                        onValueChange = viewModel::updateSubscriptionTotalPayments,
+                        state = rememberSyncedTextFieldState(uiState.totalPayments, viewModel::updateSubscriptionTotalPayments),
+                        inputTransformation = PAYMENT_COUNT_INPUT,
                         label = { Text(stringResource(R.string.add_sub_ends_after)) },
                         supportingText = { Text(stringResource(R.string.add_sub_ends_after_hint)) },
                         leadingIcon = { Icon(Icons.Default.Flag, contentDescription = null) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true,
+                        lineLimits = TextFieldLineLimits.SingleLine,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedField.shape,
                         colors = RoundedField.colors()
@@ -248,8 +256,8 @@ fun SubscriptionTabContent(
                     // A plan added after it started: "3 of 12 paid", not "0 of 12".
                     if (uiState.totalPayments.isNotEmpty()) {
                         TextField(
-                            value = uiState.paymentsMade,
-                            onValueChange = viewModel::updateSubscriptionPaymentsMade,
+                            state = rememberSyncedTextFieldState(uiState.paymentsMade, viewModel::updateSubscriptionPaymentsMade),
+                            inputTransformation = PAYMENT_COUNT_INPUT,
                             label = { Text(stringResource(R.string.add_sub_already_paid)) },
                             isError = uiState.paymentsMadeError,
                             supportingText = if (uiState.paymentsMadeError) {
@@ -257,7 +265,7 @@ fun SubscriptionTabContent(
                             } else null,
                             leadingIcon = { Icon(Icons.Default.CheckCircle, contentDescription = null) },
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            singleLine = true,
+                            lineLimits = TextFieldLineLimits.SingleLine,
                             modifier = Modifier.fillMaxWidth(),
                             shape = RoundedField.shape,
                             colors = RoundedField.colors()

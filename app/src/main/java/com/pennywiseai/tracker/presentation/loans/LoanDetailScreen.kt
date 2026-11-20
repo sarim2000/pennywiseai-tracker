@@ -8,6 +8,7 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -318,13 +319,13 @@ fun LoanDetailScreen(
                     )
                     val sum = entry.sumHint
                     TextField(
-                        value = entry.value,
-                        onValueChange = entry::onValueChange,
+                        state = entry.state,
+                        inputTransformation = entry.inputTransformation,
                         label = { Text(stringResource(R.string.loan_detail_expected_return_label)) },
                         prefix = { Text(CurrencyFormatter.getCurrencySymbol(loan.currency)) },
                         isError = sum?.isError == true,
                         supportingText = sum.orSupporting(),
-                        singleLine = true,
+                        lineLimits = TextFieldLineLimits.SingleLine,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = entry.modifier,
                         shape = RoundedField.shape,
@@ -540,13 +541,13 @@ private fun RecordPaymentBottomSheet(
                     )
                     val sum = entry.sumHint
                     TextField(
-                        value = entry.value,
-                        onValueChange = entry::onValueChange,
+                        state = entry.state,
+                        inputTransformation = entry.inputTransformation,
                         label = { Text(stringResource(R.string.loan_detail_amount_label)) },
                         prefix = { Text(CurrencyFormatter.getCurrencySymbol(currency)) },
                         isError = sum?.isError == true,
                         supportingText = sum.orSupporting(),
-                        singleLine = true,
+                        lineLimits = TextFieldLineLimits.SingleLine,
                         modifier = Modifier.weight(1f).then(entry.modifier),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         shape = RoundedField.shape,

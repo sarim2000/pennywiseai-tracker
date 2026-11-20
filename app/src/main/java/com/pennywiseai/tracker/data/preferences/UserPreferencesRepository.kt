@@ -21,6 +21,7 @@ import com.pennywiseai.tracker.data.preferences.HomeShortcutLayout
 import com.pennywiseai.tracker.domain.conscience.ConscienceCadence
 import com.pennywiseai.tracker.domain.conscience.ConscienceCandidate
 import com.pennywiseai.tracker.domain.conscience.ConscienceChoice
+import com.pennywiseai.tracker.domain.insights.insightCycleOf
 import com.pennywiseai.tracker.domain.smsimport.SmsScanRecord
 import com.pennywiseai.tracker.domain.spending.BudgetAlertTier
 import com.pennywiseai.tracker.domain.spending.MoneyAlertRules
@@ -81,7 +82,8 @@ open class UserPreferencesRepository internal constructor(
     NotificationPreferences,
     BackupPreferences,
     BillingPreferences,
-    RecurringSuggestionPreferences {
+    RecurringSuggestionPreferences,
+    InsightPreferences {
     // Production always takes the delegate: a second DataStore on the same file throws.
     // The internal constructor exists so tests can give each case its own empty file.
     @Inject
@@ -145,6 +147,8 @@ open class UserPreferencesRepository internal constructor(
         // "Track as … bill" on transaction alerts: "key|epochDay" per merchant
         // offered, to cap how often it's offered. Device-local.
         val RECURRING_OFFER_LOG = stringSetPreferencesKey("recurring_offer_log")
+        // Insight ids dismissed this cycle (Insight.id names the cycle). Device-local.
+        val DISMISSED_INSIGHTS = stringSetPreferencesKey("dismissed_insights")
 
         // App Lock preferences
         val APP_LOCK_ENABLED = booleanPreferencesKey("app_lock_enabled")
@@ -254,6 +258,7 @@ open class UserPreferencesRepository internal constructor(
         val SCHEDULED_FOLDER_BACKUP_ENABLED = booleanPreferencesKey("scheduled_folder_backup_enabled")
         val SCHEDULED_FOLDER_BACKUP_TREE_URI = stringPreferencesKey("scheduled_folder_backup_tree_uri")
         val SCHEDULED_FOLDER_BACKUP_LAST_TIMESTAMP = longPreferencesKey("scheduled_folder_backup_last_timestamp")
+        val SCHEDULED_FOLDER_BACKUP_LAST_SKIPPED_RECEIPTS = intPreferencesKey("scheduled_folder_backup_last_skipped_receipts")
 
         // Embed receipt photos in backups (#839). Manual export defaults ON;
         // the daily folder backup defaults OFF (photos make every copy large).
@@ -311,13 +316,14 @@ open class UserPreferencesRepository internal constructor(
             K.BACKGROUND_OEM_STEP_CONFIRMED_ON, K.WEEKLY_SUMMARY_LAST_WEEK, K.REVIEW_PROMPT_HANDLED_YEAR,
             K.CONSCIENCE_LOG, K.ACTIVE_DOWNLOAD_ID, K.SHARE_PROMPT_HANDLED_MONTH, K.PRO_HOME_CARD_HANDLED,
             K.PAYDAY_SUGGESTION_HANDLED, K.RECURRING_HOME_CARD_SEEN, K.RECURRING_HOME_CARD_DISMISSED_AT,
-            K.TRACKING_CARD_SNOOZED_UNTIL, K.RECURRING_OFFER_LOG, K.APP_LOCK_ENABLED, K.APP_LOCK_TIMEOUT_MINUTES,
+            K.TRACKING_CARD_SNOOZED_UNTIL, K.RECURRING_OFFER_LOG, K.DISMISSED_INSIGHTS, K.APP_LOCK_ENABLED, K.APP_LOCK_TIMEOUT_MINUTES,
             K.LAST_AUTH_TIMESTAMP, K.APP_LOCK_NO_SCREEN_LOCK_NOTICE_SHOWN, K.HAS_USED_FULL_RESYNC,
             K.PRO_CACHED_IS_PRO, K.LICENSE_VALIDATED_AT, K.LICENSE_PRODUCT_NAME, K.SUPPORT_NUDGE_LAST_SHOWN_DAY,
             K.LAST_STATEMENT_IMPORT_AT, K.LAST_SEEN_APP_VERSION, K.MONTHLY_BUDGET_LIMIT,
             K.HAS_MIGRATED_TO_BUDGET_GROUPS, K.SHAKE_TO_HIDE_HINT_SHOWN, K.HAS_COMPLETED_ONBOARDING,
             K.SCHEDULED_FOLDER_BACKUP_ENABLED, K.SCHEDULED_FOLDER_BACKUP_TREE_URI,
-            K.SCHEDULED_FOLDER_BACKUP_LAST_TIMESTAMP, K.LAST_SCAN_RECORD, K.LAST_LIVE_SMS_AT
+            K.SCHEDULED_FOLDER_BACKUP_LAST_TIMESTAMP, K.SCHEDULED_FOLDER_BACKUP_LAST_SKIPPED_RECEIPTS,
+            K.LAST_SCAN_RECORD, K.LAST_LIVE_SMS_AT
         ).map { it.name }.toSet()
 
         // A photo is a file on the old phone; only a built-in avatar means anything elsewhere.
@@ -888,6 +894,28 @@ open class UserPreferencesRepository internal constructor(
         dataStore.edit {
             it[PreferencesKeys.DISMISSED_RECURRING_SUGGESTIONS] =
                 (it[PreferencesKeys.DISMISSED_RECURRING_SUGGESTIONS] ?: emptySet()) - key
+        }
+    }
+
+    override val dismissedInsights: Flow<Set<String>> = dataStore.data
+        .map { it[PreferencesKeys.DISMISSED_INSIGHTS] ?: emptySet() }
+
+    override suspend fun dismissInsight(id: String) {
+        val cycle = insightCycleOf(id)
+        dataStore.edit {
+            // Older cycles go; a newer one stays, in case a card from the cycle just ended
+            // was still on screen when dismissed. Cycles are ISO dates, so they sort as text.
+            val kept = (it[PreferencesKeys.DISMISSED_INSIGHTS] ?: emptySet()).filter { old ->
+                val oldCycle = insightCycleOf(old)
+                oldCycle != null && cycle != null && oldCycle >= cycle
+            }
+            it[PreferencesKeys.DISMISSED_INSIGHTS] = kept.toSet() + id
+        }
+    }
+
+    override suspend fun restoreInsight(id: String) {
+        dataStore.edit {
+            it[PreferencesKeys.DISMISSED_INSIGHTS] = (it[PreferencesKeys.DISMISSED_INSIGHTS] ?: emptySet()) - id
         }
     }
 
@@ -1586,6 +1614,9 @@ open class UserPreferencesRepository internal constructor(
             preferences[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_LAST_TIMESTAMP]
         }
 
+    override val scheduledFolderBackupLastSkippedReceipts: Flow<Int> = dataStore.data
+        .map { it[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_LAST_SKIPPED_RECEIPTS] ?: 0 }
+
     override suspend fun isScheduledFolderBackupEnabled(): Boolean {
         return scheduledFolderBackupEnabled.first()
     }
@@ -1606,9 +1637,11 @@ open class UserPreferencesRepository internal constructor(
         }
     }
 
-    override suspend fun setScheduledFolderBackupLastTimestamp(timestamp: Long) {
+    override suspend fun recordScheduledFolderBackup(timestamp: Long, skippedReceipts: Int) {
+        // One edit, so "Last backup" never pairs a new time with the previous backup's count.
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_LAST_TIMESTAMP] = timestamp
+            preferences[PreferencesKeys.SCHEDULED_FOLDER_BACKUP_LAST_SKIPPED_RECEIPTS] = skippedReceipts
         }
     }
 

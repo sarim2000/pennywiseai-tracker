@@ -80,6 +80,7 @@ fun AnalyticsScreen(
     onNavigateToTransactions: (TransactionsDrillDown) -> Unit = {},
     onNavigateToHome: () -> Unit = {},
     onNavigateToCalendar: () -> Unit = {},
+    onNavigateToInsights: () -> Unit = {},
     /** False when the Ask tab is hidden: the Ask card then has nowhere to go. */
     askAvailable: Boolean = true
 ) {
@@ -139,6 +140,9 @@ fun AnalyticsScreen(
                 overline = stringResource(R.string.analytics_overline),
                 hazeState = hazeState,
                 actionContent = {
+                    IconButton(onClick = onNavigateToInsights, shapes = IconButtonDefaults.shapes()) {
+                        Icon(Icons.Default.Insights, contentDescription = stringResource(R.string.insights_title))
+                    }
                     IconButton(onClick = onNavigateToCalendar, shapes = IconButtonDefaults.shapes()) {
                         Icon(Icons.Default.CalendarViewMonth, contentDescription = stringResource(R.string.calendar_open))
                     }

@@ -551,3 +551,64 @@ internal fun rememberToday(): LocalDate {
 
 /** A second past midnight, so the clock has surely turned when the date is read again. */
 private const val MIDNIGHT_SLACK_MILLIS = 1_000L
+
+/**
+ * The two insights that matter most, in any currency; the card opens the Insights page.
+ * [homeCurrency] is the one the rest of Home shows.
+ */
+@Composable
+internal fun HomeInsightsSection(
+    insights: List<com.pennywiseai.tracker.domain.insights.Insight>,
+    homeCurrency: String,
+    onNavigateToInsights: () -> Unit
+) {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
+    ) {
+        HomeSectionHeader(
+            title = stringResource(R.string.home_section_insights),
+            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+            onSeeAll = onNavigateToInsights
+        )
+        PennyWiseCardV2(
+            onClick = onNavigateToInsights,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(horizontal = Dimensions.Padding.content)
+        ) {
+            // Titles like "Your money would last 4 months" don't name a currency, so say
+            // which each is once any isn't the one Home shows.
+            val showCurrency = insights.any { it.currency != homeCurrency }
+            Column(verticalArrangement = Arrangement.spacedBy(Spacing.smd)) {
+                insights.forEach { insight ->
+                    val (icon, color) = com.pennywiseai.tracker.presentation.insights.severityStyle(insight.severity)
+                    // Without section headers here, the icon says how much it matters: "Needs attention, …".
+                    Row(
+                        modifier = Modifier.semantics(mergeDescendants = true) {},
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.smd)
+                    ) {
+                        Icon(
+                            icon,
+                            contentDescription = com.pennywiseai.tracker.presentation.insights.severityLabel(insight.severity),
+                            tint = color,
+                            modifier = Modifier.size(Dimensions.Icon.medium)
+                        )
+                        Text(
+                            text = com.pennywiseai.tracker.presentation.insights.insightText(insight).title,
+                            style = MaterialTheme.typography.bodyLarge,
+                            modifier = Modifier.weight(1f)
+                        )
+                        if (showCurrency) {
+                            Text(
+                                text = insight.currency,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
+}

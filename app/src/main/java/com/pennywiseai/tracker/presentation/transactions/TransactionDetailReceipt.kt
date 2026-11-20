@@ -1,7 +1,8 @@
 package com.pennywiseai.tracker.presentation.transactions
 
+import android.content.ActivityNotFoundException
+import android.widget.Toast
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.TextAutoSize
@@ -28,15 +29,15 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.AsyncImage
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
@@ -46,6 +47,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.formatAmount
 import com.pennywiseai.tracker.domain.loan.LoanMath
+import com.pennywiseai.tracker.presentation.common.ReceiptPreview
 import com.pennywiseai.tracker.ui.LocalNavAnimatedVisibilityScope
 import com.pennywiseai.tracker.ui.LocalSharedTransitionScope
 import com.pennywiseai.tracker.ui.animations.pwCollapse
@@ -230,11 +232,29 @@ internal fun TransactionReceipt(
 
                 // ── Receipt Section ──
                 receiptUri?.let { uri ->
+                    val context = LocalContext.current
+                    val pdfIntent = remember(uri) { viewModel.pdfReceiptViewIntent() }
+                    var canOpen by remember(pdfIntent) { mutableStateOf(true) }
+                    LifecycleResumeEffect(pdfIntent) {
+                        canOpen = pdfIntent == null || pdfIntent.resolveActivity(context.packageManager) != null
+                        onPauseOrDispose { }
+                    }
+                    val openReceipt: () -> Unit = {
+                        if (pdfIntent == null) {
+                            viewModel.showFullScreenReceipt()
+                        } else {
+                            try {
+                                context.startActivity(pdfIntent)
+                            } catch (_: ActivityNotFoundException) {
+                                Toast.makeText(context, R.string.txn_detail_receipt_no_pdf_app, Toast.LENGTH_SHORT).show()
+                            } catch (_: SecurityException) {
+                                Toast.makeText(context, R.string.txn_detail_receipt_no_pdf_app, Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    }
                     GroupedColumn(
                         position = ListItemPosition.Single,
-                        modifier = Modifier
-                            .clip(MaterialTheme.shapes.large)
-                            .clickable { viewModel.showFullScreenReceipt() }
+                        onClick = openReceipt.takeIf { canOpen }
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -246,21 +266,29 @@ internal fun TransactionReceipt(
                                 style = PennyWiseText.rowTitle,
                                 modifier = Modifier.weight(1f)
                             )
-                            Text(
-                                text = stringResource(R.string.txn_detail_receipt_tap_to_view),
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            if (canOpen) {
+                                Text(
+                                    text = stringResource(R.string.txn_detail_receipt_tap_to_view),
+                                    style = MaterialTheme.typography.labelMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
                         }
-                        AsyncImage(
-                            model = uri,
+                        ReceiptPreview(
+                            uri = uri,
                             contentDescription = stringResource(R.string.txn_detail_receipt),
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .heightIn(max = RECEIPT_PREVIEW_MAX_HEIGHT)
-                                .clip(MaterialTheme.shapes.medium),
-                            contentScale = ContentScale.Crop
+                                .clip(MaterialTheme.shapes.medium)
                         )
+                        if (!canOpen) {
+                            Text(
+                                text = stringResource(R.string.txn_detail_receipt_no_pdf_viewer),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
                 if (receiptUri == null && receiptMissing) {

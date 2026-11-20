@@ -125,7 +125,14 @@ data class BudgetGroupSpending(
      * rollover is off. [carryGap]: last period couldn't all be counted, so nothing carried.
      */
     val carry: BigDecimal = BigDecimal.ZERO,
-    val carryGap: CarryGap? = null
+    val carryGap: CarryGap? = null,
+    /**
+     * Some spending this budget counts in the displayed window was left out of
+     * [totalActual], so [remaining] reads high: it had no exchange rate (unified
+     * mode, #670) or isn't in the base currency (otherwise; only set when
+     * [BudgetSummaryProvider.summary] is asked to flag it).
+     */
+    val hasUnconvertedSpend: Boolean = false
 ) {
     val carryIncomplete: Boolean get() = carryGap != null
 

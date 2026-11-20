@@ -462,7 +462,10 @@ internal fun EditableExtractedInfoCard(
             receiptUri = displayReceiptUri,
             onReceiptSelected = { uri -> viewModel.updatePendingReceiptUri(uri) },
             onReceiptRemoved = { viewModel.removeReceipt() },
-            onCreateCameraUri = { viewModel.createCameraUri() }
+            onCreateCameraUri = { viewModel.createCameraUri() },
+            receiptError = viewModel.receiptError.collectAsStateWithLifecycle().value?.asString(),
+            checking = viewModel.checkingReceipt.collectAsStateWithLifecycle().value,
+            onCancelCheck = viewModel::cancelReceiptCheck
         )
 
         // Bank (read-only)

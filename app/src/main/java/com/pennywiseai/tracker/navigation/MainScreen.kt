@@ -399,6 +399,9 @@ fun MainScreen(
                 onNavigateToReview = { kind ->
                     openRoot(com.pennywiseai.tracker.navigation.Review(kind.name))
                 },
+                onNavigateToInsights = {
+                    openRoot(Insights)
+                },
                 onNavigateToNetWorth = { currency ->
                     openRoot(NetWorth(currency))
                 },
@@ -597,6 +600,7 @@ fun MainScreen(
                     onNavigateToCalendar = {
                         openRoot(SpendCalendar)
                     },
+                    onNavigateToInsights = { openRoot(Insights) },
                     askAvailable = BottomNavItem.Chat.route !in themeState.hiddenNavTabs
                 )
             }

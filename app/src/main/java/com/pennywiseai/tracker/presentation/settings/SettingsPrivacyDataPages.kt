@@ -114,11 +114,13 @@ internal fun DataPage(
     val isProEntitled by settingsViewModel.isProEntitled.collectAsStateWithLifecycle()
     val importExportMessage by settingsViewModel.importExportMessage.collectAsStateWithLifecycle()
     val exportedBackupFile by settingsViewModel.exportedBackupFile.collectAsStateWithLifecycle()
+    val exportSkippedReceipts by settingsViewModel.exportSkippedReceipts.collectAsStateWithLifecycle()
     val deleteAllTransactionsCount by settingsViewModel.deleteAllTransactionsCount.collectAsStateWithLifecycle()
     val isDeletingAllTransactions by settingsViewModel.isDeletingAllTransactions.collectAsStateWithLifecycle()
     val deleteAllTransactionsResult by settingsViewModel.deleteAllTransactionsResult.collectAsStateWithLifecycle()
     val scheduledFolderBackupEnabled by settingsViewModel.scheduledFolderBackupEnabled.collectAsStateWithLifecycle(initialValue = false)
     val scheduledFolderBackupLastTimestamp by settingsViewModel.scheduledFolderBackupLastTimestamp.collectAsStateWithLifecycle(initialValue = null)
+    val scheduledFolderBackupLastSkippedReceipts by settingsViewModel.scheduledFolderBackupLastSkippedReceipts.collectAsStateWithLifecycle(initialValue = 0)
     val exportIncludeReceipts by settingsViewModel.exportIncludeReceipts.collectAsStateWithLifecycle(initialValue = true)
     val folderBackupIncludeReceipts by settingsViewModel.folderBackupIncludeReceipts.collectAsStateWithLifecycle(initialValue = false)
     val requestFolderPicker by settingsViewModel.requestFolderPicker.collectAsStateWithLifecycle()
@@ -228,7 +230,16 @@ internal fun DataPage(
                     val formatted = java.time.Instant.ofEpochMilli(timestamp)
                         .atZone(java.time.ZoneId.systemDefault())
                         .format(AppDates.dateTimeFormatter())
-                    stringResource(R.string.settings_backup_now_last_backup, formatted)
+                    if (scheduledFolderBackupLastSkippedReceipts > 0) {
+                        pluralStringResource(
+                            R.plurals.settings_backup_now_last_backup_skipped_receipts,
+                            scheduledFolderBackupLastSkippedReceipts,
+                            formatted,
+                            scheduledFolderBackupLastSkippedReceipts
+                        )
+                    } else {
+                        stringResource(R.string.settings_backup_now_last_backup, formatted)
+                    }
                 } ?: stringResource(R.string.settings_backup_now_subtitle),
                 onClick = { settingsViewModel.backupToFolderNow() },
                 position = ListItemPosition.Middle
@@ -390,7 +401,17 @@ internal fun DataPage(
             title = { Text(stringResource(R.string.settings_save_backup_title)) },
             text = {
                 Column {
-                    Text(stringResource(R.string.settings_save_backup_created))
+                    Text(
+                        if (exportSkippedReceipts > 0) {
+                            pluralStringResource(
+                                R.plurals.settings_backup_created_skipped_receipts,
+                                exportSkippedReceipts,
+                                exportSkippedReceipts
+                            )
+                        } else {
+                            stringResource(R.string.settings_save_backup_created)
+                        }
+                    )
                     Spacer(modifier = Modifier.height(Spacing.sm))
                     Text(stringResource(R.string.settings_save_backup_choose), style = MaterialTheme.typography.bodyMedium)
                 }

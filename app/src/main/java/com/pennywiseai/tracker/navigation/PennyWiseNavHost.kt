@@ -33,6 +33,7 @@ import androidx.navigation3.runtime.rememberSaveableStateHolderNavEntryDecorator
 import androidx.navigation3.ui.LocalNavAnimatedContentScope
 import androidx.navigation3.ui.NavDisplay
 import androidx.savedstate.serialization.encodeToSavedState
+import com.pennywiseai.tracker.domain.insights.InsightAction
 import com.pennywiseai.tracker.ui.LocalNavAnimatedVisibilityScope
 import com.pennywiseai.tracker.ui.LocalSharedTransitionScope
 import com.pennywiseai.tracker.ui.animations.LocalNavEntrance
@@ -462,6 +463,13 @@ fun PennyWiseNavHost(
                         )
                     }
 
+                    entry<Insights> { key ->
+                        com.pennywiseai.tracker.presentation.insights.InsightsScreen(
+                            onNavigateBack = { backStack.pop(key) },
+                            onAction = { action -> backStack.navigate(insightDestination(action)) },
+                        )
+                    }
+
                     entry<SpendCalendar> { key ->
                         com.pennywiseai.tracker.presentation.calendar.SpendingCalendarScreen(
                             onNavigateBack = { backStack.pop(key) },
@@ -480,7 +488,7 @@ fun PennyWiseNavHost(
                         )
                     }
 
-                    // Also a tab screen; here for a calendar bill's link.
+                    // Also a tab screen; here for an insight's "Open subscriptions" and a calendar bill's link.
                     entry<Subscriptions> { key ->
                         com.pennywiseai.tracker.presentation.subscriptions.SubscriptionsScreen(
                             onNavigateBack = { backStack.pop(key) },
@@ -504,6 +512,30 @@ fun PennyWiseNavHost(
                             onAccountClick = { bankName, accountLast4 ->
                                 backStack.navigate(AccountDetail(bankName, accountLast4))
                             },
+                        )
+                    }
+
+                    // Also in a tab; here for the runway's "Open accounts", to set a balance.
+                    entry<ManageAccounts> { key ->
+                        com.pennywiseai.tracker.presentation.accounts.ManageAccountsScreen(
+                            onNavigateBack = { backStack.pop(key) },
+                            onNavigateToAddAccount = { backStack.navigate(AddAccount) },
+                            onNavigateToBalanceHistory = { bankName, accountLast4 ->
+                                backStack.navigate(BalanceHistory(bankName, accountLast4))
+                            },
+                            onNavigateToNetWorth = { backStack.navigate(NetWorth()) },
+                        )
+                    }
+
+                    entry<AddAccount> { key ->
+                        com.pennywiseai.tracker.presentation.accounts.AddAccountScreen(
+                            onNavigateBack = { backStack.pop(key) },
+                        )
+                    }
+
+                    entry<BalanceHistory> { key ->
+                        com.pennywiseai.tracker.presentation.accounts.BalanceHistoryScreen(
+                            onNavigateBack = { backStack.pop(key) },
                         )
                     }
 
@@ -534,6 +566,23 @@ fun PennyWiseNavHost(
             )
         }
     }
+}
+
+/** Where an insight's button leads; the domain names the target, the app picks the screen. */
+private fun insightDestination(action: InsightAction): NavKey = when (action) {
+    InsightAction.OpenBudgets -> BudgetGroups()
+    is InsightAction.OpenCategory -> TransactionsWithFilter(
+        category = action.category,
+        period = com.pennywiseai.tracker.presentation.common.TimePeriod.CUSTOM.name,
+        currency = action.currency,
+        startDate = action.start.toEpochDay(),
+        endDate = action.end.toEpochDay(),
+        currencyOnly = true,
+    )
+    is InsightAction.OpenTransaction -> TransactionDetail(action.transactionId)
+    is InsightAction.OpenAccount -> AccountDetail(action.bankName, action.accountLast4)
+    InsightAction.OpenSubscriptions -> Subscriptions()
+    InsightAction.OpenAccounts -> ManageAccounts
 }
 
 /** Where a bill on the calendar leads: the subscriptions, the recurring payments, or the card. */

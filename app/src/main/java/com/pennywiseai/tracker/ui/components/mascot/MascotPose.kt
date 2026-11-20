@@ -114,8 +114,6 @@ private fun smoothstep(x: Float): Float {
     return c * c * (3 - 2 * c)
 }
 
-private fun lerp(a: Float, b: Float, w: Float) = a + (b - a) * w
-
 /** One lid close and reopen: 0 → 1 → 0 over [BLINK_MS]. */
 private fun bump(elapsedMs: Long): Float =
     if (elapsedMs in 0..BLINK_MS) sin(PI * elapsedMs / BLINK_MS).toFloat() else 0f

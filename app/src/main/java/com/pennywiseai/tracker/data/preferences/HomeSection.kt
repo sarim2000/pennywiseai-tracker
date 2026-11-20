@@ -7,11 +7,13 @@ package com.pennywiseai.tracker.data.preferences
  * The hero is fixed and not here; Safe to spend is a line inside it, so its entry only
  * shows or hides that line. Shortcuts come right under the hero, so a new section in
  * that slot reaches upgraders there too.
+ * Sections with [visibleByDefault] set to false start hidden until enabled in Edit home.
  */
-enum class HomeSection(val label: String) {
+enum class HomeSection(val label: String, val visibleByDefault: Boolean = true) {
     SAFE_TO_SPEND("Safe to spend"),
     SHORTCUTS("Shortcuts"),
     UNSORTED("Needs a category"),
+    INSIGHTS("Insights", visibleByDefault = false),
     RECENT_TRANSACTIONS("Recent Transactions"),
     SUBSCRIPTIONS("Upcoming Subscriptions"),
     BUDGETS("Budgets"),
@@ -32,12 +34,13 @@ enum class HomeSection(val label: String) {
 object HomeSectionLayout {
     /** The default order before Home was regrouped; a layout still in it was never reordered. */
     private val LEGACY_ORDER = listOf(
-        HomeSection.SAFE_TO_SPEND, HomeSection.BUDGETS, HomeSection.UNSORTED, HomeSection.RECENT_TRANSACTIONS,
+        HomeSection.SAFE_TO_SPEND, HomeSection.BUDGETS, HomeSection.UNSORTED, HomeSection.INSIGHTS,
+        HomeSection.RECENT_TRANSACTIONS,
         HomeSection.ACCOUNTS, HomeSection.SUBSCRIPTIONS, HomeSection.LOANS, HomeSection.GOALS,
         HomeSection.GROUPS, HomeSection.MONEY_IN_MOTION, HomeSection.ACTIVITY,
     )
 
-    val DEFAULT: List<Pair<HomeSection, Boolean>> = HomeSection.entries.map { it to true }
+    val DEFAULT: List<Pair<HomeSection, Boolean>> = HomeSection.entries.map { it to it.visibleByDefault }
 
     /**
      * What a brand-new install starts with: [DEFAULT] minus the Activity heatmap, which
@@ -58,7 +61,7 @@ object HomeSectionLayout {
 
     /**
      * Unknown names are dropped; enum values absent from the string are inserted
-     * visible at their default position (clamped to the end), so a section added
+     * at their default position (clamped to the end) and visibility, so a section added
      * in a later version shows up where a new user would see it. A layout still in
      * the old default order (never reordered, maybe some hidden) moves to the new
      * default order, keeping what's hidden; a reordered one keeps its order.
@@ -72,12 +75,12 @@ object HomeSectionLayout {
         }.distinctBy { it.first }
         val seen = parsed.mapTo(HashSet()) { it.first }
         if (parsed.map { it.first } == LEGACY_ORDER.filter { it in seen }) {
-            val hidden = parsed.filterNot { it.second }.mapTo(HashSet()) { it.first }
-            return HomeSection.entries.map { it to (it !in hidden) }
+            val savedVisibility = parsed.toMap()
+            return DEFAULT.map { (section, visible) -> section to (savedVisibility[section] ?: visible) }
         }
         val layout = parsed.toMutableList()
         HomeSection.entries.filter { it !in seen }
-            .forEach { layout.add(it.ordinal.coerceAtMost(layout.size), it to true) }
+            .forEach { layout.add(it.ordinal.coerceAtMost(layout.size), it to it.visibleByDefault) }
         return layout
     }
 

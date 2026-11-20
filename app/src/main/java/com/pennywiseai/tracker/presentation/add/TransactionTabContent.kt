@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.presentation.add
 
+import android.content.ActivityNotFoundException
+import android.widget.Toast
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.PickVisualMediaRequest
 import androidx.activity.result.contract.ActivityResultContracts
@@ -21,7 +23,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
@@ -33,17 +35,19 @@ import androidx.compose.ui.text.input.KeyboardCapitalization
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import coil3.compose.AsyncImage
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.receipt.ReceiptManager
 import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.domain.model.getAccountType
 import com.pennywiseai.tracker.presentation.accounts.displayName
 import com.pennywiseai.tracker.presentation.accounts.icon
 import com.pennywiseai.tracker.presentation.categories.CategoryEditDialog
+import com.pennywiseai.tracker.presentation.common.ReceiptPreview
 import com.pennywiseai.tracker.presentation.transactions.transactionTypeLabel
+import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.ui.components.AmountKeyboardBar
 import com.pennywiseai.tracker.ui.components.CategoryChip
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
@@ -430,7 +434,10 @@ fun TransactionTabContent(
                     receiptUri = uiState.receiptUri,
                     onReceiptSelected = { uri -> viewModel.updateReceiptUri(uri) },
                     onReceiptRemoved = { viewModel.updateReceiptUri(null) },
-                    onCreateCameraUri = { viewModel.createCameraUri() }
+                    onCreateCameraUri = { viewModel.createCameraUri() },
+                    receiptError = uiState.receiptError?.asString(),
+                    checking = uiState.checkingReceipt,
+                    onCancelCheck = viewModel::cancelReceiptCheck
                 )
             }
 
@@ -488,9 +495,9 @@ fun TransactionTabContent(
             )
         } else {
             SaveBar(
-                error = uiState.error?.asString(),
+                error = uiState.error?.asString() ?: uiState.receiptError?.takeUnless { moreExpanded }?.asString(),
                 // "120+" counts as 120 for the form, but booking it would drop the rest of the sum.
-                enabled = uiState.isValid && !uiState.isLoading && !amountEntry.isUnfinished,
+                enabled = uiState.isValid && !uiState.isLoading && !uiState.checkingReceipt && !amountEntry.isUnfinished,
                 loading = uiState.isLoading,
                 // Checked again here: an operator typed in the same frame as the tap isn't drawn yet.
                 onClick = { if (!amountEntry.isUnfinished) viewModel.saveTransaction(onSuccess = onSave) },
@@ -593,16 +600,50 @@ fun ReceiptPickerSection(
     receiptUri: android.net.Uri?,
     onReceiptSelected: (android.net.Uri) -> Unit,
     onReceiptRemoved: () -> Unit,
-    onCreateCameraUri: () -> android.net.Uri
+    onCreateCameraUri: () -> android.net.Uri,
+    receiptError: String? = null,
+    checking: Boolean = false,
+    onCancelCheck: () -> Unit = {}
 ) {
     val galleryLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.PickVisualMedia()
+    ) { uri -> uri?.let { onReceiptSelected(it) } }
+    // Some phones report a photo picker that is switched off; the plain file chooser still lists photos.
+    val galleryFallbackLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.GetContent()
+    ) { uri -> uri?.let { onReceiptSelected(it) } }
+
+    val pdfLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.OpenDocument()
     ) { uri -> uri?.let { onReceiptSelected(it) } }
 
     var cameraUri by remember { mutableStateOf<android.net.Uri?>(null) }
     val cameraLauncher = rememberLauncherForActivityResult(
         contract = ActivityResultContracts.TakePicture()
     ) { success -> if (success) cameraUri?.let { onReceiptSelected(it) } }
+
+    val context = LocalContext.current
+    // A picker with no app behind it says so instead of crashing.
+    val launchPicker: (() -> Unit) -> Unit = { launch ->
+        try {
+            launch()
+        } catch (_: ActivityNotFoundException) {
+            Toast.makeText(context, R.string.add_receipt_no_app, Toast.LENGTH_SHORT).show()
+        }
+    }
+    val pickPhoto = {
+        try {
+            galleryLauncher.launch(PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly))
+        } catch (_: ActivityNotFoundException) {
+            launchPicker { galleryFallbackLauncher.launch("image/*") }
+        }
+    }
+    val takePhoto = {
+        val uri = onCreateCameraUri()
+        cameraUri = uri
+        launchPicker { cameraLauncher.launch(uri) }
+    }
+    val pickPdf = { launchPicker { pdfLauncher.launch(arrayOf(ReceiptManager.PDF_MIME)) } }
 
     Column(
         modifier = Modifier.fillMaxWidth(),
@@ -614,19 +655,52 @@ fun ReceiptPickerSection(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
 
+        // Above the buttons, so it's in sight where the file was picked rather than
+        // under the Add screen's floating Save bar.
+        if (checking) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+            ) {
+                CircularProgressIndicator(
+                    modifier = Modifier.size(Dimensions.Icon.small),
+                    strokeWidth = 2.dp
+                )
+                Text(
+                    text = stringResource(R.string.add_receipt_checking),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                // A provider that never answers would otherwise hold Save off for good.
+                TextButton(onClick = onCancelCheck, shapes = ButtonDefaults.shapes()) {
+                    Text(stringResource(R.string.add_receipt_check_cancel))
+                }
+            }
+        }
+
+        receiptError?.let {
+            Text(
+                text = it,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.error,
+                // TalkBack reads out a rejected file, which appears without a screen change.
+                modifier = Modifier.semantics { liveRegion = LiveRegionMode.Polite }
+            )
+        }
+
         if (receiptUri != null) {
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clip(MaterialTheme.shapes.medium)
             ) {
-                AsyncImage(
-                    model = receiptUri,
+                ReceiptPreview(
+                    uri = receiptUri,
                     contentDescription = stringResource(R.string.add_receipt_image),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .heightIn(max = 160.dp),
-                    contentScale = ContentScale.Crop
+                        .heightIn(max = 160.dp)
                 )
                 FilledIconButton(
                     onClick = onReceiptRemoved,
@@ -647,17 +721,52 @@ fun ReceiptPickerSection(
                     )
                 }
             }
+            // Swaps in another file; the current one stays until the new one passes its check.
+            var showReplaceMenu by remember { mutableStateOf(false) }
+            Box {
+                OutlinedButton(
+                    onClick = { showReplaceMenu = true },
+                    modifier = Modifier.fillMaxWidth(),
+                    shapes = ButtonDefaults.shapes()
+                ) {
+                    Icon(Icons.Default.SwapHoriz, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text(stringResource(R.string.add_receipt_replace))
+                }
+                DropdownMenu(expanded = showReplaceMenu, onDismissRequest = { showReplaceMenu = false }) {
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.add_receipt_gallery)) },
+                        leadingIcon = { Icon(Icons.Default.Image, contentDescription = null) },
+                        onClick = {
+                            showReplaceMenu = false
+                            pickPhoto()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.add_receipt_camera)) },
+                        leadingIcon = { Icon(Icons.Default.CameraAlt, contentDescription = null) },
+                        onClick = {
+                            showReplaceMenu = false
+                            takePhoto()
+                        }
+                    )
+                    DropdownMenuItem(
+                        text = { Text(stringResource(R.string.add_receipt_pdf)) },
+                        leadingIcon = { Icon(Icons.Default.PictureAsPdf, contentDescription = null) },
+                        onClick = {
+                            showReplaceMenu = false
+                            pickPdf()
+                        }
+                    )
+                }
+            }
         } else {
             Row(
                 modifier = Modifier.fillMaxWidth(),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 OutlinedButton(
-                    onClick = {
-                        galleryLauncher.launch(
-                            PickVisualMediaRequest(ActivityResultContracts.PickVisualMedia.ImageOnly)
-                        )
-                    },
+                    onClick = pickPhoto,
                     modifier = Modifier.weight(1f),
                     shapes = ButtonDefaults.shapes()
                 ) {
@@ -666,11 +775,7 @@ fun ReceiptPickerSection(
                     Text(stringResource(R.string.add_receipt_gallery))
                 }
                 OutlinedButton(
-                    onClick = {
-                        val uri = onCreateCameraUri()
-                        cameraUri = uri
-                        cameraLauncher.launch(uri)
-                    },
+                    onClick = takePhoto,
                     modifier = Modifier.weight(1f),
                     shapes = ButtonDefaults.shapes()
                 ) {
@@ -679,9 +784,26 @@ fun ReceiptPickerSection(
                     Text(stringResource(R.string.add_receipt_camera))
                 }
             }
+            OutlinedButton(
+                onClick = pickPdf,
+                modifier = Modifier.fillMaxWidth(),
+                shapes = ButtonDefaults.shapes()
+            ) {
+                Icon(Icons.Default.PictureAsPdf, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
+                Spacer(modifier = Modifier.width(Spacing.xs))
+                Text(stringResource(R.string.add_receipt_pdf))
+            }
         }
     }
 }
+
+/** What the receipt picker says when a picked PDF is turned away. */
+fun ReceiptManager.PdfProblem.message(): UiText = UiText.Res(
+    when (this) {
+        ReceiptManager.PdfProblem.TOO_LARGE -> R.string.add_receipt_pdf_too_large
+        ReceiptManager.PdfProblem.UNREADABLE -> R.string.add_receipt_pdf_unreadable
+    }
+)
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable

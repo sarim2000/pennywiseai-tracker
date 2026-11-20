@@ -109,56 +109,52 @@ fun HeatmapWidget(
                         }
                     }
 
-                    // Heatmap grid
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(gapSize),
-                        modifier = Modifier
-                            .horizontalScroll(scrollState)
-                            .padding(bottom = Spacing.sm)
-                    ) {
-                        for (w in 0 until weeksToShow) {
-                            Column(verticalArrangement = Arrangement.spacedBy(gapSize)) {
-                                for (d in 0 until 7) {
-                                    val date = startDate.plusWeeks(w.toLong()).plusDays(d.toLong())
-                                    val epochDay = date.toEpochDay()
-                                    val count = transactionHeatmap[epochDay] ?: 0
+                    // The grid and its month labels scroll together: it opens on the latest
+                    // weeks, so labels pinned outside the scroll named months from its start.
+                    Column(Modifier.horizontalScroll(scrollState)) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(gapSize),
+                            modifier = Modifier.padding(bottom = Spacing.sm)
+                        ) {
+                            for (w in 0 until weeksToShow) {
+                                Column(verticalArrangement = Arrangement.spacedBy(gapSize)) {
+                                    for (d in 0 until 7) {
+                                        val date = startDate.plusWeeks(w.toLong()).plusDays(d.toLong())
+                                        val epochDay = date.toEpochDay()
+                                        val count = transactionHeatmap[epochDay] ?: 0
 
-                                    val primary = MaterialTheme.colorScheme.primary
-                                    val color = when {
-                                        date > today -> MaterialTheme.colorScheme.surfaceContainerHigh
-                                        count == 0 -> MaterialTheme.colorScheme.surfaceContainerHigh
-                                        count == 1 -> primary.copy(alpha = 0.25f)
-                                        count == 2 -> primary.copy(alpha = 0.5f)
-                                        count in 3..4 -> primary.copy(alpha = 0.75f)
-                                        else -> primary
+                                        val primary = MaterialTheme.colorScheme.primary
+                                        val color = when {
+                                            date > today -> MaterialTheme.colorScheme.surfaceContainerHigh
+                                            count == 0 -> MaterialTheme.colorScheme.surfaceContainerHigh
+                                            count == 1 -> primary.copy(alpha = 0.25f)
+                                            count == 2 -> primary.copy(alpha = 0.5f)
+                                            count in 3..4 -> primary.copy(alpha = 0.75f)
+                                            else -> primary
+                                        }
+
+                                        Box(
+                                            modifier = Modifier
+                                                .size(cellSize)
+                                                .clip(MaterialTheme.shapes.small)
+                                                .background(color)
+                                        )
                                     }
-
-                                    Box(
-                                        modifier = Modifier
-                                            .size(cellSize)
-                                            .clip(MaterialTheme.shapes.small)
-                                            .background(color)
-                                    )
                                 }
                             }
                         }
-                    }
-                }
 
-                // Month labels
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = dayLabelWidth)
-                ) {
-                    monthLabels.forEach { (weekIndex, label) ->
-                        val xOffset = (weekIndex * (cellSize + gapSize).value).dp
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.offset(x = xOffset)
-                        )
+                        // Month labels, as wide as the grid so the latest month isn't cut off.
+                        Box(Modifier.width(cellSize * weeksToShow + gapSize * (weeksToShow - 1))) {
+                            monthLabels.forEach { (weekIndex, label) ->
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.offset(x = (cellSize + gapSize) * weekIndex)
+                                )
+                            }
+                        }
                     }
                 }
             }

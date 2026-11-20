@@ -74,9 +74,9 @@ private class DemoLedger(private val db: PennyWiseDatabase, private val today: L
         val borrowed = loan("Demo Peer", LoanDirection.BORROWED, "100.000")
         val market = transaction("market", "Demo Market", "34.000", GROCERIES).copy(groupId = group)
         val marketId = insert(market)
-        insert(transaction("transit", "Demo Tram", "6.500", TRANSPORT).copy(groupId = group))
+        insert(transaction("transit", "Demo Tram", "6.500", TRANSPORT, date = recent(3)).copy(groupId = group))
         val cafe = insert(transaction("cafe", CAFE, "20.000", SUBCATEGORY))
-        insert(transaction("arabic", "مقهى التجربة", "12.000", FOOD))
+        insert(transaction("arabic", "مقهى التجربة", "12.000", FOOD, date = recent(1)))
         insert(transaction("diner-usd", "Sample Diner", "18.00", FOOD, account = business))
         insert(transaction("diner-eur", "Example Bistro", "9.50", FOOD, account = euros))
         insert(transaction("prior-cafe", CAFE, "14.000", SUBCATEGORY, date = lastMonth.plusDays(2)))
@@ -84,20 +84,20 @@ private class DemoLedger(private val db: PennyWiseDatabase, private val today: L
         insert(transaction("prior-diner", "Sample Diner", "10.00", FOOD, date = lastMonth.plusDays(18), account = business))
         insert(transaction("prior-bistro", "Example Bistro", "6.00", FOOD, date = lastMonth.plusDays(23), account = euros))
         insert(transaction("salary", "Demo Payroll", "1200.000", "Salary", type = TransactionType.INCOME))
-        insert(transaction("credit", "Demo Books", "13.000", "Education", account = card, type = TransactionType.CREDIT))
-        insert(transaction("investment", "Demo Index Fund", "75.000", "Investments", type = TransactionType.INVESTMENT))
-        insert(transaction("unsorted", "Demo Unsorted", "3.000", "Others"))
+        insert(transaction("credit", "Demo Books", "13.000", "Education", date = recent(5), account = card, type = TransactionType.CREDIT))
+        insert(transaction("investment", "Demo Index Fund", "75.000", "Investments", date = recent(6), type = TransactionType.INVESTMENT))
+        insert(transaction("unsorted", "Demo Unsorted", "3.000", "Others", date = recent(4)))
         insert(transaction("excluded", "Demo Reimbursable", "99.000", FOOD).copy(excludedFromAnalytics = true))
         val deleted = insert(transaction("deleted", "Demo Removed", "88.000", GROCERIES).copy(isDeleted = true))
         insert(transaction("refund", "Demo Market refund", "4.000", GROCERIES, type = TransactionType.INCOME).copy(
             budgetCategory = GROCERIES, budgetImpactType = BudgetImpactType.DEDUCT_SPENT
         ))
-        val split = insert(transaction("split", "Demo Variety Store", "23.000", "Others"))
+        val split = insert(transaction("split", "Demo Variety Store", "23.000", "Others", date = recent(6)))
         db.transactionSplitDao().insertSplits(listOf(
             TransactionSplitEntity(transactionId = split, category = "Shopping", amount = BigDecimal("18.000")),
             TransactionSplitEntity(transactionId = split, category = TRANSPORT, amount = BigDecimal("5.000"))
         ))
-        val shared = insert(transaction("shared", "Demo Festival", "20.000", "Entertainment").copy(lentSharesTotal = BigDecimal("8.000")))
+        val shared = insert(transaction("shared", "Demo Festival", "20.000", "Entertainment", date = recent(2)).copy(lentSharesTotal = BigDecimal("8.000")))
         db.loanDao().insertShare(LoanShareEntity(transactionId = shared, loanId = lent, amount = BigDecimal("8.000")))
         insert(transaction("borrowed", "Demo Peer", "110.000", "Others", type = TransactionType.INCOME).copy(
             loanId = borrowed, loanContribution = BigDecimal("100.000")
@@ -249,6 +249,8 @@ private class DemoLedger(private val db: PennyWiseDatabase, private val today: L
     )
 
     private suspend fun insert(row: TransactionEntity): Long = db.transactionDao().insertTransaction(row).also { check(it > 0) }
+
+    private fun recent(daysAgo: Long) = today.minusDays(daysAgo).coerceAtLeast(month)
 
     private fun transaction(
         key: String, merchant: String, amount: String, category: String, date: LocalDate = today,

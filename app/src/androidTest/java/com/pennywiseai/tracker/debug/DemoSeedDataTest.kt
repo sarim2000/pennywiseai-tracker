@@ -83,7 +83,11 @@ class DemoSeedDataTest {
             assertEquals("Could not write receipt", error?.message)
             assertEquals(0, db.transactionDao().countAllTransactions())
             assertEquals(0, db.chatDao().getMessageCount())
-            assertEquals(DemoSeedStatus.CREATED, db.seedDemoData(date) { "receipts/demo.pdf" })
+            val retryDate = date.plusDays(19)
+            assertEquals(DemoSeedStatus.CREATED, db.seedDemoData(retryDate) { "receipts/demo.pdf" })
+            val current = db.transactionSplitDao()
+                .getTransactionsWithSplitsAllCurrencies(date.atStartOfDay(), retryDate.atTime(LocalTime.MAX)).first()
+            assertTrue(current.map { it.transaction.dateTime.toLocalDate() }.distinct().size >= 5)
         } finally {
             db.close()
         }

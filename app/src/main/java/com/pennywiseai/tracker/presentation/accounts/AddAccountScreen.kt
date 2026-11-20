@@ -29,6 +29,8 @@ import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.toShape
+import com.pennywiseai.tracker.ui.components.orSupporting
+import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -273,9 +275,11 @@ fun AddAccountScreen(
                     colors = acctColors
                 )
 
+                val balance = rememberAmountEntry(formState.balance, viewModel::updateBalance, formState.currency)
+                val balanceSum = balance.sumHint
                 TextField(
-                    value = formState.balance,
-                    onValueChange = viewModel::updateBalance,
+                    value = balance.value,
+                    onValueChange = balance::onValueChange,
                     label = {
                         Text(
                             // A card's balance is what's owed on it, like a loan's; never the credit left.
@@ -290,7 +294,9 @@ fun AddAccountScreen(
                         )
                     },
                     leadingIcon = { Icon(Icons.Default.Payments, contentDescription = null) },
-                    modifier = Modifier.fillMaxWidth(),
+                    isError = balanceSum?.isError == true,
+                    supportingText = balanceSum.orSupporting(),
+                    modifier = Modifier.fillMaxWidth().then(balance.modifier),
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     shape = ListItemPosition.from(2, stackSize).toShape(),
@@ -299,13 +305,16 @@ fun AddAccountScreen(
 
                 // Credit Limit (only for credit cards)
                 if (credit) {
+                    val limit = rememberAmountEntry(formState.creditLimit, viewModel::updateCreditLimit, formState.currency)
+                    val limitSum = limit.sumHint
                     TextField(
-                        value = formState.creditLimit,
-                        onValueChange = viewModel::updateCreditLimit,
+                        value = limit.value,
+                        onValueChange = limit::onValueChange,
                         label = { Text(stringResource(R.string.add_account_credit_limit_label), fontWeight = FontWeight.SemiBold) },
                         leadingIcon = { Icon(Icons.Default.CreditScore, contentDescription = null) },
-                        supportingText = { Text(stringResource(R.string.add_account_credit_limit_hint)) },
-                        modifier = Modifier.fillMaxWidth(),
+                        isError = limitSum?.isError == true,
+                        supportingText = limitSum.orSupporting { Text(stringResource(R.string.add_account_credit_limit_hint)) },
+                        modifier = Modifier.fillMaxWidth().then(limit.modifier),
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         shape = ListItemPosition.from(3, stackSize).toShape(),

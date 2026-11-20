@@ -27,6 +27,7 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.LoanDirection
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.ui.components.AmountBarHost
 import com.pennywiseai.tracker.ui.components.CategoryMenuItems
 import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.components.SelectedCategoryIcon
@@ -34,6 +35,8 @@ import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.RowLabels
+import com.pennywiseai.tracker.ui.components.orSupporting
+import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -77,173 +80,177 @@ internal fun MarkAsLoanBottomSheet(
         sheetState = sheetState,
         dragHandle = { BottomSheetDefaults.DragHandle() }
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                // Scroll so the loan-amount/note fields and the Confirm button stay
-                // reachable when several existing people are listed — otherwise they're
-                // pushed below the sheet and the user can only proceed via "New person".
-                // (#489)
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = Dimensions.Padding.content)
-                .padding(bottom = Spacing.xl)
-                .navigationBarsPadding(),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md)
-        ) {
-            Text(
-                text = stringResource(
-                    if (direction == LoanDirection.LENT) R.string.txn_detail_loan_sheet_lent else R.string.txn_detail_loan_sheet_borrowed,
-                    CurrencyFormatter.formatCurrency(transactionAmount, transactionCurrency)
-                ),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                text = if (direction == LoanDirection.LENT) stringResource(R.string.txn_detail_loan_sheet_who_lent) else stringResource(R.string.txn_detail_loan_sheet_who_borrowed),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
+        AmountBarHost {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    // Scroll so the loan-amount/note fields and the Confirm button stay
+                    // reachable when several existing people are listed — otherwise they're
+                    // pushed below the sheet and the user can only proceed via "New person".
+                    // (#489)
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = Dimensions.Padding.content)
+                    .padding(bottom = Spacing.xl)
+                    .navigationBarsPadding(),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md)
+            ) {
+                Text(
+                    text = stringResource(
+                        if (direction == LoanDirection.LENT) R.string.txn_detail_loan_sheet_lent else R.string.txn_detail_loan_sheet_borrowed,
+                        CurrencyFormatter.formatCurrency(transactionAmount, transactionCurrency)
+                    ),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    text = if (direction == LoanDirection.LENT) stringResource(R.string.txn_detail_loan_sheet_who_lent) else stringResource(R.string.txn_detail_loan_sheet_who_borrowed),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
 
-            if (!isAddingNew && recentPersonNames.isNotEmpty()) {
-                // Pick from existing people
-                recentPersonNames.forEach { name ->
-                    Surface(
-                        onClick = { personName = name },
-                        shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
-                        color = if (personName == name) loanColor.copy(alpha = 0.12f)
-                        else MaterialTheme.colorScheme.surfaceContainerLow,
-                        border = if (personName == name) BorderStroke(1.dp, loanColor)
-                        else null
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = Spacing.md, vertical = Spacing.sm),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+                if (!isAddingNew && recentPersonNames.isNotEmpty()) {
+                    // Pick from existing people
+                    recentPersonNames.forEach { name ->
+                        Surface(
+                            onClick = { personName = name },
+                            shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
+                            color = if (personName == name) loanColor.copy(alpha = 0.12f)
+                            else MaterialTheme.colorScheme.surfaceContainerLow,
+                            border = if (personName == name) BorderStroke(1.dp, loanColor)
+                            else null
                         ) {
-                            Box(
+                            Row(
                                 modifier = Modifier
-                                    .size(36.dp)
-                                    .clip(CircleShape)
-                                    .background(loanColor.copy(alpha = 0.15f)),
-                                contentAlignment = Alignment.Center
+                                    .fillMaxWidth()
+                                    .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.md)
                             ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(36.dp)
+                                        .clip(CircleShape)
+                                        .background(loanColor.copy(alpha = 0.15f)),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        name.take(1).uppercase(),
+                                        style = MaterialTheme.typography.titleSmall,
+                                        fontWeight = FontWeight.Bold,
+                                        color = loanColor
+                                    )
+                                }
                                 Text(
-                                    name.take(1).uppercase(),
-                                    style = MaterialTheme.typography.titleSmall,
-                                    fontWeight = FontWeight.Bold,
-                                    color = loanColor
+                                    name,
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    modifier = Modifier.weight(1f)
                                 )
+                                if (personName == name) {
+                                    Icon(
+                                        Icons.Default.Check,
+                                        contentDescription = null,
+                                        tint = loanColor,
+                                        modifier = Modifier.size(Dimensions.Icon.small)
+                                    )
+                                }
                             }
-                            Text(
-                                name,
-                                style = MaterialTheme.typography.bodyLarge,
-                                modifier = Modifier.weight(1f)
+                        }
+                    }
+
+                    // Add new person option
+                    TextButton(onClick = { isAddingNew = true; personName = "" }, shapes = ButtonDefaults.shapes()) {
+                        Icon(
+                            Icons.Default.PersonAdd,
+                            contentDescription = null,
+                            modifier = Modifier.size(Dimensions.Icon.small)
+                        )
+                        Spacer(modifier = Modifier.width(Spacing.xs))
+                        Text(stringResource(R.string.txn_detail_loan_new_person))
+                    }
+                } else {
+                    // Text field for new person name
+                    TextField(
+                        value = personName,
+                        onValueChange = { personName = it },
+                        label = { Text(stringResource(R.string.txn_detail_loan_person_name)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = editFullShape,
+                        colors = editFilledColors()
+                    )
+                    if (recentPersonNames.isNotEmpty()) {
+                        TextButton(onClick = { isAddingNew = false; personName = "" }, shapes = ButtonDefaults.shapes()) {
+                            Icon(
+                                Icons.Default.People,
+                                contentDescription = null,
+                                modifier = Modifier.size(Dimensions.Icon.small)
                             )
-                            if (personName == name) {
-                                Icon(
-                                    Icons.Default.Check,
-                                    contentDescription = null,
-                                    tint = loanColor,
-                                    modifier = Modifier.size(Dimensions.Icon.small)
-                                )
-                            }
+                            Spacer(modifier = Modifier.width(Spacing.xs))
+                            Text(stringResource(R.string.txn_detail_loan_pick_existing))
                         }
                     }
                 }
 
-                // Add new person option
-                TextButton(onClick = { isAddingNew = true; personName = "" }, shapes = ButtonDefaults.shapes()) {
-                    Icon(
-                        Icons.Default.PersonAdd,
-                        contentDescription = null,
-                        modifier = Modifier.size(Dimensions.Icon.small)
-                    )
-                    Spacer(modifier = Modifier.width(Spacing.xs))
-                    Text(stringResource(R.string.txn_detail_loan_new_person))
-                }
-            } else {
-                // Text field for new person name
+                // Loan amount (defaults to full txn amount; user lowers when only a
+                // portion of the payment is meant to come back).
+                val loanAmount = rememberAmountEntry(loanAmountInput, { loanAmountInput = it }, transactionCurrency)
+                val loanSum = loanAmount.sumHint
                 TextField(
-                    value = personName,
-                    onValueChange = { personName = it },
-                    label = { Text(stringResource(R.string.txn_detail_loan_person_name)) },
+                    value = loanAmount.value,
+                    onValueChange = loanAmount::onValueChange,
+                    label = { Text(stringResource(R.string.txn_detail_loan_amount)) },
+                    supportingText = loanSum.orSupporting {
+                        Text(
+                            if (parsedLoanAmount != null && parsedLoanAmount < transactionAmount) {
+                                stringResource(R.string.txn_detail_loan_amount_partial_hint)
+                            } else {
+                                stringResource(R.string.txn_detail_loan_amount_max, CurrencyFormatter.formatCurrency(transactionAmount, transactionCurrency))
+                            }
+                        )
+                    },
+                    isError = loanSum?.isError ?: !isLoanAmountValid,
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    modifier = Modifier.fillMaxWidth().then(loanAmount.modifier),
+                    shape = editFullShape,
+                    colors = editFilledColors()
+                )
+
+                // Optional note
+                TextField(
+                    value = note,
+                    onValueChange = { note = it },
+                    label = { Text(stringResource(R.string.txn_detail_loan_note)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth(),
                     shape = editFullShape,
                     colors = editFilledColors()
                 )
-                if (recentPersonNames.isNotEmpty()) {
-                    TextButton(onClick = { isAddingNew = false; personName = "" }, shapes = ButtonDefaults.shapes()) {
-                        Icon(
-                            Icons.Default.People,
-                            contentDescription = null,
-                            modifier = Modifier.size(Dimensions.Icon.small)
+
+                // Confirm button
+                Button(
+                    onClick = {
+                        onConfirm(
+                            personName.trim(),
+                            note.trim().ifEmpty { null },
+                            parsedLoanAmount
                         )
-                        Spacer(modifier = Modifier.width(Spacing.xs))
-                        Text(stringResource(R.string.txn_detail_loan_pick_existing))
-                    }
+                    },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = personName.isNotBlank() && isLoanAmountValid,
+                    shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = loanColor
+                    )
+                ) {
+                    Icon(
+                        Icons.Default.Check,
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimensions.Icon.small)
+                    )
+                    Spacer(modifier = Modifier.width(Spacing.xs))
+                    Text(stringResource(R.string.txn_detail_action_confirm))
                 }
-            }
-
-            // Loan amount (defaults to full txn amount; user lowers when only a
-            // portion of the payment is meant to come back).
-            TextField(
-                value = loanAmountInput,
-                onValueChange = { loanAmountInput = it },
-                label = { Text(stringResource(R.string.txn_detail_loan_amount)) },
-                supportingText = {
-                    Text(
-                        if (parsedLoanAmount != null && parsedLoanAmount < transactionAmount) {
-                            stringResource(R.string.txn_detail_loan_amount_partial_hint)
-                        } else {
-                            stringResource(R.string.txn_detail_loan_amount_max, CurrencyFormatter.formatCurrency(transactionAmount, transactionCurrency))
-                        }
-                    )
-                },
-                isError = !isLoanAmountValid,
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                modifier = Modifier.fillMaxWidth(),
-                shape = editFullShape,
-                colors = editFilledColors()
-            )
-
-            // Optional note
-            TextField(
-                value = note,
-                onValueChange = { note = it },
-                label = { Text(stringResource(R.string.txn_detail_loan_note)) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                shape = editFullShape,
-                colors = editFilledColors()
-            )
-
-            // Confirm button
-            Button(
-                onClick = {
-                    onConfirm(
-                        personName.trim(),
-                        note.trim().ifEmpty { null },
-                        parsedLoanAmount
-                    )
-                },
-                modifier = Modifier.fillMaxWidth(),
-                enabled = personName.isNotBlank() && isLoanAmountValid,
-                shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = loanColor
-                )
-            ) {
-                Icon(
-                    Icons.Default.Check,
-                    contentDescription = null,
-                    modifier = Modifier.size(Dimensions.Icon.small)
-                )
-                Spacer(modifier = Modifier.width(Spacing.xs))
-                Text(stringResource(R.string.txn_detail_action_confirm))
             }
         }
     }

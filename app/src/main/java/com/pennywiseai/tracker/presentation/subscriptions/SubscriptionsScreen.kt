@@ -54,6 +54,7 @@ import com.pennywiseai.tracker.ui.animations.pwExpand
 import com.pennywiseai.tracker.ui.animations.rememberEntranceDone
 import com.pennywiseai.tracker.ui.animations.staggerDelayMs
 import com.pennywiseai.tracker.ui.components.*
+import com.pennywiseai.tracker.ui.components.AmountBarDialogHost
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.DockNavAction
 import com.pennywiseai.tracker.ui.components.LocalNavDock
@@ -66,6 +67,8 @@ import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.components.mascot.Mascot
 import com.pennywiseai.tracker.ui.components.mascot.MascotShape
+import com.pennywiseai.tracker.ui.components.orSupporting
+import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
@@ -931,138 +934,143 @@ private fun EditSubscriptionDialog(
         title = { Text(stringResource(R.string.subscriptions_edit_title)) },
         text = {
             // Scrolls so the last field stays reachable on a short screen with the keyboard up.
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-            ) {
-                OutlinedTextField(
-                    shape = RoundedField.shape,
-                    value = merchantName,
-                    onValueChange = { merchantName = it },
-                    label = { Text(stringResource(R.string.subscriptions_edit_name)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    shape = RoundedField.shape,
-                    value = amountText,
-                    onValueChange = { amountText = it.filter { c -> c.isDigit() || c == '.' } },
-                    label = { Text(stringResource(R.string.subscriptions_edit_amount, subscription.currency)) },
-                    singleLine = true,
-                    keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                        keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
-                    ),
-                    modifier = Modifier.fillMaxWidth(),
-                    isError = parsedAmount == null || (parsedAmount != null && parsedAmount <= BigDecimal.ZERO)
-                )
-                GroupedRow(position = ListItemPosition.Single, onClick = { showDatePicker = true }) {
-                    Icon(Icons.Default.CalendarToday, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                    RowLabels(
-                        title = stringResource(R.string.subscriptions_edit_next_date),
-                        subtitle = nextDate?.format(AppDates.dateFormatter()) ?: stringResource(R.string.subscriptions_edit_tap_to_set),
-                        titleMaxLines = Int.MAX_VALUE
-                    )
-                }
-                OutlinedTextField(
-                    shape = RoundedField.shape,
-                    value = category,
-                    onValueChange = { category = it },
-                    label = { Text(stringResource(R.string.subscriptions_edit_category)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                // Ends after N payments (#1061). Scheduled income is booked without counting, so expenses only.
-                if (subscription.direction == SubscriptionDirection.EXPENSE) {
+            AmountBarDialogHost {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+                ) {
                     OutlinedTextField(
                         shape = RoundedField.shape,
-                        value = totalPaymentsText,
-                        onValueChange = { totalPaymentsText = it.filter { c -> c.isDigit() }.take(3) },
-                        label = { Text(stringResource(R.string.subscriptions_edit_ends_after)) },
-                        isError = totalPaymentsError,
+                        value = merchantName,
+                        onValueChange = { merchantName = it },
+                        label = { Text(stringResource(R.string.subscriptions_edit_name)) },
                         singleLine = true,
-                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
-                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
-                        ),
                         modifier = Modifier.fillMaxWidth()
                     )
-                    if (totalPaymentsText.isNotEmpty()) {
+                    val amount = rememberAmountEntry(amountText, { amountText = it.filter { c -> c.isDigit() || c == '.' } }, subscription.currency)
+                    val amountSum = amount.sumHint
+                    OutlinedTextField(
+                        shape = RoundedField.shape,
+                        value = amount.value,
+                        onValueChange = amount::onValueChange,
+                        label = { Text(stringResource(R.string.subscriptions_edit_amount, subscription.currency)) },
+                        singleLine = true,
+                        keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                            keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
+                        ),
+                        supportingText = amountSum.orSupporting(),
+                        modifier = Modifier.fillMaxWidth().then(amount.modifier),
+                        isError = amountSum?.isError ?: (parsedAmount == null || (parsedAmount != null && parsedAmount <= BigDecimal.ZERO))
+                    )
+                    GroupedRow(position = ListItemPosition.Single, onClick = { showDatePicker = true }) {
+                        Icon(Icons.Default.CalendarToday, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                        RowLabels(
+                            title = stringResource(R.string.subscriptions_edit_next_date),
+                            subtitle = nextDate?.format(AppDates.dateFormatter()) ?: stringResource(R.string.subscriptions_edit_tap_to_set),
+                            titleMaxLines = Int.MAX_VALUE
+                        )
+                    }
+                    OutlinedTextField(
+                        shape = RoundedField.shape,
+                        value = category,
+                        onValueChange = { category = it },
+                        label = { Text(stringResource(R.string.subscriptions_edit_category)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                    // Ends after N payments (#1061). Scheduled income is booked without counting, so expenses only.
+                    if (subscription.direction == SubscriptionDirection.EXPENSE) {
                         OutlinedTextField(
                             shape = RoundedField.shape,
-                            value = paymentsMadeText,
-                            onValueChange = { paymentsMadeText = it.filter { c -> c.isDigit() }.take(3) },
-                            label = { Text(stringResource(R.string.add_sub_already_paid)) },
-                            supportingText = if (paymentsMadeError) {
-                                { Text(stringResource(R.string.add_sub_already_paid_error)) }
-                            } else null,
-                            isError = paymentsMadeError,
+                            value = totalPaymentsText,
+                            onValueChange = { totalPaymentsText = it.filter { c -> c.isDigit() }.take(3) },
+                            label = { Text(stringResource(R.string.subscriptions_edit_ends_after)) },
+                            isError = totalPaymentsError,
                             singleLine = true,
                             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                                 keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
                             ),
                             modifier = Modifier.fillMaxWidth()
                         )
+                        if (totalPaymentsText.isNotEmpty()) {
+                            OutlinedTextField(
+                                shape = RoundedField.shape,
+                                value = paymentsMadeText,
+                                onValueChange = { paymentsMadeText = it.filter { c -> c.isDigit() }.take(3) },
+                                label = { Text(stringResource(R.string.add_sub_already_paid)) },
+                                supportingText = if (paymentsMadeError) {
+                                    { Text(stringResource(R.string.add_sub_already_paid_error)) }
+                                } else null,
+                                isError = paymentsMadeError,
+                                singleLine = true,
+                                keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
+                                    keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
                     }
-                }
 
-                // Funding account (#570). Marking this subscription paid moves
-                // the chosen account's balance; "No account" keeps it unlinked.
-                Box(modifier = Modifier.fillMaxWidth()) {
-                    GroupedRow(position = ListItemPosition.Single, onClick = { showAccountMenu = true }) {
-                        Icon(Icons.Default.AccountBalance, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
-                        RowLabels(
-                            title = stringResource(R.string.subscriptions_edit_paid_from),
-                            subtitle = selectedAccount?.displayLabel ?: stringResource(R.string.subscriptions_edit_no_account),
-                            titleMaxLines = Int.MAX_VALUE,
-                            subtitleMaxLines = Int.MAX_VALUE
-                        )
-                    }
-                    DropdownMenu(
-                        shape = MaterialTheme.shapes.large,
-                        expanded = showAccountMenu,
-                        onDismissRequest = { showAccountMenu = false }
-                    ) {
-                        SelectableDropdownMenuItem(
-                            selected = selectedAccount == null,
-                            shapes = MenuDefaults.itemShape(0, 1),
-                            colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
-                            text = { Text(stringResource(R.string.subscriptions_edit_no_account)) },
-                            onClick = {
-                                selectedAccount = null
-                                accountChanged = true
-                                showAccountMenu = false
-                            },
-                            leadingIcon = { Icon(Icons.Default.Block, contentDescription = null) },
-                            selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
-                        )
-                        HorizontalDivider()
-                        accounts.forEachIndexed { index, account ->
+                    // Funding account (#570). Marking this subscription paid moves
+                    // the chosen account's balance; "No account" keeps it unlinked.
+                    Box(modifier = Modifier.fillMaxWidth()) {
+                        GroupedRow(position = ListItemPosition.Single, onClick = { showAccountMenu = true }) {
+                            Icon(Icons.Default.AccountBalance, contentDescription = null, tint = MaterialTheme.colorScheme.onSurfaceVariant)
+                            RowLabels(
+                                title = stringResource(R.string.subscriptions_edit_paid_from),
+                                subtitle = selectedAccount?.displayLabel ?: stringResource(R.string.subscriptions_edit_no_account),
+                                titleMaxLines = Int.MAX_VALUE,
+                                subtitleMaxLines = Int.MAX_VALUE
+                            )
+                        }
+                        DropdownMenu(
+                            shape = MaterialTheme.shapes.large,
+                            expanded = showAccountMenu,
+                            onDismissRequest = { showAccountMenu = false }
+                        ) {
                             SelectableDropdownMenuItem(
-                                selected = selectedAccount?.id == account.id,
-                                shapes = MenuDefaults.itemShape(index, accounts.size),
+                                selected = selectedAccount == null,
+                                shapes = MenuDefaults.itemShape(0, 1),
                                 colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
-                                text = {
-                                    Column {
-                                        Text(account.displayLabel)
-                                        Text(
-                                            CurrencyFormatter.formatCurrency(account.balance, account.currency),
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                },
+                                text = { Text(stringResource(R.string.subscriptions_edit_no_account)) },
                                 onClick = {
-                                    selectedAccount = account
+                                    selectedAccount = null
                                     accountChanged = true
                                     showAccountMenu = false
                                 },
-                                leadingIcon = {
-                                    Icon(
-                                        account.getAccountType().icon,
-                                        contentDescription = null
-                                    )
-                                },
+                                leadingIcon = { Icon(Icons.Default.Block, contentDescription = null) },
                                 selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
                             )
+                            HorizontalDivider()
+                            accounts.forEachIndexed { index, account ->
+                                SelectableDropdownMenuItem(
+                                    selected = selectedAccount?.id == account.id,
+                                    shapes = MenuDefaults.itemShape(index, accounts.size),
+                                    colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
+                                    text = {
+                                        Column {
+                                            Text(account.displayLabel)
+                                            Text(
+                                                CurrencyFormatter.formatCurrency(account.balance, account.currency),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
+                                    },
+                                    onClick = {
+                                        selectedAccount = account
+                                        accountChanged = true
+                                        showAccountMenu = false
+                                    },
+                                    leadingIcon = {
+                                        Icon(
+                                            account.getAccountType().icon,
+                                            contentDescription = null
+                                        )
+                                    },
+                                    selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
+                                )
+                            }
                         }
                     }
                 }

@@ -24,6 +24,8 @@ import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
+import com.pennywiseai.tracker.ui.components.orSupporting
+import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -99,16 +101,19 @@ fun SubscriptionTabContent(
                 colors = RoundedField.colors()
             )
 
+            // A sum too ("120+35"), with the operator row on the keyboard.
+            val amount = rememberAmountEntry(uiState.amount, viewModel::updateSubscriptionAmount, uiState.currency)
+            val amountSum = amount.sumHint
             TextField(
-                value = uiState.amount,
-                onValueChange = viewModel::updateSubscriptionAmount,
+                value = amount.value,
+                onValueChange = amount::onValueChange,
                 label = { Text(stringResource(R.string.add_field_amount)) },
                 textStyle = MaterialTheme.typography.headlineSmall.money(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                isError = uiState.amountError != null,
-                supportingText = uiState.amountError?.let { { Text(it.asString()) } },
+                isError = amountSum?.isError ?: (uiState.amountError != null),
+                supportingText = amountSum.orSupporting(uiState.amountError?.let { { Text(it.asString()) } }),
                 leadingIcon = { CurrencyButton(uiState.currency, viewModel::updateSubscriptionCurrency) },
-                modifier = Modifier.fillMaxWidth(),
+                modifier = Modifier.fillMaxWidth().then(amount.modifier),
                 singleLine = true,
                 shape = RoundedField.shape,
                 colors = RoundedField.colors()

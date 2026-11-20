@@ -27,6 +27,7 @@ import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.RecurringFrequency
 import com.pennywiseai.tracker.data.database.entity.RecurringTransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.ui.components.AmountBarDialogHost
 import com.pennywiseai.tracker.ui.components.CategoryMenuItems
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
@@ -37,7 +38,9 @@ import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.mascot.Mascot
 import com.pennywiseai.tracker.ui.components.mascot.MascotShape
+import com.pennywiseai.tracker.ui.components.orSupporting
 import com.pennywiseai.tracker.ui.components.pickerDefault
+import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -285,203 +288,213 @@ private fun RecurringEditorDialog(
         onDismissRequest = onDismiss,
         title = { Text(if (form.id == 0L) stringResource(R.string.recurring_editor_new) else stringResource(R.string.recurring_editor_edit)) },
         text = {
-            Column(
-                modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-            ) {
-                OutlinedTextField(
-                    shape = RoundedField.shape,
-                    value = state.merchantName,
-                    onValueChange = { state = state.copy(merchantName = it) },
-                    label = { Text(stringResource(R.string.recurring_field_name)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                    OutlinedTextField(
-                        shape = RoundedField.shape,
-                        value = state.amount,
-                        onValueChange = { input ->
-                            val filtered = input.filter { it.isDigit() || it == '.' }
-                            if (filtered.count { it == '.' } <= 1) state = state.copy(amount = filtered)
-                        },
-                        label = { Text(stringResource(R.string.recurring_field_amount)) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        modifier = Modifier.weight(1f)
-                    )
-                    OutlinedTextField(
-                        shape = RoundedField.shape,
-                        value = state.currency,
-                        onValueChange = { state = state.copy(currency = it.uppercase().take(3)) },
-                        label = { Text(stringResource(R.string.recurring_field_currency)) },
-                        singleLine = true,
-                        modifier = Modifier.width(Dimensions.Component.tableCellWidth)
-                    )
-                }
-
-                // Type: Expense / Income
-                Row(
+            AmountBarDialogHost {
+                Column(
                     modifier = Modifier.fillMaxWidth(),
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
-                ) {
-                    // Switching type picks that type's default category (#876).
-                    FilterChip(
-                        selected = state.transactionType == TransactionType.EXPENSE,
-                        shapes = FilterChipDefaults.shapes(),
-                        colors = FilterChipDefaults.filterChipColors(),
-                        onClick = {
-                            if (state.transactionType != TransactionType.EXPENSE) {
-                                state = state.copy(transactionType = TransactionType.EXPENSE, category = categoryFor(TransactionType.EXPENSE))
-                            }
-                        },
-                        label = { Text(stringResource(R.string.recurring_expense)) }
-                    )
-                    FilterChip(
-                        selected = state.transactionType == TransactionType.INCOME,
-                        shapes = FilterChipDefaults.shapes(),
-                        colors = FilterChipDefaults.filterChipColors(),
-                        onClick = {
-                            if (state.transactionType != TransactionType.INCOME) {
-                                state = state.copy(transactionType = TransactionType.INCOME, category = categoryFor(TransactionType.INCOME))
-                            }
-                        },
-                        label = { Text(stringResource(R.string.recurring_income)) }
-                    )
-                }
-
-                // Category dropdown
-                ExposedDropdownMenuBox(
-                    expanded = categoryExpanded,
-                    onExpandedChange = { categoryExpanded = it }
+                    verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
                     OutlinedTextField(
                         shape = RoundedField.shape,
-                        value = categoryLabel(state.category),
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text(stringResource(R.string.recurring_field_category)) },
-                        leadingIcon = { SelectedCategoryIcon(categories.find { it.name == state.category }) },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(categoryExpanded) },
-                        modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth()
+                        value = state.merchantName,
+                        onValueChange = { state = state.copy(merchantName = it) },
+                        label = { Text(stringResource(R.string.recurring_field_name)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
                     )
-                    ExposedDropdownMenu(
-                        shape = MaterialTheme.shapes.large,
-                        expanded = categoryExpanded,
-                        onDismissRequest = { categoryExpanded = false }
-                    ) {
-                        CategoryMenuItems(
-                            categories = categories,
-                            isIncome = state.transactionType == TransactionType.INCOME,
-                            onSelected = {
-                                state = state.copy(category = it.name)
-                                categoryExpanded = false
-                            }
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                        val amount = rememberAmountEntry(
+                            state.amount,
+                            { input ->
+                                val filtered = input.filter { it.isDigit() || it == '.' }
+                                if (filtered.count { it == '.' } <= 1) state = state.copy(amount = filtered)
+                            },
+                            state.currency
                         )
-                    }
-                }
-
-                // Frequency dropdown
-                ExposedDropdownMenuBox(
-                    expanded = freqExpanded,
-                    onExpandedChange = { freqExpanded = it }
-                ) {
-                    OutlinedTextField(
-                        shape = RoundedField.shape,
-                        value = state.frequency.label(),
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text(stringResource(R.string.recurring_field_frequency)) },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(freqExpanded) },
-                        modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth()
-                    )
-                    ExposedDropdownMenu(
-                        shape = MaterialTheme.shapes.large,
-                        expanded = freqExpanded,
-                        onDismissRequest = { freqExpanded = false }
-                    ) {
-                        RecurringFrequency.entries.forEach { freq ->
-                            DropdownMenuItem(
-                                text = { Text(freq.label()) },
-                                onClick = {
-                                    state = state.copy(frequency = freq)
-                                    freqExpanded = false
-                                }
-                            )
-                        }
-                    }
-                }
-
-                // Day selector — depends on cadence
-                when (state.frequency) {
-                    RecurringFrequency.MONTHLY -> {
+                        val amountSum = amount.sumHint
                         OutlinedTextField(
                             shape = RoundedField.shape,
-                            value = state.dayOfMonth?.toString() ?: "",
-                            onValueChange = { input ->
-                                val n = input.filter { it.isDigit() }.toIntOrNull()
-                                state = state.copy(dayOfMonth = n?.coerceIn(1, 31))
-                            },
-                            label = { Text(stringResource(R.string.recurring_field_day_of_month)) },
+                            value = amount.value,
+                            onValueChange = amount::onValueChange,
+                            label = { Text(stringResource(R.string.recurring_field_amount)) },
+                            isError = amountSum?.isError == true,
+                            supportingText = amountSum.orSupporting(),
                             singleLine = true,
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            modifier = Modifier.fillMaxWidth()
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            modifier = Modifier.weight(1f).then(amount.modifier)
+                        )
+                        OutlinedTextField(
+                            shape = RoundedField.shape,
+                            value = state.currency,
+                            onValueChange = { state = state.copy(currency = it.uppercase().take(3)) },
+                            label = { Text(stringResource(R.string.recurring_field_currency)) },
+                            singleLine = true,
+                            modifier = Modifier.width(Dimensions.Component.tableCellWidth)
                         )
                     }
-                    RecurringFrequency.WEEKLY -> {
-                        ExposedDropdownMenuBox(
-                            expanded = dowExpanded,
-                            onExpandedChange = { dowExpanded = it }
-                        ) {
-                            OutlinedTextField(
-                                shape = RoundedField.shape,
-                                value = state.dayOfWeek?.let { dayOfWeekNames[it - 1] } ?: stringResource(R.string.recurring_day_of_week_any),
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text(stringResource(R.string.recurring_field_day_of_week)) },
-                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(dowExpanded) },
-                                modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth()
-                            )
-                            ExposedDropdownMenu(
-                                shape = MaterialTheme.shapes.large,
-                                expanded = dowExpanded,
-                                onDismissRequest = { dowExpanded = false }
-                            ) {
-                                dayOfWeekNames.forEachIndexed { index, name ->
-                                    DropdownMenuItem(
-                                        text = { Text(name) },
-                                        onClick = {
-                                            state = state.copy(dayOfWeek = index + 1)
-                                            dowExpanded = false
-                                        }
-                                    )
+
+                    // Type: Expense / Income
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+                    ) {
+                        // Switching type picks that type's default category (#876).
+                        FilterChip(
+                            selected = state.transactionType == TransactionType.EXPENSE,
+                            shapes = FilterChipDefaults.shapes(),
+                            colors = FilterChipDefaults.filterChipColors(),
+                            onClick = {
+                                if (state.transactionType != TransactionType.EXPENSE) {
+                                    state = state.copy(transactionType = TransactionType.EXPENSE, category = categoryFor(TransactionType.EXPENSE))
                                 }
+                            },
+                            label = { Text(stringResource(R.string.recurring_expense)) }
+                        )
+                        FilterChip(
+                            selected = state.transactionType == TransactionType.INCOME,
+                            shapes = FilterChipDefaults.shapes(),
+                            colors = FilterChipDefaults.filterChipColors(),
+                            onClick = {
+                                if (state.transactionType != TransactionType.INCOME) {
+                                    state = state.copy(transactionType = TransactionType.INCOME, category = categoryFor(TransactionType.INCOME))
+                                }
+                            },
+                            label = { Text(stringResource(R.string.recurring_income)) }
+                        )
+                    }
+
+                    // Category dropdown
+                    ExposedDropdownMenuBox(
+                        expanded = categoryExpanded,
+                        onExpandedChange = { categoryExpanded = it }
+                    ) {
+                        OutlinedTextField(
+                            shape = RoundedField.shape,
+                            value = categoryLabel(state.category),
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text(stringResource(R.string.recurring_field_category)) },
+                            leadingIcon = { SelectedCategoryIcon(categories.find { it.name == state.category }) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(categoryExpanded) },
+                            modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth()
+                        )
+                        ExposedDropdownMenu(
+                            shape = MaterialTheme.shapes.large,
+                            expanded = categoryExpanded,
+                            onDismissRequest = { categoryExpanded = false }
+                        ) {
+                            CategoryMenuItems(
+                                categories = categories,
+                                isIncome = state.transactionType == TransactionType.INCOME,
+                                onSelected = {
+                                    state = state.copy(category = it.name)
+                                    categoryExpanded = false
+                                }
+                            )
+                        }
+                    }
+
+                    // Frequency dropdown
+                    ExposedDropdownMenuBox(
+                        expanded = freqExpanded,
+                        onExpandedChange = { freqExpanded = it }
+                    ) {
+                        OutlinedTextField(
+                            shape = RoundedField.shape,
+                            value = state.frequency.label(),
+                            onValueChange = {},
+                            readOnly = true,
+                            label = { Text(stringResource(R.string.recurring_field_frequency)) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(freqExpanded) },
+                            modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth()
+                        )
+                        ExposedDropdownMenu(
+                            shape = MaterialTheme.shapes.large,
+                            expanded = freqExpanded,
+                            onDismissRequest = { freqExpanded = false }
+                        ) {
+                            RecurringFrequency.entries.forEach { freq ->
+                                DropdownMenuItem(
+                                    text = { Text(freq.label()) },
+                                    onClick = {
+                                        state = state.copy(frequency = freq)
+                                        freqExpanded = false
+                                    }
+                                )
                             }
                         }
                     }
-                    RecurringFrequency.DAILY -> { /* no day selector */ }
-                }
 
-                OutlinedTextField(
-                    shape = RoundedField.shape,
-                    value = state.note,
-                    onValueChange = { state = state.copy(note = it) },
-                    label = { Text(stringResource(R.string.recurring_field_note)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                    // Day selector — depends on cadence
+                    when (state.frequency) {
+                        RecurringFrequency.MONTHLY -> {
+                            OutlinedTextField(
+                                shape = RoundedField.shape,
+                                value = state.dayOfMonth?.toString() ?: "",
+                                onValueChange = { input ->
+                                    val n = input.filter { it.isDigit() }.toIntOrNull()
+                                    state = state.copy(dayOfMonth = n?.coerceIn(1, 31))
+                                },
+                                label = { Text(stringResource(R.string.recurring_field_day_of_month)) },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                modifier = Modifier.fillMaxWidth()
+                            )
+                        }
+                        RecurringFrequency.WEEKLY -> {
+                            ExposedDropdownMenuBox(
+                                expanded = dowExpanded,
+                                onExpandedChange = { dowExpanded = it }
+                            ) {
+                                OutlinedTextField(
+                                    shape = RoundedField.shape,
+                                    value = state.dayOfWeek?.let { dayOfWeekNames[it - 1] } ?: stringResource(R.string.recurring_day_of_week_any),
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    label = { Text(stringResource(R.string.recurring_field_day_of_week)) },
+                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(dowExpanded) },
+                                    modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable).fillMaxWidth()
+                                )
+                                ExposedDropdownMenu(
+                                    shape = MaterialTheme.shapes.large,
+                                    expanded = dowExpanded,
+                                    onDismissRequest = { dowExpanded = false }
+                                ) {
+                                    dayOfWeekNames.forEachIndexed { index, name ->
+                                        DropdownMenuItem(
+                                            text = { Text(name) },
+                                            onClick = {
+                                                state = state.copy(dayOfWeek = index + 1)
+                                                dowExpanded = false
+                                            }
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        RecurringFrequency.DAILY -> { /* no day selector */ }
+                    }
 
-                Row(
-                    modifier = Modifier.fillMaxWidth(),
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween
-                ) {
-                    Text(stringResource(R.string.recurring_field_active), style = MaterialTheme.typography.bodyLarge)
-                    Switch(
-                        checked = state.isActive,
-                        onCheckedChange = { state = state.copy(isActive = it) }
+                    OutlinedTextField(
+                        shape = RoundedField.shape,
+                        value = state.note,
+                        onValueChange = { state = state.copy(note = it) },
+                        label = { Text(stringResource(R.string.recurring_field_note)) },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth()
                     )
+
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween
+                    ) {
+                        Text(stringResource(R.string.recurring_field_active), style = MaterialTheme.typography.bodyLarge)
+                        Switch(
+                            checked = state.isActive,
+                            onCheckedChange = { state = state.copy(isActive = it) }
+                        )
+                    }
                 }
             }
         },

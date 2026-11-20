@@ -49,6 +49,8 @@ import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
+import com.pennywiseai.tracker.ui.components.orSupporting
+import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
@@ -673,13 +675,18 @@ private fun BudgetHeaderCard(
 
             // Budget amount (right side)
             if (isEditingAmount) {
-                BasicTextField(
-                    value = amount,
-                    onValueChange = { value ->
+                val entry = rememberAmountEntry(
+                    amount,
+                    { value ->
                         if (value.isEmpty() || value.matches(Regex("^\\d*\\.?\\d*$"))) {
                             onAmountChange(value)
                         }
                     },
+                    currency
+                )
+                BasicTextField(
+                    value = entry.value,
+                    onValueChange = entry::onValueChange,
                     textStyle = MaterialTheme.typography.headlineSmall.money().copy(
                         color = MaterialTheme.colorScheme.onSurface,
                         textAlign = TextAlign.End
@@ -691,12 +698,14 @@ private fun BudgetHeaderCard(
                         imeAction = ImeAction.Done
                     ),
                     keyboardActions = KeyboardActions(onDone = {
+                        entry.fold()
                         onAmountDone()
                         focusManager.clearFocus()
                     }),
                     modifier = Modifier
                         .fillMaxWidth()
-                        .focusRequester(amountFocusRequester),
+                        .focusRequester(amountFocusRequester)
+                        .then(entry.modifier),
                     decorationBox = { innerTextField ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
@@ -705,7 +714,7 @@ private fun BudgetHeaderCard(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Box {
-                                if (amount.isEmpty()) {
+                                if (entry.value.text.isEmpty()) {
                                     Text(
                                         text = "0",
                                         style = MaterialTheme.typography.headlineSmall.money(),
@@ -717,6 +726,13 @@ private fun BudgetHeaderCard(
                         }
                     }
                 )
+                entry.sumHint?.let { hint ->
+                    Text(
+                        text = hint.text,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (hint.isError) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             } else {
                 val displayAmount = CurrencyFormatter.formatCurrency(amount.toBigDecimalOrNull() ?: BigDecimal.ZERO, currency)
 
@@ -779,19 +795,27 @@ private fun CategoryBudgetRow(
             }
         }
 
-        TextField(
-            value = amountText,
-            onValueChange = { value ->
+        val entry = rememberAmountEntry(
+            amountText,
+            { value ->
                 if (value.isEmpty() || value.matches(Regex("^\\d*\\.?\\d*$"))) {
                     amountText = value
                     val parsed = value.toBigDecimalOrNull() ?: BigDecimal.ZERO
                     onAmountChange(parsed)
                 }
             },
+            currency
+        )
+        val sum = entry.sumHint
+        TextField(
+            value = entry.value,
+            onValueChange = entry::onValueChange,
             label = { Text(stringResource(R.string.plan_budget_category_limit)) },
             prefix = { Text(CurrencyFormatter.getCurrencySymbol(currency)) },
+            isError = sum?.isError == true,
+            supportingText = sum.orSupporting(),
             singleLine = true,
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f).then(entry.modifier),
             textStyle = MaterialTheme.typography.bodyMedium,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
             shape = RoundedField.shape,

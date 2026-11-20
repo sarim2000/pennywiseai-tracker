@@ -23,10 +23,13 @@ import androidx.compose.ui.text.style.TextOverflow
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
+import com.pennywiseai.tracker.ui.components.AmountBarDialogHost
 import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.components.cards.GroupedColumn
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.toShape
+import com.pennywiseai.tracker.ui.components.orSupporting
+import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -503,26 +506,32 @@ private fun LowBalanceThresholdDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.manage_accounts_low_balance_alert)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Text(
-                    text = accountLabel,
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = stringResource(R.string.manage_accounts_low_balance_alert_description, CurrencyFormatter.formatCurrency(currentBalance, currency)),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                OutlinedTextField(
-                    value = text,
-                    onValueChange = { text = it },
-                    label = { Text(stringResource(R.string.manage_accounts_threshold_label, currency)) },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedField.shape
-                )
+            AmountBarDialogHost {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    Text(
+                        text = accountLabel,
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = stringResource(R.string.manage_accounts_low_balance_alert_description, CurrencyFormatter.formatCurrency(currentBalance, currency)),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    val entry = rememberAmountEntry(text, { text = it }, currency)
+                    val sum = entry.sumHint
+                    OutlinedTextField(
+                        value = entry.value,
+                        onValueChange = entry::onValueChange,
+                        label = { Text(stringResource(R.string.manage_accounts_threshold_label, currency)) },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        isError = sum?.isError == true,
+                        supportingText = sum.orSupporting(),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().then(entry.modifier),
+                        shape = RoundedField.shape
+                    )
+                }
             }
         },
         confirmButton = {

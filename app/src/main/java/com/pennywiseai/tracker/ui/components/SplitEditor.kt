@@ -277,9 +277,9 @@ private fun SplitRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Amount field
-            TextField(
-                value = amountText,
-                onValueChange = { newValue ->
+            val amount = rememberAmountEntry(
+                amountText,
+                { newValue ->
                     val filtered = newValue.filter { it.isDigit() || it == '.' }
                     if (filtered.count { it == '.' } <= 1) {
                         amountText = filtered
@@ -287,8 +287,16 @@ private fun SplitRow(
                         onAmountChanged(parsedAmount)
                     }
                 },
+                currency
+            )
+            val amountSum = amount.sumHint
+            TextField(
+                value = amount.value,
+                onValueChange = amount::onValueChange,
+                isError = amountSum?.isError == true,
+                supportingText = amountSum.orSupporting(),
                 singleLine = true,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).then(amount.modifier),
                 textStyle = MaterialTheme.typography.bodyMedium,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 prefix = {

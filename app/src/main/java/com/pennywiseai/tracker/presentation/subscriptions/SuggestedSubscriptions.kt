@@ -38,11 +38,14 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.domain.spending.RecurringSuggestion
+import com.pennywiseai.tracker.ui.components.AmountBarHost
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
+import com.pennywiseai.tracker.ui.components.orSupporting
+import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
@@ -170,124 +173,130 @@ internal fun RecurringSuggestionSheet(
     ) {
         // Scrolls, so a year of payments on a small screen can't push the amount
         // and Track bill out of reach.
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = Dimensions.Padding.content, vertical = Spacing.md),
-        ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                BrandIcon(merchantName = suggestion.merchantName, category = suggestion.category, size = Dimensions.Icon.avatar)
-                Spacer(Modifier.width(Spacing.md))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = suggestion.merchantName,
-                        style = MaterialTheme.typography.titleMedium,
-                        fontWeight = FontWeight.SemiBold,
-                    )
-                    Text(
-                        text = stringResource(
-                            R.string.subscription_suggestion_sheet_subtitle,
-                            billingCycleLabel(suggestion.billingCycle),
-                            categoryLabel(suggestion.category)
-                        ),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    )
+        AmountBarHost {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = Dimensions.Padding.content, vertical = Spacing.md),
+            ) {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    BrandIcon(merchantName = suggestion.merchantName, category = suggestion.category, size = Dimensions.Icon.avatar)
+                    Spacer(Modifier.width(Spacing.md))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = suggestion.merchantName,
+                            style = MaterialTheme.typography.titleMedium,
+                            fontWeight = FontWeight.SemiBold,
+                        )
+                        Text(
+                            text = stringResource(
+                                R.string.subscription_suggestion_sheet_subtitle,
+                                billingCycleLabel(suggestion.billingCycle),
+                                categoryLabel(suggestion.category)
+                            ),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                 }
-            }
-            Spacer(Modifier.height(Spacing.lg))
+                Spacer(Modifier.height(Spacing.lg))
 
-            Text(
-                text = pluralStringResource(
-                    R.plurals.subscription_suggestion_sheet_found,
-                    suggestion.payments.size,
-                    suggestion.payments.size
-                ),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(Spacing.sm))
-            val dateFormatter = AppDates.dateFormatter()
-            var showAllPayments by remember(suggestion.key) { mutableStateOf(false) }
-            val newestFirst = suggestion.payments.asReversed()
-            val shownPayments = if (showAllPayments) newestFirst else newestFirst.take(PAYMENTS_PREVIEW)
-            GroupedList {
-                shownPayments.forEachIndexed { index, payment ->
-                    GroupedRow(position = ListItemPosition.from(index, shownPayments.size)) {
-                        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
-                            Text(payment.date.format(dateFormatter), style = PennyWiseText.rowSubtitle)
-                            Text(
-                                CurrencyFormatter.formatCurrency(payment.amount, suggestion.currency),
-                                style = PennyWiseText.amountRow
-                            )
+                Text(
+                    text = pluralStringResource(
+                        R.plurals.subscription_suggestion_sheet_found,
+                        suggestion.payments.size,
+                        suggestion.payments.size
+                    ),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(Spacing.sm))
+                val dateFormatter = AppDates.dateFormatter()
+                var showAllPayments by remember(suggestion.key) { mutableStateOf(false) }
+                val newestFirst = suggestion.payments.asReversed()
+                val shownPayments = if (showAllPayments) newestFirst else newestFirst.take(PAYMENTS_PREVIEW)
+                GroupedList {
+                    shownPayments.forEachIndexed { index, payment ->
+                        GroupedRow(position = ListItemPosition.from(index, shownPayments.size)) {
+                            Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
+                                Text(payment.date.format(dateFormatter), style = PennyWiseText.rowSubtitle)
+                                Text(
+                                    CurrencyFormatter.formatCurrency(payment.amount, suggestion.currency),
+                                    style = PennyWiseText.amountRow
+                                )
+                            }
                         }
                     }
                 }
-            }
-            if (newestFirst.size > PAYMENTS_PREVIEW) {
-                TextButton(onClick = { showAllPayments = !showAllPayments }, shapes = ButtonDefaults.shapes()) {
+                if (newestFirst.size > PAYMENTS_PREVIEW) {
+                    TextButton(onClick = { showAllPayments = !showAllPayments }, shapes = ButtonDefaults.shapes()) {
+                        Text(
+                            if (showAllPayments) stringResource(R.string.subscriptions_suggested_show_less)
+                            else stringResource(R.string.subscriptions_suggested_show_all, newestFirst.size)
+                        )
+                    }
+                }
+                Spacer(Modifier.height(Spacing.md))
+
+                val amountEntry = rememberAmountEntry(amountText, { amountText = it }, suggestion.currency)
+                val amountSum = amountEntry.sumHint
+                OutlinedTextField(
+                    shape = RoundedField.shape,
+                    value = amountEntry.value,
+                    onValueChange = amountEntry::onValueChange,
+                    label = { Text(stringResource(R.string.subscription_suggestion_sheet_amount, suggestion.currency)) },
+                    singleLine = true,
+                    isError = amountSum?.isError ?: (amount == null),
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    supportingText = amountSum.orSupporting(
+                        if (suggestion.isVariable) {
+                            { Text(stringResource(R.string.subscription_suggestion_sheet_variable_hint)) }
+                        } else null
+                    ),
+                    modifier = Modifier.fillMaxWidth().then(amountEntry.modifier),
+                )
+                Spacer(Modifier.height(Spacing.sm))
+                Text(
+                    text = stringResource(
+                        R.string.subscription_suggestion_sheet_next,
+                        suggestion.nextDueDate.format(dateFormatter)
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                )
+                Spacer(Modifier.height(Spacing.lg))
+
+                Button(
+                    onClick = { amount?.let { closeThen { onTrack(it) } } },
+                    enabled = amount != null,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(Dimensions.Component.buttonHeight),
+                    shape = MaterialTheme.shapes.large,
+                ) {
                     Text(
-                        if (showAllPayments) stringResource(R.string.subscriptions_suggested_show_less)
-                        else stringResource(R.string.subscriptions_suggested_show_all, newestFirst.size)
+                        text = stringResource(R.string.subscription_suggestion_sheet_track),
+                        style = MaterialTheme.typography.titleSmall,
+                        fontWeight = FontWeight.SemiBold,
                     )
                 }
-            }
-            Spacer(Modifier.height(Spacing.md))
-
-            OutlinedTextField(
-                shape = RoundedField.shape,
-                value = amountText,
-                onValueChange = { amountText = it },
-                label = { Text(stringResource(R.string.subscription_suggestion_sheet_amount, suggestion.currency)) },
-                singleLine = true,
-                isError = amount == null,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                supportingText = if (suggestion.isVariable) {
-                    { Text(stringResource(R.string.subscription_suggestion_sheet_variable_hint)) }
-                } else null,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            Spacer(Modifier.height(Spacing.sm))
-            Text(
-                text = stringResource(
-                    R.string.subscription_suggestion_sheet_next,
-                    suggestion.nextDueDate.format(dateFormatter)
-                ),
-                style = MaterialTheme.typography.bodyMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            Spacer(Modifier.height(Spacing.lg))
-
-            Button(
-                onClick = { amount?.let { closeThen { onTrack(it) } } },
-                enabled = amount != null,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(Dimensions.Component.buttonHeight),
-                shape = MaterialTheme.shapes.large,
-            ) {
+                TextButton(
+                    onClick = { closeThen(onNotRecurring) },
+                    modifier = Modifier.fillMaxWidth(),
+                    shapes = ButtonDefaults.shapes(),
+                ) {
+                    Text(stringResource(R.string.subscription_suggestion_not_recurring))
+                }
                 Text(
-                    text = stringResource(R.string.subscription_suggestion_sheet_track),
-                    style = MaterialTheme.typography.titleSmall,
-                    fontWeight = FontWeight.SemiBold,
+                    text = stringResource(R.string.subscription_suggestion_sheet_helper),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.fillMaxWidth(),
+                    textAlign = androidx.compose.ui.text.style.TextAlign.Center,
                 )
+                Spacer(Modifier.height(Spacing.sm))
             }
-            TextButton(
-                onClick = { closeThen(onNotRecurring) },
-                modifier = Modifier.fillMaxWidth(),
-                shapes = ButtonDefaults.shapes(),
-            ) {
-                Text(stringResource(R.string.subscription_suggestion_not_recurring))
-            }
-            Text(
-                text = stringResource(R.string.subscription_suggestion_sheet_helper),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.fillMaxWidth(),
-                textAlign = androidx.compose.ui.text.style.TextAlign.Center,
-            )
-            Spacer(Modifier.height(Spacing.sm))
         }
     }
 }

@@ -33,6 +33,8 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.orSupporting
+import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -364,14 +366,18 @@ private fun BalanceHistoryItem(
                 Column(
                     verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
+                    val entry = rememberAmountEntry(editingValue, onEditValueChange, accountPrimaryCurrency)
+                    val sum = entry.sumHint
                     TextField(
-                        value = editingValue,
-                        onValueChange = onEditValueChange,
+                        value = entry.value,
+                        onValueChange = entry::onValueChange,
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Decimal
                         ),
+                        isError = sum?.isError == true,
+                        supportingText = sum.orSupporting(),
                         singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier.fillMaxWidth().then(entry.modifier),
                         label = { Text(stringResource(R.string.balance_history_new_balance)) },
                         leadingIcon = {
                             Text(

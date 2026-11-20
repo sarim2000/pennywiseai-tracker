@@ -60,6 +60,8 @@ import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
+import com.pennywiseai.tracker.ui.components.orSupporting
+import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -146,16 +148,22 @@ fun GoalEditScreen(
                     onSelect = { c -> viewModel.update { it.copy(currency = c) } },
                     modifier = Modifier.weight(0.4f),
                 )
+                val target = rememberAmountEntry(
+                    form.target,
+                    { v -> if (v.matches(amountInput(form.currency))) viewModel.update { it.copy(target = v) } },
+                    form.currency
+                )
+                val targetSum = target.sumHint
                 OutlinedTextField(
                     shape = RoundedField.shape,
-                    value = form.target,
-                    onValueChange = { v -> if (v.matches(amountInput(form.currency))) viewModel.update { it.copy(target = v) } },
+                    value = target.value,
+                    onValueChange = target::onValueChange,
                     label = { Text(stringResource(R.string.goal_edit_target)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    isError = GoalFieldError.TARGET_INVALID in errors,
-                    supportingText = errorText(GoalFieldError.TARGET_INVALID in errors, R.string.goal_edit_error_target),
-                    modifier = Modifier.weight(0.6f),
+                    isError = targetSum?.isError ?: (GoalFieldError.TARGET_INVALID in errors),
+                    supportingText = targetSum.orSupporting(errorText(GoalFieldError.TARGET_INVALID in errors, R.string.goal_edit_error_target)),
+                    modifier = Modifier.weight(0.6f).then(target.modifier),
                 )
             }
             if (state.currencyLocked) {
@@ -183,16 +191,22 @@ fun GoalEditScreen(
             )
 
             if (!state.isEditing) {
+                val saved = rememberAmountEntry(
+                    form.alreadySaved,
+                    { v -> if (v.matches(amountInput(form.currency))) viewModel.update { it.copy(alreadySaved = v) } },
+                    form.currency
+                )
+                val savedSum = saved.sumHint
                 OutlinedTextField(
                     shape = RoundedField.shape,
-                    value = form.alreadySaved,
-                    onValueChange = { v -> if (v.matches(amountInput(form.currency))) viewModel.update { it.copy(alreadySaved = v) } },
+                    value = saved.value,
+                    onValueChange = saved::onValueChange,
                     label = { Text(stringResource(R.string.goal_edit_already_saved)) },
                     prefix = { Text(CurrencyFormatter.getCurrencySymbol(form.currency)) },
                     singleLine = true,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    isError = GoalFieldError.ALREADY_SAVED_INVALID in errors,
-                    supportingText = {
+                    isError = savedSum?.isError ?: (GoalFieldError.ALREADY_SAVED_INVALID in errors),
+                    supportingText = savedSum.orSupporting {
                         Text(
                             stringResource(
                                 if (GoalFieldError.ALREADY_SAVED_INVALID in errors) R.string.goal_edit_error_already_saved
@@ -200,7 +214,7 @@ fun GoalEditScreen(
                             )
                         )
                     },
-                    modifier = Modifier.fillMaxWidth(),
+                    modifier = Modifier.fillMaxWidth().then(saved.modifier),
                 )
             }
 

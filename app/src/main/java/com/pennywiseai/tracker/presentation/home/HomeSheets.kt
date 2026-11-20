@@ -195,6 +195,13 @@ internal fun EditHomeSectionsSheet(
                     .padding(bottom = Spacing.sm)
                     .fillMaxWidth()
             )
+            EditHomeShortcuts(
+                shortcuts = shortcuts,
+                onToggle = onToggleShortcut,
+                modifier = Modifier
+                    .padding(horizontal = Dimensions.Padding.content)
+                    .padding(bottom = Spacing.md)
+            )
             items.forEachIndexed { i, (section, isVisible) ->
                 // Keyed so a row keeps its composition (and its in-flight drag) as it moves.
                 key(section) {
@@ -298,13 +305,6 @@ internal fun EditHomeSectionsSheet(
                     }
                 }
             }
-            EditHomeShortcuts(
-                shortcuts = shortcuts,
-                onToggle = onToggleShortcut,
-                modifier = Modifier
-                    .padding(horizontal = Dimensions.Padding.content)
-                    .padding(top = Spacing.md)
-            )
         }
     }
 }

@@ -1,6 +1,6 @@
 # Android Debug demo data
 
-Install the Debug APK you want to test on a fresh, disposable Android emulator. From the repo root, run:
+Install the Debug APK you want to test on a fresh, disposable Android emulator. Run the seed from the repo root.
 
 ```sh
 ANDROID_SERIAL=<emulator-serial> ./scripts/seed-debug.sh
@@ -8,7 +8,7 @@ ANDROID_SERIAL=<emulator-serial> ./scripts/seed-debug.sh
 
 `ANDROID_SERIAL` can be omitted when ADB has one device. Open PennyWise after the command completes. On a fresh install the seed finishes onboarding, skips SMS access and shows JOD as the base currency. Repeating the command leaves the original seed dates and rows in place. Use a fresh disposable installation for a clean slate or a new date anchor. The command refuses a database with existing user content.
 
-The seed writes a synthetic ledger into the app's Room database. It covers six calendar months across JOD, USD and EUR and both profiles. Look for:
+The seed writes a synthetic ledger into the app's Room database. It covers six calendar months across JOD, USD and EUR and both profiles.
 
 | Screen or workflow | Examples |
 | --- | --- |
@@ -23,7 +23,7 @@ The seed writes a synthetic ledger into the app's Room database. It covers six c
 
 ## Check the real chat
 
-Open Chat in the seeded app and install the on-device model from the app if needed. Keep the profile filter on **All** and unified currency off for these figures. The spending rows for the current month are dated on the seed day. Run these questions in the seed month, before editing the examples.
+Open Chat in the seeded app. You can try the budget and bill quick actions immediately. For typed questions, use **Download** in Chat to install the on-device model. Keep the profile filter on **All** and unified currency off for these figures. The spending rows for the current month are dated on the seed day. Run these questions in the seed month, before editing the examples.
 
 | English | العربية | Expected data |
 | --- | --- | --- |
@@ -34,6 +34,6 @@ Open Chat in the seeded app and install the on-device model from the app if need
 | Which bills are due in the next seven days? | ما الفواتير المستحقة خلال الأيام السبعة القادمة؟ | Demo Streaming is due two days after seeding. Demo Internet was due one day before seeding. |
 | Add a 3.500 JOD expense for Demo Tea today. | أضف مصروفًا بقيمة ٣٫٥٠٠ دينار أردني لـ Demo Tea اليوم. | Review a draft for JOD 3.500. Confirm it to write the transaction. |
 
-The budget and bill quick actions check the real data without model routing. Typed questions also exercise routing. [chat-eval](../scripts/chat-eval/README.md) measures the model and its tool calls separately. [SmsProbeReceiver](../.agents/skills/emulator-verify/SKILL.md#4-seed-synthetic-data) exercises real SMS parsing and alerts.
+[chat-eval](../scripts/chat-eval/README.md) measures the model and its tool calls separately. [SmsProbeReceiver](../.agents/skills/emulator-verify/SKILL.md#4-seed-synthetic-data) exercises real SMS parsing and alerts.
 
 The seed performs no webhook delivery and requires no bank messages, license or connector credentials. For external AI pairing and the Dashboard, use the [relay's local fake phone](../relay/README.md).

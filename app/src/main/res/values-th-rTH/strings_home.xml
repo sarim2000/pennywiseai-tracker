@@ -11,7 +11,6 @@
     <string name="home_manage">จัดการ</string>
     <string name="home_search_transactions">ค้นหาธุรกรรม</string>
     <string name="home_cancel">ยกเลิก</string>
-    <string name="home_close">ปิด</string>
     <!-- Home sections (headers + edit-home sheet) -->
     <string name="home_section_budgets">งบประมาณ</string>
     <string name="home_section_goals">เป้าหมาย</string>
@@ -43,13 +42,6 @@
     <string name="home_edit_description">จัดลำดับใหม่หรือซ่อนส่วนบนหน้าหลักของคุณ</string>
     <string name="home_edit_move_up">เลื่อน %1$s ขึ้น</string>
     <string name="home_edit_move_down">เลื่อน %1$s ลง</string>
-    <!-- Calculation breakdown dialog -->
-    <string name="home_breakdown_title">รายละเอียดการคำนวณ</string>
-    <!-- Month name, then day range, e.g. "March 1-15" -->
-    <string name="home_breakdown_formula">สูตร: รายได้ - ค่าใช้จ่าย = มูลค่าสุทธิ\nสีเขียว (+) = เงินออม | สีแดง (-) = ใช้เกิน</string>
-    <string name="home_breakdown_income">รายได้</string>
-    <string name="home_breakdown_expenses">ค่าใช้จ่าย</string>
-    <string name="home_breakdown_net_worth">มูลค่าสุทธิ</string>
     <!-- Subscriptions + loans summary cards -->
     <plurals name="home_active_subscriptions">
         <item quantity="other">การสมัครสมาชิกที่ใช้งานอยู่ %1$d รายการ</item>

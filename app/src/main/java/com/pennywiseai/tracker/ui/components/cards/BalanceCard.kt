@@ -24,7 +24,6 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.DropdownMenu
@@ -131,8 +130,6 @@ fun BalanceCard(
     isUnifiedMode: Boolean = false,
     isApproximate: Boolean = false,
     onCurrencySelected: (String) -> Unit,
-    /** Opens the income / expenses / net breakdown, from the opened card. */
-    onShowBreakdown: () -> Unit = {},
     isBalanceHidden: Boolean = false,
     onToggleBalanceVisibility: () -> Unit = {},
     /** Shows the accounts' total in the opened card when there are any. */
@@ -286,7 +283,6 @@ fun BalanceCard(
                             isBalanceHidden = isBalanceHidden,
                             hasAccounts = hasAccounts,
                             onOpenNetWorth = onOpenNetWorth,
-                            onShowBreakdown = onShowBreakdown,
                             actionLabel = stringResource(
                                 if (budget != null) R.string.home_hero_view_budget else R.string.home_hero_see_transactions
                             ),
@@ -503,7 +499,6 @@ private fun MonthDetails(
     isBalanceHidden: Boolean,
     hasAccounts: Boolean,
     onOpenNetWorth: (() -> Unit)?,
-    onShowBreakdown: () -> Unit,
     actionLabel: String,
     onAction: () -> Unit,
 ) {
@@ -569,23 +564,12 @@ private fun MonthDetails(
 
         Spacer(modifier = Modifier.height(Spacing.lg))
 
-        // The month's figures, with how they're worked out a tap away on the info button.
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = stringResource(R.string.balance_card_this_month),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f)
-            )
-            IconButton(onClick = onShowBreakdown, shapes = IconButtonDefaults.shapes()) {
-                Icon(
-                    imageVector = Icons.Outlined.Info,
-                    contentDescription = stringResource(R.string.home_breakdown_title),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(Dimensions.Icon.inline)
-                )
-            }
-        }
+        Text(
+            text = stringResource(R.string.balance_card_this_month),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.height(Spacing.Layout.headerToContent))
         // Income | Expenses | Lent | Saved, with coloured accent bars. FlowRow so long
         // amounts (a 3-letter "MZN" prefix on big numbers) wrap onto a second line
         // instead of crushing the last column into one character per line.

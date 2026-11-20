@@ -401,7 +401,6 @@ fun HomeScreen(
                                 isBalanceHidden = uiState.isBalanceHidden,
                                 onToggleBalanceVisibility = { viewModel.toggleBalanceVisibility() },
                                 onCurrencySelected = { viewModel.selectCurrency(it) },
-                                onShowBreakdown = { viewModel.showBreakdownDialog() },
                                 hasAccounts = uiState.accountBalances.isNotEmpty(),
                                 budget = heroBudget,
                                 cycleEnd = currentCycleWindow.second,
@@ -786,20 +785,6 @@ fun HomeScreen(
                 onDismiss = { viewModel.cancelSmsScan() },
                 onCancel = { viewModel.cancelSmsScan() }
             )
-
-            // Breakdown Dialog
-            if (uiState.showBreakdownDialog) {
-                BreakdownDialog(
-                    currentMonthIncome = uiState.currentMonthIncome,
-                    currentMonthExpenses = uiState.currentMonthExpenses,
-                    currentMonthTotal = uiState.currentMonthTotal,
-                    lastMonthIncome = uiState.lastMonthIncome,
-                    lastMonthExpenses = uiState.lastMonthExpenses,
-                    lastMonthTotal = uiState.lastMonthTotal,
-                    currency = uiState.selectedCurrency,
-                    onDismiss = { viewModel.hideBreakdownDialog() }
-                )
-            }
         }
 
         // Avatar menu bottom sheet

@@ -11,7 +11,6 @@
     <string name="home_manage">Administrar</string>
     <string name="home_search_transactions">Buscar transacciones</string>
     <string name="home_cancel">Cancelar</string>
-    <string name="home_close">Cerrar</string>
     <!-- Home sections (headers + edit-home sheet) -->
     <string name="home_section_budgets">Presupuestos</string>
     <string name="home_section_goals">Metas</string>
@@ -43,13 +42,6 @@
     <string name="home_edit_description">Reordena u oculta secciones de tu pantalla de inicio.</string>
     <string name="home_edit_move_up">Subir %1$s</string>
     <string name="home_edit_move_down">Bajar %1$s</string>
-    <!-- Calculation breakdown dialog -->
-    <string name="home_breakdown_title">Desglose del cálculo</string>
-    <!-- Month name, then day range, e.g. "March 1-15" -->
-    <string name="home_breakdown_formula">Fórmula: Ingresos - Gastos = Patrimonio neto\nVerde (+) = Ahorro | Rojo (-) = Gasto excesivo</string>
-    <string name="home_breakdown_income">Ingresos</string>
-    <string name="home_breakdown_expenses">Gastos</string>
-    <string name="home_breakdown_net_worth">Patrimonio neto</string>
     <!-- Subscriptions + loans summary cards -->
     <plurals name="home_active_subscriptions">
         <item quantity="one">%1$d suscripción activa</item>

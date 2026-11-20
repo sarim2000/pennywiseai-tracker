@@ -11,7 +11,6 @@
     <string name="home_manage">मैनेज करें</string>
     <string name="home_search_transactions">लेन-देन खोजें</string>
     <string name="home_cancel">रद्द करें</string>
-    <string name="home_close">बंद करें</string>
     <!-- Home sections (headers + edit-home sheet) -->
     <string name="home_section_budgets">बजट</string>
     <string name="home_section_goals">लक्ष्य</string>
@@ -43,13 +42,6 @@
     <string name="home_edit_description">अपने होम स्क्रीन पर सेक्शन्स को पुन: क्रमित या छुपाएँ।</string>
     <string name="home_edit_move_up">%1$s को ऊपर ले जाएँ</string>
     <string name="home_edit_move_down">%1$s को नीचे ले जाएँ</string>
-    <!-- Calculation breakdown dialog -->
-    <string name="home_breakdown_title">गणना का विभाजन</string>
-    <!-- Month name, then day range, e.g. "March 1-15" -->
-    <string name="home_breakdown_formula">फ़ॉर्मूला: आय - खर्च = कुल संपत्ति\nहरा (+) = बचत | लाल (-) = ज़्यादा खर्च</string>
-    <string name="home_breakdown_income">आय</string>
-    <string name="home_breakdown_expenses">खर्च</string>
-    <string name="home_breakdown_net_worth">कुल संपत्ति</string>
     <!-- Subscriptions + loans summary cards -->
     <plurals name="home_active_subscriptions">
         <item quantity="one">%1$d एक्टिव सदस्यता</item>

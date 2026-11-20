@@ -11,7 +11,6 @@
     <string name="home_manage">Simamia</string>
     <string name="home_search_transactions">Tafuta miamala</string>
     <string name="home_cancel">Ghairi</string>
-    <string name="home_close">Funga</string>
     <!-- Home sections (headers + edit-home sheet) -->
     <string name="home_section_budgets">Bajeti</string>
     <string name="home_section_goals">Malengo</string>
@@ -43,13 +42,6 @@
     <string name="home_edit_description">Panga upya au ficha sehemu kwenye skrini yako ya mwanzo.</string>
     <string name="home_edit_move_up">Peleka %1$s juu</string>
     <string name="home_edit_move_down">Peleka %1$s chini</string>
-    <!-- Calculation breakdown dialog -->
-    <string name="home_breakdown_title">Ufafanuzi wa Hesabu</string>
-    <!-- Month name, then day range, e.g. "March 1-15" -->
-    <string name="home_breakdown_formula">Fomula: Mapato - Matumizi = Thamani Halisi\nKijani (+) = Akiba | Nyekundu (-) = Matumizi kupita kiasi</string>
-    <string name="home_breakdown_income">Mapato</string>
-    <string name="home_breakdown_expenses">Matumizi</string>
-    <string name="home_breakdown_net_worth">Thamani Halisi</string>
     <!-- Subscriptions + loans summary cards -->
     <plurals name="home_active_subscriptions">
         <item quantity="one">Usajili %1$d unaoendelea</item>

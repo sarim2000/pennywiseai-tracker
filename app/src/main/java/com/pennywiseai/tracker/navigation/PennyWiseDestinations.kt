@@ -171,6 +171,10 @@ data object MascotPlayground : NavKey
 @Serializable
 data object BackgroundAccess : NavKey
 
+/** "Why didn't my transaction show up?": access, background, last scan, not imported. */
+@Serializable
+data object SmsCheckup : NavKey
+
 @Serializable
 data object LearnedCategories : NavKey
 
@@ -192,6 +196,10 @@ data class TransactionsWithFilter(
  */
 @Serializable
 data class Review(val kind: String = "MONTH", val weekStart: String? = null) : NavKey
+
+/** What needs attention this cycle; opened from Home (its menu and section) and the evening recap. */
+@Serializable
+data object Insights : NavKey
 
 /** A month of daily spend and payments due; opened from Analytics. */
 @Serializable

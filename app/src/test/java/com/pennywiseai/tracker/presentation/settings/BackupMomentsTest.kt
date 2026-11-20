@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.presentation.settings
 
 import android.content.Context
 import android.net.Uri
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.backup.folder.FolderBackupWriter
 import com.pennywiseai.tracker.core.AppForegroundState
 import com.pennywiseai.tracker.data.backup.BackupExporter
@@ -11,6 +12,7 @@ import com.pennywiseai.tracker.data.backup.ImportResult
 import com.pennywiseai.tracker.data.events.MascotMoment
 import com.pennywiseai.tracker.data.events.MascotMoments
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
+import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.widget.WidgetRefresher
 import com.pennywiseai.tracker.worker.DailySummaryWorker
 import com.pennywiseai.tracker.worker.WeeklySummaryWorker
@@ -112,6 +114,17 @@ class BackupMomentsTest {
 
         viewModel.backupToFolderNow()
 
+        assertEquals(listOf<MascotMoment>(MascotMoment.BackupSaved), heard)
+    }
+
+    @Test
+    fun `enabling folder backup reports skipped receipts and announces the successful write once`() {
+        coEvery { exporter.exportBackup(any(), any()) } returns ExportResult.Success(backupFile, skippedReceipts = 2)
+        every { writer.writeBackup(any(), any()) } returns FolderBackupWriter.Result.Success
+
+        viewModel.setScheduledFolderBackupEnabled(true)
+
+        assertEquals(UiText.Plural(R.plurals.settings_folder_backup_enabled_skipped_receipts, 2), viewModel.importExportMessage.value)
         assertEquals(listOf<MascotMoment>(MascotMoment.BackupSaved), heard)
     }
 

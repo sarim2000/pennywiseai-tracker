@@ -11,6 +11,7 @@ import com.pennywiseai.tracker.data.repository.ManualRepayment
 import com.pennywiseai.tracker.domain.loan.LoanMath
 import com.pennywiseai.tracker.widget.WidgetRefresher
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.just
 import io.mockk.mockk
@@ -114,6 +115,7 @@ class LoanPaidOffMomentTest {
     fun `settling forgives what's left, so it says nothing`() {
         coEvery { loans.settleLoan(3) } answers { stored = settled }
         viewModel().settleLoan()
+        coVerify(exactly = 1) { loans.settleLoan(3) }
         verify(exactly = 0) { moments.announce(any()) }
     }
 }

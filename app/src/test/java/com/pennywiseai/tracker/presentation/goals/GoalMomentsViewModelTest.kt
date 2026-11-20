@@ -28,6 +28,7 @@ import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
 import org.junit.After
+import org.junit.Assert.assertEquals
 import org.junit.Before
 import org.junit.Test
 import java.math.BigDecimal
@@ -105,9 +106,11 @@ class GoalMomentsViewModelTest {
 
     @Test
     fun `editing a contribution says nothing, even past the target`() {
+        coEvery { goals.updateContribution(any()) } answers { saved = firstArg<GoalContributionEntity>().amount }
         val vm = detailViewModel()
         vm.saveContributionEdit(GoalContributionEntity(id = 1, goalId = 1, amount = BigDecimal("700")), BigDecimal("1000"), today, "")
-        coVerify { goals.updateContribution(any()) }
+        // The edit did take the goal to its target.
+        assertEquals(0, BigDecimal("1000").compareTo(saved))
         verify(exactly = 0) { moments.announce(any()) }
     }
 

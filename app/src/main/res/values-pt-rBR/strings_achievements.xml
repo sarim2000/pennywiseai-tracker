@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Achievements screen -->
+    <!-- %1$s = an achievement's name -->
+    <!-- %1$d = achievements earned, %2$d = all achievements -->
+    <!-- %1$d = tiers earned, %2$d = all tiers -->
+    <!-- %1$s = a date -->
+    <!-- Progress toward a tier. %1$s = where you are, %2$s = what it takes, e.g. "120 / 500" -->
+    <!-- Each achievement: a name, and what its tier asks for, said as done -->
+    <!-- %1$s = a number of transactions -->
+    <!-- %1$s = a number of months -->
+    <!-- %1$s = a number of goals -->
+</resources>

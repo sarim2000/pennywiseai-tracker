@@ -36,8 +36,7 @@
     <string name="review_coverage">مبني على المعاملات المسجّلة، ولا يشمل الدفع النقدي الذي لم تضفه.</string>
     <!-- %1$s, %2$s = first and last recorded dates -->
     <string name="review_coverage_span">مبني على المعاملات المسجّلة من %1$s إلى %2$s، ولا يشمل الدفع النقدي الذي لم تضفه.</string>
-
-    <!-- PDF report -->
+    <!-- PDF report: printed, so worded for paper rather than the screen -->
     <string name="review_pdf_title">تقرير PennyWise</string>
     <!-- %1$s = profile name, or "All profiles" -->
     <string name="review_pdf_profile">الملف الشخصي: %1$s</string>

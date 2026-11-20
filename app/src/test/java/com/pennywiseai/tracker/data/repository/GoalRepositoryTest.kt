@@ -122,17 +122,22 @@ class GoalRepositoryTest {
 
     @Test
     fun contributionReportsTheProgressAroundItReadInItsOwnTransaction() = runBlocking {
-        var inTransaction = false
+        // Each transaction gets its own id; every read and the insert note the one they ran in.
+        var current: Int? = null
+        var opened = 0
         coEvery { database.withTransaction(any<suspend () -> Any?>()) } coAnswers {
-            inTransaction = true
-            try { secondArg<suspend () -> Any?>().invoke() } finally { inTransaction = false }
+            current = ++opened
+            try { secondArg<suspend () -> Any?>().invoke() } finally { current = null }
         }
+        val reads = mutableListOf<Int?>()
+        val inserts = mutableListOf<Int?>()
         val rows = mutableListOf(GoalContributionEntity(id = 1, goalId = 1, amount = BigDecimal("900")))
         coEvery { goalDao.getEffectiveContributionsForGoal(1) } answers {
-            assertTrue("read outside the write's transaction", inTransaction)
+            reads += current
             rows.toList()
         }
         coEvery { goalDao.insertContribution(any()) } answers {
+            inserts += current
             rows += firstArg<GoalContributionEntity>().copy(id = rows.size + 1L)
             rows.size.toLong()
         }
@@ -143,11 +148,16 @@ class GoalRepositoryTest {
         assertEquals(GoalStatus.IN_PROGRESS, reaching.before.status)
         assertEquals(GoalStatus.REACHED, reaching.after.status)
         assertTrue(GoalRules.reachedBetween(reaching.before, reaching.after))
+        // Both reads and the insert ran in the same, single transaction.
+        assertEquals(listOf(1, 1), reads)
+        assertEquals(listOf(1), inserts)
 
         // The next one, even queued right behind it, sees the goal already reached.
         val next = repo.addContribution(1, BigDecimal("50"), today = today)
         assertEquals(GoalStatus.REACHED, next.before.status)
         assertFalse(GoalRules.reachedBetween(next.before, next.after))
+        assertEquals(listOf(1, 1, 2, 2), reads)
+        assertEquals(listOf(1, 2), inserts)
         coVerify(exactly = 0) { goalDao.observeEffectiveContributionsForGoal(any()) }
     }
 

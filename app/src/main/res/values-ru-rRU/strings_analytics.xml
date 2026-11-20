@@ -155,6 +155,8 @@
     <string name="budget_edit_resets_on_day">Сбрасывается в день %1$d каждого месяца</string>
     <string name="budget_edit_runs_once">Выполняется один раз, без опрокидывания</string>
     <string name="budget_edit_current_window">Текущее окно</string>
+    <!-- Link under budget_rollover_incomplete; opens the Exchange Rates screen -->
+    <!-- Shown while a budget is in the period rollover was turned on in, which carries nothing in -->
     <!-- %1$s = start date, %2$s = end date, %3$s = reset rule (e.g. "Resets every Monday") -->
     <string name="budget_edit_window_caption">%1$s – %2$s · %3$s</string>
     <string name="budget_edit_category_limits">Ограничения категории (опционально)</string>
@@ -303,6 +305,7 @@
     <string name="subscriptions_edit_paid_from">Оплачено от</string>
     <string name="subscriptions_edit_pick_account">Выбрать аккаунт</string>
     <string name="subscriptions_edit_save">Сохранить</string>
+    <!-- A plan that ends after a set number of payments (#1061). %1$d = paid, %2$d = total, %3$s = amount left -->
     <!-- Mark-as-paid results (snackbar); %1$s = merchant, %2$s = next payment date -->
     <string name="subscriptions_msg_marked_paid">%1$s отмечено оплачено · следующий цикл на %2$s</string>
     <string name="subscriptions_msg_linked">%1$s привязан · Следующий цикл на %2$s</string>
@@ -311,6 +314,7 @@
     <string name="subscriptions_msg_not_found">Не удалось найти эту подписку</string>
     <string name="subscriptions_msg_linked_existing">%1$s привязан к существующему платежу · следующий цикл на %2$s</string>
     <string name="subscriptions_msg_linked_generic">Связанные</string>
+    <!-- %1$s = merchant, %2$d = number of payments in the plan -->
     <!-- ══ Mark-as-paid sheet ══ -->
     <string name="mark_paid_eyebrow_paid">МАРК КАК ПАЙД</string>
     <string name="mark_paid_eyebrow_received">МАРКА ПОЛУЧЕНО</string>

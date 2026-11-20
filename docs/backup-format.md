@@ -80,17 +80,25 @@ one file format and every v1.x app can read it (older apps ignore the key):
 
 - `path` is the transaction's `receiptPath` (relative to `filesDir`);
   `data_base64` is the file's bytes, standard Base64. Both defaulted to `""`.
-- **Export** includes photos only when the caller opts in and only for `FULL`
-  exports. Settings has one toggle per path: *Include receipt photos* for
+- **Export** includes receipts only when the caller opts in and only for `FULL`
+  exports. Settings has one toggle per path: *Include receipts* for
   manual export (pref `export_include_receipts`, default **on**) and for
   Automatic Folder Backup (pref `folder_backup_include_receipts`, default
   **off**: it runs daily). Missing/unreadable files are skipped and logged.
+  A receipt is a JPEG photo or a PDF (`receipts/receipt_<ms>_<n>.pdf`, copied as
+  is). Photos always go in, with no size cap, as before PDFs. A PDF over 5 MB
+  (`ReceiptFiles.MAX_RECEIPT_BYTES`), or one that would take the backup past
+  50 MB of PDFs (`BackupReceipts.MAX_TOTAL_BYTES`), is left out, and the export
+  message (or, for the daily folder backup, its "Last backup" line) says how many.
 - **Import** treats `path` as untrusted: only `receipts/<name>` that resolves
   (canonically) directly inside `filesDir/receipts` is written. Absolute paths,
   `..`, nested dirs and backslashes are rejected. A receipt is written only if a
   transaction in the DB after the import points at that path (so a merge
   restores exactly the photos of the rows it kept), and an existing file is
-  never overwritten. Runs after the DB transaction commits.
+  never overwritten. Runs after the DB transaction commits. A PDF over 5 MB is
+  skipped: by its `data_base64` length before decoding, then by its decoded
+  size. The import message counts it only when no file is already at that path
+  (a merge onto the same phone keeps the copy it has). Photos restore at any size.
 - A transaction whose `receiptPath` file is missing shows "Receipt photo not
   included in this backup" on its detail screen.
 

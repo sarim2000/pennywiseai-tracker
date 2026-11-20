@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Home: the section, its title in Edit home, and the menu entry -->
+    <!-- Insights screen -->
+    <!-- What active subscriptions cost a month, beside this cycle's figures -->
+    <!-- Empty page for someone with earlier transactions, early in a new cycle -->
+    <!-- Under the title of an insight the user dismissed, in the "Show dismissed" list -->
+    <!-- %1$d = how many insights were dismissed this cycle -->
+    <!-- Under the first few heads-ups. %1$d = how many more there are -->
+    <!-- %1$d = a whole percentage -->
+    <!-- Metric labels on an expanded insight -->
+    <!-- Action buttons -->
+    <!-- Budget over. %1$s = amount over, %2$s = budget name (often already ends in "Budget", so don't add the word) -->
+    <!-- Budget limit reached with days still to go. %1$s = budget name -->
+    <!-- Budget pace. %1$s = amount per day, %2$s = budget name -->
+    <!-- %1$s = the budget period's end date -->
+    <!-- Category spike. %1$s = amount, %2$s = category, %3$s = percentage -->
+    <!-- Under a category spike: the usual figure is for a whole cycle -->
+    <!-- Savings rate. %1$s = percentage -->
+    <!-- Under either savings insight -->
+    <!-- %1$s = amount -->
+    <!-- Large transaction. %1$s = amount, %2$s = merchant, %3$s = how many times, e.g. "4×" -->
+    <!-- %1$d = how many times the usual amount (3 or more) -->
+    <!-- %1$s = category, %2$s = date -->
+    <!-- Price change. %1$s = subscription name, %2$s = new amount -->
+    <!-- Card utilisation. %1$s = percentage, %2$s = card name -->
+    <!-- Bills due. %1$s = total, %2$d = days -->
+    <!-- %1$s = the subscriptions due, soonest first, as a list ("Spotify and Netflix"), %2$s = date of the first -->
+    <!-- The first is due today. %1$s = the subscriptions due, soonest first, as a list -->
+</resources>

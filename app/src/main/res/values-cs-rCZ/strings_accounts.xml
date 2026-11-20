@@ -309,4 +309,6 @@
         <item quantity="many">Zobrazit všechny %1$d účty</item>
         <item quantity="other">Zobrazit všechny %1$d účty</item>
     </plurals>
+    <!-- Card bill on a credit card's page (Safe to spend sets it aside) -->
+    <!-- Net worth: what you own minus what you owe, per currency -->
 </resources>

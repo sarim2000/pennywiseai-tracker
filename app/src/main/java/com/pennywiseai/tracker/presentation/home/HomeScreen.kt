@@ -76,6 +76,7 @@ fun HomeScreen(
     onNavigateToTransactionsWithSearch: () -> Unit = {},
     onNavigateToSubscriptions: () -> Unit = {},
     onNavigateToReview: (ReviewKind) -> Unit = {},
+    onNavigateToInsights: () -> Unit = {},
     onNavigateToNetWorth: (currency: String) -> Unit = {},
     onNavigateToShareStudio: () -> Unit = {},
     onNavigateToAchievements: () -> Unit = {},
@@ -86,6 +87,7 @@ fun HomeScreen(
     onNavigateToAddScreen: () -> Unit = {},
     onNavigateToManageAccounts: () -> Unit = {},
     onNavigateToBackgroundAccess: () -> Unit = {},
+    onNavigateToSmsCheckup: () -> Unit = {},
     onTransactionClick: (Long) -> Unit = {},
     onGroupClick: (Long) -> Unit = {},
     onGoalClick: (Long) -> Unit = {},
@@ -131,6 +133,16 @@ fun HomeScreen(
     // Fixes happen in system Settings, so every check reruns on return.
     val context = LocalContext.current
     val backgroundAccess: BackgroundAccessViewModel = hiltViewModel()
+    val insightsViewModel: com.pennywiseai.tracker.presentation.insights.InsightsViewModel = hiltViewModel()
+    // Only loaded while the section is shown: hidden, it costs nothing.
+    val topInsights = if (homeSectionLayout.contains(HomeSection.INSIGHTS to true)) {
+        com.pennywiseai.tracker.presentation.insights.homeInsights(
+            active = insightsViewModel.active.collectAsStateWithLifecycle().value,
+            budgetsOnHome = homeSectionLayout.contains(HomeSection.BUDGETS to true) && uiState.budgetSummary != null,
+        )
+    } else {
+        emptyList()
+    }
     val backgroundState by backgroundAccess.state.collectAsStateWithLifecycle()
     var canReceiveSms by remember { mutableStateOf(context.canReceiveSms()) }
     // Read on resume too, so a snooze that ran out while Home sat in the background ends.
@@ -220,6 +232,7 @@ fun HomeScreen(
     // A new day moves the forecast and Safe to spend on, even with no data change.
     androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
         viewModel.refreshDate()
+        insightsViewModel.refreshDate()
         onPauseOrDispose { }
     }
 
@@ -410,6 +423,7 @@ fun HomeScreen(
                                     onNavigateToBackgroundAccess()
                                 }
                             },
+                            onCheckup = onNavigateToSmsCheckup,
                             onDismiss = { viewModel.snoozeTrackingCard() },
                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                         )
@@ -487,6 +501,7 @@ fun HomeScreen(
                         HomeSection.SAFE_TO_SPEND -> safeToSpend != null
                         HomeSection.BUDGETS -> uiState.budgetSummary != null
                         HomeSection.UNSORTED -> unsorted.isNotEmpty()
+                        HomeSection.INSIGHTS -> topInsights.isNotEmpty()
                         HomeSection.GOALS -> goals.isNotEmpty()
                         HomeSection.LOANS -> uiState.loanSummary != null
                         HomeSection.GROUPS -> groupSummaries.isNotEmpty()
@@ -541,6 +556,19 @@ fun HomeScreen(
                                                 )
                                             },
                                             modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                        HomeSection.INSIGHTS -> {
+                            // What needs attention this cycle; absent until there's something to say.
+                            if (topInsights.isNotEmpty()) {
+                                item(key = section.name) {
+                                    StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
+                                        HomeInsightsSection(
+                                            insights = topInsights,
+                                            onNavigateToInsights = onNavigateToInsights
                                         )
                                     }
                                 }
@@ -796,6 +824,7 @@ fun HomeScreen(
             HomeMenuSheet(
                 sheetState = sheetState,
                 onDismiss = { showMenuSheet = false },
+                onOpenInsights = onNavigateToInsights,
                 onOpenReview = { onNavigateToReview(ReviewKind.MONTH) },
                 onOpenShareCard = onNavigateToShareStudio,
                 onOpenAchievements = onNavigateToAchievements,

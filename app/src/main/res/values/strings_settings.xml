@@ -107,13 +107,18 @@
     <string name="settings_folder_backup_subtitle_enabled">Daily backup at 2:00 AM to your chosen folder</string>
     <string name="settings_folder_backup_subtitle_pro">Pro · Save a backup to a folder every day at 2:00 AM</string>
     <string name="settings_folder_backup_subtitle_disabled">Save a backup to a folder every day at 2:00 AM</string>
-    <string name="settings_export_include_receipts_title">Include receipt photos</string>
-    <string name="settings_export_include_receipts_subtitle">Add attached receipt photos to exported backups (larger file)</string>
-    <string name="settings_folder_backup_include_receipts_title">Include receipt photos in automatic backups</string>
+    <string name="settings_export_include_receipts_title">Include receipts</string>
+    <string name="settings_export_include_receipts_subtitle">Receipt photos and PDFs go in the backup, which makes it larger</string>
+    <string name="settings_folder_backup_include_receipts_title">Include receipts in automatic backups</string>
     <string name="settings_folder_backup_include_receipts_subtitle">Makes each daily backup larger</string>
     <string name="settings_backup_now_title">Back Up Now</string>
     <!-- %1$s = date and time of the last backup -->
     <string name="settings_backup_now_last_backup">Last backup: %1$s</string>
+    <!-- %1$s = date and time of the last backup, %2$d = PDF receipts it left out -->
+    <plurals name="settings_backup_now_last_backup_skipped_receipts">
+        <item quantity="one">Last backup: %1$s. %2$d PDF receipt was left out (a backup holds PDFs up to 5 MB each, 50 MB in all).</item>
+        <item quantity="other">Last backup: %1$s. %2$d PDF receipts were left out (a backup holds PDFs up to 5 MB each, 50 MB in all).</item>
+    </plurals>
     <string name="settings_backup_now_subtitle">Run a backup to your folder now</string>
     <string name="settings_change_backup_folder_title">Change Backup Folder</string>
     <string name="settings_change_backup_folder_subtitle">Pick a different folder for automatic backups</string>
@@ -187,6 +192,10 @@
     <!-- Data Management → Backup / import status -->
     <string name="settings_backup_status_title">Backup Status</string>
     <string name="settings_backup_created_choose">Backup created successfully! Choose where to save it.</string>
+    <plurals name="settings_backup_created_skipped_receipts">
+        <item quantity="one">Backup created, but %d PDF receipt was left out (a backup holds PDFs up to 5 MB each, 50 MB in all).</item>
+        <item quantity="other">Backup created, but %d PDF receipts were left out (a backup holds PDFs up to 5 MB each, 50 MB in all).</item>
+    </plurals>
     <!-- %1$s = technical error detail -->
     <string name="settings_export_failed">Export failed: %1$s</string>
     <string name="settings_export_error">Export error: %1$s</string>
@@ -195,6 +204,14 @@
     <string name="settings_importing_backup">Importing backup...</string>
     <string name="settings_import_backup_success">Import successful! Imported %1$d transactions, %2$d categories. Skipped %3$d duplicates.</string>
     <string name="settings_import_backup_success_with_skipped_rows">Import successful! Imported %1$d transactions, %2$d categories. Skipped %3$d duplicates. %4$d rows could not be imported.</string>
+    <plurals name="settings_import_backup_success_skipped_receipts">
+        <item quantity="one">Import successful! Imported %1$d transactions, %2$d categories. Skipped %3$d duplicates. %4$d PDF receipt was too large to restore.</item>
+        <item quantity="other">Import successful! Imported %1$d transactions, %2$d categories. Skipped %3$d duplicates. %4$d PDF receipts were too large to restore.</item>
+    </plurals>
+    <plurals name="settings_import_backup_success_skipped_rows_and_receipts">
+        <item quantity="one">Import successful! Imported %1$d transactions, %2$d categories. Skipped %3$d duplicates. %4$d rows could not be imported. %5$d PDF receipt was too large to restore.</item>
+        <item quantity="other">Import successful! Imported %1$d transactions, %2$d categories. Skipped %3$d duplicates. %4$d rows could not be imported. %5$d PDF receipts were too large to restore.</item>
+    </plurals>
     <string name="settings_import_failed">Import failed: %1$s</string>
     <string name="settings_import_error">Import error: %1$s</string>
     <string name="settings_importing_transactions">Importing transactions...</string>
@@ -205,7 +222,15 @@
     <string name="settings_folder_select_first">Select a backup folder first</string>
     <string name="settings_folder_not_writable">Cannot write to the selected backup folder</string>
     <string name="settings_folder_backup_saved">Backup saved to folder</string>
+    <plurals name="settings_folder_backup_saved_skipped_receipts">
+        <item quantity="one">Backup saved to folder. %d PDF receipt was left out (a backup holds PDFs up to 5 MB each, 50 MB in all).</item>
+        <item quantity="other">Backup saved to folder. %d PDF receipts were left out (a backup holds PDFs up to 5 MB each, 50 MB in all).</item>
+    </plurals>
     <string name="settings_folder_backup_enabled">Automatic folder backup enabled. Backups run daily at 2:00 AM.</string>
+    <plurals name="settings_folder_backup_enabled_skipped_receipts">
+        <item quantity="one">Automatic folder backup enabled. Backups run daily at 2:00 AM. %d PDF receipt was left out of the first one (a backup holds PDFs up to 5 MB each, 50 MB in all).</item>
+        <item quantity="other">Automatic folder backup enabled. Backups run daily at 2:00 AM. %d PDF receipts were left out of the first one (a backup holds PDFs up to 5 MB each, 50 MB in all).</item>
+    </plurals>
 
     <!-- Data Management → Save backup dialog -->
     <string name="settings_save_backup_title">Save Backup</string>

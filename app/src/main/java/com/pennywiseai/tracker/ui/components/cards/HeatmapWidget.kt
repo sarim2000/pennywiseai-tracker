@@ -22,9 +22,10 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.ui.components.buildHeatmapMonthLabels
+import com.pennywiseai.tracker.ui.components.rememberHeatmapSteps
 import com.pennywiseai.tracker.ui.effects.frostedBlur
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -56,6 +57,12 @@ fun HeatmapWidget(
     val containerColor = if (blurEffects)
         MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f)
     else MaterialTheme.colorScheme.surfaceContainerLow
+    val emptyColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    // A frosted card shows the background through it, so the steps are checked on that.
+    val steps = rememberHeatmapSteps(
+        empty = emptyColor,
+        cards = listOf(containerColor.compositeOver(MaterialTheme.colorScheme.background))
+    )
 
     PennyWiseCardV2(
         modifier = modifier
@@ -123,14 +130,13 @@ fun HeatmapWidget(
                                     val epochDay = date.toEpochDay()
                                     val count = transactionHeatmap[epochDay] ?: 0
 
-                                    val primary = MaterialTheme.colorScheme.primary
                                     val color = when {
-                                        date > today -> MaterialTheme.colorScheme.surfaceContainerHigh
-                                        count == 0 -> MaterialTheme.colorScheme.surfaceContainerHigh
-                                        count == 1 -> primary.copy(alpha = 0.25f)
-                                        count == 2 -> primary.copy(alpha = 0.5f)
-                                        count in 3..4 -> primary.copy(alpha = 0.75f)
-                                        else -> primary
+                                        date > today -> emptyColor
+                                        count == 0 -> emptyColor
+                                        count == 1 -> steps[0]
+                                        count == 2 -> steps[1]
+                                        count in 3..4 -> steps[2]
+                                        else -> steps[3]
                                     }
 
                                     Box(

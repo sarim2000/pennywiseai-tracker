@@ -15,6 +15,7 @@ import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import com.pennywiseai.tracker.ui.components.BalancePoint
 import com.pennywiseai.tracker.ui.components.buildHeatmapMonthLabels
+import com.pennywiseai.tracker.ui.components.rememberHeatmapSteps
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import java.time.DayOfWeek
@@ -36,6 +37,8 @@ fun SpendingHeatmap(data: List<BalancePoint>, modifier: Modifier = Modifier) {
     val locale = LocalConfiguration.current.locales[0]
     val dayLabels = remember(locale) { DayOfWeek.entries.map { it.getDisplayName(TextStyle.NARROW, locale) } }
     val colors = MaterialTheme.colorScheme
+    // The grid sits on the Insights chart card (surfaceContainerLow).
+    val steps = rememberHeatmapSteps(colors.surfaceContainerHighest, listOf(colors.surfaceContainerLow))
     val textStyle = MaterialTheme.typography.labelSmall
     val gap = Spacing.xs
 
@@ -78,10 +81,10 @@ fun SpendingHeatmap(data: List<BalancePoint>, modifier: Modifier = Modifier) {
                             val color = when {
                                 date < firstDate || date > endDate -> colors.surfaceContainerLow
                                 intensity == 0.0 -> colors.surfaceContainerHighest
-                                intensity < 0.25 -> colors.primary.copy(alpha = 0.25f)
-                                intensity < 0.5 -> colors.primary.copy(alpha = 0.5f)
-                                intensity < 0.75 -> colors.primary.copy(alpha = 0.75f)
-                                else -> colors.primary
+                                intensity < 0.25 -> steps[0]
+                                intensity < 0.5 -> steps[1]
+                                intensity < 0.75 -> steps[2]
+                                else -> steps[3]
                             }
                             Box(Modifier.size(cellSize).background(color, MaterialTheme.shapes.small))
                         }

@@ -316,6 +316,9 @@ fun MainScreen(
                 onNavigateToReview = { kind ->
                     openRoot(com.pennywiseai.tracker.navigation.Review(kind.name))
                 },
+                onNavigateToInsights = {
+                    openRoot(Insights)
+                },
                 onNavigateToNetWorth = { currency ->
                     openRoot(NetWorth(currency))
                 },

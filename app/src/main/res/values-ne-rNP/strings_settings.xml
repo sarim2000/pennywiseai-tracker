@@ -94,13 +94,11 @@
     <string name="settings_folder_backup_subtitle_enabled">तपाईंले छानेको फोल्डरमा हरेक दिन बिहान 2:00 बजे ब्याकअप</string>
     <string name="settings_folder_backup_subtitle_pro">Pro · हरेक दिन बिहान 2:00 बजे फोल्डरमा ब्याकअप सुरक्षित गर्नुहोस्</string>
     <string name="settings_folder_backup_subtitle_disabled">हरेक दिन बिहान 2:00 बजे फोल्डरमा ब्याकअप सुरक्षित गर्नुहोस्</string>
-    <string name="settings_export_include_receipts_title">रसिदका फोटो समावेश गर्नुहोस्</string>
-    <string name="settings_export_include_receipts_subtitle">निर्यात गरिएका ब्याकअपमा संलग्न रसिदका फोटो थप्नुहोस् (फाइल ठूलो हुन्छ)</string>
-    <string name="settings_folder_backup_include_receipts_title">स्वचालित ब्याकअपमा रसिदका फोटो समावेश गर्नुहोस्</string>
     <string name="settings_folder_backup_include_receipts_subtitle">हरेक दैनिक ब्याकअप ठूलो बनाउँछ</string>
     <string name="settings_backup_now_title">अहिले ब्याकअप गर्नुहोस्</string>
     <!-- %1$s = date and time of the last backup -->
     <string name="settings_backup_now_last_backup">पछिल्लो ब्याकअप: %1$s</string>
+    <!-- %1$s = date and time of the last backup, %2$d = PDF receipts it left out -->
     <string name="settings_backup_now_subtitle">अहिले नै आफ्नो फोल्डरमा ब्याकअप चलाउनुहोस्</string>
     <string name="settings_change_backup_folder_title">ब्याकअप फोल्डर बदल्नुहोस्</string>
     <string name="settings_change_backup_folder_subtitle">स्वचालित ब्याकअपको लागि अर्को फोल्डर छान्नुहोस्</string>

@@ -18,6 +18,7 @@ import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.fragment.app.FragmentActivity
 import androidx.lifecycle.lifecycleScope
 import com.pennywiseai.tracker.data.repository.AppLockRepository
+import com.pennywiseai.tracker.navigation.PlanSection
 import com.pennywiseai.tracker.receiver.SmsBroadcastReceiver
 import com.pennywiseai.tracker.utils.withLatinDigits
 import dagger.hilt.android.AndroidEntryPoint
@@ -52,6 +53,7 @@ class MainActivity : FragmentActivity() {
         // Set by the evening recap when Insights has an alert.
         const val EXTRA_OPEN_INSIGHTS = "com.pennywiseai.tracker.OPEN_INSIGHTS"
         private const val KEY_LAUNCH_PENDING = "launch_request_pending"
+        const val EXTRA_OPEN_GOALS = "com.pennywiseai.tracker.OPEN_GOALS"
         const val EXTRA_OPEN_BUDGETS = "com.pennywiseai.tracker.OPEN_BUDGETS"
         const val EXTRA_CREATE_GOAL = "com.pennywiseai.tracker.CREATE_GOAL"
 
@@ -200,11 +202,14 @@ class MainActivity : FragmentActivity() {
                 )
             intent.getBooleanExtra(EXTRA_OPEN_INSIGHTS, false) ->
                 com.pennywiseai.tracker.navigation.Insights
-            intent.getBooleanExtra(EXTRA_OPEN_BUDGETS, false) ->
+            intent.getBooleanExtra(EXTRA_CREATE_GOAL, false) ->
                 com.pennywiseai.tracker.navigation.BudgetGroups(
-                    createGoal = intent.getBooleanExtra(EXTRA_CREATE_GOAL, false),
-                    tapId = android.os.SystemClock.elapsedRealtime()
+                    createGoal = true, tapId = android.os.SystemClock.elapsedRealtime()
                 )
+            intent.getBooleanExtra(EXTRA_OPEN_GOALS, false) ->
+                com.pennywiseai.tracker.navigation.Plan(PlanSection.GOALS)
+            intent.getBooleanExtra(EXTRA_OPEN_BUDGETS, false) ->
+                com.pennywiseai.tracker.navigation.Plan()
             else -> return
         }
     }

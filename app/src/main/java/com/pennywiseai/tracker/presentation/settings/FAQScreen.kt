@@ -1,19 +1,15 @@
 package com.pennywiseai.tracker.presentation.settings
 
-import com.pennywiseai.tracker.ui.animations.pwCollapse
-import com.pennywiseai.tracker.ui.animations.pwExpand
 import android.content.Intent
 import android.net.Uri
+import androidx.annotation.StringRes
 import androidx.compose.animation.*
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
-import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
-import androidx.compose.material.icons.automirrored.filled.Message
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -24,13 +20,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
-import androidx.annotation.StringRes
 import com.pennywiseai.tracker.R
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.ui.animations.pwCollapse
+import com.pennywiseai.tracker.ui.animations.pwExpand
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GroupedColumn
+import com.pennywiseai.tracker.ui.components.cards.GroupedList
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import dev.chrisbanes.haze.HazeState
@@ -43,7 +41,6 @@ data class FAQItem(
 
 data class FAQCategory(
     @StringRes val title: Int,
-    val icon: @Composable () -> Unit,
     val items: List<FAQItem>
 )
 
@@ -54,12 +51,11 @@ fun FAQScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
-    
+
     val faqCategories = remember {
         listOf(
             FAQCategory(
                 title = R.string.faq_transaction_types_section,
-                icon = { Icon(Icons.Default.SwapHoriz, contentDescription = null) },
                 items = listOf(
                     FAQItem(
                         question = R.string.faq_wallet_credit_question,
@@ -77,7 +73,6 @@ fun FAQScreen(
             ),
             FAQCategory(
                 title = R.string.faq_sms_parsing_section,
-                icon = { Icon(Icons.AutoMirrored.Filled.Message, contentDescription = null) },
                 items = listOf(
                     FAQItem(
                         question = R.string.faq_sms_not_detected_question,
@@ -95,7 +90,6 @@ fun FAQScreen(
             ),
             FAQCategory(
                 title = R.string.faq_privacy_section,
-                icon = { Icon(Icons.Default.Security, contentDescription = null) },
                 items = listOf(
                     FAQItem(
                         question = R.string.faq_data_secure_question,
@@ -113,7 +107,6 @@ fun FAQScreen(
             ),
             FAQCategory(
                 title = R.string.faq_ai_section,
-                icon = { Icon(Icons.Default.Psychology, contentDescription = null) },
                 items = listOf(
                     FAQItem(
                         question = R.string.faq_ai_download_question,
@@ -127,7 +120,6 @@ fun FAQScreen(
             ),
             FAQCategory(
                 title = R.string.faq_accounts_section,
-                icon = { Icon(Icons.Default.AccountBalance, contentDescription = null) },
                 items = listOf(
                     FAQItem(
                         question = R.string.faq_manual_accounts_question,
@@ -141,7 +133,7 @@ fun FAQScreen(
             )
         )
     }
-    
+
     var expandedCategories by remember { mutableStateOf(setOf<Int>()) }
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
@@ -177,144 +169,76 @@ fun FAQScreen(
                 .padding(Dimensions.Padding.content),
             verticalArrangement = Arrangement.spacedBy(Spacing.md)
         ) {
-            // FAQ Categories
             faqCategories.forEachIndexed { categoryIndex, category ->
                 SectionHeaderV2(title = stringResource(category.title))
-                
-                PennyWiseCardV2(
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column {
-                        category.items.forEachIndexed { itemIndex, faqItem ->
-                            val isExpanded = expandedCategories.contains(categoryIndex * 100 + itemIndex)
-                            
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .clickable {
-                                        expandedCategories = if (isExpanded) {
-                                            expandedCategories - (categoryIndex * 100 + itemIndex)
-                                        } else {
-                                            expandedCategories + (categoryIndex * 100 + itemIndex)
-                                        }
-                                    }
-                                    .padding(Dimensions.Padding.content)
-                            ) {
-                                Row(
-                                    modifier = Modifier.fillMaxWidth(),
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    verticalAlignment = Alignment.Top
-                                ) {
-                                    Row(
-                                        modifier = Modifier.weight(1f),
-                                        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
-                                    ) {
-                                        if (itemIndex == 0) {
-                                            Box(
-                                                modifier = Modifier.size(Dimensions.Icon.medium),
-                                                contentAlignment = Alignment.Center
-                                            ) {
-                                                category.icon()
-                                            }
-                                        } else {
-                                            Spacer(modifier = Modifier.width(Dimensions.Icon.medium))
-                                        }
-                                        
-                                        Text(
-                                            text = stringResource(faqItem.question),
-                                            style = MaterialTheme.typography.bodyLarge,
-                                            fontWeight = FontWeight.Medium,
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                    }
-                                    
-                                    Icon(
-                                        imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
-                                        contentDescription = if (isExpanded) stringResource(R.string.faq_collapse) else stringResource(R.string.faq_expand),
-                                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                }
-                                
-                                AnimatedVisibility(
-                                    visible = isExpanded,
-                                    enter = pwExpand(),
-                                    exit = pwCollapse()
-                                ) {
-                                    Spacer(modifier = Modifier.height(Spacing.sm))
-                                    Row(
-                                        horizontalArrangement = Arrangement.spacedBy(Spacing.md)
-                                    ) {
-                                        Spacer(modifier = Modifier.width(24.dp))
-                                        Text(
-                                            text = stringResource(faqItem.answer),
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                            modifier = Modifier.padding(top = Spacing.sm)
-                                        )
-                                    }
+                GroupedList {
+                    category.items.forEachIndexed { itemIndex, faqItem ->
+                        val key = categoryIndex * 100 + itemIndex
+                        val isExpanded = expandedCategories.contains(key)
+                        GroupedColumn(
+                            position = ListItemPosition.from(itemIndex, category.items.size),
+                            onClick = {
+                                expandedCategories = if (isExpanded) {
+                                    expandedCategories - key
+                                } else {
+                                    expandedCategories + key
                                 }
                             }
-                            
-                            if (itemIndex < category.items.size - 1) {
-                                HorizontalDivider(
-                                    modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+                        ) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(Spacing.md),
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Text(
+                                    text = stringResource(faqItem.question),
+                                    style = MaterialTheme.typography.bodyLarge,
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Icon(
+                                    imageVector = if (isExpanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
+                                    contentDescription = if (isExpanded) {
+                                        stringResource(R.string.faq_collapse)
+                                    } else {
+                                        stringResource(R.string.faq_expand)
+                                    },
+                                    tint = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            }
+                            AnimatedVisibility(
+                                visible = isExpanded,
+                                enter = pwExpand(),
+                                exit = pwCollapse()
+                            ) {
+                                Text(
+                                    text = stringResource(faqItem.answer),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.padding(top = Spacing.sm)
                                 )
                             }
                         }
                     }
                 }
             }
-            
-            // Still need help section
+
             SectionHeaderV2(title = stringResource(R.string.faq_still_need_help_section))
-            
-            PennyWiseCardV2(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://github.com/sarim2000/pennywiseai-tracker/issues/new/choose"))
-                        context.startActivity(intent)
-                    }
-            ) {
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(Dimensions.Padding.content),
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Icon(
-                            Icons.Default.BugReport,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Column {
-                            Text(
-                                text = stringResource(R.string.faq_report_issue_title),
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium
-                            )
-                            Text(
-                                text = stringResource(R.string.faq_report_issue_subtitle),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                    Icon(
-                        Icons.AutoMirrored.Filled.OpenInNew,
-                        contentDescription = null,
-                        modifier = Modifier.size(Dimensions.Icon.medium),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
+            SettingsNavItem(
+                icon = Icons.Default.BugReport,
+                title = stringResource(R.string.faq_report_issue_title),
+                subtitle = stringResource(R.string.faq_report_issue_subtitle),
+                onClick = {
+                    val intent = Intent(
+                        Intent.ACTION_VIEW,
+                        Uri.parse("https://github.com/sarim2000/pennywiseai-tracker/issues/new/choose")
                     )
-                }
-            }
-            
+                    context.startActivity(intent)
+                },
+                position = ListItemPosition.Single,
+                trailingIcon = Icons.AutoMirrored.Filled.OpenInNew
+            )
+
             Spacer(modifier = Modifier.height(Spacing.lg))
         }
     }

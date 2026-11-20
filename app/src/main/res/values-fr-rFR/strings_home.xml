@@ -3,7 +3,6 @@
     <!-- ══ Home screen ══ -->
     <string name="home_transaction_deleted">Transaction supprimée</string>
     <string name="home_undo">Annuler</string>
-    <string name="home_upgrade_pro">Mettre à niveau vers PennyWise Pro</string>
     <string name="home_profile_filter">Filtre de profil</string>
     <string name="home_more_options">Plus d\'options</string>
     <string name="home_view_all">Voir tout</string>
@@ -11,15 +10,12 @@
     <string name="home_manage">Gérer</string>
     <string name="home_search_transactions">Rechercher des transactions</string>
     <string name="home_cancel">Abandonner</string>
-    <string name="home_close">Fermer</string>
     <!-- Home sections (headers + edit-home sheet) -->
     <string name="home_section_budgets">Les budgets</string>
     <string name="home_section_goals">Objectifs</string>
     <string name="home_section_loans">Prêts</string>
     <string name="home_section_groups">Groupes</string>
-    <string name="home_section_recent_transactions">Transactions récentes</string>
     <string name="home_section_accounts">Comptes bancaires</string>
-    <string name="home_section_subscriptions">Abonnements à venir</string>
     <string name="home_section_activity">Activité</string>
     <!-- Empty state -->
     <string name="home_empty_headline">Pas encore de transactions</string>
@@ -36,24 +32,14 @@
     <string name="home_resync_rebuild_desc">Relit les transactions SMS pour profiter des corrections d\'analyse. Les modifications des transactions SMS sont réinitialisées. Les transactions manuelles, importées, de prêt et groupées sont conservées.</string>
     <!-- More options sheet -->
     <string name="home_menu_title">Plus d\'options</string>
-    <string name="home_menu_settings">Réglages</string>
     <string name="home_menu_edit_home">Modifier l\'écran d\'accueil</string>
     <string name="home_menu_discord">Rejoignez Discord pour avoir des commentaires</string>
     <string name="home_menu_rate">Noter sur le Play Store</string>
-    <string name="home_version">v%1$s</string>
     <!-- Edit home screen sheet -->
     <string name="home_edit_title">Modifier l\'écran d\'accueil</string>
     <string name="home_edit_description">Réorganiser ou masquer les sections sur votre écran d\'accueil.</string>
     <string name="home_edit_move_up">Déplacer %1$s vers le haut</string>
     <string name="home_edit_move_down">Déplacer %1$s vers le bas</string>
-    <!-- Calculation breakdown dialog -->
-    <string name="home_breakdown_title">Répartition du calcul</string>
-    <!-- Month name, then day range, e.g. "March 1-15" -->
-    <string name="home_breakdown_period">%1$s 1-%2$d</string>
-    <string name="home_breakdown_formula">Formule : Revenus - Dépenses = Valeur nette\nVert (+) = Épargne | Rouge (-) = Dépassement de dépenses</string>
-    <string name="home_breakdown_income">Revenu</string>
-    <string name="home_breakdown_expenses">Dépenses</string>
-    <string name="home_breakdown_net_worth">Valeur nette</string>
     <!-- Subscriptions + loans summary cards -->
     <plurals name="home_active_subscriptions">
         <item quantity="one">%1$d abonnement actif</item>
@@ -67,11 +53,6 @@
     <string name="home_loans_owed_to_you">%1$s vous doit</string>
     <string name="home_loans_you_owe">Vous devez à %1$s</string>
     <!-- ══ Greeting card (home header) ══ -->
-    <string name="greeting_last_day_of_month">Dernier jour de %1$s</string>
-    <plurals name="greeting_days_left_in_month">
-        <item quantity="one">Plus que %1$d jour en %2$s</item>
-        <item quantity="other">Plus que %1$d jours en %2$s</item>
-    </plurals>
     <string name="greeting_good_morning">Bonjour</string>
     <string name="greeting_good_afternoon">Bonjour</string>
     <string name="greeting_good_evening">Bonsoir</string>
@@ -83,7 +64,7 @@
     <string name="nav_home">Accueil</string>
     <string name="nav_transactions">Chronologie</string>
     <string name="nav_analytics">Analyses</string>
-    <string name="nav_chat">Discuter</string>
+    <string name="nav_chat">Demander</string>
     <!-- ══ Shared components ══ -->
     <string name="expandable_list_view_less">Voir moins</string>
     <string name="expandable_list_view_all_more">Voir tout (%1$d de plus)</string>

@@ -122,7 +122,6 @@
     <string name="txn_detail_label_reference">Référence</string>
     <string name="txn_detail_receipt">Reçu</string>
     <string name="txn_detail_receipt_tap_to_view">Appuyer pour voir</string>
-    <string name="txn_detail_receipt_missing">Photo du reçu absente de cette sauvegarde</string>
     <string name="txn_detail_sms_hide">Masquer les SMS</string>
     <string name="txn_detail_sms_show">Afficher les SMS originaux</string>
     <string name="txn_detail_field_amount">Montant</string>
@@ -222,7 +221,6 @@
     <string name="txn_list_filter_account">Compte client</string>
     <string name="txn_list_filter_category">Catégorie</string>
     <string name="txn_list_filters">Filtres</string>
-    <string name="txn_list_filters_two">2 Filtres</string>
     <string name="txn_list_categories_all_except">Tout sauf %1$s</string>
     <plurals name="txn_list_categories_count">
         <item quantity="one">%1$d catégorie</item>

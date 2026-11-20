@@ -11,6 +11,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.CallSplit
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material.icons.outlined.Delete
+import androidx.compose.material.icons.outlined.Flag
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material.icons.outlined.Savings
 import androidx.compose.material3.*
@@ -50,9 +52,11 @@ import com.pennywiseai.tracker.presentation.split.SplitSection
 import com.pennywiseai.tracker.presentation.split.canSplit
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.LoanOverflowDialog
+import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
 import com.pennywiseai.tracker.ui.components.SETTLED_HOLD_MILLIS
 import com.pennywiseai.tracker.ui.components.SplitItem
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -187,140 +191,50 @@ fun TransactionDetailScreen(
     }
 
     val context = LocalContext.current
-    var showActionsMenu by remember { mutableStateOf(false) }
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val hazeState = remember { HazeState() }
 
+    // A one-off confirmation from the view model ("Got it, I'll remember").
+    val noticeText = viewModel.notice.collectAsStateWithLifecycle().value?.asString()
+    LaunchedEffect(noticeText) {
+        noticeText?.let {
+            // Launched apart: clearing the notice restarts this effect.
+            scope.launch { snackbarHostState.showSnackbar(it) }
+            viewModel.clearNotice()
+        }
+    }
+    var showCategoryPicker by rememberSaveable { mutableStateOf(false) }
+    val reportMistake: () -> Unit = {
+        val reportUrl = viewModel.getReportUrl()
+        runCatching { context.startActivity(Intent(Intent.ACTION_VIEW, Uri.parse(reportUrl))) }
+    }
+
     Scaffold(
-        modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
-        containerColor = Color.Transparent,
-        snackbarHost = { SnackbarHost(hostState = snackbarHostState) },
-        // Transaction actions (delete / group / duplicate / report) live in the
-        // top-bar overflow menu, not floating buttons — a stack of FABs overlapped
+        // Only the editor has a collapsing bar that consumes scroll.
+        modifier = if (isEditMode) Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection) else Modifier,
+        containerColor = MaterialTheme.colorScheme.background,
+        snackbarHost = { SnackbarHost(hostState = snackbarHostState) { data -> Snackbar(data, shape = MaterialTheme.shapes.large) } },
+        // Transaction actions live in the top-bar overflow menu and the rows at
+        // the end of the page, not floating buttons: a stack of FABs overlapped
         // the receipt content (#451 follow-up).
         floatingActionButton = {},
         topBar = {
-            CustomTitleTopAppBar(
-                scrollBehaviorSmall = scrollBehaviorSmall,
-                scrollBehaviorLarge = scrollBehaviorLarge,
-                title = if (isEditMode) stringResource(R.string.txn_detail_title_edit) else stringResource(R.string.txn_detail_title),
-                hasBackButton = true,
-                navigationContent = {
-                    IconButton(onClick = {
-                        if (isEditMode) {
-                            viewModel.cancelEdit()
-                        } else {
-                            onNavigateBack()
+            if (isEditMode) {
+                CustomTitleTopAppBar(
+                    scrollBehaviorSmall = scrollBehaviorSmall,
+                    scrollBehaviorLarge = scrollBehaviorLarge,
+                    title = stringResource(R.string.txn_detail_title_edit),
+                    hasBackButton = true,
+                    navigationContent = {
+                        IconButton(onClick = { viewModel.cancelEdit() }, shapes = IconButtonDefaults.shapes()) {
+                            Icon(Icons.Default.Close, contentDescription = stringResource(R.string.txn_detail_action_cancel))
                         }
-                    }, shapes = IconButtonDefaults.shapes()) {
-                        Icon(
-                            if (isEditMode) Icons.Default.Close else Icons.AutoMirrored.Filled.ArrowBack,
-                            contentDescription = if (isEditMode) stringResource(R.string.txn_detail_action_cancel) else stringResource(R.string.txn_detail_back)
-                        )
-                    }
-                },
-                actionContent = {
-                    if (!isEditMode && transaction != null) {
-                        IconButton(onClick = { viewModel.enterEditMode() }, shapes = IconButtonDefaults.shapes()) {
-                            Icon(
-                                Icons.Default.Edit,
-                                contentDescription = stringResource(R.string.txn_detail_action_edit)
-                            )
-                        }
-                        Box {
-                            IconButton(onClick = { showActionsMenu = true }, shapes = IconButtonDefaults.shapes()) {
-                                Icon(
-                                    Icons.Default.MoreVert,
-                                    contentDescription = stringResource(R.string.txn_detail_more_actions)
-                                )
-                            }
-                            DropdownMenu(
-                                expanded = showActionsMenu,
-                                onDismissRequest = { showActionsMenu = false }
-                            ) {
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.txn_detail_menu_add_to_group)) },
-                                    leadingIcon = {
-                                        Icon(Icons.Outlined.FolderOpen, contentDescription = null)
-                                    },
-                                    onClick = {
-                                        showActionsMenu = false
-                                        viewModel.showGroupSheet()
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.goal_add_to_goal)) },
-                                    leadingIcon = {
-                                        Icon(Icons.Outlined.Savings, contentDescription = null)
-                                    },
-                                    onClick = {
-                                        showActionsMenu = false
-                                        showAddToGoal = true
-                                    }
-                                )
-                                if (transaction?.let(::canSplit) == true) {
-                                    DropdownMenuItem(
-                                        text = {
-                                            Text(stringResource(if (transaction?.lentSharesTotal != null) R.string.split_menu_edit else R.string.split_menu_split))
-                                        },
-                                        leadingIcon = {
-                                            Icon(Icons.AutoMirrored.Filled.CallSplit, contentDescription = null)
-                                        },
-                                        onClick = {
-                                            showActionsMenu = false
-                                            splitViewModel.openSheet()
-                                        }
-                                    )
-                                }
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.txn_detail_menu_duplicate)) },
-                                    leadingIcon = {
-                                        Icon(Icons.Default.ContentCopy, contentDescription = null)
-                                    },
-                                    onClick = {
-                                        showActionsMenu = false
-                                        transaction?.let { onDuplicateTransaction(it.id) }
-                                    }
-                                )
-                                DropdownMenuItem(
-                                    text = { Text(stringResource(R.string.txn_detail_menu_report_issue)) },
-                                    leadingIcon = {
-                                        Icon(Icons.Default.BugReport, contentDescription = null)
-                                    },
-                                    onClick = {
-                                        showActionsMenu = false
-                                        val reportUrl = viewModel.getReportUrl()
-                                        runCatching {
-                                            context.startActivity(
-                                                Intent(Intent.ACTION_VIEW, Uri.parse(reportUrl))
-                                            )
-                                        }
-                                    }
-                                )
-                                HorizontalDivider()
-                                DropdownMenuItem(
-                                    text = {
-                                        Text(stringResource(R.string.txn_detail_action_delete), color = MaterialTheme.colorScheme.error)
-                                    },
-                                    leadingIcon = {
-                                        Icon(
-                                            Icons.Default.Delete,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.error
-                                        )
-                                    },
-                                    onClick = {
-                                        showActionsMenu = false
-                                        viewModel.showDeleteDialog()
-                                    }
-                                )
-                            }
-                        }
-                    } else if (isEditMode) {
+                    },
+                    actionContent = {
                         TextButton(
-                            onClick = { viewModel.saveChanges() },
+                            onClick = withCommittedText(viewModel::saveChanges),
                             enabled = !isSaving && !checkingReceipt,
                             shapes = ButtonDefaults.shapes()
                         ) {
@@ -334,10 +248,74 @@ fun TransactionDetailScreen(
                                 Text(stringResource(R.string.txn_detail_action_save))
                             }
                         }
+                    },
+                    hazeState = hazeState
+                )
+            } else {
+                DetailTopBar(
+                    onBack = onNavigateBack,
+                    showActions = transaction != null,
+                    onEdit = { viewModel.enterEditMode() },
+                    menu = { dismiss ->
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.txn_detail_menu_add_to_group)) },
+                            leadingIcon = { Icon(Icons.Outlined.FolderOpen, contentDescription = null) },
+                            onClick = {
+                                dismiss()
+                                viewModel.showGroupSheet()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.goal_add_to_goal)) },
+                            leadingIcon = { Icon(Icons.Outlined.Savings, contentDescription = null) },
+                            onClick = {
+                                dismiss()
+                                showAddToGoal = true
+                            }
+                        )
+                        if (transaction?.let(::canSplit) == true) {
+                            DropdownMenuItem(
+                                text = {
+                                    Text(stringResource(if (transaction?.lentSharesTotal != null) R.string.split_menu_edit else R.string.split_menu_split))
+                                },
+                                leadingIcon = { Icon(Icons.AutoMirrored.Filled.CallSplit, contentDescription = null) },
+                                onClick = {
+                                    dismiss()
+                                    splitViewModel.openSheet()
+                                }
+                            )
+                        }
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.txn_detail_menu_duplicate)) },
+                            leadingIcon = { Icon(Icons.Default.ContentCopy, contentDescription = null) },
+                            onClick = {
+                                dismiss()
+                                transaction?.let { onDuplicateTransaction(it.id) }
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = { Text(stringResource(R.string.txn_detail_report_mistake)) },
+                            leadingIcon = { Icon(Icons.Outlined.Flag, contentDescription = null) },
+                            onClick = {
+                                dismiss()
+                                reportMistake()
+                            }
+                        )
+                        DropdownMenuItem(
+                            text = {
+                                Text(stringResource(R.string.txn_detail_delete_transaction), color = MaterialTheme.colorScheme.error)
+                            },
+                            leadingIcon = {
+                                Icon(Icons.Outlined.Delete, contentDescription = null, tint = MaterialTheme.colorScheme.error)
+                            },
+                            onClick = {
+                                dismiss()
+                                viewModel.showDeleteDialog()
+                            }
+                        )
                     }
-                },
-                hazeState = hazeState
-            )
+                )
+            }
         }
     ) { paddingValues ->
         val displayTransaction = if (isEditMode) editableTransaction else transaction
@@ -354,7 +332,7 @@ fun TransactionDetailScreen(
                 convertedAmount = convertedAmount,
                 splits = splits,
                 showSplitEditor = showSplitEditor,
-                hasSplits = hasSplits,
+                hasSplits = hasSplits == true,
                 loan = loan,
                 onNavigateToLoanDetail = onNavigateToLoanDetail,
                 onUnmarkLoanClick = {
@@ -374,12 +352,39 @@ fun TransactionDetailScreen(
                 splitWith = {
                     transaction?.let { SplitSection(splitViewModel, it, onOpenLoan = onNavigateToLoanDetail) }
                 },
+                onCategoryClick = {
+                    // A split row's categories live in the editor's split section.
+                    // Unknown yet (still loading): do nothing rather than guess.
+                    when (hasSplits) {
+                        true -> viewModel.enterEditMode()
+                        false -> showCategoryPicker = true
+                        null -> Unit
+                    }
+                },
+                hasClassificationAction = transaction?.let { whatWasThisOptions(it, loan != null) }?.isNotEmpty() == true,
                 modifier = Modifier.padding(paddingValues)
             )
         }
     }
 
     transaction?.let { SplitBillSheet(splitViewModel, it) }
+
+    if (showCategoryPicker) {
+        val categories by viewModel.categories.collectAsStateWithLifecycle()
+        val mostUsed by viewModel.mostUsedCategories.collectAsStateWithLifecycle()
+        transaction?.let { txn ->
+            QuickCategoryPickerSheet(
+                transaction = txn,
+                categories = categories,
+                onCategorySelected = { name ->
+                    showCategoryPicker = false
+                    viewModel.quickUpdateCategory(name)
+                },
+                onDismiss = { showCategoryPicker = false },
+                mostUsed = mostUsed
+            )
+        }
+    }
 
     if (showWhatWasThis) {
         transaction?.let { txn ->
@@ -644,6 +649,8 @@ private fun TransactionDetailContent(
     towardGoals: @Composable () -> Unit,
     splitWith: @Composable () -> Unit,
     whatWasThis: @Composable () -> Unit,
+    onCategoryClick: () -> Unit,
+    hasClassificationAction: Boolean,
     modifier: Modifier = Modifier
 ) {
     val scrollState = rememberScrollState()
@@ -662,7 +669,7 @@ private fun TransactionDetailContent(
             .overScrollVertical()
             .verticalScroll(scrollState)
             .padding(horizontal = Dimensions.Padding.content)
-            .padding(top = Spacing.sm, bottom = Dimensions.Padding.content)
+            .padding(top = Spacing.xs, bottom = Spacing.xxl)
     ) {
         if (isEditMode) {
             EditableTransactionHeader(
@@ -697,8 +704,69 @@ private fun TransactionDetailContent(
                 accountProfileId = accountProfileId,
                 towardGoals = towardGoals,
                 splitWith = splitWith,
-                whatWasThis = whatWasThis
+                whatWasThis = whatWasThis,
+                onCategoryClick = onCategoryClick,
+                onEditClick = { viewModel.enterEditMode() },
+                hasClassificationAction = hasClassificationAction
             )
+        }
+    }
+}
+
+/**
+ * The detail screen's own top row: a tonal round back button, then an "Edit"
+ * tonal pill and the overflow menu ([menu] gets a dismiss callback).
+ */
+@Composable
+private fun DetailTopBar(
+    onBack: () -> Unit,
+    showActions: Boolean,
+    onEdit: () -> Unit,
+    menu: @Composable ColumnScope.(dismiss: () -> Unit) -> Unit
+) {
+    var showMenu by remember { mutableStateOf(false) }
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .statusBarsPadding()
+            .padding(horizontal = Dimensions.Padding.content, vertical = Spacing.sm),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+    ) {
+        FilledTonalIconButton(
+            onClick = onBack,
+            modifier = Modifier.size(Dimensions.Component.minTouchTarget),
+            colors = IconButtonDefaults.filledTonalIconButtonColors(
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+                contentColor = MaterialTheme.colorScheme.onSurface
+            ),
+            shapes = IconButtonDefaults.shapes()
+        ) {
+            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.txn_detail_back))
+        }
+        Spacer(Modifier.weight(1f))
+        if (showActions) {
+            FilledTonalButton(
+                onClick = onEdit,
+                modifier = Modifier.height(Dimensions.Component.minTouchTarget),
+                shapes = ButtonDefaults.shapes()
+            ) {
+                Icon(
+                    Icons.Default.Edit,
+                    contentDescription = null,
+                    modifier = Modifier.size(Dimensions.Icon.inline)
+                )
+                Spacer(Modifier.width(Spacing.sm))
+                Text(stringResource(R.string.txn_detail_action_edit), style = MaterialTheme.typography.labelLarge)
+            }
+            Box {
+                IconButton(onClick = { showMenu = true }, shapes = IconButtonDefaults.shapes()) {
+                    Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.txn_detail_more_actions))
+                }
+                DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }, shape = MaterialTheme.shapes.large) {
+                    menu { showMenu = false }
+                }
+            }
         }
     }
 }

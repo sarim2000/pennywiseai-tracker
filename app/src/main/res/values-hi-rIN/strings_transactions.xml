@@ -122,7 +122,6 @@
     <string name="txn_detail_label_reference">रेफ़रेंस</string>
     <string name="txn_detail_receipt">रसीद</string>
     <string name="txn_detail_receipt_tap_to_view">देखने के लिए टैप करें</string>
-    <string name="txn_detail_receipt_missing">रसीद की फ़ोटो इस बैकअप में नहीं है</string>
     <string name="txn_detail_sms_hide">SMS छुपाएँ</string>
     <string name="txn_detail_sms_show">असली SMS दिखाएँ</string>
     <string name="txn_detail_field_amount">राशि</string>
@@ -222,7 +221,6 @@
     <string name="txn_list_filter_account">खाता</string>
     <string name="txn_list_filter_category">श्रेणी</string>
     <string name="txn_list_filters">फ़िल्टर</string>
-    <string name="txn_list_filters_two">2 फ़िल्टर</string>
     <string name="txn_list_categories_all_except">%1$s को छोड़कर सभी</string>
     <plurals name="txn_list_categories_count">
         <item quantity="one">%1$d श्रेणी</item>

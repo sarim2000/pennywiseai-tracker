@@ -22,12 +22,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.ui.components.buildHeatmapMonthLabels
+import com.pennywiseai.tracker.ui.components.rememberHeatmapSteps
+import com.pennywiseai.tracker.ui.effects.frostedBlur
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.ui.effects.frostedBlur
 import dev.chrisbanes.haze.HazeState
 import java.time.DayOfWeek
 import java.time.LocalDate
@@ -56,6 +57,12 @@ fun HeatmapWidget(
     val containerColor = if (blurEffects)
         MaterialTheme.colorScheme.surfaceContainerLow.copy(alpha = 0.5f)
     else MaterialTheme.colorScheme.surfaceContainerLow
+    val emptyColor = MaterialTheme.colorScheme.surfaceContainerHigh
+    // A frosted card shows the background through it, so the steps are checked on that.
+    val steps = rememberHeatmapSteps(
+        empty = emptyColor,
+        cards = listOf(containerColor.compositeOver(MaterialTheme.colorScheme.background))
+    )
 
     PennyWiseCardV2(
         modifier = modifier
@@ -109,56 +116,50 @@ fun HeatmapWidget(
                         }
                     }
 
-                    // Heatmap grid
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(gapSize),
-                        modifier = Modifier
-                            .horizontalScroll(scrollState)
-                            .padding(bottom = Spacing.sm)
-                    ) {
-                        for (w in 0 until weeksToShow) {
-                            Column(verticalArrangement = Arrangement.spacedBy(gapSize)) {
-                                for (d in 0 until 7) {
-                                    val date = startDate.plusWeeks(w.toLong()).plusDays(d.toLong())
-                                    val epochDay = date.toEpochDay()
-                                    val count = transactionHeatmap[epochDay] ?: 0
+                    // The grid and its month labels scroll together: it opens on the latest
+                    // weeks, so labels pinned outside the scroll named months from its start.
+                    Column(Modifier.horizontalScroll(scrollState)) {
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(gapSize),
+                            modifier = Modifier.padding(bottom = Spacing.sm)
+                        ) {
+                            for (w in 0 until weeksToShow) {
+                                Column(verticalArrangement = Arrangement.spacedBy(gapSize)) {
+                                    for (d in 0 until 7) {
+                                        val date = startDate.plusWeeks(w.toLong()).plusDays(d.toLong())
+                                        val epochDay = date.toEpochDay()
+                                        val count = transactionHeatmap[epochDay] ?: 0
 
-                                    val primary = MaterialTheme.colorScheme.primary
-                                    val color = when {
-                                        date > today -> MaterialTheme.colorScheme.surfaceContainerHigh
-                                        count == 0 -> MaterialTheme.colorScheme.surfaceContainerHigh
-                                        count == 1 -> primary.copy(alpha = 0.25f)
-                                        count == 2 -> primary.copy(alpha = 0.5f)
-                                        count in 3..4 -> primary.copy(alpha = 0.75f)
-                                        else -> primary
+                                        val color = when {
+                                            date > today || count == 0 -> emptyColor
+                                            count == 1 -> steps[0]
+                                            count == 2 -> steps[1]
+                                            count in 3..4 -> steps[2]
+                                            else -> steps[3]
+                                        }
+
+                                        Box(
+                                            modifier = Modifier
+                                                .size(cellSize)
+                                                .clip(MaterialTheme.shapes.small)
+                                                .background(color)
+                                        )
                                     }
-
-                                    Box(
-                                        modifier = Modifier
-                                            .size(cellSize)
-                                            .clip(MaterialTheme.shapes.extraSmall)
-                                            .background(color)
-                                    )
                                 }
                             }
                         }
-                    }
-                }
 
-                // Month labels
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(start = dayLabelWidth)
-                ) {
-                    monthLabels.forEach { (weekIndex, label) ->
-                        val xOffset = (weekIndex * (cellSize + gapSize).value).dp
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.offset(x = xOffset)
-                        )
+                        // Month labels, as wide as the grid so the latest month isn't cut off.
+                        Box(Modifier.width(cellSize * weeksToShow + gapSize * (weeksToShow - 1))) {
+                            monthLabels.forEach { (weekIndex, label) ->
+                                Text(
+                                    text = label,
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                    modifier = Modifier.offset(x = (cellSize + gapSize) * weekIndex)
+                                )
+                            }
+                        }
                     }
                 }
             }

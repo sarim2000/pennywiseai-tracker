@@ -268,6 +268,8 @@
     <string name="chat_dismiss">Dismiss</string>
     <string name="chat_input_placeholder">Ask, or tell me what you spent…</string>
     <string name="chat_send">Send</string>
+    <string name="chat_overline">On-device AI</string>
+    <string name="chat_privacy_note">Runs on this phone · nothing is uploaded</string>
     <plurals name="chat_stats_model_messages">
         <item quantity="one">Qwen 2.5 1.5B • %1$d message</item>
         <item quantity="other">Qwen 2.5 1.5B • %1$d messages</item>
@@ -439,6 +441,15 @@
     <string name="rules_reset">Reset</string>
     <string name="rules_auto_categorization_title">Automatic Categorization</string>
     <string name="rules_auto_categorization_body">Enable rules to automatically categorize your transactions based on patterns</string>
+    <string name="rules_intro">Rules run on every new transaction. They can set a category, rename a merchant, or skip messages you don\'t want saved.</string>
+    <string name="rules_new_rule">New rule</string>
+    <!-- Tags in front of a rule's two lines: when it matches, then what it does -->
+    <string name="rules_clause_when">WHEN</string>
+    <string name="rules_clause_then">THEN</string>
+    <plurals name="rules_used_times">
+        <item quantity="one">Used %1$d time</item>
+        <item quantity="other">Used %1$d times</item>
+    </plurals>
     <string name="rules_group_daily">Daily Expenses</string>
     <string name="rules_group_income">Income &amp; Cashback</string>
     <string name="rules_group_recurring">Recurring Payments</string>

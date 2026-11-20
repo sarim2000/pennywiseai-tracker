@@ -129,7 +129,9 @@ private fun fadeOnly(m: MotionScheme): Map<String, Any> {
 fun PennyWiseNavHost(
     backStack: NavBackStack<NavKey>,
     modifier: Modifier = Modifier,
-    onEditComplete: () -> Unit = {}
+    onEditComplete: () -> Unit = {},
+    widgetPlan: Plan? = null,
+    onWidgetPlanHandled: () -> Unit = {},
 ) {
     val motion = MaterialTheme.motionScheme
     val fadeOnly = remember(motion) { fadeOnly(motion) }
@@ -168,7 +170,9 @@ fun PennyWiseNavHost(
                     entry<Home>(metadata = fadeOnly) {
                         CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides LocalNavAnimatedContentScope.current) {
                             MainScreen(
-                                rootBackStack = backStack
+                                rootBackStack = backStack,
+                                widgetPlan = widgetPlan,
+                                onWidgetPlanHandled = onWidgetPlanHandled,
                             )
                         }
                     }
@@ -239,6 +243,7 @@ fun PennyWiseNavHost(
 
                     entry<AddTransaction> { key ->
                         com.pennywiseai.tracker.presentation.add.AddScreen(
+                            initialForm = key.form,
                             onNavigateBack = {
                                 backStack.pop(key)
                             }
@@ -320,6 +325,7 @@ fun PennyWiseNavHost(
                     entry<BudgetGroups> { key ->
                         com.pennywiseai.tracker.presentation.budgetgroups.BudgetGroupsScreen(
                             createGoalOnOpen = key.createGoal,
+                            focusBudgetId = key.focusBudgetId,
                             onNavigateBack = {
                                 backStack.pop(key)
                             },
@@ -490,7 +496,7 @@ fun PennyWiseNavHost(
                     entry<Subscriptions> { key ->
                         com.pennywiseai.tracker.presentation.subscriptions.SubscriptionsScreen(
                             onNavigateBack = { backStack.pop(key) },
-                            onAddSubscriptionClick = { backStack.navigate(AddTransaction()) },
+                            onAddSubscriptionClick = { backStack.navigate(AddTransaction(form = AddForm.SUBSCRIPTION)) },
                             showBack = true,
                         )
                     }
@@ -510,6 +516,30 @@ fun PennyWiseNavHost(
                             onAccountClick = { bankName, accountLast4 ->
                                 backStack.navigate(AccountDetail(bankName, accountLast4))
                             },
+                        )
+                    }
+
+                    // Also in a tab; here for the runway's "Open accounts", to set a balance.
+                    entry<ManageAccounts> { key ->
+                        com.pennywiseai.tracker.presentation.accounts.ManageAccountsScreen(
+                            onNavigateBack = { backStack.pop(key) },
+                            onNavigateToAddAccount = { backStack.navigate(AddAccount) },
+                            onNavigateToBalanceHistory = { bankName, accountLast4 ->
+                                backStack.navigate(BalanceHistory(bankName, accountLast4))
+                            },
+                            onNavigateToNetWorth = { backStack.navigate(NetWorth()) },
+                        )
+                    }
+
+                    entry<AddAccount> { key ->
+                        com.pennywiseai.tracker.presentation.accounts.AddAccountScreen(
+                            onNavigateBack = { backStack.pop(key) },
+                        )
+                    }
+
+                    entry<BalanceHistory> { key ->
+                        com.pennywiseai.tracker.presentation.accounts.BalanceHistoryScreen(
+                            onNavigateBack = { backStack.pop(key) },
                         )
                     }
 
@@ -555,12 +585,13 @@ private fun insightDestination(action: InsightAction): NavKey = when (action) {
     )
     is InsightAction.OpenTransaction -> TransactionDetail(action.transactionId)
     is InsightAction.OpenAccount -> AccountDetail(action.bankName, action.accountLast4)
-    InsightAction.OpenSubscriptions -> Subscriptions
+    InsightAction.OpenSubscriptions -> Subscriptions()
+    InsightAction.OpenAccounts -> ManageAccounts
 }
 
 /** Where a bill on the calendar leads: the subscriptions, the recurring payments, or the card. */
 private fun billDestination(source: com.pennywiseai.tracker.domain.spending.BillSource): NavKey = when (source) {
-    com.pennywiseai.tracker.domain.spending.BillSource.Subscription -> Subscriptions
+    com.pennywiseai.tracker.domain.spending.BillSource.Subscription -> Subscriptions()
     com.pennywiseai.tracker.domain.spending.BillSource.Recurring -> RecurringTransactions
     is com.pennywiseai.tracker.domain.spending.BillSource.Card -> AccountDetail(source.bankName, source.accountLast4)
 }

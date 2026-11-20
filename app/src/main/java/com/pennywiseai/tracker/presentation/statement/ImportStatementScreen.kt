@@ -1,7 +1,5 @@
 package com.pennywiseai.tracker.presentation.statement
 
-import com.pennywiseai.tracker.utils.AppDates
-
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.animateContentSize
@@ -10,11 +8,14 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.TextObfuscationMode
 import androidx.compose.foundation.verticalScroll
-import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -22,18 +23,16 @@ import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.res.pluralStringResource
-import androidx.compose.ui.res.stringResource
-import com.pennywiseai.tracker.R
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.semantics.Role
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.platform.LocalLayoutDirection
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.itemsIndexed
-import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
-import com.pennywiseai.tracker.ui.components.cards.toShape
+import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
+import androidx.compose.ui.semantics.role
+import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.toggleableState
+import androidx.compose.ui.state.ToggleableState
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -42,18 +41,25 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.parser.core.ParsedTransaction
 import com.pennywiseai.parser.core.TransactionType
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.statement.StatementBalanceCheck
 import com.pennywiseai.tracker.data.statement.StatementColumnMapping
 import com.pennywiseai.tracker.data.statement.StatementTableParser
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
+import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.components.SupportDevelopmentDialog
 import com.pennywiseai.tracker.ui.components.SupportNudgeCard
+import com.pennywiseai.tracker.ui.components.cards.GroupedRow
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.success
+import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
@@ -537,15 +543,15 @@ private fun <T> Picker(label: String, options: List<Pair<T, String>>, selected: 
     var expanded by remember { mutableStateOf(false) }
     ExposedDropdownMenuBox(expanded = expanded, onExpandedChange = { expanded = it }) {
         OutlinedTextField(
-            value = options.firstOrNull { it.first == selected }?.second.orEmpty(),
-            onValueChange = {},
+            state = rememberSyncedTextFieldState(options.firstOrNull { it.first == selected }?.second.orEmpty()) {},
             readOnly = true,
-            singleLine = true,
+            lineLimits = TextFieldLineLimits.SingleLine,
             label = { Text(label) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+            modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+            shape = RoundedField.shape
         )
-        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }) {
+        ExposedDropdownMenu(expanded = expanded, onDismissRequest = { expanded = false }, shape = MaterialTheme.shapes.large) {
             options.forEach { (value, text) ->
                 DropdownMenuItem(
                     text = { Text(text, maxLines = 1, overflow = TextOverflow.Ellipsis) },
@@ -632,18 +638,24 @@ private fun PreviewContent(
 
         itemsIndexed(newIndices, key = { _, index -> index }) { i, index ->
             val checked = index !in state.excluded
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
+            GroupedRow(
+                position = ListItemPosition.from(i, newIndices.size),
+                onClick = { onToggle(index) },
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(bottom = if (i < newIndices.lastIndex) Spacing.Layout.groupedListGap else Spacing.none)
-                    .clip(ListItemPosition.from(i, newIndices.size).toShape())
-                    .background(MaterialTheme.colorScheme.surfaceContainerLow)
-                    .defaultMinSize(minHeight = Dimensions.Component.minTouchTarget)
-                    .toggleable(value = checked, role = Role.Checkbox, onValueChange = { onToggle(index) })
+                    .padding(
+                        bottom = if (i < newIndices.lastIndex) Spacing.Layout.groupedListGap else Spacing.none
+                    )
+                    // The Checkbox has no callback, so the row carries the state TalkBack reads.
+                    .semantics {
+                        role = Role.Checkbox
+                        toggleableState = ToggleableState(checked)
+                    },
             ) {
-                Checkbox(checked = checked, onCheckedChange = null, modifier = Modifier.padding(horizontal = Spacing.smd))
-                TransactionLine(state.plan.rows[index].parsed, modifier = Modifier.weight(1f).padding(end = Spacing.smd))
+                Checkbox(checked = checked, onCheckedChange = null)
+                TransactionLine(
+                    state.plan.rows[index].parsed,
+                    modifier = Modifier.weight(1f)
+                )
             }
         }
 
@@ -1007,32 +1019,32 @@ private fun PdfPasswordDialog(
     onSubmit: (String) -> Unit,
     onDismiss: () -> Unit
 ) {
-    var password by remember { mutableStateOf("") }
+    // Plain remember, not saveable: the password must not land in saved instance state.
+    val passwordState = remember { TextFieldState() }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.import_statement_password_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 Text(stringResource(R.string.import_statement_password_body))
-                OutlinedTextField(
-                    value = password,
-                    onValueChange = { password = it },
+                OutlinedSecureTextField(
+                    state = passwordState,
+                    textObfuscationMode = TextObfuscationMode.Hidden,
                     label = { Text(stringResource(R.string.import_statement_password_label)) },
-                    singleLine = true,
                     isError = wrongPassword,
                     supportingText = if (wrongPassword) {
                         { Text(stringResource(R.string.import_statement_password_wrong)) }
                     } else null,
-                    visualTransformation = androidx.compose.ui.text.input.PasswordVisualTransformation(),
                     keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                         keyboardType = androidx.compose.ui.text.input.KeyboardType.Password
                     ),
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    shape = RoundedField.shape
                 )
             }
         },
         confirmButton = {
-            TextButton(onClick = { onSubmit(password) }, enabled = password.isNotEmpty(), shapes = ButtonDefaults.shapes()) {
+            TextButton(onClick = { onSubmit(passwordState.text.toString()) }, enabled = passwordState.text.isNotEmpty(), shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.import_statement_password_open))
             }
         },

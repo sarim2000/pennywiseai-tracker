@@ -20,13 +20,6 @@ import com.pennywiseai.tracker.navigation.UnrecognizedSms
 import com.pennywiseai.tracker.presentation.permission.PermissionViewModel
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
-import com.pennywiseai.tracker.ui.theme.indigo_dark
-import com.pennywiseai.tracker.ui.theme.indigo_light
-import com.pennywiseai.tracker.ui.theme.orange_dark
-import com.pennywiseai.tracker.ui.theme.orange_light
-import com.pennywiseai.tracker.ui.theme.teal_dark
-import com.pennywiseai.tracker.ui.theme.teal_light
-import com.pennywiseai.tracker.ui.theme.warning
 import com.pennywiseai.tracker.utils.AppDates
 import java.time.LocalDate
 
@@ -64,41 +57,24 @@ internal fun TrackingPage(
     }
     // Without SMS access there's no tracking to protect, so nothing to nag about.
     val backgroundStepsLeft = backgroundAccess?.stepsLeft?.takeIf { it > 0 && permissionUiState.hasPermission }
-    val backgroundStepsColor = MaterialTheme.colorScheme.warning
 
-    SettingsGroup {
-        SettingsNavItem(
-            icon = Icons.Default.Troubleshoot,
-            iconBgColor = MaterialTheme.colorScheme.primaryContainer,
-            iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
-            title = stringResource(R.string.sms_checkup_title),
-            subtitle = stringResource(R.string.sms_checkup_settings_subtitle),
-            onClick = { onNavigate(SmsCheckup) },
-            position = ListItemPosition.Single
-        )
-    }
-
-    SettingsGroup {
-        SettingsNavItem(
-            icon = Icons.Default.BatteryChargingFull,
-            iconBgColor = if (backgroundStepsLeft != null) backgroundStepsColor.copy(alpha = 0.15f) else MaterialTheme.colorScheme.secondaryContainer,
-            iconTint = if (backgroundStepsLeft != null) backgroundStepsColor else MaterialTheme.colorScheme.onSecondaryContainer,
-            title = stringResource(R.string.background_access_title),
-            subtitle = stringResource(R.string.background_access_settings_subtitle),
-            onClick = { onNavigate(BackgroundAccess) },
-            position = ListItemPosition.Single,
-            trailingText = backgroundStepsLeft?.let {
-                pluralStringResource(R.plurals.background_access_settings_left, it, it)
-            }
-        )
+    // A fix that is still open leads the page. Once it is done, the row stays
+    // at the bottom so the SMS and bank groups stay in reading order.
+    if (backgroundStepsLeft != null) {
+        BackgroundAccessRow(backgroundStepsLeft) { onNavigate(BackgroundAccess) }
     }
 
     SectionHeaderV2(title = stringResource(R.string.settings_group_sms))
     SettingsGroup {
         SettingsNavItem(
+            icon = Icons.Default.Troubleshoot,
+            title = stringResource(R.string.sms_checkup_title),
+            subtitle = stringResource(R.string.sms_checkup_settings_subtitle),
+            onClick = { onNavigate(SmsCheckup) },
+            position = ListItemPosition.Top
+        )
+        SettingsNavItem(
             icon = Icons.Default.CalendarMonth,
-            iconBgColor = teal_light,
-            iconTint = teal_dark,
             title = stringResource(R.string.settings_sms_scan_title),
             subtitle = when {
                 smsScanAllTime -> stringResource(R.string.settings_sms_scan_subtitle_all_time)
@@ -113,7 +89,7 @@ internal fun TrackingPage(
                 else -> pluralStringResource(R.plurals.settings_sms_scan_subtitle_months, smsScanMonths, smsScanMonths)
             },
             onClick = { showSmsScanSheet = true },
-            position = ListItemPosition.Top,
+            position = ListItemPosition.Middle,
             trailingText = when {
                 smsScanAllTime -> stringResource(R.string.settings_sms_scan_all_time)
                 smsScanUseCustomDate -> smsScanCustomDate?.let { formatSmsScanCustomDateShort(it) }
@@ -123,8 +99,6 @@ internal fun TrackingPage(
         )
         SettingsNavItem(
             icon = Icons.Default.Sms,
-            iconBgColor = orange_light,
-            iconTint = orange_dark,
             title = stringResource(R.string.settings_unrecognized_sms_title),
             subtitle = stringResource(R.string.settings_unrecognized_sms_subtitle),
             onClick = { onNavigate(UnrecognizedSms) },
@@ -136,8 +110,6 @@ internal fun TrackingPage(
     SettingsGroup {
         SettingsNavItem(
             icon = Icons.Default.Notifications,
-            iconBgColor = indigo_light,
-            iconTint = indigo_dark,
             title = stringResource(R.string.settings_notification_access_title),
             subtitle = if (hasNotificationAccess) stringResource(R.string.settings_notification_access_enabled) else stringResource(R.string.settings_notification_access_disabled),
             onClick = { notificationAccessLauncher.launch(Intent(Settings.ACTION_NOTIFICATION_LISTENER_SETTINGS)) },
@@ -146,14 +118,16 @@ internal fun TrackingPage(
         )
         SettingsNavItem(
             icon = Icons.Default.Apps,
-            iconBgColor = indigo_light,
-            iconTint = indigo_dark,
             title = stringResource(R.string.settings_tracked_apps_title),
             subtitle = if (trackedApps.isEmpty()) stringResource(R.string.settings_tracked_apps_subtitle_none)
             else pluralStringResource(R.plurals.settings_tracked_apps_subtitle_count, trackedApps.size, trackedApps.size),
             onClick = { showTrackedAppsDialog = true },
             position = ListItemPosition.Bottom
         )
+    }
+
+    if (backgroundStepsLeft == null) {
+        BackgroundAccessRow(stepsLeft = null) { onNavigate(BackgroundAccess) }
     }
 
     if (showTrackedAppsDialog) {
@@ -261,6 +235,22 @@ internal fun TrackingPage(
         ) {
             DatePicker(state = datePickerState)
         }
+    }
+}
+
+@Composable
+private fun BackgroundAccessRow(stepsLeft: Int?, onClick: () -> Unit) {
+    SettingsGroup {
+        SettingsNavItem(
+            icon = Icons.Default.BatteryChargingFull,
+            title = stringResource(R.string.background_access_title),
+            subtitle = stringResource(R.string.background_access_settings_subtitle),
+            onClick = onClick,
+            position = ListItemPosition.Single,
+            trailingText = stepsLeft?.let {
+                pluralStringResource(R.plurals.background_access_settings_left, it, it)
+            },
+        )
     }
 }
 

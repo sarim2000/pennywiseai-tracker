@@ -210,6 +210,18 @@ class HomeBudgetSummaryTest {
         assertAmount("22", s.dailyAllowance) // (1100 - 610) / 22 = 22.27
     }
 
+    @Test fun `Home hero uses the budget spend and counts today in a custom cycle`() = runTest {
+        val cycle = window(LocalDate.of(2026, 2, 25), LocalDate.of(2026, 3, 24))
+        val s = summary(raw(listOf(budget(1, limit = "1000")), listOf(spend("300")), mapOf(1L to cycle)))
+        val hero = checkNotNull(s.heroBudget(today))
+
+        assertEquals("Budget 1", hero.name)
+        assertEquals(s.groups.single().daysRemaining, hero.daysLeft)
+        assertAmount("300", hero.spent)
+        assertAmount("700", hero.remaining)
+        assertEquals(1, s.heroBudget(cycle.end)?.daysLeft)
+    }
+
     @Test fun `limit, target and expected budgets total separately, and savings use limit spend only`() = runTest {
         val s = summary(
             raw(

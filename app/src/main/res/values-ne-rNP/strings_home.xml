@@ -3,7 +3,6 @@
     <!-- ══ Home screen ══ -->
     <string name="home_transaction_deleted">लेनदेन मेटाइयो</string>
     <string name="home_undo">पूर्ववत गर्नुहोस्</string>
-    <string name="home_upgrade_pro">PennyWise Pro मा अपग्रेड गर्नुहोस्</string>
     <string name="home_profile_filter">प्रोफाइल फिल्टर</string>
     <string name="home_more_options">थप विकल्पहरू</string>
     <string name="home_view_all">सबै हेर्नुहोस्</string>
@@ -11,15 +10,12 @@
     <string name="home_manage">व्यवस्थापन</string>
     <string name="home_search_transactions">लेनदेन खोज्नुहोस्</string>
     <string name="home_cancel">रद्द गर्नुहोस्</string>
-    <string name="home_close">बन्द गर्नुहोस्</string>
     <!-- Home sections (headers + edit-home sheet) -->
     <string name="home_section_budgets">बजेटहरू</string>
     <string name="home_section_goals">लक्ष्यहरू</string>
     <string name="home_section_loans">ऋणहरू</string>
     <string name="home_section_groups">समूहहरू</string>
-    <string name="home_section_recent_transactions">हालका लेनदेन</string>
     <string name="home_section_accounts">बैंक खाता</string>
-    <string name="home_section_subscriptions">आउँदै गरेका सदस्यताहरू</string>
     <string name="home_section_activity">गतिविधि</string>
     <!-- Empty state -->
     <string name="home_empty_headline">अझै कुनै लेनदेन छैन</string>
@@ -36,7 +32,6 @@
     <string name="home_resync_rebuild_desc">पार्सर सुधारहरू लागू गर्न SMS लेनदेन फेरि पढिन्छ। SMS लेनदेनमा गरिएका सम्पादन रिसेट हुन्छन्। म्यानुअल, आयात गरिएका, ऋण र समूहमा राखिएका लेनदेन जोगाइन्छन्।</string>
     <!-- More options sheet -->
     <string name="home_menu_title">थप विकल्पहरू</string>
-    <string name="home_menu_settings">सेटिङ्स</string>
     <string name="home_menu_edit_home">होम स्क्रिन सम्पादन गर्नुहोस्</string>
     <string name="home_menu_discord">सुझावको लागि Discord मा जोडिनुहोस्</string>
     <string name="home_menu_rate">Play Store मा रेटिङ दिनुहोस्</string>
@@ -45,13 +40,6 @@
     <string name="home_edit_description">तपाईंको होम स्क्रिनमा सेक्सनहरू पुन:क्रमित वा लुकाउनुहोस्।</string>
     <string name="home_edit_move_up">%1$s माथि सार्नुहोस्</string>
     <string name="home_edit_move_down">%1$s तल सार्नुहोस्</string>
-    <!-- Calculation breakdown dialog -->
-    <string name="home_breakdown_title">हिसाब मिलान विवरण</string>
-    <!-- Month name, then day range, e.g. "March 1-15" -->
-    <string name="home_breakdown_formula">सूत्र: आम्दानी - खर्च = शुद्ध सम्पत्ति\nहरियो (+) = बचत | रातो (-) = बढी खर्च</string>
-    <string name="home_breakdown_income">आम्दानी</string>
-    <string name="home_breakdown_expenses">खर्चहरू</string>
-    <string name="home_breakdown_net_worth">शुद्ध सम्पत्ति</string>
     <!-- Subscriptions + loans summary cards -->
     <plurals name="home_active_subscriptions">
         <item quantity="one">%1$d सक्रिय सदस्यता</item>
@@ -65,11 +53,6 @@
     <string name="home_loans_owed_to_you">तपाईंले पाउनुपर्ने %1$s</string>
     <string name="home_loans_you_owe">तपाईंले तिर्नुपर्ने %1$s</string>
     <!-- ══ Greeting card (home header) ══ -->
-    <string name="greeting_last_day_of_month">%1$s को अन्तिम दिन</string>
-    <plurals name="greeting_days_left_in_month">
-        <item quantity="one">%2$s मा %1$d दिन बाँकी</item>
-        <item quantity="other">%2$s मा %1$d दिन बाँकी</item>
-    </plurals>
     <string name="greeting_good_morning">शुभ प्रभात</string>
     <string name="greeting_good_afternoon">शुभ अपराह्न</string>
     <string name="greeting_good_evening">शुभ साँझ</string>
@@ -80,8 +63,8 @@
     <!-- ══ Bottom navigation ══ -->
     <string name="nav_home">होम</string>
     <string name="nav_transactions">टाइमलाइन</string>
-    <string name="nav_analytics">विश्लेषण</string>
-    <string name="nav_chat">च्याट</string>
+    <string name="nav_analytics">अन्तर्दृष्टि</string>
+    <string name="nav_chat">सोध्नुहोस्</string>
     <!-- ══ Shared components ══ -->
     <string name="expandable_list_view_less">कम हेर्नुहोस्</string>
     <string name="expandable_list_view_all_more">सबै हेर्नुहोस् (%1$d थप)</string>

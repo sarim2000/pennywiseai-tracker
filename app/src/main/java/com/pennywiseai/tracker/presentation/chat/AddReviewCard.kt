@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -39,10 +41,11 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SelectableDropdownMenuItem
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -63,13 +66,19 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.model.ChatMessageFacts
 import com.pennywiseai.tracker.data.model.ReviewRow
 import com.pennywiseai.tracker.data.model.TransactionDraft
+import com.pennywiseai.tracker.ui.components.AmountBarHost
 import com.pennywiseai.tracker.ui.components.CategoryMenuItems
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
+import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.components.SettledCheck
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.forPicker
+import com.pennywiseai.tracker.ui.components.orSupporting
 import com.pennywiseai.tracker.ui.components.pickerDefault
+import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.icons.categoryLabel
+import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -99,6 +108,7 @@ internal fun AddReviewCard(
     val fg = MaterialTheme.colorScheme.onTertiaryContainer
     PennyWiseCardV2(
         modifier = modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.extraLarge,
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.tertiaryContainer)
     ) {
         Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
@@ -226,7 +236,8 @@ private fun ReviewRowEditSheet(
     onSave: (TransactionDraft) -> Unit
 ) {
     var amount by rememberSaveable { mutableStateOf(draft.amount.stripTrailingZeros().toPlainString()) }
-    var merchant by rememberSaveable { mutableStateOf(draft.merchant) }
+    val merchantState = rememberTextFieldState(draft.merchant)
+    val merchant = merchantState.text.toString()
     var type by rememberSaveable { mutableStateOf(draft.type) }
     var category by rememberSaveable { mutableStateOf(draft.category) }
     var currency by rememberSaveable { mutableStateOf(draft.currency) }
@@ -238,116 +249,122 @@ private fun ReviewRowEditSheet(
     val noAccount = stringResource(R.string.chat_account_none)
     val parsed = ChatMessageFacts.parseAmount(amount)
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .imePadding()
-                .padding(horizontal = Dimensions.Padding.content)
-                .padding(bottom = Dimensions.Padding.content),
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm)
-        ) {
-            Text(stringResource(R.string.chat_action_edit_title), style = MaterialTheme.typography.titleMedium)
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                OutlinedTextField(
-                    value = amount,
-                    onValueChange = { amount = it },
-                    label = { Text(stringResource(R.string.add_field_amount)) },
-                    isError = parsed == null,
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.weight(1f)
-                )
-                ExposedDropdownMenuBox(expanded = showCurrencies, onExpandedChange = { showCurrencies = it }, modifier = Modifier.weight(1f)) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))) {
+        AmountBarHost {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .imePadding()
+                    .padding(horizontal = Dimensions.Padding.content)
+                    .padding(bottom = Dimensions.Padding.content),
+                verticalArrangement = Arrangement.spacedBy(Spacing.sm)
+            ) {
+                Text(stringResource(R.string.chat_action_edit_title), style = MaterialTheme.typography.titleMedium)
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    val amountEntry = rememberAmountEntry(amount, { amount = it }, currency)
+                    val amountSum = amountEntry.sumHint
                     OutlinedTextField(
-                        value = "${CurrencyFormatter.getCurrencySymbol(currency)} $currency",
-                        onValueChange = {},
-                        readOnly = true,
-                        singleLine = true,
-                        label = { Text(stringResource(R.string.chat_action_edit_currency)) },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCurrencies) },
-                        modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                        shape = RoundedField.shape,
+                        state = amountEntry.state,
+                        inputTransformation = amountEntry.inputTransformation,
+                        label = { Text(stringResource(R.string.add_field_amount)) },
+                        isError = amountSum?.isError ?: (parsed == null),
+                        supportingText = amountSum.orSupporting(),
+                        lineLimits = TextFieldLineLimits.SingleLine,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = Modifier.weight(1f).then(amountEntry.modifier)
                     )
-                    ExposedDropdownMenu(expanded = showCurrencies, onDismissRequest = { showCurrencies = false }) {
-                        val codes = (listOf(currency) + CurrencyFormatter.getSupportedCurrencies()).distinct()
-                        codes.forEachIndexed { index, code ->
-                            SelectableDropdownMenuItem(
-                                selected = code == currency,
-                                text = { Text("${CurrencyFormatter.getCurrencySymbol(code)} $code") },
-                                onClick = { currency = code; showCurrencies = false },
-                                shapes = MenuDefaults.itemShape(index, codes.size),
-                                colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
-                                selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
-                            )
+                    ExposedDropdownMenuBox(expanded = showCurrencies, onExpandedChange = { showCurrencies = it }, modifier = Modifier.weight(1f)) {
+                        OutlinedTextField(
+                            shape = RoundedField.shape,
+                            state = rememberSyncedTextFieldState("${CurrencyFormatter.getCurrencySymbol(currency)} $currency") {},
+                            readOnly = true,
+                            lineLimits = TextFieldLineLimits.SingleLine,
+                            label = { Text(stringResource(R.string.chat_action_edit_currency)) },
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCurrencies) },
+                            modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                        )
+                        ExposedDropdownMenu(expanded = showCurrencies, onDismissRequest = { showCurrencies = false }, shape = MaterialTheme.shapes.large) {
+                            val codes = (listOf(currency) + CurrencyFormatter.getSupportedCurrencies()).distinct()
+                            codes.forEachIndexed { index, code ->
+                                SelectableDropdownMenuItem(
+                                    selected = code == currency,
+                                    text = { Text("${CurrencyFormatter.getCurrencySymbol(code)} $code") },
+                                    onClick = { currency = code; showCurrencies = false },
+                                    shapes = MenuDefaults.itemShape(index, codes.size),
+                                    colors = MenuDefaults.selectableItemColors(containerColor = Color.Transparent),
+                                    selectedLeadingIcon = { Icon(Icons.Default.Check, contentDescription = null) }
+                                )
+                            }
                         }
                     }
                 }
-            }
-            OutlinedTextField(
-                value = merchant,
-                onValueChange = { merchant = it },
-                label = { Text(stringResource(R.string.add_field_merchant)) },
-                isError = merchant.isBlank(),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth()
-            )
-            ConnectedChoiceRow(
-                options = listOf(TransactionType.EXPENSE, TransactionType.INCOME),
-                selected = type,
-                onSelect = { new ->
-                    type = new
-                    val isIncome = new == TransactionType.INCOME
-                    if (categories.forPicker(isIncome).none { it.name == category }) category = categories.pickerDefault("Others", isIncome)
-                },
-                label = { stringResource(if (it == TransactionType.INCOME) R.string.rules_type_income else R.string.rules_type_expense) }
-            )
-            ExposedDropdownMenuBox(expanded = showCategories, onExpandedChange = { showCategories = it }) {
                 OutlinedTextField(
-                    value = categoryLabel(category),
-                    onValueChange = {},
-                    readOnly = true,
-                    singleLine = true,
-                    label = { Text(stringResource(R.string.add_field_category)) },
-                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCategories) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                    shape = RoundedField.shape,
+                    state = merchantState,
+                    label = { Text(stringResource(R.string.add_field_merchant)) },
+                    isError = merchant.isBlank(),
+                    lineLimits = TextFieldLineLimits.SingleLine,
+                    modifier = Modifier.fillMaxWidth()
                 )
-                ExposedDropdownMenu(expanded = showCategories, onDismissRequest = { showCategories = false }) {
-                    CategoryMenuItems(
-                        categories = categories,
-                        isIncome = type == TransactionType.INCOME,
-                        onSelected = { category = it.name; showCategories = false }
+                ConnectedChoiceRow(
+                    options = listOf(TransactionType.EXPENSE, TransactionType.INCOME),
+                    selected = type,
+                    onSelect = { new ->
+                        type = new
+                        val isIncome = new == TransactionType.INCOME
+                        if (categories.forPicker(isIncome).none { it.name == category }) category = categories.pickerDefault("Others", isIncome)
+                    },
+                    label = { stringResource(if (it == TransactionType.INCOME) R.string.rules_type_income else R.string.rules_type_expense) }
+                )
+                ExposedDropdownMenuBox(expanded = showCategories, onExpandedChange = { showCategories = it }) {
+                    OutlinedTextField(
+                        shape = RoundedField.shape,
+                        state = rememberSyncedTextFieldState(categoryLabel(category)) {},
+                        readOnly = true,
+                        lineLimits = TextFieldLineLimits.SingleLine,
+                        label = { Text(stringResource(R.string.add_field_category)) },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCategories) },
+                        modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                     )
-                }
-            }
-            TextButton(onClick = { showDate = true }, shapes = ButtonDefaults.shapes()) { Text(date.format(DATE)) }
-            if (keepAccount) {
-                TextButton(onClick = { keepAccount = false }, shapes = ButtonDefaults.shapes()) {
-                    Text("${stringResource(R.string.chat_action_edit_remove_account)}: ${draft.accountLabel}")
-                }
-            }
-            Button(
-                onClick = {
-                    // A balance moves by the raw amount, so an account only keeps a row in its own currency.
-                    val linked = keepAccount && currency == draft.currency
-                    onSave(
-                        draft.copy(
-                            amount = parsed ?: return@Button,
-                            merchant = merchant.trim(),
-                            type = type,
-                            category = category,
-                            currency = currency,
-                            date = date,
-                            bankName = draft.bankName.takeIf { linked },
-                            accountLast4 = draft.accountLast4.takeIf { linked },
-                            accountLabel = if (linked || draft.bankName == null) draft.accountLabel else noAccount
+                    ExposedDropdownMenu(expanded = showCategories, onDismissRequest = { showCategories = false }, shape = MaterialTheme.shapes.large) {
+                        CategoryMenuItems(
+                            categories = categories,
+                            isIncome = type == TransactionType.INCOME,
+                            onSelected = { category = it.name; showCategories = false }
                         )
-                    )
-                },
-                enabled = parsed != null && merchant.isNotBlank(),
-                modifier = Modifier.fillMaxWidth(),
-                shapes = ButtonDefaults.shapes()
-            ) { Text(stringResource(R.string.chat_action_edit_done)) }
+                    }
+                }
+                TextButton(onClick = { showDate = true }, shapes = ButtonDefaults.shapes()) { Text(date.format(DATE)) }
+                if (keepAccount) {
+                    TextButton(onClick = { keepAccount = false }, shapes = ButtonDefaults.shapes()) {
+                        Text("${stringResource(R.string.chat_action_edit_remove_account)}: ${draft.accountLabel}")
+                    }
+                }
+                Button(
+                    onClick = withCommittedText {
+                        // A balance moves by the raw amount, so an account only keeps a row in its own currency.
+                        val linked = keepAccount && currency == draft.currency
+                        onSave(
+                            draft.copy(
+                                amount = ChatMessageFacts.parseAmount(amount) ?: return@withCommittedText,
+                                merchant = merchant.trim(),
+                                type = type,
+                                category = category,
+                                currency = currency,
+                                date = date,
+                                bankName = draft.bankName.takeIf { linked },
+                                accountLast4 = draft.accountLast4.takeIf { linked },
+                                accountLabel = if (linked || draft.bankName == null) draft.accountLabel else noAccount
+                            )
+                        )
+                    },
+                    enabled = parsed != null && merchant.isNotBlank(),
+                    modifier = Modifier.fillMaxWidth(),
+                    shapes = ButtonDefaults.shapes()
+                ) { Text(stringResource(R.string.chat_action_edit_done)) }
+            }
         }
     }
     if (showDate) {

@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -22,34 +23,18 @@ import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.navigation.ImportStatement
 import com.pennywiseai.tracker.presentation.applock.AppLockViewModel
 import com.pennywiseai.tracker.presentation.paywall.UpgradeSheet
 import com.pennywiseai.tracker.ui.ShakeToHideViewModel
 import com.pennywiseai.tracker.ui.UiText
 import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.ui.animations.pwExpand
+import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
+import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.ui.theme.amber_dark
-import com.pennywiseai.tracker.ui.theme.amber_light
-import com.pennywiseai.tracker.ui.theme.blue_dark
-import com.pennywiseai.tracker.ui.theme.blue_light
-import com.pennywiseai.tracker.ui.theme.cyan_dark
-import com.pennywiseai.tracker.ui.theme.cyan_light
-import com.pennywiseai.tracker.ui.theme.green_dark
-import com.pennywiseai.tracker.ui.theme.green_light
-import com.pennywiseai.tracker.ui.theme.indigo_dark
-import com.pennywiseai.tracker.ui.theme.indigo_light
-import com.pennywiseai.tracker.ui.theme.pink_dark
-import com.pennywiseai.tracker.ui.theme.pink_light
-import com.pennywiseai.tracker.ui.theme.purple_dark
-import com.pennywiseai.tracker.ui.theme.purple_light
-import com.pennywiseai.tracker.ui.theme.red_dark
-import com.pennywiseai.tracker.ui.theme.red_light
-import com.pennywiseai.tracker.ui.theme.teal_dark
-import com.pennywiseai.tracker.ui.theme.teal_light
 import com.pennywiseai.tracker.utils.AppDates
 
 // ── Security ──
@@ -66,8 +51,6 @@ internal fun SecurityPage(
     SettingsGroup {
         SettingsSwitchRow(
             icon = Icons.Default.Lock,
-            iconBgColor = red_light,
-            iconTint = red_dark,
             title = stringResource(R.string.settings_app_lock_title),
             subtitle = if (appLockUiState.canUseBiometric) {
                 stringResource(R.string.settings_app_lock_subtitle)
@@ -83,8 +66,6 @@ internal fun SecurityPage(
         AnimatedVisibility(visible = appLockUiState.isLockEnabled, enter = pwExpand(), exit = pwCollapse()) {
             SettingsNavItem(
                 icon = Icons.Default.Timer,
-                iconBgColor = pink_light,
-                iconTint = pink_dark,
                 title = stringResource(R.string.settings_lock_timeout_title),
                 subtitle = when (appLockUiState.timeoutMinutes) {
                     0 -> stringResource(R.string.settings_lock_timeout_immediately_subtitle)
@@ -100,8 +81,6 @@ internal fun SecurityPage(
         }
         SettingsSwitchRow(
             icon = Icons.Default.Vibration,
-            iconBgColor = teal_light,
-            iconTint = teal_dark,
             title = stringResource(R.string.settings_shake_to_hide_title),
             subtitle = stringResource(R.string.settings_shake_to_hide_subtitle),
             checked = shakeToHideEnabled,
@@ -197,8 +176,6 @@ internal fun DataPage(
     SettingsGroup {
         SettingsNavItem(
             icon = Icons.Default.Upload,
-            iconBgColor = blue_light,
-            iconTint = blue_dark,
             title = stringResource(R.string.settings_export_data_title),
             subtitle = stringResource(R.string.settings_export_data_subtitle),
             onClick = { settingsViewModel.exportBackup() },
@@ -206,8 +183,6 @@ internal fun DataPage(
         )
         SettingsSwitchRow(
             icon = Icons.Default.Receipt,
-            iconBgColor = blue_light,
-            iconTint = blue_dark,
             title = stringResource(R.string.settings_export_include_receipts_title),
             subtitle = stringResource(R.string.settings_export_include_receipts_subtitle),
             checked = exportIncludeReceipts,
@@ -216,8 +191,6 @@ internal fun DataPage(
         )
         SettingsNavItem(
             icon = Icons.Default.Download,
-            iconBgColor = cyan_light,
-            iconTint = cyan_dark,
             title = stringResource(R.string.settings_import_data_title),
             subtitle = stringResource(R.string.settings_import_data_subtitle),
             onClick = { importLauncher.launch("*/*") },
@@ -229,8 +202,6 @@ internal fun DataPage(
     SettingsGroup {
         SettingsSwitchRow(
             icon = Icons.Default.Backup,
-            iconBgColor = purple_light,
-            iconTint = purple_dark,
             title = stringResource(R.string.settings_folder_backup_title),
             subtitle = if (scheduledFolderBackupEnabled) {
                 stringResource(R.string.settings_folder_backup_subtitle_enabled)
@@ -255,8 +226,6 @@ internal fun DataPage(
         if (scheduledFolderBackupEnabled) {
             SettingsNavItem(
                 icon = Icons.Default.SaveAlt,
-                iconBgColor = green_light,
-                iconTint = green_dark,
                 title = stringResource(R.string.settings_backup_now_title),
                 subtitle = scheduledFolderBackupLastTimestamp?.let { timestamp ->
                     val formatted = java.time.Instant.ofEpochMilli(timestamp)
@@ -278,8 +247,6 @@ internal fun DataPage(
             )
             SettingsSwitchRow(
                 icon = Icons.Default.Receipt,
-                iconBgColor = purple_light,
-                iconTint = purple_dark,
                 title = stringResource(R.string.settings_folder_backup_include_receipts_title),
                 subtitle = stringResource(R.string.settings_folder_backup_include_receipts_subtitle),
                 checked = folderBackupIncludeReceipts,
@@ -288,8 +255,6 @@ internal fun DataPage(
             )
             SettingsNavItem(
                 icon = Icons.Default.FolderOpen,
-                iconBgColor = amber_light,
-                iconTint = amber_dark,
                 title = stringResource(R.string.settings_change_backup_folder_title),
                 subtitle = stringResource(R.string.settings_change_backup_folder_subtitle),
                 onClick = { settingsViewModel.requestChangeBackupFolder() },
@@ -300,23 +265,13 @@ internal fun DataPage(
 
     SectionHeaderV2(title = stringResource(R.string.settings_group_import))
     SettingsGroup {
-        SettingsNavItem(
-            icon = Icons.Default.Description,
-            iconBgColor = indigo_light,
-            iconTint = indigo_dark,
-            title = stringResource(R.string.settings_import_statement_title),
-            subtitle = stringResource(R.string.settings_import_statement_subtitle),
-            onClick = { onNavigate(ImportStatement) },
-            position = ListItemPosition.Top
-        )
+        // Statement import is a hub tile. CSV stays here with the other file imports.
         SettingsNavItem(
             icon = Icons.Default.Download,
-            iconBgColor = cyan_light,
-            iconTint = cyan_dark,
             title = stringResource(R.string.settings_import_csv_title),
             subtitle = stringResource(R.string.settings_import_csv_subtitle),
             onClick = { csvImportLauncher.launch("*/*") },
-            position = ListItemPosition.Bottom
+            position = ListItemPosition.Single
         )
     }
 
@@ -324,8 +279,6 @@ internal fun DataPage(
     SettingsGroup {
         SettingsNavItem(
             icon = Icons.Default.DeleteForever,
-            iconBgColor = red_light,
-            iconTint = red_dark,
             title = stringResource(R.string.settings_delete_all_title),
             subtitle = stringResource(R.string.settings_delete_all_subtitle),
             onClick = { settingsViewModel.requestDeleteAllTransactions() },
@@ -365,18 +318,22 @@ internal fun DataPage(
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                     OutlinedTextField(
-                        value = confirmationText,
-                        onValueChange = { confirmationText = it },
-                        singleLine = true,
+                        state = rememberSyncedTextFieldState(confirmationText) { confirmationText = it },
+                        lineLimits = TextFieldLineLimits.SingleLine,
                         enabled = !isDeletingAllTransactions,
                         label = { Text(stringResource(R.string.settings_delete_all_dialog_type_to_confirm, confirmWord)) },
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedField.shape
                     )
                 }
             },
             confirmButton = {
                 TextButton(
-                    onClick = { settingsViewModel.deleteAllTransactions(count) },
+                    onClick = withCommittedText {
+                        if (confirmationText.trim() == confirmWord) {
+                            settingsViewModel.deleteAllTransactions(count)
+                        }
+                    },
                     enabled = confirmed && !isDeletingAllTransactions,
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error

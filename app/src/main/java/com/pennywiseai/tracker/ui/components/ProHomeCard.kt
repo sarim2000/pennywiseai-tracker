@@ -1,9 +1,5 @@
 package com.pennywiseai.tracker.ui.components
 
-import com.pennywiseai.tracker.ui.theme.yellow_accent_dark
-import com.pennywiseai.tracker.ui.theme.yellow_on_dark
-import com.pennywiseai.tracker.ui.theme.yellow_surface_dark
-import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
@@ -14,9 +10,9 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.AutoAwesome
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -27,10 +23,16 @@ import androidx.compose.ui.res.stringResource
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.GRAPHIC_CONTRAST
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
+import com.pennywiseai.tracker.ui.theme.readableOn
+import com.pennywiseai.tracker.ui.theme.yellow_accent_dark
 import com.pennywiseai.tracker.ui.theme.yellow_dark
 import com.pennywiseai.tracker.ui.theme.yellow_light
+import com.pennywiseai.tracker.ui.theme.yellow_on_dark
 import com.pennywiseai.tracker.ui.theme.yellow_on_light
+import com.pennywiseai.tracker.ui.theme.yellow_surface_dark
 
 /**
  * The one-time Home card pointing engaged free users to Pro (#945).
@@ -48,7 +50,8 @@ fun ProHomeCard(
     val dark = isAppInDarkTheme()
     val container = if (dark) yellow_surface_dark else yellow_light
     val ink = if (dark) yellow_on_dark else yellow_on_light
-    val accent = if (dark) yellow_accent_dark else yellow_dark
+    // yellow_dark is ~2.5:1 on yellow_light: deepen it just enough for the icon to show.
+    val accent = (if (dark) yellow_accent_dark else yellow_dark).readableOn(listOf(container), GRAPHIC_CONTRAST)
     PennyWiseCardV2(
         modifier = modifier.fillMaxWidth(),
         containerColor = container,

@@ -88,4 +88,15 @@ class CurrencyGroupedTotalsTest {
         val totals = calculateCurrencyGroupedTotals(listOf(tx("1"), tx("1", currency = "INR"), tx("1", currency = "AED")))
         assertEquals(listOf("INR", "AED", "USD"), totals.availableCurrencies)
     }
+
+    @Test
+    fun aSpendViewNetsTheRefundsItDoesNotList() {
+        val refund = tx("15", TransactionType.INCOME, impact = BudgetImpactType.DEDUCT_SPENT)
+        val usd = calculateCurrencyGroupedTotals(listOf(tx("100")), netRefunds = listOf(refund, refund.copy(currency = "INR")))
+        assertSame("85", usd.totalsByCurrency.getValue("USD").expenses)
+        assertSame("0", usd.totalsByCurrency.getValue("USD").income)
+        assertEquals(1, usd.transactionCount)
+        // A refund in another currency never comes off this one, nor opens a bucket of its own.
+        assertEquals(setOf("USD"), usd.totalsByCurrency.keys)
+    }
 }

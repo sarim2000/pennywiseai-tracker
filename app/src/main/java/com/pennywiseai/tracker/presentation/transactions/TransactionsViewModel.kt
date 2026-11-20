@@ -6,6 +6,7 @@ import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
+import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
@@ -803,16 +804,20 @@ class TransactionsViewModel @Inject constructor(
                 // The list is computed off the main thread and published whole below;
                 // transformLatest cancels a stale computation before starting the next.
                 getFilteredTransactions(query, period, category, categories, typeFilter, cycleRange)
-                    .map { (allTransactions, splitShares) ->
+                    .map { (allTransactions, splitShares, allRefunds) ->
                         // Apply profile, account, then tag filters
-                        val tracked = filterTrackedByProfile(
-                            allTransactions, profileId, _ignoredAccountKeys.value, _profileAccountKeys.value
-                        )
-                        val transactions = filterByTag(
-                            filterTransactionsByAccount(tracked, accountKey),
+                        fun scoped(rows: List<TransactionEntity>) = filterByTag(
+                            filterTransactionsByAccount(
+                                filterTrackedByProfile(rows, profileId, _ignoredAccountKeys.value, _profileAccountKeys.value),
+                                accountKey
+                            ),
                             tag,
                             transactionTagsMap.value
                         )
+                        val transactions = scoped(allTransactions)
+                        val refunds = scoped(allRefunds)
+                        // The one currency listed, or null in unified mode (every currency).
+                        var listCurrency: String? = null
                         val sorted = if (isUnified) {
                             // Show all transactions regardless of currency
                             sortTransactions(transactions, sort, splitShares.amountOf())
@@ -845,6 +850,7 @@ class TransactionsViewModel @Inject constructor(
                                     currentCurrency
                                 }
 
+                            listCurrency = finalCurrency
                             // Now filter by the selected currency (which may have just been auto-selected)
                             val currencyFilteredTransactions = transactions.filter {
                                 it.currency.equals(finalCurrency, ignoreCase = true)
@@ -856,7 +862,12 @@ class TransactionsViewModel @Inject constructor(
                             transactions = sorted,
                             grouped = groupTransactionsByDate(sorted),
                             // Calculate totals for filtered transactions
-                            totals = calculateCurrencyGroupedTotals(splitShares.forTotals(sorted)),
+                            totals = calculateCurrencyGroupedTotals(
+                                splitShares.forTotals(sorted),
+                                netRefunds = splitShares.forTotals(
+                                    refunds.filter { listCurrency == null || it.currency.equals(listCurrency, ignoreCase = true) }
+                                ),
+                            ),
                             splitShares = splitShares
                         )
                     }
@@ -1315,7 +1326,7 @@ class TransactionsViewModel @Inject constructor(
         // (non-suspend) Flow builder can branch on THIS_MONTH. For other
         // periods this is ignored.
         cycleRange: Pair<LocalDate, LocalDate>
-    ): Flow<Pair<List<TransactionEntity>, CategorySplitShares?>> {
+    ): Flow<FilteredRows> {
         // Start with the base flow based on category filter
         // A single category (the Analytics tap-through) is just the one-element case
         // of the budget filter below, and has to share its split handling: a
@@ -1357,7 +1368,23 @@ class TransactionsViewModel @Inject constructor(
         // Apply type, then search filter. Tags and aliases are read per list, so the
         // re-run a change to either one triggers sees it.
         return categoriesFilteredFlow.map { (rows, splitShares) ->
-            filterBySearch(filterByType(rows, typeFilter), searchQuery, transactionTagsMap.value, merchantAliases.value, splitShares.amountOf()) to splitShares
+            fun searched(list: List<TransactionEntity>) =
+                filterBySearch(list, searchQuery, transactionTagsMap.value, merchantAliases.value, splitShares.amountOf())
+            FilteredRows(
+                rows = searched(filterByType(rows, typeFilter)),
+                splitShares = splitShares,
+                // A spend view drops refunds from its rows but nets them off its total, as
+                // Home and Insights do (#629), so a Spent figure opens a list that matches it.
+                refunds = if (typeFilter.netsRefunds) {
+                    searched(
+                        rows.filter {
+                            it.transactionType == TransactionType.INCOME && it.budgetImpactType == BudgetImpactType.DEDUCT_SPENT
+                        }
+                    )
+                } else {
+                    emptyList()
+                },
+            )
         }
     }
 
@@ -1394,6 +1421,13 @@ data class TransactionsUiState(
     /** Set while a category filter is on: split rows count only their share in it (#1192). */
     val splitShares: CategorySplitShares? = null,
     val isLoading: Boolean = true
+)
+
+/** The listed rows, with the refunds a spend view nets off its total but doesn't list. */
+private data class FilteredRows(
+    val rows: List<TransactionEntity>,
+    val splitShares: CategorySplitShares?,
+    val refunds: List<TransactionEntity>,
 )
 
 /** One finished computation of the list, published to the UI state in one go. */

@@ -10,7 +10,14 @@ import com.pennywiseai.tracker.presentation.common.CurrencyTotals
 import com.pennywiseai.tracker.utils.CurrencyUtils
 import java.math.BigDecimal
 
-internal fun calculateCurrencyGroupedTotals(transactions: List<TransactionEntity>): CurrencyGroupedTotals {
+/**
+ * [netRefunds] are refunds a spend view doesn't list but nets off its Expenses, as Home
+ * does: they aren't counted as rows, and a currency with only refunds gets no bucket.
+ */
+internal fun calculateCurrencyGroupedTotals(
+    transactions: List<TransactionEntity>,
+    netRefunds: List<TransactionEntity> = emptyList(),
+): CurrencyGroupedTotals {
     // Loan disbursements/repayments and analytics-excluded transactions still
     // appear in the list (it's the full ledger) but must not count toward the
     // period's Income/Expense/etc. totals — loans are tracked in the Loans
@@ -18,6 +25,7 @@ internal fun calculateCurrencyGroupedTotals(transactions: List<TransactionEntity
     // user. Matches the Home/Analytics convention (HomeViewModel#1142).
     val nonLoanTransactions = transactions.forTotals()
     val transactionsByCurrency = nonLoanTransactions.groupBy { it.currency }
+    val unlistedRefunds = netRefunds.forTotals().groupBy { it.currency }
     // Pairs counted once before grouping, as Home's unified Transferred figure does:
     // after grouping, a pair across currencies has one leg in each bucket.
     val transferAcrossCurrencies = nonLoanTransactions
@@ -31,7 +39,7 @@ internal fun calculateCurrencyGroupedTotals(transactions: List<TransactionEntity
         // expense, so it shrinks "Expenses" (floored at zero) and does not
         // appear in "Income". "Extra budget" (ADD_TO_LIMIT) is real money in
         // and stays in income — same treatment as HomeViewModel.
-        val refundTotal = currencyTransactions
+        val refundTotal = (currencyTransactions + unlistedRefunds[currency].orEmpty())
             .filter {
                 it.transactionType == TransactionType.INCOME &&
                     it.budgetImpactType == BudgetImpactType.DEDUCT_SPENT

@@ -3,7 +3,6 @@
     <!-- ══ Home screen ══ -->
     <string name="home_transaction_deleted">Transakce odstraněna</string>
     <string name="home_undo">Zpět</string>
-    <string name="home_upgrade_pro">Upgradovat na PennyWise Pro</string>
     <string name="home_profile_filter">Filtr profilu</string>
     <string name="home_more_options">Další možnosti</string>
     <string name="home_view_all">Zobrazit vše</string>
@@ -33,11 +32,9 @@
     <string name="home_resync_rebuild_desc">Znovu načte transakce ze SMS, aby se projevily opravy parserů. Úpravy SMS transakcí se zruší. Ruční, importované, úvěrové a seskupené transakce zůstanou zachovány.</string>
     <!-- More options sheet -->
     <string name="home_menu_title">Další možnosti</string>
-    <string name="home_menu_settings">Nastavení</string>
     <string name="home_menu_edit_home">Upravit domácí obrazovku</string>
     <string name="home_menu_discord">Připojte se k Discordu pro zpětnou vazbu</string>
     <string name="home_menu_rate">Ohodnotit v Obchodě Play</string>
-    <string name="home_version">v%1$s</string>
     <!-- Edit home screen sheet -->
     <string name="home_edit_title">Upravit domácí obrazovku</string>
     <string name="home_edit_description">Změnit pořadí nebo skrýt sekce na domovské obrazovce.</string>
@@ -60,13 +57,6 @@
     <string name="home_loans_owed_to_you">%1$s vám dluží</string>
     <string name="home_loans_you_owe">Dlužíte %1$s</string>
     <!-- ══ Greeting card (home header) ══ -->
-    <string name="greeting_last_day_of_month">Poslední den %1$s</string>
-    <plurals name="greeting_days_left_in_month">
-        <item quantity="one">%1$d den zbývá %2$s</item>
-        <item quantity="few">%1$d dní zbývá %2$s</item>
-        <item quantity="many">%1$d dní zbývá %2$s</item>
-        <item quantity="other">%1$d dní zbývá %2$s</item>
-    </plurals>
     <string name="greeting_good_morning">Dobré ráno</string>
     <string name="greeting_good_afternoon">Dobré odpoledne</string>
     <string name="greeting_good_evening">Dobrý večer</string>
@@ -77,8 +67,8 @@
     <!-- ══ Bottom navigation ══ -->
     <string name="nav_home">Domů</string>
     <string name="nav_transactions">Časová osa</string>
-    <string name="nav_analytics">Analytici</string>
-    <string name="nav_chat">Konverzace</string>
+    <string name="nav_analytics">Přehledy</string>
+    <string name="nav_chat">Zeptat se</string>
     <!-- ══ Shared components ══ -->
     <string name="expandable_list_view_less">Zobrazit méně</string>
     <string name="expandable_list_view_all_more">Zobrazit vše (%1$d další)</string>

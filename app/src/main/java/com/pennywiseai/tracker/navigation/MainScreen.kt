@@ -178,7 +178,9 @@ fun MainScreen(
     rootBackStack: NavBackStack<NavKey>? = null,
     themeViewModel: ThemeViewModel? = null,
     spotlightViewModel: SpotlightViewModel? = null,
-    mainViewModel: MainViewModel? = null
+    mainViewModel: MainViewModel? = null,
+    widgetPlan: Plan? = null,
+    onWidgetPlanHandled: () -> Unit = {},
 ) {
     val themeViewModel = themeViewModel ?: hiltViewModel()
     val spotlightViewModel = spotlightViewModel ?: hiltViewModel()
@@ -274,6 +276,14 @@ fun MainScreen(
         tabStacks.getValue(BottomNavItem.Plan).resetTo(Plan(section, request = System.nanoTime(), focusId = focusId))
         selectTab(BottomNavItem.Plan)
         planReturnRoute = from.route.takeIf { from != BottomNavItem.Home && from != BottomNavItem.Plan }
+    }
+
+    LaunchedEffect(widgetPlan, themeState.isLoading) {
+        if (themeState.isLoading) return@LaunchedEffect
+        widgetPlan?.let {
+            openPlan(currentTab, it.section)
+            onWidgetPlanHandled()
+        }
     }
 
     // An explicit "ask the owl" opens Ask itself, not whatever the Chat tab was left on

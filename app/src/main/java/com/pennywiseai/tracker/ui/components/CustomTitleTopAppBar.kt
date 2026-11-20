@@ -1,6 +1,5 @@
 package com.pennywiseai.tracker.ui.components
 
-import android.os.Build
 import androidx.compose.animation.ExperimentalAnimationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
@@ -41,7 +40,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.layout.layout
 import androidx.compose.ui.platform.LocalDensity
@@ -120,8 +118,6 @@ fun CustomTitleTopAppBar(
         profileBackgroundColor = profileBackgroundColor,
         collapsedFraction = if (scrollBehaviorLarge != scrollBehaviorSmall) collapsedFraction else 1f,
         modifier = modifier,
-        hazeState = hazeState,
-        blurEffects = blurEffects
     )
 }
 
@@ -203,6 +199,7 @@ private fun LargerTopAppBar(
                 title = title,
                 overline = overline,
                 isHomeScreen = isHomeScreen,
+                titleMaxLines = 2,
                 modifier = modifier,
                 extraInfoCard = extraInfoCard,
             )
@@ -297,6 +294,7 @@ private fun TitleForLargeTopAppBar(
     overline: String? = null,
     trailing: @Composable () -> Unit = {},
     isHomeScreen: Boolean,
+    titleMaxLines: Int = 1,
     extraInfoCard: @Composable () -> Unit = {},
 ) {
     Column(
@@ -329,7 +327,7 @@ private fun TitleForLargeTopAppBar(
                         text = title,
                         style = MaterialTheme.typography.headlineLargeEmphasized,
                         textAlign = TextAlign.Start,
-                        maxLines = 1,
+                        maxLines = titleMaxLines,
                         overflow = TextOverflow.Ellipsis,
                     )
                 }
@@ -357,8 +355,6 @@ private fun RegularTopAppBar(
     profileImageUri: String? = null,
     profileBackgroundColor: Int = 0,
     collapsedFraction: Float,
-    hazeState: HazeState,
-    blurEffects: Boolean = true
 ) {
     BlurredAnimatedVisibility(
         visible = collapsedFraction > 0.01f,
@@ -380,31 +376,9 @@ private fun RegularTopAppBar(
         }
         val barModifier = modifier
             .fillMaxWidth()
-            .then(
-                if (blurEffects) Modifier.frostedBlur(
-                    hazeState,
-                    blurRadius = 10.dp,
-                    edgeTreatment = BlurredEdgeTreatment.Rectangle,
-                    progressive = HazeProgressive.verticalGradient(startIntensity = 1f, endIntensity = 0f),
-                ) else Modifier
-            )
-            .background(
-                // The fade relies on the blur to hide what scrolls under it. Without
-                // blur (Android 11 and older, or turned off) content showed sharp
-                // behind the back button and title, so the bar is opaque there.
-                if (blurEffects && Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-                    Brush.verticalGradient(
-                        colors = listOf(
-                            MaterialTheme.colorScheme.background,
-                            Color.Transparent
-                        )
-                    )
-                } else {
-                    SolidColor(MaterialTheme.colorScheme.background)
-                }
-            )
-            .windowInsetsPadding(WindowInsets.statusBars)
             .alpha(collapsedFraction)
+            .background(MaterialTheme.colorScheme.background)
+            .windowInsetsPadding(WindowInsets.statusBars)
 
         if (isHomeScreen) {
             // Home's "title" is an avatar next to a name — it belongs at the

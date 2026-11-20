@@ -129,7 +129,9 @@ private fun fadeOnly(m: MotionScheme): Map<String, Any> {
 fun PennyWiseNavHost(
     backStack: NavBackStack<NavKey>,
     modifier: Modifier = Modifier,
-    onEditComplete: () -> Unit = {}
+    onEditComplete: () -> Unit = {},
+    widgetPlan: Plan? = null,
+    onWidgetPlanHandled: () -> Unit = {},
 ) {
     val motion = MaterialTheme.motionScheme
     val fadeOnly = remember(motion) { fadeOnly(motion) }
@@ -168,7 +170,9 @@ fun PennyWiseNavHost(
                     entry<Home>(metadata = fadeOnly) {
                         CompositionLocalProvider(LocalNavAnimatedVisibilityScope provides LocalNavAnimatedContentScope.current) {
                             MainScreen(
-                                rootBackStack = backStack
+                                rootBackStack = backStack,
+                                widgetPlan = widgetPlan,
+                                onWidgetPlanHandled = onWidgetPlanHandled,
                             )
                         }
                     }

@@ -112,7 +112,11 @@ private fun RowScope.Shortcut(
         modifier = Modifier
             .weight(1f)
             .clip(MaterialTheme.shapes.large)
-            .combinedClickable(onClick = onClick, onLongClick = onLongClick)
+            .combinedClickable(
+                onClick = onClick,
+                onLongClick = onLongClick,
+                onLongClickLabel = stringResource(R.string.home_edit_title),
+            )
             .clearAndSetSemantics {
                 contentDescription = description
                 role = Role.Button

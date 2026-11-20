@@ -1,11 +1,30 @@
-<!-- PennyWise owl for the status bar / notification small icon. Solid white: the system tints it. -->
+<!-- PennyWise owl for the status bar / notification small icon. Solid white: the system tints it.
+     The mascot's line art (MascotShapes.kt), with heavier lines so it holds up at 24dp. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
-    android:viewportWidth="24"
-    android:viewportHeight="24">
+    android:viewportWidth="100"
+    android:viewportHeight="100">
+    <!-- Face with soft-tipped ears. -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="7"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M50,22C58,22 64,23 70,25L77,17Q81,13 82,19L83,31C87,38 89,45 89,53C89,74 72,89 50,89C28,89 11,74 11,53C11,45 13,38 17,31L18,19Q19,13 23,17L30,25C36,23 42,22 50,22Z" />
+    <!-- Eye rings. -->
+    <path
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="6.5"
+        android:pathData="M22.5,54a13.5,13.5 0,1 0,27 0a13.5,13.5 0,1 0,-27 0ZM50.5,54a13.5,13.5 0,1 0,27 0a13.5,13.5 0,1 0,-27 0Z" />
+    <!-- Pill eyes and the diamond beak. -->
     <path
         android:fillColor="#FFFFFF"
-        android:fillType="evenOdd"
-        android:pathData="M4.8,2L9,5.5C9.9,5.2 10.9,5 12,5C13.1,5 14.1,5.2 15,5.5L19.2,2L19,7.6C20.2,9.1 20.8,11 20.8,13.2C20.8,18 16.9,21.8 12,21.8C7.1,21.8 3.2,18 3.2,13.2C3.2,11 3.8,9.1 5,7.6ZM8.8,7.6A3.1,3.1 0,1 0,8.8 13.8A3.1,3.1 0,1 0,8.8 7.6ZM15.2,7.6A3.1,3.1 0,1 0,15.2 13.8A3.1,3.1 0,1 0,15.2 7.6ZM8.8,9.4A1.3,1.3 0,1 1,8.8 12A1.3,1.3 0,1 1,8.8 9.4ZM15.2,9.4A1.3,1.3 0,1 1,15.2 12A1.3,1.3 0,1 1,15.2 9.4ZM10.8,14.2L13.2,14.2L12,16.6Z" />
+        android:pathData="M33,50a3,3 0,0 1,6 0v8a3,3 0,0 1,-6 0ZM61,50a3,3 0,0 1,6 0v8a3,3 0,0 1,-6 0Z" />
+    <path
+        android:fillColor="#FFFFFF"
+        android:strokeColor="#FFFFFF"
+        android:strokeWidth="4"
+        android:strokeLineJoin="round"
+        android:pathData="M50,66L53,70L50,75L47,70Z" />
 </vector>

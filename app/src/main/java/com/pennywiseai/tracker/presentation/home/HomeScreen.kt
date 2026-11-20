@@ -613,7 +613,8 @@ fun HomeScreen(
                                         HomeLoansSection(
                                             summary = summary,
                                             selectedCurrency = uiState.selectedCurrency,
-                                            onNavigateToLoans = onNavigateToLoans
+                                            onNavigateToLoans = onNavigateToLoans,
+                                            onLoanClick = onLoanClick
                                         )
                                     }
                                 }

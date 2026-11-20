@@ -108,7 +108,8 @@ internal fun HomeGoalsSection(
 internal fun HomeLoansSection(
     summary: LoanSummary,
     selectedCurrency: String,
-    onNavigateToLoans: () -> Unit
+    onNavigateToLoans: () -> Unit,
+    onLoanClick: (Long) -> Unit
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
@@ -118,13 +119,15 @@ internal fun HomeLoansSection(
             onSeeAll = onNavigateToLoans,
             modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
         )
+        // One loan: the card is that loan, so it opens it rather than a list of one.
+        val onlyLoan = summary.activeLoans.singleOrNull()
         Box(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
             ActiveLoansSummaryCard(
                 loans = summary.activeLoans,
                 totalLentRemaining = summary.totalLentRemaining,
                 totalBorrowedRemaining = summary.totalBorrowedRemaining,
                 currency = selectedCurrency,
-                onClick = onNavigateToLoans
+                onClick = if (onlyLoan != null) ({ onLoanClick(onlyLoan.id) }) else onNavigateToLoans
             )
         }
     }

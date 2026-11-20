@@ -18,4 +18,6 @@
     <!-- %1$s = the limit amount -->
     <!-- The message sent with the image, in the sharer's voice. It never carries a figure:
          those stay on the image, where the user chose them. %1$s = the app's website -->
+    <!-- Achievements card -->
+    <!-- %1$s = the app's website -->
 </resources>

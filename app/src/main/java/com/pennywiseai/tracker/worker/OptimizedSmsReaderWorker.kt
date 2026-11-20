@@ -19,13 +19,16 @@ import com.pennywiseai.tracker.data.preferences.ScanPreferences
 import com.pennywiseai.tracker.data.repository.*
 import com.pennywiseai.tracker.domain.repository.RuleRepository
 import com.pennywiseai.tracker.domain.service.RuleEngine
+import com.pennywiseai.tracker.utils.canReadSms
 import com.pennywiseai.tracker.worker.smsscan.DeviceSmsMessageSource
 import com.pennywiseai.tracker.worker.smsscan.ProcessingStats
+import com.pennywiseai.tracker.worker.smsscan.ScanOutcomeRecorder
 import com.pennywiseai.tracker.worker.smsscan.ScanRunContext
 import com.pennywiseai.tracker.worker.smsscan.ScanTransactionWriter
 import com.pennywiseai.tracker.worker.smsscan.SmsScanClassifier
 import com.pennywiseai.tracker.worker.smsscan.SmsScanCleanup
 import com.pennywiseai.tracker.worker.smsscan.SmsScanPipeline
+import com.pennywiseai.tracker.worker.smsscan.restoringAccountsAfterRebuild
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.*
@@ -156,162 +159,179 @@ class OptimizedSmsReaderWorker @AssistedInject constructor(
     override suspend fun doWork(): Result = withContext(Dispatchers.IO) {
         Process.setThreadPriority(Process.THREAD_PRIORITY_FOREGROUND)
         val recentSinceMillis = System.currentTimeMillis() - 30L * 24 * 60 * 60 * 1000
+        val recorder = ScanOutcomeRecorder(userPreferencesRepository)
 
         Trace.beginSection("SmsWorker.doWork")
         try {
-            val forceResync = inputData.getBoolean(INPUT_FORCE_RESYNC, false)
-            val rescanAll = inputData.getBoolean(INPUT_RESCAN_ALL, false)
-            Log.i(TAG, "Starting SMS worker (forceResync=$forceResync, rescanAll=$rescanAll)")
+            recorder.run(isStopped = { isStopped }) {
+                // Without READ_SMS every inbox query fails. Read as "no messages", that would
+                // record a success, move the incremental cursor past messages never read, and
+                // let a rebuild delete rows it can't bring back. Fail before any of it.
+                if (!applicationContext.canReadSms()) throw SecurityException("READ_SMS not granted")
+                val forceResync = inputData.getBoolean(INPUT_FORCE_RESYNC, false)
+                val rescanAll = inputData.getBoolean(INPUT_RESCAN_ALL, false)
+                // A whole-window scan that didn't finish clean kept the cursor, but the cursor
+                // only reaches back 3 days: read its window again, whoever starts this scan.
+                val retryWindow = recorder.fullWindow
+                Log.i(TAG, "Starting SMS worker (forceResync=$forceResync, rescanAll=$rescanAll, retryWindow=$retryWindow)")
 
-            // The window is computed before any delete: a rebuild may only drop
-            // rows it will re-read.
-            val (scanStartTime, needsFullScan) = computeScanParams(forceResync || rescanAll)
+                // The window is computed before any delete: a rebuild may only drop
+                // rows it will re-read.
+                val (scanStartTime, needsFullScan) = computeScanParams(forceResync || rescanAll || retryWindow)
+                if (needsFullScan) recorder.markFullWindow()
 
-            var rebuildStartedAt: LocalDateTime? = null
-            var accountsBeforeRebuild: Map<Pair<String, String>, AccountBalanceEntity> = emptyMap()
-            var latestBeforeRebuild: List<AccountBalanceEntity> = emptyList()
-            if (forceResync) {
-                rebuildStartedAt = LocalDateTime.now()
-                Trace.beginSection("clearDatabase")
-                try {
-                    // Delete only what the inbox can rebuild (active SMS rows
-                    // outside loans/groups); manual, imported, notification and
-                    // deleted rows survive — nothing would bring them back. Re-parse uses
-                    // transaction_hash UNIQUE + OnConflictStrategy.IGNORE, so
-                    // surviving rows are not duplicated. Fixes #401.
-                    //
-                    // Order matters: drop the transactions FIRST, then run the
-                    // companion balance-cleanup which decides orphan-status
-                    // against the now-current transactions table. Without the
-                    // companion, deleteAllBalances() would wipe balance entries
-                    // for the preserved transactions and the re-parse would
-                    // never regenerate them (hash collision short-circuits
-                    // processBalanceUpdate), leaving gaps in the balance
-                    // time-series.
+                var rebuildStartedAt: LocalDateTime? = null
+                var accountsBeforeRebuild: Map<Pair<String, String>, AccountBalanceEntity> = emptyMap()
+                var latestBeforeRebuild: List<AccountBalanceEntity> = emptyList()
+                if (forceResync) {
+                    rebuildStartedAt = LocalDateTime.now()
+                    // What the rebuild's restore puts back, taken before anything is deleted.
                     latestBeforeRebuild = accountBalanceRepository.getAllLatestBalancesOnce()
                     accountsBeforeRebuild = latestBeforeRebuild
                         .filter { it.accountType != null }
                         .associateBy { it.bankName to it.accountLast4 }
-                    transactionRepository.deleteRebuildableSmsTransactions(
-                        java.time.LocalDateTime.ofInstant(
-                            java.time.Instant.ofEpochMilli(scanStartTime), java.time.ZoneId.systemDefault()
+                }
+
+                // From the first delete on, restore the rebuilt accounts however the scan ends.
+                val (stats, totalTime) = restoringAccountsAfterRebuild(
+                    accountBalanceRepository,
+                    accountsBeforeRebuild.values,
+                    latestBeforeRebuild,
+                    rebuilt = rebuildStartedAt != null,
+                ) {
+                    if (forceResync) {
+                        Trace.beginSection("clearDatabase")
+                        try {
+                            // Delete only what the inbox can rebuild (active SMS rows
+                            // outside loans/groups); manual, imported, notification and
+                            // deleted rows survive — nothing would bring them back. Re-parse uses
+                            // transaction_hash UNIQUE + OnConflictStrategy.IGNORE, so
+                            // surviving rows are not duplicated. Fixes #401.
+                            //
+                            // Order matters: drop the transactions FIRST, then run the
+                            // companion balance-cleanup which decides orphan-status
+                            // against the now-current transactions table. Without the
+                            // companion, deleteAllBalances() would wipe balance entries
+                            // for the preserved transactions and the re-parse would
+                            // never regenerate them (hash collision short-circuits
+                            // processBalanceUpdate), leaving gaps in the balance
+                            // time-series.
+                            transactionRepository.deleteRebuildableSmsTransactions(
+                                java.time.LocalDateTime.ofInstant(
+                                    java.time.Instant.ofEpochMilli(scanStartTime), java.time.ZoneId.systemDefault()
+                                )
+                            )
+                            accountBalanceRepository.deleteRebuildableBalances()
+                        } finally {
+                            Trace.endSection()
+                        }
+                        Log.i(TAG, "Force resync: SMS rows cleared (loans, groups, deleted and non-SMS rows kept)")
+                    }
+
+                    val now = System.currentTimeMillis()
+
+                    Trace.beginSection("preloadCaches")
+                    val scanContext = try {
+                        ScanRunContext(
+                            merchantCategories = merchantMappingRepository.getAllMappingsAsMap(),
+                            categoryIsIncome = database.categoryDao().getAllCategoriesList().associate { it.name to it.isIncome },
+                            rulesByType = TransactionType.entries.associateWith { type ->
+                                ruleRepository.getActiveRulesByType(type)
+                            },
+                            accountsBeforeRebuild = accountsBeforeRebuild,
+                            rebuildStartedAt = rebuildStartedAt,
+                            atmCashWallets = if (userPreferencesRepository.atmCashToWallet.first()) {
+                                accountBalanceRepository.getAllLatestBalancesOnce().cashWallets()
+                            } else emptyList(),
                         )
+                    } finally {
+                        Trace.endSection()
+                    }
+                    Log.i(TAG, "Caches: ${scanContext.merchantCategories.size} merchant mappings, ${scanContext.rulesByType.values.map { it.size }.sum()} rules")
+
+                    // Fast COUNT queries — avoids loading all messages before the pipeline
+                    val source = DeviceSmsMessageSource(applicationContext)
+                    val total = source.count(scanStartTime)
+                    val parserConcurrency = maxOf(1, Runtime.getRuntime().availableProcessors() - 1)
+                    Log.i(TAG, "Pipeline: $parserConcurrency parsers | 1 saver | $total messages")
+
+                    val stats = ProcessingStats(total = total).also { recorder.stats = it }
+                    reportProgress(stats)
+
+                    val writer = ScanTransactionWriter(
+                        transactionRepository = transactionRepository,
+                        subscriptionRepository = subscriptionRepository,
+                        accountBalanceRepository = accountBalanceRepository,
+                        cardRepository = cardRepository,
+                        ruleRepository = ruleRepository,
+                        ruleEngine = ruleEngine,
+                        tagRepository = tagRepository,
+                        unrecognizedSmsRepository = unrecognizedSmsRepository,
+                        ignoredAccountsStore = ignoredAccountsStore,
+                        database = database,
+                        bankAccountMerges = bankAccountMerges,
+                        scanContext = scanContext,
                     )
-                    accountBalanceRepository.deleteRebuildableBalances()
-                } finally {
-                    Trace.endSection()
+                    val classifier = SmsScanClassifier(
+                        recentSinceMillis = recentSinceMillis,
+                        taughtTemplates = taughtTemplates,
+                        subscriptionRepository = subscriptionRepository,
+                        saveBalanceNotification = writer::saveBalanceNotification,
+                    )
+                    val pipeline = SmsScanPipeline(
+                        source = source,
+                        classify = classifier::classify,
+                        isTaught = classifier::matchesTaughtTemplate,
+                        writer = writer,
+                        parserConcurrency = parserConcurrency,
+                        onProgress = { reportProgress(it) },
+                        onTransactionsChanged = {
+                            com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(applicationContext)
+                        },
+                    )
+
+                    val totalTime = measureTimeMillis {
+                        pipeline.run(scanStartTime, stats)
+                        // Saves that kept failing over several scans don't hold the cursor any more.
+                        if (stats.mayAdvanceCursor() || recorder.givesUpOnFailedSaves) {
+                            persistScanState(now, needsFullScan)
+                        } else {
+                            Log.w(TAG, "${stats.failed.get()} saves failed: scan cursor kept so the next scan reads them again")
+                        }
+                        reportProgress(stats)
+                    }
+                    stats to totalTime
                 }
-                Log.i(TAG, "Force resync: SMS rows cleared (loans, groups, deleted and non-SMS rows kept)")
-            }
 
-            val now = System.currentTimeMillis()
-
-            Trace.beginSection("preloadCaches")
-            val scanContext = try {
-                ScanRunContext(
-                    merchantCategories = merchantMappingRepository.getAllMappingsAsMap(),
-                    categoryIsIncome = database.categoryDao().getAllCategoriesList().associate { it.name to it.isIncome },
-                    rulesByType = TransactionType.entries.associateWith { type ->
-                        ruleRepository.getActiveRulesByType(type)
-                    },
-                    accountsBeforeRebuild = accountsBeforeRebuild,
-                    rebuildStartedAt = rebuildStartedAt,
-                    atmCashWallets = if (userPreferencesRepository.atmCashToWallet.first()) {
-                        accountBalanceRepository.getAllLatestBalancesOnce().cashWallets()
-                    } else emptyList(),
-                )
-            } finally {
-                Trace.endSection()
-            }
-            Log.i(TAG, "Caches: ${scanContext.merchantCategories.size} merchant mappings, ${scanContext.rulesByType.values.map { it.size }.sum()} rules")
-
-            // Fast COUNT queries — avoids loading all messages before the pipeline
-            val source = DeviceSmsMessageSource(applicationContext)
-            val total = source.count(scanStartTime)
-            val parserConcurrency = maxOf(1, Runtime.getRuntime().availableProcessors() - 1)
-            Log.i(TAG, "Pipeline: $parserConcurrency parsers | 1 saver | $total messages")
-
-            val stats = ProcessingStats(total = total)
-            reportProgress(stats)
-
-            val writer = ScanTransactionWriter(
-                transactionRepository = transactionRepository,
-                subscriptionRepository = subscriptionRepository,
-                accountBalanceRepository = accountBalanceRepository,
-                cardRepository = cardRepository,
-                ruleRepository = ruleRepository,
-                ruleEngine = ruleEngine,
-                tagRepository = tagRepository,
-                unrecognizedSmsRepository = unrecognizedSmsRepository,
-                ignoredAccountsStore = ignoredAccountsStore,
-                database = database,
-                bankAccountMerges = bankAccountMerges,
-                scanContext = scanContext,
-            )
-            val classifier = SmsScanClassifier(
-                recentSinceMillis = recentSinceMillis,
-                taughtTemplates = taughtTemplates,
-                subscriptionRepository = subscriptionRepository,
-                saveBalanceNotification = writer::saveBalanceNotification,
-            )
-            val pipeline = SmsScanPipeline(
-                source = source,
-                classify = classifier::classify,
-                isTaught = classifier::matchesTaughtTemplate,
-                writer = writer,
-                parserConcurrency = parserConcurrency,
-                onProgress = { reportProgress(it) },
-                onTransactionsChanged = {
-                    com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(applicationContext)
-                },
-            )
-
-            val totalTime = measureTimeMillis {
-                pipeline.run(scanStartTime, stats)
-                persistScanState(now, needsFullScan)
+                Log.i(TAG, buildSummary(stats, totalTime))
+                SmsScanCleanup(
+                    unrecognizedSmsRepository = unrecognizedSmsRepository,
+                    transactionRepository = transactionRepository,
+                    accountBalanceRepository = accountBalanceRepository,
+                    ruleRepository = ruleRepository,
+                    llmRepository = llmRepository,
+                    database = database,
+                ).run(savedAny = stats.saved.get() > 0)
+                // Materialise any due income-autopay phantoms (#371). Runs after
+                // SMS processing so a real INCOME SMS that landed for the same
+                // amount + merchant in this scan can dedupe via the autopay hash
+                // check if the user manually re-uses the same hash format later.
+                try {
+                    generateIncomeAutopayUseCase.execute()
+                } catch (e: Exception) {
+                    Log.e(TAG, "Income autopay phantom creator failed: ${e.message}", e)
+                }
                 reportProgress(stats)
+                // WorkManager clears `progress` once work finishes, so a caller
+                // reading the result on SUCCEEDED saw every count as 0 — onboarding
+                // said "No transactions found" after importing a whole inbox. Hand
+                // the final counts back as output data.
+                Result.success(
+                    completionData(stats.total, stats.processed.get(), stats.parsed.get(), stats.saved.get())
+                )
             }
-
-            Log.i(TAG, buildSummary(stats, totalTime))
-            // Rows rebuilt from balance-only SMS don't pass through processBalanceUpdate,
-            // so put each typed account's type back on the rows that lost it (#792).
-            for (row in accountsBeforeRebuild.values) accountBalanceRepository.restoreAccountType(row)
-            // Likewise the statement and due day and card bill the user set.
-            for (row in latestBeforeRebuild) accountBalanceRepository.keepAccountFields(row)
-            // A rebuild drops ATM transfers into Cash wallets (#1062) and may not route
-            // them again (setting since turned off), so re-derive every Cash wallet.
-            if (rebuildStartedAt != null) {
-                accountBalanceRepository.getAllLatestBalancesOnce().cashWallets().forEach {
-                    accountBalanceRepository.recomputeManualBalance(it.bankName, it.accountLast4)
-                }
-            }
-            SmsScanCleanup(
-                unrecognizedSmsRepository = unrecognizedSmsRepository,
-                transactionRepository = transactionRepository,
-                accountBalanceRepository = accountBalanceRepository,
-                ruleRepository = ruleRepository,
-                llmRepository = llmRepository,
-                database = database,
-            ).run(savedAny = stats.saved.get() > 0)
-            // Materialise any due income-autopay phantoms (#371). Runs after
-            // SMS processing so a real INCOME SMS that landed for the same
-            // amount + merchant in this scan can dedupe via the autopay hash
-            // check if the user manually re-uses the same hash format later.
-            try {
-                generateIncomeAutopayUseCase.execute()
-            } catch (e: Exception) {
-                Log.e(TAG, "Income autopay phantom creator failed: ${e.message}", e)
-            }
-            reportProgress(stats)
-            // WorkManager clears `progress` once work finishes, so a caller
-            // reading the result on SUCCEEDED saw every count as 0 — onboarding
-            // said "No transactions found" after importing a whole inbox. Hand
-            // the final counts back as output data.
-            Result.success(
-                completionData(stats.total, stats.processed.get(), stats.parsed.get(), stats.saved.get())
-            )
         } catch (e: Exception) {
-            Log.e(TAG, "Fatal error in SMS worker", e)
+            Log.e(TAG, "SMS worker ended early (stopped=$isStopped)", e)
             Result.failure()
         } finally {
             Trace.endSection()

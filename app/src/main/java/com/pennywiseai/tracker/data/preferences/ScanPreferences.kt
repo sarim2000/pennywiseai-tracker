@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.data.preferences
 
+import com.pennywiseai.tracker.domain.smsimport.SmsScanRecord
 import kotlinx.coroutines.flow.Flow
 
 /**
@@ -31,4 +32,16 @@ interface ScanPreferences {
 
     suspend fun setLastScanTimestamp(timestamp: Long)
     suspend fun setLastScanPeriod(period: Int)
+
+    /**
+     * How the latest scan went, for the SMS check-up. Device-only, and separate from
+     * [getLastScanTimestamp], the incremental-scan cursor, which only a success moves.
+     * A record that may not replace the stored one ([SmsScanRecord.mayReplace]) is dropped.
+     */
+    val lastScanRecord: Flow<SmsScanRecord?>
+    suspend fun setLastScanRecord(record: SmsScanRecord)
+
+    /** When the live SMS receiver last got a message, in epoch ms. Device-only. */
+    val lastLiveSmsAt: Flow<Long?>
+    suspend fun setLastLiveSmsAt(millis: Long)
 }

@@ -1,11 +1,18 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Review screen -->
+    <!-- Paywall list of what Pro includes -->
+    <!-- Shown instead of a PDF while the user hides amounts in the app: the report prints them -->
     <!-- %1$d = year -->
     <!-- %1$d = percent, %2$s = what it is compared with -->
     <!-- %1$s = what it is compared with -->
     <!-- %1$d = year -->
     <!-- %1$s, %2$s = first and last recorded dates -->
+    <!-- PDF report: printed, so worded for paper rather than the screen -->
+    <!-- %1$s = profile name, or "All profiles" -->
+    <!-- %1$s = date the report was made -->
+    <!-- Column heading. %1$s = what it is compared with, e.g. "September" or "the previous cycle" -->
+    <!-- %1$d = this page, %2$d = number of pages -->
     <!-- Home -->
     <!-- %1$s = year -->
     <!-- Weekly recap -->

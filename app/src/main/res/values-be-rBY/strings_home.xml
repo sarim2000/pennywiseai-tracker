@@ -344,6 +344,8 @@
     <string name="notif_daily_action_sort">Разабраць</string>
     <string name="notif_daily_action_sort_all">Разабраць</string>
     <string name="notif_daily_action_cash">+ Наяўныя</string>
+    <!-- Home "Needs a category" card: this month's transactions still in Others -->
+    <!-- %d is how many one round of sorting covers, oldest first -->
     <!-- Header over a stack of transaction alerts -->
     <plurals name="notif_txn_group_title">
         <item quantity="one">%d новая транзакцыя</item>

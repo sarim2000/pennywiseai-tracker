@@ -311,6 +311,8 @@
     <string name="notif_daily_action_sort">श्रेणी दें</string>
     <string name="notif_daily_action_sort_all">श्रेणी दें</string>
     <string name="notif_daily_action_cash">+ कैश</string>
+    <!-- Home "Needs a category" card: this month's transactions still in Others -->
+    <!-- %d is how many one round of sorting covers, oldest first -->
     <!-- Header over a stack of transaction alerts -->
     <plurals name="notif_txn_group_title">
         <item quantity="one">%d नया लेन-देन</item>

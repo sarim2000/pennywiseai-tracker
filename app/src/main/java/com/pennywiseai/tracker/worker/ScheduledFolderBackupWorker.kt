@@ -48,8 +48,10 @@ class ScheduledFolderBackupWorker @AssistedInject constructor(
                 }
                 when (writeResult) {
                     is FolderBackupWriter.Result.Success -> {
-                        userPreferencesRepository.setScheduledFolderBackupLastTimestamp(
-                            System.currentTimeMillis()
+                        // Settings' "Last backup" line names left-out PDFs: nobody reads a log at 2 AM.
+                        userPreferencesRepository.recordScheduledFolderBackup(
+                            System.currentTimeMillis(),
+                            exportResult.skippedReceipts
                         )
                         Log.i(TAG, "Scheduled folder backup completed")
                         Result.success()

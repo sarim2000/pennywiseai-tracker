@@ -317,6 +317,8 @@
     <string name="notif_daily_action_sort">Classificar</string>
     <string name="notif_daily_action_sort_all">Classificar</string>
     <string name="notif_daily_action_cash">+ Dinheiro</string>
+    <!-- Home "Needs a category" card: this month's transactions still in Others -->
+    <!-- %d is how many one round of sorting covers, oldest first -->
     <!-- Header over a stack of transaction alerts -->
     <plurals name="notif_txn_group_title">
         <item quantity="one">%d nova transação</item>

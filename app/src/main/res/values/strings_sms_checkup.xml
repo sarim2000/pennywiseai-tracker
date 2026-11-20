@@ -1,0 +1,82 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="sms_checkup_title">SMS check-up</string>
+    <string name="sms_checkup_settings_subtitle">Find out why a transaction didn\'t show up</string>
+    <string name="sms_checkup_all_good">Everything looks good. PennyWise can read your bank SMS.</string>
+    <plurals name="sms_checkup_needs_attention">
+        <item quantity="one">%d thing needs your attention.</item>
+        <item quantity="other">%d things need your attention.</item>
+    </plurals>
+
+    <string name="sms_checkup_section_access">Access</string>
+    <string name="sms_checkup_sms_title">SMS access</string>
+    <string name="sms_checkup_sms_why">Without it, PennyWise can\'t read your bank messages, old or new.</string>
+    <string name="sms_checkup_notifications_title">Bank app notifications</string>
+    <string name="sms_checkup_notifications_why">Optional. Lets PennyWise read payments from the apps you choose, for banks that don\'t send SMS.</string>
+    <string name="sms_checkup_turn_on">Turn on</string>
+    <string name="sms_checkup_section_background">Background</string>
+    <string name="sms_checkup_background_why">Android can pause PennyWise and stop new transactions from arriving.</string>
+    <plurals name="sms_checkup_background_steps_left">
+        <item quantity="one">Android can pause PennyWise and stop new transactions from arriving. %d step left.</item>
+        <item quantity="other">Android can pause PennyWise and stop new transactions from arriving. %d steps left.</item>
+    </plurals>
+    <string name="sms_checkup_background_restricted">Android has restricted PennyWise in the background, so new transactions can\'t arrive.</string>
+    <string name="sms_checkup_review">Review</string>
+
+    <string name="sms_checkup_section_scan">Last scan</string>
+    <string name="sms_checkup_scan_never">No scan yet</string>
+    <string name="sms_checkup_scan_running">Scanning your messages now…</string>
+    <string name="sms_checkup_scan_succeeded">Finished %1$s</string>
+    <string name="sms_checkup_scan_save_failed">Finished %1$s, but some weren\'t saved</string>
+    <plurals name="sms_checkup_scan_save_failed_body">
+        <item quantity="one">%1$s message couldn\'t be saved. Scan again to try it again.</item>
+        <item quantity="other">%1$s messages couldn\'t be saved. Scan again to try them again.</item>
+    </plurals>
+    <string name="sms_checkup_scan_failed">Failed %1$s</string>
+    <string name="sms_checkup_scan_cancelled">Stopped %1$s</string>
+    <string name="sms_checkup_scan_interrupted">Didn\'t finish</string>
+    <string name="sms_checkup_scan_never_body">Scan to bring in the bank SMS already on your phone.</string>
+    <string name="sms_checkup_scan_ended_early_body">Some messages may be missing. Scan again to pick them up.</string>
+    <string name="sms_checkup_last_success">Last successful scan: %1$s</string>
+    <plurals name="sms_checkup_scan_summary">
+        <item quantity="one">Checked %1$s message: %2$s new</item>
+        <item quantity="other">Checked %1$s messages: %2$s new</item>
+    </plurals>
+    <plurals name="sms_checkup_scan_summary_existing">
+        <item quantity="one">Checked %1$s message: %2$s new, %3$s already in PennyWise</item>
+        <item quantity="other">Checked %1$s messages: %2$s new, %3$s already in PennyWise</item>
+    </plurals>
+    <plurals name="sms_checkup_scan_summary_stopped">
+        <item quantity="one">Checked %1$s message before it stopped: %2$s new</item>
+        <item quantity="other">Checked %1$s messages before it stopped: %2$s new</item>
+    </plurals>
+    <plurals name="sms_checkup_scan_summary_stopped_existing">
+        <item quantity="one">Checked %1$s message before it stopped: %2$s new, %3$s already in PennyWise</item>
+        <item quantity="other">Checked %1$s messages before it stopped: %2$s new, %3$s already in PennyWise</item>
+    </plurals>
+    <string name="sms_checkup_live_sms">Last new SMS arrived %1$s</string>
+    <string name="sms_checkup_show_details">Show details</string>
+    <string name="sms_checkup_hide_details">Hide details</string>
+    <string name="sms_checkup_count_saved">Added</string>
+    <string name="sms_checkup_count_duplicates">Already in PennyWise</string>
+    <string name="sms_checkup_count_excluded">Skipped by your rules or ignored accounts</string>
+    <string name="sms_checkup_count_unrecognised">Bank messages in a format PennyWise doesn\'t know yet</string>
+    <string name="sms_checkup_count_special">Balance and mandate updates</string>
+    <string name="sms_checkup_count_discarded">Not a transaction, like offers and OTPs</string>
+    <string name="sms_checkup_count_failed">Read, but couldn\'t be saved</string>
+    <string name="sms_checkup_count_not_read">Couldn\'t be read from your inbox</string>
+    <string name="sms_checkup_scan_again">Scan again</string>
+    <string name="sms_checkup_scan_now">Scan now</string>
+    <string name="sms_checkup_scan_needs_access">Scanning needs SMS access. Allow it above.</string>
+    <string name="sms_checkup_scan_needs_access_settings">Scanning needs SMS access. Tap %1$s above and allow it there.</string>
+    <string name="sms_checkup_just_now">just now</string>
+
+    <string name="sms_checkup_section_not_imported">Not imported</string>
+    <plurals name="sms_checkup_not_imported_title">
+        <item quantity="one">%d bank message is waiting for review</item>
+        <item quantity="other">%d bank messages are waiting for review</item>
+    </plurals>
+    <string name="sms_checkup_not_imported_body">PennyWise doesn\'t know these formats yet. Review them to add the transaction yourself or report the format.</string>
+    <string name="sms_checkup_not_imported_none">Nothing waiting for review</string>
+    <string name="sms_checkup_not_imported_none_waiting_body">The last scan found bank messages in a format PennyWise doesn\'t know yet. Ones you\'ve already dealt with, or older than 30 days, aren\'t listed.</string>
+</resources>

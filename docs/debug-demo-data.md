@@ -23,7 +23,7 @@ The seed writes a synthetic ledger into the app's Room database. It covers six c
 
 ## Check the real chat
 
-Open Chat in the seeded app. You can try the budget and bill quick actions immediately. For typed questions, use **Download** in Chat to install the on-device model. Keep the profile filter on **All** and unified currency off for these figures. The spending rows for the current month are dated on the seed day. Run these questions in the seed month, before editing the examples. Replace date placeholders with actual dates using YYYY-MM-DD.
+Open Chat in the seeded app. You can try the budget and bill quick actions immediately. For typed questions, use **Download** in Chat to install the on-device model. Keep the profile filter on **All** and unified currency off for these figures. Run these questions in the seed month, before editing the examples. Replace date placeholders with actual dates using YYYY-MM-DD.
 
 | English | العربية | Expected data |
 | --- | --- | --- |

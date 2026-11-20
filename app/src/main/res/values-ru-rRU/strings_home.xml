@@ -17,9 +17,7 @@
     <string name="home_section_goals">Цели</string>
     <string name="home_section_loans">Долги</string>
     <string name="home_section_groups">Группы</string>
-    <string name="home_section_recent_transactions">Последние транзакции</string>
     <string name="home_section_accounts">Банковские счета</string>
-    <string name="home_section_subscriptions">Предстоящие подписки</string>
     <string name="home_section_activity">Активность</string>
     <!-- Empty state -->
     <string name="home_empty_headline">Транзакций ещё нет</string>

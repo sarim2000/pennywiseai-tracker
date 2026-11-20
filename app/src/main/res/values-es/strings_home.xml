@@ -17,9 +17,7 @@
     <string name="home_section_goals">Metas</string>
     <string name="home_section_loans">Préstamos</string>
     <string name="home_section_groups">Grupos</string>
-    <string name="home_section_recent_transactions">Transacciones recientes</string>
     <string name="home_section_accounts">Cuentas bancarias</string>
-    <string name="home_section_subscriptions">Próximas suscripciones</string>
     <string name="home_section_activity">Actividad</string>
     <!-- Empty state -->
     <string name="home_empty_headline">Aún no hay transacciones</string>

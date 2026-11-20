@@ -17,9 +17,7 @@
     <string name="home_section_goals">เป้าหมาย</string>
     <string name="home_section_loans">เงินกู้</string>
     <string name="home_section_groups">กลุ่ม</string>
-    <string name="home_section_recent_transactions">ธุรกรรมล่าสุด</string>
     <string name="home_section_accounts">บัญชีธนาคาร</string>
-    <string name="home_section_subscriptions">การสมัครสมาชิกที่จะถึง</string>
     <string name="home_section_activity">กิจกรรม</string>
     <!-- Empty state -->
     <string name="home_empty_headline">ยังไม่มีรายการธุรกรรม</string>

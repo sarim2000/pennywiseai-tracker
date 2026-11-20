@@ -17,9 +17,7 @@
     <string name="home_section_goals">Cíle</string>
     <string name="home_section_loans">Půjčky</string>
     <string name="home_section_groups">Skupiny</string>
-    <string name="home_section_recent_transactions">Poslední transakce</string>
     <string name="home_section_accounts">Bankovací účty</string>
-    <string name="home_section_subscriptions">Nadcházející předplatné</string>
     <string name="home_section_activity">Aktivita</string>
     <!-- Empty state -->
     <string name="home_empty_headline">Zatím žádné transakce</string>

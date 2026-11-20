@@ -17,9 +17,7 @@
     <string name="home_section_goals">लक्ष्यहरू</string>
     <string name="home_section_loans">ऋणहरू</string>
     <string name="home_section_groups">समूहहरू</string>
-    <string name="home_section_recent_transactions">हालका लेनदेन</string>
     <string name="home_section_accounts">बैंक खाता</string>
-    <string name="home_section_subscriptions">आउँदै गरेका सदस्यताहरू</string>
     <string name="home_section_activity">गतिविधि</string>
     <!-- Empty state -->
     <string name="home_empty_headline">अझै कुनै लेनदेन छैन</string>

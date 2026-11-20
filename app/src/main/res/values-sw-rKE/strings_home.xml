@@ -17,9 +17,7 @@
     <string name="home_section_goals">Malengo</string>
     <string name="home_section_loans">Mikopo</string>
     <string name="home_section_groups">Makundi</string>
-    <string name="home_section_recent_transactions">Miamala ya Hivi Karibuni</string>
     <string name="home_section_accounts">Akaunti za Benki</string>
-    <string name="home_section_subscriptions">Usajili Unaokuja</string>
     <string name="home_section_activity">Shughuli</string>
     <!-- Empty state -->
     <string name="home_empty_headline">Bado hakuna miamala</string>

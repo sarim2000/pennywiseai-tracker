@@ -17,9 +17,7 @@
     <string name="home_section_goals">लक्ष्य</string>
     <string name="home_section_loans">उधार</string>
     <string name="home_section_groups">ग्रुप</string>
-    <string name="home_section_recent_transactions">हाल के लेन-देन</string>
     <string name="home_section_accounts">बैंक खाते</string>
-    <string name="home_section_subscriptions">आने वाली सदस्यताएँ</string>
     <string name="home_section_activity">गतिविधि</string>
     <!-- Empty state -->
     <string name="home_empty_headline">अभी तक कोई लेनदेन नहीं</string>

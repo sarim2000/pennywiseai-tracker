@@ -17,9 +17,7 @@
     <string name="home_section_goals">Мэты</string>
     <string name="home_section_loans">Пазыкі</string>
     <string name="home_section_groups">Групы</string>
-    <string name="home_section_recent_transactions">Апошнія транзакцыі</string>
     <string name="home_section_accounts">Банкаўскія рахункі</string>
-    <string name="home_section_subscriptions">Бліжэйшыя падпіскі</string>
     <string name="home_section_activity">Актыўнасць</string>
     <!-- Empty state -->
     <string name="home_empty_headline">Транзакцый пакуль няма</string>

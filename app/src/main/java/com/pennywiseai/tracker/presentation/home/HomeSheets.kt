@@ -358,9 +358,9 @@ private fun HomeSection.titleRes(): Int = when (this) {
     HomeSection.GOALS -> R.string.home_section_goals
     HomeSection.LOANS -> R.string.home_section_loans
     HomeSection.GROUPS -> R.string.home_section_groups
-    HomeSection.RECENT_TRANSACTIONS -> R.string.home_section_recent_transactions
+    HomeSection.RECENT_TRANSACTIONS -> R.string.home_section_recent
     HomeSection.ACCOUNTS -> R.string.home_section_accounts
-    HomeSection.SUBSCRIPTIONS -> R.string.home_section_subscriptions
+    HomeSection.SUBSCRIPTIONS -> R.string.home_section_coming_up
     HomeSection.MONEY_IN_MOTION -> R.string.home_section_money_in_motion
     HomeSection.ACTIVITY -> R.string.home_section_activity
 }

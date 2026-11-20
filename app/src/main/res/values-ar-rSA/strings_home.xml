@@ -17,9 +17,7 @@
     <string name="home_section_goals">الأهداف</string>
     <string name="home_section_loans">القروض</string>
     <string name="home_section_groups">المجموعات</string>
-    <string name="home_section_recent_transactions">المعاملات الأخيرة</string>
     <string name="home_section_accounts">الحسابات البنكية</string>
-    <string name="home_section_subscriptions">الاشتراكات القادمة</string>
     <string name="home_section_money_in_motion">حركة الأموال</string>
     <string name="home_section_activity">النشاط</string>
     <!-- Empty state -->

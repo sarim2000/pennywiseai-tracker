@@ -74,7 +74,13 @@ fun BalanceChart(
             smoothedHistory.first().timestamp.year != smoothedHistory.last().timestamp.year
         } else false
 
-        smoothedHistory.map {
+        // The chart lays its labels out at equal intervals. Use ticks that land on data points.
+        val ticks = when {
+            smoothedHistory.size <= 4 -> smoothedHistory
+            smoothedHistory.size % 2 == 1 -> listOf(smoothedHistory.first(), smoothedHistory[smoothedHistory.size / 2], smoothedHistory.last())
+            else -> listOf(smoothedHistory.first(), smoothedHistory.last())
+        }
+        ticks.map {
             val date = it.timestamp
             when {
                 isYearly -> date.format(DateTimeFormatter.ofPattern("yyyy"))
@@ -148,10 +154,6 @@ fun BalanceChart(
             ),
             labels = labels,
             padding = 16.dp,
-            rotation = LabelProperties.Rotation(
-                mode = LabelProperties.Rotation.Mode.Force,
-                degree = -45f
-            )
         ),
         zeroLineProperties = ZeroLineProperties(
             enabled = true,

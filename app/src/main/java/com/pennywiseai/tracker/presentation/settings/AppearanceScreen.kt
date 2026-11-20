@@ -194,7 +194,7 @@ fun AppearanceScreen(
                     modifier = Modifier.padding(start = Dimensions.Padding.content)
                 )
                 val hideableTabs = BottomNavItem.hideable
-                GroupedList {
+                GroupedList(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
                     hideableTabs.forEachIndexed { index, tab ->
                         val shown = tab.route !in themeUiState.hiddenNavTabs
                         PreferenceSwitch(
@@ -221,7 +221,7 @@ fun AppearanceScreen(
                 val showAmoled = themeUiState.isDarkTheme != false
                 val showBlur = Build.VERSION.SDK_INT >= Build.VERSION_CODES.S
                 val toggleCount = (if (showAmoled) 1 else 0) + (if (showBlur) 1 else 0) + 1
-                GroupedList {
+                GroupedList(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
                     if (showAmoled) {
                         PreferenceSwitch(
                             title = stringResource(R.string.appearance_amoled_title),
@@ -572,7 +572,7 @@ private fun NavBarStyleSelector(
         Triple(NavBarStyle.FLOATING, R.string.appearance_nav_floating, R.string.appearance_nav_floating_subtitle),
         Triple(NavBarStyle.NORMAL, R.string.appearance_nav_normal, R.string.appearance_nav_normal_subtitle),
     )
-    GroupedList(modifier = Modifier.selectableGroup()) {
+    GroupedList(modifier = Modifier.padding(horizontal = Dimensions.Padding.content).selectableGroup()) {
         options.forEachIndexed { index, (style, title, subtitle) ->
             val selected = currentStyle == style
             GroupedRow(
@@ -642,7 +642,7 @@ private fun FontSelector(
             stringResource(R.string.appearance_font_sn_pro_subtitle)
         )
     )
-    GroupedList(modifier = Modifier.selectableGroup()) {
+    GroupedList(modifier = Modifier.padding(horizontal = Dimensions.Padding.content).selectableGroup()) {
         options.forEachIndexed { index, option ->
             val selected = currentFont == option.font
             GroupedRow(

@@ -531,7 +531,7 @@ fun TransactionsScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .padding(horizontal = Dimensions.Padding.content)
-                    .padding(top = Spacing.sm, bottom = Spacing.smd)
+                    .padding(top = Spacing.md, bottom = Spacing.smd)
                     .onFocusChanged { searchFocused = it.hasFocus }
             )
 
@@ -553,7 +553,8 @@ fun TransactionsScreen(
                 state = listState,
                 modifier = Modifier.fillMaxSize().overScrollVertical(),
                 contentPadding = PaddingValues(
-                    bottom = paddingValues.calculateBottomPadding() + bottomBarClearance + Spacing.Layout.scrollBottomPadding
+                    bottom = paddingValues.calculateBottomPadding() + bottomBarClearance +
+                        if (selectionMode) Spacing.Layout.scrollBottomPadding else Dimensions.Component.fabScrollClearance
                 ),
                 flingBehavior = rememberOverscrollFlingBehavior { listState }
             ) {

@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.presentation.home
 
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -86,7 +87,7 @@ fun SafeToSpendLine(
         onClick = if (isBalanceHidden) onReveal else onOpenBreakdown,
         modifier = modifier.fillMaxWidth(),
         shape = MaterialTheme.shapes.large,
-        color = MaterialTheme.colorScheme.surfaceContainerHighest,
+        color = MaterialTheme.colorScheme.surfaceContainerLowest,
         contentColor = MaterialTheme.colorScheme.onSurface,
     ) {
         Row(
@@ -126,12 +127,18 @@ fun SafeToSpendLine(
                 )
                 if (!isBalanceHidden) IncompleteLine(state.cardsNeedingBill.size)
             }
-            // The tonal pill is the target; no arrow, the hero already has one chevron.
             if (isBalanceHidden) {
                 Text(
                     text = stringResource(R.string.safe_to_spend_tap_to_show),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurface
+                )
+            } else {
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurface,
+                    modifier = Modifier.size(Dimensions.Icon.inline)
                 )
             }
         }
@@ -267,7 +274,9 @@ fun SafeToSpendSheet(
                     val included = !negative && safeToSpendKey(account) !in state.excludedKeys
                     GroupedRow(
                         position = ListItemPosition.from(i, state.accounts.size),
-                        onClick = if (choosing && !negative) ({ onSetIncluded(account, !included) }) else null
+                        onClick = if (choosing && !negative) ({ onSetIncluded(account, !included) }) else null,
+                        containerColor = MaterialTheme.colorScheme.surface,
+                        contentPadding = PaddingValues(vertical = Dimensions.Padding.listRowVertical)
                     ) {
                         SheetRowLabels(
                             title = account.displayLabel,
@@ -362,11 +371,7 @@ fun SafeToSpendSheet(
             }
 
             Spacer(Modifier.height(Spacing.md))
-            // Inset like the grouped rows above, so the total lines up with their amounts.
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(horizontal = Spacing.md)
-            ) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
                     text = stringResource(R.string.safe_to_spend_title),
                     style = MaterialTheme.typography.titleMedium,

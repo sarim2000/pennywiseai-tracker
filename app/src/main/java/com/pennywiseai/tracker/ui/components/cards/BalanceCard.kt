@@ -192,7 +192,7 @@ fun BalanceCard(
             contentColor = outer.onPrimaryContainer,
         ) {
             Column(
-                modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
+                modifier = Modifier.padding(Spacing.md),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
                 HeroHeader(
@@ -337,7 +337,7 @@ private fun HeroFooter(
 ) {
     Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
         FlowRow(
-            modifier = Modifier.weight(1f),
+            modifier = Modifier.weight(1f, fill = false),
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
         ) {
             if (line != null) {
@@ -349,7 +349,7 @@ private fun HeroFooter(
             }
             if (trailing != null) Text(text = trailing, style = MaterialTheme.typography.bodyMedium, color = trailingColor)
         }
-        // The whole card is the target; this only says it opens.
+        // Keep the affordance next to the status, clear of the dock action in landscape.
         Icon(
             imageVector = Icons.Default.KeyboardArrowDown,
             contentDescription = stringResource(if (isExpanded) R.string.card_collapse else R.string.card_expand),

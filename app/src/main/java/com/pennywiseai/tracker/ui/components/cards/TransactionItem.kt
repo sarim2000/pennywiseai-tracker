@@ -20,7 +20,9 @@ import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -64,7 +66,7 @@ fun TransactionItem(
     /** Optional long-press handler — used for bulk-edit selection entry. */
     onLongClick: (() -> Unit)? = null,
     /** Overrides the row's container colour (e.g. for selected state). */
-    containerColor: androidx.compose.ui.graphics.Color? = null,
+    containerColor: Color? = null,
     modifier: Modifier = Modifier,
 ) {
     val view = LocalView.current
@@ -174,9 +176,13 @@ fun TransactionItem(
         subtitle = subtitle,
         amount = CurrencyFormatter.signed(amountPrefix, formattedAmount),
         amountColor = amountColor,
-        subtitleColor = rowInk ?: colorScheme.onSurfaceVariant,
+        subtitleColor = rowInk ?: if (unsorted) {
+            colorScheme.tertiary.readableOn(colorScheme.neutralSurfaces)
+        } else {
+            colorScheme.onSurfaceVariant
+        },
         shape = listItemPosition.toShape(),
-        contentPadding = Dimensions.Padding.cardCompact,
+        contentPadding = Dimensions.Padding.card,
         onClick = {
             view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
             onClick()
@@ -198,7 +204,8 @@ fun TransactionItem(
             TransactionAvatar(
                 merchantName = transaction.merchantName,
                 category = transaction.category,
-                modifier = iconModifier
+                modifier = iconModifier,
+                rowFill = containerColor
             )
         },
         trailingContent = {
@@ -279,6 +286,7 @@ fun TransactionAvatar(
     size: Dp = Dimensions.Icon.list,
     glyphSize: Dp = Dimensions.Icon.medium,
     shape: Shape = CircleShape,
+    rowFill: Color? = null,
 ) {
     val colorScheme = MaterialTheme.colorScheme
     // Not remembered: it reads the live user category styles, as BrandIcon does.
@@ -306,16 +314,16 @@ fun TransactionAvatar(
                 modifier = Modifier.size(glyphSize)
             )
         }
-        icon is IconResource.VectorIcon -> Box(
-            modifier = base.background(icon.tint.copy(alpha = Dimensions.Alpha.categoryTint)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon.icon,
-                contentDescription = categoryLabel(category),
-                tint = icon.tint,
-                modifier = Modifier.size(glyphSize)
-            )
+        icon is IconResource.VectorIcon -> {
+            val wash = icon.tint.copy(alpha = Dimensions.Alpha.categoryTint)
+            Box(modifier = base.background(wash), contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = icon.icon,
+                    contentDescription = categoryLabel(category),
+                    tint = rowFill?.let { icon.tint.readableOn(listOf(wash.compositeOver(it))) } ?: icon.tint,
+                    modifier = Modifier.size(glyphSize)
+                )
+            }
         }
         icon is IconResource.Emoji -> Box(
             modifier = base.background(icon.tint.copy(alpha = Dimensions.Alpha.categoryTint)),

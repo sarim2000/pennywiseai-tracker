@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
@@ -45,6 +46,7 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.navigation.PlanSection
 import com.pennywiseai.tracker.presentation.goals.GoalsSection
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
+import com.pennywiseai.tracker.ui.components.LocalNavDock
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
@@ -78,7 +80,7 @@ private fun PlanSection.labelRes(): Int = when (this) {
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
-fun PlanSwitcher(host: PlanTabHost, modifier: Modifier = Modifier) {
+private fun PlanSwitcher(host: PlanTabHost, modifier: Modifier = Modifier) {
     val options = PlanSection.entries
     // A label that doesn't fit (large font, narrow screen) stacks the options full width
     // rather than cutting a section name short.
@@ -128,6 +130,24 @@ fun PlanSwitcher(host: PlanTabHost, modifier: Modifier = Modifier) {
     }
 }
 
+/** The section switch stays below the title, including when a deep link scrolls the list. */
+@Composable
+fun PlanTopBar(host: PlanTabHost?, titleBar: @Composable () -> Unit) {
+    if (host == null) {
+        titleBar()
+    } else {
+        Column {
+            titleBar()
+            PlanSwitcher(
+                host,
+                Modifier.background(MaterialTheme.colorScheme.background)
+                    .padding(horizontal = Dimensions.Padding.content)
+                    .padding(top = Spacing.md, bottom = Spacing.xs)
+            )
+        }
+    }
+}
+
 /** The Plan tab's Goals section: the switch, then the goals, "New goal" docked by the nav bar. */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -144,13 +164,15 @@ fun PlanGoalsScreen(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         containerColor = Color.Transparent,
         customTopBar = {
-            CustomTitleTopAppBar(
-                scrollBehaviorSmall = scrollBehaviorSmall,
-                scrollBehaviorLarge = scrollBehaviorLarge,
-                title = stringResource(R.string.nav_plan),
-                overline = planOverline(),
-                hazeState = hazeState,
-            )
+            PlanTopBar(host) {
+                CustomTitleTopAppBar(
+                    scrollBehaviorSmall = scrollBehaviorSmall,
+                    scrollBehaviorLarge = scrollBehaviorLarge,
+                    title = stringResource(R.string.nav_plan),
+                    overline = planOverline(),
+                    hazeState = hazeState,
+                )
+            }
         },
     ) { padding ->
         LazyColumn(
@@ -163,13 +185,13 @@ fun PlanGoalsScreen(
             contentPadding = PaddingValues(
                 start = Dimensions.Padding.content,
                 end = Dimensions.Padding.content,
-                top = Spacing.sm + padding.calculateTopPadding(),
-                bottom = Dimensions.Component.bottomBarHeight + Spacing.md,
+                top = Spacing.md + padding.calculateTopPadding(),
+                bottom = padding.calculateBottomPadding() + Dimensions.Component.bottomBarHeight +
+                    if (LocalNavDock.current != null) Dimensions.Component.fabScrollClearance else Spacing.md,
             ),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
             flingBehavior = rememberOverscrollFlingBehavior { listState },
         ) {
-            item(key = "switch") { PlanSwitcher(host) }
             item(key = "goals") {
                 GoalsSection(onOpenGoal = onOpenGoal, onCreateGoal = onCreateGoal, inPlanTab = true)
             }

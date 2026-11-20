@@ -120,6 +120,16 @@ class BudgetInvestmentsTest {
     }
 
     @Test
+    fun `Plan's pace chart and total leave out the same investments`() {
+        val repo = repository(budget(), txs)
+        for (unified in listOf(false, true)) {
+            val plan = budgets(repo, unified)
+            assertEquals(3898.0, plan.dailyCumulativeSpending.last(), 0.01)
+            assertEquals(plan.totalActual.toDouble(), plan.dailyCumulativeSpending.last(), 0.01)
+        }
+    }
+
+    @Test
     fun `a category budget leaves investments out everywhere`() {
         assertSpent("3898", spentEverywhere(budget("Others")))
     }

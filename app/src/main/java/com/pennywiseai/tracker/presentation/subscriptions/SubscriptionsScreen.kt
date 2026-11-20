@@ -48,8 +48,8 @@ import com.pennywiseai.tracker.domain.spending.RecurringCharge
 import com.pennywiseai.tracker.domain.spending.RecurringSuggestion
 import com.pennywiseai.tracker.presentation.accounts.icon
 import com.pennywiseai.tracker.presentation.home.rememberToday
-import com.pennywiseai.tracker.presentation.plan.PlanSwitcher
 import com.pennywiseai.tracker.presentation.plan.PlanTabHost
+import com.pennywiseai.tracker.presentation.plan.PlanTopBar
 import com.pennywiseai.tracker.presentation.plan.planOverline
 import com.pennywiseai.tracker.ui.animations.StaggeredEntrance
 import com.pennywiseai.tracker.ui.animations.pwCollapse
@@ -204,7 +204,6 @@ fun SubscriptionsScreen(
     // the two in step.
     fun billIndex(section: BillSection, position: Int): Int {
         var index = 0
-        if (planTab != null) index++
         if (uiState.activeSubscriptions.any { it.direction == SubscriptionDirection.EXPENSE }) index++
         for (shown in listOf(BillSection.OVERDUE, BillSection.UPCOMING)) {
             val bills = groups[shown].orEmpty()
@@ -306,24 +305,26 @@ fun SubscriptionsScreen(
             }
         },
         customTopBar = {
-            CustomTitleTopAppBar(
-                scrollBehaviorSmall = scrollBehaviorSmall,
-                scrollBehaviorLarge = scrollBehaviorLarge,
-                title = stringResource(if (planTab != null) R.string.nav_plan else R.string.subscriptions_title),
-                overline = if (planTab != null) planOverline() else null,
-                hasBackButton = showBack,
-                navigationContent = {
-                    if (showBack) {
-                        IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
-                            Icon(
-                                Icons.AutoMirrored.Filled.ArrowBack,
-                                contentDescription = stringResource(R.string.subscriptions_back)
-                            )
+            PlanTopBar(planTab) {
+                CustomTitleTopAppBar(
+                    scrollBehaviorSmall = scrollBehaviorSmall,
+                    scrollBehaviorLarge = scrollBehaviorLarge,
+                    title = stringResource(if (planTab != null) R.string.nav_plan else R.string.subscriptions_title),
+                    overline = if (planTab != null) planOverline() else null,
+                    hasBackButton = showBack,
+                    navigationContent = {
+                        if (showBack) {
+                            IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
+                                Icon(
+                                    Icons.AutoMirrored.Filled.ArrowBack,
+                                    contentDescription = stringResource(R.string.subscriptions_back)
+                                )
+                            }
                         }
-                    }
-                },
-                hazeState = hazeState
-            )
+                    },
+                    hazeState = hazeState
+                )
+            }
         },
         floatingActionButton = {
             if (!dockAdd) SmallFloatingActionButton(
@@ -349,16 +350,13 @@ fun SubscriptionsScreen(
             contentPadding = PaddingValues(
                 start = Dimensions.Padding.content,
                 end = Dimensions.Padding.content,
-                top = Spacing.sm + paddingValues.calculateTopPadding(),
-                bottom = if (planTab != null) Dimensions.Component.bottomBarHeight + Spacing.md
-                else paddingValues.calculateBottomPadding()
+                top = Spacing.md + paddingValues.calculateTopPadding(),
+                bottom = paddingValues.calculateBottomPadding() + planBarClearance + Dimensions.Component.fabScrollClearance
             ),
             // Rows of one block sit a grouped-list gutter apart; each block adds [BlockGap] on top.
             verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap),
             flingBehavior = rememberOverscrollFlingBehavior { lazyListState }
         ) {
-            planTab?.let { host -> item(key = "plan-switch") { PlanSwitcher(host, Modifier.padding(bottom = BlockGap)) } }
-
             if (uiState.activeSubscriptions.any { it.direction == SubscriptionDirection.EXPENSE }) {
                 item(key = "summary") {
                     TotalSubscriptionsSummary(

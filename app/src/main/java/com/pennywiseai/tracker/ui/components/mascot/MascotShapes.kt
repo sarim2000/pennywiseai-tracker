@@ -77,8 +77,7 @@ internal fun MascotShape.geometry(value: Float = 0f): MascotGeometry = when (thi
             union(
                 stroked(Path().apply { addOval(circle(OwlEye.LEFT_X, OwlEye.Y, OwlEye.RING_R)) }, OwlEye.RING_LINE),
                 stroked(Path().apply { addOval(circle(OwlEye.RIGHT_X, OwlEye.Y, OwlEye.RING_R)) }, OwlEye.RING_LINE),
-                svgPath(OWL_BEAK),
-                stroked(svgPath(OWL_BEAK), OwlEye.BEAK_LINE),
+                owlBeak(),
             ),
         ),
         eyes = EyeSpec(x = 50f, y = OwlEye.Y, spacing = OwlEye.RIGHT_X - OwlEye.LEFT_X, scale = 1.1f),
@@ -251,6 +250,12 @@ private const val OWL_FACE =
     "M50 22 C58 22 64 23 70 25 L77 17 Q81 13 82 19 L83 31 C87 38 89 45 89 53 C89 74 72 89 50 89 " +
         "C28 89 11 74 11 53 C11 45 13 38 17 31 L18 19 Q19 13 23 17 L30 25 C36 23 42 22 50 22 Z"
 private const val OWL_BEAK = "M50 66 L53 70 L50 75 L47 70 Z"
+
+/** The owl's beak as cut out of its face: the diamond with its rounded edge. */
+internal fun owlBeak(): Path = union(svgPath(OWL_BEAK), stroked(svgPath(OWL_BEAK), OwlEye.BEAK_LINE))
+
+/** The middle of [owlBeak]: it grows from here as a morph becomes the owl. */
+internal val OWL_BEAK_CENTER = Offset(50f, 70.5f)
 
 /** [line] stroked [width] wide with round ends and joins, as a filled outline. */
 private fun stroked(line: Path, width: Float): Path {

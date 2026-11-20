@@ -159,6 +159,7 @@ fun Mascot(
                         from = it,
                         fromGeometry = it.shape.geometry(it.value),
                         target = state.profileOf(current, state.value),
+                        beak = owlBeak(),
                     )
                 }
                 val scratch = Path()
@@ -620,7 +621,7 @@ private class Decor(
 )
 
 /** A morph under way: where it began, that shape's geometry (for its fading face), and where it's headed. */
-private class MorphDrawing(val from: MorphFrom, val fromGeometry: MascotGeometry, val target: MascotProfile)
+private class MorphDrawing(val from: MorphFrom, val fromGeometry: MascotGeometry, val target: MascotProfile, val beak: Path)
 
 /** Draws [content] in the 0..100 box, scaled by [k], hopped and tilted about [pivot] as [pose] says. */
 private inline fun DrawScope.posed(pose: MascotPose, pivot: Offset, k: Float, crossinline content: DrawScope.() -> Unit) {
@@ -656,6 +657,8 @@ private fun DrawScope.drawShape(shape: MascotShape, g: MascotGeometry, pose: Mas
  * one colour, so the glyph never thins into two half-faded bodies. The eyes slide to
  * their new place, narrowing on the way. At the detailed size the old face fades out
  * early and the new one in late, inside the body, and the colour follows the body.
+ * The owl's rings and beak open up as the morph becomes the owl and close as it leaves,
+ * and its eyes turn into cut-outs, so the face never pops in once the morph lands.
  */
 private fun DrawScope.drawMorph(
     m: MorphDrawing,
@@ -670,27 +673,55 @@ private fun DrawScope.drawMorph(
     val w = progress.coerceIn(0f, 1f)
     val squinting = pose.copy(blink = max(pose.blink, morphEyes(m.from, progress)))
     val eyes = lerpEyes(m.from.eyes, g.eyes, progress)
-    val from = m.from.shape
+    // Owl-ness on screen: from where the morph began to the new shape's.
+    val owl = lerp(m.from.owl, owlness(shape), w)
+    val owlCuts = fadeAt(OWL_CUTS_START, 1f, owl)
     posed(pose, lerp(m.from.pivot, g.pivot, progress), k) {
         val body = blendProfiles(m.from.profile, m.target, progress).toPath(outline)
         val c = d.colors
         if (c == null) {
             drawPath(body, d.tint)
-            drawPillEyes(eyes, TWO_TONE_EYE_SCALE, squinting, d.tint, d.scratch, BlendMode.DstOut)
+            drawOwlCuts(eyes, owlCuts, m.beak, d.scratch)
+            drawPillEyes(eyes, lerp(TWO_TONE_EYE_SCALE, OWL_TWO_TONE_EYE_SCALE, owl), squinting, d.tint, d.scratch, BlendMode.DstOut)
             drawStamp(fromStampAlpha(m.from, w), d.tint, TWO_TONE_STAMP, BlendMode.DstOut, d.scratch)
         } else {
-            // Owl-ness on screen: from where the morph began to the new shape's.
-            val owl = lerp(m.from.owl, owlness(shape), w)
             drawPath(body, lerpColor(c.objectBody, c.body, owl))
             val fromFace = fromFaceAlpha(m.from, w)
             clipPath(body) {
                 withAlpha(fromFace, d.layer) { drawFace(m.fromGeometry, c) }
                 withAlpha(fadeAt(1f - FACE_FADE, 1f, w), d.layer) { drawFace(g, c) }
             }
-            drawPillEyes(eyes, 1f, squinting, c.objectInk, d.scratch, DrawScope.DefaultBlendMode)
+            drawOwlCuts(eyes, owlCuts, m.beak, d.scratch)
+            // The owl's eyes are cut out, an object's are inked: cross from one to the other.
+            if (owl > 0f) drawPillEyes(eyes, 1f, squinting, CUT.copy(alpha = owl), d.scratch, BlendMode.DstOut)
+            if (owl < 1f) drawPillEyes(eyes, 1f, squinting, c.objectInk.copy(alpha = c.objectInk.alpha * (1f - owl)), d.scratch, DrawScope.DefaultBlendMode)
             clipPath(body) { drawStamp(fromStampAlpha(m.from, w), c.objectInk, 1f, DrawScope.DefaultBlendMode, d.scratch) }
         }
     }
+}
+
+/** DstOut reads only the paint's alpha: this cuts fully. */
+private val CUT = Color.Black
+
+/** How owl a morph must be before the rings and beak start to open (0..1). */
+private const val OWL_CUTS_START = 0.35f
+
+/** How big the rings are as they start to open, of their full size. */
+private const val OWL_RINGS_FROM = 0.6f
+
+/**
+ * The owl's eye rings round [e]'s eyes and its [beak], cut out [strength] (0..1) of the
+ * way: fainter and smaller below 1, exactly the owl's own cut-outs at 1.
+ */
+private fun DrawScope.drawOwlCuts(e: EyeSpec, strength: Float, beak: Path, scratch: Path) {
+    if (strength <= 0f) return
+    val cut = CUT.copy(alpha = strength)
+    val r = OwlEye.RING_R * lerp(OWL_RINGS_FROM, 1f, strength)
+    // Both rings in one path, so where they meet isn't cut twice.
+    scratch.reset()
+    for (side in SIDES) scratch.addOval(circle(e.x + side * e.spacing / 2, e.y, r))
+    drawPath(scratch, cut, style = Stroke(OwlEye.RING_LINE), blendMode = BlendMode.DstOut)
+    scale(strength, pivot = OWL_BEAK_CENTER) { drawPath(beak, cut, blendMode = BlendMode.DstOut) }
 }
 
 /** The part of a morph over which a face fades, at each end. */

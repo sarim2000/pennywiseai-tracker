@@ -13,7 +13,6 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.isImeVisible
-import androidx.compose.material3.FadeThroughNavigationTransitions
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MotionScheme
 import androidx.compose.runtime.Composable
@@ -147,8 +146,7 @@ private fun NavBackStack<NavKey>.resetTo(root: NavKey) {
 }
 
 /**
- * A tab switch is M3's fade-through ([FadeThroughNavigationTransitions]); a push or pop
- * inside one tab slides like the root host
+ * A tab switch crossfades; a push or pop inside one tab slides like the root host
  * ([pwPush] / [pwPop], [pwPredictivePop] under a back swipe). A scene belongs to the tab whose stack it tops: after a switch
  * both the old and new screens still top their stacks, while an in-tab push or pop
  * leaves the old screen buried or removed.
@@ -166,9 +164,8 @@ private fun AnimatedContentTransitionScope<Scene<NavKey>>.tabTransition(
     val from = tabTopping(initialState)
     val to = tabTopping(targetState)
     return when {
-        // ponytail: its predictiveBackTransform() is a MutableContentTransform, which
-        // NavDisplay's predictive spec doesn't take yet; a back swipe scrubs this one.
-        from != null && to != null && from != to -> FadeThroughNavigationTransitions.transform()
+        from != null && to != null && from != to ->
+            fadeIn(motion.fastEffectsSpec()) togetherWith fadeOut(motion.fastEffectsSpec())
         predictive -> pwPredictivePop()
         pop -> pwPop(motion)
         else -> pwPush(motion)

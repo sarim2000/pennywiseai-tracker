@@ -7,12 +7,12 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.snapshotFlow
 
 /**
  * A [TextFieldState] for a field whose text is owned elsewhere (a ViewModel, a parent's
  * state), for the state-based `TextField(state = …)` overloads: each edit is reported
- * through [onValueChange] before the edit returns, so a Save tapped right after typing
- * reads the new text; a [value] changed from outside (a reset, a loaded draft, a
+ * through [onValueChange]; a [value] changed from outside (a reset, a loaded draft, a
  * reformatted amount) replaces the text with the cursor at its end.
  *
  * Reject input with an `inputTransformation`, not by ignoring [onValueChange]: an edit the
@@ -21,23 +21,20 @@ import androidx.compose.runtime.rememberUpdatedState
 @Composable
 fun rememberSyncedTextFieldState(value: String, onValueChange: (String) -> Unit): TextFieldState {
     val report by rememberUpdatedState(onValueChange)
+    val current by rememberUpdatedState(value)
     val echoes = remember { PendingEchoes() }
-    // Not saveable: the owner already keeps the text, and a secret typed here stays out of saved state.
-    val state = remember {
-        TextFieldState(value, onTextChanged = { text ->
-            if (!echoes.applying) {
-                echoes.sent(text.toString())
-                report(text.toString())
-            }
-        })
-    }
+    // The owner saves its own text. Secrets typed here stay out of saved state.
+    val state = remember { TextFieldState(value) }
     LaunchedEffect(value) {
         if (!echoes.isEcho(value, shown = state.text.toString())) {
-            echoes.applying = true
-            try {
-                state.setTextAndPlaceCursorAtEnd(value)
-            } finally {
-                echoes.applying = false
+            state.setTextAndPlaceCursorAtEnd(value)
+        }
+    }
+    LaunchedEffect(state) {
+        snapshotFlow { state.text.toString() }.collect { text ->
+            if (text != echoes.lastOr(current)) {
+                echoes.sent(text)
+                report(text)
             }
         }
     }
@@ -56,8 +53,7 @@ fun rememberSyncedTextFieldState(value: String, onValueChange: (String) -> Unit)
 internal class PendingEchoes {
     private val pending = ArrayDeque<String>()
 
-    /** True while the field takes the owner's value: that isn't an edit to report. */
-    var applying = false
+    fun lastOr(value: String): String = pending.lastOrNull() ?: value
 
     fun sent(text: String) = pending.addLast(text)
 

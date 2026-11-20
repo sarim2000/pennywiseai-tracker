@@ -6,7 +6,6 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.foundation.text.input.TextFieldLineLimits
-import androidx.compose.foundation.text.input.maxLengthReject
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -42,7 +41,7 @@ import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 
-private val Last4Input = InputTransformation.maxLengthReject(4)
+private val Last4Input = InputTransformation { if (length > 4) revertAllChanges() }
 
 // A cash account's identifier falls back to "CASH" when cleared.
 private val CashIdentifierInput = InputTransformation {

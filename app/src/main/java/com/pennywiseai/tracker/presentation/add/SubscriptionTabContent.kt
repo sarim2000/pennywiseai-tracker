@@ -68,6 +68,7 @@ fun SubscriptionTabContent(
     val moreExpanded = moreOpen || uiState.paymentsMadeError
     val isIncome = uiState.direction == SubscriptionDirection.INCOME
 
+    val amount = rememberAmountEntry(uiState.amount, viewModel::updateSubscriptionAmount, uiState.currency)
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -111,7 +112,6 @@ fun SubscriptionTabContent(
             )
 
             // A sum too ("120+35"), with the operator row on the keyboard.
-            val amount = rememberAmountEntry(uiState.amount, viewModel::updateSubscriptionAmount, uiState.currency)
             val amountSum = amount.sumHint
             TextField(
                 state = amount.state,
@@ -280,9 +280,14 @@ fun SubscriptionTabContent(
 
         SaveBar(
             error = uiState.error?.asString(),
-            enabled = uiState.isValid && !uiState.isLoading,
+            enabled = uiState.isValid && !uiState.isLoading && !amount.isUnfinished,
             loading = uiState.isLoading,
-            onClick = { viewModel.saveSubscription(onSuccess = onSave) },
+            onClick = {
+                if (!amount.isUnfinished) {
+                    amount.commitText()
+                    viewModel.saveSubscription(onSuccess = onSave)
+                }
+            },
             modifier = Modifier.align(Alignment.BottomCenter)
         )
     }

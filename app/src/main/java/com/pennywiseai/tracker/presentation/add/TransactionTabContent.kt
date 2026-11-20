@@ -500,7 +500,12 @@ fun TransactionTabContent(
                 enabled = uiState.isValid && !uiState.isLoading && !uiState.checkingReceipt && !amountEntry.isUnfinished,
                 loading = uiState.isLoading,
                 // Checked again here: an operator typed in the same frame as the tap isn't drawn yet.
-                onClick = { if (!amountEntry.isUnfinished) viewModel.saveTransaction(onSuccess = onSave) },
+                onClick = {
+                    if (!amountEntry.isUnfinished) {
+                        amountEntry.commitText()
+                        viewModel.saveTransaction(onSuccess = onSave)
+                    }
+                },
                 modifier = Modifier.align(Alignment.BottomCenter)
             )
         }

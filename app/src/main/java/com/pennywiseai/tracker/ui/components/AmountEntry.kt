@@ -38,6 +38,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.offset
 import com.pennywiseai.shared.domain.money.MinorUnits
 import com.pennywiseai.tracker.domain.model.AmountInput
+import kotlinx.coroutines.launch
 import java.text.DecimalFormatSymbols
 
 /**
@@ -158,8 +159,8 @@ private fun StackedHost(modifier: Modifier, content: @Composable () -> Unit) {
  */
 @Stable
 class AmountEntry internal constructor(text: String) {
-    /** What the field shows: the amount, or the sum being typed. Each edit reaches the caller before it returns. */
-    val state = TextFieldState(text, onTextChanged = { textChanged(it.toString()) })
+    /** What the field shows: the amount, or the sum being typed. */
+    val state = TextFieldState(text)
 
     // The amounts handed on that the caller hasn't handed back yet: its amount can trail the
     // typing by a frame, and that's not an amount set from outside.
@@ -237,11 +238,19 @@ class AmountEntry internal constructor(text: String) {
         state.setTextAndPlaceCursorAtEnd(new)
     }
 
-    fun operator(op: Char) = state.setTextAndPlaceCursorAtEnd(AmountInput.append(state.text.toString(), op))
+    fun operator(op: Char) {
+        state.setTextAndPlaceCursorAtEnd(AmountInput.append(state.text.toString(), op))
+        commitText()
+    }
+
+    fun commitText() = textChanged(state.text.toString())
 
     /** A finished sum becomes its result; for a field's own Done action. */
     fun fold() {
-        AmountInput.fold(state.text.toString(), digits)?.let(state::setTextAndPlaceCursorAtEnd)
+        AmountInput.fold(state.text.toString(), digits)?.let {
+            state.setTextAndPlaceCursorAtEnd(it)
+            commitText()
+        }
     }
 
     internal fun detach() {
@@ -275,7 +284,10 @@ fun rememberAmountEntry(amount: String, onAmountChange: (String) -> Unit, curren
     entry.currency = currency
     entry.decimalComma = decimalComma
     SideEffect { entry.amount = amount }
-    LaunchedEffect(entry) { snapshotFlow { entry.amount }.collect(entry::amountChanged) }
+    LaunchedEffect(entry) {
+        launch { snapshotFlow { entry.amount }.collect(entry::amountChanged) }
+        snapshotFlow { entry.state.text.toString() }.collect(entry::textChanged)
+    }
     return entry
 }
 

@@ -746,7 +746,8 @@ fun HomeScreen(
                                         investments = uiState.currentMonthInvestment,
                                         transfers = uiState.currentMonthTransfer,
                                         isBalanceHidden = uiState.isBalanceHidden,
-                                        onToggleBalanceVisibility = { viewModel.toggleBalanceVisibility() },
+                                        // Its figures cover the whole cycle, future-dated rows too.
+                                        onOpenRows = { type -> openFigureRows(TransactionTypeFilter.valueOf(type.name), currentCycleWindow.second) },
                                         modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                                     )
                                 }

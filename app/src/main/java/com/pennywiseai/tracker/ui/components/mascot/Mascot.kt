@@ -146,8 +146,9 @@ fun Mascot(
             .size(size)
             .clearAndSetSemantics {}
             .then(if (interactive) Modifier.mascotGestures(state, direction) else Modifier)
-            // The two-tone glyph punches its eyes out, which needs a layer of its own.
-            .then(if (detailed) Modifier else Modifier.graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen })
+            // The two-tone glyph punches its eyes out, and the owl does at every size, which
+            // needs a layer of its own.
+            .graphicsLayer { compositingStrategy = CompositingStrategy.Offscreen }
             .drawWithCache {
                 val current = state.shape
                 val geometry = current.geometry(state.value)
@@ -219,6 +220,9 @@ private const val BOX = 100f
 
 /** Pill eyes are drawn this much larger in the two-tone glyph, so they still read at 24dp. */
 private const val TWO_TONE_EYE_SCALE = 1.5f
+
+/** The owl's eyes grow less: any bigger and a full look would run them into the rings cut around them. */
+private const val OWL_TWO_TONE_EYE_SCALE = 1.15f
 
 /** A pie's profile follows its share; past this many cached, they're rebuilt as needed. */
 private const val MAX_PROFILES = 32
@@ -632,10 +636,10 @@ private fun DrawScope.drawShape(shape: MascotShape, g: MascotGeometry, pose: Mas
     posed(pose, g.pivot, k) {
         val c = d.colors
         when {
-            c == null -> drawTwoTone(g, pose, d.tint, d.scratch, cutEyes = shape != MascotShape.Owl)
+            c == null -> drawTwoTone(g, pose, d.tint, d.scratch, if (shape == MascotShape.Owl) OWL_TWO_TONE_EYE_SCALE else TWO_TONE_EYE_SCALE)
             shape == MascotShape.Owl -> {
                 drawPath(g.body, c.body)
-                drawPillEyes(g.eyes, 1f, pose, c.body, d.scratch, DrawScope.DefaultBlendMode)
+                drawPillEyes(g.eyes, 1f, pose, c.body, d.scratch, BlendMode.DstOut)
             }
             else -> {
                 drawPath(g.body, c.objectBody)
@@ -710,14 +714,12 @@ private fun fromStampAlpha(from: MorphFrom, w: Float) = from.stamp * (1f - fadeA
 /**
  * The 24/32dp glyph: the silhouette in [tint] and two pill eyes cut out of it. DstOut
  * reads only the paint's alpha, so the cut-outs take the colour of whatever is behind.
- * Eyes that sit in a hole (the owl's rings) aren't [cutEyes]: they're drawn in the tint.
- * No markings: at this size they would only blur the outline.
+ * The eyes are [eyeScale] times their size. No markings: at this size they would only
+ * blur the outline.
  */
-private fun DrawScope.drawTwoTone(g: MascotGeometry, pose: MascotPose, tint: Color, scratch: Path, cutEyes: Boolean) {
+private fun DrawScope.drawTwoTone(g: MascotGeometry, pose: MascotPose, tint: Color, scratch: Path, eyeScale: Float) {
     drawPath(g.body, tint)
-    // The owl's eyes are drawn inside its rings at their own size: enlarged, they'd touch the rings.
-    if (cutEyes) drawPillEyes(g.eyes, TWO_TONE_EYE_SCALE, pose, tint, scratch, BlendMode.DstOut)
-    else drawPillEyes(g.eyes, 1f, pose, tint, scratch, DrawScope.DefaultBlendMode)
+    drawPillEyes(g.eyes, eyeScale, pose, tint, scratch, BlendMode.DstOut)
 }
 
 /** What sits on a body at the detailed size: an object's faint markings. Not its eyes. */

@@ -36,7 +36,7 @@ internal object OwlEye {
     const val Y = 54f
     const val RING_R = 13.5f
 
-    /** The face's outline; the rings are a touch finer, the beak finer still. */
+    /** How far the face reaches past its path; the rings cut out are a touch finer, the beak finer still. */
     const val LINE = 5f
     const val RING_LINE = 4.5f
     const val BEAK_LINE = 3f
@@ -68,22 +68,18 @@ private const val DETAIL_ALPHA = 0.32f
  */
 internal fun MascotShape.geometry(value: Float = 0f): MascotGeometry = when (this) {
     MascotShape.Owl -> MascotGeometry(
-        // Line art: a round face with soft-tipped ears, two eye rings and a diamond beak,
-        // stroked into one filled outline. The pill eyes sit in the rings' holes, so they
-        // are drawn, not cut (Mascot.kt). ic_notification.xml is the same drawing.
-        body = union(
-            stroked(
-                svgPath(
-                    "M50 22 C58 22 64 23 70 25 L77 17 Q81 13 82 19 L83 31 C87 38 89 45 89 53 " +
-                        "C89 74 72 89 50 89 C28 89 11 74 11 53 C11 45 13 38 17 31 L18 19 Q19 13 23 17 " +
-                        "L30 25 C36 23 42 22 50 22 Z"
-                ),
-                OwlEye.LINE,
+        // A solid round face with soft-tipped ears. Its eye rings and diamond beak are cut
+        // out of it, and so are the pill eyes inside the rings (Mascot.kt).
+        // ic_notification.xml is the same drawing.
+        body = Path.combine(
+            PathOperation.Difference,
+            union(svgPath(OWL_FACE), stroked(svgPath(OWL_FACE), OwlEye.LINE)),
+            union(
+                stroked(Path().apply { addOval(circle(OwlEye.LEFT_X, OwlEye.Y, OwlEye.RING_R)) }, OwlEye.RING_LINE),
+                stroked(Path().apply { addOval(circle(OwlEye.RIGHT_X, OwlEye.Y, OwlEye.RING_R)) }, OwlEye.RING_LINE),
+                svgPath(OWL_BEAK),
+                stroked(svgPath(OWL_BEAK), OwlEye.BEAK_LINE),
             ),
-            stroked(Path().apply { addOval(circle(OwlEye.LEFT_X, OwlEye.Y, OwlEye.RING_R)) }, OwlEye.RING_LINE),
-            stroked(Path().apply { addOval(circle(OwlEye.RIGHT_X, OwlEye.Y, OwlEye.RING_R)) }, OwlEye.RING_LINE),
-            svgPath(OWL_BEAK),
-            stroked(svgPath(OWL_BEAK), OwlEye.BEAK_LINE),
         ),
         eyes = EyeSpec(x = 50f, y = OwlEye.Y, spacing = OwlEye.RIGHT_X - OwlEye.LEFT_X, scale = 1.1f),
         pivot = STANDING,
@@ -251,6 +247,9 @@ private fun union(vararg parts: Path): Path = parts.reduce { a, b -> Path.combin
 
 private fun svgPath(d: String): Path = PathParser().parsePathString(d).toPath()
 
+private const val OWL_FACE =
+    "M50 22 C58 22 64 23 70 25 L77 17 Q81 13 82 19 L83 31 C87 38 89 45 89 53 C89 74 72 89 50 89 " +
+        "C28 89 11 74 11 53 C11 45 13 38 17 31 L18 19 Q19 13 23 17 L30 25 C36 23 42 22 50 22 Z"
 private const val OWL_BEAK = "M50 66 L53 70 L50 75 L47 70 Z"
 
 /** [line] stroked [width] wide with round ends and joins, as a filled outline. */

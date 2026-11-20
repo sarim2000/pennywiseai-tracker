@@ -30,7 +30,8 @@ class BelarusbankParserTest {
                     currency = "BYN",
                     type = TransactionType.EXPENSE,
                     merchant = "SUPERMARKET 'GREEN'",
-                    accountLast4 = "1111"
+                    accountLast4 = "1111",
+                    expectNullAccountCurrency = true
                 )
             ),
             ParserTestCase(

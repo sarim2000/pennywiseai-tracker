@@ -37,8 +37,10 @@ class BelarusbankParser : BankParser() {
             ?.replace(',', '.')
             ?.toBigDecimalOrNull()
 
-    override fun accountCurrency(message: String): String =
-        transactionPattern.find(message)?.groupValues?.get(5)?.uppercase() ?: getCurrency()
+    // Null when the balance is kept in the transaction's own currency (the base contract).
+    override fun accountCurrency(message: String): String? =
+        transactionPattern.find(message)?.groupValues?.get(5)?.uppercase()
+            ?.takeIf { it != transactionCurrency(message) }
 
     override fun transactionCurrency(message: String): String =
         transactionPattern.find(message)?.groupValues?.get(3)?.uppercase() ?: getCurrency()

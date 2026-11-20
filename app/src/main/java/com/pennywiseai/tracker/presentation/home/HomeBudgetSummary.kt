@@ -86,7 +86,7 @@ internal suspend fun homeBudgetSummary(
         val window = raw.currentWindows[group.budget.id]
         // A rollover budget adds up as the Budgets screen and its carry do: over its
         // window up to today, a parent row counting its sub-categories (#374), type
-        // buckets counted. Other budgets keep Home's own sum.
+        // buckets counted. Other category budgets keep Home's own sum.
         val rollover = group.budget.rolloverEnabled
         val transactions = (if (rollover) raw.currentWindowTransactions(group.budget.id) else null) ?: inWindow(window)
         val (categoryAmounts, categoryLimitBoosts, typeAmounts) = aggregateBudgetCategorySpending(
@@ -135,9 +135,9 @@ internal suspend fun homeBudgetSummary(
                 catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
             }
         )
+        // All spending adds up as on the Budgets screen, investments left out.
         val totalActual = when {
-            rollover -> budgetSpend(group, transactions, raw.parentOf, toDisplay).amount
-            isTrackingAll -> categoryAmounts.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
+            rollover || isTrackingAll -> budgetSpend(group, transactions, raw.parentOf, toDisplay).amount
             else -> catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
         }
         val remaining = totalBudget - totalActual

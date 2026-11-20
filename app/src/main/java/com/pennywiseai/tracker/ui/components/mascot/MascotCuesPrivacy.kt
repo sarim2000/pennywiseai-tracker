@@ -103,7 +103,7 @@ private fun DrawScope.drawWing(body: Path, up: Float, side: Float, ink: CueInk) 
                 if (ink.glyph) {
                     drawPath(wing, ink.mark, style = Stroke(WING_EDGE_GLYPH), blendMode = ink.markBlend)
                 } else {
-                    drawPath(wing, ink.mark, alpha = WING_EDGE_ALPHA, style = Stroke(WING_EDGE, cap = StrokeCap.Round))
+                    drawPath(wing, ink.mark, alpha = WING_EDGE_ALPHA, style = Stroke(WING_EDGE, cap = StrokeCap.Round), blendMode = ink.markBlend)
                 }
             }
         }

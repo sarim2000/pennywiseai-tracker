@@ -154,6 +154,13 @@
     <string name="manage_accounts_credit_limit">Credit Limit</string>
     <!-- %1$d = utilization percentage -->
     <string name="manage_accounts_utilization_used">(%1$d%% used)</string>
+    <!-- %1$d = utilization percentage, %2$s = formatted credit limit -->
+    <string name="manage_accounts_limit_used">%1$d%% of %2$s limit used</string>
+    <!-- %1$s = formatted available credit -->
+    <string name="manage_accounts_available_amount">%1$s available</string>
+    <!-- Summary cards at the top of Manage Accounts -->
+    <string name="manage_accounts_summary_held">In your accounts</string>
+    <string name="manage_accounts_summary_owed">Owed on cards</string>
     <string name="manage_accounts_more_options">More options</string>
     <string name="manage_accounts_action_edit">Edit</string>
     <string name="manage_accounts_action_update">Update</string>

@@ -118,7 +118,6 @@
     <string name="txn_detail_label_reference">เลขอ้างอิง</string>
     <string name="txn_detail_receipt">ใบเสร็จ</string>
     <string name="txn_detail_receipt_tap_to_view">แตะเพื่อดู</string>
-    <string name="txn_detail_receipt_missing">ข้อมูลสำรองนี้ไม่มีรูปใบเสร็จ</string>
     <string name="txn_detail_sms_hide">ซ่อน SMS</string>
     <string name="txn_detail_sms_show">แสดง SMS ต้นฉบับ</string>
     <string name="txn_detail_field_amount">จำนวนเงิน</string>
@@ -217,7 +216,6 @@
     <string name="txn_list_filter_account">บัญชี</string>
     <string name="txn_list_filter_category">หมวดหมู่</string>
     <string name="txn_list_filters">ตัวกรอง</string>
-    <string name="txn_list_filters_two">2 ตัวกรอง</string>
     <string name="txn_list_categories_all_except">ทั้งหมดยกเว้น %1$s</string>
     <plurals name="txn_list_categories_count">
         <item quantity="other">%1$d หมวดหมู่</item>

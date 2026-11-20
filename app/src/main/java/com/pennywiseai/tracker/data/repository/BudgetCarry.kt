@@ -85,12 +85,13 @@ data class BudgetSpend(val amount: BigDecimal, val incomplete: Boolean = false, 
 /**
  * A budget's spending as its carry adds it up: every expense for a budget with no
  * categories, else its own categories (a parent covering its sub-categories, #374)
- * and type buckets, refunds taken off. A budget with rollover on shows the same sum
- * live (Budgets card, Home, Budget History), so what it shows spent is what it
- * carries; rollover-off budgets keep each screen's own sum. Spending [convert] has no
- * rate for is left out and marked [BudgetSpend.incomplete]. Outside unified mode,
- * pass only the budget's own currency's [transactions] and a [convert] that keeps
- * amounts as they are.
+ * and type buckets, refunds taken off. Investments count only in a type bucket for
+ * them: money put into one isn't spending, as Home's "Spent this month" says. A
+ * budget with rollover on shows the same sum live (Budgets card, Home, Budget
+ * History), so what it shows spent is what it carries; rollover-off budgets keep
+ * each screen's own sum. Spending [convert] has no rate for is left out and marked
+ * [BudgetSpend.incomplete]. Outside unified mode, pass only the budget's own
+ * currency's [transactions] and a [convert] that keeps amounts as they are.
  */
 internal suspend fun budgetSpend(
     group: BudgetWithCategories,
@@ -107,10 +108,7 @@ internal suspend fun budgetSpend(
             counted, convertSplit = convert, convertIncome = { convert(it.currency, it.amount) }, parentOf = parentOf
         )
         val topLevel = all.categoryAmounts.filterKeys { it !in parentOf }.values
-        return BudgetSpend(
-            (topLevel + all.typeAmounts.values).fold(BigDecimal.ZERO, BigDecimal::add),
-            all.skippedCategories.isNotEmpty() || all.skippedTypes.isNotEmpty()
-        )
+        return BudgetSpend(topLevel.fold(BigDecimal.ZERO, BigDecimal::add), all.skippedCategories.isNotEmpty())
     }
     val agg = aggregateBudgetCategorySpending(
         counted, convertSplit = convert, convertIncome = { convert(it.currency, it.amount) }, parentOf = parentOf

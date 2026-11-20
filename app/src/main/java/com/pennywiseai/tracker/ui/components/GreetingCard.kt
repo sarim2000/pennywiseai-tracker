@@ -1,28 +1,23 @@
 package com.pennywiseai.tracker.ui.components
 
-import androidx.compose.foundation.Image
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Mic
 import androidx.compose.material.icons.filled.MoreHoriz
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
+import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -30,28 +25,22 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
-import androidx.compose.ui.draw.drawBehind
-import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.graphics.PathEffect
+import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.Stroke
-import androidx.compose.ui.layout.ContentScale
-import androidx.compose.ui.res.painterResource
-import androidx.compose.ui.res.pluralStringResource
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import coil3.compose.AsyncImage
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
+import com.pennywiseai.tracker.ui.theme.yellow_accent_dark
 import com.pennywiseai.tracker.ui.theme.yellow_dark
-import com.pennywiseai.tracker.utils.AppDates
-import java.time.LocalDate
 import java.time.LocalTime
-import java.time.temporal.ChronoUnit
 
 @Composable
 fun GreetingCard(
@@ -61,209 +50,111 @@ fun GreetingCard(
     profileBackgroundColor: Int = 0,
     onAvatarClick: () -> Unit = {},
     onMenuClick: () -> Unit = {},
-    // Shows an Add button when set (the floating nav bar docks Sync instead
-    // of Home keeping an Add FAB).
-    onAddClick: (() -> Unit)? = null,
-    // The voice mic, where the phone can listen: a cash spend said, or a question.
-    onVoiceClick: (() -> Unit)? = null,
     profiles: List<ProfileEntity> = emptyList(),
     selectedProfileId: Long? = null,
     onProfileSelected: (Long?) -> Unit = {},
     isProEntitled: Boolean = false,
-    onUpgradeClick: () -> Unit = {},
-    // The last day of the user's current budget cycle. When null, the
-    // subtitle falls back to the calendar month's end. The "X days left in
-    // <month>" line then tracks the cycle (e.g. "4 days left in October" on
-    // Oct 20 with startDay=25, where the cycle ends Oct 24).
-    cycleEnd: LocalDate? = null
+    /** A line under the name, e.g. when SMS were last read. */
+    status: (@Composable () -> Unit)? = null,
 ) {
-    val today = LocalDate.now()
-    val (daysLeft, hour) = remember(today, cycleEnd) {
-        // Prefer the cycle's end over the calendar month's end so the
-        // "X days left" hint lines up with the budget / spending windows.
-        val lastDay = cycleEnd ?: today.withDayOfMonth(today.lengthOfMonth())
-        ChronoUnit.DAYS.between(today, lastDay).toInt() to LocalTime.now().hour
-    }
-    val monthName = today.month.getDisplayName(java.time.format.TextStyle.FULL, AppDates.locale())
-    val subtitle = when {
-        daysLeft == 0 -> stringResource(R.string.greeting_last_day_of_month, monthName)
-        daysLeft <= 7 -> pluralStringResource(R.plurals.greeting_days_left_in_month, daysLeft, daysLeft, monthName)
-        else -> stringResource(
-            when (hour) {
-                in 5..11 -> R.string.greeting_good_morning
-                in 12..16 -> R.string.greeting_good_afternoon
-                in 17..21 -> R.string.greeting_good_evening
-                else -> R.string.greeting_good_night
-            }
-        )
-    }
+    // Time of day only: the hero card carries "11 days left".
+    val hour = remember { LocalTime.now().hour }
+    val greeting = stringResource(
+        when (hour) {
+            in 5..11 -> R.string.greeting_good_morning
+            in 12..16 -> R.string.greeting_good_afternoon
+            in 17..21 -> R.string.greeting_good_evening
+            else -> R.string.greeting_good_night
+        }
+    )
 
-    val avatarBackground = if (profileBackgroundColor != 0) {
-        Color(profileBackgroundColor)
-    } else {
-        MaterialTheme.colorScheme.primaryContainer
-    }
-
-    Row(
+    Column(
         modifier = modifier
             .fillMaxWidth()
-            .padding(horizontal = Dimensions.Padding.content, vertical = Spacing.xs),
-        verticalAlignment = Alignment.CenterVertically
+            .padding(horizontal = Dimensions.Padding.content),
+        verticalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
-        // Profile Avatar wrapped in a "membership ring" — the only Pro signal,
-        // no pill, no label. Solid gold = Pro member; dashed gold = free user
-        // (reads as "not yet filled / tap to unlock"). For free users tapping
-        // opens the upgrade sheet; Pro members tap through to settings.
-        val ringColor = yellow_dark
-        Box(
-            modifier = Modifier
-                .size(Dimensions.Icon.avatarLarge)
-                // Clip to a circle before clickable so the tap ripple stays
-                // within the ring instead of rendering as a square.
-                .clip(CircleShape)
-                .drawBehind {
-                    val stroke = 2.dp.toPx()
-                    val dash = if (!isProEntitled) {
-                        PathEffect.dashPathEffect(floatArrayOf(stroke * 2.5f, stroke * 2f), 0f)
-                    } else null
-                    drawCircle(
-                        color = ringColor,
-                        radius = (size.minDimension - stroke) / 2f,
-                        style = Stroke(width = stroke, pathEffect = dash)
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            // Greeting over a big name: the Expressive header every tab shares.
+            Column(modifier = Modifier.weight(1f)) {
+                Text(
+                    text = greeting,
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = userName.ifBlank { stringResource(R.string.greeting_default_user_name) },
+                    style = MaterialTheme.typography.headlineLargeEmphasized,
+                    color = MaterialTheme.colorScheme.onBackground,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+
+            // Header actions: More and the avatar; the profile filter only when there's a choice.
+            if (profiles.size > 1) {
+                var showProfileMenu by remember { mutableStateOf(false) }
+                Box {
+                    HeaderIcon(
+                        icon = profileFilterIcon(profiles, selectedProfileId),
+                        label = stringResource(R.string.greeting_profile_filter),
+                        onClick = { showProfileMenu = true }
+                    )
+                    ProfileFilterDropdown(
+                        expanded = showProfileMenu,
+                        profiles = profiles,
+                        selectedProfileId = selectedProfileId,
+                        onProfileSelected = onProfileSelected,
+                        onDismiss = { showProfileMenu = false }
                     )
                 }
-                .clickable(onClick = if (isProEntitled) onAvatarClick else onUpgradeClick),
-            contentAlignment = Alignment.Center
-        ) {
-            Box(
+            }
+            HeaderIcon(Icons.Default.MoreHoriz, stringResource(R.string.greeting_more_options), onMenuClick)
+
+            Spacer(modifier = Modifier.width(Spacing.xs))
+
+            // The avatar in a cookie shape, edged by a "membership ring" — the only Pro
+            // signal, no pill, no label. Solid gold = Pro member; dashed gold = free user.
+            // Tapping opens Settings for everyone, like the avatar on every other tab;
+            // upgrading stays on its own controls.
+            val ringColor = if (isAppInDarkTheme()) yellow_accent_dark else yellow_dark
+            val cookie = MaterialShapes.Cookie9Sided.toShape()
+            ProfileAvatar(
+                name = userName,
+                imageUri = profileImageUri,
+                backgroundColor = profileBackgroundColor,
+                size = Dimensions.Icon.avatar,
+                shape = cookie,
+                onClick = onAvatarClick,
                 modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(avatarBackground),
-                contentAlignment = Alignment.Center
-            ) {
-                val avatarResId = profileImageUri?.let { AvatarHelper.resolveAvatarDrawable(it) }
-                if (avatarResId != null) {
-                    Image(
-                        painter = painterResource(id = avatarResId),
-                        contentDescription = userName,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else if (profileImageUri != null) {
-                    AsyncImage(
-                        model = profileImageUri,
-                        contentDescription = userName,
-                        modifier = Modifier.fillMaxSize(),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    val initials = remember(userName) {
-                        val parts = userName.trim().split("\\s+".toRegex())
-                        if (parts.size >= 2) {
-                            "${parts.first().first()}${parts.last().first()}".uppercase()
-                        } else {
-                            userName.trim().take(2).uppercase()
-                        }
+                    .drawWithContent {
+                        drawContent()
+                        // Clipped to the cookie, so half the stroke shows: draw it double.
+                        val stroke = Dimensions.Component.avatarRingWidth.toPx() * 2
+                        val dash = if (!isProEntitled) {
+                            PathEffect.dashPathEffect(floatArrayOf(stroke * 1.25f, stroke), 0f)
+                        } else null
+                        drawOutline(
+                            outline = cookie.createOutline(size, layoutDirection, this),
+                            color = ringColor,
+                            style = Stroke(width = stroke, pathEffect = dash)
+                        )
                     }
-                    Text(
-                        text = initials,
-                        style = MaterialTheme.typography.titleSmall.copy(
-                            fontWeight = FontWeight.Bold
-                        ),
-                        color = MaterialTheme.colorScheme.onPrimaryContainer
-                    )
-                }
-            }
-        }
-
-        Spacer(modifier = Modifier.width(Spacing.sm))
-
-        // Text Column
-        Column(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.Center
-        ) {
-            Text(
-                text = userName.ifBlank { stringResource(R.string.greeting_default_user_name) },
-                style = MaterialTheme.typography.titleMedium.copy(
-                    fontWeight = FontWeight.SemiBold
-                ),
-                color = MaterialTheme.colorScheme.onBackground,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
             )
         }
+        status?.invoke()
+    }
+}
 
-        // Profile filter button
-        if (profiles.isNotEmpty()) {
-            var showProfileMenu by remember { mutableStateOf(false) }
-            Box {
-                IconButton(
-                    onClick = { showProfileMenu = true },
-                    modifier = Modifier.size(Dimensions.Component.minTouchTarget),
-                    shapes = IconButtonDefaults.shapes()
-                ) {
-                    Icon(
-                        imageVector = profileFilterIcon(profiles, selectedProfileId),
-                        contentDescription = stringResource(R.string.greeting_profile_filter),
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-                ProfileFilterDropdown(
-                    expanded = showProfileMenu,
-                    profiles = profiles,
-                    selectedProfileId = selectedProfileId,
-                    onProfileSelected = onProfileSelected,
-                    onDismiss = { showProfileMenu = false }
-                )
-            }
-        }
-
-        if (onVoiceClick != null) {
-            IconButton(
-                onClick = onVoiceClick,
-                modifier = Modifier.size(Dimensions.Component.minTouchTarget),
-                shapes = IconButtonDefaults.shapes()
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Mic,
-                    contentDescription = stringResource(R.string.quick_add_voice_title),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        if (onAddClick != null) {
-            IconButton(
-                onClick = onAddClick,
-                modifier = Modifier.size(Dimensions.Component.minTouchTarget),
-                shapes = IconButtonDefaults.shapes()
-            ) {
-                Icon(
-                    imageVector = Icons.Default.Add,
-                    contentDescription = stringResource(R.string.home_fab_add),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-        }
-
-        // Menu button — plain IconButton, no circular background
-        IconButton(
-            onClick = onMenuClick,
-            modifier = Modifier.size(Dimensions.Component.minTouchTarget),
-            shapes = IconButtonDefaults.shapes()
-        ) {
-            Icon(
-                imageVector = Icons.Default.MoreHoriz,
-                contentDescription = stringResource(R.string.greeting_more_options),
-                tint = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-        }
+@Composable
+private fun HeaderIcon(icon: ImageVector, label: String, onClick: () -> Unit) {
+    IconButton(
+        onClick = onClick,
+        modifier = Modifier.size(Dimensions.Component.minTouchTarget),
+        shapes = IconButtonDefaults.shapes()
+    ) {
+        Icon(imageVector = icon, contentDescription = label, tint = MaterialTheme.colorScheme.onSurfaceVariant)
     }
 }

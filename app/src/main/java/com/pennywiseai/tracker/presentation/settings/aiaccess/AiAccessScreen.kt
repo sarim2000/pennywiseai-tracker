@@ -1,9 +1,7 @@
 package com.pennywiseai.tracker.presentation.settings.aiaccess
 
-import com.pennywiseai.tracker.utils.AppDates
-
+import android.content.ClipData
 import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -13,7 +11,9 @@ import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ContentCopy
@@ -27,10 +27,10 @@ import androidx.compose.material3.FilledTonalButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
+import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -40,16 +40,17 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextDirection
@@ -59,8 +60,13 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.aiaccess.AiRelayClient
 import com.pennywiseai.tracker.presentation.paywall.UpgradeSheet
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
+import com.pennywiseai.tracker.ui.components.RoundedField
+import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.utils.AppDates
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.time.Instant
 import java.time.ZoneId
 
@@ -79,7 +85,8 @@ fun AiAccessScreen(onNavigateBack: () -> Unit, viewModel: AiAccessViewModel = hi
     LaunchedEffect(Unit) { while (true) { now = System.currentTimeMillis(); delay(1_000) } }
     // Messages are momentary: clear them so a passing network blip doesn't stay on screen.
     LaunchedEffect(state.message) { if (state.message != null) { delay(6_000); viewModel.clearMessage() } }
-    val clipboard = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
     val connectorUrl = AiRelayClient.connectorUrl(relayUrl)
     val dashboardUrl = AiRelayClient.dashboardUrl(relayUrl)
     fun mmss(seconds: Long) = (seconds / 60).toInt() to (seconds % 60).toInt()
@@ -162,7 +169,7 @@ fun AiAccessScreen(onNavigateBack: () -> Unit, viewModel: AiAccessViewModel = hi
                     Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         Text(stringResource(R.string.ai_access_connect_title), style = MaterialTheme.typography.titleMedium)
                         Text(stringResource(R.string.ai_access_connect_step1))
-                        CopyableAddress(connectorUrl, stringResource(R.string.ai_access_copy_url)) { clipboard.setText(AnnotatedString(connectorUrl)) }
+                        CopyableAddress(connectorUrl, stringResource(R.string.ai_access_copy_url)) { scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("Connector URL", connectorUrl))) } }
                         Text(stringResource(R.string.ai_access_connect_step2))
                         val code = state.pairingCode
                         val codeLeft = ((state.pairingExpiresAtMillis - now) / 1000).coerceAtLeast(0)
@@ -190,7 +197,7 @@ fun AiAccessScreen(onNavigateBack: () -> Unit, viewModel: AiAccessViewModel = hi
                     Column(Modifier.padding(Spacing.md), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                         Text(stringResource(R.string.ai_access_dashboard_title), style = MaterialTheme.typography.titleMedium)
                         Text(stringResource(R.string.ai_access_dashboard_body))
-                        CopyableAddress(dashboardUrl, stringResource(R.string.ai_access_copy_dashboard)) { clipboard.setText(AnnotatedString(dashboardUrl)) }
+                        CopyableAddress(dashboardUrl, stringResource(R.string.ai_access_copy_dashboard)) { scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("Dashboard URL", dashboardUrl))) } }
                     }
                 }
             }
@@ -236,21 +243,21 @@ fun AiAccessScreen(onNavigateBack: () -> Unit, viewModel: AiAccessViewModel = hi
                         Text(stringResource(R.string.ai_access_relay_body), style = MaterialTheme.typography.bodySmall)
                         val locked = session != null
                         OutlinedTextField(
-                            value = relayInput,
-                            onValueChange = { relayInput = it },
+                            state = rememberSyncedTextFieldState(relayInput) { relayInput = it },
                             label = { Text(stringResource(R.string.ai_access_relay_label)) },
-                            singleLine = true,
+                            lineLimits = TextFieldLineLimits.SingleLine,
                             enabled = !locked,
                             isError = state.message == R.string.ai_access_relay_invalid,
                             supportingText = if (state.message == R.string.ai_access_relay_invalid) {
                                 { Text(stringResource(R.string.ai_access_relay_invalid)) }
                             } else null,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Uri),
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            shape = RoundedField.shape
                         )
                         if (locked) Text(stringResource(R.string.ai_access_relay_busy), style = MaterialTheme.typography.bodySmall)
                         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                            FilledTonalButton(onClick = { viewModel.setRelayUrl(relayInput) }, enabled = !locked && relayInput.trim() != relayUrl, shapes = ButtonDefaults.shapes()) {
+                            FilledTonalButton(onClick = withCommittedText { viewModel.setRelayUrl(relayInput) }, enabled = !locked && relayInput.trim() != relayUrl, shapes = ButtonDefaults.shapes()) {
                                 Text(stringResource(R.string.ai_access_relay_save))
                             }
                             if (relayUrl != AiRelayClient.DEFAULT_RELAY_URL) {

@@ -1,20 +1,32 @@
 package com.pennywiseai.tracker.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.IntrinsicSize
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.selection.selectableGroup
+import androidx.compose.foundation.text.TextAutoSize
+import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.LocalTextStyle
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleButton
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 
 /**
  * Single-choice Material 3 Expressive connected button group — the replacement
@@ -25,6 +37,10 @@ import androidx.compose.ui.text.style.TextOverflow
  * Labels are single-line with ellipsis so long translations don't wrap.
  * With [fillMaxWidth] the row fills the available width and the buttons share
  * it equally; otherwise each button wraps its label.
+ *
+ * With [supportingText] each button becomes a taller two-line tile (label over
+ * a smaller line). [fontFamily] draws an option's text in its own font, e.g. a
+ * font picker.
  */
 @Composable
 fun <T> ConnectedChoiceRow(
@@ -35,9 +51,13 @@ fun <T> ConnectedChoiceRow(
     modifier: Modifier = Modifier,
     fillMaxWidth: Boolean = true,
     textStyle: TextStyle? = null,
+    supportingText: (@Composable (T) -> String)? = null,
+    fontFamily: (T) -> FontFamily? = { null },
 ) {
+    // Tiles share the tallest one's height, since each option's font has its own metrics.
+    val rowModifier = if (supportingText != null) modifier.height(IntrinsicSize.Min) else modifier
     Row(
-        modifier = (if (fillMaxWidth) modifier.fillMaxWidth() else modifier).selectableGroup(),
+        modifier = (if (fillMaxWidth) rowModifier.fillMaxWidth() else rowModifier).selectableGroup(),
         horizontalArrangement = Arrangement.spacedBy(ButtonGroupDefaults.ConnectedSpaceBetween),
     ) {
         options.forEachIndexed { index, option ->
@@ -50,16 +70,43 @@ fun <T> ConnectedChoiceRow(
                 checked = option == selected,
                 onCheckedChange = { onSelect(option) },
                 modifier = (if (fillMaxWidth) Modifier.weight(1f) else Modifier)
+                    .then(if (supportingText != null) Modifier.fillMaxHeight() else Modifier)
                     .semantics { role = Role.RadioButton },
                 shapes = shapes,
+                contentPadding = if (supportingText == null) {
+                    ButtonDefaults.ContentPadding
+                } else {
+                    PaddingValues(horizontal = 8.dp, vertical = 16.dp)
+                },
             ) {
-                Text(
-                    text = label(option),
-                    // null keeps the button's own label style (labelLarge).
-                    style = textStyle ?: LocalTextStyle.current,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                )
+                if (supportingText == null) {
+                    Text(
+                        text = label(option),
+                        // null keeps the button's own label style (labelLarge).
+                        style = textStyle ?: LocalTextStyle.current,
+                        fontFamily = fontFamily(option),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                    )
+                } else {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = label(option),
+                            style = textStyle ?: MaterialTheme.typography.titleMedium,
+                            fontFamily = fontFamily(option),
+                            maxLines = 1,
+                            // Shrinks a long name (e.g. "Google Sans Flex") to fit a narrow tile.
+                            autoSize = TextAutoSize.StepBased(minFontSize = 11.sp, maxFontSize = (textStyle ?: MaterialTheme.typography.titleMedium).fontSize),
+                        )
+                        Text(
+                            text = supportingText(option),
+                            style = MaterialTheme.typography.bodySmall,
+                            fontFamily = fontFamily(option),
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                        )
+                    }
+                }
             }
         }
     }

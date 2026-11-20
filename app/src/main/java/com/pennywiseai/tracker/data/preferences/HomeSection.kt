@@ -2,23 +2,24 @@ package com.pennywiseai.tracker.data.preferences
 
 /**
  * The toggleable / reorderable sections of the Home screen (#770). Declaration
- * order is the default display order: decisions first (what can I spend, am I
- * over budget, what still needs a category, did the app catch my spending),
- * reference detail last. The fixed header (balance card) is deliberately not here.
- *
- * [visibleByDefault] false: a new user and an existing layout both get the section
- * hidden, for the user to turn on in Home's section settings.
+ * order is the default display order: the things to act on first (what still needs a
+ * category, what just happened, what's due), then the plans, then reference balances.
+ * The hero is fixed and not here; Safe to spend is a line inside it, so its entry only
+ * shows or hides that line. Shortcuts come right under the hero, so a new section in
+ * that slot reaches upgraders there too.
+ * Sections with [visibleByDefault] set to false start hidden until enabled in Edit home.
  */
 enum class HomeSection(val label: String, val visibleByDefault: Boolean = true) {
     SAFE_TO_SPEND("Safe to spend"),
-    BUDGETS("Budgets"),
+    SHORTCUTS("Shortcuts"),
     UNSORTED("Needs a category"),
     INSIGHTS("Insights", visibleByDefault = false),
     RECENT_TRANSACTIONS("Recent Transactions"),
-    ACCOUNTS("Bank Accounts"),
     SUBSCRIPTIONS("Upcoming Subscriptions"),
-    LOANS("Loans"),
+    BUDGETS("Budgets"),
     GOALS("Goals"),
+    ACCOUNTS("Bank Accounts"),
+    LOANS("Loans"),
     GROUPS("Groups"),
     MONEY_IN_MOTION("Money in motion"),
     ACTIVITY("Activity"),
@@ -31,15 +32,39 @@ enum class HomeSection(val label: String, val visibleByDefault: Boolean = true) 
  * Pure so it is unit-testable without DataStore.
  */
 object HomeSectionLayout {
+    /** The default order before Home was regrouped; a layout still in it was never reordered. */
+    private val LEGACY_ORDER = listOf(
+        HomeSection.SAFE_TO_SPEND, HomeSection.BUDGETS, HomeSection.UNSORTED, HomeSection.INSIGHTS,
+        HomeSection.RECENT_TRANSACTIONS,
+        HomeSection.ACCOUNTS, HomeSection.SUBSCRIPTIONS, HomeSection.LOANS, HomeSection.GOALS,
+        HomeSection.GROUPS, HomeSection.MONEY_IN_MOTION, HomeSection.ACTIVITY,
+    )
+
     val DEFAULT: List<Pair<HomeSection, Boolean>> = HomeSection.entries.map { it to it.visibleByDefault }
+
+    /**
+     * What a brand-new install starts with: [DEFAULT] minus the Activity heatmap, which
+     * Insights already draws. Only ever written by [seedForFreshInstall]; an existing,
+     * restored or absent-on-upgrade layout keeps decoding to [DEFAULT].
+     */
+    val FRESH_INSTALL: List<Pair<HomeSection, Boolean>> = withVisibility(DEFAULT, HomeSection.ACTIVITY, false)
+
+    /**
+     * The value to store when onboarding finishes on a fresh install, or null to leave
+     * [stored] alone. Only an absent value is seeded: anything stored (even blank) is the
+     * user's or a restore's, and is never overwritten.
+     */
+    fun seedForFreshInstall(stored: String?): String? = if (stored == null) encode(FRESH_INSTALL) else null
 
     fun encode(layout: List<Pair<HomeSection, Boolean>>): String =
         layout.joinToString(",") { (section, visible) -> (if (visible) "" else "!") + section.name }
 
     /**
      * Unknown names are dropped; enum values absent from the string are inserted
-     * at their default position (clamped to the end) and visibility, so a section
-     * added in a later version shows up where, and as, a new user would see it.
+     * at their default position (clamped to the end) and visibility, so a section added
+     * in a later version shows up where a new user would see it. A layout still in
+     * the old default order (never reordered, maybe some hidden) moves to the new
+     * default order, keeping what's hidden; a reordered one keeps its order.
      */
     fun decode(raw: String?): List<Pair<HomeSection, Boolean>> {
         if (raw.isNullOrBlank()) return DEFAULT
@@ -49,6 +74,10 @@ object HomeSectionLayout {
             HomeSection.entries.firstOrNull { it.name == t.removePrefix("!") }?.let { it to !hidden }
         }.distinctBy { it.first }
         val seen = parsed.mapTo(HashSet()) { it.first }
+        if (parsed.map { it.first } == LEGACY_ORDER.filter { it in seen }) {
+            val savedVisibility = parsed.toMap()
+            return DEFAULT.map { (section, visible) -> section to (savedVisibility[section] ?: visible) }
+        }
         val layout = parsed.toMutableList()
         HomeSection.entries.filter { it !in seen }
             .forEach { layout.add(it.ordinal.coerceAtMost(layout.size), it to it.visibleByDefault) }

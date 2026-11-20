@@ -99,13 +99,11 @@
     <string name="settings_folder_backup_subtitle_enabled">Denní záloha ve 2:00 do vybrané složky</string>
     <string name="settings_folder_backup_subtitle_pro">Pro · Uložit zálohu do složky každý den ve 2:00</string>
     <string name="settings_folder_backup_subtitle_disabled">Uložit zálohu do složky každý den ve 2:00 hodin</string>
-    <string name="settings_export_include_receipts_title">Zahrnout fotky účtenek</string>
-    <string name="settings_export_include_receipts_subtitle">Přidat přiložené fotky účtenek do exportovaných záloh (větší soubor)</string>
-    <string name="settings_folder_backup_include_receipts_title">Zahrnout fotky účtenek do automatických záloh</string>
     <string name="settings_folder_backup_include_receipts_subtitle">Každá denní záloha bude větší</string>
     <string name="settings_backup_now_title">Zálohovat nyní</string>
     <!-- %1$s = date and time of the last backup -->
     <string name="settings_backup_now_last_backup">Poslední záloha: %1$s</string>
+    <!-- %1$s = date and time of the last backup, %2$d = PDF receipts it left out -->
     <string name="settings_backup_now_subtitle">Spustit zálohu do složky</string>
     <string name="settings_change_backup_folder_title">Změnit záložní složku</string>
     <string name="settings_change_backup_folder_subtitle">Vyberte jinou složku pro automatické zálohování</string>

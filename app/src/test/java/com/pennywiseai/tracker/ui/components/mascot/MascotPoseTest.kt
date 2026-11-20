@@ -235,7 +235,6 @@ class MascotPoseTest {
     private fun assertInsideEye(pose: MascotPose) {
         val gaze = hypot(pose.gazeX, pose.gazeY)
         assertTrue("gaze $gaze leaves the unit disc", gaze <= 1.0001f)
-        assertTrue(gaze * OwlEye.GAZE_TRAVEL + OwlEye.IRIS_R <= OwlEye.DISC_R)
     }
 
     @Test

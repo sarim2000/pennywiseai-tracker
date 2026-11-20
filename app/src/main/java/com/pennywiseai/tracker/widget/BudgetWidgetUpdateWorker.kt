@@ -178,7 +178,8 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                     val totalActual = if (rolloverSpend != null) {
                         rolloverSpend.amount
                     } else if (isTrackingAll) {
-                        categoryAmounts.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
+                        // As on the Budgets screen and Home: investments left out.
+                        budgetSpend(group, raw.allTransactions, raw.parentOf, convertSplit).amount
                     } else {
                         catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
                     }

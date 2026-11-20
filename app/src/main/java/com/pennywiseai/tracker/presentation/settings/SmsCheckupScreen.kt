@@ -380,7 +380,11 @@ private fun StatusHeader(icon: ImageVector, color: Color, title: String) {
         horizontalArrangement = Arrangement.spacedBy(Spacing.smd),
         verticalAlignment = Alignment.CenterVertically
     ) {
-        IconTile(icon = icon, containerColor = color.copy(alpha = 0.15f), contentColor = color)
+        IconTile(
+            icon = icon,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            contentColor = color
+        )
         Text(
             text = title,
             style = MaterialTheme.typography.titleSmall,

@@ -122,7 +122,6 @@
     <string name="txn_detail_label_reference">Kumbukumbu</string>
     <string name="txn_detail_receipt">Risiti</string>
     <string name="txn_detail_receipt_tap_to_view">Gusa kuona</string>
-    <string name="txn_detail_receipt_missing">Picha ya risiti haikujumuishwa kwenye nakala rudufu hii</string>
     <string name="txn_detail_sms_hide">Ficha SMS</string>
     <string name="txn_detail_sms_show">Onyesha SMS asili</string>
     <string name="txn_detail_field_amount">Kiasi</string>
@@ -222,7 +221,6 @@
     <string name="txn_list_filter_account">Akaunti</string>
     <string name="txn_list_filter_category">Kategoria</string>
     <string name="txn_list_filters">Vichujio</string>
-    <string name="txn_list_filters_two">Vichujio 2</string>
     <string name="txn_list_categories_all_except">Zote isipokuwa %1$s</string>
     <plurals name="txn_list_categories_count">
         <item quantity="one">Kategoria %1$d</item>

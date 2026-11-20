@@ -85,7 +85,6 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
-import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -108,14 +107,12 @@ import com.pennywiseai.tracker.presentation.settings.BackgroundAccessChecklist
 import com.pennywiseai.tracker.ui.components.rememberSmsAccess
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.theme.Dimensions
-import com.pennywiseai.tracker.ui.theme.GRAPHIC_CONTRAST
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.bestInk
 import com.pennywiseai.tracker.ui.theme.income
 import com.pennywiseai.tracker.ui.theme.inkOnWash
 import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
-import com.pennywiseai.tracker.ui.theme.readableOn
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.text.Collator
 import java.util.Currency
@@ -1048,12 +1045,7 @@ private fun StepIndicator(
     modifier: Modifier = Modifier
 ) {
     val steps = OnBoardingStep.entries
-    // The faded dots keep their look but reach 3:1 on the page, so every step stays visible.
-    val page = MaterialTheme.colorScheme.background
-    val pastColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f).compositeOver(page)
-        .readableOn(listOf(page), GRAPHIC_CONTRAST)
-    val upcomingColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f).compositeOver(page)
-        .readableOn(listOf(page), GRAPHIC_CONTRAST)
+    val colors = MaterialTheme.colorScheme
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.Center,
@@ -1062,16 +1054,18 @@ private fun StepIndicator(
         steps.forEachIndexed { index, step ->
             val isActive = step == currentStep
             val isPast = index < steps.indexOf(currentStep)
+            // Done steps are filled and upcoming ones a ring, so the two differ by shape, not
+            // only by a faded colour; both are full-strength roles that clear 3:1 on the page.
             Box(
                 modifier = Modifier
                     .padding(horizontal = Spacing.xs)
                     .size(if (isActive) STEP_DOT_ACTIVE else STEP_DOT_INACTIVE)
                     .clip(CircleShape)
-                    .background(
-                        when {
-                            isActive -> MaterialTheme.colorScheme.primary
-                            isPast -> pastColor
-                            else -> upcomingColor
+                    .then(
+                        if (isActive || isPast) {
+                            Modifier.background(colors.primary)
+                        } else {
+                            Modifier.border(STEP_DOT_RING, colors.onSurfaceVariant, CircleShape)
                         }
                     )
             )
@@ -1234,3 +1228,4 @@ private val OPTION_TILE_SIZE = 72.dp
 private val SELECTION_RING_WIDTH = 3.dp
 private val STEP_DOT_ACTIVE = Spacing.sm
 private val STEP_DOT_INACTIVE = 6.dp
+private val STEP_DOT_RING = 1.5.dp

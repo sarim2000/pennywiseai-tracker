@@ -220,11 +220,8 @@ private fun AchievementRow(a: Achievement, position: ListItemPosition, onShare: 
                             .weight(1f)
                             .height(Spacing.xs)
                             .clip(CircleShape),
-                        // The badge hue nudged to 3:1 on its track and card, as WavyMeter does.
-                        color = badgeArt(a.id).hue.readableOn(
-                            listOf(MaterialTheme.colorScheme.surfaceContainerHighest) + MaterialTheme.colorScheme.neutralSurfaces,
-                            GRAPHIC_CONTRAST
-                        ),
+                        // The badge hue nudged to 3:1 on its track and card (neutralSurfaces has both).
+                        color = badgeArt(a.id).hue.readableOn(MaterialTheme.colorScheme.neutralSurfaces, GRAPHIC_CONTRAST),
                         trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                         drawStopIndicator = {},
                     )

@@ -700,7 +700,8 @@ internal fun SettingsNavItem(
     }
     GroupedRow(position = position, onClick = onClick) {
         IconTile(icon = icon, containerColor = container, contentColor = tint)
-        RowLabels(title = title, subtitle = subtitle)
+        // Settings copy explains what a control does, so it wraps instead of truncating.
+        RowLabels(title = title, subtitle = subtitle, titleMaxLines = 2, subtitleMaxLines = Int.MAX_VALUE)
         if (trailingText != null) {
             // Capped so a long account name can't squeeze the labels away; its last digits stay visible.
             Text(
@@ -746,6 +747,8 @@ internal fun SettingsSwitchRow(
         RowLabels(
             title = title,
             subtitle = subtitle,
+            titleMaxLines = 2,
+            subtitleMaxLines = Int.MAX_VALUE,
             subtitleColor = if (enabled) MaterialTheme.colorScheme.onSurfaceVariant
             else MaterialTheme.colorScheme.error
         )

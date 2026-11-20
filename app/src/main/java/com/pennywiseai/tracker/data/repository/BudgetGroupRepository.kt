@@ -945,7 +945,7 @@ class BudgetGroupRepository @Inject constructor(
         val ym = YearMonth.of(year, month)
         val monthEnd = ym.atEndOfMonth()
         val isCurrentMonth = year == today.year && month == today.monthValue
-        val windows = windowsForMonth(budget, year, month, startDay)
+        val windows = historyWindowsForMonth(budget, year, month, today, startDay)
         // Resolve the group once so the per-window spend query doesn't
         // re-hit the dao for every window.
         val group = getGroupOrFallback(budget)

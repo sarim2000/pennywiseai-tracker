@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
@@ -34,8 +35,8 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
@@ -50,12 +51,14 @@ import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.RolloverLine
+import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.cards.message
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.ui.theme.money
+import com.pennywiseai.tracker.ui.theme.success
+import com.pennywiseai.tracker.ui.theme.warning
 import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -92,8 +95,8 @@ fun BudgetHistoryScreen(
         }
     ) { padding ->
         if (state.isLoading) {
-            Box(modifier = Modifier.padding(padding).fillMaxWidth(), contentAlignment = Alignment.Center) {
-                Text(stringResource(R.string.budget_history_loading), color = MaterialTheme.colorScheme.onSurfaceVariant)
+            Box(modifier = Modifier.padding(padding).fillMaxSize(), contentAlignment = Alignment.Center) {
+                LoadingIndicator()
             }
             return@PennyWiseScaffold
         }
@@ -121,15 +124,10 @@ fun BudgetHistoryScreen(
                     Column(verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
+                            horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
                             CadencePill(periodType = budget.periodType)
-                            Text(
-                                text = monthLabel(state.yearMonth),
-                                style = MaterialTheme.typography.titleMedium.copy(
-                                    fontWeight = FontWeight.SemiBold
-                                )
-                            )
+                            Text(text = monthLabel(state.yearMonth), style = MaterialTheme.typography.titleMedium)
                         }
                         Spacer(modifier = Modifier.height(Spacing.xs))
                         Text(
@@ -138,10 +136,16 @@ fun BudgetHistoryScreen(
                                 CurrencyFormatter.formatCurrency(state.totalSpent, state.currency),
                                 CurrencyFormatter.formatCurrency(state.budgetAmount, state.currency)
                             ),
-                            style = MaterialTheme.typography.titleLarge.copy(
-                                fontWeight = FontWeight.Bold
-                            ).money()
+                            style = PennyWiseText.amountLarge
                         )
+                        if (state.budgetAmount.signum() > 0 && !AmountPrivacy.hidden) {
+                            val fraction = state.totalSpent.toFloat() / state.budgetAmount.toFloat()
+                            WavyMeter(
+                                fraction = fraction,
+                                color = usedColor(fraction * 100f),
+                                trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
+                            )
+                        }
                         val longFormatter = AppDates.dateFormatter()
                         Text(
                             text = stringResource(
@@ -165,15 +169,13 @@ fun BudgetHistoryScreen(
 
             // Per-window list
             item {
-                Text(
-                    text = when (budget.periodType) {
+                SectionHeaderV2(
+                    title = when (budget.periodType) {
                         BudgetPeriodType.WEEKLY -> stringResource(R.string.budget_history_per_week)
                         BudgetPeriodType.MONTHLY -> stringResource(R.string.budget_history_cycle)
                         BudgetPeriodType.CUSTOM -> stringResource(R.string.budget_history_range)
                     },
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.SemiBold),
-                    color = MaterialTheme.colorScheme.onSurface,
-                    modifier = Modifier.padding(start = Spacing.xs, top = Spacing.sm)
+                    modifier = Modifier.padding(top = Spacing.sm, bottom = Spacing.Layout.headerToContent)
                 )
             }
             itemsIndexed(state.windowHistory) { index, window ->
@@ -228,9 +230,7 @@ private fun HistoryRow(
                         window.window.start.format(shortFormatter),
                         window.window.end.format(shortFormatter)
                     ),
-                    style = MaterialTheme.typography.bodyLarge.copy(
-                        fontWeight = FontWeight.Medium
-                    ),
+                    style = PennyWiseText.rowTitle,
                     modifier = Modifier.weight(1f)
                 )
                 if (isDisplayed) {
@@ -376,7 +376,7 @@ private fun BreakdownSheet(
                     window.start.format(longFormatter),
                     window.end.format(longFormatter)
                 ),
-                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.SemiBold)
+                style = MaterialTheme.typography.titleMedium
             )
             // The limit, and how rollover made it up, so "X remaining" below has context.
             if (breakdown.hasLimit) {
@@ -412,11 +412,7 @@ private fun BreakdownSheet(
             // and skip the list.
             if (!breakdown.isTrackingAll && breakdown.categorySpending.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(Spacing.xs))
-                Text(
-                    text = stringResource(R.string.budget_history_categories),
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
+                SectionHeaderV2(title = stringResource(R.string.budget_history_categories), topSpacing = Spacing.none)
                 GroupedList {
                     breakdown.categorySpending.forEachIndexed { index, cat ->
                         GroupedRow(position = ListItemPosition.from(index, breakdown.categorySpending.size)) {
@@ -435,7 +431,7 @@ private fun BreakdownSheet(
                                 if (hasLimit && !AmountPrivacy.hidden) {
                                     WavyMeter(
                                         fraction = cat.percentageUsed / 100f,
-                                        color = MaterialTheme.colorScheme.primary,
+                                        color = usedColor(cat.percentageUsed),
                                         trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                                         dense = true
                                     )
@@ -453,17 +449,25 @@ private fun BreakdownSheet(
                     remaining > BigDecimal.ZERO -> stringResource(R.string.budgets_remaining, CurrencyFormatter.formatCurrency(remaining, currency))
                     else -> stringResource(R.string.budget_history_zero_remaining)
                 },
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                style = MaterialTheme.typography.titleSmall,
                 color = if (isOver) MaterialTheme.colorScheme.error
                 else MaterialTheme.colorScheme.onSurface
             )
             if (breakdown.hasLimit && !AmountPrivacy.hidden) {
                 WavyMeter(
                     fraction = pctUsed / 100f,
-                    color = if (isOver) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.primary,
+                    color = usedColor(pctUsed),
                     trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
                 )
             }
         }
     }
+}
+
+/** A spending meter's colour by how much is used: the thresholds the budget cards turn at. */
+@Composable
+private fun usedColor(percentUsed: Float): Color = when {
+    percentUsed >= 90f -> MaterialTheme.colorScheme.error
+    percentUsed >= 70f -> MaterialTheme.colorScheme.warning
+    else -> MaterialTheme.colorScheme.success
 }

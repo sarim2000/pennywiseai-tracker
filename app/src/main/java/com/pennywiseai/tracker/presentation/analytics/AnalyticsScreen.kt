@@ -625,16 +625,19 @@ private fun TrendSection(
                             height = 220,
                             label = label
                         )
-                        ChartType.HEATMAP -> Column {
-                            SpendingHeatmap(data = dailyData)
-                            TextButton(onClick = onOpenCalendar, shapes = ButtonDefaults.shapes()) {
-                                Text(stringResource(R.string.calendar_open))
-                            }
-                        }
+                        ChartType.HEATMAP -> SpendingHeatmap(data = dailyData)
                     }
                 }
-                TextButton(onClick = { showValues = true }, shapes = ButtonDefaults.shapes()) {
-                    Text(stringResource(R.string.insights_chart_values))
+                // Both actions share one row instead of stacking two text buttons.
+                FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    TextButton(onClick = { showValues = true }, shapes = ButtonDefaults.shapes()) {
+                        Text(stringResource(R.string.insights_chart_values))
+                    }
+                    if (chartType == ChartType.HEATMAP) {
+                        TextButton(onClick = onOpenCalendar, shapes = ButtonDefaults.shapes()) {
+                            Text(stringResource(R.string.calendar_open))
+                        }
+                    }
                 }
             }
         }

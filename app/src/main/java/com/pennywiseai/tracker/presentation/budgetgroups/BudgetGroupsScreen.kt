@@ -30,9 +30,9 @@ import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.stateDescription
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
@@ -208,14 +208,16 @@ fun BudgetGroupsScreen(
                 goalsSection?.let {
                     Box(Modifier.padding(horizontal = Dimensions.Padding.content).padding(bottom = BlockGap)) { it() }
                 }
-                MonthSelector(
-                    year = uiState.selectedYear,
-                    month = uiState.selectedMonth,
-                    isCurrentMonth = uiState.selectedYear == java.time.LocalDate.now().year &&
-                        uiState.selectedMonth == java.time.LocalDate.now().monthValue,
-                    onPrevious = { viewModel.selectPreviousMonth() },
-                    onNext = { viewModel.selectNextMonth() }
-                )
+                // Nothing to page through on the current month; on another it's the way back.
+                if (selectedMonth != YearMonth.now()) {
+                    MonthSelector(
+                        year = uiState.selectedYear,
+                        month = uiState.selectedMonth,
+                        isCurrentMonth = false,
+                        onPrevious = { viewModel.selectPreviousMonth() },
+                        onNext = { viewModel.selectNextMonth() }
+                    )
+                }
                 EmptyBudgetState(
                     modifier = Modifier.fillMaxSize(),
                     onSmartDefaults = { viewModel.runSmartDefaults() },
@@ -278,8 +280,7 @@ private fun EmptyBudgetState(
 
                 Text(
                     text = stringResource(R.string.budgets_setup_title),
-                    style = MaterialTheme.typography.titleLarge,
-                    fontWeight = FontWeight.Bold
+                    style = MaterialTheme.typography.titleLarge
                 )
 
                 Text(
@@ -492,6 +493,7 @@ private fun BudgetGroupsContent(
     }
 }
 
+/** The month the budgets show: flat arrows around the month, as on the spending calendar. */
 @Composable
 private fun MonthSelector(
     year: Int,
@@ -500,53 +502,23 @@ private fun MonthSelector(
     onPrevious: () -> Unit,
     onNext: () -> Unit
 ) {
-    val yearMonth = YearMonth.of(year, month)
-    val formatter = AppDates.pattern("MMMM yyyy")
-
-    Row(
-        modifier = Modifier.fillMaxWidth(),
-        horizontalArrangement = Arrangement.Center,
-        verticalAlignment = Alignment.CenterVertically
-    ) {
-        FilledTonalIconButton(
-            onClick = onPrevious,
-            shapes = IconButtonDefaults.shapes()
-        ) {
+    Row(modifier = Modifier.fillMaxWidth(), verticalAlignment = Alignment.CenterVertically) {
+        IconButton(onClick = onPrevious, shapes = IconButtonDefaults.shapes()) {
             Icon(
                 Icons.AutoMirrored.Filled.KeyboardArrowLeft,
-                contentDescription = stringResource(R.string.budgets_previous_month),
-                modifier = Modifier.size(Dimensions.Icon.medium)
+                contentDescription = stringResource(R.string.budgets_previous_month)
             )
         }
-
-        Spacer(modifier = Modifier.width(Spacing.md))
-
-        Surface(
-            modifier = Modifier.weight(1f, fill = false),
-            shape = CircleShape,
-            color = MaterialTheme.colorScheme.secondaryContainer
-        ) {
-            Text(
-                text = yearMonth.format(formatter),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.Medium,
-                textAlign = TextAlign.Center,
-                color = MaterialTheme.colorScheme.onSecondaryContainer,
-                modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm)
-            )
-        }
-
-        Spacer(modifier = Modifier.width(Spacing.md))
-
-        FilledTonalIconButton(
-            onClick = onNext,
-            enabled = !isCurrentMonth,
-            shapes = IconButtonDefaults.shapes()
-        ) {
+        Text(
+            text = YearMonth.of(year, month).format(AppDates.pattern("MMMM yyyy")),
+            style = MaterialTheme.typography.titleMedium,
+            textAlign = TextAlign.Center,
+            modifier = Modifier.weight(1f).semantics { heading() }
+        )
+        IconButton(onClick = onNext, enabled = !isCurrentMonth, shapes = IconButtonDefaults.shapes()) {
             Icon(
                 Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                contentDescription = stringResource(R.string.budgets_next_month),
-                modifier = Modifier.size(Dimensions.Icon.medium)
+                contentDescription = stringResource(R.string.budgets_next_month)
             )
         }
     }

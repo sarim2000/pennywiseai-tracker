@@ -69,4 +69,14 @@ class BudgetStatusesTest {
         assertEquals(listOf(true, false), statuses.map { it.hasLimit })
         assertEquals(0, statuses.first().limit.signum())
     }
+
+    @Test
+    fun `a carry a cent under 0 from rounding is clamped to 0, so it still runs as over`() {
+        // Unified mode: category limits round each conversion, the carry cap rounds the sum.
+        val aCentUnder = group(1).copy(totalBudget = BigDecimal("-0.01"), carry = BigDecimal("-16.01"))
+        val status = budgetStatuses(summary(aCentUnder), today).single()
+        assertEquals(true, status.hasLimit)
+        assertEquals(0, status.limit.signum())
+        assertEquals(true, status.isRunning)
+    }
 }

@@ -49,7 +49,7 @@ data class BudgetStatus(
      */
     val hasLimit: Boolean = limit.signum() > 0,
 ) {
-    val isRunning: Boolean get() = hasLimit && limit.signum() >= 0 && daysElapsed in 1..windowDays
+    val isRunning: Boolean get() = hasLimit && daysElapsed in 1..windowDays
 
     /** A weekly budget's week 2 is news again after week 1 was dismissed. */
     internal val windowKey: String get() = "$id@$windowStart"

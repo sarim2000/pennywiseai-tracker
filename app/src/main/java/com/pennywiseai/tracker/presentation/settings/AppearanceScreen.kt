@@ -42,7 +42,6 @@ import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -80,7 +79,6 @@ import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PreferenceSwitch
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
-import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.IconTile
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
@@ -568,43 +566,18 @@ private fun NavBarStyleSelector(
     currentStyle: NavBarStyle,
     onStyleSelected: (NavBarStyle) -> Unit
 ) {
-    val options = listOf(
-        Triple(NavBarStyle.FLOATING, R.string.appearance_nav_floating, R.string.appearance_nav_floating_subtitle),
-        Triple(NavBarStyle.NORMAL, R.string.appearance_nav_normal, R.string.appearance_nav_normal_subtitle),
+    ConnectedChoiceRow(
+        options = listOf(NavBarStyle.FLOATING, NavBarStyle.NORMAL),
+        selected = currentStyle,
+        onSelect = onStyleSelected,
+        label = { stringResource(if (it == NavBarStyle.FLOATING) R.string.appearance_nav_floating else R.string.appearance_nav_normal) },
+        supportingText = {
+            stringResource(
+                if (it == NavBarStyle.FLOATING) R.string.appearance_nav_floating_subtitle else R.string.appearance_nav_normal_subtitle
+            )
+        },
+        modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
     )
-    GroupedList(modifier = Modifier.padding(horizontal = Dimensions.Padding.content).selectableGroup()) {
-        options.forEachIndexed { index, (style, title, subtitle) ->
-            val selected = currentStyle == style
-            GroupedRow(
-                position = ListItemPosition.from(index, options.size),
-                onClick = { onStyleSelected(style) },
-                // The RadioButton has no callback, so the row carries the state TalkBack reads.
-                modifier = Modifier.semantics {
-                    role = Role.RadioButton
-                    this.selected = selected
-                },
-                containerColor = if (selected) {
-                    MaterialTheme.colorScheme.secondaryContainer
-                } else {
-                    MaterialTheme.colorScheme.surfaceContainerLow
-                },
-            ) {
-                RadioButton(selected = selected, onClick = null)
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(stringResource(title), style = MaterialTheme.typography.bodyLarge)
-                    Text(
-                        text = stringResource(subtitle),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = if (selected) {
-                            MaterialTheme.colorScheme.onSecondaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        }
-                    )
-                }
-            }
-        }
-    }
 }
 
 // --- Font Selector ---
@@ -642,42 +615,14 @@ private fun FontSelector(
             stringResource(R.string.appearance_font_sn_pro_subtitle)
         )
     )
-    GroupedList(modifier = Modifier.padding(horizontal = Dimensions.Padding.content).selectableGroup()) {
-        options.forEachIndexed { index, option ->
-            val selected = currentFont == option.font
-            GroupedRow(
-                position = ListItemPosition.from(index, options.size),
-                onClick = { onFontSelected(option.font) },
-                // The RadioButton has no callback, so the row carries the state TalkBack reads.
-                modifier = Modifier.semantics {
-                    role = Role.RadioButton
-                    this.selected = selected
-                },
-                containerColor = if (selected) {
-                    MaterialTheme.colorScheme.secondaryContainer
-                } else {
-                    MaterialTheme.colorScheme.surfaceContainerLow
-                },
-            ) {
-                RadioButton(selected = selected, onClick = null)
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = option.name,
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontFamily = option.family
-                    )
-                    Text(
-                        text = option.subtitle,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontFamily = option.family,
-                        color = if (selected) {
-                            MaterialTheme.colorScheme.onSecondaryContainer
-                        } else {
-                            MaterialTheme.colorScheme.onSurfaceVariant
-                        }
-                    )
-                }
-            }
-        }
-    }
+    // Each tile draws its name and subtitle in its own font.
+    ConnectedChoiceRow(
+        options = options,
+        selected = options.first { it.font == currentFont },
+        onSelect = { onFontSelected(it.font) },
+        label = { it.name },
+        supportingText = { it.subtitle },
+        fontFamily = { it.family },
+        modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+    )
 }

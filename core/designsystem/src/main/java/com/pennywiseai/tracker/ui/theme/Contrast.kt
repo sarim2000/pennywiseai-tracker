@@ -87,14 +87,15 @@ fun ColorScheme.inkOnWash(color: Color, alpha: Float, minimum: Float = TEXT_CONT
 
 /**
  * This scheme for content drawn straight on a coloured [fill] whose ink is [ink] (Home's
- * hero on primaryContainer). Text roles and primary take the ink at full strength: a
- * hand-built palette can paint primary in the fill's own colour, which hid the hero's
- * links. outline becomes a 3:1 mark; surfaceContainerHighest becomes [surfaceWashOn],
- * opaque so a meter can be checked against it. Semantic colours (expense, income…) aren't
- * roles and still only read on neutral surfaces: pass them through `readableOn(listOf(fill))`.
+ * hero on primaryContainer). Text roles take the ink at full strength, and primary is
+ * nudged until it reads on the fill: a hand-built palette can paint primary in the fill's
+ * own colour, which hid the hero's links. outline becomes a 3:1 mark, outlineVariant a
+ * faint ink line, and surfaceContainerHighest [surfaceWashOn]. Semantic colours (expense,
+ * income…) aren't roles and still only read on neutral surfaces: pass them through
+ * `readableOn(listOf(fill))`.
  */
 fun ColorScheme.onColoredFill(fill: Color, ink: Color): ColorScheme = copy(
-    primary = ink,
+    primary = primary.readableOn(listOf(fill)),
     onSurface = ink,
     onSurfaceVariant = ink,
     surfaceContainerHighest = surfaceWashOn(fill),

@@ -5,7 +5,6 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathEffect
@@ -76,25 +75,8 @@ fun BalanceSparkline(
                 }
             }
 
-            // Gradient fill under the main line
-            val fillPath = Path().apply {
-                addPath(linePath)
-                lineTo(width, chartHeight)
-                lineTo(0f, chartHeight)
-                close()
-            }
-
-            drawPath(
-                path = fillPath,
-                brush = Brush.verticalGradient(
-                    colors = listOf(
-                        lineColor.copy(alpha = 0.25f),
-                        lineColor.copy(alpha = 0.05f),
-                        Color.Transparent
-                    )
-                )
-            )
-            // Comparison line over the fill (the fill used to wash it out), under the main line
+            // Comparison line under the main one. No area tint under the line: the lines sit on a
+            // coloured card, and a tint of the line's own colour left it under 3:1 next to it.
             if (hasComparison) {
                 val compData = comparisonData!!
                 val compStepX = if (compData.size > 1) width / (compData.size - 1) else width

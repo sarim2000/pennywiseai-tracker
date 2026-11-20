@@ -431,7 +431,9 @@ private fun BudgetMeter(budget: HomeHeroBudget, containerColor: Color) {
     WavyMeter(
         fraction = progress,
         color = color,
-        trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+        // An ink track near the card's own tone: against the surface wash no colour reached
+        // 3:1 on both it and the card in palettes like Monochrome.
+        trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = Dimensions.Alpha.meterTrack),
         containerColor = containerColor,
         modifier = Modifier.clearAndSetSemantics { }
     )
@@ -532,6 +534,7 @@ private fun MonthDetails(
         if (spendingHistory.isNotEmpty()) {
             Spacer(modifier = Modifier.height(Spacing.md))
             val expenseColor = MaterialTheme.colorScheme.expense.markOn(fill)
+            val comparisonColor = MaterialTheme.colorScheme.outline
             BalanceSparkline(
                 data = spendingHistory,
                 lineColor = expenseColor,
@@ -541,7 +544,7 @@ private fun MonthDetails(
                 currency = currency,
                 isBalanceHidden = isBalanceHidden,
                 comparisonData = lastMonthSpendingHistory.ifEmpty { null },
-                comparisonLineColor = MaterialTheme.colorScheme.outline
+                comparisonLineColor = comparisonColor
             )
             if (lastMonthSpendingHistory.isNotEmpty()) {
                 Spacer(modifier = Modifier.height(Spacing.xs))
@@ -566,7 +569,7 @@ private fun MonthDetails(
                         modifier = Modifier
                             .width(Spacing.smd)
                             .height(Spacing.xxs)
-                            .background(MaterialTheme.colorScheme.outline, CircleShape)
+                            .background(comparisonColor, CircleShape)
                     )
                     Spacer(modifier = Modifier.width(Spacing.xs))
                     Text(

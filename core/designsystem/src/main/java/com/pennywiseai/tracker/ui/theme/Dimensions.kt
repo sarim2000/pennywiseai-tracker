@@ -69,6 +69,12 @@ object Dimensions {
 
         /** A category colour washed behind its own glyph (transaction rows, detail badge). */
         const val categoryTint = 0.14f
+
+        /**
+         * A meter's track on a coloured card, in the card's ink: visible on the card, yet near
+         * enough to its tone that the meter's colour reaches 3:1 on both (ColoredFillContrastTest).
+         */
+        const val meterTrack = 0.3f
     }
 
     // ── Icon sizes ────────────────────────────────────────────────────────

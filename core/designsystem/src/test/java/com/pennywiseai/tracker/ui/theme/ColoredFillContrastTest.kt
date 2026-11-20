@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.ui.theme
 
 import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import com.pennywiseai.tracker.data.preferences.AccentColor
 import com.pennywiseai.tracker.data.preferences.ThemeStyle
 import org.junit.Assert.assertTrue
@@ -45,6 +46,13 @@ class ColoredFillContrastTest {
                 listOf("expense" to outer.expense, "income" to outer.income).forEach { (label, semantic) ->
                     check("$label text on card", semantic.readableOn(listOf(fill)), fill, TEXT_CONTRAST)
                     check("$label mark on card", semantic.readableOn(listOf(fill), GRAPHIC_CONTRAST), fill, GRAPHIC_CONTRAST)
+                }
+                // The budget meter (WavyMeter nudges its colour on its track and the card) in each state.
+                val track = card.onSurface.copy(alpha = Dimensions.Alpha.meterTrack).compositeOver(fill)
+                listOf("primary" to card.primary, "warning" to card.warning, "error" to card.error).forEach { (label, c) ->
+                    val meter = c.readableOn(listOf(track, fill), GRAPHIC_CONTRAST)
+                    check("$label meter on track", meter, track, GRAPHIC_CONTRAST)
+                    check("$label meter on card", meter, fill, GRAPHIC_CONTRAST)
                 }
                 check("wash onSurface", onWash.onSurface, wash, TEXT_CONTRAST)
                 check("wash onSurfaceVariant", onWash.onSurfaceVariant, wash, TEXT_CONTRAST)

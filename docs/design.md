@@ -532,10 +532,13 @@ because the same role also renders small labels.
 - **On a coloured fill**, use the fill's own `on*` role, plus a sign, label or
   icon. Semantic colours on `primaryContainer` & co. are not guaranteed.
   A whole card of content (Home's hero) wraps itself in
-  `onColoredFill(fill, ink)`: text roles and `primary` become the ink (a
-  Mihon palette can make `primary` the fill itself), `outline` a 3:1 mark. A
-  semantic colour that must keep its hue there goes through
-  `readableOn(listOf(fill))`, or with `GRAPHIC_CONTRAST` for a chart line or bar.
+  `onColoredFill(fill, ink)`: text roles become the ink, `primary` is nudged
+  until it reads there (a Mihon palette can make `primary` the fill itself),
+  `outline` becomes a 3:1 mark. A semantic colour that must keep its hue there
+  goes through `readableOn(listOf(fill))`, or with `GRAPHIC_CONTRAST` for a
+  chart line or bar. A meter's track there is the ink at `Alpha.meterTrack`:
+  the surface wash and the card can straddle mid-grey, and then no colour
+  reaches 3:1 on both.
 - **A surface wash on a coloured card** (a chip or row at 65% surface) takes
   the surface's tone, so it takes the surface's ink, not the card's:
   `onSurfaceWash(fill)`. White ink on a teal card is white on pale teal there.

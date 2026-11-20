@@ -82,6 +82,16 @@ comment inside the import list) needs a manual edit first. Opt-in pre-push hook
 with the same check: `git config --local core.hooksPath .githooks` (this
 replaces `.git/hooks`, so move any existing hooks there first).
 
+## Android Debug demo data
+For UI, chart, and on-device Chat checks, install the Debug APK on a fresh
+disposable emulator and open PennyWise. The first launch fills an empty app
+database automatically. To seed explicitly before opening the app, run
+`ANDROID_SERIAL=<emulator-serial> ./scripts/seed-debug.sh` from the repo root.
+The command is safe to repeat and refuses existing user data. Use a fresh
+disposable install to regenerate the dates or pick up changes to the fixture. See the
+[demo data guide](docs/debug-demo-data.md) for Chat prompts and expected totals.
+Use the SMS probe in **emulator-verify** when testing parsing or SMS alerts.
+
 ## Architecture at a glance
 - **Stack:** Kotlin · Jetpack Compose + Material 3 · MVVM + Clean Architecture ·
   StateFlow (unidirectional data flow) · Hilt DI · Room · WorkManager (background

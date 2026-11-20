@@ -1,14 +1,29 @@
 # Android Debug demo data
 
-Install the Debug APK you want to test on a fresh, disposable Android emulator. Run the seed from the repo root.
+Install the Debug APK you want to test on a fresh, disposable Android emulator.
+Open PennyWise. The first launch seeds an empty database, finishes onboarding,
+skips SMS access and shows JOD as the base currency. A database with existing
+content, including customized built-in categories or profiles, is left alone.
+An existing installation that already finished onboarding is skipped as well.
+The app remembers the first launch after the check, even if you clear transactions later.
+
+To seed explicitly before opening the app, run this from the repo root.
 
 ```sh
 ANDROID_SERIAL=<emulator-serial> ./scripts/seed-debug.sh
 ```
 
-`ANDROID_SERIAL` can be omitted when ADB has one device. Open PennyWise after the command completes. On a fresh install the seed finishes onboarding, skips SMS access and shows JOD as the base currency. Repeating the command leaves the original seed dates and rows in place. Use a fresh disposable installation for a clean slate or a new date anchor. The command refuses a database with existing user content.
+`ANDROID_SERIAL` can be omitted when ADB has one device. Repeating the command
+keeps the original dates and rows. Use a fresh disposable install to pick up a
+newer fixture or anchor it to a new date.
 
-The seed writes a synthetic ledger into the app's Room database. It covers six calendar months across JOD, USD and EUR and both profiles.
+The fixture writes roughly 4,200–4,700 transactions across 12 calendar months
+and both profiles. The exact count depends on the launch date. It includes
+Arab Bank and Bank al Etihad (JOD), Chase (USD), and Deutsche Bank (EUR).
+All amounts, account suffixes, merchants, and messages are synthetic.
+The [chart fixture](../app/src/debug/java/com/pennywiseai/tracker/debug/DemoChartTransactions.kt)
+generates daily activity relative to launch, and both entry points insert the
+same fixture in one Room transaction.
 
 | Screen or workflow | Examples |
 | --- | --- |

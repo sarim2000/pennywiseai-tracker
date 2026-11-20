@@ -7,6 +7,8 @@ import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -218,8 +220,8 @@ private fun CreateGroupDialog(
     onDismiss: () -> Unit,
     onCreate: (String, String?) -> Unit
 ) {
-    var name by remember { mutableStateOf("") }
-    var note by remember { mutableStateOf("") }
+    val nameState = rememberTextFieldState()
+    val noteState = rememberTextFieldState()
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -227,10 +229,9 @@ private fun CreateGroupDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 TextField(
-                    value = name,
-                    onValueChange = { name = it },
+                    state = nameState,
                     label = { Text(stringResource(R.string.group_name)) },
-                    singleLine = true,
+                    lineLimits = TextFieldLineLimits.SingleLine,
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                     shape = MaterialTheme.shapes.large,
                     colors = TextFieldDefaults.colors(
@@ -240,10 +241,9 @@ private fun CreateGroupDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
                 TextField(
-                    value = note,
-                    onValueChange = { note = it },
+                    state = noteState,
                     label = { Text(stringResource(R.string.group_note)) },
-                    singleLine = true,
+                    lineLimits = TextFieldLineLimits.SingleLine,
                     shape = MaterialTheme.shapes.large,
                     colors = TextFieldDefaults.colors(
                         focusedIndicatorColor = Color.Transparent,
@@ -255,8 +255,8 @@ private fun CreateGroupDialog(
         },
         confirmButton = {
             TextButton(
-                onClick = { onCreate(name, note.ifBlank { null }) },
-                enabled = name.isNotBlank(),
+                onClick = { onCreate(nameState.text.toString(), noteState.text.toString().ifBlank { null }) },
+                enabled = nameState.text.isNotBlank(),
                 shapes = ButtonDefaults.shapes()
             ) {
                 Text(stringResource(R.string.groups_create_confirm))

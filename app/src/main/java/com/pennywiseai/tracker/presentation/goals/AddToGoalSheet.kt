@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -54,6 +56,7 @@ import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.components.orSupporting
 import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.components.toColorOr
+import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -82,7 +85,7 @@ fun AddToGoalSheet(
     var goalId by rememberSaveable { mutableStateOf<Long?>(null) }
     val selected = goals.firstOrNull { it.goal.id == goalId } ?: goals.firstOrNull()
     var amount by rememberSaveable { mutableStateOf("") }
-    var note by rememberSaveable { mutableStateOf("") }
+    val noteState = rememberTextFieldState()
     var manual by rememberSaveable { mutableStateOf("") }
     // Prefill once the unallocated amount has loaded.
     LaunchedEffect(left != null) { if (left != null && left.signum() > 0 && amount.isEmpty()) amount = left.stripTrailingZeros().toPlainString() }
@@ -141,11 +144,11 @@ fun AddToGoalSheet(
                 val amountSum = amountEntry.sumHint
                 OutlinedTextField(
                     shape = RoundedField.shape,
-                    value = amountEntry.value,
-                    onValueChange = amountEntry::onValueChange,
+                    state = amountEntry.state,
+                    inputTransformation = amountEntry.inputTransformation,
                     label = { Text(stringResource(R.string.goal_money_amount)) },
                     prefix = { Text(CurrencyFormatter.getCurrencySymbol(currency)) },
-                    singleLine = true,
+                    lineLimits = TextFieldLineLimits.SingleLine,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     isError = amountSum?.isError ?: (amountError != null),
                     supportingText = amountSum.orSupporting(amountError?.let { { Text(it) } }),
@@ -161,11 +164,11 @@ fun AddToGoalSheet(
                     val manualSum = manualEntry.sumHint
                     OutlinedTextField(
                         shape = RoundedField.shape,
-                        value = manualEntry.value,
-                        onValueChange = manualEntry::onValueChange,
+                        state = manualEntry.state,
+                        inputTransformation = manualEntry.inputTransformation,
                         label = { Text(stringResource(R.string.goal_money_converted, goalCurrency)) },
                         prefix = { Text(CurrencyFormatter.getCurrencySymbol(goalCurrency)) },
-                        singleLine = true,
+                        lineLimits = TextFieldLineLimits.SingleLine,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         isError = manualSum?.isError == true,
                         supportingText = manualSum.orSupporting(),
@@ -174,8 +177,7 @@ fun AddToGoalSheet(
                 }
                 OutlinedTextField(
                     shape = RoundedField.shape,
-                    value = transaction.dateTime.toLocalDate().format(goalDateFormat),
-                    onValueChange = {},
+                    state = rememberSyncedTextFieldState(transaction.dateTime.toLocalDate().format(goalDateFormat)) {},
                     readOnly = true,
                     enabled = false,
                     label = { Text(stringResource(R.string.goal_money_date)) },
@@ -184,10 +186,9 @@ fun AddToGoalSheet(
                 )
                 OutlinedTextField(
                     shape = RoundedField.shape,
-                    value = note,
-                    onValueChange = { note = it },
+                    state = noteState,
                     label = { Text(stringResource(R.string.goal_money_note)) },
-                    singleLine = true,
+                    lineLimits = TextFieldLineLimits.SingleLine,
                     modifier = Modifier.fillMaxWidth(),
                 )
                 if (state.error == MoneyError.FAILED) {
@@ -199,7 +200,7 @@ fun AddToGoalSheet(
                     Button(
                         onClick = {
                             selected?.let {
-                                onSave(it.goal, amount.toAmountIn(currency), note, manual.toAmountIn(it.goal.currency)?.takeIf { m -> m.signum() > 0 })
+                                onSave(it.goal, amount.toAmountIn(currency), noteState.text.toString(), manual.toAmountIn(it.goal.currency)?.takeIf { m -> m.signum() > 0 })
                             }
                         },
                         enabled = !state.saving && left != null && left.signum() > 0 && selected != null &&

@@ -7,9 +7,14 @@ import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.ime
 import androidx.compose.foundation.layout.imePadding
 import androidx.compose.foundation.layout.isImeVisible
+import androidx.compose.foundation.text.input.InputTransformation
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.CompositionLocalProvider
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.Stable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -17,6 +22,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.Saver
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusEventModifierNode
@@ -29,10 +35,10 @@ import androidx.compose.ui.node.currentValueOf
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.platform.LocalView
-import androidx.compose.ui.text.input.TextFieldValue
 import androidx.compose.ui.unit.offset
 import com.pennywiseai.shared.domain.money.MinorUnits
 import com.pennywiseai.tracker.domain.model.AmountInput
+import kotlinx.coroutines.launch
 import java.text.DecimalFormatSymbols
 
 /**
@@ -143,45 +149,38 @@ private fun StackedHost(modifier: Modifier, content: @Composable () -> Unit) {
 /**
  * An amount field that also takes a sum ("120+35"), typed with the operator row of
  * the nearest [AmountBarScreenHost], [AmountBarHost] or [AmountBarDialogHost] in its
- * window. Hand the field [value], [onValueChange] and [modifier], and show [sumHint]
- * under it.
+ * window. Hand the field [state], [inputTransformation] and [modifier], and show
+ * [sumHint] under it.
  *
  * The caller's amount is only ever a plain number: what the sum comes to so far, or
  * empty when it can't be an amount. So its own checks and parsing stay as they were.
- * Leaving the field (or `=`, or the check) folds the sum into its result.
+ * Leaving the field (or `=`, or the check) folds the sum into its result. An amount
+ * the caller sets from outside replaces what the field shows.
  */
 @Stable
-class AmountEntry internal constructor(sum: String?, sumAmount: String, beforeSum: String) {
-    private var sum by mutableStateOf(sum)
+class AmountEntry internal constructor(text: String) {
+    /** What the field shows: the amount, or the sum being typed. */
+    val state = TextFieldState(text)
 
-    // What [sum] came to as last handed on, and the amount that was there before. The sum
-    // shows while the amount is still one of them: some callers keep their last amount
-    // rather than take an empty one. Any other amount was set from outside, and wins.
-    private var sumAmount by mutableStateOf(sumAmount)
-    private var beforeSum by mutableStateOf(beforeSum)
-    private var cursor by mutableStateOf(AmountCursorAtEnd)
+    // The amounts handed on that the caller hasn't handed back yet: its amount can trail the
+    // typing by a frame, and that's not an amount set from outside.
+    private val pending = ArrayDeque<String>()
+    private var handled = text
     private var focused = false
     internal var host: AmountBarHostState? = null
-    internal var amount = ""
+    internal var amount by mutableStateOf(text)
     internal var onAmountChange: (String) -> Unit = {}
     internal var currency = ""
     internal var decimalComma = false
 
     private val digits get() = MinorUnits.digits(currency)
-    private val shownSum get() = sum?.takeIf { sameAmount(amount, sumAmount) || sameAmount(amount, beforeSum) }
 
-    val value: TextFieldValue get() = amountFieldValue(shownSum ?: amount, cursor)
-
-    fun onValueChange(typed: TextFieldValue) {
-        AmountInput.normalize(typed.text, decimalComma)?.let {
-            set(it)
-            cursor = if (it == typed.text) typed.selection else AmountCursorAtEnd
-        }
-    }
+    /** Turns away a keystroke that isn't an amount or a sum, or is finer than the currency counts. */
+    val inputTransformation: InputTransformation = amountInputTransformation({ digits }, { decimalComma })
 
     /** "= ₹155.00" or why the sum isn't an amount yet; null for a plain amount. */
     val sumHint: AmountSumHint?
-        @Composable get() = shownSum?.let { amountSumHint(it, currency) }
+        @Composable get() = amountSumHint(state.text.toString(), currency)
 
     /** For the field: tracks its focus, and finds the host where the field is, not where this was made. */
     val modifier: Modifier = Modifier.then(AmountFieldElement(this))
@@ -197,34 +196,50 @@ class AmountEntry internal constructor(sum: String?, sumAmount: String, beforeSu
         }
     }
 
-    private fun set(text: String) {
-        if (AmountInput.hasOperator(text)) {
-            // "120+" counts as 120 meanwhile, as leaving the field would make it: an optional
-            // amount saved mid-sum keeps what's typed rather than reading as cleared.
-            val finished = text.trimEnd { it in AmountInput.OPERATORS }
-            val result = AmountInput.value(finished, digits)?.takeIf { it.signum() > 0 }?.toPlainString().orEmpty()
-            if (shownSum == null) beforeSum = amount
-            sum = text
-            sumAmount = result
-            onAmountChange(result)
-        } else {
-            sum = null
-            onAmountChange(text)
-        }
+    /** The field's text changed (typed, an operator, a fold): hand on what it comes to. */
+    internal fun textChanged(text: String) {
+        if (text == handled) return
+        handled = text
+        val result = comesTo(text)
+        pending.addLast(result)
+        onAmountChange(result)
     }
 
-    internal fun operator(op: Char) {
-        set(AmountInput.append(shownSum ?: amount, op))
-        cursor = AmountCursorAtEnd
+    // "120+" counts as 120 meanwhile, as leaving the field would make it: an optional
+    // amount saved mid-sum keeps what's typed rather than reading as cleared.
+    private fun comesTo(text: String): String = if (AmountInput.hasOperator(text)) {
+        val finished = text.trimEnd { it in AmountInput.OPERATORS }
+        AmountInput.value(finished, digits)?.takeIf { it.signum() > 0 }?.toPlainString().orEmpty()
+    } else {
+        text
+    }
+
+    /**
+     * The caller's amount (also its first, and after a restore): unless it's one handed on from
+     * here or what the field already comes to, it replaces the field's text.
+     */
+    internal fun amountChanged(new: String) {
+        val i = pending.indexOfFirst { sameAmount(it, new) }
+        if (i >= 0) {
+            repeat(i + 1) { pending.removeFirst() }
+            return
+        }
+        pending.clear()
+        if (sameAmount(comesTo(state.text.toString()), new)) return
+        handled = new
+        state.setTextAndPlaceCursorAtEnd(new)
+    }
+
+    fun operator(op: Char) {
+        state.setTextAndPlaceCursorAtEnd(AmountInput.append(state.text.toString(), op))
+        textChanged(state.text.toString())
     }
 
     /** A finished sum becomes its result; for a field's own Done action. */
     fun fold() {
-        shownSum?.let { s ->
-            AmountInput.fold(s, digits)?.let {
-                set(it)
-                cursor = AmountCursorAtEnd
-            }
+        AmountInput.fold(state.text.toString(), digits)?.let {
+            state.setTextAndPlaceCursorAtEnd(it)
+            textChanged(it)
         }
     }
 
@@ -234,9 +249,9 @@ class AmountEntry internal constructor(sum: String?, sumAmount: String, beforeSu
     }
 
     companion object {
-        internal val Saver = Saver<AmountEntry, List<String?>>(
-            save = { listOf(it.sum, it.sumAmount, it.beforeSum) },
-            restore = { AmountEntry(it[0], it[1].orEmpty(), it[2].orEmpty()) }
+        internal val Saver = Saver<AmountEntry, String>(
+            save = { it.state.text.toString() },
+            restore = { AmountEntry(it) }
         )
 
         // "15" and "15.00" are the same amount: a caller may hand its amount back reformatted.
@@ -252,13 +267,17 @@ fun AmountSumHint?.orSupporting(otherwise: (@Composable () -> Unit)? = null): (@
 /** An [AmountEntry] for an amount field holding [amount] in [currency]. */
 @Composable
 fun rememberAmountEntry(amount: String, onAmountChange: (String) -> Unit, currency: String): AmountEntry {
-    val entry = rememberSaveable(saver = AmountEntry.Saver) { AmountEntry(null, "", "") }
+    val entry = rememberSaveable(saver = AmountEntry.Saver) { AmountEntry(amount) }
     val locale = LocalConfiguration.current.locales[0]
     val decimalComma = remember(locale) { DecimalFormatSymbols.getInstance(locale).decimalSeparator == ',' }
-    entry.amount = amount
     entry.onAmountChange = onAmountChange
     entry.currency = currency
     entry.decimalComma = decimalComma
+    SideEffect { entry.amount = amount }
+    LaunchedEffect(entry) {
+        launch { snapshotFlow { entry.state.text.toString() }.collect(entry::textChanged) }
+        snapshotFlow { entry.amount }.collect(entry::amountChanged)
+    }
     return entry
 }
 

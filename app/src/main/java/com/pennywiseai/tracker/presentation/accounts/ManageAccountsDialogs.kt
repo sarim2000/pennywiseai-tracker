@@ -4,6 +4,8 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -23,6 +25,7 @@ import com.pennywiseai.tracker.ui.components.AmountBarDialogHost
 import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.components.orSupporting
 import com.pennywiseai.tracker.ui.components.rememberAmountEntry
+import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
@@ -64,8 +67,8 @@ internal fun UpdateBalanceDialog(
                 )
                 val sum = entry.sumHint
                 TextField(
-                    value = entry.value,
-                    onValueChange = entry::onValueChange,
+                    state = entry.state,
+                    inputTransformation = entry.inputTransformation,
                     isError = sum?.isError == true,
                     supportingText = sum.orSupporting(),
                     label = { Text(stringResource(R.string.manage_accounts_new_balance)) },
@@ -80,7 +83,7 @@ internal fun UpdateBalanceDialog(
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Decimal
                     ),
-                    singleLine = true,
+                    lineLimits = TextFieldLineLimits.SingleLine,
                     modifier = Modifier.fillMaxWidth().then(entry.modifier),
                     shape = RoundedField.shape,
                     colors = RoundedField.colors()
@@ -157,8 +160,8 @@ internal fun UpdateCreditCardDialog(
                     )
                     val outstandingEntrySum = outstandingEntry.sumHint
                     TextField(
-                        value = outstandingEntry.value,
-                        onValueChange = outstandingEntry::onValueChange,
+                        state = outstandingEntry.state,
+                        inputTransformation = outstandingEntry.inputTransformation,
                         isError = outstandingEntrySum?.isError == true,
                         label = { Text(stringResource(R.string.manage_accounts_outstanding_balance)) },
                         placeholder = { Text("0.00") },
@@ -175,7 +178,7 @@ internal fun UpdateCreditCardDialog(
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Decimal
                         ),
-                        singleLine = true,
+                        lineLimits = TextFieldLineLimits.SingleLine,
                         modifier = Modifier.fillMaxWidth().then(outstandingEntry.modifier),
                         shape = RoundedField.shape,
                         colors = RoundedField.colors()
@@ -192,8 +195,8 @@ internal fun UpdateCreditCardDialog(
                     )
                     val limitEntrySum = limitEntry.sumHint
                     TextField(
-                        value = limitEntry.value,
-                        onValueChange = limitEntry::onValueChange,
+                        state = limitEntry.state,
+                        inputTransformation = limitEntry.inputTransformation,
                         isError = limitEntrySum?.isError == true,
                         label = { Text(stringResource(R.string.manage_accounts_credit_limit)) },
                         placeholder = { Text("50000.00") },
@@ -210,7 +213,7 @@ internal fun UpdateCreditCardDialog(
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Decimal
                         ),
-                        singleLine = true,
+                        lineLimits = TextFieldLineLimits.SingleLine,
                         modifier = Modifier.fillMaxWidth().then(limitEntry.modifier),
                         shape = RoundedField.shape,
                         colors = RoundedField.colors()
@@ -389,7 +392,8 @@ internal fun EditAccountDialog(
     onDismiss: () -> Unit,
     onConfirm: (bankName: String, balance: BigDecimal, creditLimit: BigDecimal?, currency: String, type: AccountType) -> Unit
 ) {
-    var bankNameText by remember { mutableStateOf(account.bankName) }
+    val bankNameState = rememberTextFieldState(account.bankName)
+    val bankNameText = bankNameState.text.toString()
     var balanceText by remember { mutableStateOf(account.balance.toString()) }
     var creditLimitText by remember { mutableStateOf(account.creditLimit?.toString() ?: "") }
     // Pre-fill with the *resolved* currency (what the account actually displays), not
@@ -439,8 +443,7 @@ internal fun EditAccountDialog(
                 ) {
                     // Bank Name (Editable)
                     TextField(
-                        value = bankNameText,
-                        onValueChange = { bankNameText = it },
+                        state = bankNameState,
                         label = { Text(stringResource(R.string.manage_accounts_bank_name_label)) },
                         leadingIcon = {
                             Icon(
@@ -448,7 +451,7 @@ internal fun EditAccountDialog(
                                 contentDescription = null
                             )
                         },
-                        singleLine = true,
+                        lineLimits = TextFieldLineLimits.SingleLine,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedField.shape,
                         colors = RoundedField.colors()
@@ -456,8 +459,7 @@ internal fun EditAccountDialog(
 
                     // Account Number (Read-only)
                     TextField(
-                        value = AccountBalanceEntity.accountLabel("", account.accountLast4).trim(),
-                        onValueChange = {},
+                        state = rememberSyncedTextFieldState(AccountBalanceEntity.accountLabel("", account.accountLast4).trim()) {},
                         label = { Text(stringResource(R.string.manage_accounts_account_number_label)) },
                         enabled = false,
                         colors = TextFieldDefaults.colors(
@@ -474,7 +476,7 @@ internal fun EditAccountDialog(
                         leadingIcon = {
                             Icon(Icons.Default.Lock, contentDescription = stringResource(R.string.manage_accounts_read_only))
                         },
-                        singleLine = true,
+                        lineLimits = TextFieldLineLimits.SingleLine,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedField.shape
                     )
@@ -604,8 +606,8 @@ internal fun EditAccountDialog(
                         )
                         val balanceEntrySum = balanceEntry.sumHint
                         TextField(
-                            value = balanceEntry.value,
-                            onValueChange = balanceEntry::onValueChange,
+                            state = balanceEntry.state,
+                            inputTransformation = balanceEntry.inputTransformation,
                             isError = balanceEntrySum?.isError == true,
                             label = { Text(stringResource(R.string.manage_accounts_outstanding_balance)) },
                             placeholder = { Text("0.00") },
@@ -622,7 +624,7 @@ internal fun EditAccountDialog(
                             keyboardOptions = KeyboardOptions(
                                 keyboardType = KeyboardType.Decimal
                             ),
-                            singleLine = true,
+                            lineLimits = TextFieldLineLimits.SingleLine,
                             modifier = Modifier.fillMaxWidth().then(balanceEntry.modifier),
                             shape = RoundedField.shape,
                             colors = RoundedField.colors()
@@ -640,8 +642,8 @@ internal fun EditAccountDialog(
                         )
                         val creditLimitEntrySum = creditLimitEntry.sumHint
                         TextField(
-                            value = creditLimitEntry.value,
-                            onValueChange = creditLimitEntry::onValueChange,
+                            state = creditLimitEntry.state,
+                            inputTransformation = creditLimitEntry.inputTransformation,
                             isError = creditLimitEntrySum?.isError == true,
                             label = { Text(stringResource(R.string.manage_accounts_credit_limit)) },
                             placeholder = { Text("50000.00") },
@@ -658,7 +660,7 @@ internal fun EditAccountDialog(
                             keyboardOptions = KeyboardOptions(
                                 keyboardType = KeyboardType.Decimal
                             ),
-                            singleLine = true,
+                            lineLimits = TextFieldLineLimits.SingleLine,
                             modifier = Modifier.fillMaxWidth().then(creditLimitEntry.modifier),
                             shape = RoundedField.shape,
                             colors = RoundedField.colors()
@@ -708,8 +710,8 @@ internal fun EditAccountDialog(
                         )
                         val balanceEntrySum = balanceEntry.sumHint
                         TextField(
-                            value = balanceEntry.value,
-                            onValueChange = balanceEntry::onValueChange,
+                            state = balanceEntry.state,
+                            inputTransformation = balanceEntry.inputTransformation,
                             isError = balanceEntrySum?.isError == true,
                             label = {
                                 Text(
@@ -733,7 +735,7 @@ internal fun EditAccountDialog(
                             keyboardOptions = KeyboardOptions(
                                 keyboardType = KeyboardType.Decimal
                             ),
-                            singleLine = true,
+                            lineLimits = TextFieldLineLimits.SingleLine,
                             modifier = Modifier.fillMaxWidth().then(balanceEntry.modifier),
                             shape = RoundedField.shape,
                             colors = RoundedField.colors()

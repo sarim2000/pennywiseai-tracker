@@ -3,6 +3,8 @@ package com.pennywiseai.tracker.presentation.accounts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.filled.LinkOff
@@ -521,13 +523,13 @@ private fun LowBalanceThresholdDialog(
                     val entry = rememberAmountEntry(text, { text = it }, currency)
                     val sum = entry.sumHint
                     OutlinedTextField(
-                        value = entry.value,
-                        onValueChange = entry::onValueChange,
+                        state = entry.state,
+                        inputTransformation = entry.inputTransformation,
                         label = { Text(stringResource(R.string.manage_accounts_threshold_label, currency)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         isError = sum?.isError == true,
                         supportingText = sum.orSupporting(),
-                        singleLine = true,
+                        lineLimits = TextFieldLineLimits.SingleLine,
                         modifier = Modifier.fillMaxWidth().then(entry.modifier),
                         shape = RoundedField.shape
                     )
@@ -571,7 +573,7 @@ private fun AccountAliasDialog(
     onDismiss: () -> Unit,
     onConfirm: (String?) -> Unit
 ) {
-    var aliasText by remember { mutableStateOf(currentAlias.orEmpty()) }
+    val aliasState = rememberTextFieldState(currentAlias.orEmpty())
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -584,11 +586,10 @@ private fun AccountAliasDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 OutlinedTextField(
-                    value = aliasText,
-                    onValueChange = { aliasText = it },
+                    state = aliasState,
                     label = { Text(stringResource(R.string.manage_accounts_alias_label)) },
                     placeholder = { Text(stringResource(R.string.manage_accounts_alias_placeholder)) },
-                    singleLine = true,
+                    lineLimits = TextFieldLineLimits.SingleLine,
                     modifier = Modifier.fillMaxWidth(),
                     shape = RoundedField.shape
                 )
@@ -600,7 +601,7 @@ private fun AccountAliasDialog(
             }
         },
         confirmButton = {
-            TextButton(onClick = { onConfirm(aliasText.trim().ifBlank { null }) }, shapes = ButtonDefaults.shapes()) {
+            TextButton(onClick = { onConfirm(aliasState.text.toString().trim().ifBlank { null }) }, shapes = ButtonDefaults.shapes()) {
                 Text(stringResource(R.string.accounts_action_save))
             }
         },

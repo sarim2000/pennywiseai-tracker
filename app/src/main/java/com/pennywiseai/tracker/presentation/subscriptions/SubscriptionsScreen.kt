@@ -11,6 +11,9 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.input.InputTransformation
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -984,6 +987,13 @@ private fun SubscriptionLabels(
     }
 }
 
+/** A payment count: digits only, at most three. */
+private val EDIT_PAYMENT_COUNT_INPUT = InputTransformation {
+    val typed = asCharSequence().toString()
+    val filtered = typed.filter { it.isDigit() }.take(3)
+    if (filtered != typed) replace(0, length, filtered)
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun EditSubscriptionDialog(
@@ -992,9 +1002,11 @@ private fun EditSubscriptionDialog(
     onDismiss: () -> Unit,
     onSave: (merchantName: String, amount: BigDecimal, nextDate: LocalDate?, category: String?, account: AccountBalanceEntity?, accountChanged: Boolean, totalPayments: Int?, paymentsMade: Int) -> Unit
 ) {
-    var merchantName by remember { mutableStateOf(subscription.merchantName) }
+    val merchantNameState = rememberTextFieldState(subscription.merchantName)
+    val merchantName = merchantNameState.text.toString()
     var amountText by remember { mutableStateOf(subscription.amount.toPlainString()) }
-    var category by remember { mutableStateOf(subscription.category.orEmpty()) }
+    val categoryState = rememberTextFieldState(subscription.category.orEmpty())
+    val category = categoryState.text.toString()
     var nextDate by remember { mutableStateOf(subscription.nextPaymentDate) }
     var showDatePicker by remember { mutableStateOf(false) }
     var showAccountMenu by remember { mutableStateOf(false) }
@@ -1025,10 +1037,12 @@ private fun EditSubscriptionDialog(
         }
     }
     // Blank = no end. "Already paid" starts at the count so far and must leave a payment to make.
-    var totalPaymentsText by remember { mutableStateOf(subscription.totalPayments?.toString().orEmpty()) }
-    var paymentsMadeText by remember {
-        mutableStateOf(subscription.paymentsMade.takeIf { subscription.totalPayments != null }?.toString().orEmpty())
-    }
+    val totalPaymentsState = rememberTextFieldState(subscription.totalPayments?.toString().orEmpty())
+    val totalPaymentsText = totalPaymentsState.text.toString()
+    val paymentsMadeState = rememberTextFieldState(
+        subscription.paymentsMade.takeIf { subscription.totalPayments != null }?.toString().orEmpty()
+    )
+    val paymentsMadeText = paymentsMadeState.text.toString()
     val totalPayments = totalPaymentsText.toIntOrNull()?.takeIf { it > 0 }
     val paymentsMade = paymentsMadeText.toIntOrNull() ?: 0
     val totalPaymentsError = totalPaymentsText.isNotEmpty() && totalPayments == null
@@ -1048,20 +1062,19 @@ private fun EditSubscriptionDialog(
                 ) {
                     OutlinedTextField(
                         shape = RoundedField.shape,
-                        value = merchantName,
-                        onValueChange = { merchantName = it },
+                        state = merchantNameState,
                         label = { Text(stringResource(R.string.subscriptions_edit_name)) },
-                        singleLine = true,
+                        lineLimits = TextFieldLineLimits.SingleLine,
                         modifier = Modifier.fillMaxWidth()
                     )
                     val amount = rememberAmountEntry(amountText, { amountText = it.filter { c -> c.isDigit() || c == '.' } }, subscription.currency)
                     val amountSum = amount.sumHint
                     OutlinedTextField(
                         shape = RoundedField.shape,
-                        value = amount.value,
-                        onValueChange = amount::onValueChange,
+                        state = amount.state,
+                        inputTransformation = amount.inputTransformation,
                         label = { Text(stringResource(R.string.subscriptions_edit_amount, subscription.currency)) },
-                        singleLine = true,
+                        lineLimits = TextFieldLineLimits.SingleLine,
                         keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                             keyboardType = androidx.compose.ui.text.input.KeyboardType.Decimal
                         ),
@@ -1079,21 +1092,20 @@ private fun EditSubscriptionDialog(
                     }
                     OutlinedTextField(
                         shape = RoundedField.shape,
-                        value = category,
-                        onValueChange = { category = it },
+                        state = categoryState,
                         label = { Text(stringResource(R.string.subscriptions_edit_category)) },
-                        singleLine = true,
+                        lineLimits = TextFieldLineLimits.SingleLine,
                         modifier = Modifier.fillMaxWidth()
                     )
                     // Ends after N payments (#1061). Scheduled income is booked without counting, so expenses only.
                     if (subscription.direction == SubscriptionDirection.EXPENSE) {
                         OutlinedTextField(
                             shape = RoundedField.shape,
-                            value = totalPaymentsText,
-                            onValueChange = { totalPaymentsText = it.filter { c -> c.isDigit() }.take(3) },
+                            state = totalPaymentsState,
+                            inputTransformation = EDIT_PAYMENT_COUNT_INPUT,
                             label = { Text(stringResource(R.string.subscriptions_edit_ends_after)) },
                             isError = totalPaymentsError,
-                            singleLine = true,
+                            lineLimits = TextFieldLineLimits.SingleLine,
                             keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                                 keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
                             ),
@@ -1102,14 +1114,14 @@ private fun EditSubscriptionDialog(
                         if (totalPaymentsText.isNotEmpty()) {
                             OutlinedTextField(
                                 shape = RoundedField.shape,
-                                value = paymentsMadeText,
-                                onValueChange = { paymentsMadeText = it.filter { c -> c.isDigit() }.take(3) },
+                                state = paymentsMadeState,
+                                inputTransformation = EDIT_PAYMENT_COUNT_INPUT,
                                 label = { Text(stringResource(R.string.add_sub_already_paid)) },
                                 supportingText = if (paymentsMadeError) {
                                     { Text(stringResource(R.string.add_sub_already_paid_error)) }
                                 } else null,
                                 isError = paymentsMadeError,
-                                singleLine = true,
+                                lineLimits = TextFieldLineLimits.SingleLine,
                                 keyboardOptions = androidx.compose.foundation.text.KeyboardOptions(
                                     keyboardType = androidx.compose.ui.text.input.KeyboardType.Number
                                 ),

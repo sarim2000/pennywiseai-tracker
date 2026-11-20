@@ -1,17 +1,14 @@
 package com.pennywiseai.tracker.presentation.exchangerates
 
-import androidx.lifecycle.compose.collectAsStateWithLifecycle
-import com.pennywiseai.feature.exchangerates.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.lazy.items
-import com.pennywiseai.tracker.ui.effects.overScrollVertical
-import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.*
@@ -20,10 +17,15 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
+import com.pennywiseai.feature.exchangerates.R
+import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.*
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
@@ -284,10 +286,9 @@ private fun EditRateDialog(
     onSetCustomRate: (BigDecimal) -> Unit,
     onResetToAuto: () -> Unit
 ) {
-    var rateText by remember {
-        mutableStateOf(rate.rate.setScale(6, java.math.RoundingMode.HALF_UP).toPlainString())
-    }
-    var isError by remember { mutableStateOf(false) }
+    val rateState = rememberTextFieldState(rate.rate.setScale(6, java.math.RoundingMode.HALF_UP).toPlainString())
+    val rateText = rateState.text.toString()
+    val isError = rateText.toBigDecimalOrNull() == null || (rateText.toBigDecimalOrNull() ?: BigDecimal.ZERO) <= BigDecimal.ZERO
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -302,18 +303,14 @@ private fun EditRateDialog(
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
                 TextField(
-                    value = rateText,
-                    onValueChange = {
-                        rateText = it
-                        isError = it.toBigDecimalOrNull() == null || (it.toBigDecimalOrNull() ?: BigDecimal.ZERO) <= BigDecimal.ZERO
-                    },
+                    state = rateState,
                     label = { Text(stringResource(R.string.exchange_rates_rate_label)) },
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     isError = isError,
                     supportingText = if (isError) {
                         { Text(stringResource(R.string.exchange_rates_invalid_rate)) }
                     } else null,
-                    singleLine = true,
+                    lineLimits = TextFieldLineLimits.SingleLine,
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.large,
                     colors = TextFieldDefaults.colors(

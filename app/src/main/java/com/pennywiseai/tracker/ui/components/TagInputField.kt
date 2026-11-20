@@ -6,8 +6,10 @@ import androidx.compose.foundation.layout.ExperimentalLayoutApi
 import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.clearText
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Close
@@ -22,10 +24,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextField
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -51,7 +50,8 @@ fun TagInputField(
     modifier: Modifier = Modifier,
     label: String = stringResource(R.string.tag_input_label)
 ) {
-    var input by remember { mutableStateOf("") }
+    val inputState = rememberTextFieldState()
+    val input = inputState.text.toString()
 
     fun commit(raw: String) {
         val name = raw.trim()
@@ -59,7 +59,7 @@ fun TagInputField(
         if (selectedTags.none { it.equals(name, ignoreCase = true) }) {
             onAddTag(name)
         }
-        input = ""
+        inputState.clearText()
     }
 
     val trimmed = input.trim()
@@ -109,10 +109,9 @@ fun TagInputField(
         }
 
         TextField(
-            value = input,
-            onValueChange = { input = it },
+            state = inputState,
             label = { Text(label) },
-            singleLine = true,
+            lineLimits = TextFieldLineLimits.SingleLine,
             leadingIcon = {
                 Icon(
                     Icons.Default.Sell,
@@ -132,7 +131,7 @@ fun TagInputField(
                 }
             },
             keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-            keyboardActions = KeyboardActions(onDone = { commit(input) }),
+            onKeyboardAction = { commit(inputState.text.toString()) },
             shape = RoundedField.shape,
             colors = RoundedField.colors(),
             modifier = Modifier.fillMaxWidth()

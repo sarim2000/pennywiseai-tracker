@@ -41,8 +41,8 @@ import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -106,6 +106,7 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.presentation.settings.BackgroundAccessChecklist
 import com.pennywiseai.tracker.ui.components.rememberSmsAccess
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -362,10 +363,9 @@ private fun <T> OnboardingPicker(
         onExpandedChange = { expanded = it }
     ) {
         TextField(
-            value = label(selected),
-            onValueChange = {},
+            state = rememberSyncedTextFieldState(label(selected)) {},
             readOnly = true,
-            singleLine = true,
+            lineLimits = TextFieldLineLimits.SingleLine,
             supportingText = supportingText?.let { { Text(it) } },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             shape = MaterialTheme.shapes.large,
@@ -431,18 +431,18 @@ private fun ProfileStep(
 
         Spacer(modifier = Modifier.height(Spacing.lg))
 
+        val nameState = rememberSyncedTextFieldState(uiState.userName) { viewModel.updateUserName(it) }
         TextField(
-            value = uiState.userName,
-            onValueChange = { viewModel.updateUserName(it) },
+            state = nameState,
             label = { Text(stringResource(R.string.onboarding_name_label)) },
-            singleLine = true,
+            lineLimits = TextFieldLineLimits.SingleLine,
             keyboardOptions = KeyboardOptions(
                 capitalization = KeyboardCapitalization.Words,
                 imeAction = ImeAction.Done
             ),
-            keyboardActions = KeyboardActions(onDone = {
-                if (uiState.userName.isNotBlank()) viewModel.goToNextStep()
-            }),
+            onKeyboardAction = {
+                if (nameState.text.isNotBlank()) viewModel.goToNextStep()
+            },
             shape = MaterialTheme.shapes.large,
             modifier = Modifier.fillMaxWidth(),
             colors = TextFieldDefaults.colors(

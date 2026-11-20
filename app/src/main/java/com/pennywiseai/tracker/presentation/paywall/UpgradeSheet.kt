@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.paywall
 
+import android.content.ClipData
 import androidx.compose.animation.AnimatedContent
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateColorAsState
@@ -57,9 +58,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextDecoration
@@ -372,7 +373,8 @@ private fun EyebrowChip(text: String, isAccent: Boolean) {
 @Composable
 private fun ProAvailableLine() {
     val address = remember { Constants.Links.PRO_PAGE_URL.removePrefix("https://") }
-    val clipboard = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
+    val scope = rememberCoroutineScope()
     var copied by remember { mutableStateOf(false) }
 
     LaunchedEffect(copied) {
@@ -401,7 +403,7 @@ private fun ProAvailableLine() {
         TextButton(
             onClick = {
                 // Exactly the text shown above — the user pastes it themselves.
-                clipboard.setText(AnnotatedString(address))
+                scope.launch { clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("Pro page", address))) }
                 copied = true
             },
             contentPadding = PaddingValues(horizontal = Spacing.xs, vertical = Spacing.none),

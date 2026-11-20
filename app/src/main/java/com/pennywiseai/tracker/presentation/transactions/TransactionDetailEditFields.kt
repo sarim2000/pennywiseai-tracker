@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -22,6 +23,7 @@ import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
 import com.pennywiseai.tracker.ui.components.SelectedCategoryIcon
 import com.pennywiseai.tracker.ui.components.forPicker
 import com.pennywiseai.tracker.ui.icons.categoryLabel
+import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -53,8 +55,7 @@ internal fun CategoryDropdown(
         onExpandedChange = { expanded = it }
     ) {
         TextField(
-            value = categoryLabel(selectedCategory),
-            onValueChange = { },
+            state = rememberSyncedTextFieldState(categoryLabel(selectedCategory)) { },
             label = { Text(stringResource(R.string.txn_detail_label_category), fontWeight = FontWeight.SemiBold) },
             leadingIcon = { SelectedCategoryIcon(selectedCategoryEntity) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
@@ -308,14 +309,13 @@ internal fun CurrencyDropdown(
         modifier = modifier
     ) {
         TextField(
-            value = "${CurrencyFormatter.getCurrencySymbol(selectedCurrency)} $selectedCurrency",
-            onValueChange = { },
+            state = rememberSyncedTextFieldState("${CurrencyFormatter.getCurrencySymbol(selectedCurrency)} $selectedCurrency") { },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
             modifier = Modifier
                 .fillMaxWidth()
                 .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
             readOnly = true,
-            singleLine = true,
+            lineLimits = TextFieldLineLimits.SingleLine,
             shape = editFullShape,
             colors = editFilledColors()
         )
@@ -380,8 +380,7 @@ internal fun AccountNumberField(
         onExpandedChange = { expanded = it }
     ) {
         TextField(
-            value = selectedAccount,
-            onValueChange = { newValue ->
+            state = rememberSyncedTextFieldState(selectedAccount) { newValue ->
                 selectedAccount = newValue
                 // If manually typing, update the account number directly
                 if (!availableAccounts.any { it.displayName == newValue }) {
@@ -426,7 +425,7 @@ internal fun AccountNumberField(
             modifier = Modifier
                 .fillMaxWidth()
                 .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryEditable),
-            singleLine = true,
+            lineLimits = TextFieldLineLimits.SingleLine,
             placeholder = { Text(placeholder) }
         )
 

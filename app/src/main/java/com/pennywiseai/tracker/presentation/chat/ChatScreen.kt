@@ -13,6 +13,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
@@ -61,6 +62,7 @@ import com.pennywiseai.tracker.ui.components.mascot.typingGaze
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.icons.categoryLabel
+import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.warning
@@ -803,8 +805,7 @@ private fun ChatComposer(
             verticalAlignment = Alignment.Bottom
         ) {
             TextField(
-                value = text,
-                onValueChange = onTextChange,
+                state = rememberSyncedTextFieldState(text, onTextChange),
                 modifier = Modifier
                     .weight(1f)
                     .focusRequester(focusRequester),
@@ -813,7 +814,7 @@ private fun ChatComposer(
                 readOnly = readOnly,
                 trailingIcon = trailing,
                 interactionSource = interactionSource,
-                maxLines = 3,
+                lineLimits = TextFieldLineLimits.MultiLine(maxHeightInLines = 3),
                 // Arabic from the mic (or typed) reads right to left.
                 textStyle = LocalTextStyle.current.copy(textDirection = TextDirection.Content),
                 shape = MaterialTheme.shapes.extraLarge,

@@ -2,8 +2,9 @@ package com.pennywiseai.tracker.presentation.transactions
 
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -41,7 +42,8 @@ internal fun BulkGroupPickerSheet(
     onDismiss: () -> Unit
 ) {
     var showCreateField by remember { mutableStateOf(false) }
-    var newGroupName by remember { mutableStateOf("") }
+    val newGroupNameState = rememberTextFieldState()
+    val newGroupName = newGroupNameState.text.toString()
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
@@ -88,19 +90,16 @@ internal fun BulkGroupPickerSheet(
             if (showCreateField) {
                 OutlinedTextField(
                     shape = RoundedField.shape,
-                    value = newGroupName,
-                    onValueChange = { newGroupName = it },
+                    state = newGroupNameState,
                     label = { Text(stringResource(R.string.txn_list_group_name)) },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
+                    lineLimits = TextFieldLineLimits.SingleLine,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(
-                        onDone = {
-                            if (newGroupName.isNotBlank()) {
-                                onCreateGroup(newGroupName.trim())
-                            }
+                    onKeyboardAction = {
+                        if (newGroupName.isNotBlank()) {
+                            onCreateGroup(newGroupName.trim())
                         }
-                    ),
+                    },
                     trailingIcon = {
                         IconButton(
                             onClick = {

@@ -12,6 +12,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Label
 import androidx.compose.material.icons.automirrored.filled.Notes
+import androidx.compose.material.icons.automirrored.filled.Rule
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -374,7 +375,7 @@ private fun RuleGlyph(rule: TransactionRule, tint: Color) {
         first?.field == TransactionField.TYPE -> Icons.Default.SwapHoriz
         first?.field == TransactionField.TRANSFER_FROM_ACCOUNT ||
             first?.field == TransactionField.TRANSFER_TO_ACCOUNT -> Icons.Default.SyncAlt
-        else -> Icons.Default.Rule
+        else -> Icons.AutoMirrored.Filled.Rule
     }
     Icon(icon, contentDescription = null, tint = tint, modifier = Modifier.size(Dimensions.Icon.medium))
 }

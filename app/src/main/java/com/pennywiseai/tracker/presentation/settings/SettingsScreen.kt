@@ -23,10 +23,10 @@ import androidx.compose.material.icons.automirrored.filled.Help
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.MenuBook
 import androidx.compose.material.icons.automirrored.filled.OpenInNew
+import androidx.compose.material.icons.automirrored.filled.Rule
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material.icons.filled.AccountBalance
 import androidx.compose.material.icons.filled.Category
-import androidx.compose.material.icons.filled.Rule
 import androidx.compose.material.icons.filled.UploadFile
 import androidx.compose.material3.*
 import androidx.compose.material3.MaterialShapes
@@ -491,7 +491,7 @@ private fun SettingsShortcutTiles(state: SettingsHubState, onNavigate: (NavKey) 
         ShortcutTile(
             title = stringResource(R.string.rules_title),
             subtitle = state.activeRuleCount?.let { pluralStringResource(R.plurals.settings_tile_rules_count, it, it) },
-            icon = Icons.Default.Rule,
+            icon = Icons.AutoMirrored.Filled.Rule,
             badge = MaterialShapes.Clover4Leaf.toShape(),
             container = colors.tertiaryContainer,
             content = colors.onTertiaryContainer,

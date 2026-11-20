@@ -13,6 +13,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
@@ -39,10 +41,11 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.SelectableDropdownMenuItem
+import androidx.compose.material3.SheetValue
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.material3.rememberDatePickerState
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -74,6 +77,7 @@ import com.pennywiseai.tracker.ui.components.orSupporting
 import com.pennywiseai.tracker.ui.components.pickerDefault
 import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.icons.categoryLabel
+import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -231,7 +235,8 @@ private fun ReviewRowEditSheet(
     onSave: (TransactionDraft) -> Unit
 ) {
     var amount by rememberSaveable { mutableStateOf(draft.amount.stripTrailingZeros().toPlainString()) }
-    var merchant by rememberSaveable { mutableStateOf(draft.merchant) }
+    val merchantState = rememberTextFieldState(draft.merchant)
+    val merchant = merchantState.text.toString()
     var type by rememberSaveable { mutableStateOf(draft.type) }
     var category by rememberSaveable { mutableStateOf(draft.category) }
     var currency by rememberSaveable { mutableStateOf(draft.currency) }
@@ -243,7 +248,7 @@ private fun ReviewRowEditSheet(
     val noAccount = stringResource(R.string.chat_account_none)
     val parsed = ChatMessageFacts.parseAmount(amount)
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)) {
+    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))) {
         AmountBarHost {
             Column(
                 modifier = Modifier
@@ -260,22 +265,21 @@ private fun ReviewRowEditSheet(
                     val amountSum = amountEntry.sumHint
                     OutlinedTextField(
                         shape = RoundedField.shape,
-                        value = amountEntry.value,
-                        onValueChange = amountEntry::onValueChange,
+                        state = amountEntry.state,
+                        inputTransformation = amountEntry.inputTransformation,
                         label = { Text(stringResource(R.string.add_field_amount)) },
                         isError = amountSum?.isError ?: (parsed == null),
                         supportingText = amountSum.orSupporting(),
-                        singleLine = true,
+                        lineLimits = TextFieldLineLimits.SingleLine,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         modifier = Modifier.weight(1f).then(amountEntry.modifier)
                     )
                     ExposedDropdownMenuBox(expanded = showCurrencies, onExpandedChange = { showCurrencies = it }, modifier = Modifier.weight(1f)) {
                         OutlinedTextField(
                             shape = RoundedField.shape,
-                            value = "${CurrencyFormatter.getCurrencySymbol(currency)} $currency",
-                            onValueChange = {},
+                            state = rememberSyncedTextFieldState("${CurrencyFormatter.getCurrencySymbol(currency)} $currency") {},
                             readOnly = true,
-                            singleLine = true,
+                            lineLimits = TextFieldLineLimits.SingleLine,
                             label = { Text(stringResource(R.string.chat_action_edit_currency)) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCurrencies) },
                             modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
@@ -297,11 +301,10 @@ private fun ReviewRowEditSheet(
                 }
                 OutlinedTextField(
                     shape = RoundedField.shape,
-                    value = merchant,
-                    onValueChange = { merchant = it },
+                    state = merchantState,
                     label = { Text(stringResource(R.string.add_field_merchant)) },
                     isError = merchant.isBlank(),
-                    singleLine = true,
+                    lineLimits = TextFieldLineLimits.SingleLine,
                     modifier = Modifier.fillMaxWidth()
                 )
                 ConnectedChoiceRow(
@@ -317,10 +320,9 @@ private fun ReviewRowEditSheet(
                 ExposedDropdownMenuBox(expanded = showCategories, onExpandedChange = { showCategories = it }) {
                     OutlinedTextField(
                         shape = RoundedField.shape,
-                        value = categoryLabel(category),
-                        onValueChange = {},
+                        state = rememberSyncedTextFieldState(categoryLabel(category)) {},
                         readOnly = true,
-                        singleLine = true,
+                        lineLimits = TextFieldLineLimits.SingleLine,
                         label = { Text(stringResource(R.string.add_field_category)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = showCategories) },
                         modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)

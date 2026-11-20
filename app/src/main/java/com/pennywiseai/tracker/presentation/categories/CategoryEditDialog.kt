@@ -6,6 +6,10 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.text.input.InputTransformation
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.clearText
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -27,6 +31,7 @@ import com.pennywiseai.tracker.ui.components.ColorSwatchRow
 import com.pennywiseai.tracker.ui.components.EmojiGlyph
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.icons.categoryLabel
+import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 
@@ -53,7 +58,8 @@ fun CategoryEditDialog(
     val hasChildren = category != null && parentOptions.any { it.parentId == category.id }
     var nameError by remember { mutableStateOf(false) }
     var selectedColor by remember { mutableStateOf(category?.color ?: "#4CAF50") }
-    var emoji by remember { mutableStateOf(category?.icon ?: "") }
+    val emojiState = rememberTextFieldState(category?.icon ?: "")
+    val emoji = emojiState.text.toString()
     var showDeleteConfirm by remember { mutableStateOf(false) }
 
     Dialog(onDismissRequest = onDismiss) {
@@ -80,8 +86,7 @@ fun CategoryEditDialog(
 
                 // Category Name Input
                 TextField(
-                    value = name,
-                    onValueChange = {
+                    state = rememberSyncedTextFieldState(name) {
                         name = it
                         nameError = it.isBlank()
                     },
@@ -90,7 +95,7 @@ fun CategoryEditDialog(
                     supportingText = if (nameError) {
                         { Text(stringResource(R.string.category_edit_name_required)) }
                     } else null,
-                    singleLine = true,
+                    lineLimits = TextFieldLineLimits.SingleLine,
                     modifier = Modifier.fillMaxWidth(),
                     shape = MaterialTheme.shapes.large,
                     colors = TextFieldDefaults.colors(
@@ -147,8 +152,9 @@ fun CategoryEditDialog(
                     var parentMenu by remember { mutableStateOf(false) }
                     ExposedDropdownMenuBox(expanded = parentMenu, onExpandedChange = { parentMenu = it }) {
                         TextField(
-                            value = parentCandidates.firstOrNull { it.id == parentId }?.name?.let { categoryLabel(it) } ?: stringResource(R.string.category_edit_parent_none),
-                            onValueChange = {},
+                            state = rememberSyncedTextFieldState(
+                                parentCandidates.firstOrNull { it.id == parentId }?.name?.let { categoryLabel(it) } ?: stringResource(R.string.category_edit_parent_none)
+                            ) {},
                             readOnly = true,
                             label = { Text(stringResource(R.string.category_edit_parent_label), fontWeight = FontWeight.SemiBold) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = parentMenu) },
@@ -177,14 +183,14 @@ fun CategoryEditDialog(
 
                 // Icon: one emoji from the keyboard's own picker (#760). Empty = default icon.
                 TextField(
-                    value = emoji,
-                    onValueChange = { emoji = lastEmoji(it) ?: emoji },
+                    state = emojiState,
+                    inputTransformation = singleEmojiInput,
                     label = { Text(stringResource(R.string.category_edit_icon_label), fontWeight = FontWeight.SemiBold) },
                     placeholder = { Text(stringResource(R.string.category_edit_icon_placeholder)) },
-                    singleLine = true,
+                    lineLimits = TextFieldLineLimits.SingleLine,
                     trailingIcon = if (emoji.isNotEmpty()) {
                         {
-                            IconButton(onClick = { emoji = "" }, shapes = IconButtonDefaults.shapes()) {
+                            IconButton(onClick = { emojiState.clearText() }, shapes = IconButtonDefaults.shapes()) {
                                 Icon(Icons.Default.Close, contentDescription = stringResource(R.string.category_edit_clear_icon))
                             }
                         }
@@ -325,6 +331,17 @@ fun CategoryEditDialog(
                 TextButton(onClick = { showDeleteConfirm = false }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.categories_action_cancel)) }
             }
         )
+    }
+}
+
+/** Keeps the icon field to one emoji: see [lastEmoji]. An edit that leaves none is undone. */
+private val singleEmojiInput = InputTransformation {
+    val typed = toString()
+    val kept = lastEmoji(typed)
+    if (kept == null) {
+        revertAllChanges()
+    } else if (kept != typed) {
+        replace(0, length, kept)
     }
 }
 

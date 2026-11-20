@@ -6,6 +6,9 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.InputTransformation
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Edit
@@ -152,6 +155,12 @@ fun CardBillCard(
     }
 }
 
+// Up to two digits; anything else is rejected.
+private val DueDayInput = InputTransformation {
+    val text = asCharSequence()
+    if (text.length > 2 || !text.all(Char::isDigit)) revertAllChanges()
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CardBillDialog(
@@ -164,7 +173,8 @@ private fun CardBillDialog(
     onClear: () -> Unit
 ) {
     // No day until the user types one: a made-up due day could mark the bill overdue.
-    var dayText by remember { mutableStateOf(dueDay?.toString().orEmpty()) }
+    val dayState = rememberTextFieldState(dueDay?.toString().orEmpty())
+    val dayText = dayState.text.toString()
     val day = dayText.trim().toIntOrNull()?.takeIf { it in 1..31 }
     val dayValid = dayText.isBlank() || day != null
     var text by remember { mutableStateOf(amount?.toPlainString().orEmpty()) }
@@ -205,8 +215,8 @@ private fun CardBillDialog(
             AmountBarDialogHost {
                 Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                     OutlinedTextField(
-                        value = dayText,
-                        onValueChange = { if (it.length <= 2 && it.all(Char::isDigit)) dayText = it },
+                        state = dayState,
+                        inputTransformation = DueDayInput,
                         label = { Text(stringResource(R.string.card_bill_due_day_label)) },
                         supportingText = {
                             Text(
@@ -221,20 +231,20 @@ private fun CardBillDialog(
                             )
                         },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        singleLine = true,
+                        lineLimits = TextFieldLineLimits.SingleLine,
                         isError = !dayValid,
                         modifier = Modifier.fillMaxWidth(),
                         shape = RoundedField.shape
                     )
                     OutlinedTextField(
-                        value = amountEntry.value,
-                        onValueChange = amountEntry::onValueChange,
+                        state = amountEntry.state,
+                        inputTransformation = amountEntry.inputTransformation,
                         label = { Text(stringResource(R.string.card_bill_amount_label, currency)) },
                         supportingText = amountSum.orSupporting {
                             Text(stringResource(if (forNewStatement) R.string.card_bill_amount_new_hint else R.string.card_bill_amount_hint))
                         },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        singleLine = true,
+                        lineLimits = TextFieldLineLimits.SingleLine,
                         isError = amountSum?.isError ?: !valid,
                         modifier = Modifier.fillMaxWidth().then(amountEntry.modifier),
                         shape = RoundedField.shape

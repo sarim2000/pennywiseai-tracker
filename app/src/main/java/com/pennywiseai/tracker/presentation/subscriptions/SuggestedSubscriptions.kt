@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -243,10 +244,10 @@ internal fun RecurringSuggestionSheet(
                 val amountSum = amountEntry.sumHint
                 OutlinedTextField(
                     shape = RoundedField.shape,
-                    value = amountEntry.value,
-                    onValueChange = amountEntry::onValueChange,
+                    state = amountEntry.state,
+                    inputTransformation = amountEntry.inputTransformation,
                     label = { Text(stringResource(R.string.subscription_suggestion_sheet_amount, suggestion.currency)) },
-                    singleLine = true,
+                    lineLimits = TextFieldLineLimits.SingleLine,
                     isError = amountSum?.isError ?: (amount == null),
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     supportingText = amountSum.orSupporting(

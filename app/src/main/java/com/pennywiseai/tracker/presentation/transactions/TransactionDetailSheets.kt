@@ -8,6 +8,10 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.clearText
+import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -38,6 +42,7 @@ import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.components.orSupporting
 import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.icons.categoryLabel
+import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -58,9 +63,10 @@ internal fun MarkAsLoanBottomSheet(
     onDismiss: () -> Unit,
     onConfirm: (personName: String, note: String?, loanAmount: BigDecimal?) -> Unit
 ) {
-    var personName by remember { mutableStateOf("") }
+    val personNameState = rememberTextFieldState()
+    val personName = personNameState.text.toString()
     var isAddingNew by remember { mutableStateOf(recentPersonNames.isEmpty()) }
-    var note by remember { mutableStateOf("") }
+    val noteState = rememberTextFieldState()
     // Pre-filled with the full transaction amount — user only edits this when
     // a portion of the payment isn't part of the loan (e.g. issue #309: paid
     // ₹5500 but only ₹3500 is meant to come back).
@@ -112,7 +118,7 @@ internal fun MarkAsLoanBottomSheet(
                     // Pick from existing people
                     recentPersonNames.forEach { name ->
                         Surface(
-                            onClick = { personName = name },
+                            onClick = { personNameState.setTextAndPlaceCursorAtEnd(name) },
                             shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
                             color = if (personName == name) loanColor.copy(alpha = 0.12f)
                             else MaterialTheme.colorScheme.surfaceContainerLow,
@@ -158,7 +164,7 @@ internal fun MarkAsLoanBottomSheet(
                     }
 
                     // Add new person option
-                    TextButton(onClick = { isAddingNew = true; personName = "" }, shapes = ButtonDefaults.shapes()) {
+                    TextButton(onClick = { isAddingNew = true; personNameState.clearText() }, shapes = ButtonDefaults.shapes()) {
                         Icon(
                             Icons.Default.PersonAdd,
                             contentDescription = null,
@@ -170,16 +176,15 @@ internal fun MarkAsLoanBottomSheet(
                 } else {
                     // Text field for new person name
                     TextField(
-                        value = personName,
-                        onValueChange = { personName = it },
+                        state = personNameState,
                         label = { Text(stringResource(R.string.txn_detail_loan_person_name)) },
-                        singleLine = true,
+                        lineLimits = TextFieldLineLimits.SingleLine,
                         modifier = Modifier.fillMaxWidth(),
                         shape = editFullShape,
                         colors = editFilledColors()
                     )
                     if (recentPersonNames.isNotEmpty()) {
-                        TextButton(onClick = { isAddingNew = false; personName = "" }, shapes = ButtonDefaults.shapes()) {
+                        TextButton(onClick = { isAddingNew = false; personNameState.clearText() }, shapes = ButtonDefaults.shapes()) {
                             Icon(
                                 Icons.Default.People,
                                 contentDescription = null,
@@ -196,8 +201,8 @@ internal fun MarkAsLoanBottomSheet(
                 val loanAmount = rememberAmountEntry(loanAmountInput, { loanAmountInput = it }, transactionCurrency)
                 val loanSum = loanAmount.sumHint
                 TextField(
-                    value = loanAmount.value,
-                    onValueChange = loanAmount::onValueChange,
+                    state = loanAmount.state,
+                    inputTransformation = loanAmount.inputTransformation,
                     label = { Text(stringResource(R.string.txn_detail_loan_amount)) },
                     supportingText = loanSum.orSupporting {
                         Text(
@@ -209,7 +214,7 @@ internal fun MarkAsLoanBottomSheet(
                         )
                     },
                     isError = loanSum?.isError ?: !isLoanAmountValid,
-                    singleLine = true,
+                    lineLimits = TextFieldLineLimits.SingleLine,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth().then(loanAmount.modifier),
                     shape = editFullShape,
@@ -218,10 +223,9 @@ internal fun MarkAsLoanBottomSheet(
 
                 // Optional note
                 TextField(
-                    value = note,
-                    onValueChange = { note = it },
+                    state = noteState,
                     label = { Text(stringResource(R.string.txn_detail_loan_note)) },
-                    singleLine = true,
+                    lineLimits = TextFieldLineLimits.SingleLine,
                     modifier = Modifier.fillMaxWidth(),
                     shape = editFullShape,
                     colors = editFilledColors()
@@ -232,7 +236,7 @@ internal fun MarkAsLoanBottomSheet(
                     onClick = {
                         onConfirm(
                             personName.trim(),
-                            note.trim().ifEmpty { null },
+                            noteState.text.toString().trim().ifEmpty { null },
                             parsedLoanAmount
                         )
                     },
@@ -270,7 +274,7 @@ internal fun BalanceAdjustmentSheet(
     val type = balanceAdjustmentType(discrepancy)
     val isIncome = type == TransactionType.INCOME
     val categories by viewModel.adjustmentCategories.collectAsStateWithLifecycle()
-    var merchant by rememberSaveable { mutableStateOf("") }
+    val merchantState = rememberTextFieldState()
     // Null until the user picks: the view model then tries the merchant's mapping.
     var pickedCategory by rememberSaveable { mutableStateOf<String?>(null) }
     val shownCategory = pickedCategory ?: categories.balanceAdjustmentDefaultCategory(type)
@@ -311,11 +315,10 @@ internal fun BalanceAdjustmentSheet(
                 )
             }
             TextField(
-                value = merchant,
-                onValueChange = { merchant = it },
+                state = merchantState,
                 label = { Text(stringResource(R.string.txn_detail_adjustment_what)) },
                 placeholder = { Text(stringResource(R.string.txn_detail_adjustment_what_placeholder)) },
-                singleLine = true,
+                lineLimits = TextFieldLineLimits.SingleLine,
                 modifier = Modifier.fillMaxWidth(),
                 shape = editFullShape,
                 colors = editFilledColors()
@@ -325,8 +328,7 @@ internal fun BalanceAdjustmentSheet(
                 onExpandedChange = { expanded = it }
             ) {
                 TextField(
-                    value = categoryLabel(shownCategory),
-                    onValueChange = { },
+                    state = rememberSyncedTextFieldState(categoryLabel(shownCategory)) { },
                     label = { Text(stringResource(R.string.txn_detail_label_category)) },
                     leadingIcon = { SelectedCategoryIcon(categories.find { it.name == shownCategory }) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
@@ -360,7 +362,7 @@ internal fun BalanceAdjustmentSheet(
                     Text(stringResource(R.string.txn_detail_action_cancel))
                 }
                 Button(onClick = {
-                    viewModel.addBalanceAdjustment(merchant, pickedCategory)
+                    viewModel.addBalanceAdjustment(merchantState.text.toString(), pickedCategory)
                     onDismiss()
                 }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.txn_detail_adjustment_add))
@@ -381,7 +383,8 @@ internal fun GroupBottomSheet(
     onCreateGroup: (String, String?) -> Unit
 ) {
     var showCreateField by remember { mutableStateOf(false) }
-    var newGroupName by remember { mutableStateOf("") }
+    val newGroupNameState = rememberTextFieldState()
+    val newGroupName = newGroupNameState.text.toString()
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
@@ -453,11 +456,10 @@ internal fun GroupBottomSheet(
             if (showCreateField) {
                 OutlinedTextField(
                     shape = RoundedField.shape,
-                    value = newGroupName,
-                    onValueChange = { newGroupName = it },
+                    state = newGroupNameState,
                     label = { Text(stringResource(R.string.txn_detail_group_name)) },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
+                    lineLimits = TextFieldLineLimits.SingleLine,
                     trailingIcon = {
                         IconButton(
                             onClick = {

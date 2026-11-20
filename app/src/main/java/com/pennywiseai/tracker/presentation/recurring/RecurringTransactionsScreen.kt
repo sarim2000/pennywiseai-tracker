@@ -5,6 +5,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.InputTransformation
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
@@ -42,6 +44,7 @@ import com.pennywiseai.tracker.ui.components.orSupporting
 import com.pennywiseai.tracker.ui.components.pickerDefault
 import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.icons.categoryLabel
+import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.AppDates
@@ -260,6 +263,20 @@ private fun RecurringItem(
     }
 }
 
+// A three-letter, upper-case currency code.
+private val CurrencyInput = InputTransformation {
+    val text = toString()
+    val code = text.uppercase().take(3)
+    if (code != text) replace(0, length, code)
+}
+
+// A day of the month, clamped to 1..31.
+private val DayOfMonthInput = InputTransformation {
+    val text = toString()
+    val day = text.filter { it.isDigit() }.toIntOrNull()?.coerceIn(1, 31)?.toString() ?: ""
+    if (day != text) replace(0, length, day)
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun RecurringEditorDialog(
@@ -295,10 +312,9 @@ private fun RecurringEditorDialog(
                 ) {
                     OutlinedTextField(
                         shape = RoundedField.shape,
-                        value = state.merchantName,
-                        onValueChange = { state = state.copy(merchantName = it) },
+                        state = rememberSyncedTextFieldState(state.merchantName) { state = state.copy(merchantName = it) },
                         label = { Text(stringResource(R.string.recurring_field_name)) },
-                        singleLine = true,
+                        lineLimits = TextFieldLineLimits.SingleLine,
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -314,21 +330,21 @@ private fun RecurringEditorDialog(
                         val amountSum = amount.sumHint
                         OutlinedTextField(
                             shape = RoundedField.shape,
-                            value = amount.value,
-                            onValueChange = amount::onValueChange,
+                            state = amount.state,
+                            inputTransformation = amount.inputTransformation,
                             label = { Text(stringResource(R.string.recurring_field_amount)) },
                             isError = amountSum?.isError == true,
                             supportingText = amountSum.orSupporting(),
-                            singleLine = true,
+                            lineLimits = TextFieldLineLimits.SingleLine,
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                             modifier = Modifier.weight(1f).then(amount.modifier)
                         )
                         OutlinedTextField(
                             shape = RoundedField.shape,
-                            value = state.currency,
-                            onValueChange = { state = state.copy(currency = it.uppercase().take(3)) },
+                            state = rememberSyncedTextFieldState(state.currency) { state = state.copy(currency = it) },
+                            inputTransformation = CurrencyInput,
                             label = { Text(stringResource(R.string.recurring_field_currency)) },
-                            singleLine = true,
+                            lineLimits = TextFieldLineLimits.SingleLine,
                             modifier = Modifier.width(Dimensions.Component.tableCellWidth)
                         )
                     }
@@ -370,8 +386,7 @@ private fun RecurringEditorDialog(
                     ) {
                         OutlinedTextField(
                             shape = RoundedField.shape,
-                            value = categoryLabel(state.category),
-                            onValueChange = {},
+                            state = rememberSyncedTextFieldState(categoryLabel(state.category)) {},
                             readOnly = true,
                             label = { Text(stringResource(R.string.recurring_field_category)) },
                             leadingIcon = { SelectedCategoryIcon(categories.find { it.name == state.category }) },
@@ -401,8 +416,7 @@ private fun RecurringEditorDialog(
                     ) {
                         OutlinedTextField(
                             shape = RoundedField.shape,
-                            value = state.frequency.label(),
-                            onValueChange = {},
+                            state = rememberSyncedTextFieldState(state.frequency.label()) {},
                             readOnly = true,
                             label = { Text(stringResource(R.string.recurring_field_frequency)) },
                             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(freqExpanded) },
@@ -430,13 +444,12 @@ private fun RecurringEditorDialog(
                         RecurringFrequency.MONTHLY -> {
                             OutlinedTextField(
                                 shape = RoundedField.shape,
-                                value = state.dayOfMonth?.toString() ?: "",
-                                onValueChange = { input ->
-                                    val n = input.filter { it.isDigit() }.toIntOrNull()
-                                    state = state.copy(dayOfMonth = n?.coerceIn(1, 31))
+                                state = rememberSyncedTextFieldState(state.dayOfMonth?.toString() ?: "") {
+                                    state = state.copy(dayOfMonth = it.toIntOrNull())
                                 },
+                                inputTransformation = DayOfMonthInput,
                                 label = { Text(stringResource(R.string.recurring_field_day_of_month)) },
-                                singleLine = true,
+                                lineLimits = TextFieldLineLimits.SingleLine,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 modifier = Modifier.fillMaxWidth()
                             )
@@ -448,8 +461,9 @@ private fun RecurringEditorDialog(
                             ) {
                                 OutlinedTextField(
                                     shape = RoundedField.shape,
-                                    value = state.dayOfWeek?.let { dayOfWeekNames[it - 1] } ?: stringResource(R.string.recurring_day_of_week_any),
-                                    onValueChange = {},
+                                    state = rememberSyncedTextFieldState(
+                                        state.dayOfWeek?.let { dayOfWeekNames[it - 1] } ?: stringResource(R.string.recurring_day_of_week_any)
+                                    ) {},
                                     readOnly = true,
                                     label = { Text(stringResource(R.string.recurring_field_day_of_week)) },
                                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(dowExpanded) },
@@ -477,10 +491,9 @@ private fun RecurringEditorDialog(
 
                     OutlinedTextField(
                         shape = RoundedField.shape,
-                        value = state.note,
-                        onValueChange = { state = state.copy(note = it) },
+                        state = rememberSyncedTextFieldState(state.note) { state = state.copy(note = it) },
                         label = { Text(stringResource(R.string.recurring_field_note)) },
-                        singleLine = true,
+                        lineLimits = TextFieldLineLimits.SingleLine,
                         modifier = Modifier.fillMaxWidth()
                     )
 

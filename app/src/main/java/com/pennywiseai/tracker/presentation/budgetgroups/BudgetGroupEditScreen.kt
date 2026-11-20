@@ -12,8 +12,9 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldDecorator
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -55,6 +56,7 @@ import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.icons.categoryLabel
+import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -617,25 +619,25 @@ private fun BudgetHeaderCard(
             // Budget name (left side)
             Box(modifier = Modifier.fillMaxWidth()) {
                 if (isEditingName) {
+                    val nameState = rememberSyncedTextFieldState(name, onNameChange)
                     BasicTextField(
-                        value = name,
-                        onValueChange = onNameChange,
+                        state = nameState,
                         textStyle = MaterialTheme.typography.titleMedium.copy(
                             color = MaterialTheme.colorScheme.onSurface
                         ),
-                        singleLine = true,
+                        lineLimits = TextFieldLineLimits.SingleLine,
                         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(onDone = {
+                        onKeyboardAction = {
                             onNameDone()
                             focusManager.clearFocus()
-                        }),
+                        },
                         modifier = Modifier
                             .fillMaxWidth()
                             .focusRequester(nameFocusRequester),
-                        decorationBox = { innerTextField ->
+                        decorator = TextFieldDecorator { innerTextField ->
                             Box {
-                                if (name.isEmpty()) {
+                                if (nameState.text.isEmpty()) {
                                     Text(
                                         text = stringResource(R.string.budget_edit_name_placeholder),
                                         style = MaterialTheme.typography.titleMedium,
@@ -685,28 +687,28 @@ private fun BudgetHeaderCard(
                     currency
                 )
                 BasicTextField(
-                    value = entry.value,
-                    onValueChange = entry::onValueChange,
+                    state = entry.state,
+                    inputTransformation = entry.inputTransformation,
                     textStyle = MaterialTheme.typography.headlineSmall.money().copy(
                         color = MaterialTheme.colorScheme.onSurface,
                         textAlign = TextAlign.End
                     ),
-                    singleLine = true,
+                    lineLimits = TextFieldLineLimits.SingleLine,
                     cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                     keyboardOptions = KeyboardOptions(
                         keyboardType = KeyboardType.Decimal,
                         imeAction = ImeAction.Done
                     ),
-                    keyboardActions = KeyboardActions(onDone = {
+                    onKeyboardAction = {
                         entry.fold()
                         onAmountDone()
                         focusManager.clearFocus()
-                    }),
+                    },
                     modifier = Modifier
                         .fillMaxWidth()
                         .focusRequester(amountFocusRequester)
                         .then(entry.modifier),
-                    decorationBox = { innerTextField ->
+                    decorator = TextFieldDecorator { innerTextField ->
                         Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
                                 text = currencySymbol,
@@ -714,7 +716,7 @@ private fun BudgetHeaderCard(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                             Box {
-                                if (entry.value.text.isEmpty()) {
+                                if (entry.state.text.isEmpty()) {
                                     Text(
                                         text = "0",
                                         style = MaterialTheme.typography.headlineSmall.money(),
@@ -808,13 +810,13 @@ private fun CategoryBudgetRow(
         )
         val sum = entry.sumHint
         TextField(
-            value = entry.value,
-            onValueChange = entry::onValueChange,
+            state = entry.state,
+            inputTransformation = entry.inputTransformation,
             label = { Text(stringResource(R.string.plan_budget_category_limit)) },
             prefix = { Text(CurrencyFormatter.getCurrencySymbol(currency)) },
             isError = sum?.isError == true,
             supportingText = sum.orSupporting(),
-            singleLine = true,
+            lineLimits = TextFieldLineLimits.SingleLine,
             modifier = Modifier.weight(1f).then(entry.modifier),
             textStyle = MaterialTheme.typography.bodyMedium,
             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
@@ -883,10 +885,9 @@ private fun WeekdayAnchorRow(
             ) {
                 OutlinedTextField(
                     shape = RoundedField.shape,
-                    value = dayOfWeekName(weekStartDay),
-                    onValueChange = {},
+                    state = rememberSyncedTextFieldState(dayOfWeekName(weekStartDay)) {},
                     readOnly = true,
-                    singleLine = true,
+                    lineLimits = TextFieldLineLimits.SingleLine,
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                     modifier = Modifier
                         .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)

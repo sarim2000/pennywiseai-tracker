@@ -6,6 +6,8 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -14,10 +16,6 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.saveable.rememberSaveable
-import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -45,8 +43,10 @@ internal fun LicenseKeyDialog(
     onMoveHere: (key: String, email: String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    var key by rememberSaveable { mutableStateOf("") }
-    var email by rememberSaveable { mutableStateOf("") }
+    val keyState = rememberTextFieldState()
+    val emailState = rememberTextFieldState()
+    val key = keyState.text.toString()
+    val email = emailState.text.toString()
     val canSubmit = key.isNotBlank() && !isActivating
     val canMoveNow = canSubmit && email.contains('@')
 
@@ -62,10 +62,9 @@ internal fun LicenseKeyDialog(
                 )
                 Spacer(Modifier.height(Spacing.md))
                 OutlinedTextField(
-                    value = key,
-                    onValueChange = { key = it },
+                    state = keyState,
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
+                    lineLimits = TextFieldLineLimits.SingleLine,
                     enabled = !isActivating,
                     // Dodo keys are lowercase UUIDs; don't shout-case the keyboard.
                     placeholder = { Text("xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx") },
@@ -80,10 +79,9 @@ internal fun LicenseKeyDialog(
                 if (canMove) {
                     Spacer(Modifier.height(Spacing.sm))
                     OutlinedTextField(
-                        value = email,
-                        onValueChange = { email = it },
+                        state = emailState,
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
+                        lineLimits = TextFieldLineLimits.SingleLine,
                         enabled = !isActivating,
                         label = { Text(stringResource(R.string.upgrade_license_email_label)) },
                         supportingText = { Text(stringResource(R.string.upgrade_license_email_supporting)) },

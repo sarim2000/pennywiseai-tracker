@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -62,6 +63,7 @@ import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.orSupporting
 import com.pennywiseai.tracker.ui.components.rememberAmountEntry
+import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -131,11 +133,10 @@ fun GoalEditScreen(
         ) {
             OutlinedTextField(
                 shape = RoundedField.shape,
-                value = form.name,
-                onValueChange = { v -> viewModel.update { it.copy(name = v) } },
+                state = rememberSyncedTextFieldState(form.name) { v -> viewModel.update { it.copy(name = v) } },
                 label = { Text(stringResource(R.string.goal_edit_name)) },
                 placeholder = { Text(stringResource(R.string.goal_edit_name_hint)) },
-                singleLine = true,
+                lineLimits = TextFieldLineLimits.SingleLine,
                 isError = GoalFieldError.NAME_BLANK in errors,
                 supportingText = errorText(GoalFieldError.NAME_BLANK in errors, R.string.goal_edit_error_name),
                 modifier = Modifier.fillMaxWidth(),
@@ -156,10 +157,10 @@ fun GoalEditScreen(
                 val targetSum = target.sumHint
                 OutlinedTextField(
                     shape = RoundedField.shape,
-                    value = target.value,
-                    onValueChange = target::onValueChange,
+                    state = target.state,
+                    inputTransformation = target.inputTransformation,
                     label = { Text(stringResource(R.string.goal_edit_target)) },
-                    singleLine = true,
+                    lineLimits = TextFieldLineLimits.SingleLine,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     isError = targetSum?.isError ?: (GoalFieldError.TARGET_INVALID in errors),
                     supportingText = targetSum.orSupporting(errorText(GoalFieldError.TARGET_INVALID in errors, R.string.goal_edit_error_target)),
@@ -176,8 +177,7 @@ fun GoalEditScreen(
 
             OutlinedTextField(
                 shape = RoundedField.shape,
-                value = form.dueDate?.format(goalDateFormat).orEmpty(),
-                onValueChange = {},
+                state = rememberSyncedTextFieldState(form.dueDate?.format(goalDateFormat).orEmpty()) {},
                 readOnly = true,
                 label = { Text(stringResource(R.string.goal_edit_due)) },
                 trailingIcon = {
@@ -199,11 +199,11 @@ fun GoalEditScreen(
                 val savedSum = saved.sumHint
                 OutlinedTextField(
                     shape = RoundedField.shape,
-                    value = saved.value,
-                    onValueChange = saved::onValueChange,
+                    state = saved.state,
+                    inputTransformation = saved.inputTransformation,
                     label = { Text(stringResource(R.string.goal_edit_already_saved)) },
                     prefix = { Text(CurrencyFormatter.getCurrencySymbol(form.currency)) },
-                    singleLine = true,
+                    lineLimits = TextFieldLineLimits.SingleLine,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     isError = savedSum?.isError ?: (GoalFieldError.ALREADY_SAVED_INVALID in errors),
                     supportingText = savedSum.orSupporting {
@@ -296,13 +296,12 @@ internal fun CurrencyField(
     ) {
         OutlinedTextField(
             shape = RoundedField.shape,
-            value = currency,
-            onValueChange = {},
+            state = rememberSyncedTextFieldState(currency) {},
             readOnly = true,
             enabled = enabled,
             label = { Text(stringResource(R.string.goal_edit_currency)) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            singleLine = true,
+            lineLimits = TextFieldLineLimits.SingleLine,
             modifier = Modifier.menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled),
         )
         ExposedDropdownMenu(expanded = expanded && enabled, onDismissRequest = { expanded = false }, shape = MaterialTheme.shapes.large) {

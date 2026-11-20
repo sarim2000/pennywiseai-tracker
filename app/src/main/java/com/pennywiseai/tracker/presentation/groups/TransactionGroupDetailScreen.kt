@@ -6,6 +6,8 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -35,6 +37,7 @@ import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
+import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.ui.theme.investment
 import com.pennywiseai.tracker.ui.theme.spending
@@ -519,11 +522,10 @@ private fun AddTransactionToGroupSheet(
             Spacer(modifier = Modifier.height(Spacing.sm))
 
             TextField(
-                value = searchQuery,
-                onValueChange = onSearchQueryChange,
+                state = rememberSyncedTextFieldState(searchQuery, onSearchQueryChange),
                 placeholder = { Text(stringResource(R.string.group_detail_picker_search)) },
                 leadingIcon = { Icon(Icons.Default.Search, null) },
-                singleLine = true,
+                lineLimits = TextFieldLineLimits.SingleLine,
                 shape = MaterialTheme.shapes.large,
                 colors = TextFieldDefaults.colors(
                     focusedIndicatorColor = Color.Transparent,
@@ -626,8 +628,8 @@ private fun EditGroupDialog(
     onDismiss: () -> Unit,
     onSave: (String, String?) -> Unit
 ) {
-    var name by remember { mutableStateOf(currentName) }
-    var note by remember { mutableStateOf(currentNote ?: "") }
+    val nameState = rememberTextFieldState(currentName)
+    val noteState = rememberTextFieldState(currentNote ?: "")
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -635,10 +637,9 @@ private fun EditGroupDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 TextField(
-                    value = name,
-                    onValueChange = { name = it },
+                    state = nameState,
                     label = { Text(stringResource(R.string.group_name)) },
-                    singleLine = true,
+                    lineLimits = TextFieldLineLimits.SingleLine,
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                     shape = MaterialTheme.shapes.large,
                     colors = TextFieldDefaults.colors(
@@ -648,10 +649,9 @@ private fun EditGroupDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
                 TextField(
-                    value = note,
-                    onValueChange = { note = it },
+                    state = noteState,
                     label = { Text(stringResource(R.string.group_note)) },
-                    singleLine = true,
+                    lineLimits = TextFieldLineLimits.SingleLine,
                     shape = MaterialTheme.shapes.large,
                     colors = TextFieldDefaults.colors(
                         focusedIndicatorColor = Color.Transparent,
@@ -663,8 +663,8 @@ private fun EditGroupDialog(
         },
         confirmButton = {
             TextButton(
-                onClick = { onSave(name, note.ifBlank { null }) },
-                enabled = name.isNotBlank(),
+                onClick = { onSave(nameState.text.toString(), noteState.text.toString().ifBlank { null }) },
+                enabled = nameState.text.isNotBlank(),
                 shapes = ButtonDefaults.shapes()
             ) {
                 Text(stringResource(R.string.group_save))

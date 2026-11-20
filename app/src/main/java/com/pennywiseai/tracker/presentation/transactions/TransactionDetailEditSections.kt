@@ -5,6 +5,9 @@ import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.selection.toggleable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.InputTransformation
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.then
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.CallSplit
 import androidx.compose.material.icons.filled.*
@@ -26,6 +29,7 @@ import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.domain.model.AmountInput
 import com.pennywiseai.tracker.presentation.add.ReceiptPickerSection
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
@@ -38,6 +42,7 @@ import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.components.orSupporting
 import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.icons.categoryLabel
+import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.money
@@ -63,6 +68,13 @@ private val editTopShape: Shape @Composable get() = ListItemPosition.Top.toShape
 private val editMiddleShape: Shape @Composable get() = ListItemPosition.Middle.toShape()
 private val editBottomShape: Shape @Composable get() = ListItemPosition.Bottom.toShape()
 internal val editFullShape: Shape @Composable get() = RoundedField.shape
+
+// The editor keeps its last amount rather than take an empty or zero one, so the field
+// doesn't show one either; a sum that doesn't come to an amount yet is still fine.
+private val PositivePlainAmount = InputTransformation {
+    val text = asCharSequence().toString()
+    if (!AmountInput.hasOperator(text) && (text.toBigDecimalOrNull()?.signum() ?: 0) <= 0) revertAllChanges()
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -94,14 +106,14 @@ internal fun EditableTransactionHeader(
             )
             val amountSum = amount.sumHint
             TextField(
-                value = amount.value,
-                onValueChange = amount::onValueChange,
+                state = amount.state,
+                inputTransformation = amount.inputTransformation.then(PositivePlainAmount),
                 label = { Text(stringResource(R.string.txn_detail_field_amount), fontWeight = FontWeight.SemiBold) },
                 textStyle = MaterialTheme.typography.headlineSmall.money(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 isError = amountSum?.isError == true,
                 supportingText = amountSum.orSupporting(),
-                singleLine = true,
+                lineLimits = TextFieldLineLimits.SingleLine,
                 modifier = Modifier.weight(1f).then(amount.modifier),
                 shape = editFullShape,
                 colors = editFilledColors()
@@ -114,8 +126,7 @@ internal fun EditableTransactionHeader(
             verticalArrangement = Arrangement.spacedBy(1.5.dp)
         ) {
             TextField(
-                value = transaction.merchantName,
-                onValueChange = { viewModel.updateMerchantName(it) },
+                state = rememberSyncedTextFieldState(transaction.merchantName) { viewModel.updateMerchantName(it) },
                 label = { Text(stringResource(R.string.txn_detail_field_merchant), fontWeight = FontWeight.SemiBold) },
                 leadingIcon = {
                     BrandIcon(
@@ -125,7 +136,7 @@ internal fun EditableTransactionHeader(
                         showBackground = false
                     )
                 },
-                singleLine = true,
+                lineLimits = TextFieldLineLimits.SingleLine,
                 modifier = Modifier.fillMaxWidth(),
                 shape = editTopShape,
                 isError = transaction.merchantName.isBlank(),
@@ -136,8 +147,7 @@ internal fun EditableTransactionHeader(
             // for all transactions from it. The raw merchant above is unchanged.
             val merchantAlias by viewModel.merchantAlias.collectAsStateWithLifecycle()
             TextField(
-                value = merchantAlias,
-                onValueChange = { viewModel.updateMerchantAlias(it) },
+                state = rememberSyncedTextFieldState(merchantAlias) { viewModel.updateMerchantAlias(it) },
                 label = { Text(stringResource(R.string.txn_detail_field_alias), fontWeight = FontWeight.SemiBold) },
                 placeholder = { Text(stringResource(R.string.txn_detail_field_alias_placeholder)) },
                 leadingIcon = {
@@ -147,15 +157,14 @@ internal fun EditableTransactionHeader(
                         modifier = Modifier.size(Dimensions.Icon.medium)
                     )
                 },
-                singleLine = true,
+                lineLimits = TextFieldLineLimits.SingleLine,
                 modifier = Modifier.fillMaxWidth(),
                 shape = editMiddleShape,
                 colors = editFilledColors()
             )
 
             TextField(
-                value = transaction.description ?: "",
-                onValueChange = { viewModel.updateDescription(it) },
+                state = rememberSyncedTextFieldState(transaction.description ?: "") { viewModel.updateDescription(it) },
                 label = { Text(stringResource(R.string.txn_detail_field_description), fontWeight = FontWeight.SemiBold) },
                 leadingIcon = {
                     Icon(
@@ -172,8 +181,7 @@ internal fun EditableTransactionHeader(
             // Only the extracted/typed reference; the view mode's smsSender
             // fallback is display-only and must never be saved as a reference.
             TextField(
-                value = transaction.reference ?: "",
-                onValueChange = { viewModel.updateReference(it) },
+                state = rememberSyncedTextFieldState(transaction.reference ?: "") { viewModel.updateReference(it) },
                 label = { Text(stringResource(R.string.txn_detail_field_reference), fontWeight = FontWeight.SemiBold) },
                 leadingIcon = {
                     Icon(
@@ -182,7 +190,7 @@ internal fun EditableTransactionHeader(
                         modifier = Modifier.size(Dimensions.Icon.medium)
                     )
                 },
-                singleLine = true,
+                lineLimits = TextFieldLineLimits.SingleLine,
                 modifier = Modifier.fillMaxWidth(),
                 shape = editBottomShape,
                 colors = editFilledColors()
@@ -536,8 +544,9 @@ private fun BudgetImpactSection(viewModel: TransactionDetailViewModel) {
             ) {
                 OutlinedTextField(
                     shape = RoundedField.shape,
-                    value = budgetCategory ?: stringResource(R.string.txn_detail_budget_select_category),
-                    onValueChange = {},
+                    state = rememberSyncedTextFieldState(
+                        budgetCategory ?: stringResource(R.string.txn_detail_budget_select_category)
+                    ) {},
                     readOnly = true,
                     label = { Text(stringResource(R.string.txn_detail_budget_category)) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },

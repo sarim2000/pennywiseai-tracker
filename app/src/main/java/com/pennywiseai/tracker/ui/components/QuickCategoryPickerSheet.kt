@@ -8,6 +8,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
@@ -46,6 +47,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.icons.categoryLabel
+import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 
@@ -224,11 +226,10 @@ fun List<CategoryEntity>.mostUsed(usage: List<String>, limit: Int = 8): List<Cat
 @Composable
 private fun CategorySearchField(query: String, onQueryChange: (String) -> Unit, modifier: Modifier = Modifier) {
     TextField(
-        value = query,
-        onValueChange = onQueryChange,
+        state = rememberSyncedTextFieldState(query, onQueryChange),
         placeholder = { Text(stringResource(R.string.category_picker_search)) },
         leadingIcon = { Icon(Icons.Default.Search, contentDescription = null) },
-        singleLine = true,
+        lineLimits = TextFieldLineLimits.SingleLine,
         shape = RoundedField.shape,
         colors = RoundedField.colors(),
         modifier = modifier.fillMaxWidth()

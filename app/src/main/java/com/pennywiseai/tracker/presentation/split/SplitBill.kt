@@ -21,8 +21,11 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.InputTransformation
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.clearText
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -82,6 +85,7 @@ import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.components.orSupporting
 import com.pennywiseai.tracker.ui.components.rememberAmountEntry
+import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -198,6 +202,13 @@ fun SplitSection(
     }
 }
 
+/** A UPI ID never has surrounding spaces: they're dropped as they're typed or pasted. */
+private val trimInput = InputTransformation {
+    val typed = toString()
+    val trimmed = typed.trim()
+    if (trimmed != typed) replace(0, length, trimmed)
+}
+
 /** Asks for your own UPI ID; [onSave] returns false to keep the dialog open on an invalid one. */
 @Composable
 fun UpiIdDialog(initial: String, onDismiss: () -> Unit, onSave: (String) -> Boolean, allowClear: Boolean = false) {
@@ -211,10 +222,10 @@ fun UpiIdDialog(initial: String, onDismiss: () -> Unit, onSave: (String) -> Bool
                 Text(stringResource(R.string.split_upi_message), style = MaterialTheme.typography.bodyMedium)
                 OutlinedTextField(
                     shape = RoundedField.shape,
-                    value = value,
-                    onValueChange = { value = it.trim(); invalid = false },
+                    state = rememberSyncedTextFieldState(value) { value = it; invalid = false },
+                    inputTransformation = trimInput,
                     placeholder = { Text(stringResource(R.string.split_upi_hint)) },
-                    singleLine = true,
+                    lineLimits = TextFieldLineLimits.SingleLine,
                     isError = invalid,
                     supportingText = if (invalid) { { Text(stringResource(R.string.split_upi_invalid)) } } else null,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Email),
@@ -246,7 +257,7 @@ fun SplitBillSheet(viewModel: SplitBillViewModel, transaction: TransactionEntity
     val preview = f.preview(total, currency)
     val digits = SplitRules.fractionDigits(currency)
     val amountInput = remember(digits) { Regex(if (digits == 0) "^\\d*$" else "^\\d*(\\.\\d{0,$digits})?$") }
-    var name by rememberSaveable { mutableStateOf("") }
+    val nameState = rememberTextFieldState()
     var confirmRemove by rememberSaveable { mutableStateOf(false) }
     val full = f.people.size >= SplitRules.MAX_PEOPLE
     // Rows sit one tonal step above the sheet, or they vanish into it.
@@ -314,11 +325,11 @@ fun SplitBillSheet(viewModel: SplitBillViewModel, transaction: TransactionEntity
                             val shareSum = share.sumHint
                             OutlinedTextField(
                                 shape = RoundedField.shape,
-                                value = share.value,
-                                onValueChange = share::onValueChange,
+                                state = share.state,
+                                inputTransformation = share.inputTransformation,
                                 label = { Text(person.name) },
                                 prefix = { Text(symbol) },
-                                singleLine = true,
+                                lineLimits = TextFieldLineLimits.SingleLine,
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                                 isError = shareSum?.isError == true,
                                 supportingText = shareSum.orSupporting(),
@@ -331,11 +342,11 @@ fun SplitBillSheet(viewModel: SplitBillViewModel, transaction: TransactionEntity
                     val yoursSum = yours.sumHint
                     OutlinedTextField(
                         shape = RoundedField.shape,
-                        value = yours.value,
-                        onValueChange = yours::onValueChange,
+                        state = yours.state,
+                        inputTransformation = yours.inputTransformation,
                         label = { Text(stringResource(R.string.split_your_part)) },
                         prefix = { Text(symbol) },
-                        singleLine = true,
+                        lineLimits = TextFieldLineLimits.SingleLine,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         isError = yoursSum?.isError == true,
                         supportingText = yoursSum.orSupporting(),
@@ -361,16 +372,15 @@ fun SplitBillSheet(viewModel: SplitBillViewModel, transaction: TransactionEntity
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
                 if (!full) {
-                    fun add() { if (viewModel.addPerson(name)) name = "" }
+                    fun add() { if (viewModel.addPerson(nameState.text.toString())) nameState.clearText() }
                     OutlinedTextField(
-                        value = name,
-                        onValueChange = { name = it },
+                        state = nameState,
                         label = { Text(stringResource(R.string.split_person_name)) },
-                        singleLine = true,
+                        lineLimits = TextFieldLineLimits.SingleLine,
                         keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                        keyboardActions = KeyboardActions(onDone = { add() }),
+                        onKeyboardAction = { add() },
                         trailingIcon = {
-                            IconButton(onClick = ::add, enabled = name.isNotBlank(), shapes = IconButtonDefaults.shapes()) {
+                            IconButton(onClick = ::add, enabled = nameState.text.isNotBlank(), shapes = IconButtonDefaults.shapes()) {
                                 Icon(Icons.Default.PersonAdd, contentDescription = stringResource(R.string.split_add_person))
                             }
                         },

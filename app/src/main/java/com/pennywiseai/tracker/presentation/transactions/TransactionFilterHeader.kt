@@ -4,6 +4,8 @@ import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.foundation.text.input.TextFieldDecorator
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Sort
 import androidx.compose.material.icons.filled.*
@@ -31,6 +33,7 @@ import com.pennywiseai.tracker.presentation.common.shortLabel
 import com.pennywiseai.tracker.ui.components.*
 import com.pennywiseai.tracker.ui.components.profileIcon
 import com.pennywiseai.tracker.ui.icons.categoryLabel
+import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
 import com.pennywiseai.tracker.ui.theme.*
 
 /** The type filters offered as one-tap chips under the search field. */
@@ -81,15 +84,14 @@ internal fun ActivitySearchField(
                 modifier = Modifier.size(Dimensions.Icon.medium)
             )
             BasicTextField(
-                value = query,
-                onValueChange = onQueryChange,
-                singleLine = true,
+                state = rememberSyncedTextFieldState(query, onQueryChange),
+                lineLimits = TextFieldLineLimits.SingleLine,
                 textStyle = MaterialTheme.typography.bodyLarge.copy(color = MaterialTheme.colorScheme.onSurface),
                 cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
                 modifier = Modifier
                     .weight(1f)
                     .focusRequester(focusRequester),
-                decorationBox = { innerTextField ->
+                decorator = TextFieldDecorator { innerTextField ->
                     Box(contentAlignment = Alignment.CenterStart) {
                         if (query.isEmpty()) {
                             Text(

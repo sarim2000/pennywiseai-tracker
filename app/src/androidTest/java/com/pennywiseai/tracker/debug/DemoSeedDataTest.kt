@@ -11,6 +11,7 @@ import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.currency.ExchangeRateProvider
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.ChatMessage
+import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.expandWithChildren
 import com.pennywiseai.tracker.data.database.longs
 import com.pennywiseai.tracker.data.model.SpendingComparison
@@ -59,6 +60,12 @@ class DemoSeedDataTest {
             assertEquals(listOf(4L), db.longs("SELECT count(DISTINCT bank_name) FROM transactions"))
             assertEquals(listOf(3L), db.longs("SELECT count(DISTINCT currency) FROM transactions"))
             assertEquals(listOf(0L), db.longs("SELECT count(*) FROM pragma_foreign_key_check"))
+            val creditPurchases = db.transactionDao().getTransactionsByType(TransactionType.CREDIT).first()
+            assertTrue(creditPurchases.any { it.transactionHash.startsWith("${DEMO_PREFIX}chart-") })
+            assertEquals(
+                db.transactionDao().getTransactionsForAccountStrict("Bank al Etihad", "2002").map { it.id }.toSet(),
+                creditPurchases.map { it.id }.toSet()
+            )
             assertEquals(2, db.goalDao().observeEffectiveContributions().first().size)
             assertEquals(2, db.chatDao().getMessageCount())
             assertTrue(db.webhookProfileDao().enabled().isEmpty())
@@ -132,6 +139,26 @@ class DemoSeedDataTest {
 
         assertTrue(db.transactionDao().countAllTransactions() >= 4_000)
         assertEquals(templates, rules.getAllRules().first().filter { it.isSystemTemplate })
+    }
+
+    @Test
+    fun enabledOrEditedBuiltInTemplateBlocksSeed() = withSeeder { db, context, preferences ->
+        val rules = db.ruleDao()
+        val repository = RuleRepositoryImpl(rules, db.ruleApplicationDao(), RuleEngine())
+        InitializeRuleTemplatesUseCase(repository, RuleTemplateService())()
+        val template = repository.getAllRules().first().first()
+
+        repository.setRuleActive(template.id, true)
+        assertEquals(DemoSeedStatus.HAS_DATA, db.seedDemoData(date) { error("Seed must skip receipt") })
+
+        val edited = template.copy(actions = template.actions.map { it.copy(value = "Groceries") })
+        repository.updateRule(edited)
+        assertEquals(DemoSeedStatus.HAS_DATA, db.seedDemoData(date) { error("Seed must skip receipt") })
+        DemoSeeder(context, db, preferences).prepare()
+
+        assertEquals(edited, repository.getRuleById(template.id))
+        assertEquals(0, db.transactionDao().countAllTransactions())
+        assertFalse(preferences.userPreferences.first().hasCompletedOnboarding)
     }
 
     @Test

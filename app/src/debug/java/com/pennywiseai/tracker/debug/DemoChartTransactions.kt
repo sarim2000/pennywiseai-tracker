@@ -11,7 +11,8 @@ internal data class DemoAccount(
     val bank: String,
     val last4: String,
     val currency: String,
-    val profileId: Long = ProfileEntity.PERSONAL_ID
+    val profileId: Long = ProfileEntity.PERSONAL_ID,
+    val purchaseType: TransactionType = TransactionType.EXPENSE
 )
 
 // Keep the extra traffic out of categories with pinned Chat and budget expectations.
@@ -43,7 +44,7 @@ internal fun demoChartTransactions(today: LocalDate, accounts: List<DemoAccount>
                 amount = amount,
                 merchantName = merchant,
                 category = category,
-                transactionType = TransactionType.EXPENSE,
+                transactionType = account.purchaseType,
                 dateTime = if (day == today) posted else posted.plusMinutes(random.nextLong(420, 1320)),
                 createdAt = posted,
                 updatedAt = posted,

@@ -12,6 +12,8 @@ import com.pennywiseai.tracker.domain.model.rule.RuleAction
 import com.pennywiseai.tracker.domain.model.rule.RuleCondition
 import com.pennywiseai.tracker.domain.model.rule.TransactionField
 import com.pennywiseai.tracker.domain.service.RuleEngine
+import com.pennywiseai.tracker.domain.service.RuleTemplateService
+import kotlinx.coroutines.flow.first
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -45,18 +47,20 @@ internal suspend fun PennyWiseDatabase.seedDemoData(today: LocalDate, receipt: (
         ProfileEntity(ProfileEntity.PERSONAL_ID, "Personal", "#4CAF50"),
         ProfileEntity(ProfileEntity.BUSINESS_ID, "Business", "#2196F3", sortOrder = 1)
     )
-    if (!defaultCategories || !defaultProfiles) return@withWriteTransaction DemoSeedStatus.HAS_DATA
+    if (!defaultCategories || !defaultProfiles || !hasOnlyDefaultRuleTemplates()) {
+        return@withWriteTransaction DemoSeedStatus.HAS_DATA
+    }
 
     val tables = usePrepared(
         "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' " +
-            "AND name NOT IN ('android_metadata', 'room_master_table', 'room_table_modification_log', 'categories', 'profiles')"
+            "AND name NOT IN ('android_metadata', 'room_master_table', 'room_table_modification_log', " +
+            "'categories', 'profiles', 'transaction_rules')"
     ) { statement ->
         buildList { while (statement.step()) add(statement.getText(0)) }
     }
     for (table in tables) {
         val quotedTable = table.replace("\"", "\"\"")
-        val filter = if (table == "transaction_rules") "WHERE is_system_template = 0" else ""
-        if (usePrepared("SELECT 1 FROM \"$quotedTable\" $filter LIMIT 1") { it.step() }) {
+        if (usePrepared("SELECT 1 FROM \"$quotedTable\" LIMIT 1") { it.step() }) {
             return@withWriteTransaction DemoSeedStatus.HAS_DATA
         }
     }
@@ -65,12 +69,28 @@ internal suspend fun PennyWiseDatabase.seedDemoData(today: LocalDate, receipt: (
     DemoSeedStatus.CREATED
 }
 
+private suspend fun PennyWiseDatabase.hasOnlyDefaultRuleTemplates(): Boolean {
+    val rules = ruleDao().getAllRules().first()
+    if (rules.isEmpty()) return true
+    val engine = RuleEngine()
+    // Template IDs and timestamps are generated at insertion. Match the stored configuration.
+    return RuleTemplateService().getDefaultRuleTemplates().count { template ->
+        val conditions = engine.serializeConditions(template.conditions)
+        val actions = engine.serializeActions(template.actions)
+        rules.singleOrNull { rule ->
+            rule.isSystemTemplate && rule.isActive == template.isActive &&
+                rule.name == template.name && rule.description == template.description &&
+                rule.priority == template.priority && rule.conditions == conditions && rule.actions == actions
+        } != null
+    } == rules.size
+}
+
 private class DemoLedger(private val db: PennyWiseDatabase, private val today: LocalDate) {
     private val now = today.atStartOfDay()
     private val month = today.withDayOfMonth(1)
     private val lastMonth = month.minusMonths(1)
     private val personal = DemoAccount("Arab Bank", "1001", DEMO_CURRENCY)
-    private val card = DemoAccount("Bank al Etihad", "2002", DEMO_CURRENCY)
+    private val card = DemoAccount("Bank al Etihad", "2002", DEMO_CURRENCY, purchaseType = TransactionType.CREDIT)
     private val business = DemoAccount("Chase", "4004", "USD", ProfileEntity.BUSINESS_ID)
     private val euros = DemoAccount("Deutsche Bank", "5005", "EUR")
 
@@ -94,7 +114,7 @@ private class DemoLedger(private val db: PennyWiseDatabase, private val today: L
         insert(transaction("prior-diner", "Sample Diner", "10.00", FOOD, date = lastMonth.plusDays(18), account = business))
         insert(transaction("prior-bistro", "Example Bistro", "6.00", FOOD, date = lastMonth.plusDays(23), account = euros))
         insert(transaction("salary", "Demo Payroll", "1200.000", "Salary", type = TransactionType.INCOME))
-        insert(transaction("credit", "Demo Books", "13.000", "Education", date = recent(5), account = card, type = TransactionType.CREDIT))
+        insert(transaction("credit", "Demo Books", "13.000", "Education", date = recent(5), account = card))
         insert(transaction("investment", "Demo Index Fund", "75.000", "Investments", date = recent(6), type = TransactionType.INVESTMENT))
         insert(transaction("unsorted", "Demo Unsorted", "3.000", "Others", date = recent(4)))
         insert(transaction("excluded", "Demo Reimbursable", "99.000", FOOD).copy(excludedFromAnalytics = true))
@@ -272,7 +292,7 @@ private class DemoLedger(private val db: PennyWiseDatabase, private val today: L
 
     private fun transaction(
         key: String, merchant: String, amount: String, category: String, date: LocalDate = today,
-        account: DemoAccount = personal, type: TransactionType = TransactionType.EXPENSE
+        account: DemoAccount = personal, type: TransactionType = account.purchaseType
     ) = TransactionEntity(
         amount = BigDecimal(amount), merchantName = merchant, category = category, transactionType = type,
         dateTime = date.atStartOfDay(), bankName = account.bank, accountNumber = account.last4, currency = account.currency,

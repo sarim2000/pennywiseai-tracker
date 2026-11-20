@@ -467,8 +467,31 @@ class AddViewModel @Inject constructor(
         }
     }
 
+    // The check of the receipt last picked; a newer pick or a removal cancels it.
+    private var receiptCheck: Job? = null
+
     fun updateReceiptUri(uri: Uri?) {
-        _transactionUiState.update { it.copy(receiptUri = uri) }
+        receiptCheck?.cancel()
+        if (uri == null) {
+            _transactionUiState.update { it.copy(receiptUri = null, receiptError = null, checkingReceipt = false) }
+            return
+        }
+        // A PDF is checked as it's picked, so a bad one never waits until Save. Save
+        // waits for the check, so it can't go through without the receipt.
+        _transactionUiState.update { it.copy(receiptError = null, checkingReceipt = true) }
+        receiptCheck = viewModelScope.launch {
+            val problem = receiptManager.checkReceipt(uri)
+            _transactionUiState.update {
+                if (problem == null) it.copy(receiptUri = uri, receiptError = null, checkingReceipt = false)
+                else it.copy(receiptError = problem.message(), checkingReceipt = false)
+            }
+        }
+    }
+
+    /** Stops checking the file just picked (a provider can stall); a receipt already accepted stays. */
+    fun cancelReceiptCheck() {
+        receiptCheck?.cancel()
+        _transactionUiState.update { it.copy(checkingReceipt = false) }
     }
 
     fun createCameraUri(): Uri = receiptManager.createCameraUri()
@@ -490,6 +513,7 @@ class AddViewModel @Inject constructor(
 
     fun saveTransaction(onSuccess: () -> Unit) {
         val state = _transactionUiState.value
+        if (state.checkingReceipt) return
         val isTransfer = state.transactionType == TransactionType.TRANSFER
 
         val amountError = validateAmount(state.amount)
@@ -530,7 +554,15 @@ class AddViewModel @Inject constructor(
                 val amount = BigDecimal(state.amount)
                 val selectedAccount = state.selectedAccount
 
-                val receiptPath = state.receiptUri?.let { receiptManager.saveReceipt(it) }
+                val receiptPath = state.receiptUri?.let { uri ->
+                    receiptManager.saveReceipt(uri) ?: run {
+                        // Don't save it quietly without the receipt the user attached.
+                        _transactionUiState.update {
+                            it.copy(isLoading = false, receiptError = UiText.Res(R.string.add_receipt_save_failed))
+                        }
+                        return@launch
+                    }
+                }
 
                 addTransactionUseCase.execute(
                     amount = amount,
@@ -844,6 +876,9 @@ data class TransactionUiState(
     val toAccount: AccountBalanceEntity? = null,
     val currency: String = "INR",
     val receiptUri: Uri? = null,
+    val receiptError: UiText? = null,
+    // A picked receipt is still being checked; Save waits for it.
+    val checkingReceipt: Boolean = false,
     val budgetImpactType: BudgetImpactType? = null,
     val budgetCategory: String? = null,
     // False until a Duplicate/shared/voice draft has been copied in, so the

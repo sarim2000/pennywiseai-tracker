@@ -1,17 +1,23 @@
 package com.pennywiseai.tracker.worker.smsscan
 
+import com.pennywiseai.tracker.core.TimeConstants
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.manager.SmsScanParamsCalculator
+import com.pennywiseai.tracker.data.manager.SmsScanParamsInput
 import com.pennywiseai.tracker.data.mapper.toEntity
 import com.pennywiseai.tracker.data.preferences.BankAccountMergeStore
+import com.pennywiseai.tracker.domain.smsimport.SmsScanCounts
 import io.mockk.coEvery
 import io.mockk.coVerify
+import io.mockk.every
 import io.mockk.unmockkStatic
 import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.CoroutineStart
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.channels.SendChannel
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
@@ -172,6 +178,170 @@ class SmsScanPipelineTest {
         assertEquals(6, stats.processed.get())
         assertEquals(5, stats.saved.get())
         assertEquals(5, h.store.all.size)
+        assertEquals(SmsScanCounts(saved = 5, failed = 1), stats.counts())
+        assertEquals(6, stats.counts().examined)
+    }
+
+    @Test
+    fun `a failed save keeps the scan cursor, so an ordinary retry re-reads and saves it`() = scanTest {
+        val day = TimeConstants.MILLIS_PER_DAY
+        val lastScan = 1_760_000_000_000L
+        val firstRun = lastScan + 10 * day
+        val retryRun = firstRun + 60 * 60_000L
+        // Inside the first scan's window, but older than the retry's 3-day overlap.
+        val old = hdfcDebit(1).copy(timestamp = lastScan + day)
+        val inbox = object : SmsMessageSource {
+            override suspend fun streamTo(feed: SendChannel<ScannedSms>, scanStartMillis: Long, onUnreadable: () -> Unit) {
+                if (old.timestamp >= scanStartMillis) feed.send(old)
+            }
+        }
+        fun scanStart(cursor: Long, now: Long) = SmsScanParamsCalculator.compute(
+            SmsScanParamsInput(
+                lastScanTimestamp = cursor,
+                scanMonths = 12,
+                scanAllTime = false,
+                scanUseCustomDate = false,
+                lastScanPeriod = 12,
+                nowMillis = now,
+            )
+        ).scanStartTime
+        assertTrue("an advanced cursor would skip it", scanStart(firstRun, retryRun) > old.timestamp)
+
+        var cursor = lastScan
+        h.store.beforeInsert = { error("disk full") }
+        val first = ProcessingStats(total = 1)
+        h.pipeline(inbox).run(scanStart(cursor, firstRun), first)
+        if (first.mayAdvanceCursor()) cursor = firstRun
+        assertEquals(1, first.failed.get())
+
+        h.store.beforeInsert = {}
+        val retry = ProcessingStats(total = 1)
+        h.pipeline(inbox).run(scanStart(cursor, retryRun), retry)
+
+        assertEquals(1, retry.saved.get())
+        assertEquals(1, h.store.all.size)
+        assertTrue(retry.mayAdvanceCursor())
+    }
+
+    @Test
+    fun `losing SMS access fails the scan instead of finishing it empty`() = scanTest {
+        val noAccess = object : SmsMessageSource {
+            override suspend fun streamTo(feed: SendChannel<ScannedSms>, scanStartMillis: Long, onUnreadable: () -> Unit) {
+                throw SecurityException("READ_SMS not granted")
+            }
+        }
+
+        val failure = runCatching { h.pipeline(noAccess).run(0L, ProcessingStats(total = 0)) }.exceptionOrNull()
+
+        assertTrue(failure is SecurityException)
+    }
+
+    @Test
+    fun `an SMS read that breaks off saves what it read, then fails the scan`() = scanTest {
+        val read = (1..5).map(::hdfcDebit)
+        val brokenRead = object : SmsMessageSource {
+            override suspend fun streamTo(feed: SendChannel<ScannedSms>, scanStartMillis: Long, onUnreadable: () -> Unit) {
+                read.forEach { feed.send(it) }
+                throw IllegalStateException("cursor window broke")
+            }
+        }
+        val stats = ProcessingStats(total = 10)
+
+        val failure = runCatching { h.pipeline(brokenRead).run(0L, stats) }.exceptionOrNull()
+
+        assertTrue("the scan must not pass for a finished one", failure is IllegalStateException)
+        assertEquals(5, stats.processed.get())
+        assertEquals("every message read before the break is saved", 5, h.store.all.size)
+    }
+
+    @Test
+    fun `an unreadable row counts as not read and doesn't hold the cursor`() = scanTest {
+        val inbox = object : SmsMessageSource {
+            override suspend fun streamTo(feed: SendChannel<ScannedSms>, scanStartMillis: Long, onUnreadable: () -> Unit) {
+                feed.send(hdfcDebit(1))
+                onUnreadable()
+                feed.send(hdfcDebit(2))
+            }
+        }
+        val stats = ProcessingStats(total = 3)
+
+        h.pipeline(inbox).run(0L, stats)
+
+        assertEquals(1, stats.notRead.get())
+        assertEquals(3, stats.counts().examined)
+        assertEquals(2, h.store.all.size)
+        assertTrue("the scan moves on past it, so the next one doesn't stop there again", stats.mayAdvanceCursor())
+    }
+
+    @Test
+    fun `every message lands in exactly one outcome`() = scanTest {
+        val special = hdfcDebit(3)
+        val broken = hdfcDebit(4)
+        val inbox = listOf(
+            hdfcDebit(1),
+            hdfcDebit(2),
+            hdfcDebit(1).copy(id = 99L),
+            scannedSms("AD-SHOPXX-P", "Big sale today", id = 10L),
+            scannedSms("AD-NEWBNK-T", "Your statement is ready", id = 11L),
+            special,
+            broken,
+        )
+
+        val stats = h.scan(
+            inbox,
+            classify = { sms ->
+                when (sms.id) {
+                    special.id -> ParseResult.SpecialNotification(sms) {}
+                    broken.id -> error("parser bug")
+                    else -> h.classifier.classify(sms)
+                }
+            },
+        )
+
+        assertEquals(
+            SmsScanCounts(saved = 2, duplicates = 1, excluded = 0, unrecognised = 1, discarded = 2, special = 1),
+            stats.counts(),
+        )
+        assertEquals(inbox.size, stats.counts().examined)
+        assertEquals(stats.processed.get(), stats.counts().examined)
+    }
+
+    @Test
+    fun `a balance or mandate that fails to save counts as failed, not special`() = scanTest {
+        val stats = h.scan(
+            listOf(hdfcDebit(1), hdfcDebit(2)),
+            classify = { sms ->
+                ParseResult.SpecialNotification(sms) { if (sms.id == 2L) error("database is locked") }
+            },
+        )
+
+        assertEquals(SmsScanCounts(special = 1, failed = 1), stats.counts())
+        assertFalse(stats.mayAdvanceCursor())
+    }
+
+    @Test
+    fun `unrecognized messages that fail to file count as failed`() = scanTest {
+        coEvery { h.unrecognized.insertAll(any()) } throws IllegalStateException("disk full")
+
+        val stats = h.scan(
+            listOf(
+                scannedSms("AD-NEWBNK-T", "Your statement is ready", id = 1L),
+                scannedSms("ZQTBNK", "Card payment EUR 12.50 at TEST SHOP", id = 2L),
+            )
+        )
+
+        assertEquals(SmsScanCounts(failed = 2), stats.counts())
+        assertFalse(stats.mayAdvanceCursor())
+    }
+
+    @Test
+    fun `an ignored account's messages count as excluded`() = scanTest {
+        every { h.ignored.isIgnored(any(), *anyVararg()) } returns true
+
+        val stats = h.scan((1..3).map(::hdfcDebit))
+
+        assertEquals(SmsScanCounts(excluded = 3), stats.counts())
+        assertTrue(h.store.all.isEmpty())
     }
 
     @Test

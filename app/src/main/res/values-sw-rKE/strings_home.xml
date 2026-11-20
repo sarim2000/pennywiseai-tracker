@@ -312,6 +312,8 @@
     <string name="notif_daily_action_sort">Panga</string>
     <string name="notif_daily_action_sort_all">Panga</string>
     <string name="notif_daily_action_cash">+ Pesa taslimu</string>
+    <!-- Home "Needs a category" card: this month's transactions still in Others -->
+    <!-- %d is how many one round of sorting covers, oldest first -->
     <!-- Header over a stack of transaction alerts -->
     <plurals name="notif_txn_group_title">
         <item quantity="one">Muamala %d mpya</item>

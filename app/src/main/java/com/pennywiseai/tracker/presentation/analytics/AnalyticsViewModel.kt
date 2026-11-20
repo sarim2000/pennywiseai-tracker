@@ -379,6 +379,8 @@ class AnalyticsViewModel @Inject constructor(
                 // Build category breakdown considering splits
                 val categoryAmounts = mutableMapOf<String, BigDecimal>()
                 val categoryTransactionCounts = mutableMapOf<String, Int>()
+                // Each category's merchants, by the share of each row filed under it.
+                val categoryMerchants = mutableMapOf<String, MutableMap<String, MerchantData>>()
 
                 for (txWithSplits in categoryFilteredWithSplits) {
                     val fromCurrency = txWithSplits.transaction.currency
@@ -393,6 +395,11 @@ class AnalyticsViewModel @Inject constructor(
                         }
                         categoryAmounts[categoryName] = (categoryAmounts[categoryName] ?: BigDecimal.ZERO) + converted
                         categoryTransactionCounts[categoryName] = (categoryTransactionCounts[categoryName] ?: 0) + 1
+                        val tx = txWithSplits.transaction
+                        categoryMerchants.getOrPut(categoryName) { mutableMapOf() }
+                            .merge(tx.merchantName, MerchantData(tx.merchantName, converted, 1, tx.isRecurring)) { a, b ->
+                                MerchantData(a.name, a.amount + b.amount, a.transactionCount + 1, a.isSubscription || b.isSubscription)
+                            }
                     }
                 }
 
@@ -424,7 +431,10 @@ class AnalyticsViewModel @Inject constructor(
                             (categoryTotal.divide(totalSpending, 4, java.math.RoundingMode.HALF_UP) * BigDecimal(100)).toFloat().coerceAtMost(100f)
                         } else 0f,
                         transactionCount = categoryTransactionCounts[categoryName] ?: 0,
-                        color = categoryColorMap[categoryName]
+                        color = categoryColorMap[categoryName],
+                        topMerchants = categoryMerchants[categoryName].orEmpty().values
+                            .sortedByDescending { it.amount }
+                            .take(CATEGORY_TOP_MERCHANTS)
                     )
                 }.sortedByDescending { it.amount }
 
@@ -866,8 +876,13 @@ data class CategoryData(
     val transactionCount: Int,
     // Hex color (e.g. "#4CAF50") of the user's category, when known. Null falls
     // back to the built-in CategoryMapping palette, then gray (#586).
-    val color: String? = null
+    val color: String? = null,
+    // Its biggest merchants, before refunds: a refund nets off the category, not a merchant in it.
+    val topMerchants: List<MerchantData> = emptyList()
 )
+
+/** Merchants shown in a category's detail sheet. */
+internal const val CATEGORY_TOP_MERCHANTS = 5
 
 data class TagData(
     val name: String,

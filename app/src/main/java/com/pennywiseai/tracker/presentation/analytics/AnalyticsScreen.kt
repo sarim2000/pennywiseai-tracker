@@ -48,6 +48,7 @@ import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.DateRangeUtils
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
+import kotlinx.coroutines.launch
 import java.math.BigDecimal
 
 private enum class CategoryViewType { CHART, LIST }
@@ -58,7 +59,7 @@ data class TransactionsDrillDown(
     val merchant: String? = null,
     val account: String? = null,
     val tag: String? = null,
-    /** A [TransactionTypeFilter] name; null (all types) for Spending, which Transactions can't show. */
+    /** A [TransactionTypeFilter] name; null for all types. */
     val type: String? = null,
     val period: String? = null,
     val currency: String? = null,
@@ -93,6 +94,9 @@ fun AnalyticsScreen(
     var showDateRangePicker by rememberSaveable { mutableStateOf(false) }
     var categoryViewType by rememberSaveable { mutableStateOf(CategoryViewType.LIST) }
     var tagViewType by rememberSaveable { mutableStateOf(CategoryViewType.LIST) }
+    // The category whose detail sheet is open, by name so it survives a rotation.
+    var openCategory by rememberSaveable { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
 
     // Remember scroll position across navigation
     val listState = rememberSaveable(saver = LazyListState.Saver) {
@@ -109,7 +113,7 @@ fun AnalyticsScreen(
             group.copy(
                 category = group.category ?: uiState.categoryFilter,
                 account = group.account ?: uiState.accountFilter,
-                type = uiState.typeFilter.takeIf { it.inTransactionsList }?.name,
+                type = uiState.typeFilter.name,
                 period = uiState.period.name,
                 currency = uiState.currency,
                 startDateEpochDay = custom?.first?.toEpochDay(),
@@ -223,7 +227,8 @@ fun AnalyticsScreen(
                                 showUpgradeSheet = true
                             }
                         },
-                        drillDown = drillDown
+                        drillDown = drillDown,
+                        onCategoryClick = { openCategory = it.name }
                     )
                 }
             }
@@ -269,6 +274,36 @@ fun AnalyticsScreen(
         )
     }
 
+    openCategory?.let { name ->
+        val category = uiState.categoryBreakdown.firstOrNull { it.name == name }
+        if (category == null) {
+            // Gone from the breakdown (another period or filter): nothing left to detail.
+            if (!uiState.isLoading) LaunchedEffect(name) { openCategory = null }
+        } else {
+            CategoryDetailSheet(
+                category = category,
+                currency = uiState.currency,
+                onMerchantClick = { merchant ->
+                    openCategory = null
+                    drillDown(TransactionsDrillDown(category = name, merchant = merchant))
+                },
+                onSeeTransactions = {
+                    openCategory = null
+                    drillDown(TransactionsDrillDown(category = name))
+                },
+                // Already scoped to one category: the page is this category's detail.
+                onFocus = if (uiState.categoryFilter == null) {
+                    {
+                        openCategory = null
+                        viewModel.setCategoryFilter(name)
+                        scope.launch { listState.animateScrollToItem(0) }
+                    }
+                } else null,
+                onDismiss = { openCategory = null }
+            )
+        }
+    }
+
     if (showUpgradeSheet) {
         com.pennywiseai.tracker.presentation.paywall.UpgradeSheet(
             onDismiss = { showUpgradeSheet = false }
@@ -295,7 +330,8 @@ private fun BreakdownSection(
     onToggleCategoryView: () -> Unit,
     onToggleTagView: () -> Unit,
     onGroupBySelected: (AnalyticsGroupBy) -> Unit,
-    drillDown: (TransactionsDrillDown) -> Unit
+    drillDown: (TransactionsDrillDown) -> Unit,
+    onCategoryClick: (CategoryData) -> Unit
 ) {
     val motion = MaterialTheme.motionScheme
     val currency = uiState.currency
@@ -348,13 +384,13 @@ private fun BreakdownSection(
                             CategoryPieChart(
                                 categories = uiState.categoryBreakdown,
                                 currency = currency,
-                                onCategoryClick = { drillDown(TransactionsDrillDown(category = it.name)) }
+                                onCategoryClick = onCategoryClick
                             )
                         }
                         CategoryViewType.LIST -> CategoryBreakdownCard(
                             categories = uiState.categoryBreakdown,
                             currency = currency,
-                            onCategoryClick = { drillDown(TransactionsDrillDown(category = it.name)) }
+                            onCategoryClick = onCategoryClick
                         )
                     }
                 }

@@ -177,7 +177,8 @@ private fun CardBillDialog(
     val dayText = dayState.text.toString()
     val day = dayText.trim().toIntOrNull()?.takeIf { it in 1..31 }
     val dayValid = dayText.isBlank() || day != null
-    var text by remember { mutableStateOf(amount?.toPlainString().orEmpty()) }
+    // Saveable like the day, so a rotation keeps the two together.
+    var text by rememberSaveable { mutableStateOf(amount?.toPlainString().orEmpty()) }
     val parsed = text.trim().toBigDecimalOrNull()
     val amountEntry = rememberAmountEntry(text, { text = it }, currency)
     val amountSum = amountEntry.sumHint
@@ -254,7 +255,8 @@ private fun CardBillDialog(
         },
         confirmButton = {
             TextButton(
-                onClick = { onSave(day, parsed) },
+                // Read the fields now, not as last drawn: a Save in the same frame as an edit gets the edit.
+                onClick = { onSave(dayState.text.toString().trim().toIntOrNull()?.takeIf { it in 1..31 }, text.trim().toBigDecimalOrNull()) },
                 enabled = valid && dayValid,
                 shapes = ButtonDefaults.shapes()
             ) { Text(stringResource(R.string.accounts_action_save)) }

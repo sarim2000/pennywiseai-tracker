@@ -463,7 +463,6 @@ fun MainScreen(
                 onOpenFigureRows = { rows ->
                     open(tab, transactionsFor(rows))
                 },
-                onOpenAssistant = { openAsk() }.takeIf { BottomNavItem.Chat.route !in themeState.hiddenNavTabs },
                 onFabPositioned = { position ->
                     spotlightViewModel.updateFabPosition(position)
                 }

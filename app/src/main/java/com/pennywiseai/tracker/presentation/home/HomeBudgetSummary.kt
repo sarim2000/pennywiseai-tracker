@@ -218,11 +218,15 @@ internal fun BudgetOverallSummary.heroBudget(today: LocalDate): HomeHeroBudget? 
     }.maxWithOrNull(compareBy({ it.periodType == BudgetPeriodType.MONTHLY }, { it.windowDays })) ?: return null
     return HomeHeroBudget(
         budgetId = group.group.budget.id,
-        name = group.group.budget.name.takeUnless { group.periodType == BudgetPeriodType.MONTHLY },
+        name = group.group.budget.name.takeUnless {
+            group.periodType == BudgetPeriodType.MONTHLY && group.windowStart.dayOfMonth == 1 &&
+                group.windowEnd == group.windowStart.plusMonths(1).minusDays(1)
+        },
+        windowStart = group.windowStart,
         spent = group.totalActual,
         limit = group.totalBudget,
         currency = currency,
-        daysLeft = ChronoUnit.DAYS.between(today, group.windowEnd).toInt().coerceAtLeast(0),
+        daysLeft = ChronoUnit.DAYS.between(today, group.windowEnd).toInt() + 1,
         pace = paceAgainstLimit(group.totalActual, group.totalBudget, group.windowStart, group.windowEnd, today),
     )
 }

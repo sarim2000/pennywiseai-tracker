@@ -236,6 +236,7 @@ fun BudgetGroupsScreen(
                 uiState = uiState,
                 goalsSection = goalsSection,
                 focusBudgetId = focusBudgetId,
+                collapseHeader = { scrollBehaviorLarge.state.heightOffset = scrollBehaviorLarge.state.heightOffsetLimit },
                 onPreviousMonth = { viewModel.selectPreviousMonth() },
                 onNextMonth = { viewModel.selectNextMonth() },
                 onGroupClick = { groupId -> onNavigateToGroupEdit(groupId) },
@@ -323,6 +324,7 @@ private fun BudgetGroupsContent(
     uiState: BudgetGroupsUiState,
     goalsSection: @Composable () -> Unit = {},
     focusBudgetId: Long? = null,
+    collapseHeader: () -> Unit,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onGroupClick: (Long) -> Unit,
@@ -366,6 +368,7 @@ private fun BudgetGroupsContent(
             focusPending = false
             return@LaunchedEffect
         }
+        collapseHeader()
         expandBudgetId = focusBudgetId
         // Wait for the loaded list's layout: the card at that index has to be this budget.
         snapshotFlow { lazyListState.layoutInfo }.first { info ->
@@ -793,7 +796,8 @@ private fun SpendingPaceChart(
     val spendingColor = if (isOverPace) themeColors.error else themeColors.primary
     val today = rememberToday()
     val pace = if (today in spending.windowStart..spending.windowEnd) {
-        budgetPace(spending.totalActual, spending.totalBudget, spending.daysElapsed, spending.windowDays)
+        val elapsed = java.time.temporal.ChronoUnit.DAYS.between(spending.windowStart, today).toInt() + 1
+        budgetPace(spending.totalActual, spending.totalBudget, elapsed, spending.windowDays)
     } else null
 
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -819,7 +823,7 @@ private fun SpendingPaceChart(
                 Line(
                     label = stringResource(R.string.budgets_chart_pace),
                     values = paceValues,
-                    color = SolidColor(themeColors.onSurfaceVariant.copy(alpha = 0.4f)),
+                    color = SolidColor(themeColors.onSurfaceVariant),
                     drawStyle = DrawStyle.Stroke(width = Dimensions.Component.dividerThicknessEmphasis),
                     strokeAnimationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
                     curvedEdges = false,
@@ -880,6 +884,10 @@ private fun SpendingPaceChart(
             )
             Text(
                 when {
+                    pace.isOverBudget -> stringResource(
+                        R.string.budgets_over_budget,
+                        CurrencyFormatter.formatCurrency(spending.totalActual - spending.totalBudget, currency)
+                    )
                     pace.daysOver > 0 -> pluralStringResource(R.plurals.budget_card_days_over_pace, pace.daysOver, pace.daysOver)
                     pace.daysOver < 0 -> (-pace.daysOver).let {
                         pluralStringResource(R.plurals.budget_card_days_under_pace, it, it)

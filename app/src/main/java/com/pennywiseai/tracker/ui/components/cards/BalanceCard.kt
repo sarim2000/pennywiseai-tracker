@@ -72,7 +72,6 @@ import com.pennywiseai.tracker.ui.theme.warning
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
-import java.math.RoundingMode
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
@@ -86,22 +85,18 @@ import java.time.format.TextStyle as DateTextStyle
 data class HomeHeroBudget(
     /** The budget's id, so the budget carousel can leave out the one the hero already shows. */
     val budgetId: Long,
-    /** The budget's own name; null for a monthly budget, which the hero names by the month. */
+    /** The budget's own name; null when the window is exactly a calendar month. */
     val name: String?,
+    val windowStart: LocalDate,
     val spent: BigDecimal,
     val limit: BigDecimal,
     val currency: String,
-    /** Whole days after today until the window ends; 0 on its last day. */
+    /** Days until the window ends, including today. */
     val daysLeft: Int,
     /** Where the window should end at this pace: under (+) or over (−) the limit; null too early to say. */
     val pace: BigDecimal? = null,
 ) {
     val remaining: BigDecimal get() = limit - spent
-
-    /** What's left spread over the days still to come, today included. */
-    val perDay: BigDecimal
-        get() = remaining.coerceAtLeast(BigDecimal.ZERO)
-            .divide(BigDecimal(daysLeft + 1), 0, RoundingMode.HALF_UP)
 
     val fractionUsed: Float
         get() = if (limit.signum() > 0) (spent.toFloat() / limit.toFloat()).coerceIn(0f, 1f) else 1f
@@ -245,9 +240,12 @@ fun BalanceCard(
                     Column {
                         if (budget != null) {
                             Spacer(modifier = Modifier.height(Spacing.md))
-                            // The limit only: what's spent is under Expenses below.
                             Text(
-                                text = stringResource(R.string.home_hero_budget_limit, hidden(budget.limit, budget.currency)),
+                                text = stringResource(
+                                    R.string.budget_card_spent_of,
+                                    hidden(budget.spent, budget.currency),
+                                    hidden(budget.limit, budget.currency),
+                                ),
                                 style = MaterialTheme.typography.bodyLarge.tabular(),
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -299,7 +297,7 @@ fun BalanceCard(
                         )
                     }
                 }
-                footer?.invoke()
+                if (footer != null) MaterialTheme(colorScheme = outer, content = footer)
             }
         }
     }
@@ -320,7 +318,7 @@ private fun paceText(budget: HomeHeroBudget, format: (BigDecimal, String) -> Str
 @Composable
 private fun monthLine(cycleEnd: LocalDate?): String? {
     val today = LocalDate.now()
-    val days = cycleEnd?.takeIf { !it.isBefore(today) }?.let { ChronoUnit.DAYS.between(today, it).toInt() }
+    val days = cycleEnd?.takeIf { !it.isBefore(today) }?.let { ChronoUnit.DAYS.between(today, it).toInt() + 1 }
     return days?.let { daysLeftText(it) }
 }
 
@@ -371,7 +369,7 @@ private fun heroLabel(budget: HomeHeroBudget?): String {
     val over = budget.remaining.signum() < 0
     val name = budget.name
     return if (name == null) {
-        val month = LocalDate.now().month.getDisplayName(DateTextStyle.FULL, AppDates.locale())
+        val month = budget.windowStart.month.getDisplayName(DateTextStyle.FULL, AppDates.locale())
         stringResource(if (over) R.string.home_hero_over_in_month else R.string.home_hero_left_in_month, month)
     } else {
         stringResource(if (over) R.string.home_hero_over_in_budget else R.string.home_hero_left_in_budget, name)
@@ -380,7 +378,7 @@ private fun heroLabel(budget: HomeHeroBudget?): String {
 
 @Composable
 private fun daysLeftText(days: Int): String =
-    if (days <= 0) stringResource(R.string.home_hero_last_day)
+    if (days <= 1) stringResource(R.string.home_hero_last_day)
     else pluralStringResource(R.plurals.home_hero_days_left, days, days)
 
 @Composable
@@ -524,7 +522,7 @@ private fun MonthDetails(
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
         // Spending sparkline
-        if (spendingHistory.isNotEmpty()) {
+        if (!isBalanceHidden && spendingHistory.isNotEmpty()) {
             Spacer(modifier = Modifier.height(Spacing.md))
             val expenseColor = MaterialTheme.colorScheme.expense
             BalanceSparkline(
@@ -671,7 +669,7 @@ private fun MonthDetails(
 @Composable
 private fun HeroLink(label: String, onClick: () -> Unit) {
     TextButton(onClick = onClick, shapes = ButtonDefaults.shapes()) {
-        Text(label, color = MaterialTheme.colorScheme.primary)
+        Text(label, color = MaterialTheme.colorScheme.onPrimaryContainer)
     }
 }
 
@@ -767,7 +765,6 @@ private fun ColorScheme.heroTones() = copy(
     onSurface = onPrimaryContainer,
     // Full-opacity ink: the type scale, not a faded colour, tells the levels apart.
     onSurfaceVariant = onPrimaryContainer,
-    surfaceContainerHighest = surface.copy(alpha = Dimensions.Alpha.surface),
     outline = onPrimaryContainer.copy(alpha = Dimensions.Alpha.medium),
     outlineVariant = onPrimaryContainer.copy(alpha = Dimensions.Alpha.divider),
 )

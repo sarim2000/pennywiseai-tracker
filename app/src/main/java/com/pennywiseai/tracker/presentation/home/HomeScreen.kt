@@ -101,7 +101,6 @@ fun HomeScreen(
     /** Opens the rows behind one of Home's figures, in the window, profile and currency it counts. */
     onOpenFigureRows: (HomeFigureRows) -> Unit = {},
     /** Opens the Ask tab; null while that tab is hidden. Home has no Ask entry of its own (the tab is it). */
-    @Suppress("UNUSED_PARAMETER") onOpenAssistant: (() -> Unit)? = null,
     onFabPositioned: (Rect) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()

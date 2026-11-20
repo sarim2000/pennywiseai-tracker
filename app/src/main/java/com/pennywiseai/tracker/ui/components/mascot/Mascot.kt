@@ -37,13 +37,11 @@ import androidx.compose.ui.graphics.StrokeJoin
 import androidx.compose.ui.graphics.drawscope.DrawScope
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.drawscope.clipPath
-import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.rotate
 import androidx.compose.ui.graphics.drawscope.scale
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.isSpecified
-import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -69,9 +67,10 @@ import androidx.compose.ui.graphics.lerp as lerpColor
  * The PennyWise mascot: a [shape] with eyes that blink and look around, showing a [mood].
  * It is decoration and stays silent to accessibility — give the slot around it its name.
  *
- * Up to 32dp it draws as a two-tone glyph: a [tint] silhouette with the eyes cut out, so
- * whatever is behind it (a nav pill, a bar) shows through. Larger, it draws the detailed
- * owl from theme roles; other shapes take the tertiary container roles. Pass the host's
+ * The owl is line art in [tint]: eye rings, ear tufts and a beak, with pill eyes in the
+ * rings. Up to 32dp the other shapes draw as a two-tone glyph: a [tint] silhouette with
+ * the eyes cut out, so whatever is behind it (a nav pill, a bar) shows through. Larger,
+ * they take the tertiary container roles. Pass the host's
  * [containerColor] with its matching [tint] to keep the silhouette legible through a morph.
  *
  * How it moves doesn't depend on its size. By default it blinks on a delay-driven clock
@@ -223,9 +222,6 @@ private const val TWO_TONE_EYE_SCALE = 1.5f
 
 /** A pie's profile follows its share; past this many cached, they're rebuilt as needed. */
 private const val MAX_PROFILES = 32
-
-/** Below this contrast against the body, the face mask falls back to a neutral container. */
-private const val MASK_MIN_CONTRAST = 1.6f
 
 @Stable
 private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
@@ -536,10 +532,9 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
 
 private class MascotColors(
     val body: Color,
-    val mask: Color,
+    /** A coin's shine and the sparkles and coin of an arrival. */
     val disc: Color,
     val iris: Color,
-    val pupil: Color,
     val shadow: Color,
     /** The other shapes: a container body with its ink for eyes and markings. */
     val objectBody: Color,
@@ -552,24 +547,12 @@ private fun mascotColors(body: Color, containerColor: Color): MascotColors {
     val dark = scheme.isDark
     return MascotColors(
         body = body,
-        // Some branded schemes put primaryContainer right next to primary.
-        mask = if (contrastRatio(body, scheme.primaryContainer) < MASK_MIN_CONTRAST) scheme.surfaceContainerHigh
-        else scheme.primaryContainer,
-        // Light discs with dark pupils in both themes.
         disc = if (dark) scheme.onSurface else scheme.surface,
         iris = scheme.tertiary,
-        pupil = if (dark) scheme.surface else scheme.onSurface,
         shadow = scheme.onSurface,
         objectBody = if (containerColor.isSpecified) body else scheme.tertiaryContainer,
         objectInk = containerColor.takeOrElse { scheme.onTertiaryContainer },
     )
-}
-
-/** WCAG contrast ratio between two opaque colours (1..21). */
-private fun contrastRatio(a: Color, b: Color): Float {
-    val la = a.luminance() + 0.05f
-    val lb = b.luminance() + 0.05f
-    return max(la, lb) / min(la, lb)
 }
 
 private val SIDES = floatArrayOf(-1f, 1f)
@@ -649,14 +632,14 @@ private fun DrawScope.drawShape(shape: MascotShape, g: MascotGeometry, pose: Mas
     posed(pose, g.pivot, k) {
         val c = d.colors
         when {
-            c == null -> drawTwoTone(g, pose, d.tint, d.scratch)
+            c == null -> drawTwoTone(g, pose, d.tint, d.scratch, cutEyes = shape != MascotShape.Owl)
             shape == MascotShape.Owl -> {
                 drawPath(g.body, c.body)
-                drawFace(shape, g, pose, c, d.scratch)
+                drawPillEyes(g.eyes, 1f, pose, c.body, d.scratch, DrawScope.DefaultBlendMode)
             }
             else -> {
                 drawPath(g.body, c.objectBody)
-                drawFace(shape, g, pose, c, d.scratch)
+                drawFace(g, c)
                 drawPillEyes(g.eyes, 1f, pose, c.objectInk, d.scratch, DrawScope.DefaultBlendMode)
             }
         }
@@ -697,15 +680,10 @@ private fun DrawScope.drawMorph(
             drawPath(body, lerpColor(c.objectBody, c.body, owl))
             val fromFace = fromFaceAlpha(m.from, w)
             clipPath(body) {
-                withAlpha(fromFace, d.layer) { drawFace(from, m.fromGeometry, pose, c, d.scratch) }
-                withAlpha(fadeAt(1f - FACE_FADE, 1f, w), d.layer) { drawFace(shape, g, pose, c, d.scratch) }
+                withAlpha(fromFace, d.layer) { drawFace(m.fromGeometry, c) }
+                withAlpha(fadeAt(1f - FACE_FADE, 1f, w), d.layer) { drawFace(g, c) }
             }
-            // The owl looks out of its disc eyes; while it's mid-morph, pill eyes stand in.
-            val eyesIn = if (from == MascotShape.Owl) 1f - fromFace else 1f
-            val eyesOut = if (shape == MascotShape.Owl) 1f - fadeAt(1f - FACE_FADE, 1f, w) else 1f
-            withAlpha(min(eyesIn, eyesOut), d.layer) {
-                drawPillEyes(eyes, 1f, squinting, lerpColor(c.objectInk, c.pupil, owl), d.scratch, DrawScope.DefaultBlendMode)
-            }
+            drawPillEyes(eyes, 1f, squinting, c.objectInk, d.scratch, DrawScope.DefaultBlendMode)
             clipPath(body) { drawStamp(fromStampAlpha(m.from, w), c.objectInk, 1f, DrawScope.DefaultBlendMode, d.scratch) }
         }
     }
@@ -732,17 +710,17 @@ private fun fromStampAlpha(from: MorphFrom, w: Float) = from.stamp * (1f - fadeA
 /**
  * The 24/32dp glyph: the silhouette in [tint] and two pill eyes cut out of it. DstOut
  * reads only the paint's alpha, so the cut-outs take the colour of whatever is behind.
+ * Eyes that sit in a hole (the owl's rings) aren't [cutEyes]: they're drawn in the tint.
  * No markings: at this size they would only blur the outline.
  */
-private fun DrawScope.drawTwoTone(g: MascotGeometry, pose: MascotPose, tint: Color, scratch: Path) {
+private fun DrawScope.drawTwoTone(g: MascotGeometry, pose: MascotPose, tint: Color, scratch: Path, cutEyes: Boolean) {
     drawPath(g.body, tint)
-    drawPillEyes(g.eyes, TWO_TONE_EYE_SCALE, pose, tint, scratch, BlendMode.DstOut)
+    drawPillEyes(g.eyes, TWO_TONE_EYE_SCALE, pose, tint, scratch, if (cutEyes) BlendMode.DstOut else DrawScope.DefaultBlendMode)
 }
 
-/** What sits on a body at the detailed size: the owl's whole face, or an object's faint markings. Not an object's eyes. */
-private fun DrawScope.drawFace(shape: MascotShape, g: MascotGeometry, pose: MascotPose, c: MascotColors, scratch: Path) {
-    if (shape == MascotShape.Owl) drawOwlFace(g, pose, c, scratch)
-    else g.details?.let { drawPath(it, c.objectInk, alpha = g.detailAlpha) }
+/** What sits on a body at the detailed size: an object's faint markings. Not its eyes. */
+private fun DrawScope.drawFace(g: MascotGeometry, c: MascotColors) {
+    g.details?.let { drawPath(it, c.objectInk, alpha = g.detailAlpha) }
 }
 
 /** A shape's arrival (MascotArrival.kt), over its body: in its ink when detailed, cut out or in the tint as a glyph. */
@@ -853,48 +831,4 @@ private fun DrawScope.drawPillEyes(
             }
         }
     }
-}
-
-/** The 96dp owl's face: mask, eye discs with iris and pupil, beak and the logo's coin. */
-private fun DrawScope.drawOwlFace(g: MascotGeometry, pose: MascotPose, c: MascotColors, scratch: Path) {
-    g.mask?.let { drawPath(it, c.mask) }
-    val ox = pose.gazeX * OwlEye.GAZE_TRAVEL
-    val oy = pose.gazeY * OwlEye.GAZE_TRAVEL
-    val r = OwlEye.DISC_R
-    val cy = OwlEye.Y
-    for (cx in floatArrayOf(OwlEye.LEFT_X, OwlEye.RIGHT_X)) {
-        when (pose.style) {
-            EyeStyle.Arc -> drawCurve(scratch, cx - 8, cy + 3, cx, cy - 7, cx + 8, cy + 3, c.pupil, 3f)
-            EyeStyle.Closed -> drawCurve(scratch, cx - 8, cy - 1, cx, cy + 6, cx + 8, cy - 1, c.pupil, 3f)
-            EyeStyle.Open -> {
-                // The lid clips the whole eye, iris and all, so a blink reads as a lid.
-                val half = r * (1 - pose.blink) * (1 - pose.squint * 0.45f)
-                if (half < 1.6f) {
-                    drawCurve(scratch, cx - 9, cy + 1, cx, cy + 4, cx + 9, cy + 1, c.pupil, 3f)
-                } else {
-                    val top = cy - half + r * pose.squint * 0.3f
-                    clipRect(cx - r - 1, top, cx + r + 1, top + 2 * half) {
-                        drawCircle(c.disc, r, Offset(cx, cy))
-                        drawCircle(c.iris, OwlEye.IRIS_R, Offset(cx + ox, cy + oy))
-                        drawCircle(c.pupil, OwlEye.PUPIL_R, Offset(cx + ox, cy + oy))
-                        drawCircle(c.disc, 1.4f, Offset(cx + ox - 2f, cy + oy - 2.2f))
-                    }
-                }
-                if (pose.brows > 0.01f) {
-                    val side = if (cx < 50f) -1f else 1f
-                    drawLine(
-                        color = c.pupil,
-                        start = Offset(cx + side * 10, cy - 15),
-                        end = Offset(cx - side * 4, cy - 19),
-                        strokeWidth = 3f,
-                        cap = StrokeCap.Round,
-                        alpha = pose.brows,
-                    )
-                }
-            }
-        }
-    }
-    g.beak?.let { drawPath(it, c.pupil) }
-    drawCircle(c.iris, 7f, Offset(50f, 81f))
-    drawCircle(c.pupil, 4.6f, Offset(50f, 81f), alpha = 0.35f, style = Stroke(1.4f))
 }

@@ -1,5 +1,8 @@
 package com.pennywiseai.tracker.presentation.settings
 
+import android.content.Context
+import android.net.Uri
+import androidx.core.net.toUri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.aiaccess.AiSessionState
@@ -9,11 +12,16 @@ import com.pennywiseai.tracker.data.repository.CategoryRepository
 import com.pennywiseai.tracker.data.repository.WebhookRepository
 import com.pennywiseai.tracker.domain.repository.RuleRepository
 import dagger.hilt.android.lifecycle.HiltViewModel
+import dagger.hilt.android.qualifiers.ApplicationContext
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
+import java.io.File
 import javax.inject.Inject
 
 /**
@@ -23,7 +31,8 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class SettingsHubViewModel @Inject constructor(
-    userPreferencesRepository: UserPreferencesRepository,
+    @ApplicationContext private val context: Context,
+    private val userPreferencesRepository: UserPreferencesRepository,
     accountBalanceRepository: AccountBalanceRepository,
     ruleRepository: RuleRepository,
     categoryRepository: CategoryRepository,
@@ -56,6 +65,44 @@ class SettingsHubViewModel @Inject constructor(
             isSharing = sharing,
         )
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), SettingsHubState())
+
+    /**
+     * Copies a picked photo into app storage (the picker's grant doesn't outlive the
+     * process) and returns its file URI, or null if it can't be read. Each pick gets
+     * its own file name so the image loader doesn't serve the previous photo from cache.
+     */
+    suspend fun importPhoto(source: Uri): String? = withContext(Dispatchers.IO) {
+        try {
+            val file = File(context.filesDir, "$PHOTO_PREFIX${System.currentTimeMillis()}.jpg")
+            context.contentResolver.openInputStream(source)?.use { input ->
+                file.outputStream().use { input.copyTo(it) }
+            } ?: return@withContext null
+            file.toUri().toString()
+        } catch (_: Exception) {
+            null
+        }
+    }
+
+    fun saveProfile(name: String, imageUri: String?, backgroundColor: Int) {
+        viewModelScope.launch {
+            userPreferencesRepository.updateUserName(name.trim())
+            userPreferencesRepository.updateProfileImageUri(imageUri)
+            userPreferencesRepository.updateProfileBackgroundColor(backgroundColor)
+            // ponytail: photos picked then abandoned are swept on the next save, not on cancel.
+            withContext(Dispatchers.IO) {
+                context.filesDir.listFiles { f -> f.name == ONBOARDING_PHOTO || f.name.startsWith(PHOTO_PREFIX) }
+                    ?.filter { it.toUri().toString() != imageUri }
+                    ?.forEach { it.delete() }
+            }
+        }
+    }
+
+    private companion object {
+        const val PHOTO_PREFIX = "profile_photo_"
+
+        /** Where onboarding saves its pick. */
+        const val ONBOARDING_PHOTO = "profile_image.jpg"
+    }
 }
 
 /** Null counts are still loading; the hub leaves their line out until they arrive. */

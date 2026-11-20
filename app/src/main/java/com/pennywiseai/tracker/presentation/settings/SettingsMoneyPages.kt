@@ -216,7 +216,7 @@ internal fun PlanningPage(
                 icon = Icons.Default.Subscriptions,
                 title = stringResource(R.string.subscriptions_title),
                 subtitle = stringResource(R.string.settings_subscriptions_subtitle),
-                onClick = { onNavigate(Subscriptions) },
+                onClick = { onNavigate(Subscriptions()) },
                 position = ListItemPosition.from(row++, rowCount)
             )
         }

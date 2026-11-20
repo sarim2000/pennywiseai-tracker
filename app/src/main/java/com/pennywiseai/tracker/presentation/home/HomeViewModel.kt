@@ -205,8 +205,8 @@ class HomeViewModel @Inject constructor(
      * The user's current budget cycle window (start, end). Recomputed whenever
      * the start day pref changes — used everywhere the home surface used to
      * do `now.withDayOfMonth(1)..now.withDayOfMonth(lengthOfMonth())`. Exposed
-     * as a StateFlow so the greeting card / breakdown dialog can read the
-     * same window the data is bucketed against.
+     * as a StateFlow so the screen can read the same window the data is
+     * bucketed against.
      */
     private val _currentCycleWindow = MutableStateFlow(
         BudgetCycle.currentCycle(LocalDate.now(), BudgetCycle.DEFAULT_START_DAY)
@@ -1342,14 +1342,6 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    fun showBreakdownDialog() {
-        _uiState.value = _uiState.value.copy(showBreakdownDialog = true)
-    }
-
-    fun hideBreakdownDialog() {
-        _uiState.value = _uiState.value.copy(showBreakdownDialog = false)
-    }
-
     /**
      * Checks for app updates using Google Play In-App Updates.
      * Should be called with the current activity context.
@@ -1596,8 +1588,6 @@ class HomeViewModel @Inject constructor(
                     currentMonthIncome = currentBreakdown.income,
                     currentMonthExpenses = spent,
                     currentMonthLent = lent,
-                    lastMonthTotal = lastBreakdown.total,
-                    lastMonthIncome = lastBreakdown.income,
                     lastMonthExpenses = lastBreakdown.expenses,
                     lastMonthSamePointExpenses = lastSamePoint,
                     selectedCurrency = selectedCurrency,
@@ -1637,8 +1627,6 @@ class HomeViewModel @Inject constructor(
                 currentMonthIncome = currentBreakdown.income,
                 currentMonthExpenses = currentBreakdown.expenses + loanLoss,
                 currentMonthLent = lent,
-                lastMonthTotal = lastBreakdown.total,
-                lastMonthIncome = lastBreakdown.income,
                 lastMonthExpenses = lastBreakdown.expenses,
                 lastMonthSamePointExpenses = lastMonthSamePointBreakdownMap[selectedCurrency]?.expenses ?: BigDecimal.ZERO,
                 selectedCurrency = selectedCurrency,
@@ -1723,8 +1711,6 @@ data class HomeUiState(
     val countCreditCardAsExpense: Boolean = false,
     val currentMonthTransfer: BigDecimal = BigDecimal.ZERO,
     val currentMonthInvestment: BigDecimal = BigDecimal.ZERO,
-    val lastMonthTotal: BigDecimal = BigDecimal.ZERO,
-    val lastMonthIncome: BigDecimal = BigDecimal.ZERO,
     val lastMonthExpenses: BigDecimal = BigDecimal.ZERO,
     val monthlyChange: BigDecimal = BigDecimal.ZERO,
     val lastMonthSamePointExpenses: BigDecimal = BigDecimal.ZERO,
@@ -1752,7 +1738,6 @@ data class HomeUiState(
     val isScanning: Boolean = false,
     /** New transactions the user's just-finished scan saved, shown briefly on the Sync button. */
     val scanNewCount: Int? = null,
-    val showBreakdownDialog: Boolean = false,
     val isUnifiedMode: Boolean = false,
     val transactionHeatmap: Map<Long, Int> = emptyMap(),
     val isBalanceHidden: Boolean = true,

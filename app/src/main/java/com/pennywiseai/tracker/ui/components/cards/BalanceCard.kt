@@ -4,6 +4,7 @@ import android.view.HapticFeedbackConstants
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -20,13 +21,13 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.automirrored.filled.TrendingDown
 import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Visibility
 import androidx.compose.material.icons.filled.VisibilityOff
-import androidx.compose.material.icons.outlined.Info
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.DropdownMenu
@@ -48,11 +49,13 @@ import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.rotate
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
@@ -118,7 +121,7 @@ data class HomeHeroBudget(
  * spending in [currency] and how it compares to last month. [footer] (Safe to spend) sits
  * at its foot. Tapping it opens the month's detail (the limit, the pace, sparkline,
  * income/expenses/saved, balance) with links to that budget or the month's transactions
- * ([onOpen]).
+ * ([onOpen]); Income and Expenses there open their own rows.
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -139,8 +142,6 @@ fun BalanceCard(
     isUnifiedMode: Boolean = false,
     isApproximate: Boolean = false,
     onCurrencySelected: (String) -> Unit,
-    /** Opens the income / expenses / net breakdown, from the opened card. */
-    onShowBreakdown: () -> Unit = {},
     isBalanceHidden: Boolean = false,
     onToggleBalanceVisibility: () -> Unit = {},
     /** Shows the accounts' total in the opened card when there are any. */
@@ -151,6 +152,9 @@ fun BalanceCard(
     cycleEnd: LocalDate? = null,
     /** The labelled action: the budget with a [budget], the month's transactions without. */
     onOpen: () -> Unit = {},
+    /** Open the rows behind the opened card's Income and Expenses; null leaves the figure inert. */
+    onOpenIncome: (() -> Unit)? = null,
+    onOpenExpenses: (() -> Unit)? = null,
     /** Opens Net worth from a labelled link in the expanded card; null hides the link. */
     onOpenNetWorth: (() -> Unit)? = null,
     /** A row at the card's foot, under the opened detail: Home's Safe to spend. */
@@ -312,7 +316,8 @@ fun BalanceCard(
                             isBalanceHidden = isBalanceHidden,
                             hasAccounts = hasAccounts,
                             onOpenNetWorth = onOpenNetWorth,
-                            onShowBreakdown = onShowBreakdown,
+                            onOpenIncome = onOpenIncome,
+                            onOpenExpenses = onOpenExpenses,
                             actionLabel = stringResource(
                                 if (budget != null) R.string.home_hero_view_budget else R.string.home_hero_see_transactions
                             ),
@@ -543,7 +548,8 @@ private fun MonthDetails(
     isBalanceHidden: Boolean,
     hasAccounts: Boolean,
     onOpenNetWorth: (() -> Unit)?,
-    onShowBreakdown: () -> Unit,
+    onOpenIncome: (() -> Unit)?,
+    onOpenExpenses: (() -> Unit)?,
     actionLabel: String,
     onAction: () -> Unit,
 ) {
@@ -610,23 +616,12 @@ private fun MonthDetails(
 
         Spacer(modifier = Modifier.height(Spacing.lg))
 
-        // The month's figures, with how they're worked out a tap away on the info button.
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Text(
-                text = stringResource(R.string.balance_card_this_month),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.weight(1f)
-            )
-            IconButton(onClick = onShowBreakdown, shapes = IconButtonDefaults.shapes()) {
-                Icon(
-                    imageVector = Icons.Outlined.Info,
-                    contentDescription = stringResource(R.string.home_breakdown_title),
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(Dimensions.Icon.inline)
-                )
-            }
-        }
+        Text(
+            text = stringResource(R.string.balance_card_this_month),
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
+        Spacer(modifier = Modifier.height(Spacing.Layout.headerToContent))
         // Income | Expenses | Lent | Saved, with coloured accent bars. FlowRow so long
         // amounts (a 3-letter "MZN" prefix on big numbers) wrap onto a second line
         // instead of crushing the last column into one character per line.
@@ -641,13 +636,15 @@ private fun MonthDetails(
             SummaryItem(
                 label = stringResource(R.string.balance_card_summary_income),
                 value = if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(currentMonthIncome, currency),
-                accentColor = incomeColor
+                accentColor = incomeColor,
+                onClick = onOpenIncome,
             )
             SummaryItem(
                 label = stringResource(R.string.balance_card_summary_expenses),
                 value = if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(currentMonthExpenses, currency),
                 // The bar matches the sparkline's expense series.
                 accentColor = expenseColor,
+                onClick = onOpenExpenses,
             )
             if (currentMonthLent > BigDecimal.ZERO) {
                 SummaryItem(
@@ -760,15 +757,34 @@ private fun OnWash(outer: ColorScheme, fill: Color, content: @Composable () -> U
  */
 internal val SHORT_DATE: DateTimeFormatter get() = AppDates.dayMonthFormatter()
 
+/** One of the opened card's figures over its label; with [onClick], a target that opens its rows. */
 @Composable
 private fun SummaryItem(
     label: String,
     value: String,
     accentColor: Color,
     // The figure sits on the hero's primaryContainer, so it takes that fill's ink; the bar keeps the series colour.
-    valueColor: Color = MaterialTheme.colorScheme.onSurface
+    valueColor: Color = MaterialTheme.colorScheme.onSurface,
+    onClick: (() -> Unit)? = null,
 ) {
-    Row {
+    val target = if (onClick != null) {
+        Modifier
+            .clip(MaterialTheme.shapes.medium)
+            .clickable(
+                onClickLabel = stringResource(R.string.home_figure_open_rows),
+                role = Role.Button,
+                onClick = onClick,
+            )
+            // Room for the ripple past the figure's end.
+            .padding(end = Spacing.sm)
+    } else {
+        Modifier
+    }
+    // Every figure keeps the touch-target height, so the inert ones line up with the tappable ones.
+    Row(
+        modifier = target.heightIn(min = Dimensions.Component.minTouchTarget),
+        verticalAlignment = Alignment.CenterVertically,
+    ) {
         // Coloured left-border accent bar
         Box(
             modifier = Modifier
@@ -791,12 +807,23 @@ private fun SummaryItem(
                 maxLines = 1,
                 softWrap = false,
             )
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                fontWeight = FontWeight.Bold
-            )
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = label,
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    fontWeight = FontWeight.Bold
+                )
+                // Says the figure opens; the whole item is the target.
+                if (onClick != null) {
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
+                        modifier = Modifier.size(Dimensions.Icon.tiny)
+                    )
+                }
+            }
         }
     }
 }

@@ -27,13 +27,14 @@ object HomeShortcutLayout {
 
     /**
      * What a user who never picked any sees: the daily job (sorting), the lookup the
-     * tab takes two taps for, and the two views a section or toolbar deep. Budgets,
-     * Insights and Ask are already a tab, so they're picks, not defaults.
+     * tab takes two taps for, and the two views a menu or toolbar deep. Budgets,
+     * Insights and Ask are already a tab, and Home's Coming up already opens Bills,
+     * so they're picks, not defaults.
      */
     val DEFAULT: List<HomeShortcut> = listOf(
         HomeShortcut.UNSORTED,
         HomeShortcut.SEARCH,
-        HomeShortcut.BILLS,
+        HomeShortcut.REVIEW,
         HomeShortcut.CALENDAR,
     )
 

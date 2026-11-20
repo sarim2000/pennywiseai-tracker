@@ -61,7 +61,8 @@ internal fun HomeBudgetsSection(
     summary: BudgetOverallSummary,
     /** The budget the hero already shows. */
     excludeBudgetId: Long?,
-    onNavigateToBudgets: () -> Unit
+    onNavigateToBudgets: () -> Unit,
+    onBudgetClick: (Long) -> Unit
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
@@ -74,6 +75,7 @@ internal fun HomeBudgetsSection(
         BudgetCarousel(
             summary = summary,
             onClick = onNavigateToBudgets,
+            onBudgetClick = onBudgetClick,
             onCreateBudget = onNavigateToBudgets,
             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
             excludeBudgetId = excludeBudgetId,
@@ -108,7 +110,8 @@ internal fun HomeGoalsSection(
 internal fun HomeLoansSection(
     summary: LoanSummary,
     selectedCurrency: String,
-    onNavigateToLoans: () -> Unit
+    onNavigateToLoans: () -> Unit,
+    onLoanClick: (Long) -> Unit
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
@@ -118,13 +121,15 @@ internal fun HomeLoansSection(
             onSeeAll = onNavigateToLoans,
             modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
         )
+        // One loan: the card is that loan, so it opens it rather than a list of one.
+        val onlyLoan = summary.activeLoans.singleOrNull()
         Box(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
             ActiveLoansSummaryCard(
                 loans = summary.activeLoans,
                 totalLentRemaining = summary.totalLentRemaining,
                 totalBorrowedRemaining = summary.totalBorrowedRemaining,
                 currency = selectedCurrency,
-                onClick = onNavigateToLoans
+                onClick = if (onlyLoan != null) ({ onLoanClick(onlyLoan.id) }) else onNavigateToLoans
             )
         }
     }
@@ -376,12 +381,13 @@ internal fun HomeAccountsSection(
 
 /**
  * "Coming up": the next few bills, soonest first, each in its own currency. Overdue ones
- * say so in error; today's and tomorrow's in warning. "See all" opens Bills.
+ * say so in error; today's and tomorrow's in warning. "See all" opens Bills; a row opens Bills on that bill.
  */
 @Composable
 internal fun HomeComingUpSection(
     upcomingSubscriptions: List<SubscriptionEntity>,
-    onNavigateToSubscriptions: () -> Unit
+    onNavigateToSubscriptions: () -> Unit,
+    onBillClick: (Long) -> Unit
 ) {
     val today = rememberToday()
     val next = remember(upcomingSubscriptions) {
@@ -403,7 +409,7 @@ internal fun HomeComingUpSection(
                     subscription = sub,
                     today = today,
                     position = ListItemPosition.from(index, next.size),
-                    onClick = onNavigateToSubscriptions
+                    onClick = { onBillClick(sub.id) }
                 )
             }
         }
@@ -466,14 +472,17 @@ private const val COMING_UP_ROWS = 3
 
 @Composable
 internal fun HomeActivitySection(
-    transactionHeatmap: Map<Long, Int>
+    transactionHeatmap: Map<Long, Int>,
+    onOpenCalendar: () -> Unit
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
     ) {
+        // The calendar is the day-by-day view behind the heatmap's squares.
         HomeSectionHeader(
             title = stringResource(R.string.home_section_activity),
-            onSeeAll = null,
+            onSeeAll = onOpenCalendar,
+            actionLabel = stringResource(R.string.home_shortcut_calendar),
             modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
         )
         com.pennywiseai.tracker.ui.components.cards.HeatmapWidget(

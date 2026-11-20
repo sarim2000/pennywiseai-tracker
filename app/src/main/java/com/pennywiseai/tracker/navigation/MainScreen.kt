@@ -44,6 +44,7 @@ import com.pennywiseai.tracker.data.contacts.displayMerchantName
 import com.pennywiseai.tracker.data.model.ChatLink
 import com.pennywiseai.tracker.data.model.PlanLink
 import com.pennywiseai.tracker.data.preferences.NavBarStyle
+import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
 import com.pennywiseai.tracker.presentation.accounts.AddAccountScreen
 import com.pennywiseai.tracker.presentation.accounts.ManageAccountsScreen
 import com.pennywiseai.tracker.presentation.accounts.ManageAccountsViewModel
@@ -52,6 +53,7 @@ import com.pennywiseai.tracker.presentation.add.QuickAddSheet
 import com.pennywiseai.tracker.presentation.add.QuickAddViewModel
 import com.pennywiseai.tracker.presentation.chat.ChatTabViewModel
 import com.pennywiseai.tracker.presentation.common.TimePeriod
+import com.pennywiseai.tracker.presentation.home.HomeFigureRows
 import com.pennywiseai.tracker.presentation.home.HomeScreen
 import com.pennywiseai.tracker.presentation.plan.PlanGoalsScreen
 import com.pennywiseai.tracker.presentation.plan.PlanTabHost
@@ -110,6 +112,18 @@ internal fun transactionsFor(link: ChatLink) = Transactions(
     currencyOnly = true,
     profilePinned = true,
     profileId = link.profileId,
+)
+
+/** The list behind a Home figure: its type, its days, its profile, and its currency. */
+internal fun transactionsFor(rows: HomeFigureRows) = Transactions(
+    type = rows.type.takeIf { it != TransactionTypeFilter.ALL }?.name,
+    period = TimePeriod.CUSTOM.name,
+    currency = rows.currency,
+    startDate = rows.start.toEpochDay(),
+    endDate = rows.end.toEpochDay(),
+    currencyOnly = rows.currencyOnly,
+    profilePinned = true,
+    profileId = rows.profileId,
 )
 
 /** The full Add form, carrying what the quick sheet held so nothing is typed twice. */
@@ -248,15 +262,16 @@ fun MainScreen(
 
     // Budgets, bills and goals live in the Plan tab; opened from elsewhere it shows
     // fresh on that section. A hidden Plan tab falls back to the standalone screens.
-    fun openPlan(from: BottomNavItem, section: PlanSection) {
+    // [focusId] is the one budget or bill a Home row was tapped on.
+    fun openPlan(from: BottomNavItem, section: PlanSection, focusId: Long? = null) {
         if (BottomNavItem.Plan.route in themeState.hiddenNavTabs) {
             when (section) {
-                PlanSection.BILLS -> open(from, Subscriptions)
-                else -> openRoot(BudgetGroups())
+                PlanSection.BILLS -> open(from, Subscriptions(focusBillId = focusId))
+                else -> openRoot(BudgetGroups(focusBudgetId = focusId))
             }
             return
         }
-        tabStacks.getValue(BottomNavItem.Plan).resetTo(Plan(section, request = System.nanoTime()))
+        tabStacks.getValue(BottomNavItem.Plan).resetTo(Plan(section, request = System.nanoTime(), focusId = focusId))
         selectTab(BottomNavItem.Plan)
         planReturnRoute = from.route.takeIf { from != BottomNavItem.Home && from != BottomNavItem.Plan }
     }
@@ -396,6 +411,12 @@ fun MainScreen(
                 onNavigateToBudgets = {
                     openPlan(tab, PlanSection.BUDGETS)
                 },
+                onBudgetClick = { budgetId ->
+                    openPlan(tab, PlanSection.BUDGETS, budgetId)
+                },
+                onBillClick = { billId ->
+                    openPlan(tab, PlanSection.BILLS, billId)
+                },
                 onNavigateToGoals = {
                     openPlan(tab, PlanSection.GOALS)
                 },
@@ -436,8 +457,8 @@ fun MainScreen(
                 onGoalClick = { goalId ->
                     openRoot(GoalDetail(goalId))
                 },
-                onTransactionTypeClick = { type ->
-                    open(tab, Transactions(type = type))
+                onOpenFigureRows = { rows ->
+                    open(tab, transactionsFor(rows))
                 },
                 onOpenAssistant = { openAsk() }.takeIf { BottomNavItem.Chat.route !in themeState.hiddenNavTabs },
                 onFabPositioned = { position ->
@@ -482,6 +503,9 @@ fun MainScreen(
 
         entry<Subscriptions> { key ->
             SubscriptionsScreen(
+                focusBillId = key.focusBillId,
+                // Pushed over a tab (the Plan tab hidden), so it needs its own way back.
+                showBack = true,
                 onNavigateBack = {
                     backFrom(tab, key)
                 },
@@ -494,6 +518,9 @@ fun MainScreen(
         entry<Plan> { key ->
             // The switch is screen state, not navigation: flipping sections doesn't stack up Back.
             var section by rememberSaveable(key) { mutableStateOf(key.section) }
+            // The tapped Home row is for the section Plan opened on; switching sections drops it,
+            // so coming back doesn't jump to it again.
+            var focusId by rememberSaveable(key) { mutableStateOf(key.focusId) }
             val fade = MaterialTheme.motionScheme.fastEffectsSpec<Float>()
             // The section fading out docks into a dock nobody draws, so its Add can't
             // fire once another section is picked (even one with no docked action).
@@ -505,12 +532,17 @@ fun MainScreen(
                     transitionSpec = { fadeIn(fade) togetherWith fadeOut(fade) },
                     label = "planSection",
                 ) { shown ->
-                    val host = PlanTabHost(shown) { section = it }
+                    val host = PlanTabHost(shown) {
+                        section = it
+                        focusId = null
+                    }
+                    val focus = focusId.takeIf { shown == key.section }
                     val shownDock = if (dock != null && shown != section) offstageDock else dock
                     CompositionLocalProvider(LocalNavDock provides shownDock) {
                         when (shown) {
                             PlanSection.BUDGETS -> com.pennywiseai.tracker.presentation.budgetgroups.BudgetGroupsScreen(
                                 planTab = host,
+                                focusBudgetId = focus,
                                 onNavigateToGroupEdit = { openRoot(BudgetGroupEdit(it)) },
                                 onNavigateToHistory = { groupId, year, month -> openRoot(BudgetHistory(groupId, year, month)) },
                                 onNavigateToExchangeRates = { openRoot(ExchangeRates) },
@@ -522,6 +554,7 @@ fun MainScreen(
                             )
                             PlanSection.BILLS -> SubscriptionsScreen(
                                 planTab = host,
+                                focusBillId = focus,
                                 onAddSubscriptionClick = { openRoot(AddTransaction(form = AddForm.SUBSCRIPTION)) },
                             )
                             PlanSection.GOALS -> PlanGoalsScreen(

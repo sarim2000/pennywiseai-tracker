@@ -35,6 +35,8 @@ import com.pennywiseai.tracker.ui.components.SplitItem
 import com.pennywiseai.tracker.ui.components.TagInputField
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.toShape
+import com.pennywiseai.tracker.ui.components.orSupporting
+import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -85,14 +87,22 @@ internal fun EditableTransactionHeader(
                 modifier = Modifier.width(130.dp)
             )
 
+            val amount = rememberAmountEntry(
+                transaction.amount.stripTrailingZeros().toPlainString(),
+                viewModel::updateAmount,
+                transaction.currency.ifEmpty { primaryCurrency }
+            )
+            val amountSum = amount.sumHint
             TextField(
-                value = transaction.amount.stripTrailingZeros().toPlainString(),
-                onValueChange = { viewModel.updateAmount(it) },
+                value = amount.value,
+                onValueChange = amount::onValueChange,
                 label = { Text(stringResource(R.string.txn_detail_field_amount), fontWeight = FontWeight.SemiBold) },
                 textStyle = MaterialTheme.typography.headlineSmall.money(),
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                isError = amountSum?.isError == true,
+                supportingText = amountSum.orSupporting(),
                 singleLine = true,
-                modifier = Modifier.weight(1f),
+                modifier = Modifier.weight(1f).then(amount.modifier),
                 shape = editFullShape,
                 colors = editFilledColors()
             )

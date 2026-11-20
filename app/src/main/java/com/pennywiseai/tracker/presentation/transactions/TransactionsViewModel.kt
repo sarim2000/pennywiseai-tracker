@@ -1083,10 +1083,12 @@ class TransactionsViewModel @Inject constructor(
         }
     }
 
-    /** A navigated type name, or All when absent, unknown or not listable (Spending). */
+    /**
+     * A navigated type name, or All when absent or unknown. Spending is taken too: it's one
+     * of the list's quick chips, and Home's Expenses opens on it when card spend counts.
+     */
     private fun navigatedType(type: String?): TransactionTypeFilter =
-        TransactionTypeFilter.entries.firstOrNull { it.name == type && it.inTransactionsList }
-            ?: TransactionTypeFilter.ALL
+        TransactionTypeFilter.entries.firstOrNull { it.name == type } ?: TransactionTypeFilter.ALL
 
     fun applyInitialFilters(
         category: String?,

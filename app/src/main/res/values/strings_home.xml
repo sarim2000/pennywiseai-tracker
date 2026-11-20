@@ -11,7 +11,6 @@
     <string name="home_manage">Manage</string>
     <string name="home_search_transactions">Search transactions</string>
     <string name="home_cancel">Cancel</string>
-    <string name="home_close">Close</string>
 
     <!-- Home sections (headers + edit-home sheet) -->
     <string name="home_section_budgets">Budgets</string>
@@ -19,9 +18,7 @@
     <string name="home_section_goals">Goals</string>
     <string name="home_section_loans">Loans</string>
     <string name="home_section_groups">Groups</string>
-    <string name="home_section_recent_transactions">Recent Transactions</string>
     <string name="home_section_accounts">Bank Accounts</string>
-    <string name="home_section_subscriptions">Upcoming Subscriptions</string>
     <string name="home_section_money_in_motion">Money in motion</string>
     <string name="home_section_activity">Activity</string>
 
@@ -75,15 +72,6 @@
     <string name="home_edit_description">Reorder or hide sections on your home screen.</string>
     <string name="home_edit_move_up">Move %1$s up</string>
     <string name="home_edit_move_down">Move %1$s down</string>
-
-    <!-- Calculation breakdown dialog -->
-    <string name="home_breakdown_title">Calculation Breakdown</string>
-    <!-- Month name, then day range, e.g. "March 1-15" -->
-    <string name="home_breakdown_period">%1$s 1-%2$d</string>
-    <string name="home_breakdown_formula">Formula: Income - Expenses = Net Worth\nGreen (+) = Savings | Red (-) = Overspending</string>
-    <string name="home_breakdown_income">Income</string>
-    <string name="home_breakdown_expenses">Expenses</string>
-    <string name="home_breakdown_net_worth">Net Worth</string>
 
     <!-- Subscriptions + loans summary cards -->
     <plurals name="home_active_subscriptions">
@@ -207,6 +195,8 @@
     <string name="balance_card_summary_expenses">Expenses</string>
     <string name="balance_card_summary_lent">Lent</string>
     <string name="balance_card_summary_saved">Saved</string>
+    <!-- TalkBack: what tapping a figure does ("double tap to see its transactions") -->
+    <string name="home_figure_open_rows">see its transactions</string>
 
     <!-- Budget card -->
     <string name="budget_card_percent">%1$d%%</string>

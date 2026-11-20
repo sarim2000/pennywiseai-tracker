@@ -30,7 +30,9 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.preferences.HomeSection
 import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
 import com.pennywiseai.tracker.data.preferences.HomeShortcut
+import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
 import com.pennywiseai.tracker.domain.review.ReviewKind
+import com.pennywiseai.tracker.domain.spending.defaultTypeFilter
 import com.pennywiseai.tracker.presentation.review.ReviewPromptBanner
 import com.pennywiseai.tracker.presentation.settings.BackgroundAccessViewModel
 import com.pennywiseai.tracker.receiver.QuickCategoryPickerActivity
@@ -63,6 +65,7 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
+import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -73,11 +76,13 @@ fun HomeScreen(
     onNavigateToSettings: () -> Unit = {},
     onNavigateToTransactions: () -> Unit = {},
     onNavigateToSubscriptions: () -> Unit = {},
+    onBillClick: (Long) -> Unit = {},
     onNavigateToReview: (ReviewKind) -> Unit = {},
     onNavigateToNetWorth: (currency: String) -> Unit = {},
     onNavigateToShareStudio: () -> Unit = {},
     onNavigateToAchievements: () -> Unit = {},
     onNavigateToBudgets: () -> Unit = {},
+    onBudgetClick: (Long) -> Unit = {},
     onNavigateToGoals: () -> Unit = {},
     onNavigateToLoans: () -> Unit = {},
     onNavigateToTransactionGroups: () -> Unit = {},
@@ -92,7 +97,8 @@ fun HomeScreen(
     onTransactionClick: (Long) -> Unit = {},
     onGroupClick: (Long) -> Unit = {},
     onGoalClick: (Long) -> Unit = {},
-    onTransactionTypeClick: (String?) -> Unit = {},
+    /** Opens the rows behind one of Home's figures, in the window, profile and currency it counts. */
+    onOpenFigureRows: (HomeFigureRows) -> Unit = {},
     /** Opens the Ask tab; null while that tab is hidden. Home has no Ask entry of its own (the tab is it). */
     @Suppress("UNUSED_PARAMETER") onOpenAssistant: (() -> Unit)? = null,
     onFabPositioned: (Rect) -> Unit = {}
@@ -184,6 +190,22 @@ fun HomeScreen(
     val heroBudget = remember(uiState.budgetSummary, today) {
         uiState.budgetSummary?.heroBudget(today)
     }
+    // This cycle's rows of a type (null for all) up to [end], as Home counted them: its
+    // profile, and its one currency unless unified mode converts every currency into it.
+    val openFigureRows: (TransactionTypeFilter, LocalDate) -> Unit = { type, end ->
+        onOpenFigureRows(
+            HomeFigureRows(
+                type = type,
+                start = currentCycleWindow.first,
+                end = end,
+                currency = uiState.selectedCurrency,
+                currencyOnly = !uiState.isUnifiedMode,
+                profileId = uiState.selectedProfileId,
+            )
+        )
+    }
+    // The hero's figures stop at today: a future-dated row counts on its day.
+    val heroRowsEnd = maxOf(currentCycleWindow.first, today)
     // The carousel leaves out the budget the hero already shows; with nothing else, no section.
     val carouselBudgets = uiState.budgetSummary?.takeIf { summary ->
         summary.groups.isEmpty() || summary.groups.any { it.group.budget.id != heroBudget?.budgetId }
@@ -401,11 +423,14 @@ fun HomeScreen(
                                 isBalanceHidden = uiState.isBalanceHidden,
                                 onToggleBalanceVisibility = { viewModel.toggleBalanceVisibility() },
                                 onCurrencySelected = { viewModel.selectCurrency(it) },
-                                onShowBreakdown = { viewModel.showBreakdownDialog() },
                                 hasAccounts = uiState.accountBalances.isNotEmpty(),
                                 budget = heroBudget,
                                 cycleEnd = currentCycleWindow.second,
-                                onOpen = if (heroBudget != null) onNavigateToBudgets else onNavigateToTransactions,
+                                onOpen = heroBudget?.let { hero -> { onBudgetClick(hero.budgetId) } }
+                                    ?: { openFigureRows(TransactionTypeFilter.ALL, heroRowsEnd) },
+                                onOpenIncome = { openFigureRows(TransactionTypeFilter.INCOME, heroRowsEnd) },
+                                // Spending (card spend too) when that's how Home counts this figure.
+                                onOpenExpenses = { openFigureRows(defaultTypeFilter(uiState.countCreditCardAsExpense), heroRowsEnd) },
                                 onOpenNetWorth = { onNavigateToNetWorth(uiState.selectedCurrency) },
                                 // Safe to spend is the hero's foot, not a second money card under it.
                                 footer = safeToSpend?.takeIf { showSafeToSpend }?.let { state ->
@@ -571,7 +596,8 @@ fun HomeScreen(
                                         HomeBudgetsSection(
                                             summary = summary,
                                             excludeBudgetId = heroBudget?.budgetId,
-                                            onNavigateToBudgets = onNavigateToBudgets
+                                            onNavigateToBudgets = onNavigateToBudgets,
+                                            onBudgetClick = onBudgetClick
                                         )
                                     }
                                 }
@@ -613,7 +639,8 @@ fun HomeScreen(
                                         HomeLoansSection(
                                             summary = summary,
                                             selectedCurrency = uiState.selectedCurrency,
-                                            onNavigateToLoans = onNavigateToLoans
+                                            onNavigateToLoans = onNavigateToLoans,
+                                            onLoanClick = onLoanClick
                                         )
                                     }
                                 }
@@ -702,7 +729,8 @@ fun HomeScreen(
                                     StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
                                         HomeComingUpSection(
                                             upcomingSubscriptions = uiState.upcomingSubscriptions,
-                                            onNavigateToSubscriptions = onNavigateToSubscriptions
+                                            onNavigateToSubscriptions = onNavigateToSubscriptions,
+                                            onBillClick = onBillClick
                                         )
                                     }
                                 }
@@ -723,7 +751,8 @@ fun HomeScreen(
                                         investments = uiState.currentMonthInvestment,
                                         transfers = uiState.currentMonthTransfer,
                                         isBalanceHidden = uiState.isBalanceHidden,
-                                        onToggleBalanceVisibility = { viewModel.toggleBalanceVisibility() },
+                                        // Its figures cover the whole cycle, future-dated rows too.
+                                        onOpenRows = { type -> openFigureRows(TransactionTypeFilter.valueOf(type.name), currentCycleWindow.second) },
                                         modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
                                     )
                                 }
@@ -734,7 +763,8 @@ fun HomeScreen(
                             item(key = section.name) {
                                 StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
                                     HomeActivitySection(
-                                        transactionHeatmap = uiState.transactionHeatmap
+                                        transactionHeatmap = uiState.transactionHeatmap,
+                                        onOpenCalendar = onNavigateToCalendar
                                     )
                                 }
                             }
@@ -784,20 +814,6 @@ fun HomeScreen(
                 onDismiss = { viewModel.cancelSmsScan() },
                 onCancel = { viewModel.cancelSmsScan() }
             )
-
-            // Breakdown Dialog
-            if (uiState.showBreakdownDialog) {
-                BreakdownDialog(
-                    currentMonthIncome = uiState.currentMonthIncome,
-                    currentMonthExpenses = uiState.currentMonthExpenses,
-                    currentMonthTotal = uiState.currentMonthTotal,
-                    lastMonthIncome = uiState.lastMonthIncome,
-                    lastMonthExpenses = uiState.lastMonthExpenses,
-                    lastMonthTotal = uiState.lastMonthTotal,
-                    currency = uiState.selectedCurrency,
-                    onDismiss = { viewModel.hideBreakdownDialog() }
-                )
-            }
         }
 
         // Avatar menu bottom sheet

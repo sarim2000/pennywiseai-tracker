@@ -11,15 +11,12 @@
     <string name="home_manage">إدارة</string>
     <string name="home_search_transactions">البحث في المعاملات</string>
     <string name="home_cancel">إلغاء</string>
-    <string name="home_close">إغلاق</string>
     <!-- Home sections (headers + edit-home sheet) -->
     <string name="home_section_budgets">الميزانيات</string>
     <string name="home_section_goals">الأهداف</string>
     <string name="home_section_loans">القروض</string>
     <string name="home_section_groups">المجموعات</string>
-    <string name="home_section_recent_transactions">المعاملات الأخيرة</string>
     <string name="home_section_accounts">الحسابات البنكية</string>
-    <string name="home_section_subscriptions">الاشتراكات القادمة</string>
     <string name="home_section_money_in_motion">حركة الأموال</string>
     <string name="home_section_activity">النشاط</string>
     <!-- Empty state -->
@@ -47,14 +44,6 @@
     <string name="home_edit_description">أعد ترتيب أقسام الشاشة الرئيسية أو أخفِها.</string>
     <string name="home_edit_move_up">تحريك %1$s لأعلى</string>
     <string name="home_edit_move_down">تحريك %1$s لأسفل</string>
-    <!-- Calculation breakdown dialog -->
-    <string name="home_breakdown_title">تفصيل الحساب</string>
-    <!-- Month name, then day range, e.g. "March 1-15" -->
-    <string name="home_breakdown_period">%1$s 1-%2$d</string>
-    <string name="home_breakdown_formula">الصيغة: الدخل - المصروفات = صافي الثروة\nالأخضر (+) = المدخرات | الأحمر (-) = الإنفاق الزائد</string>
-    <string name="home_breakdown_income">الدخل</string>
-    <string name="home_breakdown_expenses">المصروفات</string>
-    <string name="home_breakdown_net_worth">صافي الثروة</string>
     <!-- Subscriptions + loans summary cards -->
     <plurals name="home_active_subscriptions">
         <item quantity="zero">لا اشتراكات نشطة</item>

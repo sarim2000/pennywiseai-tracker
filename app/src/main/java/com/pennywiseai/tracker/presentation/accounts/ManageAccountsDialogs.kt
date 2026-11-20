@@ -19,7 +19,10 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.domain.model.getAccountType
+import com.pennywiseai.tracker.ui.components.AmountBarDialogHost
 import com.pennywiseai.tracker.ui.components.RoundedField
+import com.pennywiseai.tracker.ui.components.orSupporting
+import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
@@ -48,31 +51,41 @@ internal fun UpdateBalanceDialog(
             }
         },
         text = {
-            TextField(
-                value = balanceText,
-                onValueChange = { text ->
-                    if (text.isEmpty() || text.matches(Regex("^\\d*\\.?\\d*$"))) {
-                        balanceText = text
-                        isValid = text.isNotBlank() && text.toDoubleOrNull() != null
-                    }
-                },
-                label = { Text(stringResource(R.string.manage_accounts_new_balance)) },
-                placeholder = { Text("0.00") },
-                leadingIcon = {
-                    Text(
-                        text = CurrencyFormatter.getCurrencySymbol(CurrencyFormatter.getBankBaseCurrency(bankName)),
-                        style = MaterialTheme.typography.titleMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                },
-                keyboardOptions = KeyboardOptions(
-                    keyboardType = KeyboardType.Decimal
-                ),
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-                shape = RoundedField.shape,
-                colors = RoundedField.colors()
-            )
+            AmountBarDialogHost {
+                val entry = rememberAmountEntry(
+                    balanceText,
+                    { text ->
+                        if (text.isEmpty() || text.matches(Regex("^\\d*\\.?\\d*$"))) {
+                            balanceText = text
+                            isValid = text.isNotBlank() && text.toDoubleOrNull() != null
+                        }
+                    },
+                    CurrencyFormatter.getBankBaseCurrency(bankName)
+                )
+                val sum = entry.sumHint
+                TextField(
+                    value = entry.value,
+                    onValueChange = entry::onValueChange,
+                    isError = sum?.isError == true,
+                    supportingText = sum.orSupporting(),
+                    label = { Text(stringResource(R.string.manage_accounts_new_balance)) },
+                    placeholder = { Text("0.00") },
+                    leadingIcon = {
+                        Text(
+                            text = CurrencyFormatter.getCurrencySymbol(CurrencyFormatter.getBankBaseCurrency(bankName)),
+                            style = MaterialTheme.typography.titleMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    keyboardOptions = KeyboardOptions(
+                        keyboardType = KeyboardType.Decimal
+                    ),
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth().then(entry.modifier),
+                    shape = RoundedField.shape,
+                    colors = RoundedField.colors()
+                )
+            }
         },
         confirmButton = {
             TextButton(
@@ -129,119 +142,135 @@ internal fun UpdateCreditCardDialog(
             }
         },
         text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(Spacing.md)
-            ) {
-                TextField(
-                    value = outstandingText,
-                    onValueChange = { text ->
-                        if (text.isEmpty() || text.matches(Regex("^\\d*\\.?\\d*$"))) {
-                            outstandingText = text
-                        }
-                    },
-                    label = { Text(stringResource(R.string.manage_accounts_outstanding_balance)) },
-                    placeholder = { Text("0.00") },
-                    leadingIcon = {
-                        Text(
-                            text = CurrencyFormatter.getCurrencySymbol(CurrencyFormatter.getBankBaseCurrency(bankName)),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    supportingText = {
-                        Text(stringResource(R.string.manage_accounts_outstanding_balance_hint))
-                    },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Decimal
-                    ),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedField.shape,
-                    colors = RoundedField.colors()
-                )
-
-                TextField(
-                    value = limitText,
-                    onValueChange = { text ->
-                        if (text.isEmpty() || text.matches(Regex("^\\d*\\.?\\d*$"))) {
-                            limitText = text
-                        }
-                    },
-                    label = { Text(stringResource(R.string.manage_accounts_credit_limit)) },
-                    placeholder = { Text("50000.00") },
-                    leadingIcon = {
-                        Text(
-                            text = CurrencyFormatter.getCurrencySymbol(CurrencyFormatter.getBankBaseCurrency(bankName)),
-                            style = MaterialTheme.typography.titleMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    supportingText = {
-                        Text(stringResource(R.string.manage_accounts_credit_limit_hint))
-                    },
-                    keyboardOptions = KeyboardOptions(
-                        keyboardType = KeyboardType.Decimal
-                    ),
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedField.shape,
-                    colors = RoundedField.colors()
-                )
-
-                // Show available credit
-                val outstanding = outstandingText.toBigDecimalOrNull() ?: BigDecimal.ZERO
-                val limit = limitText.toBigDecimalOrNull() ?: BigDecimal.ZERO
-                if (limit > BigDecimal.ZERO) {
-                    val available = limit - outstanding
-                    val utilization = ((outstanding.toDouble() / limit.toDouble()) * 100).toInt()
-
-                    Card(
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.secondaryContainer
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(
-                            modifier = Modifier.padding(Spacing.sm),
-                            verticalArrangement = Arrangement.spacedBy(Spacing.xs)
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
-                            ) {
-                                Text(
-                                    text = stringResource(R.string.manage_accounts_available_credit_label),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                                )
-                                Text(
-                                    text = CurrencyFormatter.formatCurrency(available, CurrencyFormatter.getBankBaseCurrency(bankName)),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                                )
+            AmountBarDialogHost {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(Spacing.md)
+                ) {
+                    val outstandingEntry = rememberAmountEntry(
+                        outstandingText,
+                        { text ->
+                            if (text.isEmpty() || text.matches(Regex("^\\d*\\.?\\d*$"))) {
+                                outstandingText = text
                             }
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                        },
+                        CurrencyFormatter.getBankBaseCurrency(bankName)
+                    )
+                    val outstandingEntrySum = outstandingEntry.sumHint
+                    TextField(
+                        value = outstandingEntry.value,
+                        onValueChange = outstandingEntry::onValueChange,
+                        isError = outstandingEntrySum?.isError == true,
+                        label = { Text(stringResource(R.string.manage_accounts_outstanding_balance)) },
+                        placeholder = { Text("0.00") },
+                        leadingIcon = {
+                            Text(
+                                text = CurrencyFormatter.getCurrencySymbol(CurrencyFormatter.getBankBaseCurrency(bankName)),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        supportingText = outstandingEntrySum.orSupporting {
+                            Text(stringResource(R.string.manage_accounts_outstanding_balance_hint))
+                        },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Decimal
+                        ),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().then(outstandingEntry.modifier),
+                        shape = RoundedField.shape,
+                        colors = RoundedField.colors()
+                    )
+
+                    val limitEntry = rememberAmountEntry(
+                        limitText,
+                        { text ->
+                            if (text.isEmpty() || text.matches(Regex("^\\d*\\.?\\d*$"))) {
+                                limitText = text
+                            }
+                        },
+                        CurrencyFormatter.getBankBaseCurrency(bankName)
+                    )
+                    val limitEntrySum = limitEntry.sumHint
+                    TextField(
+                        value = limitEntry.value,
+                        onValueChange = limitEntry::onValueChange,
+                        isError = limitEntrySum?.isError == true,
+                        label = { Text(stringResource(R.string.manage_accounts_credit_limit)) },
+                        placeholder = { Text("50000.00") },
+                        leadingIcon = {
+                            Text(
+                                text = CurrencyFormatter.getCurrencySymbol(CurrencyFormatter.getBankBaseCurrency(bankName)),
+                                style = MaterialTheme.typography.titleMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        },
+                        supportingText = limitEntrySum.orSupporting {
+                            Text(stringResource(R.string.manage_accounts_credit_limit_hint))
+                        },
+                        keyboardOptions = KeyboardOptions(
+                            keyboardType = KeyboardType.Decimal
+                        ),
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth().then(limitEntry.modifier),
+                        shape = RoundedField.shape,
+                        colors = RoundedField.colors()
+                    )
+
+                    // Show available credit
+                    val outstanding = outstandingText.toBigDecimalOrNull() ?: BigDecimal.ZERO
+                    val limit = limitText.toBigDecimalOrNull() ?: BigDecimal.ZERO
+                    if (limit > BigDecimal.ZERO) {
+                        val available = limit - outstanding
+                        val utilization = ((outstanding.toDouble() / limit.toDouble()) * 100).toInt()
+
+                        Card(
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.secondaryContainer
+                            ),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Column(
+                                modifier = Modifier.padding(Spacing.sm),
+                                verticalArrangement = Arrangement.spacedBy(Spacing.xs)
                             ) {
-                                Text(
-                                    text = stringResource(R.string.manage_accounts_utilization_label),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer
-                                )
-                                Text(
-                                    text = "$utilization%",
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Medium,
-                                    // Drawn on secondaryContainer, not a neutral surface, so the
-                                    // status colour is made readable on that fill.
-                                    color = when {
-                                        utilization > 70 -> MaterialTheme.colorScheme.error
-                                        utilization > 30 -> MaterialTheme.colorScheme.warning
-                                        else -> MaterialTheme.colorScheme.primary
-                                    }.readableOn(listOf(MaterialTheme.colorScheme.secondaryContainer))
-                                )
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.manage_accounts_available_credit_label),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                    Text(
+                                        text = CurrencyFormatter.formatCurrency(available, CurrencyFormatter.getBankBaseCurrency(bankName)),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                }
+                                Row(
+                                    modifier = Modifier.fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.manage_accounts_utilization_label),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                    Text(
+                                        text = "$utilization%",
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Medium,
+                                        // Drawn on secondaryContainer, not a neutral surface, so the
+                                        // status colour is made readable on that fill.
+                                        color = when {
+                                            utilization > 70 -> MaterialTheme.colorScheme.error
+                                            utilization > 30 -> MaterialTheme.colorScheme.warning
+                                            else -> MaterialTheme.colorScheme.primary
+                                        }.readableOn(listOf(MaterialTheme.colorScheme.secondaryContainer))
+                                    )
+                                }
                             }
                         }
                     }
@@ -403,288 +432,313 @@ internal fun EditAccountDialog(
             }
         },
         text = {
-            Column(
-                modifier = Modifier.verticalScroll(rememberScrollState()),
-                verticalArrangement = Arrangement.spacedBy(Spacing.md)
-            ) {
-                // Bank Name (Editable)
-                TextField(
-                    value = bankNameText,
-                    onValueChange = { bankNameText = it },
-                    label = { Text(stringResource(R.string.manage_accounts_bank_name_label)) },
-                    leadingIcon = {
-                        Icon(
-                            selectedType.icon,
-                            contentDescription = null
-                        )
-                    },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedField.shape,
-                    colors = RoundedField.colors()
-                )
+            AmountBarDialogHost {
+                Column(
+                    modifier = Modifier.verticalScroll(rememberScrollState()),
+                    verticalArrangement = Arrangement.spacedBy(Spacing.md)
+                ) {
+                    // Bank Name (Editable)
+                    TextField(
+                        value = bankNameText,
+                        onValueChange = { bankNameText = it },
+                        label = { Text(stringResource(R.string.manage_accounts_bank_name_label)) },
+                        leadingIcon = {
+                            Icon(
+                                selectedType.icon,
+                                contentDescription = null
+                            )
+                        },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedField.shape,
+                        colors = RoundedField.colors()
+                    )
 
-                // Account Number (Read-only)
-                TextField(
-                    value = AccountBalanceEntity.accountLabel("", account.accountLast4).trim(),
-                    onValueChange = {},
-                    label = { Text(stringResource(R.string.manage_accounts_account_number_label)) },
-                    enabled = false,
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent,
-                        disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        disabledIndicatorColor = Color.Transparent,
-                        disabledTextColor = MaterialTheme.colorScheme.onSurface,
-                        disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
-                        disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
-                    ),
-                    leadingIcon = {
-                        Icon(Icons.Default.Lock, contentDescription = stringResource(R.string.manage_accounts_read_only))
-                    },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth(),
-                    shape = RoundedField.shape
-                )
+                    // Account Number (Read-only)
+                    TextField(
+                        value = AccountBalanceEntity.accountLabel("", account.accountLast4).trim(),
+                        onValueChange = {},
+                        label = { Text(stringResource(R.string.manage_accounts_account_number_label)) },
+                        enabled = false,
+                        colors = TextFieldDefaults.colors(
+                            focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                            unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                            focusedIndicatorColor = Color.Transparent,
+                            unfocusedIndicatorColor = Color.Transparent,
+                            disabledContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
+                            disabledIndicatorColor = Color.Transparent,
+                            disabledTextColor = MaterialTheme.colorScheme.onSurface,
+                            disabledLabelColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                            disabledLeadingIconColor = MaterialTheme.colorScheme.onSurfaceVariant
+                        ),
+                        leadingIcon = {
+                            Icon(Icons.Default.Lock, contentDescription = stringResource(R.string.manage_accounts_read_only))
+                        },
+                        singleLine = true,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedField.shape
+                    )
 
-                // Currency (editable — lets an existing account switch currency)
-                Column {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { showCurrencyMenu = true },
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                        )
-                    ) {
-                        Row(
+                    // Currency (editable — lets an existing account switch currency)
+                    Column {
+                        Card(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(horizontal = Spacing.md, vertical = Spacing.sm),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
+                                .clickable { showCurrencyMenu = true },
+                            colors = CardDefaults.cardColors(
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                            )
                         ) {
-                            Text(
-                                text = stringResource(R.string.add_account_currency_label),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = "$currencyText   ${CurrencyFormatter.getCurrencySymbol(currencyText)}",
-                                style = MaterialTheme.typography.bodyLarge,
-                                fontWeight = FontWeight.Medium
-                            )
-                        }
-                    }
-                    DropdownMenu(
-                        expanded = showCurrencyMenu,
-                        onDismissRequest = { showCurrencyMenu = false },
-                        shape = MaterialTheme.shapes.large
-                    ) {
-                        CurrencyFormatter.getSupportedCurrencies().sorted().forEach { code ->
-                            DropdownMenuItem(
-                                text = { Text("$code   ${CurrencyFormatter.getCurrencySymbol(code)}") },
-                                onClick = {
-                                    currencyText = code
-                                    showCurrencyMenu = false
-                                }
-                            )
-                        }
-                    }
-                }
-
-                // Account type (#792). Changing it only changes how the balance is
-                // counted from now on; past transactions are not rewritten.
-                Column {
-                    Card(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .clickable { showTypeMenu = true },
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.surfaceContainerLow
-                        )
-                    ) {
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(horizontal = Spacing.md, vertical = Spacing.sm),
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            verticalAlignment = Alignment.CenterVertically
-                        ) {
-                            Text(
-                                text = stringResource(R.string.add_account_type_label),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
                             Row(
-                                horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                                horizontalArrangement = Arrangement.SpaceBetween,
                                 verticalAlignment = Alignment.CenterVertically
                             ) {
-                                Icon(
-                                    selectedType.icon,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(Dimensions.Icon.small)
+                                Text(
+                                    text = stringResource(R.string.add_account_currency_label),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
-                                    text = selectedType.displayName(),
+                                    text = "$currencyText   ${CurrencyFormatter.getCurrencySymbol(currencyText)}",
                                     style = MaterialTheme.typography.bodyLarge,
                                     fontWeight = FontWeight.Medium
                                 )
                             }
                         }
-                    }
-                    DropdownMenu(
-                        expanded = showTypeMenu,
-                        onDismissRequest = { showTypeMenu = false },
-                        shape = MaterialTheme.shapes.large
-                    ) {
-                        AccountType.entries.forEach { type ->
-                            DropdownMenuItem(
-                                text = { Text(type.displayName()) },
-                                leadingIcon = { Icon(type.icon, contentDescription = null) },
-                                onClick = {
-                                    selectedType = type
-                                    showTypeMenu = false
-                                }
-                            )
+                        DropdownMenu(
+                            expanded = showCurrencyMenu,
+                            onDismissRequest = { showCurrencyMenu = false },
+                            shape = MaterialTheme.shapes.large
+                        ) {
+                            CurrencyFormatter.getSupportedCurrencies().sorted().forEach { code ->
+                                DropdownMenuItem(
+                                    text = { Text("$code   ${CurrencyFormatter.getCurrencySymbol(code)}") },
+                                    onClick = {
+                                        currencyText = code
+                                        showCurrencyMenu = false
+                                    }
+                                )
+                            }
                         }
                     }
-                    if (selectedType != account.getAccountType()) {
-                        Text(
-                            text = stringResource(R.string.manage_accounts_type_note),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(top = Spacing.xs)
-                        )
-                    }
-                }
 
-                if (isCreditForm) {
-                    // Outstanding Balance (Credit Card)
-                    TextField(
-                        value = balanceText,
-                        onValueChange = { text ->
-                            if (text.isEmpty() || text.matches(Regex("^\\d*\\.?\\d*$"))) {
-                                balanceText = text
-                            }
-                        },
-                        label = { Text(stringResource(R.string.manage_accounts_outstanding_balance)) },
-                        placeholder = { Text("0.00") },
-                        leadingIcon = {
-                            Text(
-                                text = CurrencyFormatter.getCurrencySymbol(account.currency),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        supportingText = {
-                            Text(stringResource(R.string.manage_accounts_outstanding_balance_hint))
-                        },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Decimal
-                        ),
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedField.shape,
-                        colors = RoundedField.colors()
-                    )
-
-                    // Credit Limit
-                    TextField(
-                        value = creditLimitText,
-                        onValueChange = { text ->
-                            if (text.isEmpty() || text.matches(Regex("^\\d*\\.?\\d*$"))) {
-                                creditLimitText = text
-                            }
-                        },
-                        label = { Text(stringResource(R.string.manage_accounts_credit_limit)) },
-                        placeholder = { Text("50000.00") },
-                        leadingIcon = {
-                            Text(
-                                text = CurrencyFormatter.getCurrencySymbol(account.currency),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        supportingText = {
-                            Text(stringResource(R.string.manage_accounts_credit_limit_hint))
-                        },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Decimal
-                        ),
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedField.shape,
-                        colors = RoundedField.colors()
-                    )
-
-                    // Show available credit preview
-                    val outstanding = balanceText.toBigDecimalOrNull() ?: BigDecimal.ZERO
-                    val limit = creditLimitText.toBigDecimalOrNull() ?: BigDecimal.ZERO
-                    if (limit > BigDecimal.ZERO) {
-                        val available = limit - outstanding
+                    // Account type (#792). Changing it only changes how the balance is
+                    // counted from now on; past transactions are not rewritten.
+                    Column {
                         Card(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showTypeMenu = true },
                             colors = CardDefaults.cardColors(
-                                containerColor = MaterialTheme.colorScheme.secondaryContainer
-                            ),
-                            modifier = Modifier.fillMaxWidth()
+                                containerColor = MaterialTheme.colorScheme.surfaceContainerLow
+                            )
                         ) {
                             Row(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(Spacing.sm),
-                                horizontalArrangement = Arrangement.SpaceBetween
+                                    .padding(horizontal = Spacing.md, vertical = Spacing.sm),
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                verticalAlignment = Alignment.CenterVertically
                             ) {
                                 Text(
-                                    text = stringResource(R.string.manage_accounts_available_credit_label),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    text = stringResource(R.string.add_account_type_label),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                Text(
-                                    text = CurrencyFormatter.formatCurrency(available, account.currency),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    fontWeight = FontWeight.Medium,
-                                    color = MaterialTheme.colorScheme.onSecondaryContainer
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        selectedType.icon,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(Dimensions.Icon.small)
+                                    )
+                                    Text(
+                                        text = selectedType.displayName(),
+                                        style = MaterialTheme.typography.bodyLarge,
+                                        fontWeight = FontWeight.Medium
+                                    )
+                                }
+                            }
+                        }
+                        DropdownMenu(
+                            expanded = showTypeMenu,
+                            onDismissRequest = { showTypeMenu = false },
+                            shape = MaterialTheme.shapes.large
+                        ) {
+                            AccountType.entries.forEach { type ->
+                                DropdownMenuItem(
+                                    text = { Text(type.displayName()) },
+                                    leadingIcon = { Icon(type.icon, contentDescription = null) },
+                                    onClick = {
+                                        selectedType = type
+                                        showTypeMenu = false
+                                    }
                                 )
                             }
                         }
+                        if (selectedType != account.getAccountType()) {
+                            Text(
+                                text = stringResource(R.string.manage_accounts_type_note),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(top = Spacing.xs)
+                            )
+                        }
                     }
-                } else {
-                    // Account Balance (Regular Account)
-                    TextField(
-                        value = balanceText,
-                        onValueChange = { text ->
-                            if (text.isEmpty() || text.matches(Regex("^\\d*\\.?\\d*$"))) {
-                                balanceText = text
+
+                    if (isCreditForm) {
+                        // Outstanding Balance (Credit Card)
+                        val balanceEntry = rememberAmountEntry(
+                            balanceText,
+                            { text ->
+                                if (text.isEmpty() || text.matches(Regex("^\\d*\\.?\\d*$"))) {
+                                    balanceText = text
+                                }
+                            },
+                            currencyText
+                        )
+                        val balanceEntrySum = balanceEntry.sumHint
+                        TextField(
+                            value = balanceEntry.value,
+                            onValueChange = balanceEntry::onValueChange,
+                            isError = balanceEntrySum?.isError == true,
+                            label = { Text(stringResource(R.string.manage_accounts_outstanding_balance)) },
+                            placeholder = { Text("0.00") },
+                            leadingIcon = {
+                                Text(
+                                    text = CurrencyFormatter.getCurrencySymbol(account.currency),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            supportingText = balanceEntrySum.orSupporting {
+                                Text(stringResource(R.string.manage_accounts_outstanding_balance_hint))
+                            },
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Decimal
+                            ),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth().then(balanceEntry.modifier),
+                            shape = RoundedField.shape,
+                            colors = RoundedField.colors()
+                        )
+
+                        // Credit Limit
+                        val creditLimitEntry = rememberAmountEntry(
+                            creditLimitText,
+                            { text ->
+                                if (text.isEmpty() || text.matches(Regex("^\\d*\\.?\\d*$"))) {
+                                    creditLimitText = text
+                                }
+                            },
+                            currencyText
+                        )
+                        val creditLimitEntrySum = creditLimitEntry.sumHint
+                        TextField(
+                            value = creditLimitEntry.value,
+                            onValueChange = creditLimitEntry::onValueChange,
+                            isError = creditLimitEntrySum?.isError == true,
+                            label = { Text(stringResource(R.string.manage_accounts_credit_limit)) },
+                            placeholder = { Text("50000.00") },
+                            leadingIcon = {
+                                Text(
+                                    text = CurrencyFormatter.getCurrencySymbol(account.currency),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            supportingText = creditLimitEntrySum.orSupporting {
+                                Text(stringResource(R.string.manage_accounts_credit_limit_hint))
+                            },
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Decimal
+                            ),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth().then(creditLimitEntry.modifier),
+                            shape = RoundedField.shape,
+                            colors = RoundedField.colors()
+                        )
+
+                        // Show available credit preview
+                        val outstanding = balanceText.toBigDecimalOrNull() ?: BigDecimal.ZERO
+                        val limit = creditLimitText.toBigDecimalOrNull() ?: BigDecimal.ZERO
+                        if (limit > BigDecimal.ZERO) {
+                            val available = limit - outstanding
+                            Card(
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.secondaryContainer
+                                ),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(Spacing.sm),
+                                    horizontalArrangement = Arrangement.SpaceBetween
+                                ) {
+                                    Text(
+                                        text = stringResource(R.string.manage_accounts_available_credit_label),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                    Text(
+                                        text = CurrencyFormatter.formatCurrency(available, account.currency),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        fontWeight = FontWeight.Medium,
+                                        color = MaterialTheme.colorScheme.onSecondaryContainer
+                                    )
+                                }
                             }
-                        },
-                        label = {
-                            Text(
-                                if (selectedType == AccountType.LOAN) stringResource(R.string.manage_accounts_outstanding_balance)
-                                else stringResource(R.string.manage_accounts_account_balance_label)
-                            )
-                        },
-                        supportingText = if (selectedType == AccountType.LOAN) {
-                            { Text(stringResource(R.string.manage_accounts_loan_outstanding_hint)) }
-                        } else null,
-                        placeholder = { Text("0.00") },
-                        leadingIcon = {
-                            Text(
-                                text = CurrencyFormatter.getCurrencySymbol(account.currency),
-                                style = MaterialTheme.typography.titleMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        },
-                        keyboardOptions = KeyboardOptions(
-                            keyboardType = KeyboardType.Decimal
-                        ),
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
-                        shape = RoundedField.shape,
-                        colors = RoundedField.colors()
-                    )
+                        }
+                    } else {
+                        // Account Balance (Regular Account)
+                        val balanceEntry = rememberAmountEntry(
+                            balanceText,
+                            { text ->
+                                if (text.isEmpty() || text.matches(Regex("^\\d*\\.?\\d*$"))) {
+                                    balanceText = text
+                                }
+                            },
+                            currencyText
+                        )
+                        val balanceEntrySum = balanceEntry.sumHint
+                        TextField(
+                            value = balanceEntry.value,
+                            onValueChange = balanceEntry::onValueChange,
+                            isError = balanceEntrySum?.isError == true,
+                            label = {
+                                Text(
+                                    if (selectedType == AccountType.LOAN) stringResource(R.string.manage_accounts_outstanding_balance)
+                                    else stringResource(R.string.manage_accounts_account_balance_label)
+                                )
+                            },
+                            supportingText = balanceEntrySum.orSupporting(
+                                if (selectedType == AccountType.LOAN) {
+                                    { Text(stringResource(R.string.manage_accounts_loan_outstanding_hint)) }
+                                } else null
+                            ),
+                            placeholder = { Text("0.00") },
+                            leadingIcon = {
+                                Text(
+                                    text = CurrencyFormatter.getCurrencySymbol(account.currency),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            keyboardOptions = KeyboardOptions(
+                                keyboardType = KeyboardType.Decimal
+                            ),
+                            singleLine = true,
+                            modifier = Modifier.fillMaxWidth().then(balanceEntry.modifier),
+                            shape = RoundedField.shape,
+                            colors = RoundedField.colors()
+                        )
+                    }
                 }
             }
         },

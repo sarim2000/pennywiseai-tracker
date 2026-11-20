@@ -11,15 +11,12 @@
     <string name="home_manage">Administrar</string>
     <string name="home_search_transactions">Pesquisar transações</string>
     <string name="home_cancel">cancelar</string>
-    <string name="home_close">FECHAR</string>
     <!-- Home sections (headers + edit-home sheet) -->
     <string name="home_section_budgets">Orçamentos</string>
     <string name="home_section_goals">Objetivos</string>
     <string name="home_section_loans">Empréstimos</string>
     <string name="home_section_groups">grupos</string>
-    <string name="home_section_recent_transactions">Transações recentes</string>
     <string name="home_section_accounts">Contas Bancárias</string>
-    <string name="home_section_subscriptions">Próximas Assinaturas</string>
     <string name="home_section_activity">Atividade</string>
     <!-- Empty state -->
     <string name="home_empty_headline">Nenhuma transação ainda</string>
@@ -46,14 +43,6 @@
     <string name="home_edit_description">Reordenar ou ocultar seções na tela inicial.</string>
     <string name="home_edit_move_up">Mover %1$s para cima</string>
     <string name="home_edit_move_down">Mover %1$s para baixo</string>
-    <!-- Calculation breakdown dialog -->
-    <string name="home_breakdown_title">Detalhamento do cálculo</string>
-    <!-- Month name, then day range, e.g. "March 1-15" -->
-    <string name="home_breakdown_period">%1$s 1-%2$d</string>
-    <string name="home_breakdown_formula">Fórmula: Renda - Despesas = Valor Líquido\nVerde (+) = Poupança (-) = Gastos pendentes</string>
-    <string name="home_breakdown_income">Rendimento</string>
-    <string name="home_breakdown_expenses">Despesas</string>
-    <string name="home_breakdown_net_worth">Valor Líquido</string>
     <!-- Subscriptions + loans summary cards -->
     <plurals name="home_active_subscriptions">
         <item quantity="one">Assinatura ativa %1$d</item>

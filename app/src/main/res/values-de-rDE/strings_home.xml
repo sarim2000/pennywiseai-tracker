@@ -11,15 +11,12 @@
     <string name="home_manage">Verwalten</string>
     <string name="home_search_transactions">Transaktionen durchsuchen</string>
     <string name="home_cancel">Abbrechen</string>
-    <string name="home_close">Schließen</string>
     <!-- Home sections (headers + edit-home sheet) -->
     <string name="home_section_budgets">Budget</string>
     <string name="home_section_goals">Ziele</string>
     <string name="home_section_loans">Darlehen</string>
     <string name="home_section_groups">Gruppen</string>
-    <string name="home_section_recent_transactions">Letzte Transaktionen</string>
     <string name="home_section_accounts">Bankkonten</string>
-    <string name="home_section_subscriptions">Nächste Abonnements</string>
     <string name="home_section_activity">Aktivität</string>
     <!-- Empty state -->
     <string name="home_empty_headline">Noch keine Transaktionen</string>
@@ -46,14 +43,6 @@
     <string name="home_edit_description">Sektionen auf dem Startbildschirm neu anordnen oder ausblenden.</string>
     <string name="home_edit_move_up">Bewege %1$s nach oben</string>
     <string name="home_edit_move_down">Bewege %1$s nach unten</string>
-    <!-- Calculation breakdown dialog -->
-    <string name="home_breakdown_title">Berechnungsaufteilung</string>
-    <!-- Month name, then day range, e.g. "March 1-15" -->
-    <string name="home_breakdown_period">%1$s 1-%2$d</string>
-    <string name="home_breakdown_formula">Formel: Einkommen - Ausgaben = Nettowert\nGrün (+) = Einsparungen | Rot (-) = Überausgaben</string>
-    <string name="home_breakdown_income">Einkommen</string>
-    <string name="home_breakdown_expenses">Ausgaben</string>
-    <string name="home_breakdown_net_worth">Nettowert</string>
     <!-- Subscriptions + loans summary cards -->
     <plurals name="home_active_subscriptions">
         <item quantity="one">%1$d aktives Abonnement</item>

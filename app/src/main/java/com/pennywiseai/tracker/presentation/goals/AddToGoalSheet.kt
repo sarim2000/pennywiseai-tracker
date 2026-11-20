@@ -45,12 +45,15 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.GoalEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.repository.GoalProgress
+import com.pennywiseai.tracker.ui.components.AmountBarHost
 import com.pennywiseai.tracker.ui.components.GoalRing
 import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.RowLabels
+import com.pennywiseai.tracker.ui.components.orSupporting
+import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.components.toColorOr
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
@@ -88,115 +91,123 @@ fun AddToGoalSheet(
     val askManual = goalCurrency != null && goalCurrency != currency && (state.error == MoneyError.NO_RATE || manual.isNotEmpty())
 
     ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = Dimensions.Padding.content)
-                .padding(bottom = Spacing.lg)
-                .navigationBarsPadding()
-                .imePadding(),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
-        ) {
-            Text(stringResource(R.string.goal_add_to_goal), style = MaterialTheme.typography.titleMedium)
-            if (left != null) {
-                Text(
-                    text = if (left.signum() > 0) {
-                        stringResource(R.string.goal_add_to_goal_left, CurrencyFormatter.formatCurrency(left, currency))
-                    } else {
-                        stringResource(R.string.goal_add_to_goal_none_left)
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
+        AmountBarHost {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = Dimensions.Padding.content)
+                    .padding(bottom = Spacing.lg)
+                    .navigationBarsPadding()
+                    .imePadding(),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            ) {
+                Text(stringResource(R.string.goal_add_to_goal), style = MaterialTheme.typography.titleMedium)
+                if (left != null) {
+                    Text(
+                        text = if (left.signum() > 0) {
+                            stringResource(R.string.goal_add_to_goal_left, CurrencyFormatter.formatCurrency(left, currency))
+                        } else {
+                            stringResource(R.string.goal_add_to_goal_none_left)
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                }
 
-            if (goals.isEmpty()) {
-                Text(stringResource(R.string.goal_add_to_goal_no_goals), style = MaterialTheme.typography.bodyMedium)
-                Button(onClick = onCreateGoal, modifier = Modifier.fillMaxWidth(), shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.goals_empty_action)) }
-                return@Column
-            }
+                if (goals.isEmpty()) {
+                    Text(stringResource(R.string.goal_add_to_goal_no_goals), style = MaterialTheme.typography.bodyMedium)
+                    Button(onClick = onCreateGoal, modifier = Modifier.fillMaxWidth(), shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.goals_empty_action)) }
+                    return@Column
+                }
 
-            GroupedList {
-                goals.forEachIndexed { i, p ->
-                    GoalPickRow(p, selected = p.goal.id == selected?.goal?.id, ListItemPosition.from(i, goals.size)) {
-                        goalId = p.goal.id
-                        manual = ""
-                        onEdited()
+                GroupedList {
+                    goals.forEachIndexed { i, p ->
+                        GoalPickRow(p, selected = p.goal.id == selected?.goal?.id, ListItemPosition.from(i, goals.size)) {
+                            goalId = p.goal.id
+                            manual = ""
+                            onEdited()
+                        }
                     }
                 }
-            }
 
-            val amountError = when (state.error) {
-                MoneyError.AMOUNT_INVALID -> stringResource(R.string.goal_money_error_amount)
-                MoneyError.MORE_THAN_LEFT -> stringResource(
-                    R.string.goal_money_error_more_than_left, CurrencyFormatter.formatCurrency(left ?: BigDecimal.ZERO, currency)
+                val amountError = when (state.error) {
+                    MoneyError.AMOUNT_INVALID -> stringResource(R.string.goal_money_error_amount)
+                    MoneyError.MORE_THAN_LEFT -> stringResource(
+                        R.string.goal_money_error_more_than_left, CurrencyFormatter.formatCurrency(left ?: BigDecimal.ZERO, currency)
+                    )
+                    else -> null
+                }
+                val amountEntry = rememberAmountEntry(amount, { if (it.matches(amountInput(currency))) { amount = it; onEdited() } }, currency)
+                val amountSum = amountEntry.sumHint
+                OutlinedTextField(
+                    shape = RoundedField.shape,
+                    value = amountEntry.value,
+                    onValueChange = amountEntry::onValueChange,
+                    label = { Text(stringResource(R.string.goal_money_amount)) },
+                    prefix = { Text(CurrencyFormatter.getCurrencySymbol(currency)) },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                    isError = amountSum?.isError ?: (amountError != null),
+                    supportingText = amountSum.orSupporting(amountError?.let { { Text(it) } }),
+                    modifier = Modifier.fillMaxWidth().then(amountEntry.modifier),
                 )
-                else -> null
-            }
-            OutlinedTextField(
-                shape = RoundedField.shape,
-                value = amount,
-                onValueChange = { if (it.matches(amountInput(currency))) { amount = it; onEdited() } },
-                label = { Text(stringResource(R.string.goal_money_amount)) },
-                prefix = { Text(CurrencyFormatter.getCurrencySymbol(currency)) },
-                singleLine = true,
-                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                isError = amountError != null,
-                supportingText = amountError?.let { { Text(it) } },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            if (askManual && goalCurrency != null) {
-                Text(
-                    stringResource(R.string.goal_money_no_rate, currency, goalCurrency),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                if (askManual && goalCurrency != null) {
+                    Text(
+                        stringResource(R.string.goal_money_no_rate, currency, goalCurrency),
+                        style = MaterialTheme.typography.bodyMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    )
+                    val manualEntry = rememberAmountEntry(manual, { if (it.matches(amountInput(goalCurrency))) manual = it }, goalCurrency)
+                    val manualSum = manualEntry.sumHint
+                    OutlinedTextField(
+                        shape = RoundedField.shape,
+                        value = manualEntry.value,
+                        onValueChange = manualEntry::onValueChange,
+                        label = { Text(stringResource(R.string.goal_money_converted, goalCurrency)) },
+                        prefix = { Text(CurrencyFormatter.getCurrencySymbol(goalCurrency)) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        isError = manualSum?.isError == true,
+                        supportingText = manualSum.orSupporting(),
+                        modifier = Modifier.fillMaxWidth().then(manualEntry.modifier),
+                    )
+                }
+                OutlinedTextField(
+                    shape = RoundedField.shape,
+                    value = transaction.dateTime.toLocalDate().format(goalDateFormat),
+                    onValueChange = {},
+                    readOnly = true,
+                    enabled = false,
+                    label = { Text(stringResource(R.string.goal_money_date)) },
+                    supportingText = { Text(stringResource(R.string.goal_add_to_goal_date_hint)) },
+                    modifier = Modifier.fillMaxWidth(),
                 )
                 OutlinedTextField(
                     shape = RoundedField.shape,
-                    value = manual,
-                    onValueChange = { if (it.matches(amountInput(goalCurrency))) manual = it },
-                    label = { Text(stringResource(R.string.goal_money_converted, goalCurrency)) },
-                    prefix = { Text(CurrencyFormatter.getCurrencySymbol(goalCurrency)) },
+                    value = note,
+                    onValueChange = { note = it },
+                    label = { Text(stringResource(R.string.goal_money_note)) },
                     singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                     modifier = Modifier.fillMaxWidth(),
                 )
-            }
-            OutlinedTextField(
-                shape = RoundedField.shape,
-                value = transaction.dateTime.toLocalDate().format(goalDateFormat),
-                onValueChange = {},
-                readOnly = true,
-                enabled = false,
-                label = { Text(stringResource(R.string.goal_money_date)) },
-                supportingText = { Text(stringResource(R.string.goal_add_to_goal_date_hint)) },
-                modifier = Modifier.fillMaxWidth(),
-            )
-            OutlinedTextField(
-                shape = RoundedField.shape,
-                value = note,
-                onValueChange = { note = it },
-                label = { Text(stringResource(R.string.goal_money_note)) },
-                singleLine = true,
-                modifier = Modifier.fillMaxWidth(),
-            )
-            if (state.error == MoneyError.FAILED) {
-                Text(stringResource(R.string.goal_money_error_failed), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
-            }
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                Box(Modifier.weight(1f))
-                OutlinedButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.goal_action_cancel)) }
-                Button(
-                    onClick = {
-                        selected?.let {
-                            onSave(it.goal, amount.toAmountIn(currency), note, manual.toAmountIn(it.goal.currency)?.takeIf { m -> m.signum() > 0 })
-                        }
-                    },
-                    enabled = !state.saving && left != null && left.signum() > 0 && selected != null &&
-                        isManualAmountOk(manual, selected.goal.currency),
-                    shapes = ButtonDefaults.shapes(),
-                ) { Text(stringResource(R.string.goal_add_to_goal)) }
+                if (state.error == MoneyError.FAILED) {
+                    Text(stringResource(R.string.goal_money_error_failed), color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+                }
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    Box(Modifier.weight(1f))
+                    OutlinedButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.goal_action_cancel)) }
+                    Button(
+                        onClick = {
+                            selected?.let {
+                                onSave(it.goal, amount.toAmountIn(currency), note, manual.toAmountIn(it.goal.currency)?.takeIf { m -> m.signum() > 0 })
+                            }
+                        },
+                        enabled = !state.saving && left != null && left.signum() > 0 && selected != null &&
+                            isManualAmountOk(manual, selected.goal.currency),
+                        shapes = ButtonDefaults.shapes(),
+                    ) { Text(stringResource(R.string.goal_add_to_goal)) }
+                }
             }
         }
     }

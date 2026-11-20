@@ -11,15 +11,12 @@
     <string name="home_manage">Spravovat</string>
     <string name="home_search_transactions">Hledat transakce</string>
     <string name="home_cancel">Zrušit</string>
-    <string name="home_close">Zavřít</string>
     <!-- Home sections (headers + edit-home sheet) -->
     <string name="home_section_budgets">Rozpočty</string>
     <string name="home_section_goals">Cíle</string>
     <string name="home_section_loans">Půjčky</string>
     <string name="home_section_groups">Skupiny</string>
-    <string name="home_section_recent_transactions">Poslední transakce</string>
     <string name="home_section_accounts">Bankovací účty</string>
-    <string name="home_section_subscriptions">Nadcházející předplatné</string>
     <string name="home_section_activity">Aktivita</string>
     <!-- Empty state -->
     <string name="home_empty_headline">Zatím žádné transakce</string>
@@ -46,14 +43,6 @@
     <string name="home_edit_description">Změnit pořadí nebo skrýt sekce na domovské obrazovce.</string>
     <string name="home_edit_move_up">Přesunout %1$s nahoru</string>
     <string name="home_edit_move_down">Přesunout %1$s dolů</string>
-    <!-- Calculation breakdown dialog -->
-    <string name="home_breakdown_title">Rozdělení výpočtu</string>
-    <!-- Month name, then day range, e.g. "March 1-15" -->
-    <string name="home_breakdown_period">%1$s 1 -%2$d</string>
-    <string name="home_breakdown_formula">Formulář: Příjmy - výdaje = čisté jmění\nZelená (+) = Úspory | Červená (-) = překročení výdajů</string>
-    <string name="home_breakdown_income">Výnosy</string>
-    <string name="home_breakdown_expenses">Výdaje</string>
-    <string name="home_breakdown_net_worth">Čisté jmění</string>
     <!-- Subscriptions + loans summary cards -->
     <plurals name="home_active_subscriptions">
         <item quantity="one">%1$d aktivní předplatné</item>

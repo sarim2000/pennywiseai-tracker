@@ -48,6 +48,7 @@ import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.key
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -72,12 +73,15 @@ import com.pennywiseai.tracker.domain.loan.SplitError
 import com.pennywiseai.tracker.domain.loan.SplitPerson
 import com.pennywiseai.tracker.domain.loan.SplitRules
 import com.pennywiseai.tracker.domain.loan.UpiRequest
+import com.pennywiseai.tracker.ui.components.AmountBarHost
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.components.cards.GroupedList
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.RowLabels
+import com.pennywiseai.tracker.ui.components.orSupporting
+import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -255,152 +259,165 @@ fun SplitBillSheet(viewModel: SplitBillViewModel, transaction: TransactionEntity
     }
 
     ModalBottomSheet(onDismissRequest = viewModel::closeSheet, sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))) {
-        Column(
-            Modifier
-                .fillMaxWidth()
-                // Android 8 and older focus a new window's first field, which opened
-                // the keyboard over the buttons. Only a tap (Enter) focuses a field.
-                .focusProperties { onEnter = { if (requestedFocusDirection != FocusDirection.Enter) cancelFocusChange() } }
-                .focusGroup()
-                .verticalScroll(rememberScrollState())
-                .padding(horizontal = Dimensions.Padding.content)
-                .padding(bottom = Spacing.lg)
-                .navigationBarsPadding()
-                .imePadding(),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md),
-        ) {
-            Text(
-                stringResource(R.string.split_sheet_title, CurrencyFormatter.formatCurrency(total, currency)),
-                style = MaterialTheme.typography.titleMedium,
-            )
-            Text(stringResource(R.string.split_sheet_hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        AmountBarHost {
+            Column(
+                Modifier
+                    .fillMaxWidth()
+                    // Android 8 and older focus a new window's first field, which opened
+                    // the keyboard over the buttons. Only a tap (Enter) focuses a field.
+                    .focusProperties { onEnter = { if (requestedFocusDirection != FocusDirection.Enter) cancelFocusChange() } }
+                    .focusGroup()
+                    .verticalScroll(rememberScrollState())
+                    .padding(horizontal = Dimensions.Padding.content)
+                    .padding(bottom = Spacing.lg)
+                    .navigationBarsPadding()
+                    .imePadding(),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md),
+            ) {
+                Text(
+                    stringResource(R.string.split_sheet_title, CurrencyFormatter.formatCurrency(total, currency)),
+                    style = MaterialTheme.typography.titleMedium,
+                )
+                Text(stringResource(R.string.split_sheet_hint), style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
 
-            ConnectedChoiceRow(
-                options = SplitMode.entries,
-                selected = f.mode,
-                onSelect = { viewModel.setMode(it) },
-                label = { mode ->
-                    stringResource(if (mode == SplitMode.EQUAL) R.string.split_mode_equal else R.string.split_mode_custom)
-                },
-            )
+                ConnectedChoiceRow(
+                    options = SplitMode.entries,
+                    selected = f.mode,
+                    onSelect = { viewModel.setMode(it) },
+                    label = { mode ->
+                        stringResource(if (mode == SplitMode.EQUAL) R.string.split_mode_equal else R.string.split_mode_custom)
+                    },
+                )
 
-            // Everyone's part: read-only rows when equal, an amount field each when custom.
-            if (f.mode == SplitMode.EQUAL) {
-                val rows = f.people.size + 1
-                GroupedList {
-                    f.people.forEachIndexed { i, person ->
-                        GroupedRow(position = ListItemPosition.from(i, rows), containerColor = sheetRow) {
-                            RowLabels(title = person.name)
-                            Text(CurrencyFormatter.formatCurrency(preview.shares[i], currency), style = PennyWiseText.amountRow)
-                            RemoveButton(person.name) { viewModel.removePerson(i) }
+                // Everyone's part: read-only rows when equal, an amount field each when custom.
+                if (f.mode == SplitMode.EQUAL) {
+                    val rows = f.people.size + 1
+                    GroupedList {
+                        f.people.forEachIndexed { i, person ->
+                            GroupedRow(position = ListItemPosition.from(i, rows), containerColor = sheetRow) {
+                                RowLabels(title = person.name)
+                                Text(CurrencyFormatter.formatCurrency(preview.shares[i], currency), style = PennyWiseText.amountRow)
+                                RemoveButton(person.name) { viewModel.removePerson(i) }
+                            }
+                        }
+                        GroupedRow(position = ListItemPosition.from(f.people.size, rows), containerColor = sheetRow) {
+                            RowLabels(title = stringResource(R.string.split_you), subtitle = stringResource(R.string.split_your_part))
+                            Text(CurrencyFormatter.formatCurrency(preview.yours, currency), style = PennyWiseText.amountRow)
                         }
                     }
-                    GroupedRow(position = ListItemPosition.from(f.people.size, rows), containerColor = sheetRow) {
-                        RowLabels(title = stringResource(R.string.split_you), subtitle = stringResource(R.string.split_your_part))
-                        Text(CurrencyFormatter.formatCurrency(preview.yours, currency), style = PennyWiseText.amountRow)
+                } else {
+                    val symbol = CurrencyFormatter.getCurrencySymbol(currency)
+                    f.people.forEachIndexed { i, person ->
+                        // Names are unique: a removed person's typed sum doesn't move to the next.
+                        key(person.name) {
+                            val share = rememberAmountEntry(person.amount, { if (it.matches(amountInput)) viewModel.setShare(i, it) }, currency)
+                            val shareSum = share.sumHint
+                            OutlinedTextField(
+                                shape = RoundedField.shape,
+                                value = share.value,
+                                onValueChange = share::onValueChange,
+                                label = { Text(person.name) },
+                                prefix = { Text(symbol) },
+                                singleLine = true,
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                                isError = shareSum?.isError == true,
+                                supportingText = shareSum.orSupporting(),
+                                trailingIcon = { RemoveButton(person.name) { viewModel.removePerson(i) } },
+                                modifier = Modifier.fillMaxWidth().then(share.modifier),
+                            )
+                        }
                     }
-                }
-            } else {
-                val symbol = CurrencyFormatter.getCurrencySymbol(currency)
-                f.people.forEachIndexed { i, person ->
+                    val yours = rememberAmountEntry(f.yourPart, { if (it.matches(amountInput)) viewModel.setYourPart(it) }, currency)
+                    val yoursSum = yours.sumHint
                     OutlinedTextField(
                         shape = RoundedField.shape,
-                        value = person.amount,
-                        onValueChange = { if (it.matches(amountInput)) viewModel.setShare(i, it) },
-                        label = { Text(person.name) },
+                        value = yours.value,
+                        onValueChange = yours::onValueChange,
+                        label = { Text(stringResource(R.string.split_your_part)) },
                         prefix = { Text(symbol) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        trailingIcon = { RemoveButton(person.name) { viewModel.removePerson(i) } },
-                        modifier = Modifier.fillMaxWidth(),
+                        isError = yoursSum?.isError == true,
+                        supportingText = yoursSum.orSupporting(),
+                        modifier = Modifier.fillMaxWidth().then(yours.modifier),
+                    )
+                    val r = preview.remainder
+                    Text(
+                        when {
+                            r.signum() > 0 -> stringResource(R.string.split_left_to_assign, CurrencyFormatter.formatCurrency(r, currency))
+                            r.signum() < 0 -> stringResource(R.string.split_over_total, CurrencyFormatter.formatCurrency(r.negate(), currency))
+                            else -> stringResource(R.string.split_adds_up, CurrencyFormatter.formatCurrency(total, currency))
+                        },
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.SemiBold,
+                        color = if (r.signum() == 0) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,
                     )
                 }
-                OutlinedTextField(
-                    shape = RoundedField.shape,
-                    value = f.yourPart,
-                    onValueChange = { if (it.matches(amountInput)) viewModel.setYourPart(it) },
-                    label = { Text(stringResource(R.string.split_your_part)) },
-                    prefix = { Text(symbol) },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                val r = preview.remainder
+
+                // Adding people: type, a suggestion, or the contacts picker.
                 Text(
-                    when {
-                        r.signum() > 0 -> stringResource(R.string.split_left_to_assign, CurrencyFormatter.formatCurrency(r, currency))
-                        r.signum() < 0 -> stringResource(R.string.split_over_total, CurrencyFormatter.formatCurrency(r.negate(), currency))
-                        else -> stringResource(R.string.split_adds_up, CurrencyFormatter.formatCurrency(total, currency))
-                    },
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.SemiBold,
-                    color = if (r.signum() == 0) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.error,
+                    stringResource(R.string.split_people_count, f.people.size, SplitRules.MAX_PEOPLE),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                 )
-            }
-
-            // Adding people: type, a suggestion, or the contacts picker.
-            Text(
-                stringResource(R.string.split_people_count, f.people.size, SplitRules.MAX_PEOPLE),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-            )
-            if (!full) {
-                fun add() { if (viewModel.addPerson(name)) name = "" }
-                OutlinedTextField(
-                    value = name,
-                    onValueChange = { name = it },
-                    label = { Text(stringResource(R.string.split_person_name)) },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(onDone = { add() }),
-                    trailingIcon = {
-                        IconButton(onClick = ::add, enabled = name.isNotBlank(), shapes = IconButtonDefaults.shapes()) {
-                            Icon(Icons.Default.PersonAdd, contentDescription = stringResource(R.string.split_add_person))
-                        }
-                    },
-                    modifier = Modifier.fillMaxWidth(),
-                )
-                val unused = suggestions.filter { s -> f.people.none { it.name.equals(s, ignoreCase = true) } }
-                if (unused.isNotEmpty()) {
-                    FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                        unused.take(MAX_SUGGESTIONS).forEach { s ->
-                            SuggestionChip(onClick = { viewModel.addPerson(s) }, label = { Text(s) })
+                if (!full) {
+                    fun add() { if (viewModel.addPerson(name)) name = "" }
+                    OutlinedTextField(
+                        value = name,
+                        onValueChange = { name = it },
+                        label = { Text(stringResource(R.string.split_person_name)) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
+                        keyboardActions = KeyboardActions(onDone = { add() }),
+                        trailingIcon = {
+                            IconButton(onClick = ::add, enabled = name.isNotBlank(), shapes = IconButtonDefaults.shapes()) {
+                                Icon(Icons.Default.PersonAdd, contentDescription = stringResource(R.string.split_add_person))
+                            }
+                        },
+                        modifier = Modifier.fillMaxWidth(),
+                    )
+                    val unused = suggestions.filter { s -> f.people.none { it.name.equals(s, ignoreCase = true) } }
+                    if (unused.isNotEmpty()) {
+                        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                            unused.take(MAX_SUGGESTIONS).forEach { s ->
+                                SuggestionChip(onClick = { viewModel.addPerson(s) }, label = { Text(s) })
+                            }
                         }
                     }
-                }
-                TextButton(onClick = { runCatching { pickContact.launch(null) } }, shapes = ButtonDefaults.shapes()) {
-                    Icon(Icons.Default.Contacts, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
-                    Spacer(Modifier.width(Spacing.xs))
-                    Text(stringResource(R.string.split_pick_contact))
-                }
-            }
-
-            val error = when (preview.error) {
-                null -> null
-                // Save is disabled and the people field is right there; no need to shout.
-                SplitError.NO_PEOPLE -> null
-                SplitError.SHARE_NOT_POSITIVE -> stringResource(R.string.split_error_share_positive)
-                SplitError.OVER_AMOUNT -> stringResource(R.string.split_error_over)
-                SplitError.YOUR_PART_NEGATIVE -> stringResource(R.string.split_error_your_part_negative)
-                // The remainder line above already says by how much.
-                SplitError.NOT_BALANCED -> null
-                // The sheet never lets these through.
-                SplitError.TOO_MANY_PEOPLE, SplitError.BLANK_NAME, SplitError.DUPLICATE_PERSON -> null
-            }
-            (f.settledPerson?.let { stringResource(R.string.split_error_settled, it) }
-                ?: f.failure?.let { stringResource(R.string.split_error_failed, it) } ?: error)?.let {
-                Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
-            }
-
-            Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
-                if (saved.isNotEmpty()) {
-                    TextButton(onClick = { confirmRemove = true }, enabled = !f.saving, shapes = ButtonDefaults.shapes()) {
-                        Text(stringResource(R.string.split_remove), color = MaterialTheme.colorScheme.error)
+                    TextButton(onClick = { runCatching { pickContact.launch(null) } }, shapes = ButtonDefaults.shapes()) {
+                        Icon(Icons.Default.Contacts, contentDescription = null, modifier = Modifier.size(Dimensions.Icon.small))
+                        Spacer(Modifier.width(Spacing.xs))
+                        Text(stringResource(R.string.split_pick_contact))
                     }
                 }
-                Box(Modifier.weight(1f))
-                OutlinedButton(onClick = viewModel::closeSheet, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.txn_detail_action_cancel)) }
-                Button(onClick = viewModel::save, enabled = !f.saving && preview.error == null, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.split_save)) }
+
+                val error = when (preview.error) {
+                    null -> null
+                    // Save is disabled and the people field is right there; no need to shout.
+                    SplitError.NO_PEOPLE -> null
+                    SplitError.SHARE_NOT_POSITIVE -> stringResource(R.string.split_error_share_positive)
+                    SplitError.OVER_AMOUNT -> stringResource(R.string.split_error_over)
+                    SplitError.YOUR_PART_NEGATIVE -> stringResource(R.string.split_error_your_part_negative)
+                    // The remainder line above already says by how much.
+                    SplitError.NOT_BALANCED -> null
+                    // The sheet never lets these through.
+                    SplitError.TOO_MANY_PEOPLE, SplitError.BLANK_NAME, SplitError.DUPLICATE_PERSON -> null
+                }
+                (f.settledPerson?.let { stringResource(R.string.split_error_settled, it) }
+                    ?: f.failure?.let { stringResource(R.string.split_error_failed, it) } ?: error)?.let {
+                    Text(it, color = MaterialTheme.colorScheme.error, style = MaterialTheme.typography.bodyMedium)
+                }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm), verticalAlignment = Alignment.CenterVertically) {
+                    if (saved.isNotEmpty()) {
+                        TextButton(onClick = { confirmRemove = true }, enabled = !f.saving, shapes = ButtonDefaults.shapes()) {
+                            Text(stringResource(R.string.split_remove), color = MaterialTheme.colorScheme.error)
+                        }
+                    }
+                    Box(Modifier.weight(1f))
+                    OutlinedButton(onClick = viewModel::closeSheet, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.txn_detail_action_cancel)) }
+                    Button(onClick = viewModel::save, enabled = !f.saving && preview.error == null, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.split_save)) }
+                }
             }
         }
     }

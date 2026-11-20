@@ -37,6 +37,8 @@ import kotlin.math.absoluteValue
 fun BudgetCarousel(
     summary: BudgetOverallSummary,
     onClick: () -> Unit = {},
+    /** A compact row's tap, with that row's budget id. */
+    onBudgetClick: (Long) -> Unit = { onClick() },
     onCreateBudget: () -> Unit = {},
     modifier: Modifier = Modifier,
     /** The budget Home's hero already shows; left out here so it isn't shown twice. */
@@ -102,7 +104,10 @@ fun BudgetCarousel(
     if (compact) {
         GroupedList(modifier = modifier) {
             groups.forEachIndexed { index, group ->
-                GroupedRow(position = ListItemPosition.from(index, groups.size), onClick = onClick) {
+                GroupedRow(
+                    position = ListItemPosition.from(index, groups.size),
+                    onClick = { onBudgetClick(group.group.budget.id) }
+                ) {
                     BudgetStatusContent(group, summary.currency, compact = true)
                 }
             }

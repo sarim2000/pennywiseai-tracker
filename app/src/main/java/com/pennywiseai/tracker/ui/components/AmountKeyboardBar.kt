@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.ui.components
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -23,6 +24,7 @@ import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.text.TextRange
 import androidx.compose.ui.text.input.TextFieldValue
+import androidx.compose.ui.unit.Dp
 import com.pennywiseai.shared.domain.money.MinorUnits
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.domain.model.AmountExpression
@@ -52,33 +54,38 @@ fun AmountKeyboardBar(
     )
     val equals = stringResource(R.string.calculator_equals)
     Surface(color = MaterialTheme.colorScheme.surfaceContainerHigh, modifier = modifier.fillMaxWidth()) {
-        Row(
-            modifier = Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            keys.forEach { (key, description) ->
-                OperatorKey(key.toString(), description) { onOperator(key) }
-            }
-            OperatorKey("=", equals, onEquals)
-            Spacer(Modifier.weight(1f))
-            FilledIconButton(
-                onClick = onDone,
-                shapes = IconButtonDefaults.shapes(),
-                modifier = Modifier.size(Dimensions.Component.minTouchTarget)
+        BoxWithConstraints(Modifier.padding(horizontal = Spacing.md, vertical = Spacing.sm)) {
+            // Six keys and the six gaps around the spacer. A dialog is narrower than that:
+            // the keys shrink there rather than cut the check off.
+            val keySize = minOf(Dimensions.Component.minTouchTarget, (maxWidth - Spacing.sm * 6) / 6)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                verticalAlignment = Alignment.CenterVertically
             ) {
-                Icon(Icons.Rounded.Check, contentDescription = stringResource(R.string.amount_bar_done))
+                keys.forEach { (key, description) ->
+                    OperatorKey(key.toString(), description, keySize) { onOperator(key) }
+                }
+                OperatorKey("=", equals, keySize, onEquals)
+                Spacer(Modifier.weight(1f))
+                FilledIconButton(
+                    onClick = onDone,
+                    shapes = IconButtonDefaults.shapes(),
+                    modifier = Modifier.size(keySize)
+                ) {
+                    Icon(Icons.Rounded.Check, contentDescription = stringResource(R.string.amount_bar_done))
+                }
             }
         }
     }
 }
 
 @Composable
-private fun OperatorKey(label: String, description: String, onClick: () -> Unit) {
+private fun OperatorKey(label: String, description: String, size: Dp, onClick: () -> Unit) {
     FilledTonalIconButton(
         onClick = onClick,
         shapes = IconButtonDefaults.shapes(),
-        modifier = Modifier.size(Dimensions.Component.minTouchTarget)
+        modifier = Modifier.size(size)
     ) {
         // "Divide", not "÷", for TalkBack.
         Text(

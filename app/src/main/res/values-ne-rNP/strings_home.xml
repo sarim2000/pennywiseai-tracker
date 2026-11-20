@@ -11,15 +11,12 @@
     <string name="home_manage">व्यवस्थापन</string>
     <string name="home_search_transactions">लेनदेन खोज्नुहोस्</string>
     <string name="home_cancel">रद्द गर्नुहोस्</string>
-    <string name="home_close">बन्द गर्नुहोस्</string>
     <!-- Home sections (headers + edit-home sheet) -->
     <string name="home_section_budgets">बजेटहरू</string>
     <string name="home_section_goals">लक्ष्यहरू</string>
     <string name="home_section_loans">ऋणहरू</string>
     <string name="home_section_groups">समूहहरू</string>
-    <string name="home_section_recent_transactions">हालका लेनदेन</string>
     <string name="home_section_accounts">बैंक खाता</string>
-    <string name="home_section_subscriptions">आउँदै गरेका सदस्यताहरू</string>
     <string name="home_section_activity">गतिविधि</string>
     <!-- Empty state -->
     <string name="home_empty_headline">अझै कुनै लेनदेन छैन</string>
@@ -45,13 +42,6 @@
     <string name="home_edit_description">तपाईंको होम स्क्रिनमा सेक्सनहरू पुन:क्रमित वा लुकाउनुहोस्।</string>
     <string name="home_edit_move_up">%1$s माथि सार्नुहोस्</string>
     <string name="home_edit_move_down">%1$s तल सार्नुहोस्</string>
-    <!-- Calculation breakdown dialog -->
-    <string name="home_breakdown_title">हिसाब मिलान विवरण</string>
-    <!-- Month name, then day range, e.g. "March 1-15" -->
-    <string name="home_breakdown_formula">सूत्र: आम्दानी - खर्च = शुद्ध सम्पत्ति\nहरियो (+) = बचत | रातो (-) = बढी खर्च</string>
-    <string name="home_breakdown_income">आम्दानी</string>
-    <string name="home_breakdown_expenses">खर्चहरू</string>
-    <string name="home_breakdown_net_worth">शुद्ध सम्पत्ति</string>
     <!-- Subscriptions + loans summary cards -->
     <plurals name="home_active_subscriptions">
         <item quantity="one">%1$d सक्रिय सदस्यता</item>

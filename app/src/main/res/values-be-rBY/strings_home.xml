@@ -11,15 +11,12 @@
     <string name="home_manage">Кіраваць</string>
     <string name="home_search_transactions">Пошук транзакцый</string>
     <string name="home_cancel">Скасаваць</string>
-    <string name="home_close">Закрыць</string>
     <!-- Home sections (headers + edit-home sheet) -->
     <string name="home_section_budgets">Бюджэты</string>
     <string name="home_section_goals">Мэты</string>
     <string name="home_section_loans">Пазыкі</string>
     <string name="home_section_groups">Групы</string>
-    <string name="home_section_recent_transactions">Апошнія транзакцыі</string>
     <string name="home_section_accounts">Банкаўскія рахункі</string>
-    <string name="home_section_subscriptions">Бліжэйшыя падпіскі</string>
     <string name="home_section_activity">Актыўнасць</string>
     <!-- Empty state -->
     <string name="home_empty_headline">Транзакцый пакуль няма</string>
@@ -45,13 +42,6 @@
     <string name="home_edit_description">Змяняйце парадак раздзелаў на галоўным экране або хавайце іх.</string>
     <string name="home_edit_move_up">Перамясціць %1$s вышэй</string>
     <string name="home_edit_move_down">Перамясціць %1$s ніжэй</string>
-    <!-- Calculation breakdown dialog -->
-    <string name="home_breakdown_title">Як гэта палічана</string>
-    <!-- Month name, then day range, e.g. "March 1-15" -->
-    <string name="home_breakdown_formula">Формула: Даходы - Выдаткі = Чысты вынік\nЗялёны (+) = Зберажэнні | Чырвоны (-) = Перарасход</string>
-    <string name="home_breakdown_income">Даходы</string>
-    <string name="home_breakdown_expenses">Выдаткі</string>
-    <string name="home_breakdown_net_worth">Чысты вынік</string>
     <!-- Subscriptions + loans summary cards -->
     <plurals name="home_active_subscriptions">
         <item quantity="one">%1$d актыўная падпіска</item>

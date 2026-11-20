@@ -11,15 +11,12 @@
     <string name="home_manage">Управлять</string>
     <string name="home_search_transactions">Поиск транзакций</string>
     <string name="home_cancel">Отмена</string>
-    <string name="home_close">Закрыть</string>
     <!-- Home sections (headers + edit-home sheet) -->
     <string name="home_section_budgets">Бюджеты</string>
     <string name="home_section_goals">Цели</string>
     <string name="home_section_loans">Долги</string>
     <string name="home_section_groups">Группы</string>
-    <string name="home_section_recent_transactions">Последние транзакции</string>
     <string name="home_section_accounts">Банковские счета</string>
-    <string name="home_section_subscriptions">Предстоящие подписки</string>
     <string name="home_section_activity">Активность</string>
     <!-- Empty state -->
     <string name="home_empty_headline">Транзакций ещё нет</string>
@@ -46,14 +43,6 @@
     <string name="home_edit_description">Переставляйте или скрывайте разделы на главном экране.</string>
     <string name="home_edit_move_up">Переместить %1$s вверх</string>
     <string name="home_edit_move_down">Сдвинуть %1$s вниз</string>
-    <!-- Calculation breakdown dialog -->
-    <string name="home_breakdown_title">Разбивка расчетов</string>
-    <!-- Month name, then day range, e.g. "March 1-15" -->
-    <string name="home_breakdown_period">%1$s 1-%2$d</string>
-    <string name="home_breakdown_formula">Формула: Доход - Расходы = Чистая стоимость\nЗеленый (+) = Сбережения | Красный (-) = Перерасход</string>
-    <string name="home_breakdown_income">Доход</string>
-    <string name="home_breakdown_expenses">Расходы</string>
-    <string name="home_breakdown_net_worth">Чистая стоимость</string>
     <!-- Subscriptions + loans summary cards -->
     <plurals name="home_active_subscriptions">
         <item quantity="one">%1$d активная подписка</item>

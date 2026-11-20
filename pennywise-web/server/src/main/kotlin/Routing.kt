@@ -67,7 +67,9 @@ fun Application.configureRouting() {
             // Mobily Pay (Saudi Arabia, #1134)
             MobilyPayParser(),
             // Barq wallet (Saudi Arabia, #1135).
-            BarqParser()
+            BarqParser(),
+            // Belarusbank (Belarus) — the web tester advertises its ASB.BY sample.
+            BelarusbankParser()
         )
     )
 

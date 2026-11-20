@@ -570,42 +570,27 @@ internal fun HomeInsightsSection(
             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
             onSeeAll = onNavigateToInsights
         )
-        PennyWiseCardV2(
-            onClick = onNavigateToInsights,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Dimensions.Padding.content)
-        ) {
-            // Titles like "Your money would last 4 months" don't name a currency, so say
-            // which each is once any isn't the one Home shows.
-            val showCurrency = insights.any { it.currency != homeCurrency }
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.smd)) {
-                insights.forEach { insight ->
-                    val (icon, color) = com.pennywiseai.tracker.presentation.insights.severityStyle(insight.severity)
-                    // Without section headers here, the icon says how much it matters: "Needs attention, …".
-                    Row(
-                        modifier = Modifier.semantics(mergeDescendants = true) {},
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.smd)
-                    ) {
-                        Icon(
-                            icon,
-                            contentDescription = com.pennywiseai.tracker.presentation.insights.severityLabel(insight.severity),
-                            tint = color,
-                            modifier = Modifier.size(Dimensions.Icon.medium)
-                        )
+        // Titles like "Your money would last 4 months" don't name a currency, so say
+        // which each is once any isn't the one Home shows.
+        val showCurrency = insights.any { it.currency != homeCurrency }
+        GroupedList(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
+            insights.forEachIndexed { index, insight ->
+                GroupedRow(
+                    position = ListItemPosition.from(index, insights.size),
+                    onClick = onNavigateToInsights,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.smd)
+                ) {
+                    com.pennywiseai.tracker.presentation.insights.SeverityTile(insight.severity)
+                    RowLabels(
+                        title = com.pennywiseai.tracker.presentation.insights.insightText(insight).title,
+                        titleMaxLines = 2
+                    )
+                    if (showCurrency) {
                         Text(
-                            text = com.pennywiseai.tracker.presentation.insights.insightText(insight).title,
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.weight(1f)
+                            text = insight.currency,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        if (showCurrency) {
-                            Text(
-                                text = insight.currency,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
                     }
                 }
             }

@@ -88,7 +88,9 @@ fun Color.readableOn(
     }
     if (minContrast(this) >= minimum) return this
     // ponytail: unbounded in theory, but keys are (token × scheme) — a few hundred at most.
-    val key = listOf(value, minimum.toRawBits().toULong()) + backgrounds.map { it.value } + layers.map { it.value }
+    // The two lists' sizes keep (backgrounds [A, B], layers [C]) apart from ([A], [B, C]).
+    val key = listOf(value, minimum.toRawBits().toULong(), backgrounds.size.toULong()) +
+        backgrounds.map { it.value } + layers.map { it.value }
     return readableCache.getOrPut(key) {
         val toWhite = minContrast(Color.White) > minContrast(Color.Black)
         val lab = Oklab.of(this)

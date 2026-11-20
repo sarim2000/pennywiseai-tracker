@@ -161,8 +161,10 @@ fun BalanceCard(
     // retoned to sit on it.
     val outer = MaterialTheme.colorScheme
     // Nudged a touch where needed, so the card's text still reads while it's pressed or focused.
-    val fill = outer.primaryContainer.clickableFillFor(outer.onPrimaryContainer)
-    MaterialTheme(colorScheme = outer.onColoredFill(fill, outer.onPrimaryContainer)) {
+    // Remembered: a new scheme each frame (the chevron animates) would invalidate the whole card.
+    val fill = remember(outer) { outer.primaryContainer.clickableFillFor(outer.onPrimaryContainer) }
+    val cardScheme = remember(outer, fill) { outer.onColoredFill(fill, outer.onPrimaryContainer) }
+    MaterialTheme(colorScheme = cardScheme) {
         var isExpanded by rememberSaveable { mutableStateOf(false) }
         val view = LocalView.current
         val chevronRotation by animateFloatAsState(
@@ -456,10 +458,10 @@ private fun BudgetMeter(budget: HomeHeroBudget, containerColor: Color) {
         fraction = progress,
         color = color,
         // An ink track near the card's own tone: against the surface wash no colour reached
-        // 3:1 on both it and the card in palettes like Monochrome.
+        // 3:1 on both it and the card in palettes like Monochrome. Checked at rest, not under the
+        // card's press layer: there the three states turned one white on mid-tone fills.
         trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = Dimensions.Alpha.meterTrack),
         containerColor = containerColor,
-        layers = listOf(MaterialTheme.colorScheme.onSurface.stateLayer()),
         modifier = Modifier.clearAndSetSemantics { }
     )
 }
@@ -746,7 +748,9 @@ private fun ChangeArrow(trend: ChangeTrend, fill: Color) {
 /** [content] on the hero's surface wash (a chip, Safe to spend), in [outer]'s own inks. */
 @Composable
 private fun OnWash(outer: ColorScheme, fill: Color, content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = outer.onSurfaceWash(fill, MaterialTheme.colorScheme.onSurface), content = content)
+    val cardInk = MaterialTheme.colorScheme.onSurface
+    val scheme = remember(outer, fill, cardInk) { outer.onSurfaceWash(fill, cardInk) }
+    MaterialTheme(colorScheme = scheme, content = content)
 }
 
 /**

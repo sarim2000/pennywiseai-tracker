@@ -2,11 +2,13 @@ package com.pennywiseai.tracker.ui.theme
 
 import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.colorspace.ColorSpaces
 import androidx.compose.ui.graphics.compositeOver
 import com.pennywiseai.tracker.data.preferences.AccentColor
 import com.pennywiseai.tracker.data.preferences.ThemeStyle
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.math.hypot
 
 /**
  * Home's hero is a primaryContainer card with a surface wash (Safe to spend, the currency
@@ -50,13 +52,18 @@ class ColoredFillContrastTest {
                     check("$label text on card", semantic.readableOn(listOf(fill), layers = listOf(cardLayer)), fill, TEXT_CONTRAST)
                     check("$label mark on card", semantic.readableOn(listOf(fill), GRAPHIC_CONTRAST, listOf(cardLayer)), fill, GRAPHIC_CONTRAST)
                 }
-                // The budget meter (WavyMeter nudges its colour on its track and the card) in each state.
+                // The budget meter (WavyMeter nudges its colour on its track and the card) in each state,
+                // at rest: under the press layer its states went one white on mid-tone fills (Dawn Subtle).
                 val track = card.onSurface.copy(alpha = Dimensions.Alpha.meterTrack).compositeOver(fill)
                 listOf("primary" to card.primary, "warning" to card.warning, "error" to card.error).forEach { (label, c) ->
-                    val meter = c.readableOn(listOf(track, fill), GRAPHIC_CONTRAST, listOf(cardLayer))
-                    check("$label meter on track", meter, track, GRAPHIC_CONTRAST)
-                    check("$label meter on card", meter, fill, GRAPHIC_CONTRAST)
+                    val meter = c.readableOn(listOf(track, fill), GRAPHIC_CONTRAST)
+                    check("$label meter on track", meter, track, GRAPHIC_CONTRAST, emptyList())
+                    check("$label meter on card", meter, fill, GRAPHIC_CONTRAST, emptyList())
                 }
+                // Income and expense marks (sparkline, summary bars) stay apart in hue, pressed too.
+                val income = outer.income.readableOn(listOf(fill), GRAPHIC_CONTRAST, listOf(cardLayer))
+                val expense = outer.expense.readableOn(listOf(fill), GRAPHIC_CONTRAST, listOf(cardLayer))
+                if (oklabDistance(income, expense) < DISTINCT_HUES) add("$name: income and expense marks too close")
                 // The chip and Safe to spend press with their own layer, and take the card's when it's pressed.
                 val washLayers = listOf(cardLayer, washLayer)
                 check("wash onSurface", onWash.onSurface, wash, TEXT_CONTRAST, washLayers)
@@ -70,6 +77,12 @@ class ColoredFillContrastTest {
         assertTrue(failures.joinToString("\n"), failures.isEmpty())
     }
 
+    private fun oklabDistance(a: Color, b: Color): Float {
+        val x = a.convert(ColorSpaces.Oklab)
+        val y = b.convert(ColorSpaces.Oklab)
+        return hypot(hypot(x.red - y.red, x.green - y.green), x.blue - y.blue)
+    }
+
     @Test
     fun readableOn_keepsTheHue_whenItHasToMoveFar() {
         // Red on Teal Turquoise's light card has to go nearly white for text, but a 3:1 mark keeps a clear pink.
@@ -77,5 +90,10 @@ class ColoredFillContrastTest {
         val mark = Color(0xFFBB2525).readableOn(listOf(teal), GRAPHIC_CONTRAST)
         assertTrue(contrastRatio(mark, teal) >= GRAPHIC_CONTRAST)
         assertTrue("still red: $mark", mark.red - mark.blue > 0.15f)
+    }
+
+    private companion object {
+        /** Oklab distance two series colours keep: well past a just-noticeable difference (~0.02). */
+        const val DISTINCT_HUES = 0.1f
     }
 }

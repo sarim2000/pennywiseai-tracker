@@ -310,7 +310,8 @@ private fun PeriodSummaryCard(state: InsightsUiState) {
         )
         val income = review?.income?.takeIf { it.signum() > 0 }
         val subscriptions = state.subscriptionsMonthly
-        if (income != null || subscriptions != null) {
+        val runway = state.runway
+        if (income != null || subscriptions != null || runway != null) {
             FlowRow(
                 modifier = Modifier.fillMaxWidth().padding(top = Spacing.md),
                 horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
@@ -328,6 +329,9 @@ private fun PeriodSummaryCard(state: InsightsUiState) {
                 subscriptions?.let {
                     Figure(stringResource(R.string.insights_subscriptions_monthly), it.format())
                 }
+                runway?.let {
+                    Figure(stringResource(R.string.insights_runway), runwayLength(it.months, it.lowConfidence))
+                }
             }
         }
         if (state.cycles.count { it.hasActivity } > 1) {
@@ -340,6 +344,7 @@ private fun PeriodSummaryCard(state: InsightsUiState) {
 private fun Figure(label: String, value: String) {
     Column(Modifier.semantics(mergeDescendants = true) {}) {
         Text(text = label, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        // Shrinks rather than cut a figure short: a long balance, or "under a month, from the balances known".
         Text(
             text = value,
             style = PennyWiseText.amountRow,
@@ -532,7 +537,12 @@ private fun MetricChip(label: String, value: String) {
     ) {
         Column(Modifier.padding(horizontal = Spacing.smd, vertical = Spacing.sm)) {
             Text(text = label, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
-            Text(text = value, style = PennyWiseText.amountSmall, maxLines = 1)
+            Text(
+                text = value,
+                style = PennyWiseText.amountSmall,
+                maxLines = 1,
+                autoSize = TextAutoSize.StepBased(PennyWiseText.autoSizeFloor, PennyWiseText.amountSmall.fontSize),
+            )
         }
     }
 }

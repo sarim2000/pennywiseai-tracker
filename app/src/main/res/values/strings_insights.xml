@@ -13,6 +13,20 @@
     <string name="insights_savings_rate">Savings rate</string>
     <!-- What active subscriptions cost a month, beside this cycle's figures -->
     <string name="insights_subscriptions_monthly">Subscriptions a month</string>
+    <!-- How long the money in savings, current and cash accounts would last at a usual month's spending -->
+    <string name="insights_runway">Money would last</string>
+    <!-- Some balances are estimates. %1$s = a number of months, e.g. "2.4 months" -->
+    <string name="insights_runway_about">about %1$s</string>
+    <!-- %1$s = a number of months with one decimal, e.g. "2.4" -->
+    <string name="insights_months_decimal">%1$s months</string>
+    <!-- %1$s = a whole number of months -->
+    <plurals name="insights_months">
+        <item quantity="one">%1$s month</item>
+        <item quantity="other">%1$s months</item>
+    </plurals>
+    <string name="insights_months_under_one">under a month</string>
+    <!-- Some balances are unknown, so the money held may last longer than this -->
+    <string name="insights_months_under_one_partial">under a month, from the balances known</string>
     <string name="insights_last_cycles">Spending by cycle</string>
     <string name="insights_section_alert">Needs attention</string>
     <string name="insights_section_warning">Heads up</string>
@@ -57,6 +71,8 @@
     <string name="insights_metric_limit">Limit</string>
     <string name="insights_metric_tracked">Tracked at</string>
     <string name="insights_metric_charged">Charged</string>
+    <string name="insights_metric_held">In accounts</string>
+    <string name="insights_metric_usual_month">Usual month</string>
 
     <!-- Action buttons -->
     <string name="insights_action_budgets">Open budgets</string>
@@ -64,6 +80,7 @@
     <string name="insights_action_transaction">Open transaction</string>
     <string name="insights_action_subscriptions">Open subscriptions</string>
     <string name="insights_action_account">Open account</string>
+    <string name="insights_action_accounts">Open accounts</string>
 
     <!-- Budget over. %1$s = amount over, %2$s = budget name (often already ends in "Budget", so don't add the word) -->
     <string name="insights_budget_over_title">%1$s over on %2$s</string>
@@ -108,6 +125,12 @@
 
     <!-- Card utilisation. %1$s = percentage, %2$s = card name -->
     <string name="insights_card_title">%1$s of your %2$s limit used</string>
+
+    <!-- Runway. %1$s = how long, e.g. "2.4 months", "about 2.4 months" (some balances unknown) or "under a month" -->
+    <string name="insights_runway_title">Your money would last %1$s</string>
+    <!-- Under the runway's Held and Usual month figures. %1$d = months many aim for -->
+    <string name="insights_runway_good_body">That\'s past the %1$d months many people aim for.</string>
+    <string name="insights_runway_estimate">Some accounts are left out because their balance isn\'t known yet. Update them in Accounts for a truer figure.</string>
 
     <!-- Bills due. %1$s = total, %2$d = days -->
     <plurals name="insights_bills_title">

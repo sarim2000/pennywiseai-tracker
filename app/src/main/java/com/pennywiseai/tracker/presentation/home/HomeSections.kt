@@ -692,10 +692,14 @@ internal fun HomeUnsortedCard(
     }
 }
 
-/** The two insights that matter most; the card opens the Insights page. */
+/**
+ * The two insights that matter most, in any currency; the card opens the Insights page.
+ * [homeCurrency] is the one the rest of Home shows.
+ */
 @Composable
 internal fun HomeInsightsSection(
     insights: List<com.pennywiseai.tracker.domain.insights.Insight>,
+    homeCurrency: String,
     onNavigateToInsights: () -> Unit
 ) {
     Column(
@@ -721,6 +725,9 @@ internal fun HomeInsightsSection(
                 .fillMaxWidth()
                 .padding(horizontal = Dimensions.Padding.content)
         ) {
+            // Titles like "Your money would last 4 months" don't name a currency, so say
+            // which each is once any isn't the one Home shows.
+            val showCurrency = insights.any { it.currency != homeCurrency }
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.smd)) {
                 insights.forEach { insight ->
                     val (icon, color) = com.pennywiseai.tracker.presentation.insights.severityStyle(insight.severity)
@@ -741,6 +748,13 @@ internal fun HomeInsightsSection(
                             style = MaterialTheme.typography.bodyLarge,
                             modifier = Modifier.weight(1f)
                         )
+                        if (showCurrency) {
+                            Text(
+                                text = insight.currency,
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
                     }
                 }
             }

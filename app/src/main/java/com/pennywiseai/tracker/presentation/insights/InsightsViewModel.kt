@@ -13,6 +13,7 @@ import com.pennywiseai.tracker.domain.insights.InsightsSnapshot
 import com.pennywiseai.tracker.domain.review.CurrencyReview
 import com.pennywiseai.tracker.domain.review.CycleTotal
 import com.pennywiseai.tracker.domain.review.ReviewRange
+import com.pennywiseai.tracker.domain.spending.Runway
 import com.pennywiseai.tracker.utils.Money
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.CoroutineDispatcher
@@ -44,6 +45,8 @@ data class InsightsUiState(
     val subscriptionsMonthly: Money? = null,
     /** Something was recorded before this cycle: an empty page is a quiet start, not a new user. */
     val hasHistory: Boolean = false,
+    /** How long this currency's money would last; null without enough history. */
+    val runway: Runway? = null,
 ) {
     /** Nothing recorded this cycle and nothing to say. */
     val isEmpty: Boolean get() = currencies.isEmpty()
@@ -52,9 +55,11 @@ data class InsightsUiState(
 /** [chosen] when it still has something to show, else the busiest currency. */
 internal fun insightsUiState(snapshot: InsightsSnapshot, chosen: String?): InsightsUiState {
     val reviewed = snapshot.review.currencies.filter { it.hasActivity }
-    // A currency with only a subscription in it (an annual bill, say) still gets a page for its monthly cost.
+    // A currency with only a subscription in it (an annual bill, say) still gets a page for its monthly cost,
+    // and a runway stands on earlier months, so a quiet cycle still has it to show.
     val currencies = (
-        reviewed.map { it.currency } + snapshot.insights.map { it.currency } + snapshot.subscriptionsMonthly.keys
+        reviewed.map { it.currency } + snapshot.insights.map { it.currency } +
+            snapshot.subscriptionsMonthly.keys + snapshot.runways.keys
         ).distinct()
     val currency = chosen?.takeIf { it in currencies } ?: currencies.firstOrNull()
     val inCurrency = snapshot.insights.filter { it.currency == currency }
@@ -68,6 +73,7 @@ internal fun insightsUiState(snapshot: InsightsSnapshot, chosen: String?): Insig
         dismissed = inCurrency.filter { it.id in snapshot.dismissed },
         subscriptionsMonthly = currency?.let { snapshot.subscriptionsMonthly[it] },
         hasHistory = snapshot.review.hasOlder,
+        runway = currency?.let { snapshot.runways[it] },
     )
 }
 

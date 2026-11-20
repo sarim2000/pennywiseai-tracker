@@ -42,7 +42,7 @@ data class SpendForecast(
     companion object {
         /** Early-period pace is noise (one rent payment on day 2), so wait a week. */
         const val MIN_DAYS = 7
-        const val USUAL_PERIODS = 3
+        const val USUAL_PERIODS = CycleAverages.CYCLES
 
         /**
          * @param previousPeriods spend of the periods before this one, most recent
@@ -62,11 +62,7 @@ data class SpendForecast(
             if (elapsed < MIN_DAYS) return null
             val total = ChronoUnit.DAYS.between(periodStart, periodEnd) + 1
             val projected = spent.multiply(BigDecimal(total)).divide(BigDecimal(elapsed), 0, RoundingMode.HALF_UP)
-            val history = previousPeriods.take(USUAL_PERIODS)
-            val usual = if (history.size == USUAL_PERIODS && history.all { it != null }) {
-                history.fold(BigDecimal.ZERO) { acc, v -> acc + v!! }
-                    .divide(BigDecimal(USUAL_PERIODS), 0, RoundingMode.HALF_UP)
-            } else null
+            val usual = CycleAverages.mean(previousPeriods)
             return SpendForecast(currency, spent, projected, periodEnd, (total - elapsed).toInt(), usual)
         }
     }

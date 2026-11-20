@@ -513,6 +513,30 @@ fun PennyWiseNavHost(
                         )
                     }
 
+                    // Also in a tab; here for the runway's "Open accounts", to set a balance.
+                    entry<ManageAccounts> { key ->
+                        com.pennywiseai.tracker.presentation.accounts.ManageAccountsScreen(
+                            onNavigateBack = { backStack.pop(key) },
+                            onNavigateToAddAccount = { backStack.navigate(AddAccount) },
+                            onNavigateToBalanceHistory = { bankName, accountLast4 ->
+                                backStack.navigate(BalanceHistory(bankName, accountLast4))
+                            },
+                            onNavigateToNetWorth = { backStack.navigate(NetWorth()) },
+                        )
+                    }
+
+                    entry<AddAccount> { key ->
+                        com.pennywiseai.tracker.presentation.accounts.AddAccountScreen(
+                            onNavigateBack = { backStack.pop(key) },
+                        )
+                    }
+
+                    entry<BalanceHistory> { key ->
+                        com.pennywiseai.tracker.presentation.accounts.BalanceHistoryScreen(
+                            onNavigateBack = { backStack.pop(key) },
+                        )
+                    }
+
                     entry<ShareStudio> { key ->
                         com.pennywiseai.tracker.presentation.share.ShareStudioScreen(
                             onNavigateBack = { backStack.pop(key) }
@@ -556,6 +580,7 @@ private fun insightDestination(action: InsightAction): NavKey = when (action) {
     is InsightAction.OpenTransaction -> TransactionDetail(action.transactionId)
     is InsightAction.OpenAccount -> AccountDetail(action.bankName, action.accountLast4)
     InsightAction.OpenSubscriptions -> Subscriptions
+    InsightAction.OpenAccounts -> ManageAccounts
 }
 
 /** Where a bill on the calendar leads: the subscriptions, the recurring payments, or the card. */

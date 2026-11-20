@@ -86,6 +86,45 @@ fun ColorScheme.inkOnWash(color: Color, alpha: Float, minimum: Float = TEXT_CONT
 }
 
 /**
+ * This scheme for content drawn straight on a coloured [fill] whose ink is [ink] (Home's
+ * hero on primaryContainer). Text roles and primary take the ink at full strength: a
+ * hand-built palette can paint primary in the fill's own colour, which hid the hero's
+ * links. outline becomes a 3:1 mark; surfaceContainerHighest becomes [surfaceWashOn],
+ * opaque so a meter can be checked against it. Semantic colours (expense, income…) aren't
+ * roles and still only read on neutral surfaces: pass them through `readableOn(listOf(fill))`.
+ */
+fun ColorScheme.onColoredFill(fill: Color, ink: Color): ColorScheme = copy(
+    primary = ink,
+    onSurface = ink,
+    onSurfaceVariant = ink,
+    surfaceContainerHighest = surfaceWashOn(fill),
+    outline = ink.copy(alpha = Dimensions.Alpha.medium).compositeOver(fill).readableOn(listOf(fill), GRAPHIC_CONTRAST),
+    outlineVariant = ink.copy(alpha = Dimensions.Alpha.divider),
+)
+
+/** This scheme's surface at [Dimensions.Alpha.surface] over [fill], as the opaque colour you see. */
+fun ColorScheme.surfaceWashOn(fill: Color): Color = surface.copy(alpha = Dimensions.Alpha.surface).compositeOver(fill)
+
+/**
+ * This scheme for a chip or row on [surfaceWashOn] of [fill]: the wash is its container,
+ * and its text roles are this scheme's own, nudged to read on the wash too. The wash
+ * takes the surface's tone, so the surface's ink reads on it, not the fill's: white ink
+ * on a teal card turned to white on pale teal there. Neutral surfaces stay, so a menu
+ * opened from the chip still reads.
+ */
+fun ColorScheme.onSurfaceWash(fill: Color): ColorScheme {
+    val wash = surfaceWashOn(fill)
+    val backgrounds = neutralSurfaces + wash
+    return copy(
+        surfaceContainerHighest = wash,
+        onSurface = onSurface.readableOn(backgrounds),
+        onSurfaceVariant = onSurfaceVariant.readableOn(backgrounds),
+        primary = primary.readableOn(backgrounds),
+        error = error.readableOn(backgrounds),
+    )
+}
+
+/**
  * Makes a hand-built scheme's text roles readable: primary, error and onSurfaceVariant
  * on every neutral surface, inversePrimary on inverseSurface, and every on-colour on its
  * fill. Fills (containers, secondary, tertiary) keep their colours, so the theme's look holds.

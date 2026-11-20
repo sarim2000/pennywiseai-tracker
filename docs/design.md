@@ -531,6 +531,14 @@ because the same role also renders small labels.
   must carry one, pass it through `readableOn()` against what it sits on.
 - **On a coloured fill**, use the fill's own `on*` role, plus a sign, label or
   icon. Semantic colours on `primaryContainer` & co. are not guaranteed.
+  A whole card of content (Home's hero) wraps itself in
+  `onColoredFill(fill, ink)`: text roles and `primary` become the ink (a
+  Mihon palette can make `primary` the fill itself), `outline` a 3:1 mark. A
+  semantic colour that must keep its hue there goes through
+  `readableOn(listOf(fill))`, or with `GRAPHIC_CONTRAST` for a chart line or bar.
+- **A surface wash on a coloured card** (a chip or row at 65% surface) takes
+  the surface's tone, so it takes the surface's ink, not the card's:
+  `onSurfaceWash(fill)`. White ink on a teal card is white on pale teal there.
 - **A custom fill** (a semantic or category colour as a background) has no
   `on*` role, so pass `fill.bestInk()` explicitly. `contentColorFor()` can't
   infer one, and black-or-white always clears 4.58:1.
@@ -555,7 +563,8 @@ because the same role also renders small labels.
 
 ### Guard tests
 
-`SchemeContrastTest` (and `PaletteContrastTest` for the fixed palettes) assert
+`SchemeContrastTest` (and `PaletteContrastTest` for the fixed palettes;
+`ColoredFillContrastTest` for the hero card and its wash) assert
 the floors above for every theme and accent in light, dark and AMOLED: each
 `on*`/fill pair (including inverse), and every text and semantic ink on every
 neutral surface. A new palette or accent that fails can't merge. Dynamic

@@ -262,15 +262,16 @@ fun MainScreen(
 
     // Budgets, bills and goals live in the Plan tab; opened from elsewhere it shows
     // fresh on that section. A hidden Plan tab falls back to the standalone screens.
-    fun openPlan(from: BottomNavItem, section: PlanSection) {
+    // [focusId] is the one budget or bill a Home row was tapped on.
+    fun openPlan(from: BottomNavItem, section: PlanSection, focusId: Long? = null) {
         if (BottomNavItem.Plan.route in themeState.hiddenNavTabs) {
             when (section) {
                 PlanSection.BILLS -> open(from, Subscriptions)
-                else -> openRoot(BudgetGroups())
+                else -> openRoot(BudgetGroups(focusBudgetId = focusId))
             }
             return
         }
-        tabStacks.getValue(BottomNavItem.Plan).resetTo(Plan(section, request = System.nanoTime()))
+        tabStacks.getValue(BottomNavItem.Plan).resetTo(Plan(section, request = System.nanoTime(), focusId = focusId))
         selectTab(BottomNavItem.Plan)
         planReturnRoute = from.route.takeIf { from != BottomNavItem.Home && from != BottomNavItem.Plan }
     }
@@ -410,6 +411,9 @@ fun MainScreen(
                 onNavigateToBudgets = {
                     openPlan(tab, PlanSection.BUDGETS)
                 },
+                onBudgetClick = { budgetId ->
+                    openPlan(tab, PlanSection.BUDGETS, budgetId)
+                },
                 onNavigateToGoals = {
                     openPlan(tab, PlanSection.GOALS)
                 },
@@ -508,6 +512,9 @@ fun MainScreen(
         entry<Plan> { key ->
             // The switch is screen state, not navigation: flipping sections doesn't stack up Back.
             var section by rememberSaveable(key) { mutableStateOf(key.section) }
+            // The tapped Home row is for the section Plan opened on; switching sections drops it,
+            // so coming back doesn't jump to it again.
+            var focusId by rememberSaveable(key) { mutableStateOf(key.focusId) }
             val fade = MaterialTheme.motionScheme.fastEffectsSpec<Float>()
             // The section fading out docks into a dock nobody draws, so its Add can't
             // fire once another section is picked (even one with no docked action).
@@ -519,12 +526,17 @@ fun MainScreen(
                     transitionSpec = { fadeIn(fade) togetherWith fadeOut(fade) },
                     label = "planSection",
                 ) { shown ->
-                    val host = PlanTabHost(shown) { section = it }
+                    val host = PlanTabHost(shown) {
+                        section = it
+                        focusId = null
+                    }
+                    val focus = focusId.takeIf { shown == key.section }
                     val shownDock = if (dock != null && shown != section) offstageDock else dock
                     CompositionLocalProvider(LocalNavDock provides shownDock) {
                         when (shown) {
                             PlanSection.BUDGETS -> com.pennywiseai.tracker.presentation.budgetgroups.BudgetGroupsScreen(
                                 planTab = host,
+                                focusBudgetId = focus,
                                 onNavigateToGroupEdit = { openRoot(BudgetGroupEdit(it)) },
                                 onNavigateToHistory = { groupId, year, month -> openRoot(BudgetHistory(groupId, year, month)) },
                                 onNavigateToExchangeRates = { openRoot(ExchangeRates) },

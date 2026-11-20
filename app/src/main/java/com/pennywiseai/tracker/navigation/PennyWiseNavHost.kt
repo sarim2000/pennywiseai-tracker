@@ -320,6 +320,7 @@ fun PennyWiseNavHost(
                     entry<BudgetGroups> { key ->
                         com.pennywiseai.tracker.presentation.budgetgroups.BudgetGroupsScreen(
                             createGoalOnOpen = key.createGoal,
+                            focusBudgetId = key.focusBudgetId,
                             onNavigateBack = {
                                 backStack.pop(key)
                             },

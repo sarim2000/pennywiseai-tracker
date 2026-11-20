@@ -61,7 +61,8 @@ internal fun HomeBudgetsSection(
     summary: BudgetOverallSummary,
     /** The budget the hero already shows. */
     excludeBudgetId: Long?,
-    onNavigateToBudgets: () -> Unit
+    onNavigateToBudgets: () -> Unit,
+    onBudgetClick: (Long) -> Unit
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
@@ -74,6 +75,7 @@ internal fun HomeBudgetsSection(
         BudgetCarousel(
             summary = summary,
             onClick = onNavigateToBudgets,
+            onBudgetClick = onBudgetClick,
             onCreateBudget = onNavigateToBudgets,
             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
             excludeBudgetId = excludeBudgetId,

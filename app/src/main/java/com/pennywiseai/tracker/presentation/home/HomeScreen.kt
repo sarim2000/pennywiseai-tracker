@@ -81,6 +81,7 @@ fun HomeScreen(
     onNavigateToShareStudio: () -> Unit = {},
     onNavigateToAchievements: () -> Unit = {},
     onNavigateToBudgets: () -> Unit = {},
+    onBudgetClick: (Long) -> Unit = {},
     onNavigateToGoals: () -> Unit = {},
     onNavigateToLoans: () -> Unit = {},
     onNavigateToTransactionGroups: () -> Unit = {},
@@ -424,7 +425,8 @@ fun HomeScreen(
                                 hasAccounts = uiState.accountBalances.isNotEmpty(),
                                 budget = heroBudget,
                                 cycleEnd = currentCycleWindow.second,
-                                onOpen = if (heroBudget != null) onNavigateToBudgets else ({ openFigureRows(TransactionTypeFilter.ALL, heroRowsEnd) }),
+                                onOpen = heroBudget?.let { hero -> { onBudgetClick(hero.budgetId) } }
+                                    ?: { openFigureRows(TransactionTypeFilter.ALL, heroRowsEnd) },
                                 onOpenIncome = { openFigureRows(TransactionTypeFilter.INCOME, heroRowsEnd) },
                                 // Spending (card spend too) when that's how Home counts this figure.
                                 onOpenExpenses = { openFigureRows(defaultTypeFilter(uiState.countCreditCardAsExpense), heroRowsEnd) },
@@ -593,7 +595,8 @@ fun HomeScreen(
                                         HomeBudgetsSection(
                                             summary = summary,
                                             excludeBudgetId = heroBudget?.budgetId,
-                                            onNavigateToBudgets = onNavigateToBudgets
+                                            onNavigateToBudgets = onNavigateToBudgets,
+                                            onBudgetClick = onBudgetClick
                                         )
                                     }
                                 }

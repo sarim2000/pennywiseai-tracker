@@ -83,6 +83,7 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import ir.ehsannarmani.compose_charts.LineChart
 import ir.ehsannarmani.compose_charts.models.*
+import kotlinx.coroutines.flow.first
 import java.math.BigDecimal
 import java.time.YearMonth
 
@@ -92,6 +93,9 @@ private val BlockGap = Spacing.smd
 /** Budget status thresholds (% used), the same Home's budget card turns at. */
 private const val WARN_PERCENT = 70f
 private const val DANGER_PERCENT = 90f
+
+/** About a second of frames to follow a focused budget while its details open. */
+private const val FOCUS_SETTLE_FRAMES = 60
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -107,6 +111,8 @@ fun BudgetGroupsScreen(
     createGoalOnOpen: Boolean = false,
     /** Set when drawn as the Plan tab's Budgets section; Goals then has its own section. */
     planTab: PlanTabHost? = null,
+    /** The budget a Home row was tapped on: scrolled to, with its details open. */
+    focusBudgetId: Long? = null,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     // In the Plan tab the switch takes the goals' slot at the top of the list.
@@ -229,6 +235,7 @@ fun BudgetGroupsScreen(
                 topPadding = paddingValues.calculateTopPadding(),
                 uiState = uiState,
                 goalsSection = goalsSection,
+                focusBudgetId = focusBudgetId,
                 onPreviousMonth = { viewModel.selectPreviousMonth() },
                 onNextMonth = { viewModel.selectNextMonth() },
                 onGroupClick = { groupId -> onNavigateToGroupEdit(groupId) },
@@ -315,6 +322,7 @@ private fun BudgetGroupsContent(
     topPadding: Dp = Spacing.none,
     uiState: BudgetGroupsUiState,
     goalsSection: @Composable () -> Unit = {},
+    focusBudgetId: Long? = null,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
     onGroupClick: (Long) -> Unit,
@@ -341,6 +349,39 @@ private fun BudgetGroupsContent(
     val hasAnimated = rememberEntranceDone()
 
     val lazyListState = rememberLazyListState()
+
+    // Opened on one budget: scroll to it and open its details, once the list is in. Saveable,
+    // so a rotation or a refreshed list doesn't do it again after the user has moved on.
+    var focusPending by rememberSaveable { mutableStateOf(focusBudgetId != null) }
+    var expandBudgetId by remember { mutableStateOf<Long?>(null) }
+    LaunchedEffect(summaryReady) {
+        if (!focusPending || !summaryReady) return@LaunchedEffect
+        // The budgets follow the goals and month items; a deleted or archived one just shows the list.
+        val index = when (focusBudgetId) {
+            hero?.group?.budget?.id -> 2
+            else -> otherGroups.indexOfFirst { it.group.budget.id == focusBudgetId }
+                .takeIf { it >= 0 }
+                ?.let { it + if (hero != null) 3 else 2 }
+        } ?: run {
+            focusPending = false
+            return@LaunchedEffect
+        }
+        expandBudgetId = focusBudgetId
+        // Wait for the loaded list's layout: the card at that index has to be this budget.
+        snapshotFlow { lazyListState.layoutInfo }.first { info ->
+            info.totalItemsCount > index && info.visibleItemsInfo.none { it.index == index && it.key != focusBudgetId }
+        }
+        // To the top, with room to open below. Near the end of the list it can't get there
+        // until its details have opened, so follow it while they animate in.
+        for (frame in 0 until FOCUS_SETTLE_FRAMES) {
+            lazyListState.scrollToItem(index)
+            if (lazyListState.firstVisibleItemIndex == index && expandBudgetId == null) break
+            withFrameNanos { }
+        }
+        // Spent only once it's on screen, so a rotation midway still lands on it.
+        focusPending = false
+    }
+
     // Rows of one block sit a grouped-list gutter apart; blocks add [BlockGap] on top.
     LazyColumn(
         state = lazyListState,
@@ -387,6 +428,8 @@ private fun BudgetGroupsContent(
                 hero = isHero,
                 isFirst = index == 0,
                 isLast = index == summary.groups.lastIndex,
+                focused = budget.id == expandBudgetId,
+                onFocusShown = { expandBudgetId = null },
                 onEdit = { onGroupClick(budget.id) },
                 onDelete = {
                     deleteGroupId = budget.id
@@ -519,6 +562,8 @@ private fun BudgetCard(
     hero: Boolean,
     isFirst: Boolean,
     isLast: Boolean,
+    focused: Boolean = false,
+    onFocusShown: () -> Unit = {},
     onEdit: () -> Unit,
     onDelete: () -> Unit,
     onMoveUp: () -> Unit,
@@ -528,6 +573,13 @@ private fun BudgetCard(
     onAddRate: () -> Unit
 ) {
     var expanded by rememberSaveable(groupSpending.group.budget.id) { mutableStateOf(false) }
+    // The budget Plan was opened on: its details open as it comes into view, once.
+    LaunchedEffect(focused) {
+        if (focused) {
+            expanded = true
+            onFocusShown()
+        }
+    }
     val detailAction = stringResource(
         if (expanded) R.string.plan_budget_hide_details else R.string.plan_budget_show_details
     )

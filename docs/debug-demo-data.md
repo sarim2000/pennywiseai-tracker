@@ -3,8 +3,8 @@
 Install the Debug APK you want to test on a fresh, disposable Android emulator.
 Open PennyWise. The first launch seeds an empty database, finishes onboarding,
 skips SMS access and shows JOD as the base currency. A database with existing
-content, including customized built-in categories or profiles, is left alone.
-Built-in rule templates can already be present when seeding runs.
+content, including customized built-in categories, profiles, or rule templates,
+is left alone. Untouched built-in rule templates can be present when seeding runs.
 An existing installation that already finished onboarding is skipped as well.
 The app remembers the first launch after the check, even if you clear transactions later.
 

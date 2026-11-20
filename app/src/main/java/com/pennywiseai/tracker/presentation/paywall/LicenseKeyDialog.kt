@@ -7,7 +7,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.input.TextFieldLineLimits
-import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.foundation.text.input.TextFieldState
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularProgressIndicator
@@ -16,6 +16,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.saveable.Saver
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.input.ImeAction
@@ -43,8 +45,10 @@ internal fun LicenseKeyDialog(
     onMoveHere: (key: String, email: String) -> Unit,
     onDismiss: () -> Unit,
 ) {
-    val keyState = rememberTextFieldState()
-    val emailState = rememberTextFieldState()
+    // Only the text survives a rotation: rememberTextFieldState would also save the undo
+    // history, keeping a key the user deleted.
+    val keyState = rememberSaveable(saver = TextOnly) { TextFieldState() }
+    val emailState = rememberSaveable(saver = TextOnly) { TextFieldState() }
     val key = keyState.text.toString()
     val email = emailState.text.toString()
     val canSubmit = key.isNotBlank() && !isActivating
@@ -111,3 +115,5 @@ internal fun LicenseKeyDialog(
         },
     )
 }
+
+private val TextOnly = Saver<TextFieldState, String>(save = { it.text.toString() }, restore = { TextFieldState(it) })

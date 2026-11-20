@@ -28,6 +28,7 @@ import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.retryWhen
+import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.YearMonth
 import javax.inject.Inject
@@ -173,7 +174,9 @@ internal fun budgetStatuses(summary: BudgetOverallSummary, today: LocalDate): Li
                 name = it.group.budget.name,
                 currency = summary.currency,
                 spent = it.totalActual,
-                limit = it.totalBudget,
+                // Clamped: category limits round each conversion, the carry cap rounds the sum,
+                // so a budget carried down to 0 can come out a cent under it.
+                limit = it.totalBudget.max(BigDecimal.ZERO),
                 daysElapsed = it.daysElapsed,
                 windowDays = it.windowDays,
                 windowStart = it.windowStart,

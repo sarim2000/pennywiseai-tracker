@@ -70,11 +70,24 @@ class BelarusbankParserTest {
                     balance = BigDecimal("23098.67")
                 )
             ),
+            ParserTestCase(
+                name = "Cancelled payment is a refund",
+                message = "OTMENA OPLATY 12.50 BYN  KARTA #5555 DATA 08.11.2026 10:00:00 SHOP 'TEST' MCC:5411 OSTATOK 85.25 BYN",
+                sender = "ASB.BY",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("12.50"),
+                    currency = "BYN",
+                    type = TransactionType.INCOME,
+                    accountLast4 = "5555",
+                    balance = BigDecimal("85.25")
+                )
+            ),
         )
 
         val senderCases = listOf(
             "ASB.BY" to true,
-            "ASB.by" to false,
+            "ASB.by" to true,
+            "VM-ASB.BY" to true,
             "Belarusbank" to false,
             "Беларусбанк" to false,
             "" to false

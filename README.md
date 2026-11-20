@@ -57,15 +57,15 @@ Your bank already texts you every transaction — PennyWise turns those SMS into
 
 **Core Features**
 
-- **🤖 Smart SMS Parsing** — <!-- BANKS_SUMMARY -->178 banks across 26 countries<!-- /BANKS_SUMMARY --> with real-time detection of incoming SMS
-- **🌍 Multi-Currency** — Native support for INR, USD, AED, THB, NPR, ETB, and more with exchange rate management
-- **💬 On-Device AI Assistant** — Ask "What did I spend on food?" — powered by Qwen 2.5, runs entirely on your phone
-- **🏷️ Auto-Categorization & Smart Rules** — Pattern-based rules that auto-categorize transactions
-- **💰 Budget Tracking** — Multiple budget groups (Limit/Target/Expected types), daily allowance, category-level budgets
-- **📊 Analytics & Charts** — Bar charts, line trends, heatmaps, category breakdowns, top merchants, custom date ranges
-- **🏦 Multi-Account & Balance Tracking** — Track multiple bank accounts with live balance from SMS and balance history
-- **🔄 Subscription Detection** — Automatic recurring payment detection with due date alerts
-- **🎨 Custom Categories** — Create your own with custom colors and icons
+- **🤖 Smart SMS Parsing** — <!-- BANKS_SUMMARY -->178 banks across 26 countries<!-- /BANKS_SUMMARY --> with real-time detection of incoming SMS; SMS from banks we don't support yet, and notifications from apps you pick, become suggested transactions
+- **🌍 Multi-Currency** — Per-account currency, live exchange rates, and totals that never mix currencies
+- **💬 On-Device AI Assistant** — Ask "What did I spend on food?", compare with last month, add or review transactions in plain words, or dictate with the mic — powered by Qwen 2.5, runs entirely on your phone
+- **🏷️ Categories, Tags & Smart Rules** — Sub-categories, emoji icons, renamable built-ins, learned merchant categories, and rules with multiple conditions and actions
+- **💰 Budgets & Savings Goals** — Category or type budgets with custom cycles (including last working day), per-day allowance, safe-to-spend and a month-end forecast; goals you add to straight from transactions
+- **📊 Analytics & Charts** — Group by category, merchant, account, tag or weekday; trends, heatmaps, top merchants, custom date ranges
+- **🏦 Accounts, Cards & Loans** — Live balances from SMS, balance history, discrepancy fixes, low-balance alerts, account merge, loans by person, and bill splits with UPI QR requests
+- **🔄 Subscriptions** — Spots repeat charges, suggests untracked bills, flags price changes, and reminds you before a bill is due
+- **📥 Statement Import** — PDF (including password-protected), Excel and CSV statements with column mapping, preview and balance check
 
 **More Features**
 

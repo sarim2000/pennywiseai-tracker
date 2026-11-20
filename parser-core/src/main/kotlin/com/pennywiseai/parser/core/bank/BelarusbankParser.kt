@@ -10,7 +10,7 @@ class BelarusbankParser : BankParser() {
     override fun getCurrency() = "BYN"
 
     override fun canHandle(sender: String): Boolean {
-        return sender == "ASB.BY"
+        return sender.trim().uppercase().replace(Regex("""^[A-Z]{2}-|-[A-Z]$"""), "") == "ASB.BY"
     }
 
     /** Groups: 1 = operation, 2 = amount, 3 = card number. */
@@ -83,15 +83,16 @@ class BelarusbankParser : BankParser() {
             .substringBefore('>')
             .trim()
             .trimEnd('.', ',', ';')
-    
+
         if (merchant.isEmpty()) return null
-    
+
         val cleaned = cleanMerchantName(merchant)
         return cleaned.takeIf { it.isNotEmpty() && isValidMerchantName(it) }
     }
 
     override fun isTransactionMessage(message: String): Boolean {
         return transactionPattern.containsMatchIn(message) &&
+            !isNonTransactionMessage(message) &&
             Regex("""\bKARTA\b""", RegexOption.IGNORE_CASE)
                 .containsMatchIn(message)
     }

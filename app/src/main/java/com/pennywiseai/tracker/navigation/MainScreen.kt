@@ -44,6 +44,7 @@ import com.pennywiseai.tracker.data.contacts.displayMerchantName
 import com.pennywiseai.tracker.data.model.ChatLink
 import com.pennywiseai.tracker.data.model.PlanLink
 import com.pennywiseai.tracker.data.preferences.NavBarStyle
+import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
 import com.pennywiseai.tracker.presentation.accounts.AddAccountScreen
 import com.pennywiseai.tracker.presentation.accounts.ManageAccountsScreen
 import com.pennywiseai.tracker.presentation.accounts.ManageAccountsViewModel
@@ -52,6 +53,7 @@ import com.pennywiseai.tracker.presentation.add.QuickAddSheet
 import com.pennywiseai.tracker.presentation.add.QuickAddViewModel
 import com.pennywiseai.tracker.presentation.chat.ChatTabViewModel
 import com.pennywiseai.tracker.presentation.common.TimePeriod
+import com.pennywiseai.tracker.presentation.home.HomeFigureRows
 import com.pennywiseai.tracker.presentation.home.HomeScreen
 import com.pennywiseai.tracker.presentation.plan.PlanGoalsScreen
 import com.pennywiseai.tracker.presentation.plan.PlanTabHost
@@ -110,6 +112,18 @@ internal fun transactionsFor(link: ChatLink) = Transactions(
     currencyOnly = true,
     profilePinned = true,
     profileId = link.profileId,
+)
+
+/** The list behind a Home figure: its type, its days, its profile, and its currency. */
+internal fun transactionsFor(rows: HomeFigureRows) = Transactions(
+    type = rows.type.takeIf { it != TransactionTypeFilter.ALL }?.name,
+    period = TimePeriod.CUSTOM.name,
+    currency = rows.currency,
+    startDate = rows.start.toEpochDay(),
+    endDate = rows.end.toEpochDay(),
+    currencyOnly = rows.currencyOnly,
+    profilePinned = true,
+    profileId = rows.profileId,
 )
 
 /** The full Add form, carrying what the quick sheet held so nothing is typed twice. */
@@ -436,8 +450,8 @@ fun MainScreen(
                 onGoalClick = { goalId ->
                     openRoot(GoalDetail(goalId))
                 },
-                onTransactionTypeClick = { type ->
-                    open(tab, Transactions(type = type))
+                onOpenFigureRows = { rows ->
+                    open(tab, transactionsFor(rows))
                 },
                 onOpenAssistant = { openAsk() }.takeIf { BottomNavItem.Chat.route !in themeState.hiddenNavTabs },
                 onFabPositioned = { position ->

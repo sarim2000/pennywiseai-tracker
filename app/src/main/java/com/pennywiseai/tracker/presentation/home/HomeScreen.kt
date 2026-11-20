@@ -30,7 +30,9 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.preferences.HomeSection
 import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
 import com.pennywiseai.tracker.data.preferences.HomeShortcut
+import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
 import com.pennywiseai.tracker.domain.review.ReviewKind
+import com.pennywiseai.tracker.domain.spending.defaultTypeFilter
 import com.pennywiseai.tracker.presentation.review.ReviewPromptBanner
 import com.pennywiseai.tracker.presentation.settings.BackgroundAccessViewModel
 import com.pennywiseai.tracker.receiver.QuickCategoryPickerActivity
@@ -63,6 +65,7 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.launch
 import java.math.BigDecimal
+import java.time.LocalDate
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -92,7 +95,8 @@ fun HomeScreen(
     onTransactionClick: (Long) -> Unit = {},
     onGroupClick: (Long) -> Unit = {},
     onGoalClick: (Long) -> Unit = {},
-    onTransactionTypeClick: (String?) -> Unit = {},
+    /** Opens the rows behind one of Home's figures, in the window, profile and currency it counts. */
+    onOpenFigureRows: (HomeFigureRows) -> Unit = {},
     /** Opens the Ask tab; null while that tab is hidden. Home has no Ask entry of its own (the tab is it). */
     @Suppress("UNUSED_PARAMETER") onOpenAssistant: (() -> Unit)? = null,
     onFabPositioned: (Rect) -> Unit = {}
@@ -184,6 +188,22 @@ fun HomeScreen(
     val heroBudget = remember(uiState.budgetSummary, today) {
         uiState.budgetSummary?.heroBudget(today)
     }
+    // This cycle's rows of a type (null for all) up to [end], as Home counted them: its
+    // profile, and its one currency unless unified mode converts every currency into it.
+    val openFigureRows: (TransactionTypeFilter, LocalDate) -> Unit = { type, end ->
+        onOpenFigureRows(
+            HomeFigureRows(
+                type = type,
+                start = currentCycleWindow.first,
+                end = end,
+                currency = uiState.selectedCurrency,
+                currencyOnly = !uiState.isUnifiedMode,
+                profileId = uiState.selectedProfileId,
+            )
+        )
+    }
+    // The hero's figures stop at today: a future-dated row counts on its day.
+    val heroRowsEnd = maxOf(currentCycleWindow.first, today)
     // The carousel leaves out the budget the hero already shows; with nothing else, no section.
     val carouselBudgets = uiState.budgetSummary?.takeIf { summary ->
         summary.groups.isEmpty() || summary.groups.any { it.group.budget.id != heroBudget?.budgetId }
@@ -404,7 +424,10 @@ fun HomeScreen(
                                 hasAccounts = uiState.accountBalances.isNotEmpty(),
                                 budget = heroBudget,
                                 cycleEnd = currentCycleWindow.second,
-                                onOpen = if (heroBudget != null) onNavigateToBudgets else onNavigateToTransactions,
+                                onOpen = if (heroBudget != null) onNavigateToBudgets else ({ openFigureRows(TransactionTypeFilter.ALL, heroRowsEnd) }),
+                                onOpenIncome = { openFigureRows(TransactionTypeFilter.INCOME, heroRowsEnd) },
+                                // Spending (card spend too) when that's how Home counts this figure.
+                                onOpenExpenses = { openFigureRows(defaultTypeFilter(uiState.countCreditCardAsExpense), heroRowsEnd) },
                                 onOpenNetWorth = { onNavigateToNetWorth(uiState.selectedCurrency) },
                                 // Safe to spend is the hero's foot, not a second money card under it.
                                 footer = safeToSpend?.takeIf { showSafeToSpend }?.let { state ->

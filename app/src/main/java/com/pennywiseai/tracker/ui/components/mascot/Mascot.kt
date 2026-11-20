@@ -715,7 +715,9 @@ private fun fromStampAlpha(from: MorphFrom, w: Float) = from.stamp * (1f - fadeA
  */
 private fun DrawScope.drawTwoTone(g: MascotGeometry, pose: MascotPose, tint: Color, scratch: Path, cutEyes: Boolean) {
     drawPath(g.body, tint)
-    drawPillEyes(g.eyes, TWO_TONE_EYE_SCALE, pose, tint, scratch, if (cutEyes) BlendMode.DstOut else DrawScope.DefaultBlendMode)
+    // The owl's eyes are drawn inside its rings at their own size: enlarged, they'd touch the rings.
+    if (cutEyes) drawPillEyes(g.eyes, TWO_TONE_EYE_SCALE, pose, tint, scratch, BlendMode.DstOut)
+    else drawPillEyes(g.eyes, 1f, pose, tint, scratch, DrawScope.DefaultBlendMode)
 }
 
 /** What sits on a body at the detailed size: an object's faint markings. Not its eyes. */

@@ -29,13 +29,17 @@ enum class MascotShape { Owl, Coin, Receipt, Wallet, Jar, Bubble, Pie, Bars, Bel
  */
 internal data class EyeSpec(val x: Float, val y: Float, val spacing: Float, val scale: Float)
 
-/** The owl's line art: two eye rings that meet over the beak, in box units. */
+/** The owl's line art: two eye rings that meet over the beak, in a round face, in box units. */
 internal object OwlEye {
-    const val LEFT_X = 33f
-    const val RIGHT_X = 67f
+    const val LEFT_X = 36f
+    const val RIGHT_X = 64f
     const val Y = 54f
-    const val RING_R = 16f
+    const val RING_R = 13.5f
+
+    /** The face's outline; the rings are a touch finer, the beak finer still. */
     const val LINE = 5f
+    const val RING_LINE = 4.5f
+    const val BEAK_LINE = 3f
 }
 
 /** A shape's paths, built once per drawing cache. */
@@ -64,14 +68,22 @@ private const val DETAIL_ALPHA = 0.32f
  */
 internal fun MascotShape.geometry(value: Float = 0f): MascotGeometry = when (this) {
     MascotShape.Owl -> MascotGeometry(
-        // Line art: eye rings, ear tufts and a beak, stroked into one filled outline. The
-        // pill eyes sit in the rings' holes, so they are drawn, not cut (Mascot.kt).
+        // Line art: a round face with soft-tipped ears, two eye rings and a diamond beak,
+        // stroked into one filled outline. The pill eyes sit in the rings' holes, so they
+        // are drawn, not cut (Mascot.kt). ic_notification.xml is the same drawing.
         body = union(
-            stroked(Path().apply { addOval(circle(OwlEye.LEFT_X, OwlEye.Y, OwlEye.RING_R)) }),
-            stroked(Path().apply { addOval(circle(OwlEye.RIGHT_X, OwlEye.Y, OwlEye.RING_R)) }),
-            stroked(svgPath("M22 40 L15 22 L31 34")),
-            stroked(svgPath("M78 40 L85 22 L69 34")),
-            stroked(svgPath("M45 75 L50 82 L55 75")),
+            stroked(
+                svgPath(
+                    "M50 22 C58 22 64 23 70 25 L77 17 Q81 13 82 19 L83 31 C87 38 89 45 89 53 " +
+                        "C89 74 72 89 50 89 C28 89 11 74 11 53 C11 45 13 38 17 31 L18 19 Q19 13 23 17 " +
+                        "L30 25 C36 23 42 22 50 22 Z"
+                ),
+                OwlEye.LINE,
+            ),
+            stroked(Path().apply { addOval(circle(OwlEye.LEFT_X, OwlEye.Y, OwlEye.RING_R)) }, OwlEye.RING_LINE),
+            stroked(Path().apply { addOval(circle(OwlEye.RIGHT_X, OwlEye.Y, OwlEye.RING_R)) }, OwlEye.RING_LINE),
+            svgPath(OWL_BEAK),
+            stroked(svgPath(OWL_BEAK), OwlEye.BEAK_LINE),
         ),
         eyes = EyeSpec(x = 50f, y = OwlEye.Y, spacing = OwlEye.RIGHT_X - OwlEye.LEFT_X, scale = 1.1f),
         pivot = STANDING,
@@ -239,12 +251,14 @@ private fun union(vararg parts: Path): Path = parts.reduce { a, b -> Path.combin
 
 private fun svgPath(d: String): Path = PathParser().parsePathString(d).toPath()
 
-/** [line] stroked [OwlEye.LINE] wide with round ends and joins, as a filled outline. */
-private fun stroked(line: Path): Path {
+private const val OWL_BEAK = "M50 66 L53 70 L50 75 L47 70 Z"
+
+/** [line] stroked [width] wide with round ends and joins, as a filled outline. */
+private fun stroked(line: Path, width: Float): Path {
     val out = android.graphics.Path()
     android.graphics.Paint().apply {
         style = android.graphics.Paint.Style.STROKE
-        strokeWidth = OwlEye.LINE
+        strokeWidth = width
         strokeCap = android.graphics.Paint.Cap.ROUND
         strokeJoin = android.graphics.Paint.Join.ROUND
     }.getFillPath(line.asAndroidPath(), out)

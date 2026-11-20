@@ -51,7 +51,6 @@ import com.pennywiseai.tracker.domain.spending.Bill
 import com.pennywiseai.tracker.domain.spending.BillSource
 import com.pennywiseai.tracker.domain.spending.CardBillsLoader
 import com.pennywiseai.tracker.domain.spending.SafeToSpend
-import com.pennywiseai.tracker.domain.spending.SpendForecast
 import com.pennywiseai.tracker.domain.spending.SubscriptionCost
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.RestoreTransactionUseCase
@@ -217,15 +216,8 @@ class HomeViewModel @Inject constructor(
     private var currentMonthBreakdownMap: Map<String, TransactionRepository.MonthlyBreakdown> = emptyMap()
     private var lastMonthBreakdownMap: Map<String, TransactionRepository.MonthlyBreakdown> = emptyMap()
 
-    // The previous SpendForecast.USUAL_PERIODS complete cycles, most recent first, for
-    // the forecast's "usual". The first one is lastMonthBreakdownMap.
-    private var previousCycleBreakdownMaps: List<Map<String, TransactionRepository.MonthlyBreakdown>> = emptyList()
     // The previous cycle cut at today's day-of-cycle, for the "vs this time last month" chip.
     private var lastMonthSamePointBreakdownMap: Map<String, TransactionRepository.MonthlyBreakdown> = emptyMap()
-
-    // Per-currency LENT-loan settlement loss for each of those cycles, folded into "usual"
-    // the same way currentMonthLoanLossByCurrency is folded into this cycle's spend.
-    @Volatile private var previousCycleLoanLoss: List<Map<String, BigDecimal>> = emptyList()
 
     // Per-currency total loss from LENT loans settled this month. Folded into the displayed
     // currentMonthExpenses so a settlement loss shows up as money the user actually lost.
@@ -771,53 +763,33 @@ class HomeViewModel @Inject constructor(
             // custom start day (a user on the 25th-of-month cycle sees 25th→24th vs
             // 25th→24th, not 1st→today vs 1st→today).
             //
-            // One query covers the last SpendForecast.USUAL_PERIODS cycles so the
-            // forecast's "usual" uses exactly this spend definition too.
             _currentCycleWindow
                 .flatMapLatest { current ->
                     val startDay = userPreferencesRepository.budgetCycleStartDay.first()
-                    val cycles = generateSequence(BudgetCycle.previousCycle(current, startDay)) {
-                        BudgetCycle.previousCycle(it, startDay)
-                    }.take(SpendForecast.USUAL_PERIODS).toList()
-                    transactionRepository.getTransactionsBetweenDates(cycles.last().first, cycles.first().second)
-                        .map { transactions -> cycles to transactions }
+                    val previous = BudgetCycle.previousCycle(current, startDay)
+                    transactionRepository.getTransactionsBetweenDates(previous.first, previous.second)
+                        .map { transactions -> previous to transactions }
                 }
-                .combine(trackedRows) { (cycles, transactions), keep ->
-                    previousCycleLoanLoss = cycles.map { (start, end) ->
-                        val settled = loanRepository.getLentLoansSettledInPeriod(
-                            start.atStartOfDay(), end.atTime(java.time.LocalTime.MAX)
-                        ).first()
-                        loanRepository.settlementLossByCurrency(settled, keep)
-                    }
-                    cycles to transactions.filter(keep).forTotals()
+                .combine(trackedRows) { (previous, transactions), keep ->
+                    previous to transactions.filter(keep).forTotals()
                 }
-                .combine(userPreferencesRepository.countCreditCardAsExpense) { (cycles, nonLoan), creditAsExpense ->
-                    Triple(cycles, nonLoan, creditAsExpense)
+                .combine(userPreferencesRepository.countCreditCardAsExpense) { (previous, nonLoan), creditAsExpense ->
+                    Triple(previous, nonLoan, creditAsExpense)
                 }
-                // `today` too: the same-point window grows by a day every day.
-                .combine(today) { (cycles, nonLoan, creditAsExpense), day ->
-                    val full = cycles.map { (start, end) ->
-                        breakdownByCurrency(
-                            nonLoan.filter { it.dateTime.toLocalDate() in start..end },
-                            creditAsExpense
-                        )
-                    }
-                    // As many days into the previous cycle as today is into this one, under
-                    // the headline's own spend rules (credit-card preference included).
-                    val (prevStart, _) = cycles.first()
-                    val cutoff = samePointCutoff(cycles.first(), _currentCycleWindow.value.first, day)
+                .combine(today) { (previous, nonLoan, creditAsExpense), day ->
+                    val cutoff = samePointCutoff(previous, _currentCycleWindow.value.first, day)
+                    val full = breakdownByCurrency(nonLoan, creditAsExpense)
                     val samePoint = breakdownByCurrency(
-                        nonLoan.filter { it.dateTime.toLocalDate() in prevStart..cutoff },
+                        nonLoan.filter { it.dateTime.toLocalDate() <= cutoff },
                         creditAsExpense
                     )
                     full to samePoint
                 }
                 // Filtering and grouping off the main thread; the collector still runs on Main.
                 .flowOn(Dispatchers.Default)
-                .collect { (breakdowns, samePoint) ->
-                    previousCycleBreakdownMaps = breakdowns
+                .collect { (breakdown, samePoint) ->
                     lastMonthSamePointBreakdownMap = samePoint
-                    updateBreakdownForSelectedCurrency(breakdowns.first(), isCurrentMonth = false)
+                    updateBreakdownForSelectedCurrency(breakdown, isCurrentMonth = false)
                 }
         }
 
@@ -1591,17 +1563,7 @@ class HomeViewModel @Inject constructor(
                     lastMonthExpenses = lastBreakdown.expenses,
                     lastMonthSamePointExpenses = lastSamePoint,
                     selectedCurrency = selectedCurrency,
-                    availableCurrencies = availableCurrencies,
-                    spendForecast = forecastFor(
-                        spent,
-                        selectedCurrency,
-                        previousCycleBreakdownMaps.mapIndexed { i, map ->
-                            val loss = previousCycleLoanLoss.getOrNull(i).orEmpty()
-                            // A cycle with only a settlement loss still counts as history.
-                            if (map.isEmpty() && loss.isEmpty()) null
-                            else convertedSpent(map.mapValues { it.value.expenses }, loss, selectedCurrency, convert).total
-                        }
-                    )
+                    availableCurrencies = availableCurrencies
                 )
                 calculateMonthlyChange()
             }
@@ -1630,27 +1592,10 @@ class HomeViewModel @Inject constructor(
                 lastMonthExpenses = lastBreakdown.expenses,
                 lastMonthSamePointExpenses = lastMonthSamePointBreakdownMap[selectedCurrency]?.expenses ?: BigDecimal.ZERO,
                 selectedCurrency = selectedCurrency,
-                availableCurrencies = availableCurrencies,
-                spendForecast = forecastFor(
-                    currentBreakdown.expenses + loanLoss,
-                    selectedCurrency,
-                    previousCycleBreakdownMaps.mapIndexed { i, map ->
-                        val spent = map[selectedCurrency]?.expenses
-                        val loss = previousCycleLoanLoss.getOrNull(i)?.get(selectedCurrency)
-                        // A cycle with only a settlement loss still counts as history.
-                        if (spent == null && loss == null) null
-                        else (spent ?: BigDecimal.ZERO) + (loss ?: BigDecimal.ZERO)
-                    }
-                )
+                availableCurrencies = availableCurrencies
             )
             calculateMonthlyChange()
         }
-    }
-
-    /** Month-end forecast for the "Spent this month" figure; null until day 7 of the cycle. */
-    private fun forecastFor(spent: BigDecimal, currency: String, previous: List<BigDecimal?>): SpendForecast? {
-        val (start, end) = _currentCycleWindow.value
-        return SpendForecast.of(spent, currency, start, end, LocalDate.now(), previous)
     }
 
     private suspend fun convertAccountEntities(
@@ -1745,7 +1690,6 @@ data class HomeUiState(
     val isApproximateBalance: Boolean = false,
     val lastMonthSpendingHistory: List<BigDecimal> = emptyList(),
     val loanSummary: LoanSummary? = null,
-    val spendForecast: SpendForecast? = null,
     val selectedProfileId: Long? = null,
     val profiles: List<ProfileEntity> = emptyList()
 )

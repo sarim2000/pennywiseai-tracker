@@ -123,7 +123,6 @@
     <string name="txn_detail_label_reference">Referência</string>
     <string name="txn_detail_receipt">Recibo</string>
     <string name="txn_detail_receipt_tap_to_view">Toque para ver</string>
-    <string name="txn_detail_receipt_missing">Foto do recibo não incluída neste backup</string>
     <string name="txn_detail_sms_hide">Ocultar SMS</string>
     <string name="txn_detail_sms_show">Mostrar SMS original</string>
     <string name="txn_detail_field_amount">Quantidade</string>

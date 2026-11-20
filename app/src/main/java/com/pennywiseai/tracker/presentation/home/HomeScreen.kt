@@ -101,7 +101,6 @@ fun HomeScreen(
     /** Opens the rows behind one of Home's figures, in the window, profile and currency it counts. */
     onOpenFigureRows: (HomeFigureRows) -> Unit = {},
     /** Opens the Ask tab; null while that tab is hidden. Home has no Ask entry of its own (the tab is it). */
-    @Suppress("UNUSED_PARAMETER") onOpenAssistant: (() -> Unit)? = null,
     onFabPositioned: (Rect) -> Unit = {}
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
@@ -401,7 +400,7 @@ fun HomeScreen(
                     .overScrollVertical(),
                 flingBehavior = rememberOverscrollFlingBehavior { lazyListState },
                 contentPadding = PaddingValues(
-                    top = Spacing.sm + paddingValues.calculateTopPadding(),
+                    top = Spacing.md + paddingValues.calculateTopPadding(),
                     // Clears the nav bar plus the Add + Sync FAB stack above it.
                     bottom = Dimensions.Component.bottomBarHeight +
                         Dimensions.Component.fabScrollClearance
@@ -767,21 +766,33 @@ fun HomeScreen(
                             // Credit / invested / transferred: money outside net cash flow.
                             // Reference detail, so a late, hideable section rather than a fixed
                             // card above the decision cards. Hides itself on dormant months.
+                            val credit = if (uiState.countCreditCardAsExpense) BigDecimal.ZERO else uiState.currentMonthCreditCard
+                            if (credit.signum() == 0 && uiState.currentMonthInvestment.signum() == 0 &&
+                                uiState.currentMonthTransfer.signum() == 0
+                            ) continue
                             item(key = section.name) {
                                 StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
-                                    CashFlowCard(
-                                        currency = uiState.selectedCurrency,
-                                        // When card spend counts as expense (#705) it's already in
-                                        // "Spent this month", so drop it from this "outside cash flow"
-                                        // card (a zero channel is filtered out) to avoid double-showing.
-                                        creditCardSpend = if (uiState.countCreditCardAsExpense) BigDecimal.ZERO else uiState.currentMonthCreditCard,
-                                        investments = uiState.currentMonthInvestment,
-                                        transfers = uiState.currentMonthTransfer,
-                                        isBalanceHidden = uiState.isBalanceHidden,
-                                        // Its figures cover the whole cycle, future-dated rows too.
-                                        onOpenRows = { type -> openFigureRows(TransactionTypeFilter.valueOf(type.name), currentCycleWindow.second) },
-                                        modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
-                                    )
+                                    Column(
+                                        Modifier.padding(horizontal = Dimensions.Padding.content),
+                                        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
+                                    ) {
+                                        HomeSectionHeader(
+                                            title = stringResource(R.string.cash_flow_title),
+                                            onSeeAll = null,
+                                        )
+                                        CashFlowCard(
+                                            currency = uiState.selectedCurrency,
+                                            // When card spend counts as expense (#705) it's already in
+                                            // "Spent this month", so drop it from this "outside cash flow"
+                                            // card (a zero channel is filtered out) to avoid double-showing.
+                                            creditCardSpend = credit,
+                                            investments = uiState.currentMonthInvestment,
+                                            transfers = uiState.currentMonthTransfer,
+                                            isBalanceHidden = uiState.isBalanceHidden,
+                                            // Its figures cover the whole cycle, future-dated rows too.
+                                            onOpenRows = { type -> openFigureRows(TransactionTypeFilter.valueOf(type.name), currentCycleWindow.second) },
+                                        )
+                                    }
                                 }
                             }
                         }

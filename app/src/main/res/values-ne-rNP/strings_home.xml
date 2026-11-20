@@ -3,7 +3,6 @@
     <!-- ══ Home screen ══ -->
     <string name="home_transaction_deleted">लेनदेन मेटाइयो</string>
     <string name="home_undo">पूर्ववत गर्नुहोस्</string>
-    <string name="home_upgrade_pro">PennyWise Pro मा अपग्रेड गर्नुहोस्</string>
     <string name="home_profile_filter">प्रोफाइल फिल्टर</string>
     <string name="home_more_options">थप विकल्पहरू</string>
     <string name="home_view_all">सबै हेर्नुहोस्</string>
@@ -33,7 +32,6 @@
     <string name="home_resync_rebuild_desc">पार्सर सुधारहरू लागू गर्न SMS लेनदेन फेरि पढिन्छ। SMS लेनदेनमा गरिएका सम्पादन रिसेट हुन्छन्। म्यानुअल, आयात गरिएका, ऋण र समूहमा राखिएका लेनदेन जोगाइन्छन्।</string>
     <!-- More options sheet -->
     <string name="home_menu_title">थप विकल्पहरू</string>
-    <string name="home_menu_settings">सेटिङ्स</string>
     <string name="home_menu_edit_home">होम स्क्रिन सम्पादन गर्नुहोस्</string>
     <string name="home_menu_discord">सुझावको लागि Discord मा जोडिनुहोस्</string>
     <string name="home_menu_rate">Play Store मा रेटिङ दिनुहोस्</string>
@@ -55,11 +53,6 @@
     <string name="home_loans_owed_to_you">तपाईंले पाउनुपर्ने %1$s</string>
     <string name="home_loans_you_owe">तपाईंले तिर्नुपर्ने %1$s</string>
     <!-- ══ Greeting card (home header) ══ -->
-    <string name="greeting_last_day_of_month">%1$s को अन्तिम दिन</string>
-    <plurals name="greeting_days_left_in_month">
-        <item quantity="one">%2$s मा %1$d दिन बाँकी</item>
-        <item quantity="other">%2$s मा %1$d दिन बाँकी</item>
-    </plurals>
     <string name="greeting_good_morning">शुभ प्रभात</string>
     <string name="greeting_good_afternoon">शुभ अपराह्न</string>
     <string name="greeting_good_evening">शुभ साँझ</string>
@@ -70,8 +63,8 @@
     <!-- ══ Bottom navigation ══ -->
     <string name="nav_home">होम</string>
     <string name="nav_transactions">टाइमलाइन</string>
-    <string name="nav_analytics">विश्लेषण</string>
-    <string name="nav_chat">च्याट</string>
+    <string name="nav_analytics">अन्तर्दृष्टि</string>
+    <string name="nav_chat">सोध्नुहोस्</string>
     <!-- ══ Shared components ══ -->
     <string name="expandable_list_view_less">कम हेर्नुहोस्</string>
     <string name="expandable_list_view_all_more">सबै हेर्नुहोस् (%1$d थप)</string>

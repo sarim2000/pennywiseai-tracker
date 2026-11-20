@@ -161,7 +161,7 @@ fun AnalyticsScreen(
                 start = Dimensions.Padding.content,
                 end = Dimensions.Padding.content,
                 top = paddingValues.calculateTopPadding() + Spacing.md,
-                bottom = Dimensions.Component.bottomBarHeight + Spacing.md
+                bottom = paddingValues.calculateBottomPadding() + Dimensions.Component.bottomBarHeight + Spacing.md
             ),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
             flingBehavior = rememberOverscrollFlingBehavior { listState }

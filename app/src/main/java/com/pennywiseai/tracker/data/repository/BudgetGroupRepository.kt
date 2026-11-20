@@ -759,10 +759,10 @@ class BudgetGroupRepository @Inject constructor(
     }
 
     /**
-     * Sum the EXPENSE/INVESTMENT amounts in [transactions]. Used by the
-     * per-window spend aggregation. Loan-linked and INCOME/TRANSFER
-     * transactions are excluded; the category-based
-     * [aggregateBudgetCategorySpending] handles per-category filtering and
+     * Sum the EXPENSE amounts in [transactions]. Used by the
+     * per-window spend aggregation. Loan-linked, INVESTMENT (not spending,
+     * see [budgetSpend]) and INCOME/TRANSFER transactions are excluded; the
+     * category-based [aggregateBudgetCategorySpending] handles per-category filtering and
      * Refund (DEDUCT_SPENT) deductions at a finer grain.
      */
     private fun sumExpensesForWindow(
@@ -770,7 +770,7 @@ class BudgetGroupRepository @Inject constructor(
     ): BigDecimal {
         return transactions.fold(BigDecimal.ZERO) { acc, txWithSplits ->
             val tx = txWithSplits.transaction.forTotals() ?: return@fold acc
-            if (tx.transactionType != TransactionType.EXPENSE && tx.transactionType != TransactionType.INVESTMENT) return@fold acc
+            if (tx.transactionType != TransactionType.EXPENSE) return@fold acc
             acc + tx.amount
         }
     }
@@ -1306,7 +1306,7 @@ suspend fun aggregateBudgetCategorySpending(
         if (type in BudgetGroupRepository.BUDGET_TYPE_BUCKETS) {
             // Route the whole amount to its type bucket, ignoring category —
             // so it counts only toward a type-tracking budget and never
-            // contributes to a category (Spending) budget.
+            // contributes to a category or all-spending budget.
             // Null = the converter has no rate for this pair; leave the row out
             // instead of counting a face-value foreign amount (#670).
             val converted = convertSplit(fromCurrency, txWithSplits.transaction.amount)

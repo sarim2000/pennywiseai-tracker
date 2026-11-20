@@ -109,6 +109,7 @@ import com.pennywiseai.tracker.ui.components.readableProgressColors
 import com.pennywiseai.tracker.ui.components.rememberSmsAccess
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -147,7 +148,7 @@ fun OnBoardingScreen(
             OnBoardingBottomBar(
                 uiState = uiState,
                 onBack = { viewModel.goToPreviousStep() },
-                onNext = {
+                onNext = withCommittedText {
                     when (uiState.currentStep) {
                         OnBoardingStep.WELCOME -> viewModel.goToNextStep()
                         OnBoardingStep.PROFILE -> viewModel.goToNextStep()
@@ -164,7 +165,7 @@ fun OnBoardingScreen(
                         }
                     }
                 },
-                onSkip = {
+                onSkip = withCommittedText {
                     when (uiState.currentStep) {
                         OnBoardingStep.PERMISSIONS -> {
                             viewModel.skipSmsPermission()
@@ -436,6 +437,9 @@ private fun ProfileStep(
         Spacer(modifier = Modifier.height(Spacing.lg))
 
         val nameState = rememberSyncedTextFieldState(uiState.userName) { viewModel.updateUserName(it) }
+        val next = withCommittedText {
+            if (nameState.text.isNotBlank()) viewModel.goToNextStep()
+        }
         TextField(
             state = nameState,
             label = { Text(stringResource(R.string.onboarding_name_label)) },
@@ -444,9 +448,7 @@ private fun ProfileStep(
                 capitalization = KeyboardCapitalization.Words,
                 imeAction = ImeAction.Done
             ),
-            onKeyboardAction = {
-                if (nameState.text.isNotBlank()) viewModel.goToNextStep()
-            },
+            onKeyboardAction = { next() },
             shape = MaterialTheme.shapes.large,
             modifier = Modifier.fillMaxWidth(),
             colors = TextFieldDefaults.colors(

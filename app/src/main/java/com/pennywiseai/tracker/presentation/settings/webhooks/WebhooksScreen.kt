@@ -28,6 +28,7 @@ import com.pennywiseai.tracker.data.webhook.WebhookSyncReason
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.Spacing
 
 @Composable
@@ -71,7 +72,7 @@ fun WebhooksScreen(onNavigateBack: () -> Unit, viewModel: WebhooksViewModel = hi
                     item { WebhookEditor(state.editor!!, state.intervalHours, viewModel::updateEditor) }
                     state.message?.let { message -> item { Text(message.asString(), color = MaterialTheme.colorScheme.error) } }
                     item {
-                        Button(onClick = viewModel::save, enabled = !state.busy, modifier = Modifier.fillMaxWidth(), shapes = ButtonDefaults.shapes()) {
+                        Button(onClick = withCommittedText(viewModel::save), enabled = !state.busy, modifier = Modifier.fillMaxWidth(), shapes = ButtonDefaults.shapes()) {
                             Text(stringResource(R.string.webhooks_editor_save))
                         }
                     }
@@ -108,7 +109,7 @@ fun WebhooksScreen(onNavigateBack: () -> Unit, viewModel: WebhooksViewModel = hi
                                 supportingText = { Text(stringResource(R.string.webhooks_interval_hint)) },
                                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                                 shape = RoundedField.shape)
-                            TextButton(onClick = viewModel::saveInterval, enabled = !state.busy, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.webhooks_interval_apply)) }
+                            TextButton(onClick = withCommittedText(viewModel::saveInterval), enabled = !state.busy, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.webhooks_interval_apply)) }
                         }
                     }
                     item {

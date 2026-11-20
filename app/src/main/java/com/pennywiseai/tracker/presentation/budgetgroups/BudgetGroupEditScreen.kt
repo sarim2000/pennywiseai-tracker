@@ -57,6 +57,7 @@ import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -148,7 +149,7 @@ fun BudgetGroupEditScreen(
                             .navigationBarsPadding()
                     ) {
                         Button(
-                            onClick = { viewModel.save() },
+                            onClick = withCommittedText(viewModel::save),
                             modifier = Modifier.fillMaxWidth(),
                             enabled = canSave,
                             shape = MaterialTheme.shapes.large,

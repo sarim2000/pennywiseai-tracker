@@ -236,7 +236,8 @@ fun PennyWiseBottomNavigation(
                         .navigationBarsPadding()
                         .padding(horizontal = Dimensions.Padding.content)
                         .padding(bottom = Dimensions.Component.floatingNavBottomGap)
-                        .zIndex(1000f),
+                        .zIndex(1000f)
+                        .selectableGroup(),
                     verticalAlignment = Alignment.Bottom
                 ) {
                     FloatingNavPill(
@@ -372,8 +373,7 @@ private fun FloatingNavPill(
                 if (blurEffects) Modifier.frostedBlur(hazeState) else Modifier
             )
             .background(containerColor.copy(alpha = if (blurEffects) 0.8f else 1f))
-            .padding(horizontal = Spacing.sm)
-            .selectableGroup()
+            .padding(horizontal = Spacing.sm),
     ) {
         val slotWidth = maxWidth / items.size
         val indicatorWidth = minOf(slotWidth, Dimensions.Component.floatingNavIndicatorWidth)

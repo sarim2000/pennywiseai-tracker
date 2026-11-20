@@ -88,6 +88,7 @@ import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.components.orSupporting
 import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -437,7 +438,7 @@ fun SplitBillSheet(viewModel: SplitBillViewModel, transaction: TransactionEntity
                     }
                     Box(Modifier.weight(1f))
                     OutlinedButton(onClick = viewModel::closeSheet, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.txn_detail_action_cancel)) }
-                    Button(onClick = viewModel::save, enabled = !f.saving && preview.error == null, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.split_save)) }
+                    Button(onClick = withCommittedText(viewModel::save), enabled = !f.saving && preview.error == null, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.split_save)) }
                 }
             }
         }

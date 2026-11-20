@@ -78,6 +78,7 @@ import com.pennywiseai.tracker.ui.components.pickerDefault
 import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -342,12 +343,12 @@ private fun ReviewRowEditSheet(
                     }
                 }
                 Button(
-                    onClick = {
+                    onClick = withCommittedText {
                         // A balance moves by the raw amount, so an account only keeps a row in its own currency.
                         val linked = keepAccount && currency == draft.currency
                         onSave(
                             draft.copy(
-                                amount = parsed ?: return@Button,
+                                amount = ChatMessageFacts.parseAmount(amount) ?: return@withCommittedText,
                                 merchant = merchant.trim(),
                                 type = type,
                                 category = category,

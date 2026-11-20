@@ -1,6 +1,5 @@
 package com.pennywiseai.tracker.ui.components
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -32,7 +31,6 @@ import androidx.compose.ui.graphics.drawOutline
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import com.pennywiseai.tracker.R
@@ -129,7 +127,7 @@ fun GreetingCard(
                 backgroundColor = profileBackgroundColor,
                 size = Dimensions.Icon.avatar,
                 shape = cookie,
-                contentDescription = stringResource(R.string.settings_title),
+                onClick = onAvatarClick,
                 modifier = Modifier
                     .drawWithContent {
                         drawContent()
@@ -144,11 +142,6 @@ fun GreetingCard(
                             style = Stroke(width = stroke, pathEffect = dash)
                         )
                     }
-                    .clickable(
-                        onClickLabel = stringResource(R.string.settings_title),
-                        role = Role.Button,
-                        onClick = onAvatarClick,
-                    )
             )
         }
         status?.invoke()

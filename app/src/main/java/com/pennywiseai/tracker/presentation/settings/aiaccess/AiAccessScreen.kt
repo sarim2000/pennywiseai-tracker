@@ -62,6 +62,7 @@ import com.pennywiseai.tracker.presentation.paywall.UpgradeSheet
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.AppDates
 import kotlinx.coroutines.delay
@@ -256,7 +257,7 @@ fun AiAccessScreen(onNavigateBack: () -> Unit, viewModel: AiAccessViewModel = hi
                         )
                         if (locked) Text(stringResource(R.string.ai_access_relay_busy), style = MaterialTheme.typography.bodySmall)
                         Row(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                            FilledTonalButton(onClick = { viewModel.setRelayUrl(relayInput) }, enabled = !locked && relayInput.trim() != relayUrl, shapes = ButtonDefaults.shapes()) {
+                            FilledTonalButton(onClick = withCommittedText { viewModel.setRelayUrl(relayInput) }, enabled = !locked && relayInput.trim() != relayUrl, shapes = ButtonDefaults.shapes()) {
                                 Text(stringResource(R.string.ai_access_relay_save))
                             }
                             if (relayUrl != AiRelayClient.DEFAULT_RELAY_URL) {

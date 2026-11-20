@@ -38,6 +38,7 @@ import com.pennywiseai.tracker.ui.components.BalancePoint
 import com.pennywiseai.tracker.utils.CurrencyUtils
 import com.pennywiseai.tracker.utils.Money
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -558,9 +559,15 @@ class AnalyticsViewModel @Inject constructor(
                     return if (rows.isEmpty()) null else netSpend(rows, filterState.typeFilter, categoryFilterSet, parentOf, isUnified, displayCurrency)
                 }
                 val previousSpend = previousRanges.map { spendIn(it) }
+                val today = LocalDate.now()
+                val inProgress = today in dateRange.first..dateRange.second
+                val throughToday = if (historyKind != null && inProgress && allTransactionsWithSplits.any { it.transaction.dateTime.toLocalDate() > today }) {
+                    netSpend(
+                        allTransactionsWithSplits.filter { it.transaction.dateTime.toLocalDate() <= today },
+                        filterState.typeFilter, categoryFilterSet, parentOf, isUnified, displayCurrency
+                    )
+                } else totalSpending
                 val periodHistory = historyKind?.let { kind ->
-                    val today = LocalDate.now()
-                    val inProgress = !today.isAfter(dateRange.second)
                     // A running period is compared with the same number of days of the
                     // one before, not its full total: day 10 against a whole month always
                     // reads as "less".
@@ -570,7 +577,7 @@ class AnalyticsViewModel @Inject constructor(
                             val elapsed = ChronoUnit.DAYS.between(dateRange.first, today)
                             spendIn(prev.first to minOf(prev.first.plusDays(elapsed), prev.second)) ?: BigDecimal.ZERO
                         } else prevSpend
-                        PeriodChange.of(totalSpending, base, PeriodSpend(prev.first, prev.second, prevSpend, true), inProgress)
+                        PeriodChange.of(throughToday, base, PeriodSpend(prev.first, prev.second, prevSpend, true), inProgress)
                     }
                     val past = previousRanges.zip(previousSpend) { range, spend ->
                         PeriodSpend(range.first, range.second, spend ?: BigDecimal.ZERO, spend != null)
@@ -586,7 +593,7 @@ class AnalyticsViewModel @Inject constructor(
                 // Month-end forecast: this cycle only, in a spend view. "Usual" is this
                 // view's total (same filters, refunds netted) over the previous cycles.
                 val forecast = if (filterState.period == TimePeriod.THIS_MONTH && filterState.typeFilter.netsRefunds) {
-                    SpendForecast.of(totalSpending, displayCurrency, dateRange.first, dateRange.second, LocalDate.now(), previousSpend)
+                    SpendForecast.of(throughToday, displayCurrency, dateRange.first, dateRange.second, today, previousSpend)
                 } else null
 
                 val trend = calculateTrend(counted, dateRange, filterState.period, displayCurrency, refunds.byDay)
@@ -615,7 +622,7 @@ class AnalyticsViewModel @Inject constructor(
                 )
             }
         }
-    }.stateIn(
+    }.flowOn(Dispatchers.Default).stateIn(
         scope = viewModelScope,
         started = SharingStarted.WhileSubscribed(5000),
         initialValue = AnalyticsUiState(isLoading = true)

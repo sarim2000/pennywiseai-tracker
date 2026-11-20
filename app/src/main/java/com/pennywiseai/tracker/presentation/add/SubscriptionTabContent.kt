@@ -30,6 +30,7 @@ import com.pennywiseai.tracker.ui.components.orSupporting
 import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.money
@@ -68,6 +69,7 @@ fun SubscriptionTabContent(
     val moreExpanded = moreOpen || uiState.paymentsMadeError
     val isIncome = uiState.direction == SubscriptionDirection.INCOME
 
+    val amount = rememberAmountEntry(uiState.amount, viewModel::updateSubscriptionAmount, uiState.currency)
     Box(modifier = Modifier.fillMaxSize()) {
         Column(
             modifier = Modifier
@@ -111,7 +113,6 @@ fun SubscriptionTabContent(
             )
 
             // A sum too ("120+35"), with the operator row on the keyboard.
-            val amount = rememberAmountEntry(uiState.amount, viewModel::updateSubscriptionAmount, uiState.currency)
             val amountSum = amount.sumHint
             TextField(
                 state = amount.state,
@@ -280,9 +281,13 @@ fun SubscriptionTabContent(
 
         SaveBar(
             error = uiState.error?.asString(),
-            enabled = uiState.isValid && !uiState.isLoading,
+            enabled = uiState.isValid && !uiState.isLoading && !amount.isUnfinished,
             loading = uiState.isLoading,
-            onClick = { viewModel.saveSubscription(onSuccess = onSave) },
+            onClick = withCommittedText {
+                if (!amount.isUnfinished) {
+                    viewModel.saveSubscription(onSuccess = onSave)
+                }
+            },
             modifier = Modifier.align(Alignment.BottomCenter)
         )
     }

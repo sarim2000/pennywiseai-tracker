@@ -83,12 +83,6 @@ fun CashFlowCard(
         contentPadding = Spacing.md
     ) {
         Text(
-            text = stringResource(R.string.cash_flow_title),
-            style = MaterialTheme.typography.titleSmall,
-            fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurface
-        )
-        Text(
             text = stringResource(R.string.cash_flow_subtitle),
             style = MaterialTheme.typography.bodySmall,
             color = MaterialTheme.colorScheme.onSurfaceVariant

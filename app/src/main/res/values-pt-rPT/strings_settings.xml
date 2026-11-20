@@ -95,13 +95,11 @@
     <string name="settings_folder_backup_subtitle_enabled">Backup diário às 2:00 AM para a pasta escolhida</string>
     <string name="settings_folder_backup_subtitle_pro">Pro · Salve um backup em uma pasta todos os dias às 2:00 AM</string>
     <string name="settings_folder_backup_subtitle_disabled">Salve um backup em uma pasta todos os dias às 2:00 AM</string>
-    <string name="settings_export_include_receipts_title">Incluir fotografias de recibos</string>
-    <string name="settings_export_include_receipts_subtitle">Junta as fotografias de recibos anexadas aos backups exportados (ficheiro maior)</string>
-    <string name="settings_folder_backup_include_receipts_title">Incluir fotografias de recibos nos backups automáticos</string>
     <string name="settings_folder_backup_include_receipts_subtitle">Torna cada backup diário maior</string>
     <string name="settings_backup_now_title">Fazer backup agora</string>
     <!-- %1$s = date and time of the last backup -->
     <string name="settings_backup_now_last_backup">Último backup: %1$s</string>
+    <!-- %1$s = date and time of the last backup, %2$d = PDF receipts it left out -->
     <string name="settings_backup_now_subtitle">Execute um backup na sua pasta agora</string>
     <string name="settings_change_backup_folder_title">Alterar pasta de Backup</string>
     <string name="settings_change_backup_folder_subtitle">Escolha uma pasta diferente para backups automáticos</string>

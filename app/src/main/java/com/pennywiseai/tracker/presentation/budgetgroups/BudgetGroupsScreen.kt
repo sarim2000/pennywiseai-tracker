@@ -15,6 +15,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowLeft
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.runtime.*
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
@@ -44,8 +45,8 @@ import com.pennywiseai.tracker.domain.spending.budgetPace
 import com.pennywiseai.tracker.presentation.home.heroBudget
 import com.pennywiseai.tracker.presentation.home.rememberToday
 import com.pennywiseai.tracker.presentation.plan.PlanMeter
-import com.pennywiseai.tracker.presentation.plan.PlanSwitcher
 import com.pennywiseai.tracker.presentation.plan.PlanTabHost
+import com.pennywiseai.tracker.presentation.plan.PlanTopBar
 import com.pennywiseai.tracker.presentation.plan.planOverline
 import com.pennywiseai.tracker.ui.animations.StaggeredEntrance
 import com.pennywiseai.tracker.ui.animations.pwCollapse
@@ -116,10 +117,7 @@ fun BudgetGroupsScreen(
     focusBudgetId: Long? = null,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    // In the Plan tab the switch takes the goals' slot at the top of the list.
-    val goalsSection: @Composable () -> Unit = if (planTab != null) {
-        { PlanSwitcher(planTab) }
-    } else {
+    val goalsSection: (@Composable () -> Unit)? = if (planTab != null) null else {
         {
             com.pennywiseai.tracker.presentation.goals.GoalsSection(
                 onOpenGoal = onNavigateToGoal,
@@ -152,19 +150,21 @@ fun BudgetGroupsScreen(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         containerColor = Color.Transparent,
         customTopBar = {
-            CustomTitleTopAppBar(
-                scrollBehaviorSmall = scrollBehaviorSmall,
-                scrollBehaviorLarge = scrollBehaviorLarge,
-                title = stringResource(if (planTab != null) R.string.nav_plan else R.string.budgets_title),
-                overline = if (planTab != null) planOverline() else null,
-                hasBackButton = planTab == null,
-                navigationContent = {
-                    IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
-                        Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.budgets_back))
-                    }
-                },
-                hazeState = hazeState
-            )
+            PlanTopBar(planTab) {
+                CustomTitleTopAppBar(
+                    scrollBehaviorSmall = scrollBehaviorSmall,
+                    scrollBehaviorLarge = scrollBehaviorLarge,
+                    title = stringResource(if (planTab != null) R.string.nav_plan else R.string.budgets_title),
+                    overline = if (planTab != null) planOverline() else null,
+                    hasBackButton = planTab == null,
+                    navigationContent = {
+                        IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
+                            Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.budgets_back))
+                        }
+                    },
+                    hazeState = hazeState
+                )
+            }
         },
         floatingActionButton = {
             if (uiState.hasGroups && !dockAdd) {
@@ -187,10 +187,6 @@ fun BudgetGroupsScreen(
                     .padding(paddingValues),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // Keep the Plan switch usable while budgets load, so Bills/Goals aren't blocked.
-                planTab?.let { host ->
-                    PlanSwitcher(host, Modifier.padding(horizontal = Dimensions.Padding.content, vertical = Spacing.sm))
-                }
                 Box(Modifier.weight(1f), contentAlignment = Alignment.Center) { LoadingIndicator() }
             }
             return@PennyWiseScaffold
@@ -208,14 +204,10 @@ fun BudgetGroupsScreen(
                     // Clear of the floating nav bar laid over the Plan tab.
                     .padding(bottom = if (planTab != null) Dimensions.Component.bottomBarHeight else Spacing.none)
             ) {
-                Box(
-                    Modifier.padding(
-                        start = Dimensions.Padding.content,
-                        end = Dimensions.Padding.content,
-                        top = Spacing.sm,
-                        bottom = BlockGap
-                    )
-                ) { goalsSection() }
+                Spacer(Modifier.height(Spacing.md))
+                goalsSection?.let {
+                    Box(Modifier.padding(horizontal = Dimensions.Padding.content).padding(bottom = BlockGap)) { it() }
+                }
                 MonthSelector(
                     year = uiState.selectedYear,
                     month = uiState.selectedMonth,
@@ -234,6 +226,8 @@ fun BudgetGroupsScreen(
             BudgetGroupsContent(
                 modifier = Modifier.hazeSource(hazeState).background(MaterialTheme.colorScheme.background),
                 topPadding = paddingValues.calculateTopPadding(),
+                bottomPadding = paddingValues.calculateBottomPadding() + Dimensions.Component.fabScrollClearance +
+                    if (planTab != null) Dimensions.Component.bottomBarHeight else Spacing.none,
                 uiState = uiState,
                 goalsSection = goalsSection,
                 focusBudgetId = focusBudgetId,
@@ -320,9 +314,10 @@ private fun EmptyBudgetState(
 @Composable
 private fun BudgetGroupsContent(
     modifier: Modifier = Modifier,
-    topPadding: Dp = Spacing.none,
+    topPadding: Dp,
+    bottomPadding: Dp,
     uiState: BudgetGroupsUiState,
-    goalsSection: @Composable () -> Unit = {},
+    goalsSection: (@Composable () -> Unit)?,
     focusBudgetId: Long? = null,
     onPreviousMonth: () -> Unit,
     onNextMonth: () -> Unit,
@@ -357,12 +352,13 @@ private fun BudgetGroupsContent(
     var expandBudgetId by remember { mutableStateOf<Long?>(null) }
     LaunchedEffect(summaryReady) {
         if (!focusPending || !summaryReady) return@LaunchedEffect
-        // The budgets follow the goals and month items; a deleted or archived one just shows the list.
+        // Budgets follow the month selector and, on the standalone page, Goals.
+        val firstBudgetIndex = if (goalsSection == null) 1 else 2
         val index = when (focusBudgetId) {
-            hero?.group?.budget?.id -> 2
+            hero?.group?.budget?.id -> firstBudgetIndex
             else -> otherGroups.indexOfFirst { it.group.budget.id == focusBudgetId }
                 .takeIf { it >= 0 }
-                ?.let { it + if (hero != null) 3 else 2 }
+                ?.let { firstBudgetIndex + it + if (hero != null) 1 else 0 }
         } ?: run {
             focusPending = false
             return@LaunchedEffect
@@ -390,17 +386,17 @@ private fun BudgetGroupsContent(
         contentPadding = PaddingValues(
             start = Dimensions.Padding.content,
             end = Dimensions.Padding.content,
-            top = Spacing.sm + topPadding,
-            bottom = Dimensions.Component.bottomBarHeight + Spacing.md
+            top = Spacing.md + topPadding,
+            bottom = bottomPadding
         ),
         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap),
         flingBehavior = rememberOverscrollFlingBehavior { lazyListState }
     ) {
         // Goals (#914) sit above the spending budgets; they aren't month-based.
-        item(key = "goals") { goalsSection() }
+        goalsSection?.let { item(key = "goals") { it() } }
 
         item(key = "month") {
-            Box(Modifier.padding(top = BlockGap)) {
+            Box(Modifier.padding(top = if (goalsSection != null) BlockGap else Spacing.none)) {
                 MonthSelector(
                     year = uiState.selectedYear,
                     month = uiState.selectedMonth,
@@ -601,7 +597,7 @@ private fun BudgetCard(
                 Icon(
                     if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = null,
-                    tint = if (hero) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant
+                    tint = LocalContentColor.current
                 )
             }
         }
@@ -738,12 +734,17 @@ private fun BudgetDetails(
         }
     }
 
-    FlowRow(
+    Row(
         modifier = Modifier.fillMaxWidth(),
-        itemVerticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
     ) {
-        TextButton(onClick = onViewHistory, shapes = ButtonDefaults.shapes()) {
+        TextButton(
+            onClick = onViewHistory,
+            shapes = ButtonDefaults.shapes(),
+            modifier = Modifier.weight(1f),
+            contentPadding = ButtonDefaults.TextButtonContentPadding
+        ) {
             Text(stringResource(R.string.budgets_view_history))
         }
         FilledTonalButton(onClick = onEdit, shapes = ButtonDefaults.shapes()) {
@@ -801,7 +802,8 @@ private fun SpendingPaceChart(
     )
     val today = rememberToday()
     val pace = if (today in spending.windowStart..spending.windowEnd) {
-        budgetPace(spending.totalActual, spending.totalBudget, spending.daysElapsed, spending.windowDays)
+        val elapsed = java.time.temporal.ChronoUnit.DAYS.between(spending.windowStart, today).toInt() + 1
+        budgetPace(spending.totalActual, spending.totalBudget, elapsed, spending.windowDays)
     } else null
 
     Column(Modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -888,6 +890,10 @@ private fun SpendingPaceChart(
             )
             Text(
                 when {
+                    pace.isOverBudget -> stringResource(
+                        R.string.budgets_over_budget,
+                        CurrencyFormatter.formatCurrency(spending.totalActual - spending.totalBudget, currency)
+                    )
                     pace.daysOver > 0 -> pluralStringResource(R.plurals.budget_card_days_over_pace, pace.daysOver, pace.daysOver)
                     pace.daysOver < 0 -> (-pace.daysOver).let {
                         pluralStringResource(R.plurals.budget_card_days_under_pace, it, it)

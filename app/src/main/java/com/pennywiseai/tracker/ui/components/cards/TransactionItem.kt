@@ -22,6 +22,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
@@ -65,17 +66,15 @@ fun TransactionItem(
     /** Optional long-press handler — used for bulk-edit selection entry. */
     onLongClick: (() -> Unit)? = null,
     /** Overrides the row's container colour (e.g. for selected state). */
-    containerColor: androidx.compose.ui.graphics.Color? = null,
+    containerColor: Color? = null,
     modifier: Modifier = Modifier,
 ) {
     val view = LocalView.current
     val colorScheme = MaterialTheme.colorScheme
-    val amountColor = when (transaction.transactionType) {
+    val rowInk = containerColor?.let { colorScheme.contentColorFor(it).takeIf { ink -> ink.isSpecified } ?: it.bestInk() }
+    val amountColor = rowInk ?: when (transaction.transactionType) {
         TransactionType.INCOME -> colorScheme.income
-        TransactionType.EXPENSE -> containerColor
-            ?.let { colorScheme.contentColorFor(it) }
-            ?.takeIf { it.isSpecified }
-            ?: colorScheme.spending
+        TransactionType.EXPENSE -> colorScheme.spending
         TransactionType.CREDIT -> colorScheme.credit
         TransactionType.TRANSFER -> colorScheme.transfer
         TransactionType.INVESTMENT -> colorScheme.investment
@@ -128,7 +127,10 @@ fun TransactionItem(
                             add(resources.getString(R.string.txn_item_tag_transfer))
                         }
                     }
-                    TransactionType.INVESTMENT -> add(resources.getString(R.string.txn_item_tag_investment))
+                    TransactionType.INVESTMENT -> {
+                        val label = resources.getString(R.string.txn_item_tag_investment)
+                        if (!categoryText.equals(label, ignoreCase = true)) add(label)
+                    }
                     else -> {}
                 }
             }
@@ -177,7 +179,7 @@ fun TransactionItem(
         // tertiary is a fill, not ink: some palettes make it the surface colour itself.
         subtitleColor = (if (unsorted) colorScheme.tertiary.readableOn(colorScheme.neutralSurfaces) else colorScheme.onSurfaceVariant).onRow(containerColor),
         shape = listItemPosition.toShape(),
-        contentPadding = Dimensions.Padding.cardCompact,
+        contentPadding = Dimensions.Padding.card,
         onClick = {
             view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
             onClick()
@@ -199,7 +201,8 @@ fun TransactionItem(
             TransactionAvatar(
                 merchantName = transaction.merchantName,
                 category = transaction.category,
-                modifier = iconModifier
+                modifier = iconModifier,
+                rowFill = containerColor
             )
         },
         trailingContent = {
@@ -280,6 +283,7 @@ fun TransactionAvatar(
     size: Dp = Dimensions.Icon.list,
     glyphSize: Dp = Dimensions.Icon.medium,
     shape: Shape = CircleShape,
+    rowFill: Color? = null,
 ) {
     val colorScheme = MaterialTheme.colorScheme
     // Not remembered: it reads the live user category styles, as BrandIcon does.
@@ -307,17 +311,20 @@ fun TransactionAvatar(
                 modifier = Modifier.size(glyphSize)
             )
         }
-        icon is IconResource.VectorIcon -> Box(
-            modifier = base.background(icon.tint.copy(alpha = Dimensions.Alpha.categoryTint)),
-            contentAlignment = Alignment.Center
-        ) {
-            Icon(
-                imageVector = icon.icon,
-                contentDescription = categoryLabel(category),
-                // The hue on a wash of itself: keep it, but reach 3:1.
-                tint = MaterialTheme.colorScheme.inkOnWash(icon.tint, Dimensions.Alpha.categoryTint, GRAPHIC_CONTRAST),
-                modifier = Modifier.size(glyphSize)
-            )
+        icon is IconResource.VectorIcon -> {
+            val wash = icon.tint.copy(alpha = Dimensions.Alpha.categoryTint)
+            Box(modifier = base.background(wash), contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = icon.icon,
+                    contentDescription = categoryLabel(category),
+                    tint = if (rowFill != null) {
+                        icon.tint.copy(alpha = 1f).readableOn(listOf(wash.compositeOver(rowFill)), GRAPHIC_CONTRAST)
+                    } else {
+                        colorScheme.inkOnWash(icon.tint, Dimensions.Alpha.categoryTint, GRAPHIC_CONTRAST)
+                    },
+                    modifier = Modifier.size(glyphSize)
+                )
+            }
         }
         icon is IconResource.Emoji -> Box(
             modifier = base.background(icon.tint.copy(alpha = Dimensions.Alpha.categoryTint)),

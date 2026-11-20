@@ -334,7 +334,7 @@
     <string name="settings_accounts_categories_title">Accounts &amp; categories</string>
     <string name="settings_accounts_categories_summary">Card spending, contacts, main account</string>
     <string name="settings_planning_title">Planning</string>
-    <string name="settings_planning_summary">Budgets, subscriptions, recurring, loans</string>
+    <string name="settings_planning_summary">Budget cycle, recurring transactions, loans</string>
     <string name="settings_currency_summary">Default currency, conversion, rates</string>
     <string name="settings_formats_title">Language &amp; formats</string>
     <string name="settings_formats_summary">Language, numbers, dates</string>
@@ -347,7 +347,7 @@
     <!-- Settings pages: the short explanation at the top of each page -->
     <string name="settings_tracking_intro">PennyWise reads bank messages and notifications right on this phone to add transactions for you.</string>
     <string name="settings_accounts_categories_intro">Choose which accounts are tracked and how transactions get sorted.</string>
-    <string name="settings_planning_intro">Set limits and see what\'s coming up. The budget cycle also sets the period Home and Analytics show.</string>
+    <string name="settings_planning_intro">Manage your budget cycle, recurring transactions, and loans. The budget cycle sets the period shown on Home and in Insights.</string>
     <string name="settings_currency_intro">Every transaction keeps its original currency. Your default currency is used for totals and conversions, and Unified mode shows everything in one currency.</string>
     <string name="settings_formats_intro">Choose how text, amounts and dates appear across the app.</string>
     <string name="settings_notifications_intro">Choose what PennyWise tells you about. Each alert type can also be silenced on its own in system settings.</string>

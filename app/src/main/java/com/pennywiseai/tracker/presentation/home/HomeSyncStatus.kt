@@ -88,7 +88,7 @@ fun HomeSyncStatus(
     ) {
         Row(
             modifier = Modifier
-                .heightIn(min = Dimensions.Component.statusChipHeight)
+                .heightIn(min = Dimensions.Component.minTouchTarget)
                 .padding(horizontal = Spacing.smd, vertical = Spacing.xs),
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.spacedBy(Spacing.sm)

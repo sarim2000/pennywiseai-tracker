@@ -26,6 +26,7 @@ import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.components.orSupporting
 import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
@@ -92,7 +93,7 @@ internal fun UpdateBalanceDialog(
         },
         confirmButton = {
             TextButton(
-                onClick = {
+                onClick = withCommittedText {
                     balanceText.toBigDecimalOrNull()?.let { balance ->
                         onConfirm(balance)
                     }
@@ -282,7 +283,7 @@ internal fun UpdateCreditCardDialog(
         },
         confirmButton = {
             TextButton(
-                onClick = {
+                onClick = withCommittedText {
                     val outstanding = outstandingText.toBigDecimalOrNull() ?: BigDecimal.ZERO
                     val limit = limitText.toBigDecimalOrNull() ?: BigDecimal.ZERO
                     onConfirm(outstanding, limit)
@@ -746,7 +747,7 @@ internal fun EditAccountDialog(
         },
         confirmButton = {
             TextButton(
-                onClick = {
+                onClick = withCommittedText {
                     val balance = balanceText.toBigDecimalOrNull() ?: BigDecimal.ZERO
                     val creditLimit = if (isCreditForm) {
                         creditLimitText.toBigDecimalOrNull()

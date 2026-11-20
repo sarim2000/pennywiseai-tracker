@@ -3,7 +3,6 @@
     <!-- ══ Home screen ══ -->
     <string name="home_transaction_deleted">Транзакция удалена</string>
     <string name="home_undo">Отменить</string>
-    <string name="home_upgrade_pro">Обновить до PennyWise Pro</string>
     <string name="home_profile_filter">Фильтр профиля</string>
     <string name="home_more_options">Больше опций</string>
     <string name="home_view_all">Показать всё</string>
@@ -33,11 +32,9 @@
     <string name="home_resync_rebuild_desc">Заново читает транзакции из SMS, чтобы применить исправления распознавания. Правки SMS-транзакций будут сброшены. Ручные, импортированные, долговые и сгруппированные транзакции сохранятся.</string>
     <!-- More options sheet -->
     <string name="home_menu_title">Больше опций</string>
-    <string name="home_menu_settings">Настройки</string>
     <string name="home_menu_edit_home">Редактировать главный экран</string>
     <string name="home_menu_discord">Присоединиться к Discord для отзыва</string>
     <string name="home_menu_rate">Оценить в Play Маркете</string>
-    <string name="home_version">v%1$s</string>
     <!-- Edit home screen sheet -->
     <string name="home_edit_title">Редактировать главный экран</string>
     <string name="home_edit_description">Переставляйте или скрывайте разделы на главном экране.</string>
@@ -60,13 +57,6 @@
     <string name="home_loans_owed_to_you">Вам должны %1$s</string>
     <string name="home_loans_you_owe">Вы обязаны %1$s</string>
     <!-- ══ Greeting card (home header) ══ -->
-    <string name="greeting_last_day_of_month">Последний день %1$s</string>
-    <plurals name="greeting_days_left_in_month">
-        <item quantity="one">Остался %1$d день · %2$s</item>
-        <item quantity="few">Осталось %1$d дня · %2$s</item>
-        <item quantity="many">Осталось %1$d дней · %2$s</item>
-        <item quantity="other">Осталось %1$d дня · %2$s</item>
-    </plurals>
     <string name="greeting_good_morning">Доброе утро</string>
     <string name="greeting_good_afternoon">Добрый день</string>
     <string name="greeting_good_evening">Добрый вечер</string>
@@ -77,8 +67,8 @@
     <!-- ══ Bottom navigation ══ -->
     <string name="nav_home">Главная</string>
     <string name="nav_transactions">Хронология</string>
-    <string name="nav_analytics">Аналитика</string>
-    <string name="nav_chat">Чат</string>
+    <string name="nav_analytics">Обзор</string>
+    <string name="nav_chat">Спросить</string>
     <!-- ══ Shared components ══ -->
     <string name="expandable_list_view_less">Меньше</string>
     <string name="expandable_list_view_all_more">Просмотреть все (%1$d еще)</string>

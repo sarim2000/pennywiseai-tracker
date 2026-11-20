@@ -139,7 +139,6 @@
     <string name="txn_detail_label_reference">المرجع</string>
     <string name="txn_detail_receipt">الإيصال</string>
     <string name="txn_detail_receipt_tap_to_view">اضغط للعرض</string>
-    <string name="txn_detail_receipt_missing">صورة الإيصال غير مضمّنة في هذه النسخة الاحتياطية</string>
     <string name="txn_detail_sms_hide">إخفاء الرسالة</string>
     <string name="txn_detail_sms_show">عرض الرسالة الأصلية</string>
     <string name="txn_detail_field_amount">المبلغ</string>

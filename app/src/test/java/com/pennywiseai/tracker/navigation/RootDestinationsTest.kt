@@ -6,9 +6,8 @@ import org.junit.Test
 import java.io.File
 
 /**
- * MainActivity's widget and notification extras push their screen onto the root
- * back stack, so each one needs an entry in PennyWiseNavHost. A key registered
- * only in MainScreen's tab stacks crashed at launch ("Unknown screen").
+ * Root launches need an entry in PennyWiseNavHost. Plan uses MainScreen's tab
+ * stack, with a registered standalone fallback when another root screen is open.
  */
 class RootDestinationsTest {
 
@@ -19,10 +18,14 @@ class RootDestinationsTest {
         val activity = File(src, "MainActivity.kt").readText()
         val handler = activity.substringAfter("fun handleWidgetIntent(").substringBefore("\n    }\n")
         val opened = Regex("""navigation\.(\w+)""").findAll(handler).map { it.groupValues[1] }.toSet()
-        assertEquals(setOf("GoalDetail", "UnrecognizedSms", "Review", "Insights", "BudgetGroups"), opened)
+        assertEquals(setOf("GoalDetail", "UnrecognizedSms", "Review", "Insights", "BudgetGroups", "Plan"), opened)
+
+        val app = File(src, "PennyWiseApp.kt").readText()
+        assertTrue(app.contains("val target = if (destination is Plan) BudgetGroups() else destination"))
+        val rootRoutes = opened - "Plan"
 
         val host = File(src, "navigation/PennyWiseNavHost.kt").readText()
         val registered = Regex("""entry<(\w+)>""").findAll(host).map { it.groupValues[1] }.toSet()
-        assertTrue("Not on the root host: ${opened - registered}", registered.containsAll(opened))
+        assertTrue("Not on the root host: ${rootRoutes - registered}", registered.containsAll(rootRoutes))
     }
 }

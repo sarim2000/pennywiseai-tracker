@@ -93,13 +93,11 @@
     <string name="settings_folder_backup_subtitle_enabled">Copia diaria a las 2:00 en la carpeta que elegiste</string>
     <string name="settings_folder_backup_subtitle_pro">Pro · Guarda una copia de seguridad en una carpeta cada día a las 2:00</string>
     <string name="settings_folder_backup_subtitle_disabled">Guarda una copia de seguridad en una carpeta cada día a las 2:00</string>
-    <string name="settings_export_include_receipts_title">Incluir fotos de recibos</string>
-    <string name="settings_export_include_receipts_subtitle">Agrega las fotos de recibos adjuntas a las copias exportadas (archivo más grande)</string>
-    <string name="settings_folder_backup_include_receipts_title">Incluir fotos de recibos en las copias automáticas</string>
     <string name="settings_folder_backup_include_receipts_subtitle">Hace que cada copia diaria sea más grande</string>
     <string name="settings_backup_now_title">Hacer copia ahora</string>
     <!-- %1$s = date and time of the last backup -->
     <string name="settings_backup_now_last_backup">Última copia: %1$s</string>
+    <!-- %1$s = date and time of the last backup, %2$d = PDF receipts it left out -->
     <string name="settings_backup_now_subtitle">Guarda una copia de seguridad en tu carpeta ahora</string>
     <string name="settings_change_backup_folder_title">Cambiar carpeta de copias</string>
     <string name="settings_change_backup_folder_subtitle">Elige otra carpeta para las copias automáticas</string>

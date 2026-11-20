@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.ui.components
 
+import androidx.compose.foundation.text.input.TextFieldState
+import androidx.compose.foundation.text.input.setTextAndPlaceCursorAtEnd
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -13,12 +15,38 @@ import androidx.compose.ui.test.junit4.v2.createAndroidComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.performTextInput
 import com.pennywiseai.tracker.debug.UiVerificationActivity
+import com.pennywiseai.tracker.ui.text.TextFieldCommitScope
+import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import org.junit.Assert.assertEquals
 import org.junit.Rule
 import org.junit.Test
 
 class AmountEntryFieldTest {
     @get:Rule val compose = createAndroidComposeRule<UiVerificationActivity>()
+
+    @Test
+    fun submitReadsTextAndAmountEditedInTheSameFrame() {
+        var name by mutableStateOf("Budget")
+        var amount by mutableStateOf("120")
+        lateinit var nameField: TextFieldState
+        lateinit var amountField: TextFieldState
+        lateinit var submit: () -> Unit
+        var saved: Pair<String, String>? = null
+        compose.setContent {
+            TextFieldCommitScope {
+                nameField = rememberSyncedTextFieldState(name) { name = it }
+                amountField = rememberAmountEntry(amount, { amount = it }, "INR").state
+                submit = withCommittedText { saved = name to amount }
+            }
+        }
+        compose.runOnIdle {
+            nameField.setTextAndPlaceCursorAtEnd("New budget")
+            amountField.setTextAndPlaceCursorAtEnd("120+35")
+            submit()
+            assertEquals("New budget" to "155.00", saved)
+        }
+    }
 
     @Test
     fun aSumHandsOnItsResultAndAnOutsideAmountReplacesIt() {

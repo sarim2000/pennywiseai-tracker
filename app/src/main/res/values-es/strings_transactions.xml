@@ -121,7 +121,6 @@
     <string name="txn_detail_label_reference">Referencia</string>
     <string name="txn_detail_receipt">Recibo</string>
     <string name="txn_detail_receipt_tap_to_view">Toca para ver</string>
-    <string name="txn_detail_receipt_missing">La foto del recibo no está incluida en esta copia de seguridad</string>
     <string name="txn_detail_sms_hide">Ocultar SMS</string>
     <string name="txn_detail_sms_show">Mostrar SMS original</string>
     <string name="txn_detail_field_amount">Monto</string>

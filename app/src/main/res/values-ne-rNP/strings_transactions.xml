@@ -122,7 +122,6 @@
     <string name="txn_detail_label_reference">रेफरेन्स</string>
     <string name="txn_detail_receipt">रसिद</string>
     <string name="txn_detail_receipt_tap_to_view">हेर्न ट्याप गर्नुहोस्</string>
-    <string name="txn_detail_receipt_missing">रसिदको फोटो यो ब्याकअपमा समावेश छैन</string>
     <string name="txn_detail_sms_hide">SMS लुकाउनुहोस्</string>
     <string name="txn_detail_sms_show">मूल SMS देखाउनुहोस्</string>
     <string name="txn_detail_field_amount">रकम</string>

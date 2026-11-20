@@ -92,13 +92,11 @@
     <string name="settings_folder_backup_subtitle_enabled">สำรองข้อมูลทุกวันตอน 2:00 น. ลงโฟลเดอร์ที่คุณเลือก</string>
     <string name="settings_folder_backup_subtitle_pro">Pro · บันทึกข้อมูลสำรองลงโฟลเดอร์ทุกวันตอน 2:00 น.</string>
     <string name="settings_folder_backup_subtitle_disabled">บันทึกข้อมูลสำรองลงโฟลเดอร์ทุกวันตอน 2:00 น.</string>
-    <string name="settings_export_include_receipts_title">รวมรูปใบเสร็จ</string>
-    <string name="settings_export_include_receipts_subtitle">ใส่รูปใบเสร็จที่แนบไว้ในข้อมูลสำรองที่ส่งออก (ไฟล์ใหญ่ขึ้น)</string>
-    <string name="settings_folder_backup_include_receipts_title">รวมรูปใบเสร็จในการสำรองข้อมูลอัตโนมัติ</string>
     <string name="settings_folder_backup_include_receipts_subtitle">ทำให้ข้อมูลสำรองแต่ละวันใหญ่ขึ้น</string>
     <string name="settings_backup_now_title">สำรองข้อมูลตอนนี้</string>
     <!-- %1$s = date and time of the last backup -->
     <string name="settings_backup_now_last_backup">สำรองล่าสุด: %1$s</string>
+    <!-- %1$s = date and time of the last backup, %2$d = PDF receipts it left out -->
     <string name="settings_backup_now_subtitle">สำรองข้อมูลลงโฟลเดอร์ของคุณตอนนี้</string>
     <string name="settings_change_backup_folder_title">เปลี่ยนโฟลเดอร์สำรองข้อมูล</string>
     <string name="settings_change_backup_folder_subtitle">เลือกโฟลเดอร์อื่นสำหรับการสำรองข้อมูลอัตโนมัติ</string>

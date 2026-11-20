@@ -26,6 +26,7 @@ import androidx.compose.foundation.text.input.InputTransformation
 import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.text.input.clearText
 import androidx.compose.foundation.text.input.rememberTextFieldState
+import androidx.compose.foundation.text.input.then
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
@@ -76,6 +77,7 @@ import com.pennywiseai.tracker.domain.loan.SplitError
 import com.pennywiseai.tracker.domain.loan.SplitPerson
 import com.pennywiseai.tracker.domain.loan.SplitRules
 import com.pennywiseai.tracker.domain.loan.UpiRequest
+import com.pennywiseai.tracker.domain.model.AmountInput
 import com.pennywiseai.tracker.ui.components.AmountBarHost
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.RoundedField
@@ -257,6 +259,15 @@ fun SplitBillSheet(viewModel: SplitBillViewModel, transaction: TransactionEntity
     val preview = f.preview(total, currency)
     val digits = SplitRules.fractionDigits(currency)
     val amountInput = remember(digits) { Regex(if (digits == 0) "^\\d*$" else "^\\d*(\\.\\d{0,$digits})?$") }
+    // The split's own rule (whole yen) is stricter than the field's: a plain share it would
+    // refuse is turned away as typed, so the field never shows one the split didn't take.
+    // Only from a share it took: a folded sum ("10÷3" → "3.33") can still be deleted back.
+    val splitShare = remember(amountInput) {
+        InputTransformation {
+            fun takes(text: String) = AmountInput.hasOperator(text) || text.matches(amountInput)
+            if (takes(originalText.toString()) && !takes(asCharSequence().toString())) revertAllChanges()
+        }
+    }
     val nameState = rememberTextFieldState()
     var confirmRemove by rememberSaveable { mutableStateOf(false) }
     val full = f.people.size >= SplitRules.MAX_PEOPLE
@@ -326,7 +337,7 @@ fun SplitBillSheet(viewModel: SplitBillViewModel, transaction: TransactionEntity
                             OutlinedTextField(
                                 shape = RoundedField.shape,
                                 state = share.state,
-                                inputTransformation = share.inputTransformation,
+                                inputTransformation = share.inputTransformation.then(splitShare),
                                 label = { Text(person.name) },
                                 prefix = { Text(symbol) },
                                 lineLimits = TextFieldLineLimits.SingleLine,
@@ -343,7 +354,7 @@ fun SplitBillSheet(viewModel: SplitBillViewModel, transaction: TransactionEntity
                     OutlinedTextField(
                         shape = RoundedField.shape,
                         state = yours.state,
-                        inputTransformation = yours.inputTransformation,
+                        inputTransformation = yours.inputTransformation.then(splitShare),
                         label = { Text(stringResource(R.string.split_your_part)) },
                         prefix = { Text(symbol) },
                         lineLimits = TextFieldLineLimits.SingleLine,

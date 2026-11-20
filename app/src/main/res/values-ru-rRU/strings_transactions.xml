@@ -131,7 +131,6 @@
     <string name="txn_detail_label_reference">Артикул</string>
     <string name="txn_detail_receipt">Квитанция</string>
     <string name="txn_detail_receipt_tap_to_view">Нажмите для просмотра</string>
-    <string name="txn_detail_receipt_missing">Фото чека не входит в эту резервную копию</string>
     <string name="txn_detail_sms_hide">Скрыть СМС</string>
     <string name="txn_detail_sms_show">Показать оригинальные SMS</string>
     <string name="txn_detail_field_amount">Сумма</string>

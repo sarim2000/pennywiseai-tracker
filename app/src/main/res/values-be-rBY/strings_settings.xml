@@ -97,13 +97,11 @@
     <string name="settings_folder_backup_subtitle_enabled">Штодня ў 2:00 у абраную папку</string>
     <string name="settings_folder_backup_subtitle_pro">Pro · Захоўваць рэзервовую копію ў папку штодня ў 2:00</string>
     <string name="settings_folder_backup_subtitle_disabled">Захоўваць рэзервовую копію ў папку штодня ў 2:00</string>
-    <string name="settings_export_include_receipts_title">Уключаць фота чэкаў</string>
-    <string name="settings_export_include_receipts_subtitle">Дадаваць прымацаваныя фота чэкаў у экспартаваныя копіі (файл будзе большы)</string>
-    <string name="settings_folder_backup_include_receipts_title">Уключаць фота чэкаў у аўтаматычныя копіі</string>
     <string name="settings_folder_backup_include_receipts_subtitle">Кожная штодзённая копія будзе большай</string>
     <string name="settings_backup_now_title">Стварыць копію зараз</string>
     <!-- %1$s = date and time of the last backup -->
     <string name="settings_backup_now_last_backup">Апошняя копія: %1$s</string>
+    <!-- %1$s = date and time of the last backup, %2$d = PDF receipts it left out -->
     <string name="settings_backup_now_subtitle">Зрабіць рэзервовую копію ў папку зараз</string>
     <string name="settings_change_backup_folder_title">Змяніць папку для копій</string>
     <string name="settings_change_backup_folder_subtitle">Абраць іншую папку для аўтаматычных копій</string>

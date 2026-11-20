@@ -94,13 +94,11 @@
     <string name="settings_folder_backup_subtitle_enabled">Nakala ya kila siku saa 8 usiku (2:00 AM) kwenye folda uliyochagua</string>
     <string name="settings_folder_backup_subtitle_pro">Pro · Hifadhi nakala kwenye folda kila siku saa 8 usiku (2:00 AM)</string>
     <string name="settings_folder_backup_subtitle_disabled">Hifadhi nakala kwenye folda kila siku saa 8 usiku (2:00 AM)</string>
-    <string name="settings_export_include_receipts_title">Jumuisha picha za risiti</string>
-    <string name="settings_export_include_receipts_subtitle">Ongeza picha za risiti zilizoambatishwa kwenye nakala zinazohamishwa (faili kubwa zaidi)</string>
-    <string name="settings_folder_backup_include_receipts_title">Jumuisha picha za risiti kwenye nakala za kiotomatiki</string>
     <string name="settings_folder_backup_include_receipts_subtitle">Hufanya kila nakala ya siku kuwa kubwa zaidi</string>
     <string name="settings_backup_now_title">Hifadhi Nakala Sasa</string>
     <!-- %1$s = date and time of the last backup -->
     <string name="settings_backup_now_last_backup">Nakala ya mwisho: %1$s</string>
+    <!-- %1$s = date and time of the last backup, %2$d = PDF receipts it left out -->
     <string name="settings_backup_now_subtitle">Hifadhi nakala kwenye folda yako sasa</string>
     <string name="settings_change_backup_folder_title">Badilisha Folda ya Nakala</string>
     <string name="settings_change_backup_folder_subtitle">Chagua folda nyingine kwa nakala za kiotomatiki</string>

@@ -91,13 +91,11 @@
     <string name="settings_folder_backup_subtitle_enabled">Sauvegarde quotidienne à 2h00 du matin dans le dossier de votre choix</string>
     <string name="settings_folder_backup_subtitle_pro">Pro · Sauvegardez une sauvegarde dans un dossier tous les jours à 2:00 AM</string>
     <string name="settings_folder_backup_subtitle_disabled">Enregistrez une sauvegarde dans un dossier tous les jours à 2:00 AM</string>
-    <string name="settings_export_include_receipts_title">Inclure les photos de reçus</string>
-    <string name="settings_export_include_receipts_subtitle">Ajouter les photos de reçus jointes aux sauvegardes exportées (fichier plus volumineux)</string>
-    <string name="settings_folder_backup_include_receipts_title">Inclure les photos de reçus dans les sauvegardes automatiques</string>
     <string name="settings_folder_backup_include_receipts_subtitle">Chaque sauvegarde quotidienne sera plus volumineuse</string>
     <string name="settings_backup_now_title">Sauvegarder maintenant</string>
     <!-- %1$s = date and time of the last backup -->
     <string name="settings_backup_now_last_backup">Dernière sauvegarde : %1$s</string>
+    <!-- %1$s = date and time of the last backup, %2$d = PDF receipts it left out -->
     <string name="settings_backup_now_subtitle">Exécutez une sauvegarde vers votre dossier maintenant</string>
     <string name="settings_change_backup_folder_title">Modifier le dossier de sauvegarde</string>
     <string name="settings_change_backup_folder_subtitle">Choisir un dossier différent pour les sauvegardes automatiques</string>

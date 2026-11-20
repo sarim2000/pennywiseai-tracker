@@ -122,7 +122,6 @@
     <string name="txn_detail_label_reference">Référence</string>
     <string name="txn_detail_receipt">Reçu</string>
     <string name="txn_detail_receipt_tap_to_view">Appuyer pour voir</string>
-    <string name="txn_detail_receipt_missing">Photo du reçu absente de cette sauvegarde</string>
     <string name="txn_detail_sms_hide">Masquer les SMS</string>
     <string name="txn_detail_sms_show">Afficher les SMS originaux</string>
     <string name="txn_detail_field_amount">Montant</string>

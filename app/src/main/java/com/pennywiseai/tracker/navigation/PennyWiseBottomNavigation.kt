@@ -42,8 +42,11 @@ import androidx.compose.material3.TooltipDefaults
 import androidx.compose.material3.rememberTooltipState
 import androidx.compose.material3.ripple
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -59,6 +62,7 @@ import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.pennywiseai.tracker.data.preferences.NavBarStyle
+import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
 import com.pennywiseai.tracker.ui.components.DockedActionButton
 import com.pennywiseai.tracker.ui.components.NavDockAction
 import com.pennywiseai.tracker.ui.components.NavDockState
@@ -71,6 +75,7 @@ import com.pennywiseai.tracker.ui.effects.frostedBlur
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import dev.chrisbanes.haze.HazeState
+import kotlinx.coroutines.delay
 
 @OptIn(
     ExperimentalMaterial3Api::class
@@ -97,6 +102,18 @@ fun PennyWiseBottomNavigation(
     // A leaving bar still draws (and hit-tests) through its exit. Ignore its taps,
     // or a tab tap would strand a push and the docked Sync would scan behind it.
     val selectTab: (BottomNavItem) -> Unit = { if (visible) onTabSelected(it) }
+    // The bar comes back from under a pushed screen (Add) already holding the save's
+    // reaction. The owl shows a beat first, then turns, so the change is seen, not missed.
+    val animate = rememberAnimationsEnabled()
+    // Set while the bar is away, so its first frame back is already the owl.
+    var arriving by remember { mutableStateOf(animate) }
+    LaunchedEffect(visible, animate) {
+        arriving = animate
+        if (!visible) return@LaunchedEffect
+        if (animate) delay(CHAT_TAB_ENTRANCE_MS)
+        arriving = false
+    }
+    val shownReaction = if (arriving) null else chatReaction
 
     // TalkBack skips a leaving bar too, rather than announce tabs that do nothing.
     Box(modifier = if (visible) modifier else modifier.clearAndSetSemantics {}) {
@@ -139,7 +156,7 @@ fun PennyWiseBottomNavigation(
                                         selected = selected,
                                         mutedWhenUnselected = hidePill && hideLabels,
                                         size = iconSize,
-                                        reaction = chatReaction
+                                        reaction = shownReaction
                                     )
                                 } else {
                                     Icon(
@@ -210,7 +227,7 @@ fun PennyWiseBottomNavigation(
                 ) {
                     FloatingNavPill(
                         items = navigationItems,
-                        chatReaction = chatReaction,
+                        chatReaction = shownReaction,
                         selectedIndex = navigationItems.indexOfFirst { it.route == selectedRoute },
                         onSelect = selectTab,
                         blurEffects = blurEffects,
@@ -399,3 +416,6 @@ private fun navBarExit(): ExitTransition {
     val motion = MaterialTheme.motionScheme
     return fadeOut(motion.fastEffectsSpec()) + slideOutVertically(motion.fastSpatialSpec()) { it / 4 }
 }
+
+/** How long the owl shows as the bar comes back before it turns into a held reaction: past the bar's own entrance. */
+private const val CHAT_TAB_ENTRANCE_MS = 350L

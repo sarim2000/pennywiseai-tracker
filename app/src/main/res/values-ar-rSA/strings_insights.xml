@@ -2,7 +2,6 @@
 <resources>
     <!-- Home: the section, its title in Edit home, and the menu entry -->
     <string name="home_section_insights">الرؤى</string>
-
     <!-- Insights screen -->
     <string name="insights_title">الرؤى</string>
     <string name="insights_back">رجوع</string>
@@ -64,8 +63,6 @@
     <string name="insights_expand">عرض التفاصيل</string>
     <string name="insights_collapse">إخفاء التفاصيل</string>
     <!-- %1$d = a whole percentage -->
-    <string name="insights_percent">%1$d%%</string>
-
     <!-- Metric labels on an expanded insight -->
     <string name="insights_metric_spent">المصروف</string>
     <string name="insights_metric_budget">الميزانية</string>
@@ -108,22 +105,19 @@
         <item quantity="other">كل الميزانيات الـ%1$d ضمن المسار</item>
     </plurals>
     <string name="insights_budgets_on_track_body">الإنفاق عند وتيرة متساوية أو أقل منها لبقية الفترة.</string>
-
     <!-- Category spike. %1$s = amount, %2$s = category, %3$s = percentage -->
     <string name="insights_spike_title">أنفقت %1$s على %2$s، أكثر من المعتاد بنسبة %3$s</string>
     <!-- Under a category spike: the usual figure is for a whole cycle -->
     <string name="insights_spike_body">المعتاد لدورة كاملة، وهذه الدورة لم تنتهِ بعد.</string>
-
     <!-- Savings rate. %1$s = percentage -->
     <string name="insights_savings_good_title">احتفظت بـ %1$s من دخلك</string>
     <!-- Under either savings insight -->
     <string name="insights_savings_body">حتى الآن في هذه الدورة.</string>
     <!-- %1$s = amount -->
     <string name="insights_savings_negative_title">أنفقت %1$s أكثر مما كسبت</string>
-
     <!-- Large transaction. %1$s = amount, %2$s = merchant, %3$s = how many times, e.g. "4×" -->
     <string name="insights_large_title">دفعت %1$s لدى %2$s، %3$s معتادك</string>
-    <!-- %1$d = how many times the usual amount (3 or more): 3–10 أضعاف, 11–99 ضعفًا, 100 and up ضعف -->
+    <!-- %1$d = how many times the usual amount (3 or more) -->
     <plurals name="insights_times">
         <item quantity="zero">%1$d ضعف</item>
         <item quantity="one">%1$d ضعف</item>
@@ -134,11 +128,9 @@
     </plurals>
     <!-- %1$s = category, %2$s = date -->
     <string name="insights_large_body">المعتاد هو مصروف نموذجي في %1$s. كان هذا في %2$s.</string>
-
     <!-- Price change. %1$s = subscription name, %2$s = new amount -->
     <string name="insights_price_title">خصم %1$s مبلغ %2$s</string>
     <string name="insights_price_body">حدّثه لتبقى الفواتير القادمة صحيحة.</string>
-
     <!-- Card utilisation. %1$s = percentage, %2$s = card name -->
     <string name="insights_card_title">استُخدم %1$s من حد %2$s</string>
 

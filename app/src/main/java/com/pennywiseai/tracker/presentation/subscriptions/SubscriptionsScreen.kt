@@ -85,6 +85,7 @@ import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.withTimeoutOrNull
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -230,6 +231,15 @@ fun SubscriptionsScreen(
     // menu (edit, mark paid, …) is the bill's detail, so no sheet opens.
     var focusPending by rememberSaveable { mutableStateOf(focusBillId != null) }
     var highlightId by remember { mutableStateOf<Long?>(null) }
+    // Its row as the list stands now: suggestions can still arrive above it once the bills are in.
+    val focusIndex by rememberUpdatedState(
+        if (!focusPending) {
+            null
+        } else {
+            groups.entries.firstOrNull { (_, bills) -> bills.any { it.id == focusBillId } }
+                ?.let { (section, bills) -> billIndex(section, bills.indexOfFirst { it.id == focusBillId }) }
+        }
+    )
     LaunchedEffect(uiState.isLoading) {
         if (!focusPending || uiState.isLoading) return@LaunchedEffect
         // An ended, hidden or deleted bill isn't here: just the list.
@@ -244,11 +254,16 @@ fun SubscriptionsScreen(
             BillSection.UNDATED -> showUndated = true
             BillSection.OVERDUE, BillSection.UPCOMING -> Unit
         }
-        val index = billIndex(section, bills.indexOfFirst { it.id == focusBillId })
-        // Wait out the layout from before its section opened: the row at that index has to be this bill.
-        val info = snapshotFlow { lazyListState.layoutInfo }.first { info ->
-            info.totalItemsCount > index && info.visibleItemsInfo.none { it.index == index && it.key != focusBillId }
+        // Wait out the layout from before its section opened: the row at its index has to be
+        // this bill. Bounded, so a list that never settles still gets the scroll.
+        val settled = withTimeoutOrNull(FOCUS_SETTLE_MILLIS) {
+            snapshotFlow { focusIndex to lazyListState.layoutInfo }.first { (index, info) ->
+                index != null && info.totalItemsCount > index &&
+                    info.visibleItemsInfo.none { it.index == index && it.key != focusBillId }
+            }
         }
+        val index = settled?.first ?: focusIndex ?: billIndex(section, bills.indexOfFirst { it.id == focusBillId })
+        val info = lazyListState.layoutInfo
         val row = info.visibleItemsInfo.firstOrNull { it.key == focusBillId }
         if (row == null || row.offset < 0 || row.offset + row.size > info.viewportEndOffset - info.afterContentPadding) {
             lazyListState.scrollToItem(index)
@@ -525,6 +540,9 @@ private val BlockGap = Spacing.smd
 
 /** How long the bill Plan was opened on stays tinted. */
 private const val FOCUS_HIGHLIGHT_MILLIS = 1500L
+
+/** How long a focused bill waits for its row to be laid out before scrolling anyway. */
+private const val FOCUS_SETTLE_MILLIS = 2000L
 
 internal enum class BillSection(@get:StringRes val title: Int) {
     OVERDUE(R.string.plan_bills_overdue),

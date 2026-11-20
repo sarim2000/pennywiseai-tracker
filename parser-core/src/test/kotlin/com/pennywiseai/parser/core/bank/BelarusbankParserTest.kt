@@ -71,6 +71,31 @@ class BelarusbankParserTest {
                 )
             ),
             ParserTestCase(
+                name = "Merchant containing otp/offer substrings still parses",
+                message = "OPLATA 15.00 BYN  KARTA #6666 DATA 09.11.2026 10:00:00 HOTPOINT OFFERTA MCC:5722 OSTATOK 70.00 BYN",
+                sender = "ASB.BY",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("15.00"),
+                    currency = "BYN",
+                    type = TransactionType.EXPENSE,
+                    merchant = "HOTPOINT OFFERTA",
+                    accountLast4 = "6666",
+                    balance = BigDecimal("70.00")
+                )
+            ),
+            ParserTestCase(
+                name = "Cancelled credit takes money back",
+                message = "OTMENA ZACHISLENIYA 40.00 BYN  KARTA #7777 DATA 10.11.2026 10:00:00 OSTATOK 30.00 BYN",
+                sender = "ASB.BY",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("40.00"),
+                    currency = "BYN",
+                    type = TransactionType.EXPENSE,
+                    accountLast4 = "7777",
+                    balance = BigDecimal("30.00")
+                )
+            ),
+            ParserTestCase(
                 name = "Cancelled payment is a refund",
                 message = "OTMENA OPLATY 12.50 BYN  KARTA #5555 DATA 08.11.2026 10:00:00 SHOP 'TEST' MCC:5411 OSTATOK 85.25 BYN",
                 sender = "ASB.BY",

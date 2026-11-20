@@ -50,7 +50,13 @@ class BelarusbankParser : BankParser() {
             ?: return null
 
         return when {
-            operation.contains("OTMENA") -> TransactionType.INCOME
+            // A cancelled credit takes money back; a cancelled payment refunds it.
+            operation.contains("OTMENA") ->
+                if (operation.contains("ZACHISL") || operation.contains("POPOLN")) {
+                    TransactionType.EXPENSE
+                } else {
+                    TransactionType.INCOME
+                }
 
             operation.contains("ZACHISLENIE") ||
                 operation.contains("POPOLNENIE") -> TransactionType.INCOME
@@ -91,8 +97,9 @@ class BelarusbankParser : BankParser() {
     }
 
     override fun isTransactionMessage(message: String): Boolean {
+        // No keyword exclusions: the anchored pattern must match the whole SMS, and
+        // substring checks ("otp", "offer") would reject merchants like HOTPOINT.
         return transactionPattern.containsMatchIn(message) &&
-            !isNonTransactionMessage(message) &&
             Regex("""\bKARTA\b""", RegexOption.IGNORE_CASE)
                 .containsMatchIn(message)
     }

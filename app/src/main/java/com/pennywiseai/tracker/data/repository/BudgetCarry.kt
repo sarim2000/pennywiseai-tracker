@@ -89,10 +89,9 @@ data class BudgetSpend(val amount: BigDecimal, val incomplete: Boolean = false, 
  * them: money put into one isn't spending, as Home's "Spent this month" says. A
  * budget with rollover on shows the same sum live (Budgets card, Home, Budget
  * History), so what it shows spent is what it carries; rollover-off budgets keep
- * each screen's own sum. Spending [convert] has no
- * rate for is left out and marked [BudgetSpend.incomplete]. Outside unified mode,
- * pass only the budget's own currency's [transactions] and a [convert] that keeps
- * amounts as they are.
+ * each screen's own sum. Spending [convert] has no rate for is left out and marked
+ * [BudgetSpend.incomplete]. Outside unified mode, pass only the budget's own
+ * currency's [transactions] and a [convert] that keeps amounts as they are.
  */
 internal suspend fun budgetSpend(
     group: BudgetWithCategories,

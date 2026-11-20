@@ -43,10 +43,21 @@ class BudgetInvestmentsTest {
         categories.map { BudgetCategoryEntity(budgetId = 1, categoryName = it, budgetAmount = BigDecimal("10000")) }
     )
 
-    private fun tx(id: Long, amount: String, type: TransactionType, currency: String = "INR") = TransactionWithSplits(
+    // The built-in Investments target: one row tracking the INVESTMENT type. A target can't roll over.
+    private fun investmentsTarget() = BudgetWithCategories(
+        budget().budget.copy(name = "Investments", groupType = BudgetGroupType.TARGET),
+        listOf(
+            BudgetCategoryEntity(
+                budgetId = 1, categoryName = "Investments", budgetAmount = BigDecimal("15000"),
+                matchType = TransactionType.INVESTMENT.name
+            )
+        )
+    )
+
+    private fun tx(id: Long, amount: String, type: TransactionType, currency: String = "INR", date: LocalDate = today) = TransactionWithSplits(
         TransactionEntity(
             id = id, amount = BigDecimal(amount), merchantName = "Shop", category = "Others",
-            transactionType = type, dateTime = today.atTime(9, 0), currency = currency, transactionHash = "h$id"
+            transactionType = type, dateTime = date.atTime(9, 0), currency = currency, transactionHash = "h$id"
         ),
         emptyList()
     )
@@ -111,6 +122,26 @@ class BudgetInvestmentsTest {
     @Test
     fun `a category budget leaves investments out everywhere`() {
         assertSpent("3898", spentEverywhere(budget("Others")))
+    }
+
+    @Test
+    fun `the Investments target counts investments everywhere, without rollover`() {
+        assertSpent("1700", spentEverywhere(investmentsTarget()))
+    }
+
+    @Test
+    fun `budget history leaves last month's investments out of an all-spending budget`() = runBlocking {
+        val last = month.minusMonths(1)
+        val group = budget()
+        val repo = repository(
+            group,
+            listOf(
+                tx(1, "100", TransactionType.EXPENSE, date = last.atDay(1)),
+                tx(2, "50", TransactionType.INVESTMENT, date = last.atDay(1))
+            )
+        )
+        val history = repo.getBudgetHistoryForMonth(group.budget, last.year, last.monthValue, "INR")
+        assertEquals(0, BigDecimal("100").compareTo(history.single().spent))
     }
 
     @Test

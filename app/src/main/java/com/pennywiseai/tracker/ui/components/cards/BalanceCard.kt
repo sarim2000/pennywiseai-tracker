@@ -20,6 +20,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.TrendingDown
+import androidx.compose.material.icons.automirrored.filled.TrendingUp
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Visibility
@@ -61,6 +63,7 @@ import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.GRAPHIC_CONTRAST
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.clickableFillFor
 import com.pennywiseai.tracker.ui.theme.expense
 import com.pennywiseai.tracker.ui.theme.income
 import com.pennywiseai.tracker.ui.theme.loan
@@ -68,6 +71,7 @@ import com.pennywiseai.tracker.ui.theme.money
 import com.pennywiseai.tracker.ui.theme.onColoredFill
 import com.pennywiseai.tracker.ui.theme.onSurfaceWash
 import com.pennywiseai.tracker.ui.theme.readableOn
+import com.pennywiseai.tracker.ui.theme.stateLayer
 import com.pennywiseai.tracker.ui.theme.tabular
 import com.pennywiseai.tracker.ui.theme.warning
 import com.pennywiseai.tracker.utils.AppDates
@@ -156,7 +160,8 @@ fun BalanceCard(
     // The month's figure is Home's hero: a tonal primary card, its text and chips
     // retoned to sit on it.
     val outer = MaterialTheme.colorScheme
-    val fill = outer.primaryContainer
+    // Nudged a touch where needed, so the card's text still reads while it's pressed or focused.
+    val fill = outer.primaryContainer.clickableFillFor(outer.onPrimaryContainer)
     MaterialTheme(colorScheme = outer.onColoredFill(fill, outer.onPrimaryContainer)) {
         var isExpanded by rememberSaveable { mutableStateOf(false) }
         val view = LocalView.current
@@ -182,11 +187,15 @@ fun BalanceCard(
         }
         // Inverted for spending: more spent = red, less = green, each nudged until it reads on
         // the card (a saturated teal card turned the red to 1.3:1); the words say it either way.
-        val changeColor = when {
-            monthlyChangePercent == 0 || isBalanceHidden -> MaterialTheme.colorScheme.onSurfaceVariant
-            monthlyChange >= BigDecimal.ZERO -> outer.expense.readableOn(listOf(fill))
-            else -> outer.income.readableOn(listOf(fill))
+        // Text on a mid-tone card can only be near white or black, so a trend arrow (a mark,
+        // 3:1) keeps the hue there and says the direction without colour.
+        val change = when {
+            monthlyChangePercent == 0 || isBalanceHidden -> null
+            monthlyChange >= BigDecimal.ZERO -> ChangeTrend(outer.expense, up = true)
+            else -> ChangeTrend(outer.income, up = false)
         }
+        val changeColor = change?.color?.textOn(fill) ?: MaterialTheme.colorScheme.onSurfaceVariant
+        val changeIcon: (@Composable () -> Unit)? = change?.let { trend -> { ChangeArrow(trend, fill) } }
         val showCurrencyChip = availableCurrencies.size > 1 && !isUnifiedMode
 
         Surface(
@@ -197,7 +206,8 @@ fun BalanceCard(
             modifier = modifier.fillMaxWidth(),
             shape = MaterialTheme.shapes.extraLarge,
             color = fill,
-            contentColor = outer.onPrimaryContainer,
+            // The card's ink, as onColoredFill nudged it: it's also the press and focus layer.
+            contentColor = MaterialTheme.colorScheme.onSurface,
         ) {
             Column(
                 modifier = Modifier.padding(horizontal = Spacing.lg, vertical = Spacing.md),
@@ -235,6 +245,7 @@ fun BalanceCard(
                     lineColor = MaterialTheme.colorScheme.onSurface,
                     trailing = if (budget == null && changeText != null) changeText else null,
                     trailingColor = changeColor,
+                    trailingIcon = changeIcon,
                     chevronRotation = chevronRotation,
                     isExpanded = isExpanded,
                 )
@@ -273,7 +284,13 @@ fun BalanceCard(
                                 ) {
                                     if (showCurrencyChip) OnWash(outer, fill) { CurrencyChip(currency, availableCurrencies, onCurrencySelected) }
                                     if (changeText != null) {
-                                        Text(text = changeText, style = MaterialTheme.typography.bodyMedium, color = changeColor)
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+                                        ) {
+                                            changeIcon?.invoke()
+                                            Text(text = changeText, style = MaterialTheme.typography.bodyMedium, color = changeColor)
+                                        }
                                     }
                                 }
                             }
@@ -338,6 +355,7 @@ private fun HeroFooter(
     lineColor: Color,
     trailing: String?,
     trailingColor: Color,
+    trailingIcon: (@Composable () -> Unit)?,
     chevronRotation: Float,
     isExpanded: Boolean,
 ) {
@@ -345,6 +363,7 @@ private fun HeroFooter(
         FlowRow(
             modifier = Modifier.weight(1f),
             horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
+            itemVerticalAlignment = Alignment.CenterVertically,
         ) {
             if (line != null) {
                 Text(
@@ -353,7 +372,12 @@ private fun HeroFooter(
                     color = lineColor
                 )
             }
-            if (trailing != null) Text(text = trailing, style = MaterialTheme.typography.bodyMedium, color = trailingColor)
+            if (trailing != null) {
+                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                    trailingIcon?.invoke()
+                    Text(text = trailing, style = MaterialTheme.typography.bodyMedium, color = trailingColor)
+                }
+            }
         }
         // The whole card is the target; this only says it opens.
         Icon(
@@ -435,6 +459,7 @@ private fun BudgetMeter(budget: HomeHeroBudget, containerColor: Color) {
         // 3:1 on both it and the card in palettes like Monochrome.
         trackColor = MaterialTheme.colorScheme.onSurface.copy(alpha = Dimensions.Alpha.meterTrack),
         containerColor = containerColor,
+        layers = listOf(MaterialTheme.colorScheme.onSurface.stateLayer()),
         modifier = Modifier.clearAndSetSemantics { }
     )
 }
@@ -687,19 +712,41 @@ private fun MonthDetails(
 
 @Composable
 private fun HeroLink(label: String, onClick: () -> Unit) {
-    // The hero's primary is the card's ink (onColoredFill), so the label and ripple read on it.
+    // The hero's primary is nudged onto the card (onColoredFill), under its own ripple too.
     TextButton(onClick = onClick, shapes = ButtonDefaults.shapes()) {
         Text(label)
     }
 }
 
-/** A series colour as a mark on the hero's [fill]: its hue, nudged to 3:1 there. */
-private fun Color.markOn(fill: Color) = readableOn(listOf(fill), GRAPHIC_CONTRAST)
+/** A series colour as a mark on the hero's [fill]: its hue, nudged to 3:1 there and under the card's press layer. */
+@Composable
+private fun Color.markOn(fill: Color) =
+    readableOn(listOf(fill), GRAPHIC_CONTRAST, listOf(MaterialTheme.colorScheme.onSurface.stateLayer()))
+
+/** A semantic colour as text on the hero's [fill], at rest and under the card's press layer. */
+@Composable
+private fun Color.textOn(fill: Color) =
+    readableOn(listOf(fill), layers = listOf(MaterialTheme.colorScheme.onSurface.stateLayer()))
+
+/** Which way spending moved on last month, in its semantic colour (expense up, income down). */
+private class ChangeTrend(val color: Color, val up: Boolean)
+
+/** The change's direction as an arrow: a mark, so it keeps more of [ChangeTrend.color]'s hue than text can. */
+@Composable
+private fun ChangeArrow(trend: ChangeTrend, fill: Color) {
+    Icon(
+        imageVector = if (trend.up) Icons.AutoMirrored.Filled.TrendingUp else Icons.AutoMirrored.Filled.TrendingDown,
+        // The sentence beside it says which way.
+        contentDescription = null,
+        tint = trend.color.markOn(fill),
+        modifier = Modifier.size(Dimensions.Icon.small)
+    )
+}
 
 /** [content] on the hero's surface wash (a chip, Safe to spend), in [outer]'s own inks. */
 @Composable
 private fun OnWash(outer: ColorScheme, fill: Color, content: @Composable () -> Unit) {
-    MaterialTheme(colorScheme = outer.onSurfaceWash(fill), content = content)
+    MaterialTheme(colorScheme = outer.onSurfaceWash(fill, MaterialTheme.colorScheme.onSurface), content = content)
 }
 
 /**

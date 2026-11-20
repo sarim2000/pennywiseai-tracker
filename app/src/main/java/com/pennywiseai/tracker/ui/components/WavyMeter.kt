@@ -27,7 +27,8 @@ import com.pennywiseai.tracker.ui.theme.readableOn
  *
  * [color] keeps its hue but is nudged to 3:1 on the track and the card it sits on, so a
  * pale budget or category colour (preset yellow) still shows. Pass [containerColor] when
- * that card isn't a neutral surface (a tinted or primaryContainer card). Don't animate
+ * that card isn't a neutral surface (a tinted or primaryContainer card), and the card's
+ * press/focus [layers] when the card is clickable (see `readableOn`). Don't animate
  * [color]: each in-between frame would be checked and cached.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
@@ -39,6 +40,7 @@ fun WavyMeter(
     modifier: Modifier = Modifier,
     dense: Boolean = false,
     containerColor: Color? = null,
+    layers: List<Color> = emptyList(),
 ) {
     val cards = containerColor?.let { listOf(it) } ?: MaterialTheme.colorScheme.neutralSurfaces
     // A translucent track is seen over the card, so that's what the fill is checked against.
@@ -47,7 +49,7 @@ fun WavyMeter(
     LinearWavyProgressIndicator(
         progress = { clamped },
         modifier = modifier.fillMaxWidth(),
-        color = color.readableOn(tracks + cards, GRAPHIC_CONTRAST),
+        color = color.readableOn(tracks + cards, GRAPHIC_CONTRAST, layers),
         trackColor = trackColor,
         stopSize = Dimensions.Component.wavyMeterStop,
         amplitude = if (dense) DenseAmplitude else WavyProgressIndicatorDefaults.indicatorAmplitude,

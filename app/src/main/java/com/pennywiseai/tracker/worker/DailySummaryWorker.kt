@@ -5,6 +5,7 @@ import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
+import android.util.Log
 import androidx.core.app.NotificationCompat
 import androidx.hilt.work.HiltWorker
 import androidx.work.CoroutineWorker
@@ -25,6 +26,9 @@ import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.LoanRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
+import com.pennywiseai.tracker.domain.insights.InsightSeverity
+import com.pennywiseai.tracker.domain.insights.InsightsLoader
+import com.pennywiseai.tracker.domain.insights.InsightsSnapshot
 import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
 import com.pennywiseai.tracker.domain.model.filterTransactionsByProfile
 import com.pennywiseai.tracker.receiver.QuickCategoryPickerActivity
@@ -34,7 +38,9 @@ import com.pennywiseai.tracker.utils.sumByCurrency
 import com.pennywiseai.tracker.utils.withLatinDigits
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.flowOf
 import java.math.BigDecimal
 import java.time.Duration
 import java.time.LocalTime
@@ -54,7 +60,8 @@ class DailySummaryWorker @AssistedInject constructor(
     private val loanRepository: LoanRepository,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val accountBalanceRepository: AccountBalanceRepository,
-    private val ignoredAccountsStore: IgnoredAccountsStore
+    private val ignoredAccountsStore: IgnoredAccountsStore,
+    private val insightsLoader: InsightsLoader
 ) : CoroutineWorker(appContext, workerParams) {
 
     override suspend fun doWork(): Result {
@@ -95,6 +102,17 @@ class DailySummaryWorker @AssistedInject constructor(
             ?: return Result.success()
         val unsorted = transactions.filter { it.category == BuiltinCategoryNames.current("Others") }
 
+        // Something needing attention is worth the tap: open Insights rather than Home.
+        val opensInsights = opensInsights(
+            // The recap's own profile, not one the user switched to since.
+            runCatching { insightsLoader.observe(today, flowOf(profileId)).first() }
+                .onFailure {
+                    if (it is CancellationException) throw it
+                    Log.w(TAG, "Insights unavailable for the recap", it)
+                }
+                .getOrNull()
+        )
+
         // The recap is built outside any Activity, so it needs the Latin-digit context too (14b00ada).
         val context = applicationContext.withLatinDigits()
         val text = listOfNotNull(
@@ -129,7 +147,9 @@ class DailySummaryWorker @AssistedInject constructor(
                 PendingIntent.getActivity(
                     context,
                     NOTIFICATION_ID,
-                    Intent(context, MainActivity::class.java).addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP),
+                    Intent(context, MainActivity::class.java)
+                        .addFlags(Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_CLEAR_TOP)
+                        .apply { if (opensInsights) putExtra(MainActivity.EXTRA_OPEN_INSIGHTS, true) },
                     PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
                 )
             )
@@ -166,6 +186,7 @@ class DailySummaryWorker @AssistedInject constructor(
     }
 
     companion object {
+        private const val TAG = "DailySummaryWorker"
         private const val WORK_NAME = "daily_summary"
         private const val CHANNEL_ID = "daily_summary"
         // Transaction alerts use the transaction id; ids are never negative.
@@ -173,6 +194,10 @@ class DailySummaryWorker @AssistedInject constructor(
         /** Input flag: skip the 9 PM gate (debug probe only). */
         const val KEY_FORCE = "force"
         private const val SUMMARY_HOUR = 21
+
+        /** A tap opens Insights while at least one alert there hasn't been dismissed. */
+        internal fun opensInsights(snapshot: InsightsSnapshot?): Boolean =
+            snapshot?.active?.any { it.severity == InsightSeverity.ALERT } == true
 
         /** The next local 9 PM strictly after [now]; zone-aware, so DST shifts keep it at 9 PM. */
         internal fun nextRun(now: ZonedDateTime): ZonedDateTime {

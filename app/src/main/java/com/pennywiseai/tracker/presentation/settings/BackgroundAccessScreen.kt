@@ -70,7 +70,8 @@ fun BackgroundAccessScreen(onNavigateBack: () -> Unit) {
     }
 }
 
-private class ChecklistStep(
+/** One checklist row; the SMS check-up builds its rows from this too. */
+internal class ChecklistStep(
     val title: String,
     val done: Boolean,
     val why: String,
@@ -186,7 +187,7 @@ fun BackgroundAccessChecklist(
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ChecklistRow(step: ChecklistStep, position: ListItemPosition) {
+internal fun ChecklistRow(step: ChecklistStep, position: ListItemPosition) {
     val statusColor = when {
         step.done -> MaterialTheme.colorScheme.success
         step.optional -> MaterialTheme.colorScheme.onSurfaceVariant

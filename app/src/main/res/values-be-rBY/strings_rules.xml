@@ -293,7 +293,10 @@
     <string name="chat_action_change_merchant">прадавец → %1$s</string>
     <string name="chat_action_change_category">катэгорыя → %1$s</string>
     <!-- Chat replies written by the app, not the model. %1$s in chat_line_* is a formatted amount -->
+    <!-- Chat prompt: bills due within the next %d days (PlanningRepository.BILLS_AHEAD_DAYS) -->
+    <!-- Chat prompt shown while bills wait past their date; tapping it lists them -->
     <!-- Under a chat answer: opens the transactions behind its figures. %1$s in _in is what they are, joined by " · ": a category name, a date range like "1 Nov–16 Nov" and/or a currency code like "USD" -->
+    <!-- Under a chat answer: opens the screen it came from. %1$s is that screen's title, e.g. "Budgets" -->
     <!-- Chat errors -->
     <string name="chat_error_apply_failed">Не ўдалося ўжыць: %1$s</string>
     <string name="chat_error_model_downloading">Мадэль спампоўваецца. Пачакайце.</string>

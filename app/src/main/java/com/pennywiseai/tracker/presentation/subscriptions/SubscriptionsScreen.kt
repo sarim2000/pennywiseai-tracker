@@ -82,7 +82,7 @@ fun SubscriptionsScreen(
     viewModel: SubscriptionsViewModel = hiltViewModel(),
     onNavigateBack: () -> Unit = {},
     onAddSubscriptionClick: () -> Unit = {},
-    // A tab root has no back arrow; opened over another screen (a calendar bill's link), it needs one.
+    // A tab root has no back arrow; opened over another screen (an insight's or a calendar bill's link), it needs one.
     showBack: Boolean = false,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()

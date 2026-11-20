@@ -15,6 +15,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.navigation.BackgroundAccess
+import com.pennywiseai.tracker.navigation.SmsCheckup
 import com.pennywiseai.tracker.navigation.UnrecognizedSms
 import com.pennywiseai.tracker.presentation.permission.PermissionViewModel
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
@@ -64,6 +65,18 @@ internal fun TrackingPage(
     // Without SMS access there's no tracking to protect, so nothing to nag about.
     val backgroundStepsLeft = backgroundAccess?.stepsLeft?.takeIf { it > 0 && permissionUiState.hasPermission }
     val backgroundStepsColor = MaterialTheme.colorScheme.warning
+
+    SettingsGroup {
+        SettingsNavItem(
+            icon = Icons.Default.Troubleshoot,
+            iconBgColor = MaterialTheme.colorScheme.primaryContainer,
+            iconTint = MaterialTheme.colorScheme.onPrimaryContainer,
+            title = stringResource(R.string.sms_checkup_title),
+            subtitle = stringResource(R.string.sms_checkup_settings_subtitle),
+            onClick = { onNavigate(SmsCheckup) },
+            position = ListItemPosition.Single
+        )
+    }
 
     SettingsGroup {
         SettingsNavItem(
@@ -137,7 +150,7 @@ internal fun TrackingPage(
             iconTint = indigo_dark,
             title = stringResource(R.string.settings_tracked_apps_title),
             subtitle = if (trackedApps.isEmpty()) stringResource(R.string.settings_tracked_apps_subtitle_none)
-                else pluralStringResource(R.plurals.settings_tracked_apps_subtitle_count, trackedApps.size, trackedApps.size),
+            else pluralStringResource(R.plurals.settings_tracked_apps_subtitle_count, trackedApps.size, trackedApps.size),
             onClick = { showTrackedAppsDialog = true },
             position = ListItemPosition.Bottom
         )
@@ -178,7 +191,7 @@ internal fun TrackingPage(
                 add(
                     SettingsChoice(
                         label = if (customDate != null) stringResource(R.string.settings_sms_scan_option_custom_with_date, customDate)
-                            else stringResource(R.string.settings_sms_scan_option_custom),
+                        else stringResource(R.string.settings_sms_scan_option_custom),
                         selected = smsScanUseCustomDate && !smsScanAllTime,
                     ) { customDatePicked = true }
                 )
@@ -186,7 +199,7 @@ internal fun TrackingPage(
                     add(
                         SettingsChoice(
                             label = if (months == 24) pluralStringResource(R.plurals.settings_sms_scan_option_years, 2, 2)
-                                else pluralStringResource(R.plurals.settings_sms_scan_option_months, months, months),
+                            else pluralStringResource(R.plurals.settings_sms_scan_option_months, months, months),
                             selected = monthly && smsScanMonths == months,
                         ) {
                             settingsViewModel.updateSmsScanMonths(months)

@@ -253,9 +253,7 @@ class TransactionDetailViewModel @Inject constructor(
         viewModelScope.launch {
             val txn = _transaction.value ?: return@launch
             if (txn.excludedFromAnalytics == excluded) return@launch
-            transactionRepository.updateTransaction(
-                txn.copy(excludedFromAnalytics = excluded, updatedAt = LocalDateTime.now())
-            )
+            transactionRepository.setExcludedFromAnalytics(txn.id, excluded)
             _transaction.value = transactionRepository.getTransactionById(txn.id)
             com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
         }
@@ -309,9 +307,13 @@ class TransactionDetailViewModel @Inject constructor(
             runCatching {
                 _transaction.value = transactionRepository.getTransactionById(txn.id)
                 com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
-                val learned = merchantMappingRepository.getCategoryForMerchant(txn.merchantName)
-                _ruleSuggestion.value = RuleOffer(txn.id, txn.merchantName, category).takeIf {
-                    category != learned && !com.pennywiseai.tracker.ui.components.cards.isUnsortedCategory(category)
+                _ruleSuggestion.value = null
+                val merchant = txn.merchantName
+                if (!LearnCategoryUseCase.isPlaceholderMerchant(merchant) &&
+                    !com.pennywiseai.tracker.ui.components.cards.isUnsortedCategory(category) &&
+                    category != merchantMappingRepository.getCategoryForMerchant(merchant)
+                ) {
+                    _ruleSuggestion.value = RuleOffer(txn.id, merchant, category)
                 }
             }.onFailure { android.util.Log.w("TransactionDetailVM", "After category change", it) }
         }
@@ -326,6 +328,7 @@ class TransactionDetailViewModel @Inject constructor(
                 merchantMappingRepository.setMapping(offer.merchant, offer.category)
                 _notice.value = UiText.Res(R.string.txn_detail_remember_saved)
             } catch (e: Exception) {
+                if (_transaction.value.matches(offer)) _ruleSuggestion.compareAndSet(null, offer)
                 _errorMessage.value = UiText.Res(R.string.txn_detail_error_update_category, listOf(e.message.toString()))
             }
         }

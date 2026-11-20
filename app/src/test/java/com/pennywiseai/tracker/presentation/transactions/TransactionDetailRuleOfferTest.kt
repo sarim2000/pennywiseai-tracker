@@ -77,6 +77,18 @@ class TransactionDetailRuleOfferTest {
     }
 
     @Test
+    fun `generic payment names can be categorized without being remembered`() {
+        stored = stored.copy(merchantName = "UPI Transfer")
+        val vm = viewModel()
+        vm.quickUpdateCategory("Food")
+
+        assertEquals("Food", stored.category)
+        assertNull(vm.ruleSuggestion.value)
+        vm.acceptRuleSuggestion()
+        coVerify(exactly = 0) { mappings.setMapping(any(), any(), any()) }
+    }
+
+    @Test
     fun `renaming the merchant or changing the category drops the offer`() {
         val vm = viewModel()
         vm.quickUpdateCategory("Food")

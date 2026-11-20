@@ -69,12 +69,10 @@ fun TransactionItem(
 ) {
     val view = LocalView.current
     val colorScheme = MaterialTheme.colorScheme
-    val amountColor = when (transaction.transactionType) {
+    val rowInk = containerColor?.let { colorScheme.contentColorFor(it).takeIf { ink -> ink.isSpecified } ?: it.bestInk() }
+    val amountColor = rowInk ?: when (transaction.transactionType) {
         TransactionType.INCOME -> colorScheme.income
-        TransactionType.EXPENSE -> containerColor
-            ?.let { colorScheme.contentColorFor(it) }
-            ?.takeIf { it.isSpecified }
-            ?: colorScheme.spending
+        TransactionType.EXPENSE -> colorScheme.spending
         TransactionType.CREDIT -> colorScheme.credit
         TransactionType.TRANSFER -> colorScheme.transfer
         TransactionType.INVESTMENT -> colorScheme.investment
@@ -127,7 +125,10 @@ fun TransactionItem(
                             add(resources.getString(R.string.txn_item_tag_transfer))
                         }
                     }
-                    TransactionType.INVESTMENT -> add(resources.getString(R.string.txn_item_tag_investment))
+                    TransactionType.INVESTMENT -> {
+                        val label = resources.getString(R.string.txn_item_tag_investment)
+                        if (!categoryText.equals(label, ignoreCase = true)) add(label)
+                    }
                     else -> {}
                 }
             }
@@ -173,7 +174,7 @@ fun TransactionItem(
         subtitle = subtitle,
         amount = CurrencyFormatter.signed(amountPrefix, formattedAmount),
         amountColor = amountColor,
-        subtitleColor = if (unsorted) colorScheme.tertiary else colorScheme.onSurfaceVariant,
+        subtitleColor = rowInk ?: colorScheme.onSurfaceVariant,
         shape = listItemPosition.toShape(),
         contentPadding = Dimensions.Padding.cardCompact,
         onClick = {
@@ -216,7 +217,7 @@ fun TransactionItem(
                     Text(
                         text = "($nativeAmount)",
                         style = PennyWiseText.amountSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = rowInk ?: colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )

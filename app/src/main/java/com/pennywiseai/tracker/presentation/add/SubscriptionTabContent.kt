@@ -30,6 +30,7 @@ import com.pennywiseai.tracker.ui.components.orSupporting
 import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.money
@@ -282,9 +283,8 @@ fun SubscriptionTabContent(
             error = uiState.error?.asString(),
             enabled = uiState.isValid && !uiState.isLoading && !amount.isUnfinished,
             loading = uiState.isLoading,
-            onClick = {
+            onClick = withCommittedText {
                 if (!amount.isUnfinished) {
-                    amount.commitText()
                     viewModel.saveSubscription(onSuccess = onSave)
                 }
             },

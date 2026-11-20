@@ -59,6 +59,7 @@ import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.money
@@ -500,9 +501,8 @@ fun TransactionTabContent(
                 enabled = uiState.isValid && !uiState.isLoading && !uiState.checkingReceipt && !amountEntry.isUnfinished,
                 loading = uiState.isLoading,
                 // Checked again here: an operator typed in the same frame as the tap isn't drawn yet.
-                onClick = {
+                onClick = withCommittedText {
                     if (!amountEntry.isUnfinished) {
-                        amountEntry.commitText()
                         viewModel.saveTransaction(onSuccess = onSave)
                     }
                 },

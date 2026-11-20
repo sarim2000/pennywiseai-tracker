@@ -38,6 +38,7 @@ import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.orSupporting
 import com.pennywiseai.tracker.ui.components.rememberAmountEntry
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -404,7 +405,7 @@ private fun BalanceHistoryItem(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Button(
-                            onClick = onSaveEdit,
+                            onClick = withCommittedText(onSaveEdit),
                             enabled = editingValue.toBigDecimalOrNull() != null,
                             modifier = Modifier.weight(1f),
                             shapes = ButtonDefaults.shapes()

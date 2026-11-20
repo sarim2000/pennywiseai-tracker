@@ -64,6 +64,7 @@ import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.orSupporting
 import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -107,7 +108,7 @@ fun GoalEditScreen(
                         .padding(horizontal = Dimensions.Padding.content, vertical = Spacing.sm)
                 ) {
                     Button(
-                        onClick = viewModel::save,
+                        onClick = withCommittedText(viewModel::save),
                         enabled = !state.isLoading && !state.isSaving,
                         modifier = Modifier.fillMaxWidth(),
                         shapes = ButtonDefaults.shapes(),

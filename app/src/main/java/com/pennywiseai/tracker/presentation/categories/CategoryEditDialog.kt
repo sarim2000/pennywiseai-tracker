@@ -32,6 +32,7 @@ import com.pennywiseai.tracker.ui.components.EmojiGlyph
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 
@@ -269,7 +270,7 @@ fun CategoryEditDialog(
                         Text(stringResource(R.string.categories_action_cancel))
                     }
                     Button(
-                        onClick = {
+                        onClick = withCommittedText {
                             if (name.isNotBlank()) {
                                 onSave(name.trim(), selectedColor, isIncome, emoji.ifBlank { null }, parentId)
                             } else {

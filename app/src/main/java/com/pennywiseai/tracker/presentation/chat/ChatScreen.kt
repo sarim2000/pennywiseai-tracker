@@ -63,6 +63,7 @@ import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.warning
@@ -828,7 +829,7 @@ private fun ChatComposer(
                 )
             )
             FilledIconButton(
-                onClick = onSend,
+                onClick = withCommittedText(onSend),
                 enabled = canSend,
                 modifier = Modifier
                     .padding(vertical = Spacing.xs)

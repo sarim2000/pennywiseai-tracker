@@ -82,6 +82,7 @@ import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.orSupporting
 import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -508,7 +509,7 @@ private fun MoneySheet(
                     }
                     Box(Modifier.weight(1f))
                     Button(
-                        onClick = { onSave(amount.toAmountIn(currency), currency, date, noteState.text.toString(), manual.toAmountIn(goalCurrency)?.takeIf { it.signum() > 0 }) },
+                        onClick = withCommittedText { onSave(amount.toAmountIn(currency), currency, date, noteState.text.toString(), manual.toAmountIn(goalCurrency)?.takeIf { it.signum() > 0 }) },
                         enabled = !state.saving && isManualAmountOk(manual, goalCurrency),
                         shapes = ButtonDefaults.shapes(),
                     ) { Text(stringResource(R.string.goal_money_save)) }

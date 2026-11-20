@@ -25,18 +25,20 @@ fun rememberSyncedTextFieldState(value: String, onValueChange: (String) -> Unit)
     val echoes = remember { PendingEchoes() }
     // The owner saves its own text. Secrets typed here stay out of saved state.
     val state = remember { TextFieldState(value) }
+    fun reportEdit(text: String) {
+        if (text != echoes.lastOr(current)) {
+            echoes.sent(text)
+            report(text)
+        }
+    }
+    RegisterTextFieldCommit { reportEdit(state.text.toString()) }
     LaunchedEffect(value) {
         if (!echoes.isEcho(value, shown = state.text.toString())) {
             state.setTextAndPlaceCursorAtEnd(value)
         }
     }
     LaunchedEffect(state) {
-        snapshotFlow { state.text.toString() }.collect { text ->
-            if (text != echoes.lastOr(current)) {
-                echoes.sent(text)
-                report(text)
-            }
-        }
+        snapshotFlow { state.text.toString() }.collect(::reportEdit)
     }
     return state
 }

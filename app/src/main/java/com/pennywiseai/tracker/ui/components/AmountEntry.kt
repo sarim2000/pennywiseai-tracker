@@ -38,6 +38,8 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.offset
 import com.pennywiseai.shared.domain.money.MinorUnits
 import com.pennywiseai.tracker.domain.model.AmountInput
+import com.pennywiseai.tracker.ui.text.RegisterTextFieldCommit
+import com.pennywiseai.tracker.ui.text.TextFieldCommitScope
 import kotlinx.coroutines.launch
 import java.text.DecimalFormatSymbols
 
@@ -87,7 +89,7 @@ fun AmountBarScreenHost(content: @Composable () -> Unit) {
     CompositionLocalProvider(LocalAmountBarHost provides host) {
         Layout(
             content = {
-                Box(propagateMinConstraints = true) { content() }
+                Box(propagateMinConstraints = true) { TextFieldCommitScope(content) }
                 if (target != null && WindowInsets.isImeVisible) HostBar(target, host)
             }
         ) { measurables, constraints ->
@@ -283,6 +285,7 @@ fun rememberAmountEntry(amount: String, onAmountChange: (String) -> Unit, curren
     entry.onAmountChange = onAmountChange
     entry.currency = currency
     entry.decimalComma = decimalComma
+    RegisterTextFieldCommit(entry::commitText)
     SideEffect { entry.amount = amount }
     LaunchedEffect(entry) {
         launch { snapshotFlow { entry.amount }.collect(entry::amountChanged) }

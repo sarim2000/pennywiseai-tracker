@@ -74,6 +74,7 @@ import com.pennywiseai.tracker.ui.components.cards.GroupedColumn
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -172,7 +173,7 @@ fun TeachMessageSheet(
             }
 
             Button(
-                onClick = onSave,
+                onClick = withCommittedText(onSave),
                 enabled = state.missing == null,
                 shapes = ButtonDefaults.shapes(),
                 modifier = Modifier

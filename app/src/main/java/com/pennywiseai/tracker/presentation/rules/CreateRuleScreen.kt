@@ -22,6 +22,7 @@ import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import dev.chrisbanes.haze.HazeState
@@ -235,7 +236,7 @@ fun CreateRuleScreen(
                 },
                 actionContent = {
                     TextButton(
-                        onClick = {
+                        onClick = withCommittedText {
                             // Validate: rule name + all conditions have values + all actions are valid
                             val areConditionsValid = conditions.isNotEmpty() &&
                                 conditions.all { it.validate() }

@@ -57,6 +57,7 @@ import com.pennywiseai.tracker.ui.components.orSupporting
 import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.components.toColorOr
 import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -198,7 +199,7 @@ fun AddToGoalSheet(
                     Box(Modifier.weight(1f))
                     OutlinedButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.goal_action_cancel)) }
                     Button(
-                        onClick = {
+                        onClick = withCommittedText {
                             selected?.let {
                                 onSave(it.goal, amount.toAmountIn(currency), noteState.text.toString(), manual.toAmountIn(it.goal.currency)?.takeIf { m -> m.signum() > 0 })
                             }

@@ -43,6 +43,7 @@ import com.pennywiseai.tracker.ui.components.orSupporting
 import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -233,12 +234,12 @@ internal fun MarkAsLoanBottomSheet(
 
                 // Confirm button
                 Button(
-                    onClick = {
-                        onConfirm(
-                            personName.trim(),
-                            noteState.text.toString().trim().ifEmpty { null },
-                            parsedLoanAmount
-                        )
+                    onClick = withCommittedText {
+                        val name = personNameState.text.toString().trim()
+                        val amount = loanAmountInput.toBigDecimalOrNull()
+                        if (name.isNotEmpty() && amount != null && amount.signum() > 0 && amount <= transactionAmount) {
+                            onConfirm(name, noteState.text.toString().trim().ifEmpty { null }, amount)
+                        }
                     },
                     modifier = Modifier.fillMaxWidth(),
                     enabled = personName.isNotBlank() && isLoanAmountValid,

@@ -56,6 +56,7 @@ import com.pennywiseai.tracker.ui.components.QuickCategoryPickerSheet
 import com.pennywiseai.tracker.ui.components.SETTLED_HOLD_MILLIS
 import com.pennywiseai.tracker.ui.components.SplitItem
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -233,7 +234,7 @@ fun TransactionDetailScreen(
                     },
                     actionContent = {
                         TextButton(
-                            onClick = { viewModel.saveChanges() },
+                            onClick = withCommittedText(viewModel::saveChanges),
                             enabled = !isSaving && !checkingReceipt,
                             shapes = ButtonDefaults.shapes()
                         ) {

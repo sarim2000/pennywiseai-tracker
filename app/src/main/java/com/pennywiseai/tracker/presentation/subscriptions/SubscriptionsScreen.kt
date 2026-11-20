@@ -77,6 +77,7 @@ import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.icons.categoryLabel
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.spending
@@ -1198,9 +1199,15 @@ private fun EditSubscriptionDialog(
         confirmButton = {
             TextButton(
                 enabled = isValid,
-                onClick = {
-                    parsedAmount?.let { amt ->
-                        onSave(merchantName, amt, nextDate, category, selectedAccount, accountChanged, totalPayments, paymentsMade)
+                onClick = withCommittedText {
+                    val amount = amountText.trim().toBigDecimalOrNull()?.takeIf { it.signum() > 0 }
+                    val totalText = totalPaymentsState.text.toString()
+                    val total = totalText.toIntOrNull()?.takeIf { it > 0 }
+                    val paid = paymentsMadeState.text.toString().toIntOrNull() ?: 0
+                    if (merchantName.isNotBlank() && amount != null &&
+                        (totalText.isEmpty() || total != null) && (total == null || paid < total)
+                    ) {
+                        onSave(merchantName, amount, nextDate, category, selectedAccount, accountChanged, total, paid)
                     }
                 },
                 shapes = ButtonDefaults.shapes()

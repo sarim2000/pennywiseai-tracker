@@ -32,6 +32,7 @@ import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.components.orSupporting
 import com.pennywiseai.tracker.ui.components.rememberAmountEntry
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -502,7 +503,7 @@ private fun LowBalanceThresholdDialog(
     // A refusal still saves: the card turns red either way, only the notification needs this.
     val notificationPermission = androidx.activity.compose.rememberLauncherForActivityResult(
         androidx.activity.result.contract.ActivityResultContracts.RequestPermission()
-    ) { onConfirm(parsed) }
+    ) { text.trim().toBigDecimalOrNull()?.takeIf { it.signum() >= 0 }?.let(onConfirm) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -538,7 +539,7 @@ private fun LowBalanceThresholdDialog(
         },
         confirmButton = {
             TextButton(
-                onClick = {
+                onClick = withCommittedText {
                     val needsPermission = android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.TIRAMISU &&
                         androidx.core.content.ContextCompat.checkSelfPermission(
                             context,
@@ -547,7 +548,7 @@ private fun LowBalanceThresholdDialog(
                     if (needsPermission) {
                         notificationPermission.launch(android.Manifest.permission.POST_NOTIFICATIONS)
                     } else {
-                        onConfirm(parsed)
+                        text.trim().toBigDecimalOrNull()?.takeIf { it.signum() >= 0 }?.let(onConfirm)
                     }
                 },
                 enabled = parsed != null && parsed >= BigDecimal.ZERO,

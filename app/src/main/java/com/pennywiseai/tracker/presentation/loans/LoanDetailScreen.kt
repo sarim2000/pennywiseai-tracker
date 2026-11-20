@@ -46,6 +46,7 @@ import com.pennywiseai.tracker.ui.components.orSupporting
 import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
@@ -335,7 +336,7 @@ fun LoanDetailScreen(
             },
             confirmButton = {
                 TextButton(
-                    onClick = {
+                    onClick = withCommittedText {
                         editAmount.toBigDecimalOrNull()?.let { viewModel.updateLoanAmount(it) }
                     },
                     enabled = editAmount.toBigDecimalOrNull()?.let { it > java.math.BigDecimal.ZERO } == true,
@@ -554,7 +555,7 @@ private fun RecordPaymentBottomSheet(
                         colors = RoundedField.colors()
                     )
                     Button(
-                        onClick = {
+                        onClick = withCommittedText {
                             manualAmount.toBigDecimalOrNull()?.let { onManualPayment(it) }
                         },
                         enabled = manualAmount.toBigDecimalOrNull()?.let { it > BigDecimal.ZERO } == true,

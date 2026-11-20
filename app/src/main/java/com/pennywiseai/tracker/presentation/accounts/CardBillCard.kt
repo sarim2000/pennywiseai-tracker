@@ -40,6 +40,7 @@ import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.SHORT_DATE
 import com.pennywiseai.tracker.ui.components.orSupporting
 import com.pennywiseai.tracker.ui.components.rememberAmountEntry
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -256,7 +257,7 @@ private fun CardBillDialog(
         confirmButton = {
             TextButton(
                 // Read the fields now, not as last drawn: a Save in the same frame as an edit gets the edit.
-                onClick = { onSave(dayState.text.toString().trim().toIntOrNull()?.takeIf { it in 1..31 }, text.trim().toBigDecimalOrNull()) },
+                onClick = withCommittedText { onSave(dayState.text.toString().trim().toIntOrNull()?.takeIf { it in 1..31 }, text.trim().toBigDecimalOrNull()) },
                 enabled = valid && dayValid,
                 shapes = ButtonDefaults.shapes()
             ) { Text(stringResource(R.string.accounts_action_save)) }

@@ -45,6 +45,7 @@ import com.pennywiseai.tracker.ui.components.pickerDefault
 import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.AppDates
@@ -512,7 +513,7 @@ private fun RecurringEditorDialog(
             }
         },
         confirmButton = {
-            TextButton(enabled = state.isValid, onClick = { onSave(state) }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.recurring_save)) }
+            TextButton(enabled = state.isValid, onClick = withCommittedText { if (state.isValid) onSave(state) }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.recurring_save)) }
         },
         dismissButton = {
             TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.recurring_cancel)) }

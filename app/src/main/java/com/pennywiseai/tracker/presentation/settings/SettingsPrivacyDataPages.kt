@@ -33,6 +33,7 @@ import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.AppDates
 
@@ -328,7 +329,11 @@ internal fun DataPage(
             },
             confirmButton = {
                 TextButton(
-                    onClick = { settingsViewModel.deleteAllTransactions(count) },
+                    onClick = withCommittedText {
+                        if (confirmationText.trim() == confirmWord) {
+                            settingsViewModel.deleteAllTransactions(count)
+                        }
+                    },
                     enabled = confirmed && !isDeletingAllTransactions,
                     colors = ButtonDefaults.textButtonColors(
                         contentColor = MaterialTheme.colorScheme.error

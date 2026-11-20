@@ -48,6 +48,7 @@ import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.orSupporting
 import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.icons.categoryLabel
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -269,7 +270,7 @@ internal fun RecurringSuggestionSheet(
                 Spacer(Modifier.height(Spacing.lg))
 
                 Button(
-                    onClick = { amount?.let { closeThen { onTrack(it) } } },
+                    onClick = withCommittedText { parseAmount(amountText)?.let { closeThen { onTrack(it) } } },
                     enabled = amount != null,
                     modifier = Modifier
                         .fillMaxWidth()

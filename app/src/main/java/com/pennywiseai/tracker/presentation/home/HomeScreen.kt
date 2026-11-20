@@ -735,7 +735,8 @@ fun HomeScreen(
                             item(key = section.name) {
                                 StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
                                     HomeActivitySection(
-                                        transactionHeatmap = uiState.transactionHeatmap
+                                        transactionHeatmap = uiState.transactionHeatmap,
+                                        onOpenCalendar = onNavigateToCalendar
                                     )
                                 }
                             }

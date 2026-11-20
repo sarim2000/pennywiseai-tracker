@@ -469,14 +469,17 @@ private const val COMING_UP_ROWS = 3
 
 @Composable
 internal fun HomeActivitySection(
-    transactionHeatmap: Map<Long, Int>
+    transactionHeatmap: Map<Long, Int>,
+    onOpenCalendar: () -> Unit
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
     ) {
+        // The calendar is the day-by-day view behind the heatmap's squares.
         HomeSectionHeader(
             title = stringResource(R.string.home_section_activity),
-            onSeeAll = null,
+            onSeeAll = onOpenCalendar,
+            actionLabel = stringResource(R.string.home_shortcut_calendar),
             modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
         )
         com.pennywiseai.tracker.ui.components.cards.HeatmapWidget(

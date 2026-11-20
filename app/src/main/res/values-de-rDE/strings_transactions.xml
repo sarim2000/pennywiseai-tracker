@@ -123,7 +123,6 @@
     <string name="txn_detail_label_reference">Referenz</string>
     <string name="txn_detail_receipt">Quittung</string>
     <string name="txn_detail_receipt_tap_to_view">Zum Anzeigen tippen</string>
-    <string name="txn_detail_receipt_missing">Belegfoto ist in diesem Backup nicht enthalten</string>
     <string name="txn_detail_sms_hide">SMS ausblenden</string>
     <string name="txn_detail_sms_show">Original SMS anzeigen</string>
     <string name="txn_detail_field_amount">Betrag</string>

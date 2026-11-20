@@ -131,7 +131,6 @@
     <string name="txn_detail_label_reference">Referenční číslo</string>
     <string name="txn_detail_receipt">Účtenka</string>
     <string name="txn_detail_receipt_tap_to_view">Klepnutím zobrazíte</string>
-    <string name="txn_detail_receipt_missing">Fotka účtenky není v této záloze</string>
     <string name="txn_detail_sms_hide">Skrýt SMS</string>
     <string name="txn_detail_sms_show">Zobrazit původní SMS</string>
     <string name="txn_detail_field_amount">Částka</string>

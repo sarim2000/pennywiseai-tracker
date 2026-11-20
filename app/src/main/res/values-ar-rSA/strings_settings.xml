@@ -107,13 +107,11 @@
     <string name="settings_folder_backup_subtitle_enabled">نسخة احتياطية يومية الساعة 2:00 صباحًا في المجلد الذي اخترته</string>
     <string name="settings_folder_backup_subtitle_pro">Pro · حفظ نسخة احتياطية في مجلد كل يوم في الثانية صباحا</string>
     <string name="settings_folder_backup_subtitle_disabled">حفظ نسخة احتياطية إلى مجلد كل يوم في الثانية صباحا</string>
-    <string name="settings_export_include_receipts_title">تضمين صور الإيصالات</string>
-    <string name="settings_export_include_receipts_subtitle">إضافة صور الإيصالات المرفقة إلى النسخ الاحتياطية المُصدَّرة (حجم ملف أكبر)</string>
-    <string name="settings_folder_backup_include_receipts_title">تضمين صور الإيصالات في النسخ الاحتياطية التلقائية</string>
     <string name="settings_folder_backup_include_receipts_subtitle">يزيد حجم كل نسخة احتياطية يومية</string>
     <string name="settings_backup_now_title">النسخ الاحتياطي الآن</string>
     <!-- %1$s = date and time of the last backup -->
     <string name="settings_backup_now_last_backup">النسخة الاحتياطية الأخيرة: %1$s</string>
+    <!-- %1$s = date and time of the last backup, %2$d = PDF receipts it left out -->
     <string name="settings_backup_now_subtitle">إنشاء نسخة احتياطية في مجلدك الآن</string>
     <string name="settings_change_backup_folder_title">تغيير مجلد النسخ الاحتياطي</string>
     <string name="settings_change_backup_folder_subtitle">اختيار مجلد مختلف للنسخ الاحتياطية التلقائية</string>

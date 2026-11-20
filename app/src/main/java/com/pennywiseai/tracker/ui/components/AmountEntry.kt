@@ -38,7 +38,6 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.unit.offset
 import com.pennywiseai.shared.domain.money.MinorUnits
 import com.pennywiseai.tracker.domain.model.AmountInput
-import kotlinx.coroutines.launch
 import java.text.DecimalFormatSymbols
 
 /**
@@ -159,8 +158,8 @@ private fun StackedHost(modifier: Modifier, content: @Composable () -> Unit) {
  */
 @Stable
 class AmountEntry internal constructor(text: String) {
-    /** What the field shows: the amount, or the sum being typed. */
-    val state = TextFieldState(text)
+    /** What the field shows: the amount, or the sum being typed. Each edit reaches the caller before it returns. */
+    val state = TextFieldState(text, onTextChanged = { textChanged(it.toString()) })
 
     // The amounts handed on that the caller hasn't handed back yet: its amount can trail the
     // typing by a frame, and that's not an amount set from outside.
@@ -177,6 +176,10 @@ class AmountEntry internal constructor(text: String) {
 
     /** Turns away a keystroke that isn't an amount or a sum, or is finer than the currency counts. */
     val inputTransformation: InputTransformation = amountInputTransformation({ digits }, { decimalComma })
+
+    /** A sum still being typed ("120+"): what it comes to isn't the amount yet. */
+    val isUnfinished: Boolean
+        get() = state.text.let { AmountInput.hasOperator(it.toString()) && AmountInput.value(it.toString(), digits) == null }
 
     /** "= ₹155.00" or why the sum isn't an amount yet; null for a plain amount. */
     val sumHint: AmountSumHint?
@@ -219,28 +222,26 @@ class AmountEntry internal constructor(text: String) {
      * here or what the field already comes to, it replaces the field's text.
      */
     internal fun amountChanged(new: String) {
+        // Caught up with the field: nothing handed on is pending any more.
+        if (sameAmount(comesTo(state.text.toString()), new)) {
+            pending.clear()
+            return
+        }
         val i = pending.indexOfFirst { sameAmount(it, new) }
         if (i >= 0) {
             repeat(i + 1) { pending.removeFirst() }
             return
         }
         pending.clear()
-        if (sameAmount(comesTo(state.text.toString()), new)) return
         handled = new
         state.setTextAndPlaceCursorAtEnd(new)
     }
 
-    fun operator(op: Char) {
-        state.setTextAndPlaceCursorAtEnd(AmountInput.append(state.text.toString(), op))
-        textChanged(state.text.toString())
-    }
+    fun operator(op: Char) = state.setTextAndPlaceCursorAtEnd(AmountInput.append(state.text.toString(), op))
 
     /** A finished sum becomes its result; for a field's own Done action. */
     fun fold() {
-        AmountInput.fold(state.text.toString(), digits)?.let {
-            state.setTextAndPlaceCursorAtEnd(it)
-            textChanged(it)
-        }
+        AmountInput.fold(state.text.toString(), digits)?.let(state::setTextAndPlaceCursorAtEnd)
     }
 
     internal fun detach() {
@@ -274,10 +275,7 @@ fun rememberAmountEntry(amount: String, onAmountChange: (String) -> Unit, curren
     entry.currency = currency
     entry.decimalComma = decimalComma
     SideEffect { entry.amount = amount }
-    LaunchedEffect(entry) {
-        launch { snapshotFlow { entry.state.text.toString() }.collect(entry::textChanged) }
-        snapshotFlow { entry.amount }.collect(entry::amountChanged)
-    }
+    LaunchedEffect(entry) { snapshotFlow { entry.amount }.collect(entry::amountChanged) }
     return entry
 }
 

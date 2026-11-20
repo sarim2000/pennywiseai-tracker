@@ -16,8 +16,8 @@ class AmountEntryTest {
 
         fun type(text: String) {
             val before = amount
+            // No textChanged call: the state hands each edit on before the edit returns.
             entry.state.edit { replace(0, length, text) }
-            entry.textChanged(text)
             if (amount != before) entry.amountChanged(amount)
         }
 
@@ -89,9 +89,7 @@ class AmountEntryTest {
     fun `an amount handed back late doesn't undo newer typing`() {
         val f = Field()
         f.entry.state.edit { replace(0, length, "1") }
-        f.entry.textChanged("1")
         f.entry.state.edit { replace(0, length, "12") }
-        f.entry.textChanged("12")
         f.entry.amountChanged("1")
         assertEquals("12", f.shown)
     }
@@ -102,6 +100,33 @@ class AmountEntryTest {
         assertNull(normalizeAmount("1.234", 2, decimalComma = false))
         assertEquals("1.234+2", normalizeAmount("1.234+2", 3, decimalComma = false))
         assertEquals("1.5", normalizeAmount("1,5", 2, decimalComma = true))
+    }
+
+    @Test
+    fun `an edit reaches the caller before the edit returns`() {
+        val f = Field()
+        f.entry.state.edit { replace(0, length, "125") }
+        assertEquals("125", f.amount)
+    }
+
+    @Test
+    fun `an unfinished sum says so, a finished one doesn't`() {
+        val f = Field()
+        f.type("120+")
+        assertEquals(true, f.entry.isUnfinished)
+        f.type("120+35")
+        assertEquals(false, f.entry.isUnfinished)
+    }
+
+    @Test
+    fun `a caller that skipped an amount doesn't swallow a later reset to it`() {
+        val f = Field()
+        f.entry.state.edit { replace(0, length, "1") }
+        f.entry.state.edit { replace(0, length, "12") }
+        f.entry.state.edit { replace(0, length, "1") }
+        f.entry.amountChanged("1") // only the last one comes back
+        f.entry.amountChanged("12") // then a reset from outside
+        assertEquals("12", f.shown)
     }
 
     @Test

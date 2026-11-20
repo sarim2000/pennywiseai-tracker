@@ -7,32 +7,37 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.snapshotFlow
 
 /**
  * A [TextFieldState] for a field whose text is owned elsewhere (a ViewModel, a parent's
  * state), for the state-based `TextField(state = …)` overloads: each edit is reported
- * through [onValueChange], and a [value] changed from outside (a reset, a loaded draft,
- * a reformatted amount) replaces the text with the cursor at its end.
+ * through [onValueChange] before the edit returns, so a Save tapped right after typing
+ * reads the new text; a [value] changed from outside (a reset, a loaded draft, a
+ * reformatted amount) replaces the text with the cursor at its end.
  *
  * Reject input with an `inputTransformation`, not by ignoring [onValueChange]: an edit the
  * owner drops stays on screen, because the field owns what's typed.
  */
 @Composable
 fun rememberSyncedTextFieldState(value: String, onValueChange: (String) -> Unit): TextFieldState {
-    // Not saveable: the owner already keeps the text, and a secret typed here stays out of saved state.
-    val state = remember { TextFieldState(value) }
-    val echoes = remember { PendingEchoes() }
-    val current by rememberUpdatedState(value)
     val report by rememberUpdatedState(onValueChange)
-    LaunchedEffect(value) {
-        if (!echoes.isEcho(value) && value != state.text.toString()) state.setTextAndPlaceCursorAtEnd(value)
+    val echoes = remember { PendingEchoes() }
+    // Not saveable: the owner already keeps the text, and a secret typed here stays out of saved state.
+    val state = remember {
+        TextFieldState(value, onTextChanged = { text ->
+            if (!echoes.applying) {
+                echoes.sent(text.toString())
+                report(text.toString())
+            }
+        })
     }
-    LaunchedEffect(state) {
-        snapshotFlow { state.text.toString() }.collect { text ->
-            if (text != echoes.last(current)) {
-                echoes.sent(text)
-                report(text)
+    LaunchedEffect(value) {
+        if (!echoes.isEcho(value, shown = state.text.toString())) {
+            echoes.applying = true
+            try {
+                state.setTextAndPlaceCursorAtEnd(value)
+            } finally {
+                echoes.applying = false
             }
         }
     }
@@ -41,18 +46,31 @@ fun rememberSyncedTextFieldState(value: String, onValueChange: (String) -> Unit)
 
 /**
  * The edits reported but not yet seen back as `value`. The owner's value can trail the
- * typing by a frame or two; an echo of an earlier edit must not overwrite newer text.
+ * typing by a frame; an echo of an earlier edit must not overwrite newer text.
+ *
+ * ponytail: matched by text, not by revision. Edits that go away and back within one frame
+ * ("x" → "xy" → "x") leave "xy" queued, so an outside reset to exactly "xy" right after is
+ * taken for an echo. Clearing the queue there instead would let a slow owner's stale echo
+ * overwrite fast typing. Add revisions if an owner ever needs both.
  */
 internal class PendingEchoes {
     private val pending = ArrayDeque<String>()
 
+    /** True while the field takes the owner's value: that isn't an edit to report. */
+    var applying = false
+
     fun sent(text: String) = pending.addLast(text)
 
-    /** The newest text the owner should hold: the last edit sent, else its [value]. */
-    fun last(value: String): String = pending.lastOrNull() ?: value
-
-    /** True if [value] is one of our own edits coming back; anything else is an outside change. */
-    fun isEcho(value: String): Boolean {
+    /**
+     * True if [value] needs no change to a field showing [shown]: it's what the field shows
+     * (the owner caught up, so nothing is pending), or one of our own edits coming back late.
+     * Anything else is an outside change.
+     */
+    fun isEcho(value: String, shown: String): Boolean {
+        if (value == shown) {
+            pending.clear()
+            return true
+        }
         val i = pending.indexOf(value)
         if (i < 0) {
             pending.clear()

@@ -6,7 +6,10 @@ plugins {
 }
 
 android {
-    compileSdk = 37
+    // Compose 1.14 / Material3 1.6 alphas need the 37.2 SDK (AAR metadata check).
+    compileSdk {
+        version = release(37) { minorApiLevel = 2 }
+    }
 
     defaultConfig {
         minSdk = 26

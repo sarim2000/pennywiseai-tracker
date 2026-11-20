@@ -8,6 +8,7 @@ import androidx.compose.material3.WavyProgressIndicatorDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.GRAPHIC_CONTRAST
 import com.pennywiseai.tracker.ui.theme.neutralSurfaces
@@ -40,11 +41,13 @@ fun WavyMeter(
     containerColor: Color? = null,
 ) {
     val cards = containerColor?.let { listOf(it) } ?: MaterialTheme.colorScheme.neutralSurfaces
+    // A translucent track is seen over the card, so that's what the fill is checked against.
+    val tracks = cards.map { trackColor.compositeOver(it) }
     val clamped = fraction.coerceIn(0f, 1f)
     LinearWavyProgressIndicator(
         progress = { clamped },
         modifier = modifier.fillMaxWidth(),
-        color = color.readableOn(listOf(trackColor) + cards, GRAPHIC_CONTRAST),
+        color = color.readableOn(tracks + cards, GRAPHIC_CONTRAST),
         trackColor = trackColor,
         stopSize = Dimensions.Component.wavyMeterStop,
         amplitude = if (dense) DenseAmplitude else WavyProgressIndicatorDefaults.indicatorAmplitude,

@@ -116,7 +116,8 @@ tracks), `legendDot` (10dp), `calendarDot` (6dp), `fab` (56dp), `fabBottomInset`
 The Floating nav style is a pill of four icon-only tabs — Home · Transactions · Plan ·
 Insights (`floatingNavHeight` 64dp, `floatingNavBottomGap` 12dp above the
 system bar) with a sliding selected indicator (`floatingNavIndicatorWidth` ×
-`floatingNavIndicatorHeight`, a `primary` tint at `Alpha.selectedIndicator`); a
+`floatingNavIndicatorHeight`, solid `primary` under an `onPrimary` icon, so the
+open tab shows at 3:1 or more without relying on a faint tint); a
 long-press names the tab. Ask sits beside the pill as a 64dp `primaryContainer`
 squircle (`dockedActionCornerRadius` 20dp) holding the owl drawn in full
 (`chatDockMascot` 52dp); it rounds into a circle while Ask is open. A tab's one

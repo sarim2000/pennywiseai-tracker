@@ -146,7 +146,7 @@ fun PennyWiseBottomNavigation(
                                         label = stringResource(item.titleRes),
                                         selected = selected,
                                         mutedWhenUnselected = hidePill && hideLabels,
-                                        onPill = selected && !hidePill,
+                                        pillInk = if (selected && !hidePill) MaterialTheme.colorScheme.onPrimaryContainer else null,
                                         size = iconSize,
                                         reaction = chatReaction
                                     )
@@ -373,11 +373,10 @@ private fun FloatingNavPill(
                     .offset(x = indicatorOffset)
                     .size(indicatorWidth, Dimensions.Component.floatingNavIndicatorHeight)
                     .clip(CircleShape)
-                    // A tint of primary rather than secondaryContainer, which
-                    // all but vanishes against the pill in light themes.
-                    .background(
-                        MaterialTheme.colorScheme.primary.copy(alpha = Dimensions.Alpha.selectedIndicator)
-                    )
+                    // Solid primary: the icons are icon-only and the owl takes the accent in
+                    // both states, so this is what says which tab is open. A tint of primary
+                    // sat at ~1.3:1 on the pill; primary reads at 4.5:1 on any surface.
+                    .background(MaterialTheme.colorScheme.primary)
             )
         }
 
@@ -386,7 +385,7 @@ private fun FloatingNavPill(
                 val selected = index == selectedIndex
                 val label = stringResource(item.titleRes)
                 val iconTint by animateColorAsState(
-                    targetValue = if (selected) MaterialTheme.colorScheme.primary
+                    targetValue = if (selected) MaterialTheme.colorScheme.onPrimary
                     else MaterialTheme.colorScheme.onSurfaceVariant,
                     animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
                     label = "navIconTint"
@@ -439,8 +438,8 @@ private fun FloatingNavPill(
  * The Chat tab's owl, or the shape of a [reaction] for a moment. It takes the accent in
  * both states so the assistant stands out, and the pill or indicator marks selection —
  * unless [mutedWhenUnselected] (no pill and no label), when colour is the only cue left
- * and it mutes like its neighbours. On the primaryContainer pill ([onPill]) it takes the
- * pill's ink: palettes like Teal Turquoise make primary and primaryContainer one colour.
+ * and it mutes like its neighbours. On a selection pill it takes the pill's ink ([pillInk]):
+ * palettes like Teal Turquoise make primary and primaryContainer one colour.
  * It is decoration: the slot keeps the tab's name and the click goes to the tab.
  */
 @Composable
@@ -450,7 +449,7 @@ private fun ChatTabMascot(
     mutedWhenUnselected: Boolean,
     size: Dp,
     reaction: MascotReaction?,
-    onPill: Boolean = false,
+    pillInk: Color? = null,
 ) {
     Box(modifier = Modifier.semantics { contentDescription = label }) {
         Mascot(
@@ -458,7 +457,7 @@ private fun ChatTabMascot(
             shape = reaction?.shape ?: MascotShape.Owl,
             mood = reaction?.mood ?: MascotMood.Calm,
             tint = when {
-                onPill -> MaterialTheme.colorScheme.onPrimaryContainer
+                pillInk != null -> pillInk
                 selected || !mutedWhenUnselected -> MaterialTheme.colorScheme.primary
                 else -> MaterialTheme.colorScheme.onSurfaceVariant
             }

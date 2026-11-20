@@ -64,9 +64,6 @@ object Dimensions {
         /** Placeholder / skeleton content shown behind an empty state. */
         const val ghost = 0.12f
 
-        /** A primary tint marking the selected tab in the floating nav bar. */
-        const val selectedIndicator = 0.18f
-
         /** A category colour washed behind its own glyph (transaction rows, detail badge). */
         const val categoryTint = 0.14f
 

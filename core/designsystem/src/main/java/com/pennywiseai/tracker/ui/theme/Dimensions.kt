@@ -183,6 +183,13 @@ object Dimensions {
         /** Corner while the docked action is held — the M3 Expressive press morph. */
         val dockedActionPressedCornerRadius = 12.dp
 
+        /** The docked action when it stacks above Ask's squircle: smaller, so the owl leads. */
+        val dockedActionSmallSize = 48.dp
+        val dockedActionSmallCornerRadius = 16.dp
+
+        /** The owl inside Ask's squircle: large enough to draw in full (past [Icon.large]). */
+        val chatDockMascot = 52.dp
+
         val buttonHeight = 48.dp
 
         /** Accessibility floor for anything tappable. */

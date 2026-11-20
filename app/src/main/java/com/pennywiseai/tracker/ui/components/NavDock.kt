@@ -137,12 +137,18 @@ internal fun DockedActionButton(
     elevated: Boolean = true,
     /** False while the bar is leaving, so a tap on the fading button does nothing. */
     enabled: Boolean = true,
+    /** The smaller button stacked above Ask's squircle. */
+    small: Boolean = false,
 ) {
     // M3 Expressive press morph: the squircle squares off while held.
     val interactionSource = remember { MutableInteractionSource() }
     val pressed by interactionSource.collectIsPressedAsState()
     val cornerRadius by animateDpAsState(
-        targetValue = if (pressed) Dimensions.Component.dockedActionPressedCornerRadius else Dimensions.Component.dockedActionCornerRadius,
+        targetValue = when {
+            pressed -> Dimensions.Component.dockedActionPressedCornerRadius
+            small -> Dimensions.Component.dockedActionSmallCornerRadius
+            else -> Dimensions.Component.dockedActionCornerRadius
+        },
         animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
         label = "dockedActionCorner"
     )
@@ -150,7 +156,7 @@ internal fun DockedActionButton(
     Box(
         modifier = modifier
             .then(action.onPositioned?.let { Modifier.spotlightTarget(it) } ?: Modifier)
-            .size(Dimensions.Component.floatingNavHeight)
+            .size(if (small) Dimensions.Component.dockedActionSmallSize else Dimensions.Component.floatingNavHeight)
             .shadow(
                 elevation = if (elevated) Dimensions.Elevation.bottomBar else Dimensions.Elevation.none,
                 shape = shape

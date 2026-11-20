@@ -113,14 +113,18 @@ Also here: `progressBarHeight` (8dp — one height for budget, loan and download
 tracks), `legendDot` (10dp), `calendarDot` (6dp), `fab` (56dp), `fabBottomInset`,
 `fabScrollClearance`, `hairline` (0.5dp), `dividerThickness`.
 
-The Floating nav style is a pill of five icon-only tabs — Home · Transactions · Plan ·
-Insights · Ask (`floatingNavHeight` 64dp, `floatingNavBottomGap` 12dp above the
+The Floating nav style is a pill of four icon-only tabs — Home · Transactions · Plan ·
+Insights (`floatingNavHeight` 64dp, `floatingNavBottomGap` 12dp above the
 system bar) with a sliding selected indicator (`floatingNavIndicatorWidth` ×
 `floatingNavIndicatorHeight`, a `primary` tint at `Alpha.selectedIndicator`); a
-long-press names the tab. A tab's one primary action docks beside it as a 64dp
-`primary` squircle (`dockedActionCornerRadius` 20dp): Home and Transactions dock Add,
-the Plan tab docks Add budget / Add bill / New goal (a section with nothing in it yet
-shows its own create button instead). The screen calls
+long-press names the tab. Ask sits beside the pill as a 64dp `primaryContainer`
+squircle (`dockedActionCornerRadius` 20dp) holding the owl drawn in full
+(`chatDockMascot` 52dp); it rounds into a circle while Ask is open. A tab's one
+primary action stacks above Ask at the end edge as a smaller `primary` squircle
+(`dockedActionSmallSize` 48dp, `dockedActionSmallCornerRadius` 16dp): Home and
+Transactions dock Add, the Plan tab docks Add budget / Add bill / New goal (a section
+with nothing in it yet shows its own create button instead). With Ask hidden, the
+action takes Ask's slot at full size. The screen calls
 `DockNavAction(...)` when `LocalNavDock.current` is non-null and
 drops its own FAB, so the bar and the action never stack over content.
 

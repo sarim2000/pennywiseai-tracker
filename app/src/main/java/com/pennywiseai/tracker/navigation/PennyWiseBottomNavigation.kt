@@ -5,13 +5,17 @@ import androidx.compose.animation.EnterTransition
 import androidx.compose.animation.ExitTransition
 import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.animateDpAsState
-import androidx.compose.animation.expandHorizontally
+import androidx.compose.animation.expandVertically
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
-import androidx.compose.animation.shrinkHorizontally
+import androidx.compose.animation.scaleIn
+import androidx.compose.animation.scaleOut
+import androidx.compose.animation.shrinkVertically
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.foundation.background
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
@@ -27,6 +31,7 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
@@ -50,12 +55,15 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.shadow
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.TransformOrigin
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.pennywiseai.tracker.data.preferences.NavBarStyle
@@ -199,6 +207,11 @@ fun PennyWiseBottomNavigation(
                         )
                     )
             ) {
+                // Ask leaves the pill for the big squircle at the end, and the tab's
+                // docked action stacks above it, smaller. With Ask hidden the action
+                // takes that slot at full size instead.
+                val chatItem = navigationItems.firstOrNull { it == BottomNavItem.Chat }
+                val pillItems = navigationItems - BottomNavItem.Chat
                 Row(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -206,35 +219,51 @@ fun PennyWiseBottomNavigation(
                         .padding(horizontal = Dimensions.Padding.content)
                         .padding(bottom = Dimensions.Component.floatingNavBottomGap)
                         .zIndex(1000f),
-                    verticalAlignment = Alignment.CenterVertically
+                    verticalAlignment = Alignment.Bottom
                 ) {
                     FloatingNavPill(
-                        items = navigationItems,
-                        chatReaction = chatReaction,
-                        selectedIndex = navigationItems.indexOfFirst { it.route == selectedRoute },
+                        items = pillItems,
+                        selectedIndex = pillItems.indexOfFirst { it.route == selectedRoute },
                         onSelect = selectTab,
                         blurEffects = blurEffects,
                         hazeState = hazeState,
                         modifier = Modifier.weight(1f)
                     )
-                    AnimatedVisibility(
-                        visible = dockAction != null,
-                        enter = fadeIn(MaterialTheme.motionScheme.fastEffectsSpec()) + expandHorizontally(
-                            animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
-                            expandFrom = Alignment.Start
-                        ),
-                        exit = fadeOut(MaterialTheme.motionScheme.fastEffectsSpec()) + shrinkHorizontally(
-                            animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
-                            shrinkTowards = Alignment.Start
-                        )
+                    // The small action sits at the end edge and grows from that corner.
+                    val growFrom = TransformOrigin(if (LocalLayoutDirection.current == LayoutDirection.Rtl) 0f else 1f, 1f)
+                    Column(
+                        modifier = Modifier.padding(start = Spacing.sm),
+                        horizontalAlignment = Alignment.End
                     ) {
-                        shownAction?.let { action ->
-                            DockedActionButton(
-                                action = action,
+                        AnimatedVisibility(
+                            visible = dockAction != null,
+                            enter = fadeIn(MaterialTheme.motionScheme.fastEffectsSpec()) + scaleIn(
+                                animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
+                                transformOrigin = growFrom
+                            ) + expandVertically(MaterialTheme.motionScheme.fastSpatialSpec(), expandFrom = Alignment.Bottom),
+                            exit = fadeOut(MaterialTheme.motionScheme.fastEffectsSpec()) + scaleOut(
+                                animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
+                                transformOrigin = growFrom
+                            ) + shrinkVertically(MaterialTheme.motionScheme.fastSpatialSpec(), shrinkTowards = Alignment.Bottom)
+                        ) {
+                            shownAction?.let { action ->
+                                DockedActionButton(
+                                    action = action,
+                                    elevated = !blurEffects,
+                                    // Off once the bar or the action is leaving.
+                                    enabled = visible && dockAction != null,
+                                    small = chatItem != null,
+                                    modifier = if (chatItem != null) Modifier.padding(bottom = Spacing.sm) else Modifier
+                                )
+                            }
+                        }
+                        chatItem?.let { item ->
+                            ChatDockButton(
+                                label = stringResource(item.titleRes),
+                                selected = item.route == selectedRoute,
+                                reaction = chatReaction,
                                 elevated = !blurEffects,
-                                // Off once the bar or the action is leaving.
-                                enabled = visible && dockAction != null,
-                                modifier = Modifier.padding(start = Spacing.sm)
+                                onClick = { selectTab(item) }
                             )
                         }
                     }
@@ -244,11 +273,67 @@ fun PennyWiseBottomNavigation(
     }
 }
 
+/**
+ * The Ask tab as the bar's big squircle: the owl, drawn in full, on a primary
+ * container. M3 Expressive shape morphs carry its state: it rounds into a circle
+ * while Ask is open and squares off while held.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun ChatDockButton(
+    label: String,
+    selected: Boolean,
+    reaction: MascotReaction?,
+    elevated: Boolean,
+    onClick: () -> Unit,
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    val pressed by interactionSource.collectIsPressedAsState()
+    val corner by animateDpAsState(
+        targetValue = when {
+            pressed -> Dimensions.Component.dockedActionPressedCornerRadius
+            selected -> Dimensions.Component.floatingNavHeight / 2
+            else -> Dimensions.Component.dockedActionCornerRadius
+        },
+        animationSpec = MaterialTheme.motionScheme.fastSpatialSpec(),
+        label = "chatDockCorner"
+    )
+    val shape = RoundedCornerShape(corner)
+    TooltipBox(
+        positionProvider = TooltipDefaults.rememberTooltipPositionProvider(TooltipAnchorPosition.Above),
+        tooltip = { PlainTooltip { Text(label) } },
+        state = rememberTooltipState()
+    ) {
+        Box(
+            modifier = Modifier
+                .size(Dimensions.Component.floatingNavHeight)
+                .shadow(if (elevated) Dimensions.Elevation.bottomBar else Dimensions.Elevation.none, shape)
+                .clip(shape)
+                .background(MaterialTheme.colorScheme.primaryContainer)
+                .selectable(
+                    selected = selected,
+                    onClick = onClick,
+                    role = Role.Tab,
+                    interactionSource = interactionSource,
+                    indication = ripple()
+                )
+                .semantics { contentDescription = label },
+            contentAlignment = Alignment.Center
+        ) {
+            Mascot(
+                size = Dimensions.Component.chatDockMascot,
+                shape = reaction?.shape ?: MascotShape.Owl,
+                mood = reaction?.mood ?: MascotMood.Calm,
+                tint = MaterialTheme.colorScheme.primary
+            )
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun FloatingNavPill(
     items: List<BottomNavItem>,
-    chatReaction: MascotReaction?,
     selectedIndex: Int,
     onSelect: (BottomNavItem) -> Unit,
     blurEffects: Boolean,
@@ -335,23 +420,12 @@ private fun FloatingNavPill(
                                 ),
                             contentAlignment = Alignment.Center
                         ) {
-                            if (item == BottomNavItem.Chat) {
-                                // The sliding indicator always marks selection here.
-                                ChatTabMascot(
-                                    label = label,
-                                    selected = selected,
-                                    mutedWhenUnselected = false,
-                                    size = Dimensions.Icon.medium,
-                                    reaction = chatReaction
-                                )
-                            } else {
-                                Icon(
-                                    imageVector = item.icon,
-                                    contentDescription = label,
-                                    tint = iconTint,
-                                    modifier = Modifier.size(Dimensions.Icon.medium)
-                                )
-                            }
+                            Icon(
+                                imageVector = item.icon,
+                                contentDescription = label,
+                                tint = iconTint,
+                                modifier = Modifier.size(Dimensions.Icon.medium)
+                            )
                         }
                     }
                 }

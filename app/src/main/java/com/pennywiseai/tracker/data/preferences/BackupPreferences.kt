@@ -12,12 +12,17 @@ interface BackupPreferences {
     val scheduledFolderBackupEnabled: Flow<Boolean>
     val scheduledFolderBackupLastTimestamp: Flow<Long?>
 
+    /** PDF receipts the last folder backup left out for size; 0 when it held them all. */
+    val scheduledFolderBackupLastSkippedReceipts: Flow<Int>
+
     suspend fun isScheduledFolderBackupEnabled(): Boolean
     suspend fun getScheduledFolderBackupTreeUri(): String?
 
     suspend fun setScheduledFolderBackupEnabled(enabled: Boolean)
     suspend fun setScheduledFolderBackupTreeUri(treeUri: String)
-    suspend fun setScheduledFolderBackupLastTimestamp(timestamp: Long)
+
+    /** Records a finished folder backup: its time and the PDFs it left out, in one write. */
+    suspend fun recordScheduledFolderBackup(timestamp: Long, skippedReceipts: Int)
 
     val exportIncludeReceipts: Flow<Boolean>
     val folderBackupIncludeReceipts: Flow<Boolean>

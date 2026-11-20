@@ -407,7 +407,8 @@ private const val DISTINCT_BARS = 1.5f
  * The older bars' colour and the latest bar's, for bars on [cards]. Older bars keep
  * primaryContainer's tone, nudged to 3:1 (it was 1.2:1 on the default light card). Where a
  * palette makes primaryContainer about as strong as primary (Rosé Pine dark, Tako…), they
- * take the palest mix of primary that still shows, so the latest bar still stands out.
+ * take the palest mix of primary that still shows, so the latest bar still stands out
+ * ([DISTINCT_BARS] apart).
  */
 @Composable
 private fun rememberTonalBarColors(cards: List<Color>): Pair<Color, Color> {
@@ -417,8 +418,11 @@ private fun rememberTonalBarColors(cards: List<Color>): Pair<Color, Color> {
     return remember(primary, container, cards) {
         val latest = primary.readableOn(cards, GRAPHIC_CONTRAST)
         val older = container.readableOn(cards, GRAPHIC_CONTRAST)
-        if (contrastRatio(older, latest) >= DISTINCT_BARS) older to latest
-        else latest.palestMark(cards.first(), cards) to latest
+        if (contrastRatio(older, latest) >= DISTINCT_BARS) return@remember older to latest
+        val paler = latest.palestMark(cards.first(), cards)
+        // The palest mark stops at 3:1 on the hardest surface, which can leave it a hair under
+        // the gap; the latest bar then moves further from it (and from the cards with it).
+        paler to latest.readableOn(listOf(paler), DISTINCT_BARS)
     }
 }
 

@@ -36,6 +36,7 @@ import com.pennywiseai.tracker.navigation.PennyWiseNavHost
 import com.pennywiseai.tracker.navigation.navigate
 import com.pennywiseai.tracker.presentation.applock.AppLockViewModel
 import com.pennywiseai.tracker.ui.ShakeToHideAmounts
+import com.pennywiseai.tracker.ui.components.AmountBarScreenHost
 import com.pennywiseai.tracker.ui.theme.PennyWiseTheme
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
 import com.pennywiseai.tracker.widget.WidgetRefresher
@@ -249,12 +250,15 @@ fun PennyWiseApp(
         redSpending = themeUiState.redSpending
     ) {
         Box(Modifier.fillMaxSize()) {
-            PennyWiseNavHost(
-                backStack = backStack,
-                // Out of the accessibility tree too, or TalkBack reads what the cover hides.
-                modifier = if (covered) Modifier.clearAndSetSemantics { } else Modifier,
-                onEditComplete = onEditComplete ?: {}
-            )
+            // + − × ÷ = on the keyboard for every amount field on a screen.
+            AmountBarScreenHost {
+                PennyWiseNavHost(
+                    backStack = backStack,
+                    // Out of the accessibility tree too, or TalkBack reads what the cover hides.
+                    modifier = if (covered) Modifier.clearAndSetSemantics { } else Modifier,
+                    onEditComplete = onEditComplete ?: {}
+                )
+            }
             if (covered) {
                 Box(
                     Modifier

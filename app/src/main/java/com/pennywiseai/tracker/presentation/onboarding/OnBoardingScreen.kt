@@ -65,6 +65,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.LoadingIndicator
+import androidx.compose.material3.LocalContentColor
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Scaffold
@@ -104,6 +105,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.presentation.settings.BackgroundAccessChecklist
+import com.pennywiseai.tracker.ui.components.readableProgressColors
 import com.pennywiseai.tracker.ui.components.rememberSmsAccess
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.theme.Dimensions
@@ -742,6 +744,7 @@ private fun SmsScanStep(uiState: OnBoardingUiState, showNotificationReason: Bool
         verticalArrangement = Arrangement.Center
     ) {
         if (uiState.isScanning) {
+            val progressColors = readableProgressColors()
             LoadingIndicator(
                 modifier = Modifier.size(Dimensions.Icon.emptyStateContainer)
             )
@@ -761,7 +764,9 @@ private fun SmsScanStep(uiState: OnBoardingUiState, showNotificationReason: Bool
                 val progress = uiState.scanProcessed.toFloat() / uiState.scanTotal.toFloat()
                 LinearWavyProgressIndicator(
                     progress = { progress },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    color = progressColors.indicator,
+                    trackColor = progressColors.track
                 )
                 Spacer(modifier = Modifier.height(Spacing.sm))
                 Text(
@@ -785,7 +790,11 @@ private fun SmsScanStep(uiState: OnBoardingUiState, showNotificationReason: Bool
                     )
                 }
             } else {
-                LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
+                LinearWavyProgressIndicator(
+                    modifier = Modifier.fillMaxWidth(),
+                    color = progressColors.indicator,
+                    trackColor = progressColors.track
+                )
                 Spacer(modifier = Modifier.height(Spacing.sm))
                 Text(
                     text = stringResource(R.string.onboarding_scan_preparing),
@@ -1195,6 +1204,8 @@ private fun OnBoardingBottomBar(
                                 if (uiState.isCompleting) {
                                     CircularProgressIndicator(
                                         modifier = Modifier.size(Dimensions.Icon.medium),
+                                        // Default primary vanished on the primary button; full strength in case it's disabled.
+                                        color = LocalContentColor.current.copy(alpha = 1f),
                                         strokeWidth = 2.dp
                                     )
                                 } else {

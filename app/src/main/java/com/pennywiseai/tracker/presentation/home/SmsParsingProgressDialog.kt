@@ -24,6 +24,7 @@ import androidx.work.WorkManager
 import androidx.work.workDataOf
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.readableProgressColors
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.worker.OptimizedSmsReaderWorker
@@ -68,9 +69,12 @@ fun SmsParsingProgressDialog(
                         val progress = workInfo.progress.getInt(OptimizedSmsReaderWorker.PROGRESS_PROCESSED, 0).toFloat() /
                             workInfo.progress.getInt(OptimizedSmsReaderWorker.PROGRESS_TOTAL, 1).toFloat()
 
+                        val progressColors = readableProgressColors()
                         LinearWavyProgressIndicator(
                             progress = { progress },
-                            modifier = Modifier.fillMaxWidth()
+                            modifier = Modifier.fillMaxWidth(),
+                            color = progressColors.indicator,
+                            trackColor = progressColors.track
                         )
                     }
 
@@ -328,9 +332,12 @@ fun SmsParsingProgressIndicator(
                 horizontalAlignment = Alignment.CenterHorizontally,
                 verticalArrangement = Arrangement.spacedBy(Spacing.xs)
             ) {
+                val progressColors = readableProgressColors()
                 LinearWavyProgressIndicator(
                     progress = { processedMessages.toFloat() / totalMessages.toFloat() },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    color = progressColors.indicator,
+                    trackColor = progressColors.track
                 )
 
                 Text(

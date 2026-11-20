@@ -43,6 +43,7 @@ import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.cards.GroupedColumn
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.toShape
+import com.pennywiseai.tracker.ui.components.readableProgressColors
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.icons.categoryLabel
@@ -663,7 +664,12 @@ private fun BatchApplyDialog(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
-                            LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
+                            val progressColors = readableProgressColors()
+                            LinearWavyProgressIndicator(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = progressColors.indicator,
+                                trackColor = progressColors.track
+                            )
                             Text(stringResource(R.string.rules_batch_scanning), style = MaterialTheme.typography.bodySmall)
                         }
                     }
@@ -804,7 +810,12 @@ private fun BatchApplyDialog(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
-                            LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
+                            val progressColors = readableProgressColors()
+                            LinearWavyProgressIndicator(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = progressColors.indicator,
+                                trackColor = progressColors.track
+                            )
                             Text(
                                 text = pluralStringResource(R.plurals.rules_batch_processing, progress.second, progress.first, progress.second),
                                 style = MaterialTheme.typography.bodySmall

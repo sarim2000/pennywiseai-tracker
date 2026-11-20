@@ -156,7 +156,8 @@ fun BudgetGroupEditScreen(
                                 CircularProgressIndicator(
                                     modifier = Modifier.size(Dimensions.Icon.small),
                                     strokeWidth = Spacing.xxs,
-                                    color = MaterialTheme.colorScheme.onPrimary
+                                    // Saving disables the button, so onPrimary was white on its pale grey fill.
+                                    color = LocalContentColor.current.copy(alpha = 1f)
                                 )
                                 Spacer(modifier = Modifier.width(Spacing.sm))
                             }

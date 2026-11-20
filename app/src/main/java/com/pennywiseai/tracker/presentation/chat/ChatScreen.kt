@@ -58,6 +58,7 @@ import com.pennywiseai.tracker.ui.components.mascot.MascotMood
 import com.pennywiseai.tracker.ui.components.mascot.MascotShape
 import com.pennywiseai.tracker.ui.components.mascot.REACTION_HOLD_MS
 import com.pennywiseai.tracker.ui.components.mascot.typingGaze
+import com.pennywiseai.tracker.ui.components.readableProgressColors
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.icons.categoryLabel
@@ -616,9 +617,12 @@ private fun ModelRequiredPrompt(
         }
         Spacer(modifier = Modifier.height(Spacing.sm))
         if (isDownloading) {
+            val progressColors = readableProgressColors()
             LinearWavyProgressIndicator(
                 progress = { downloadProgress / 100f },
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier.fillMaxWidth(),
+                color = progressColors.indicator,
+                trackColor = progressColors.track
             )
             OutlinedButton(onClick = onCancel, shapes = ButtonDefaults.shapes()) {
                 Icon(

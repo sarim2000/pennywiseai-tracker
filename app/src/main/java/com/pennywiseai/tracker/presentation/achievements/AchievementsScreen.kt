@@ -49,6 +49,7 @@ import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.progressLabel
+import com.pennywiseai.tracker.ui.components.readableProgressColors
 import com.pennywiseai.tracker.ui.components.tierLabel
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.GRAPHIC_CONTRAST
@@ -166,9 +167,12 @@ private fun Summary(all: List<Achievement>) {
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
             )
+            val progressColors = readableProgressColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
             LinearProgressIndicator(
                 progress = { if (all.isEmpty()) 0f else earned.toFloat() / all.size },
                 modifier = Modifier.fillMaxWidth(),
+                color = progressColors.indicator,
+                trackColor = progressColors.track,
             )
             Text(
                 text = stringResource(R.string.achievements_summary_hint),

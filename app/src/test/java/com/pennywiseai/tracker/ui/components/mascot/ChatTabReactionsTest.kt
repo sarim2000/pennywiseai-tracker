@@ -214,10 +214,12 @@ class ChatTabReactionsTest {
         val job = start()
         save(TransactionType.EXPENSE)
         runCurrent()
+        // Later than the save, so keeping the save's deadline would end it early.
+        advanceTimeBy(REACTION_HOLD_MS / 2)
         reactions.onMoment(MascotMoment.GoalReached)
         runCurrent()
         assertEquals(reactionFor(MascotMoment.GoalReached), shown)
-        // Its own hold, from when it took over.
+        // Its own hold, from when it took over: still up past the save's deadline.
         advanceTimeBy(REACTION_HOLD_MS - 1)
         save(TransactionType.INCOME)
         reactions.onMoment(MascotMoment.MessageTaught)
@@ -237,10 +239,15 @@ class ChatTabReactionsTest {
         reactions.onMoment(MascotMoment.AmountsHidden)
         runCurrent()
         assertEquals(reactionFor(MascotMoment.AmountsHidden), shown)
+        advanceTimeBy(TOGGLE_HOLD_MS / 2)
         reactions.onMoment(MascotMoment.AmountsShown)
         runCurrent()
         assertEquals(reactionFor(MascotMoment.AmountsShown), shown)
-        advanceTimeBy(TOGGLE_HOLD_MS + 1)
+        // Its own hold restarts: still up past where the first toggle's would end.
+        advanceTimeBy(TOGGLE_HOLD_MS - 1)
+        runCurrent()
+        assertEquals(reactionFor(MascotMoment.AmountsShown), shown)
+        advanceTimeBy(2)
         runCurrent()
         assertNull(shown)
         job.cancel()

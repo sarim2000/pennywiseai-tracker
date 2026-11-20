@@ -88,7 +88,11 @@ fun UnrecognizedSmsScreen(
     Scaffold(
         modifier = modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         containerColor = Color.Transparent,
-        snackbarHost = { SnackbarHost(snackbarHostState) },
+        snackbarHost = {
+            SnackbarHost(snackbarHostState) { data ->
+                Snackbar(data, shape = MaterialTheme.shapes.large)
+            }
+        },
         topBar = {
             CustomTitleTopAppBar(
                 scrollBehaviorSmall = scrollBehaviorSmall,

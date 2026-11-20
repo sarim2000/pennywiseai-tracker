@@ -129,7 +129,6 @@
     <string name="txn_detail_label_reference">Нумар аперацыі</string>
     <string name="txn_detail_receipt">Чэк</string>
     <string name="txn_detail_receipt_tap_to_view">Націсніце, каб паглядзець</string>
-    <string name="txn_detail_receipt_missing">Фота чэка няма ў гэтай рэзервовай копіі</string>
     <string name="txn_detail_sms_hide">Схаваць SMS</string>
     <string name="txn_detail_sms_show">Паказаць арыгінальнае SMS</string>
     <string name="txn_detail_field_amount">Сума</string>
@@ -231,7 +230,6 @@
     <string name="txn_list_filter_account">Рахунак</string>
     <string name="txn_list_filter_category">Катэгорыя</string>
     <string name="txn_list_filters">Фільтры</string>
-    <string name="txn_list_filters_two">2 фільтры</string>
     <string name="txn_list_categories_all_except">Усе, акрамя %1$s</string>
     <plurals name="txn_list_categories_count">
         <item quantity="one">%1$d катэгорыя</item>

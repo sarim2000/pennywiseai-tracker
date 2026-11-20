@@ -3,7 +3,6 @@
     <!-- ══ Home screen ══ -->
     <string name="home_transaction_deleted">ธุรกรรมถูกลบ</string>
     <string name="home_undo">เลิกทำ</string>
-    <string name="home_upgrade_pro">อัปเกรดเป็น PennyWise Pro</string>
     <string name="home_profile_filter">ตัวกรองโปรไฟล์</string>
     <string name="home_more_options">ตัวเลือกเพิ่มเติม</string>
     <string name="home_view_all">ดูทั้งหมด</string>
@@ -11,15 +10,12 @@
     <string name="home_manage">จัดการ</string>
     <string name="home_search_transactions">ค้นหาธุรกรรม</string>
     <string name="home_cancel">ยกเลิก</string>
-    <string name="home_close">ปิด</string>
     <!-- Home sections (headers + edit-home sheet) -->
     <string name="home_section_budgets">งบประมาณ</string>
     <string name="home_section_goals">เป้าหมาย</string>
     <string name="home_section_loans">เงินกู้</string>
     <string name="home_section_groups">กลุ่ม</string>
-    <string name="home_section_recent_transactions">ธุรกรรมล่าสุด</string>
     <string name="home_section_accounts">บัญชีธนาคาร</string>
-    <string name="home_section_subscriptions">การสมัครสมาชิกที่จะถึง</string>
     <string name="home_section_activity">กิจกรรม</string>
     <!-- Empty state -->
     <string name="home_empty_headline">ยังไม่มีรายการธุรกรรม</string>
@@ -36,7 +32,6 @@
     <string name="home_resync_rebuild_desc">อ่านธุรกรรมจาก SMS ใหม่เพื่อใช้การแก้ไขตัวแยกข้อมูลล่าสุด สิ่งที่คุณแก้ไขในธุรกรรมจาก SMS จะถูกรีเซ็ต ส่วนธุรกรรมที่เพิ่มเอง นำเข้า เงินกู้ และที่จัดกลุ่มไว้จะยังอยู่</string>
     <!-- More options sheet -->
     <string name="home_menu_title">ตัวเลือกเพิ่มเติม</string>
-    <string name="home_menu_settings">การตั้งค่า</string>
     <string name="home_menu_edit_home">แก้ไขหน้าแรก</string>
     <string name="home_menu_discord">เข้าร่วม Discord เพื่อส่งความคิดเห็น</string>
     <string name="home_menu_rate">ให้คะแนนใน Play Store</string>
@@ -45,13 +40,6 @@
     <string name="home_edit_description">จัดลำดับใหม่หรือซ่อนส่วนบนหน้าหลักของคุณ</string>
     <string name="home_edit_move_up">เลื่อน %1$s ขึ้น</string>
     <string name="home_edit_move_down">เลื่อน %1$s ลง</string>
-    <!-- Calculation breakdown dialog -->
-    <string name="home_breakdown_title">รายละเอียดการคำนวณ</string>
-    <!-- Month name, then day range, e.g. "March 1-15" -->
-    <string name="home_breakdown_formula">สูตร: รายได้ - ค่าใช้จ่าย = มูลค่าสุทธิ\nสีเขียว (+) = เงินออม | สีแดง (-) = ใช้เกิน</string>
-    <string name="home_breakdown_income">รายได้</string>
-    <string name="home_breakdown_expenses">ค่าใช้จ่าย</string>
-    <string name="home_breakdown_net_worth">มูลค่าสุทธิ</string>
     <!-- Subscriptions + loans summary cards -->
     <plurals name="home_active_subscriptions">
         <item quantity="other">การสมัครสมาชิกที่ใช้งานอยู่ %1$d รายการ</item>
@@ -63,10 +51,6 @@
     <string name="home_loans_owed_to_you">คนอื่นติดคุณ %1$s</string>
     <string name="home_loans_you_owe">คุณติดหนี้ %1$s</string>
     <!-- ══ Greeting card (home header) ══ -->
-    <string name="greeting_last_day_of_month">วันสุดท้ายของ %1$s</string>
-    <plurals name="greeting_days_left_in_month">
-        <item quantity="other">เหลืออีก %1$d วันในเดือน%2$s</item>
-    </plurals>
     <string name="greeting_good_morning">สวัสดีตอนเช้า</string>
     <string name="greeting_good_afternoon">สวัสดีตอนบ่าย</string>
     <string name="greeting_good_evening">สวัสดีตอนเย็น</string>
@@ -77,8 +61,8 @@
     <!-- ══ Bottom navigation ══ -->
     <string name="nav_home">หน้าแรก</string>
     <string name="nav_transactions">ไทม์ไลน์</string>
-    <string name="nav_analytics">การวิเคราะห์</string>
-    <string name="nav_chat">แชท</string>
+    <string name="nav_analytics">ข้อมูลเชิงลึก</string>
+    <string name="nav_chat">ถาม</string>
     <!-- ══ Shared components ══ -->
     <string name="expandable_list_view_less">ดูน้อยลง</string>
     <string name="expandable_list_view_all_more">ดูทั้งหมด (อีก %1$d รายการ)</string>

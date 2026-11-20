@@ -228,7 +228,8 @@ class BudgetSummaryProvider @Inject constructor(
             var skipped = false
             val total = transactions.fold(BigDecimal.ZERO) { acc, txWithSplits ->
                 val tx = txWithSplits.transaction.forTotals() ?: return@fold acc
-                if (tx.transactionType != com.pennywiseai.tracker.data.database.entity.TransactionType.EXPENSE && tx.transactionType != com.pennywiseai.tracker.data.database.entity.TransactionType.INVESTMENT) return@fold acc
+                // Investments aren't spending (see budgetSpend).
+                if (tx.transactionType != com.pennywiseai.tracker.data.database.entity.TransactionType.EXPENSE) return@fold acc
                 // Skip unconvertible amounts rather than counting them at face value (#670).
                 convert(tx.currency, tx.amount)?.let { acc + it } ?: run { skipped = true; acc }
             }
@@ -257,9 +258,9 @@ class BudgetSummaryProvider @Inject constructor(
      * For the base-currency figures ([summary] with flagUncounted): whether
      * [transactions] hold spending [group] counts that isn't in [baseCurrency], so its
      * total reads low and its remaining high. Matches as that total does
-     * ([aggregateBudgetCategorySpending]): every non-income, non-transfer row for a
-     * budget with no categories, else only its own categories and type buckets, with
-     * [parentOf] crediting a sub-category's spend to its parent as the total did.
+     * ([aggregateBudgetCategorySpending]): every non-income, non-transfer row but an
+     * investment for a budget with no categories, else only its own categories and
+     * type buckets, with [parentOf] crediting a sub-category's spend to its parent as the total did.
      */
     private suspend fun hasUncountedSpend(
         group: BudgetWithCategories,
@@ -276,9 +277,7 @@ class BudgetSummaryProvider @Inject constructor(
             convertIncome = { null },
             parentOf = parentOf
         )
-        if (group.categories.isEmpty()) {
-            return aggregation.skippedCategories.isNotEmpty() || aggregation.skippedTypes.isNotEmpty()
-        }
+        if (group.categories.isEmpty()) return aggregation.skippedCategories.isNotEmpty()
         return leftOut(group, aggregation)
     }
 

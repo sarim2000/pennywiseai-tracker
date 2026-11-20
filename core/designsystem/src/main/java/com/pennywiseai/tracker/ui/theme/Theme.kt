@@ -1,12 +1,14 @@
 package com.pennywiseai.tracker.ui.theme
 
 import android.app.Activity
+import android.icu.util.ULocale
 import android.os.Build
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialExpressiveTheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MotionScheme
+import androidx.compose.material3.Typography
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.dynamicDarkColorScheme
 import androidx.compose.material3.dynamicLightColorScheme
@@ -19,6 +21,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.text.font.FontFamily
@@ -209,6 +212,24 @@ internal fun ThemeStyle.palette(): BaseColorScheme? = when (this) {
     ThemeStyle.MONOCHROME -> MonochromeColorScheme
 }
 
+/**
+ * The bundled fonts (SN Pro, Google Sans Flex) are Latin only. Under a locale in
+ * another script (Arabic, Cyrillic, Devanagari, Thai…) every glyph falls back to
+ * the system font, which ignores the picked weight there: headings render
+ * regular and the two scripts clash. Those locales get the system font, whose
+ * per-script families carry every weight.
+ */
+internal fun typographyFor(appFont: AppFont, latinScript: Boolean): Typography =
+    if (!latinScript) {
+        getTypography(FontFamily.Default)
+    } else {
+        when (appFont) {
+            AppFont.SYSTEM -> getTypography(FontFamily.Default)
+            AppFont.SN_PRO -> getTypography(SNProFontFamily)
+            AppFont.GOOGLE_SANS_FLEX -> getTypography(GoogleSansFlexFamily, GoogleSansFlexHeadingFamily)
+        }
+    }
+
 @Composable
 fun PennyWiseTheme(
     darkTheme: Boolean = isSystemInDarkTheme(),
@@ -238,13 +259,9 @@ fun PennyWiseTheme(
         }
     }
 
-    val typography = remember(appFont) {
-        when (appFont) {
-            AppFont.SYSTEM -> getTypography(FontFamily.Default)
-            AppFont.SN_PRO -> getTypography(SNProFontFamily)
-            AppFont.GOOGLE_SANS_FLEX -> getTypography(GoogleSansFlexFamily, GoogleSansFlexHeadingFamily)
-        }
-    }
+    val locale = LocalConfiguration.current.locales[0]
+    val latinScript = remember(locale) { ULocale.addLikelySubtags(ULocale.forLocale(locale)).script == "Latn" }
+    val typography = remember(appFont, latinScript) { typographyFor(appFont, latinScript) }
 
     CompositionLocalProvider(LocalBlurEffects provides blurEffects, LocalRedSpending provides redSpending) {
         MaterialExpressiveTheme(

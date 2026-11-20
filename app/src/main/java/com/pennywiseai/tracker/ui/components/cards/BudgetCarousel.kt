@@ -1,7 +1,5 @@
 package com.pennywiseai.tracker.ui.components.cards
 
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -27,8 +25,9 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.graphicsLayer
-import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.util.lerp
+import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -38,10 +37,18 @@ import kotlin.math.absoluteValue
 fun BudgetCarousel(
     summary: BudgetOverallSummary,
     onClick: () -> Unit = {},
+    /** A compact row's tap, with that row's budget id. */
+    onBudgetClick: (Long) -> Unit = { onClick() },
     onCreateBudget: () -> Unit = {},
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** The budget Home's hero already shows; left out here so it isn't shown twice. */
+    excludeBudgetId: Long? = null,
+    /** Compact rows, one per budget, instead of the paged cards. */
+    compact: Boolean = false
 ) {
-    val groups = summary.groups
+    val groups = summary.groups.filter { it.group.budget.id != excludeBudgetId }
+    // Every budget is already on the hero: nothing to add, and certainly not "create a budget".
+    if (groups.isEmpty() && summary.groups.isNotEmpty()) return
 
     if (groups.isEmpty()) {
         PennyWiseCardV2(
@@ -55,7 +62,7 @@ fun BudgetCarousel(
             ) {
                 Box(
                     modifier = Modifier
-                        .size(48.dp)
+                        .size(Dimensions.Icon.avatarLarge)
                         .clip(CircleShape)
                         .background(MaterialTheme.colorScheme.primaryContainer),
                     contentAlignment = Alignment.Center
@@ -94,7 +101,18 @@ fun BudgetCarousel(
         return
     }
 
-    if (groups.size == 1) {
+    if (compact) {
+        GroupedList(modifier = modifier) {
+            groups.forEachIndexed { index, group ->
+                GroupedRow(
+                    position = ListItemPosition.from(index, groups.size),
+                    onClick = { onBudgetClick(group.group.budget.id) }
+                ) {
+                    BudgetStatusContent(group, summary.currency, compact = true)
+                }
+            }
+        }
+    } else if (groups.size == 1) {
         BudgetCard(
             groupSpending = groups.first(),
             currency = summary.currency,
@@ -113,7 +131,7 @@ fun BudgetCarousel(
             ) { page ->
                 val pageOffset = (
                     (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
-                ).absoluteValue
+                    ).absoluteValue
 
                 BudgetCard(
                     groupSpending = groups[page],

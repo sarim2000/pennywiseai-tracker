@@ -21,14 +21,6 @@ import com.pennywiseai.tracker.core.NumberFormatStyle
 import com.pennywiseai.tracker.data.manager.ConscienceText
 import com.pennywiseai.tracker.data.preferences.DAILY_SUMMARY_DEFAULT
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
-import com.pennywiseai.tracker.ui.theme.green_dark
-import com.pennywiseai.tracker.ui.theme.green_light
-import com.pennywiseai.tracker.ui.theme.indigo_dark
-import com.pennywiseai.tracker.ui.theme.indigo_light
-import com.pennywiseai.tracker.ui.theme.orange_dark
-import com.pennywiseai.tracker.ui.theme.orange_light
-import com.pennywiseai.tracker.ui.theme.pink_dark
-import com.pennywiseai.tracker.ui.theme.pink_light
 import com.pennywiseai.tracker.utils.AppDates
 import java.time.LocalDate
 
@@ -46,8 +38,6 @@ internal fun FormatsPage(settingsViewModel: SettingsViewModel = hiltViewModel())
     SettingsGroup {
         SettingsNavItem(
             icon = Icons.Default.Language,
-            iconBgColor = orange_light,
-            iconTint = orange_dark,
             title = stringResource(R.string.settings_language_title),
             subtitle = stringResource(
                 if (hasPerAppLanguage) R.string.settings_language_subtitle else R.string.settings_language_subtitle_device
@@ -68,20 +58,16 @@ internal fun FormatsPage(settingsViewModel: SettingsViewModel = hiltViewModel())
         )
         SettingsNavItem(
             icon = Icons.Default.Numbers,
-            iconBgColor = green_light,
-            iconTint = green_dark,
             title = stringResource(R.string.settings_number_format_title),
-            subtitle = stringResource(R.string.settings_number_format_subtitle),
+            subtitle = numberFormatStyleExample(numberFormatStyle),
             onClick = { showNumberFormatSheet = true },
             position = ListItemPosition.Middle,
             trailingText = numberFormatStyleLabel(numberFormatStyle)
         )
         SettingsNavItem(
             icon = Icons.Default.CalendarMonth,
-            iconBgColor = green_light,
-            iconTint = green_dark,
             title = stringResource(R.string.settings_date_format_title),
-            subtitle = stringResource(R.string.settings_date_format_subtitle),
+            subtitle = dateFormatStyleExample(dateFormatStyle),
             onClick = { showDateFormatSheet = true },
             position = ListItemPosition.Bottom,
             trailingText = dateFormatStyleLabel(dateFormatStyle)
@@ -198,11 +184,27 @@ internal fun NotificationsPage(settingsViewModel: SettingsViewModel = hiltViewMo
                 android.Manifest.permission.POST_NOTIFICATIONS
             ) != android.content.pm.PackageManager.PERMISSION_GRANTED
 
+    val permissionMissing = needsNotificationPermission()
+    val rowCount = (if (permissionMissing) 1 else 0) + 3 + (if (conscienceAvailable) 1 else 0) + 1
+    var row = 0
     SettingsGroup {
+        if (permissionMissing) {
+            SettingsNavItem(
+                icon = Icons.Default.NotificationsOff,
+                title = stringResource(R.string.settings_notifications_permission_title),
+                subtitle = stringResource(R.string.settings_notifications_permission_subtitle),
+                onClick = {
+                    context.startActivity(
+                        Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS)
+                            .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                    )
+                },
+                position = ListItemPosition.from(row++, rowCount),
+                trailingIcon = Icons.AutoMirrored.Filled.OpenInNew
+            )
+        }
         SettingsSwitchRow(
             icon = Icons.Default.Schedule,
-            iconBgColor = indigo_light,
-            iconTint = indigo_dark,
             title = stringResource(R.string.settings_daily_summary_title),
             subtitle = stringResource(R.string.settings_daily_summary_subtitle),
             checked = dailySummaryEnabled,
@@ -213,12 +215,10 @@ internal fun NotificationsPage(settingsViewModel: SettingsViewModel = hiltViewMo
                     settingsViewModel.setDailySummaryEnabled(enabled)
                 }
             },
-            position = ListItemPosition.Top
+            position = ListItemPosition.from(row++, rowCount)
         )
         SettingsSwitchRow(
             icon = Icons.Default.Insights,
-            iconBgColor = indigo_light,
-            iconTint = indigo_dark,
             title = stringResource(R.string.settings_weekly_summary_title),
             subtitle = stringResource(R.string.settings_weekly_summary_subtitle),
             checked = weeklySummaryEnabled,
@@ -229,12 +229,10 @@ internal fun NotificationsPage(settingsViewModel: SettingsViewModel = hiltViewMo
                     settingsViewModel.setWeeklySummaryEnabled(enabled)
                 }
             },
-            position = ListItemPosition.Middle
+            position = ListItemPosition.from(row++, rowCount)
         )
         SettingsSwitchRow(
             icon = Icons.Default.Notifications,
-            iconBgColor = indigo_light,
-            iconTint = indigo_dark,
             title = stringResource(R.string.settings_budget_alerts_title),
             subtitle = stringResource(R.string.settings_budget_alerts_subtitle, 80),
             checked = budgetAlertsEnabled,
@@ -245,13 +243,11 @@ internal fun NotificationsPage(settingsViewModel: SettingsViewModel = hiltViewMo
                     settingsViewModel.setBudgetAlertsEnabled(enabled)
                 }
             },
-            position = ListItemPosition.Middle
+            position = ListItemPosition.from(row++, rowCount)
         )
         if (conscienceAvailable) {
             SettingsSwitchRow(
                 icon = Icons.Default.Psychology,
-                iconBgColor = pink_light,
-                iconTint = pink_dark,
                 title = stringResource(R.string.conscience_title),
                 subtitle = stringResource(R.string.conscience_settings_subtitle),
                 checked = conscienceEnabled,
@@ -262,13 +258,11 @@ internal fun NotificationsPage(settingsViewModel: SettingsViewModel = hiltViewMo
                         settingsViewModel.setConscienceEnabled(enabled)
                     }
                 },
-                position = ListItemPosition.Middle
+                position = ListItemPosition.from(row++, rowCount)
             )
         }
         SettingsNavItem(
             icon = Icons.Default.Tune,
-            iconBgColor = indigo_light,
-            iconTint = indigo_dark,
             title = stringResource(R.string.settings_notification_types_title),
             subtitle = stringResource(R.string.settings_notification_types_subtitle),
             onClick = {
@@ -277,7 +271,7 @@ internal fun NotificationsPage(settingsViewModel: SettingsViewModel = hiltViewMo
                         .putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
                 )
             },
-            position = ListItemPosition.Bottom,
+            position = ListItemPosition.from(row++, rowCount),
             trailingIcon = Icons.AutoMirrored.Filled.OpenInNew
         )
     }

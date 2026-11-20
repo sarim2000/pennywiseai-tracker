@@ -1,7 +1,5 @@
 package com.pennywiseai.tracker.ui.components
 
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.gestures.awaitEachGesture
@@ -19,8 +17,11 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.boundsInWindow
 import androidx.compose.ui.layout.onGloballyPositioned
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.ui.theme.Spacing
 import kotlin.math.pow
 import kotlin.math.sqrt
 
@@ -33,17 +34,17 @@ fun SpotlightTutorial(
     onTargetClick: (() -> Unit)? = null
 ) {
     if (!isVisible || targetPosition == null) return
-    
+
     val alpha by animateFloatAsState(
         targetValue = 1f,
         animationSpec = MaterialTheme.motionScheme.defaultEffectsSpec(),
         label = "spotlight_alpha"
     )
-    
+
     val density = LocalDensity.current
     val padding = with(density) { 12.dp.toPx() }
-    
-    Box(
+
+    BoxWithConstraints(
         modifier = Modifier
             .fillMaxSize()
     ) {
@@ -59,10 +60,10 @@ fun SpotlightTutorial(
                         val center = targetPosition.center
                         val radius = (targetPosition.width / 2) + padding
                         val distance = sqrt(
-                            (position.x - center.x).pow(2) + 
-                            (position.y - center.y).pow(2)
+                            (position.x - center.x).pow(2) +
+                                (position.y - center.y).pow(2)
                         )
-                        
+
                         if (distance > radius) {
                             // Click outside spotlight - just dismiss
                             down.consume()
@@ -79,11 +80,11 @@ fun SpotlightTutorial(
             val path = Path().apply {
                 // First add the full screen rectangle
                 addRect(Rect(0f, 0f, size.width, size.height))
-                
+
                 // Then add the circular cutout for the FAB
                 val center = targetPosition.center
                 val radius = (targetPosition.width / 2) + padding
-                
+
                 addOval(
                     Rect(
                         center.x - radius,
@@ -92,25 +93,39 @@ fun SpotlightTutorial(
                         center.y + radius
                     )
                 )
-                
+
                 // Set fill type to EvenOdd to create the hole effect
                 fillType = PathFillType.EvenOdd
             }
-            
+
             // Draw the path with a dark color
             drawPath(
                 path = path,
                 color = Color.Black.copy(alpha = 0.8f)
             )
         }
-        
-        // Tutorial message positioned to the left of FAB
+
+        // The message sits to the left of the target (the FAB); when there's no room there
+        // (Home's SMS pill on the left edge), it goes under the cutout, kept on screen.
+        val messageWidth = 200.dp
+        val leftOfTarget = with(density) { targetPosition.left.toDp() } - messageWidth - Spacing.md - Spacing.xs
+        val fitsLeft = leftOfTarget >= Spacing.md
+        val messageX = if (fitsLeft) {
+            leftOfTarget
+        } else {
+            with(density) { targetPosition.left.toDp() }
+                .coerceIn(Spacing.md, (maxWidth - messageWidth - Spacing.md).coerceAtLeast(Spacing.md))
+        }
+        val messageY = with(density) {
+            if (fitsLeft) {
+                targetPosition.center.y.toDp() - 30.dp
+            } else {
+                (targetPosition.center.y + targetPosition.width / 2 + padding).toDp() + Spacing.sm
+            }
+        }
         Box(
             modifier = Modifier
-                .offset(
-                    x = with(density) { (targetPosition.left - 220.dp.toPx()).toDp() },
-                    y = with(density) { targetPosition.center.y.toDp() - 30.dp }
-                )
+                .offset(x = messageX, y = messageY)
         ) {
             Surface(
                 shape = MaterialTheme.shapes.small,
@@ -119,7 +134,7 @@ fun SpotlightTutorial(
             ) {
                 Column(
                     modifier = Modifier
-                        .width(200.dp)
+                        .width(messageWidth)
                         .padding(16.dp)
                 ) {
                     Text(

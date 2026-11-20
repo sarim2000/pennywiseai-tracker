@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.debug
 
 import androidx.room3.withWriteTransaction
+import com.pennywiseai.shared.data.bootstrap.DefaultCategoryData
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.*
 import com.pennywiseai.tracker.data.webhook.WebhookSyncReason
@@ -17,7 +18,7 @@ import java.time.LocalDateTime
 import java.time.ZoneId
 
 internal const val DEMO_CURRENCY = "JOD"
-private const val PREFIX = "pennywise-debug-demo-"
+internal const val DEMO_PREFIX = "pennywise-debug-demo-"
 private const val FOOD = "Food & Dining"
 private const val GROCERIES = "Groceries"
 private const val TRANSPORT = "Transportation"
@@ -27,26 +28,34 @@ private const val SUBCATEGORY = "Demo Coffee"
 internal enum class DemoSeedStatus { CREATED, ALREADY_SEEDED, HAS_DATA }
 
 internal suspend fun PennyWiseDatabase.seedDemoData(today: LocalDate, receipt: () -> String): DemoSeedStatus = withWriteTransaction {
-    if (transactionDao().getTransactionByHash("${PREFIX}salary") != null) {
+    if (transactionDao().getTransactionByHash("${DEMO_PREFIX}salary") != null) {
         return@withWriteTransaction DemoSeedStatus.ALREADY_SEEDED
     }
 
-    // Room creates built-in categories and profiles. Rules can also have built-in templates.
+    // Only the exact built-in categories and profiles from DatabaseCallback count as empty.
+    val defaults = DefaultCategoryData.ALL
+    val categories = categoryDao().getAllCategoriesList().associateBy { it.name }
+    val defaultCategories = categories.size == defaults.size && defaults.withIndex().all { (index, seed) ->
+        val category = categories[seed.name]
+        category != null && category.isSystem && category.systemName == seed.name && category.color == seed.colorHex &&
+            category.isIncome == seed.isIncome && category.displayOrder == index + 1 &&
+            !category.isHidden && category.icon == null && category.parentId == null
+    }
+    val defaultProfiles = profileDao().getAllProfiles().toSet() == setOf(
+        ProfileEntity(ProfileEntity.PERSONAL_ID, "Personal", "#4CAF50"),
+        ProfileEntity(ProfileEntity.BUSINESS_ID, "Business", "#2196F3", sortOrder = 1)
+    )
+    if (!defaultCategories || !defaultProfiles) return@withWriteTransaction DemoSeedStatus.HAS_DATA
+
     val tables = usePrepared(
         "SELECT name FROM sqlite_master WHERE type = 'table' AND name NOT LIKE 'sqlite_%' " +
-            "AND name NOT IN ('android_metadata', 'room_master_table', 'room_table_modification_log')"
+            "AND name NOT IN ('android_metadata', 'room_master_table', 'room_table_modification_log', 'categories', 'profiles')"
     ) { statement ->
         buildList { while (statement.step()) add(statement.getText(0)) }
     }
     for (table in tables) {
-        val filter = when (table) {
-            "categories" -> "WHERE is_system = 0 OR is_hidden = 1 OR (system_name IS NOT NULL AND name != system_name)"
-            "profiles" -> "WHERE NOT ((id = 1 AND name = 'Personal') OR (id = 2 AND name = 'Business'))"
-            "transaction_rules" -> "WHERE is_system_template = 0"
-            else -> ""
-        }
         val quotedTable = table.replace("\"", "\"\"")
-        if (usePrepared("SELECT 1 FROM \"$quotedTable\" $filter LIMIT 1") { it.step() }) {
+        if (usePrepared("SELECT 1 FROM \"$quotedTable\" LIMIT 1") { it.step() }) {
             return@withWriteTransaction DemoSeedStatus.HAS_DATA
         }
     }
@@ -59,10 +68,10 @@ private class DemoLedger(private val db: PennyWiseDatabase, private val today: L
     private val now = today.atStartOfDay()
     private val month = today.withDayOfMonth(1)
     private val lastMonth = month.minusMonths(1)
-    private val personal = Account("Demo Bank", "1001", DEMO_CURRENCY)
-    private val card = Account("Demo Bank", "2002", DEMO_CURRENCY)
-    private val business = Account("Sample Bank", "4004", "USD", ProfileEntity.BUSINESS_ID)
-    private val euros = Account("Example Bank", "5005", "EUR")
+    private val personal = DemoAccount("Arab Bank", "1001", DEMO_CURRENCY)
+    private val card = DemoAccount("Bank al Etihad", "2002", DEMO_CURRENCY)
+    private val business = DemoAccount("Chase", "4004", "USD", ProfileEntity.BUSINESS_ID)
+    private val euros = DemoAccount("Deutsche Bank", "5005", "EUR")
 
     suspend fun populate(receipt: () -> String) {
         val food = checkNotNull(db.categoryDao().getCategoryByName(FOOD))
@@ -105,11 +114,12 @@ private class DemoLedger(private val db: PennyWiseDatabase, private val today: L
         val savings = personal.copy(last4 = "1002")
         val transfer = transaction("transfer-out", "Demo savings transfer", "60.000", "Banking", type = TransactionType.TRANSFER).copy(
             fromAccount = personal.last4, fromBankName = personal.bank,
-            toAccount = savings.last4, toBankName = savings.bank, transferPairId = "${PREFIX}transfer"
+            toAccount = savings.last4, toBankName = savings.bank, transferPairId = "${DEMO_PREFIX}transfer"
         )
         insert(transfer)
-        insert(transfer.copy(transactionHash = "${PREFIX}transfer-in", accountNumber = savings.last4))
+        insert(transfer.copy(transactionHash = "${DEMO_PREFIX}transfer-in", accountNumber = savings.last4))
         seedHistory()
+        db.transactionDao().insertTransactions(demoChartTransactions(today, listOf(personal, card, business, euros)))
         seedGoals(marketId, deleted)
         seedActivity(marketId, cafe)
         db.transactionDao().updateTransaction(market.copy(id = marketId, receiptPath = receipt()))
@@ -117,18 +127,22 @@ private class DemoLedger(private val db: PennyWiseDatabase, private val today: L
 
     private suspend fun seedAccounts() {
         val accounts = db.accountBalanceDao()
-        val checking = balance(personal, "842.250", "CURRENT", "Demo everyday")
-        accounts.insertBalance(checking.copy(balance = BigDecimal("700.000"), timestamp = lastMonth.atStartOfDay()))
+        val checking = balance(personal, "842.250", "CURRENT", "Arab Bank · Everyday")
+        for (monthsAgo in 1L..11L) {
+            val timestamp = month.minusMonths(monthsAgo).atStartOfDay()
+            val historicBalance = BigDecimal.valueOf(830 - monthsAgo * 23 + (monthsAgo % 3) * 12)
+            accounts.insertBalance(checking.copy(balance = historicBalance, timestamp = timestamp))
+        }
         accounts.insertBalance(checking)
-        accounts.insertBalance(balance(personal.copy(last4 = "1002"), "560.000", "SAVINGS", "Demo savings"))
-        accounts.insertBalance(balance(card, "150.000", "CREDIT", "Demo credit").copy(
+        accounts.insertBalance(balance(personal.copy(last4 = "1002"), "560.000", "SAVINGS", "Arab Bank · Savings"))
+        accounts.insertBalance(balance(card, "150.000", "CREDIT", "Bank al Etihad · Credit").copy(
             isCreditCard = true, creditLimit = BigDecimal("1000.000"), statementDay = 1,
             cardDueDay = today.plusDays(3).dayOfMonth.coerceAtMost(28),
             cardBillAmount = BigDecimal("90.000"), cardBillAsOf = now
         ))
-        accounts.insertBalance(balance(business, "250.00", "SAVINGS", "Demo business"))
-        accounts.insertBalance(balance(euros, "175.00", "SAVINGS", "Demo travel"))
-        accounts.insertBalance(balance(personal.copy(last4 = "3003"), "5000.000", AccountBalanceEntity.LOAN_TYPE, "Demo bank loan"))
+        accounts.insertBalance(balance(business, "250.00", "SAVINGS", "Chase · Business"))
+        accounts.insertBalance(balance(euros, "175.00", "SAVINGS", "Deutsche Bank · Travel"))
+        accounts.insertBalance(balance(personal.copy(last4 = "3003"), "5000.000", AccountBalanceEntity.LOAN_TYPE, "Arab Bank · Loan"))
         db.cardDao().insertCard(CardEntity(cardLast4 = personal.last4, cardType = CardType.DEBIT, bankName = personal.bank,
             accountLast4 = personal.last4, nickname = "Demo Debit", currency = personal.currency))
         db.cardDao().insertCard(CardEntity(cardLast4 = card.last4, cardType = CardType.CREDIT, bankName = card.bank,
@@ -172,7 +186,7 @@ private class DemoLedger(private val db: PennyWiseDatabase, private val today: L
             nextPaymentDate = today.plusDays(15), totalPayments = 6, paymentsMade = 2))
         subscriptions.insertSubscription(streaming.copy(merchantName = "Demo Ended", nextPaymentDate = null, state = SubscriptionState.ENDED))
         db.recurringTransactionDao().insert(RecurringTransactionEntity(
-            uid = "${PREFIX}template", merchantName = "Demo Rent", amount = BigDecimal("320.000"), currency = DEMO_CURRENCY,
+            uid = "${DEMO_PREFIX}template", merchantName = "Demo Rent", amount = BigDecimal("320.000"), currency = DEMO_CURRENCY,
             category = "Bills & Utilities", nextDueDate = today.plusDays(14), dayOfMonth = today.plusDays(14).dayOfMonth,
             bankName = personal.bank, accountLast4 = personal.last4
         ))
@@ -180,7 +194,7 @@ private class DemoLedger(private val db: PennyWiseDatabase, private val today: L
 
     private suspend fun seedHistory() {
         // Stay within each month, even if the seed is run on the first or the 31st.
-        for (monthsAgo in 1L..5L) {
+        for (monthsAgo in 1L..11L) {
             val past = month.minusMonths(monthsAgo)
             insert(transaction("salary-$monthsAgo", "Demo Payroll", "1200.000", "Salary",
                 date = past.plusDays(24), type = TransactionType.INCOME))
@@ -192,15 +206,15 @@ private class DemoLedger(private val db: PennyWiseDatabase, private val today: L
 
     private suspend fun seedGoals(marketId: Long, deletedId: Long) {
         val goals = db.goalDao()
-        val target = GoalEntity(uid = "${PREFIX}goal", name = "Demo travel fund", targetAmount = BigDecimal("500.000"),
+        val target = GoalEntity(uid = "${DEMO_PREFIX}goal", name = "Demo travel fund", targetAmount = BigDecimal("500.000"),
             currency = DEMO_CURRENCY, alreadySaved = BigDecimal("120.000"), dueDate = today.plusMonths(4))
         val goalId = goals.insertGoal(target)
-        goals.insertGoal(target.copy(uid = "${PREFIX}archived-goal", name = "Demo completed trip", alreadySaved = target.targetAmount, isArchived = true))
-        goals.insertContribution(GoalContributionEntity(uid = "${PREFIX}goal-deposit", goalId = goalId,
+        goals.insertGoal(target.copy(uid = "${DEMO_PREFIX}archived-goal", name = "Demo completed trip", alreadySaved = target.targetAmount, isArchived = true))
+        goals.insertContribution(GoalContributionEntity(uid = "${DEMO_PREFIX}goal-deposit", goalId = goalId,
             amount = BigDecimal("14.000"), date = today, transactionId = marketId, note = "Demo linked contribution"))
-        goals.insertContribution(GoalContributionEntity(uid = "${PREFIX}goal-withdrawal", goalId = goalId,
+        goals.insertContribution(GoalContributionEntity(uid = "${DEMO_PREFIX}goal-withdrawal", goalId = goalId,
             amount = BigDecimal("-5.000"), date = today.minusDays(2), note = "Demo withdrawal"))
-        goals.insertContribution(GoalContributionEntity(uid = "${PREFIX}goal-deleted", goalId = goalId,
+        goals.insertContribution(GoalContributionEntity(uid = "${DEMO_PREFIX}goal-deleted", goalId = goalId,
             amount = BigDecimal("6.000"), date = today, transactionId = deletedId))
     }
 
@@ -211,30 +225,30 @@ private class DemoLedger(private val db: PennyWiseDatabase, private val today: L
         db.merchantAliasDao().insertOrUpdateAlias(MerchantAliasEntity(merchantName = "Demo Market", alias = "Demo Grocer"))
         val engine = RuleEngine()
         val rule = RuleEntity(
-            id = "${PREFIX}rule", name = "Demo coffee rule", description = "File demo cafe purchases under Demo Coffee",
+            id = "${DEMO_PREFIX}rule", name = "Demo coffee rule", description = "File demo cafe purchases under Demo Coffee",
             priority = 100, conditions = engine.serializeConditions(listOf(RuleCondition(TransactionField.MERCHANT, ConditionOperator.EQUALS, CAFE))),
             actions = engine.serializeActions(listOf(RuleAction(TransactionField.CATEGORY, ActionType.SET, SUBCATEGORY))),
             isActive = true, createdAt = now, updatedAt = now
         )
         db.ruleDao().insertRule(rule)
         db.ruleApplicationDao().insertApplication(RuleApplicationEntity(
-            id = "${PREFIX}application", ruleId = rule.id, ruleName = rule.name, transactionId = cafeId.toString(),
+            id = "${DEMO_PREFIX}application", ruleId = rule.id, ruleName = rule.name, transactionId = cafeId.toString(),
             fieldsModified = engine.serializeFieldModifications(listOf(FieldModification(TransactionField.CATEGORY, FOOD, SUBCATEGORY, ActionType.SET))),
             appliedAt = now
         ))
-        val message = "Demo Bank: JOD 34.000 debited from XX1001 at Demo Market."
+        val message = "TEST ONLY: ${personal.bank}, JOD 34.000 debited from sample account XX1001 at Demo Market."
         db.bankNotificationDao().insert(BankNotificationEntity(
             packageName = "example.pennywise.demo", senderAlias = personal.bank, messageBody = message,
-            messageHash = "${PREFIX}notification", postedAt = now, processed = true, transactionId = marketId
+            messageHash = "${DEMO_PREFIX}notification", postedAt = now, processed = true, transactionId = marketId
         ))
         db.unrecognizedSmsDao().insert(UnrecognizedSmsEntity(sender = "DEMO-BANK-T",
             smsBody = "Sample alert: posted a JOD 11.250 payment to Demo Shop.", receivedAt = now))
         val chatTime = now.atZone(ZoneId.systemDefault()).toInstant().toEpochMilli()
         db.chatDao().insertMessages(listOf(
-            ChatMessage(id = "${PREFIX}question", message = "What can I ask about this demo ledger?", isUser = true, timestamp = chatTime),
-            ChatMessage(id = "${PREFIX}answer", message = "Try asking how much you spent on dining last month or which bills are due.", isUser = false, timestamp = chatTime + 1)
+            ChatMessage(id = "${DEMO_PREFIX}question", message = "What can I ask about this demo ledger?", isUser = true, timestamp = chatTime),
+            ChatMessage(id = "${DEMO_PREFIX}answer", message = "Try asking how much you spent on dining last month or which bills are due.", isUser = false, timestamp = chatTime + 1)
         ))
-        val webhook = WebhookProfileEntity(id = "${PREFIX}webhook", name = "Demo webhook", url = "https://pennywise-demo.invalid/transactions",
+        val webhook = WebhookProfileEntity(id = "${DEMO_PREFIX}webhook", name = "Demo webhook", url = "https://pennywise-demo.invalid/transactions",
             enabled = false, currency = DEMO_CURRENCY, lastSyncedAt = now)
         db.webhookProfileDao().upsert(webhook)
         db.webhookLogDao().insert(WebhookLogEntity(profileId = webhook.id, profileName = webhook.name,
@@ -254,17 +268,15 @@ private class DemoLedger(private val db: PennyWiseDatabase, private val today: L
 
     private fun transaction(
         key: String, merchant: String, amount: String, category: String, date: LocalDate = today,
-        account: Account = personal, type: TransactionType = TransactionType.EXPENSE
+        account: DemoAccount = personal, type: TransactionType = TransactionType.EXPENSE
     ) = TransactionEntity(
         amount = BigDecimal(amount), merchantName = merchant, category = category, transactionType = type,
         dateTime = date.atStartOfDay(), bankName = account.bank, accountNumber = account.last4, currency = account.currency,
-        transactionHash = "$PREFIX$key", profileId = account.profileId
+        transactionHash = "$DEMO_PREFIX$key", profileId = account.profileId
     )
 
-    private fun balance(account: Account, amount: String, type: String, alias: String) = AccountBalanceEntity(
+    private fun balance(account: DemoAccount, amount: String, type: String, alias: String) = AccountBalanceEntity(
         bankName = account.bank, accountLast4 = account.last4, currency = account.currency, profileId = account.profileId,
         balance = BigDecimal(amount), timestamp = now, accountType = type, sourceType = "MANUAL", alias = alias
     )
-
-    private data class Account(val bank: String, val last4: String, val currency: String, val profileId: Long = ProfileEntity.PERSONAL_ID)
 }

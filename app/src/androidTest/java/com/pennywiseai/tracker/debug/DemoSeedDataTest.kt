@@ -1,5 +1,7 @@
 package com.pennywiseai.tracker.debug
 
+import android.content.ContextWrapper
+import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room3.Room
 import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -9,14 +11,21 @@ import com.pennywiseai.tracker.data.database.entity.ChatMessage
 import com.pennywiseai.tracker.data.database.entity.expandWithChildren
 import com.pennywiseai.tracker.data.database.longs
 import com.pennywiseai.tracker.data.model.SpendingComparison
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.PlanningRepository
 import com.pennywiseai.tracker.di.DatabaseCallback
 import com.pennywiseai.tracker.domain.spending.RecurringCharge
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.cancel
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
+import org.junit.Rule
 import org.junit.Test
+import org.junit.rules.TemporaryFolder
 import org.junit.runner.RunWith
 import java.math.BigDecimal
 import java.time.LocalDate
@@ -25,15 +34,20 @@ import java.time.LocalTime
 @RunWith(AndroidJUnit4::class)
 class DemoSeedDataTest {
     private val date = LocalDate.of(2026, 3, 1)
+    @get:Rule val temporaryFolder = TemporaryFolder()
 
     @Test
     fun seedIsRepeatableAndChatFiguresHoldOnTheFirstOfTheMonth() = runBlocking {
         val db = database()
         try {
             assertEquals(DemoSeedStatus.CREATED, db.seedDemoData(date) { "receipts/demo.pdf" })
-            assertEquals(42, db.transactionDao().countAllTransactions())
+            val seededCount = db.transactionDao().countAllTransactions()
+            assertTrue(seededCount >= 4_000)
             assertEquals(DemoSeedStatus.ALREADY_SEEDED, db.seedDemoData(date.plusDays(1)) { error("Receipt already exists") })
-            assertEquals(42, db.transactionDao().countAllTransactions())
+            assertEquals(seededCount, db.transactionDao().countAllTransactions())
+            assertEquals(listOf(12L), db.longs("SELECT count(DISTINCT substr(date_time, 1, 7)) FROM transactions"))
+            assertEquals(listOf(4L), db.longs("SELECT count(DISTINCT bank_name) FROM transactions"))
+            assertEquals(listOf(3L), db.longs("SELECT count(DISTINCT currency) FROM transactions"))
             assertEquals(listOf(0L), db.longs("SELECT count(*) FROM pragma_foreign_key_check"))
             assertEquals(2, db.goalDao().observeEffectiveContributions().first().size)
             assertEquals(2, db.chatDao().getMessageCount())
@@ -58,6 +72,49 @@ class DemoSeedDataTest {
             assertEquals("Demo Streaming", bills.upcoming.single().merchantName)
         } finally {
             db.close()
+        }
+    }
+
+    @Test
+    fun customizedDefaultCategoryBlocksSeed() = runBlocking {
+        val db = database()
+        try {
+            val category = checkNotNull(db.categoryDao().getCategoryByName("Food & Dining"))
+            db.categoryDao().updateCategory(category.copy(color = "#001122"))
+            assertEquals(DemoSeedStatus.HAS_DATA, db.seedDemoData(date) { error("Seed must skip receipt") })
+            assertEquals(0, db.transactionDao().countAllTransactions())
+        } finally {
+            db.close()
+        }
+    }
+
+    @Test
+    fun automaticSeedRemembersSkippedFirstLaunchAfterExistingDataIsCleared() = runBlocking {
+        val scope = CoroutineScope(Dispatchers.IO)
+        val context = object : ContextWrapper(InstrumentationRegistry.getInstrumentation().targetContext) {
+            override fun getNoBackupFilesDir() = temporaryFolder.root
+            override fun getFilesDir() = temporaryFolder.root
+        }
+        val store = PreferenceDataStoreFactory.create(scope = scope) {
+            temporaryFolder.root.resolve("demo-test.preferences_pb")
+        }
+        val preferences = UserPreferencesRepository(store) {}
+        val db = database()
+        try {
+            db.chatDao().insertMessage(ChatMessage(id = "existing", message = "Existing test history", isUser = true))
+            DemoSeeder(context, db, preferences).prepare()
+            assertFalse(preferences.userPreferences.first().hasCompletedOnboarding)
+            assertEquals(1, db.chatDao().getMessageCount())
+            db.chatDao().deleteAllMessages()
+
+            val seeder = DemoSeeder(context, db, preferences)
+            seeder.prepare()
+            assertEquals(0, db.transactionDao().countAllTransactions())
+            assertEquals(DemoSeedStatus.CREATED, seeder.seed(date))
+            assertTrue(preferences.userPreferences.first().hasCompletedOnboarding)
+        } finally {
+            db.close()
+            scope.cancel()
         }
     }
 

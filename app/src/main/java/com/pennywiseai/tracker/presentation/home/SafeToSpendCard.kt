@@ -126,18 +126,12 @@ fun SafeToSpendLine(
                 )
                 if (!isBalanceHidden) IncompleteLine(state.cardsNeedingBill.size)
             }
+            // The tonal pill is the target; no arrow, the hero already has one chevron.
             if (isBalanceHidden) {
                 Text(
                     text = stringResource(R.string.safe_to_spend_tap_to_show),
                     style = MaterialTheme.typography.labelLarge,
                     color = MaterialTheme.colorScheme.onSurface
-                )
-            } else {
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.size(Dimensions.Icon.inline)
                 )
             }
         }

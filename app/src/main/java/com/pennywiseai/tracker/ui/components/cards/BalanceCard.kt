@@ -15,13 +15,13 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.Visibility
@@ -65,7 +65,6 @@ import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.expense
 import com.pennywiseai.tracker.ui.theme.income
-import com.pennywiseai.tracker.ui.theme.loan
 import com.pennywiseai.tracker.ui.theme.money
 import com.pennywiseai.tracker.ui.theme.tabular
 import com.pennywiseai.tracker.ui.theme.warning
@@ -571,49 +570,37 @@ private fun MonthDetails(
             }
         }
 
-        Spacer(modifier = Modifier.height(Spacing.lg))
+        Spacer(modifier = Modifier.height(Spacing.md))
 
-        Text(
-            text = stringResource(R.string.balance_card_this_month),
-            style = MaterialTheme.typography.labelLarge,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-        )
-        Spacer(modifier = Modifier.height(Spacing.Layout.headerToContent))
-        // Income | Expenses | Lent | Saved, with coloured accent bars. FlowRow so long
+        // Income | Expenses | Lent | Saved: figure over label, no bars or arrows — the card's
+        // title already names the month, and the tappable ones ripple. FlowRow so long
         // amounts (a 3-letter "MZN" prefix on big numbers) wrap onto a second line
         // instead of crushing the last column into one character per line.
         FlowRow(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.lg),
+            // Pulled back by the figures' ripple padding, so their text lines up with the card's.
+            modifier = Modifier.fillMaxWidth().offset(x = -Spacing.sm),
+            horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
             verticalArrangement = Arrangement.spacedBy(Spacing.sm)
         ) {
-            val incomeColor = MaterialTheme.colorScheme.income
-            val expenseColor = MaterialTheme.colorScheme.expense
-            val netColor = if (currentMonthTotal >= BigDecimal.ZERO) incomeColor else expenseColor
             SummaryItem(
                 label = stringResource(R.string.balance_card_summary_income),
                 value = if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(currentMonthIncome, currency),
-                accentColor = incomeColor,
                 onClick = onOpenIncome,
             )
             SummaryItem(
                 label = stringResource(R.string.balance_card_summary_expenses),
                 value = if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(currentMonthExpenses, currency),
-                // The bar matches the sparkline's expense series.
-                accentColor = expenseColor,
                 onClick = onOpenExpenses,
             )
             if (currentMonthLent > BigDecimal.ZERO) {
                 SummaryItem(
                     label = stringResource(R.string.balance_card_summary_lent),
                     value = if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(currentMonthLent, currency),
-                    accentColor = MaterialTheme.colorScheme.loan
                 )
             }
             SummaryItem(
                 label = stringResource(R.string.balance_card_summary_saved),
                 value = if (isBalanceHidden) "••••" else CurrencyFormatter.formatCurrency(currentMonthTotal, currency),
-                accentColor = netColor
             )
         }
 
@@ -685,9 +672,6 @@ internal val SHORT_DATE: DateTimeFormatter get() = AppDates.dayMonthFormatter()
 private fun SummaryItem(
     label: String,
     value: String,
-    accentColor: Color,
-    // The figure sits on the hero's primaryContainer, so it takes that fill's ink; the bar keeps the series colour.
-    valueColor: Color = MaterialTheme.colorScheme.onSurface,
     onClick: (() -> Unit)? = null,
 ) {
     val target = if (onClick != null) {
@@ -698,56 +682,31 @@ private fun SummaryItem(
                 role = Role.Button,
                 onClick = onClick,
             )
-            // Room for the ripple past the figure's end.
-            .padding(end = Spacing.sm)
     } else {
         Modifier
     }
-    // Every figure keeps the touch-target height, so the inert ones line up with the tappable ones.
-    Row(
-        modifier = target.heightIn(min = Dimensions.Component.minTouchTarget),
-        verticalAlignment = Alignment.CenterVertically,
+    // Every figure keeps the touch-target height and padding, so the inert ones line up with the tappable ones.
+    Column(
+        modifier = target
+            .heightIn(min = Dimensions.Component.minTouchTarget)
+            .padding(horizontal = Spacing.sm, vertical = Spacing.xs),
+        verticalArrangement = Arrangement.Center,
     ) {
-        // Coloured left-border accent bar
-        Box(
-            modifier = Modifier
-                .width(Spacing.xs)
-                .height(Dimensions.Component.iconButton)
-                .background(
-                    color = accentColor,
-                    shape = CircleShape
-                )
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleMedium.money(),
+            color = MaterialTheme.colorScheme.onSurface,
+            fontWeight = FontWeight.SemiBold,
+            // Keep the amount on one line — never break a "MZN52,245.26" into
+            // one-character-per-line text when the column gets narrow.
+            maxLines = 1,
+            softWrap = false,
         )
-        Spacer(modifier = Modifier.width(Spacing.sm))
-        Column {
-            Text(
-                text = value,
-                style = MaterialTheme.typography.titleSmall.money(),
-                color = valueColor,
-                fontWeight = FontWeight.Bold,
-                // Keep the amount on one line — never break a "MZN52,245.26" into
-                // one-character-per-line text when the column gets narrow.
-                maxLines = 1,
-                softWrap = false,
-            )
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = label,
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    fontWeight = FontWeight.Bold
-                )
-                // Says the figure opens; the whole item is the target.
-                if (onClick != null) {
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.size(Dimensions.Icon.tiny)
-                    )
-                }
-            }
-        }
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+        )
     }
 }
 

@@ -94,9 +94,9 @@ private fun openApp(context: Context, key: String, extras: Intent.() -> Unit): A
 private fun openGoal(context: Context, goalId: Long) =
     openApp(context, "goal/$goalId") { putExtra(MainActivity.EXTRA_OPEN_GOAL_ID, goalId) }
 
-private fun openBudgets(context: Context, createGoal: Boolean = false) =
-    openApp(context, if (createGoal) "budgets/new-goal" else "budgets") {
-        putExtra(MainActivity.EXTRA_OPEN_BUDGETS, true)
+private fun openGoals(context: Context, createGoal: Boolean = false) =
+    openApp(context, if (createGoal) "goals/new" else "goals") {
+        putExtra(MainActivity.EXTRA_OPEN_GOALS, true)
         putExtra(MainActivity.EXTRA_CREATE_GOAL, createGoal)
     }
 
@@ -168,7 +168,7 @@ class GoalWidget : GlanceAppWidget() {
                     putExtra(AppWidgetManager.EXTRA_APPWIDGET_ID, appWidgetId)
                 }
             )
-            SingleGoalState.NoGoals -> openBudgets(context, createGoal = true)
+            SingleGoalState.NoGoals -> openGoals(context, createGoal = true)
         }
         Box(
             modifier = GlanceModifier
@@ -227,7 +227,7 @@ private fun GoalsEmpty() {
         title = context.getString(R.string.widget_goals_empty),
         hint = context.getString(R.string.widget_goals_empty_hint_target),
         button = context.getString(R.string.goals_empty_action),
-        onButton = openBudgets(context, createGoal = true),
+        onButton = openGoals(context, createGoal = true),
     )
 }
 
@@ -254,11 +254,11 @@ class GoalsListWidget : GlanceAppWidget() {
                 .fillMaxSize()
                 .background(GlanceTheme.colors.widgetBackground)
                 .padding(horizontal = WidgetDefaults.padding, vertical = Spacing.xs)
-                .clickable(openBudgets(context)),
+                .clickable(openGoals(context)),
         ) {
             WidgetHeader(
                 title = context.getString(R.string.goals_section_title),
-                add = openBudgets(context, createGoal = true),
+                add = openGoals(context, createGoal = true),
                 addDescription = context.getString(R.string.goals_new),
             )
             if (items.isEmpty()) {

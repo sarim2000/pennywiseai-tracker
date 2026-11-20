@@ -3,7 +3,6 @@
     <!-- ══ Home screen ══ -->
     <string name="home_transaction_deleted">Transaction deleted</string>
     <string name="home_undo">Undo</string>
-    <string name="home_upgrade_pro">Upgrade to PennyWise Pro</string>
     <string name="home_profile_filter">Profile filter</string>
     <string name="home_more_options">More options</string>
     <string name="home_view_all">View All</string>
@@ -11,7 +10,6 @@
     <string name="home_manage">Manage</string>
     <string name="home_search_transactions">Search transactions</string>
     <string name="home_cancel">Cancel</string>
-    <string name="home_close">Close</string>
 
     <!-- Home sections (headers + edit-home sheet) -->
     <string name="home_section_budgets">Budgets</string>
@@ -19,9 +17,7 @@
     <string name="home_section_goals">Goals</string>
     <string name="home_section_loans">Loans</string>
     <string name="home_section_groups">Groups</string>
-    <string name="home_section_recent_transactions">Recent Transactions</string>
     <string name="home_section_accounts">Bank Accounts</string>
-    <string name="home_section_subscriptions">Upcoming Subscriptions</string>
     <string name="home_section_money_in_motion">Money in motion</string>
     <string name="home_section_activity">Activity</string>
 
@@ -35,6 +31,28 @@
     <string name="home_fab_sync">Sync SMS (long press for full resync)</string>
     <string name="home_fab_sync_hint">Hold for full resync</string>
     <string name="home_resync_title">Read messages again</string>
+    <string name="home_status_reading">Reading your SMS…</string>
+    <string name="home_status_never">Read your SMS now</string>
+    <string name="home_status_just_now">Updated just now</string>
+    <string name="home_status_updated">Updated %1$s</string>
+    <string name="home_status_read_now">Read SMS now</string>
+    <string name="home_shortcut_unsorted">Unsorted</string>
+    <!-- Home shortcut labels sit under a 64dp shape: keep them to about 10 characters -->
+    <string name="home_shortcut_calendar">Calendar</string>
+    <string name="home_shortcut_checkup">Check-up</string>
+    <!-- Read out for the Unsorted shortcut with its count badge -->
+    <plurals name="home_shortcut_unsorted_badge">
+        <item quantity="one">Unsorted, %d to sort</item>
+        <item quantity="other">Unsorted, %d to sort</item>
+    </plurals>
+    <string name="home_section_shortcuts">Shortcuts</string>
+    <string name="home_edit_shortcuts_title">Shortcuts</string>
+    <!-- %1$d is the most shortcuts the row holds (4) -->
+    <string name="home_edit_shortcuts_description">Pick up to %1$d. Unsorted shows only while something needs a category.</string>
+    <plurals name="home_status_new">
+        <item quantity="one">%d new from SMS</item>
+        <item quantity="other">%d new from SMS</item>
+    </plurals>
     <string name="home_resync_scan_again">Scan all messages again</string>
     <string name="home_resync_scan_again_desc">Adds anything that was missed. Your edits and all existing transactions stay as they are.</string>
     <string name="home_resync_rebuild">Rebuild from scratch</string>
@@ -42,26 +60,15 @@
 
     <!-- More options sheet -->
     <string name="home_menu_title">More Options</string>
-    <string name="home_menu_settings">Settings</string>
     <string name="home_menu_edit_home">Edit home screen</string>
     <string name="home_menu_discord">Join Discord for feedback</string>
     <string name="home_menu_rate">Rate on Play Store</string>
-    <string name="home_version">v%1$s</string>
 
     <!-- Edit home screen sheet -->
     <string name="home_edit_title">Edit home screen</string>
     <string name="home_edit_description">Reorder or hide sections on your home screen.</string>
     <string name="home_edit_move_up">Move %1$s up</string>
     <string name="home_edit_move_down">Move %1$s down</string>
-
-    <!-- Calculation breakdown dialog -->
-    <string name="home_breakdown_title">Calculation Breakdown</string>
-    <!-- Month name, then day range, e.g. "March 1-15" -->
-    <string name="home_breakdown_period">%1$s 1-%2$d</string>
-    <string name="home_breakdown_formula">Formula: Income - Expenses = Net Worth\nGreen (+) = Savings | Red (-) = Overspending</string>
-    <string name="home_breakdown_income">Income</string>
-    <string name="home_breakdown_expenses">Expenses</string>
-    <string name="home_breakdown_net_worth">Net Worth</string>
 
     <!-- Subscriptions + loans summary cards -->
     <plurals name="home_active_subscriptions">
@@ -77,11 +84,6 @@
     <string name="home_loans_you_owe">You owe %1$s</string>
 
     <!-- ══ Greeting card (home header) ══ -->
-    <string name="greeting_last_day_of_month">Last day of %1$s</string>
-    <plurals name="greeting_days_left_in_month">
-        <item quantity="one">%1$d day left in %2$s</item>
-        <item quantity="other">%1$d days left in %2$s</item>
-    </plurals>
     <string name="greeting_good_morning">Good morning</string>
     <string name="greeting_good_afternoon">Good afternoon</string>
     <string name="greeting_good_evening">Good evening</string>
@@ -93,8 +95,10 @@
     <!-- ══ Bottom navigation ══ -->
     <string name="nav_home">Home</string>
     <string name="nav_transactions">Transactions</string>
-    <string name="nav_analytics">Analytics</string>
-    <string name="nav_chat">Chat</string>
+    <string name="nav_plan">Plan</string>
+    <string name="plan_bills">Bills</string>
+    <string name="nav_analytics">Insights</string>
+    <string name="nav_chat">Ask</string>
 
     <!-- ══ Shared components ══ -->
     <string name="expandable_list_view_less">View Less</string>
@@ -183,6 +187,8 @@
     <string name="balance_card_summary_expenses">Expenses</string>
     <string name="balance_card_summary_lent">Lent</string>
     <string name="balance_card_summary_saved">Saved</string>
+    <!-- TalkBack: what tapping a figure does ("double tap to see its transactions") -->
+    <string name="home_figure_open_rows">see its transactions</string>
 
     <!-- Budget card -->
     <string name="budget_card_percent">%1$d%%</string>
@@ -394,6 +400,43 @@
     <string name="home_payday_card_action">Start on day %1$d</string>
     <string name="home_payday_card_dismiss">Dismiss</string>
 
+    <!-- Home hero card. %1$s is a month name ("November") -->
+    <string name="home_hero_left_in_month">Left to spend in %1$s</string>
+    <!-- %1$s is the user's own budget name -->
+    <string name="home_hero_left_in_budget">Left in %1$s</string>
+    <!-- %1$s is a month name ("November") -->
+    <string name="home_hero_over_in_month">Over budget in %1$s</string>
+    <!-- %1$s is the user's own budget name -->
+    <string name="home_hero_over_in_budget">Over in %1$s</string>
+    <!-- %1$s is a formatted amount -->
+    <string name="home_hero_spent">%1$s spent</string>
+    <!-- The budget limit under the progress bar; %1$s is a formatted amount -->
+    <string name="home_hero_of_total">of %1$s</string>
+    <plurals name="home_hero_days_left">
+        <item quantity="one">%d day left</item>
+        <item quantity="other">%d days left</item>
+    </plurals>
+    <string name="home_hero_last_day">Last day</string>
+    <!-- What can still be spent each day; %1$s is a formatted amount -->
+    <string name="home_hero_per_day">~%1$s a day</string>
+    <string name="home_hero_open_budgets">Open budgets</string>
+    <string name="home_hero_open_activity">Open this month\'s transactions</string>
+
+    <!-- Home nudge under the hero: the mascot's one line. %1$s is a formatted amount -->
+    <string name="home_nudge_under_budget">You\'re on pace to finish about %1$s under budget.</string>
+    <string name="home_nudge_over_budget">At this pace you\'ll go about %1$s over budget.</string>
+    <string name="home_nudge_ask">Ask me anything</string>
+
+    <!-- Home sections -->
+    <string name="home_section_coming_up">Coming up</string>
+    <string name="home_section_recent">Recent</string>
+    <string name="home_see_all">See all</string>
+    <!-- Subtitle of a recent transaction still in Others -->
+    <string name="home_needs_category">Needs a category</string>
+    <string name="home_due_today">Today</string>
+    <string name="home_due_tomorrow">Tomorrow</string>
+    <string name="home_due_overdue">Overdue</string>
+
     <!-- Month-end forecast on the "Spent this month" card -->
     <string name="forecast_on_track">On track for %1$s by %2$s</string>
     <string name="forecast_over_usual">%1$s over usual</string>
@@ -407,6 +450,8 @@
     <string name="safe_to_spend_none_left">Nothing left after bills due before %1$s</string>
     <string name="safe_to_spend_breakdown">Bank balance %1$s − %2$s in bills due before %3$s</string>
     <string name="safe_to_spend_capped">Capped by your budget: %1$s left</string>
+    <string name="safe_to_spend_per_day_headline">%1$s a day</string>
+    <string name="safe_to_spend_line">%1$s · %2$s a day</string>
     <string name="safe_to_spend_other_currencies">Plus %1$s, kept separate</string>
     <string name="safe_to_spend_until">Safe to spend until %1$s</string>
     <string name="safe_to_spend_accounts">Bank balance</string>

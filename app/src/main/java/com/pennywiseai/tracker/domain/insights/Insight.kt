@@ -1,6 +1,7 @@
 package com.pennywiseai.tracker.domain.insights
 
 import com.pennywiseai.tracker.utils.Money
+import java.math.BigDecimal
 import java.time.LocalDate
 
 /** Declared in display order: what needs attention first. */
@@ -17,6 +18,7 @@ sealed interface InsightAction {
     data class OpenTransaction(val transactionId: Long) : InsightAction
     data class OpenAccount(val bankName: String, val accountLast4: String) : InsightAction
     data object OpenSubscriptions : InsightAction
+    data object OpenAccounts : InsightAction
 }
 
 /**
@@ -60,6 +62,17 @@ sealed interface InsightFact {
     data class PriceChange(val name: String, val tracked: Money, val charged: Money, val date: LocalDate) : InsightFact
 
     data class CardUtilisation(val label: String, val used: Money, val limit: Money, val percent: Int) : InsightFact
+
+    /**
+     * What's held ([balance]) would last [months] at [monthlySpend] a usual month.
+     * [lowConfidence]: accounts whose balance isn't known yet are left out of it.
+     */
+    data class MoneyLasts(
+        val months: BigDecimal,
+        val balance: Money,
+        val monthlySpend: Money,
+        val lowConfidence: Boolean,
+    ) : InsightFact
 
     /** [names] are the subscriptions due, soonest first. */
     data class BillsDue(

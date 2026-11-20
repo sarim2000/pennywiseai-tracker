@@ -8,6 +8,7 @@ import com.pennywiseai.tracker.domain.review.CurrencyReview
 import com.pennywiseai.tracker.domain.review.PeriodReview
 import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.domain.review.reviewRange
+import com.pennywiseai.tracker.domain.spending.Runway
 import com.pennywiseai.tracker.utils.Money
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -88,6 +89,25 @@ class InsightsUiStateTest {
         assertEquals("INR", state.currency)
         assertEquals(listOf("b"), state.insights.map { it.id })
         assertEquals(listOf("a"), state.dismissed.map { it.id })
+    }
+
+    @Test
+    fun `a quiet cycle still shows how long the money would last`() {
+        // 3.5 months: between the warning and the good news, so no insight card says it.
+        val runway = Runway("USD", BigDecimal("3500"), BigDecimal("1000"), lowConfidence = false)
+        val state = insightsUiState(
+            InsightsSnapshot(
+                PeriodReview(range, listOf(currency("INR", 3)), null, null, true),
+                emptyList(),
+                emptySet(),
+                runways = mapOf("USD" to runway),
+            ),
+            chosen = "USD",
+        )
+        assertEquals(listOf("INR", "USD"), state.currencies)
+        assertEquals("USD", state.currency)
+        assertNull(state.review)
+        assertEquals(runway, state.runway)
     }
 
     @Test

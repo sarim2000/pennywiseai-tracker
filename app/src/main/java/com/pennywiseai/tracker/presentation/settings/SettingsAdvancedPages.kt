@@ -31,16 +31,9 @@ import com.pennywiseai.tracker.ui.components.cards.GroupedColumn
 import com.pennywiseai.tracker.ui.components.cards.IconTile
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.RowLabels
+import com.pennywiseai.tracker.ui.components.readableProgressColors
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.ui.theme.grey_dark
-import com.pennywiseai.tracker.ui.theme.grey_light
-import com.pennywiseai.tracker.ui.theme.indigo_dark
-import com.pennywiseai.tracker.ui.theme.indigo_light
-import com.pennywiseai.tracker.ui.theme.teal_dark
-import com.pennywiseai.tracker.ui.theme.teal_light
-import com.pennywiseai.tracker.ui.theme.yellow_dark
-import com.pennywiseai.tracker.ui.theme.yellow_light
 
 // ── AI Features ──
 
@@ -72,8 +65,6 @@ internal fun AiPage(
     SettingsGroup {
         SettingsNavItem(
             icon = Icons.Default.AutoAwesome,
-            iconBgColor = indigo_light,
-            iconTint = indigo_dark,
             title = stringResource(R.string.ai_access_settings_title),
             subtitle = stringResource(if (isProEntitled) R.string.ai_access_settings_subtitle else R.string.ai_access_settings_subtitle_pro),
             onClick = { if (isProEntitled) onNavigate(AiAccess) else showUpgradeSheet = true },
@@ -107,8 +98,8 @@ private fun AiChatSettingsItem(
         ) {
             IconTile(
                 icon = Icons.Default.AutoAwesome,
-                containerColor = yellow_light,
-                contentColor = yellow_dark
+                containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
             )
             RowLabels(
                 title = stringResource(R.string.settings_ai_chat_title),
@@ -165,7 +156,8 @@ private fun AiChatSettingsItem(
                     Button(
                         onClick = onDownload,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error
+                            containerColor = MaterialTheme.colorScheme.error,
+                            contentColor = MaterialTheme.colorScheme.onError
                         ),
                         shapes = ButtonDefaults.shapes()
                     ) {
@@ -195,9 +187,12 @@ private fun AiChatSettingsItem(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
+                val progressColors = readableProgressColors()
                 LinearWavyProgressIndicator(
                     progress = { downloadProgress / 100f },
-                    modifier = Modifier.fillMaxWidth()
+                    modifier = Modifier.fillMaxWidth(),
+                    color = progressColors.indicator,
+                    trackColor = progressColors.track
                 )
                 Text(
                     text = stringResource(R.string.settings_ai_download_progress, downloadedMB, totalMB),
@@ -208,7 +203,8 @@ private fun AiChatSettingsItem(
                     onClick = onCancel,
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
                     ),
                     shapes = ButtonDefaults.shapes()
                 ) {
@@ -223,7 +219,6 @@ private fun AiChatSettingsItem(
         if (downloadState == DownloadState.NOT_DOWNLOADED ||
             downloadState == DownloadState.ERROR_INSUFFICIENT_SPACE
         ) {
-            HorizontalDivider()
             Text(
                 text = stringResource(R.string.settings_ai_info),
                 style = MaterialTheme.typography.bodyMedium,
@@ -247,8 +242,6 @@ internal fun DeveloperPage(
     SettingsGroup {
         SettingsNavItem(
             icon = Icons.Default.CloudUpload,
-            iconBgColor = teal_light,
-            iconTint = teal_dark,
             title = stringResource(R.string.settings_webhooks_title),
             subtitle = stringResource(if (isProEntitled) R.string.settings_webhooks_subtitle else R.string.settings_webhooks_subtitle_pro),
             onClick = { if (isProEntitled) onNavigate(Webhooks) else showUpgradeSheet = true },
@@ -256,8 +249,6 @@ internal fun DeveloperPage(
         )
         SettingsSwitchRow(
             icon = Icons.Default.Code,
-            iconBgColor = grey_light,
-            iconTint = grey_dark,
             title = stringResource(R.string.settings_developer_mode_title),
             subtitle = stringResource(R.string.settings_developer_mode_subtitle),
             checked = isDeveloperModeEnabled,
@@ -267,8 +258,6 @@ internal fun DeveloperPage(
         if (isDeveloperModeEnabled) {
             SettingsNavItem(
                 icon = Icons.Default.EmojiEmotions,
-                iconBgColor = indigo_light,
-                iconTint = indigo_dark,
                 title = stringResource(R.string.mascot_playground_title),
                 subtitle = stringResource(R.string.mascot_playground_subtitle),
                 onClick = { onNavigate(MascotPlayground) },

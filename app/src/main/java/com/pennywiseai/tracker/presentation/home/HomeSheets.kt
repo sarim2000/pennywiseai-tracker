@@ -1,52 +1,51 @@
 package com.pennywiseai.tracker.presentation.home
 
-import android.content.Intent
-import android.net.Uri
 import androidx.annotation.StringRes
 import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.DateRange
 import androidx.compose.material.icons.filled.DragIndicator
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Insights
-import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Share
-import androidx.compose.material.icons.filled.Star
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material.icons.filled.Tune
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.onSizeChanged
-import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalHapticFeedback
-import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.CustomAccessibilityAction
 import androidx.compose.ui.semantics.customActions
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.unit.dp
 import androidx.compose.ui.zIndex
 import com.pennywiseai.tracker.R
-import com.pennywiseai.tracker.core.Constants
 import com.pennywiseai.tracker.data.preferences.HomeSection
 import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
+import com.pennywiseai.tracker.data.preferences.HomeShortcut
+import com.pennywiseai.tracker.data.preferences.HomeShortcutLayout
 import com.pennywiseai.tracker.ui.components.cards.GroupedRow
+import com.pennywiseai.tracker.ui.components.cards.IconTile
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
+import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.theme.*
 
 /**
- * The "More options" sheet behind Home's avatar / menu button. Every row
- * closes the sheet, then runs its action.
+ * The "More options" sheet behind Home's menu button: Home's own extras. Settings is the
+ * avatar; reading messages again lives in SMS check-up (and a long-press on the sync line).
+ * Every row closes the sheet, then runs its action.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -57,12 +56,21 @@ internal fun HomeMenuSheet(
     onOpenReview: () -> Unit,
     onOpenShareCard: () -> Unit,
     onOpenAchievements: () -> Unit,
-    onOpenSettings: () -> Unit,
     onEditHome: () -> Unit,
-    onReadMessagesAgain: () -> Unit
+    onReadAgain: () -> Unit,
 ) {
-    // The screen's context, read outside the sheet's own window.
-    val context = LocalContext.current
+    val rows = listOf(
+        // The status pill only shows news, and the floating bar's dock holds Add: a manual re-read lives here.
+        Triple(R.string.home_resync_title, Icons.Default.Sync, onReadAgain),
+        // Reorder / hide Home sections (#770).
+        Triple(R.string.home_menu_edit_home, Icons.Default.Tune, onEditHome),
+        Triple(R.string.insights_title, Icons.Default.Insights, onOpenInsights),
+        // Week, cycle and year reviews, whatever the Home banner is offering.
+        Triple(R.string.review_title, Icons.Default.DateRange, onOpenReview),
+        // The share card, and the achievements that feed it.
+        Triple(R.string.home_menu_share_card, Icons.Default.Share, onOpenShareCard),
+        Triple(R.string.achievements_title, Icons.Default.EmojiEvents, onOpenAchievements),
+    )
     ModalBottomSheet(
         onDismissRequest = { onDismiss() },
         sheetState = sheetState,
@@ -76,7 +84,6 @@ internal fun HomeMenuSheet(
                 .padding(bottom = Spacing.xl),
             verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)
         ) {
-            // Title
             Text(
                 text = stringResource(R.string.home_menu_title),
                 style = MaterialTheme.typography.titleMedium,
@@ -85,138 +92,15 @@ internal fun HomeMenuSheet(
                     .padding(bottom = Spacing.sm)
                     .fillMaxWidth()
             )
-
-            // Insights (Top) — what needs attention this cycle.
-            MenuListItem(
-                headline = stringResource(R.string.insights_title),
-                icon = { Icon(Icons.Default.Insights, contentDescription = null) },
-                position = ListItemPosition.Top,
-                onClick = {
-                    onDismiss()
-                    onOpenInsights()
-                }
-            )
-
-            // Reviews (Middle) — week, cycle and year, whatever the Home banner is offering.
-            MenuListItem(
-                headline = stringResource(R.string.review_title),
-                icon = { Icon(Icons.Default.DateRange, contentDescription = null) },
-                position = ListItemPosition.Middle,
-                onClick = {
-                    onDismiss()
-                    onOpenReview()
-                }
-            )
-
-            // Achievements (Middle) — beside the share card, which they feed.
-            MenuListItem(
-                headline = stringResource(R.string.achievements_title),
-                icon = { Icon(Icons.Default.EmojiEvents, contentDescription = null) },
-                position = ListItemPosition.Middle,
-                onClick = {
-                    onDismiss()
-                    onOpenAchievements()
-                }
-            )
-
-            // Share card (Middle) — the growth loop lives here rather than buried
-            // in the Subscriptions screen, where nobody would find it.
-            MenuListItem(
-                headline = stringResource(R.string.home_menu_share_card),
-                icon = { Icon(Icons.Default.Share, contentDescription = null) },
-                position = ListItemPosition.Middle,
-                onClick = {
-                    onDismiss()
-                    onOpenShareCard()
-                }
-            )
-
-            // Settings (Middle)
-            MenuListItem(
-                headline = stringResource(R.string.home_menu_settings),
-                icon = { Icon(Icons.Default.Settings, contentDescription = null) },
-                position = ListItemPosition.Middle,
-                onClick = {
-                    onDismiss()
-                    onOpenSettings()
-                }
-            )
-
-            // Edit home screen (Middle) — reorder / hide Home sections (#770)
-            MenuListItem(
-                headline = stringResource(R.string.home_menu_edit_home),
-                icon = { Icon(Icons.Default.Tune, contentDescription = null) },
-                position = ListItemPosition.Middle,
-                onClick = {
-                    onDismiss()
-                    onEditHome()
-                }
-            )
-
-            // Read messages again (Middle) — the full resync otherwise
-            // hides behind a long-press on Sync.
-            MenuListItem(
-                headline = stringResource(R.string.home_resync_title),
-                icon = { Icon(Icons.Default.Sync, contentDescription = null) },
-                position = ListItemPosition.Middle,
-                onClick = {
-                    onDismiss()
-                    onReadMessagesAgain()
-                }
-            )
-
-            // Join Discord (Middle)
-            MenuListItem(
-                headline = stringResource(R.string.home_menu_discord),
-                icon = {
-                    Icon(
-                        painter = painterResource(id = R.drawable.ic_discord),
-                        contentDescription = null,
-                        modifier = Modifier.size(Dimensions.Icon.medium)
-                    )
-                },
-                position = ListItemPosition.Middle,
-                onClick = {
-                    onDismiss()
-                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(Constants.Links.DISCORD_URL))
-                    context.startActivity(intent)
-                }
-            )
-
-            // Rate on Play Store (Bottom)
-            MenuListItem(
-                headline = stringResource(R.string.home_menu_rate),
-                icon = { Icon(Icons.Default.Star, contentDescription = null) },
-                position = ListItemPosition.Bottom,
-                onClick = {
-                    onDismiss()
-                    try {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("market://details?id=${context.packageName}"))
-                        context.startActivity(intent)
-                    } catch (_: android.content.ActivityNotFoundException) {
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse("https://play.google.com/store/apps/details?id=${context.packageName}"))
-                        context.startActivity(intent)
+            rows.forEachIndexed { i, (label, icon, action) ->
+                MenuListItem(
+                    headline = stringResource(label),
+                    icon = icon,
+                    position = ListItemPosition.from(i, rows.size),
+                    onClick = {
+                        onDismiss()
+                        action()
                     }
-                }
-            )
-
-            Spacer(modifier = Modifier.height(Spacing.sm))
-
-            // Version footer
-            val versionName = remember {
-                try {
-                    context.packageManager.getPackageInfo(context.packageName, 0).versionName
-                } catch (_: Exception) {
-                    null
-                }
-            }
-            versionName?.let {
-                Text(
-                    text = stringResource(R.string.home_version, it),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.fillMaxWidth(),
-                    textAlign = TextAlign.Center
                 )
             }
         }
@@ -231,7 +115,7 @@ internal fun HomeMenuSheet(
 @Composable
 private fun MenuListItem(
     headline: String,
-    icon: @Composable () -> Unit,
+    icon: ImageVector,
     position: ListItemPosition,
     onClick: () -> Unit,
 ) {
@@ -241,31 +125,35 @@ private fun MenuListItem(
         modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
         horizontalArrangement = Arrangement.spacedBy(Spacing.smd)
     ) {
-        CompositionLocalProvider(
-            LocalContentColor provides MaterialTheme.colorScheme.secondary
-        ) { icon() }
-        Text(
-            text = headline,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface
+        // Chrome, not data: the neutral circle Settings rows use.
+        IconTile(
+            icon = icon,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            size = Dimensions.Icon.list,
+            glyphSize = Dimensions.Icon.inline
         )
+        RowLabels(title = headline)
     }
 }
 
 /**
- * Edit home screen: reorder and hide Home sections (#770). Rows reorder by dragging
+ * Edit home screen: reorder and hide Home sections (#770), then pick what the
+ * shortcut row holds. Rows reorder by dragging
  * their handle; the order lives locally while the finger is down and is saved once
  * on release, so DataStore emissions can't yank the row mid-drag. TalkBack users get
  * "Move up / down" custom actions instead.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 internal fun EditHomeSectionsSheet(
     homeSectionLayout: List<Pair<HomeSection, Boolean>>,
     onDismiss: () -> Unit,
     onMoveSection: (HomeSection, Int) -> Unit,
     onReorderSections: (List<HomeSection>) -> Unit,
-    onSetSectionVisible: (HomeSection, Boolean) -> Unit
+    onSetSectionVisible: (HomeSection, Boolean) -> Unit,
+    shortcuts: List<HomeShortcut>,
+    onToggleShortcut: (HomeShortcut) -> Unit
 ) {
     // One state object for the sheet's lifetime: the handles' pointerInput lambdas
     // capture it once, so it's synced from the saved layout rather than re-keyed.
@@ -310,6 +198,13 @@ internal fun EditHomeSectionsSheet(
                     .padding(bottom = Spacing.sm)
                     .fillMaxWidth()
             )
+            EditHomeShortcuts(
+                shortcuts = shortcuts,
+                onToggle = onToggleShortcut,
+                modifier = Modifier
+                    .padding(horizontal = Dimensions.Padding.content)
+                    .padding(bottom = Spacing.md)
+            )
             items.forEachIndexed { i, (section, isVisible) ->
                 // Keyed so a row keeps its composition (and its in-flight drag) as it moves.
                 key(section) {
@@ -327,13 +222,16 @@ internal fun EditHomeSectionsSheet(
                             .zIndex(if (isDragged) 1f else 0f)
                             .graphicsLayer {
                                 translationY = if (isDragged) dragOffset else 0f
-                                shadowElevation = if (isDragged) 8.dp.toPx() else 0f
+                                shadowElevation = if (isDragged) Dimensions.Elevation.dialog.toPx() else 0f
                                 shape = liftedShape
                                 clip = false
                             },
                         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
                     ) {
-                        Icon(
+                        // Safe to spend is a line in the hero: it shows or hides, it doesn't move.
+                        val movable = section != HomeSection.SAFE_TO_SPEND
+                        if (!movable) Spacer(Modifier.size(Dimensions.Component.minTouchTarget))
+                        if (movable) Icon(
                             Icons.Default.DragIndicator,
                             contentDescription = null,
                             tint = MaterialTheme.colorScheme.onSurfaceVariant,
@@ -398,8 +296,8 @@ internal fun EditHomeSectionsSheet(
                                 .weight(1f)
                                 .semantics {
                                     customActions = listOfNotNull(
-                                        CustomAccessibilityAction(moveUp) { onMoveSection(section, -1); true }.takeIf { i > 0 },
-                                        CustomAccessibilityAction(moveDown) { onMoveSection(section, +1); true }.takeIf { i < items.lastIndex }
+                                        CustomAccessibilityAction(moveUp) { onMoveSection(section, -1); true }.takeIf { movable && i > 0 },
+                                        CustomAccessibilityAction(moveDown) { onMoveSection(section, +1); true }.takeIf { movable && i < items.lastIndex }
                                     )
                                 }
                         )
@@ -414,18 +312,59 @@ internal fun EditHomeSectionsSheet(
     }
 }
 
+/** The shortcut row's picks, in catalogue order; the row shows them in the order picked. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun EditHomeShortcuts(
+    shortcuts: List<HomeShortcut>,
+    onToggle: (HomeShortcut) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    Column(modifier = modifier, verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+        Text(
+            text = stringResource(R.string.home_edit_shortcuts_title),
+            style = MaterialTheme.typography.titleSmall
+        )
+        Text(
+            text = stringResource(R.string.home_edit_shortcuts_description, HomeShortcutLayout.MAX),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        FlowRow(horizontalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+            val full = shortcuts.size >= HomeShortcutLayout.MAX
+            HomeShortcut.entries.forEach { shortcut ->
+                val picked = shortcut in shortcuts
+                FilterChip(
+                    selected = picked,
+                    onClick = { onToggle(shortcut) },
+                    // A full row takes no more until one is taken out.
+                    enabled = picked || !full,
+                    label = { Text(stringResource(shortcut.labelRes())) },
+                    leadingIcon = if (picked) {
+                        { Icon(Icons.Default.Check, contentDescription = null, modifier = Modifier.size(FilterChipDefaults.IconSize)) }
+                    } else {
+                        null
+                    },
+                    shapes = FilterChipDefaults.shapes()
+                )
+            }
+        }
+    }
+}
+
 @StringRes
 private fun HomeSection.titleRes(): Int = when (this) {
     HomeSection.SAFE_TO_SPEND -> R.string.home_section_safe_to_spend
+    HomeSection.SHORTCUTS -> R.string.home_section_shortcuts
     HomeSection.BUDGETS -> R.string.home_section_budgets
     HomeSection.UNSORTED -> R.string.home_section_unsorted
     HomeSection.INSIGHTS -> R.string.home_section_insights
     HomeSection.GOALS -> R.string.home_section_goals
     HomeSection.LOANS -> R.string.home_section_loans
     HomeSection.GROUPS -> R.string.home_section_groups
-    HomeSection.RECENT_TRANSACTIONS -> R.string.home_section_recent_transactions
+    HomeSection.RECENT_TRANSACTIONS -> R.string.home_section_recent
     HomeSection.ACCOUNTS -> R.string.home_section_accounts
-    HomeSection.SUBSCRIPTIONS -> R.string.home_section_subscriptions
+    HomeSection.SUBSCRIPTIONS -> R.string.home_section_coming_up
     HomeSection.MONEY_IN_MOTION -> R.string.home_section_money_in_motion
     HomeSection.ACTIVITY -> R.string.home_section_activity
 }

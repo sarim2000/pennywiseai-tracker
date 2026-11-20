@@ -95,13 +95,11 @@
     <string name="settings_folder_backup_subtitle_enabled">Tägliches Backup um 2:00 Uhr in den ausgewählten Ordner</string>
     <string name="settings_folder_backup_subtitle_pro">Pro · Backup jeden Tag um 2:00 Uhr in einem Ordner speichern</string>
     <string name="settings_folder_backup_subtitle_disabled">Backup jeden Tag um 2:00 Uhr in einem Ordner speichern</string>
-    <string name="settings_export_include_receipts_title">Belegfotos einschließen</string>
-    <string name="settings_export_include_receipts_subtitle">Angehängte Belegfotos in exportierte Backups aufnehmen (größere Datei)</string>
-    <string name="settings_folder_backup_include_receipts_title">Belegfotos in automatische Backups aufnehmen</string>
     <string name="settings_folder_backup_include_receipts_subtitle">Macht jedes tägliche Backup größer</string>
     <string name="settings_backup_now_title">Jetzt sichern</string>
     <!-- %1$s = date and time of the last backup -->
     <string name="settings_backup_now_last_backup">Letzte Sicherung: %1$s</string>
+    <!-- %1$s = date and time of the last backup, %2$d = PDF receipts it left out -->
     <string name="settings_backup_now_subtitle">Jetzt ein Backup in Ihren Ordner starten</string>
     <string name="settings_change_backup_folder_title">Backup-Ordner ändern</string>
     <string name="settings_change_backup_folder_subtitle">Wähle einen anderen Ordner für automatische Sicherungen</string>

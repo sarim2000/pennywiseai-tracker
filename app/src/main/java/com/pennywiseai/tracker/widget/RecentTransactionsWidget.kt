@@ -48,6 +48,7 @@ import com.pennywiseai.tracker.receiver.SmsBroadcastReceiver
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.Typography
+import com.pennywiseai.tracker.ui.theme.bestInk
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.withTimeoutOrNull
 
@@ -159,7 +160,7 @@ class RecentTransactionsWidget : GlanceAppWidget() {
 
     /**
      * The category at a glance, as the app's list draws it: a solid circle in
-     * its color with a white glyph, which stays legible for a near-black
+     * its color with a black or white glyph, which stays legible for a near-black
      * category on the dark theme where a tint of it vanished.
      */
     @Composable
@@ -176,7 +177,7 @@ class RecentTransactionsWidget : GlanceAppWidget() {
                 text = item.badge,
                 maxLines = 1,
                 style = TextStyle(
-                    color = if (color != null) ColorProvider(Color.White) else GlanceTheme.colors.onSurfaceVariant,
+                    color = if (color != null) ColorProvider(color.bestInk()) else GlanceTheme.colors.onSurfaceVariant,
                     fontSize = Typography.titleMedium.fontSize,
                     fontWeight = FontWeight.Medium
                 )

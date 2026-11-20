@@ -7,13 +7,11 @@ import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.core.MutableTransitionState
 import androidx.compose.animation.fadeIn
 import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.defaultMinSize
 import androidx.compose.foundation.layout.fillMaxHeight
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -28,7 +26,6 @@ import androidx.compose.material.icons.filled.Share
 import androidx.compose.material.icons.outlined.PictureAsPdf
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
@@ -74,6 +71,9 @@ import com.pennywiseai.tracker.ui.components.CategoryIcon
 import com.pennywiseai.tracker.ui.components.ConnectedChoiceRow
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
 import com.pennywiseai.tracker.ui.components.PeriodSwitcher
+import com.pennywiseai.tracker.ui.components.cards.GroupedList
+import com.pennywiseai.tracker.ui.components.cards.GroupedRow
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.comparisonTarget
 import com.pennywiseai.tracker.ui.components.periodLabel
@@ -322,21 +322,24 @@ private fun CurrencyReviewCard(
             )
         }
 
-        if (review.months.isNotEmpty()) {
-            HorizontalDivider(Modifier.padding(vertical = Spacing.md))
+        if (review.months.isNotEmpty() && !AmountPrivacy.hidden) {
             MonthBars(review)
         }
 
         if (review.categories.isNotEmpty()) {
-            HorizontalDivider(Modifier.padding(vertical = Spacing.md))
             val showsChange = review.showsCategoryChange(range.kind)
             Text(
                 text = stringResource(if (showsChange) R.string.review_categories_changed else R.string.review_categories_top),
                 style = MaterialTheme.typography.titleSmall,
-                modifier = Modifier.semantics { heading() },
+                modifier = Modifier.padding(top = Spacing.lg, bottom = Spacing.sm).semantics { heading() },
             )
-            review.categories.take(REVIEW_CATEGORY_LINES).forEach { line ->
-                CategoryRow(line, review.currency, showsChange) { onOpenCategory(line.name) }
+            val lines = review.categories.take(REVIEW_CATEGORY_LINES)
+            GroupedList {
+                lines.forEachIndexed { index, line ->
+                    CategoryRow(line, ListItemPosition.from(index, lines.size), review.currency, showsChange) {
+                        onOpenCategory(line.name)
+                    }
+                }
             }
         }
     }
@@ -355,33 +358,33 @@ private fun Figure(label: String, value: String, modifier: Modifier = Modifier) 
 }
 
 @Composable
-private fun CategoryRow(line: CategoryLine, currency: String, showsChange: Boolean, onClick: () -> Unit) {
-    Row(
-        modifier = Modifier
-            .fillMaxWidth()
-            .defaultMinSize(minHeight = Dimensions.Component.minTouchTarget)
-            .clickable(onClick = onClick)
-            .padding(vertical = Spacing.sm),
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.spacedBy(Spacing.smd),
+private fun CategoryRow(
+    line: CategoryLine,
+    position: ListItemPosition,
+    currency: String,
+    showsChange: Boolean,
+    onClick: () -> Unit
+) {
+    GroupedRow(
+        position = position,
+        onClick = onClick,
+        containerColor = MaterialTheme.colorScheme.surfaceContainerHigh,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.smd)
     ) {
-        // The row's text already says the name; TalkBack shouldn't read it twice.
-        CategoryIcon(category = line.name, size = Dimensions.Icon.medium, modifier = Modifier.clearAndSetSemantics {})
-        Text(
-            text = categoryLabel(line.name),
-            style = PennyWiseText.rowTitle,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis,
-            modifier = Modifier.weight(1f),
+        CategoryIcon(
+            category = line.name,
+            size = Dimensions.Icon.medium,
+            modifier = Modifier.clearAndSetSemantics {}
         )
-        Column(horizontalAlignment = Alignment.End) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(text = categoryLabel(line.name), style = PennyWiseText.rowTitle)
             Text(text = CurrencyFormatter.formatCurrency(line.amount, currency), style = PennyWiseText.amountRow)
             val delta = line.amount - (line.previous ?: line.amount)
-            if (showsChange && delta.signum() != 0) {
+            if (showsChange && !AmountPrivacy.hidden && delta.signum() != 0) {
                 Text(
                     text = Money(delta.abs(), currency).format(if (delta.signum() > 0) "+" else "−"),
                     style = PennyWiseText.amountSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
             }
         }
@@ -395,7 +398,7 @@ private fun MonthBars(review: CurrencyReview) {
     Text(
         text = stringResource(R.string.review_by_month),
         style = MaterialTheme.typography.titleSmall,
-        modifier = Modifier.semantics { heading() },
+        modifier = Modifier.padding(top = Spacing.lg).semantics { heading() },
     )
     Row(
         modifier = Modifier
@@ -425,7 +428,7 @@ private fun MonthBars(review: CurrencyReview) {
                             .fillMaxHeight(fraction.coerceAtLeast(MIN_BAR_FRACTION))
                             .background(
                                 MaterialTheme.colorScheme.primary,
-                                MaterialTheme.shapes.extraSmall,
+                                MaterialTheme.shapes.small,
                             ),
                     )
                 }

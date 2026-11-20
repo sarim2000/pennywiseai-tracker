@@ -56,7 +56,8 @@ enum class ListItemPosition {
 @Composable
 fun ListItemPosition.toShape(): CornerBasedShape {
     val outer = MaterialTheme.shapes.large
-    val inner = MaterialTheme.shapes.extraSmall
+    // Interior joins at 8dp, not the M3 segmented 4dp: no near-square corners anywhere in the app.
+    val inner = MaterialTheme.shapes.small
 
     return when (this) {
         ListItemPosition.Top -> outer.copy(
@@ -90,6 +91,8 @@ fun ListItemCardV2(
     amount: String,
     modifier: Modifier = Modifier,
     amountColor: Color = MaterialTheme.colorScheme.onSurface,
+    /** The metadata line's colour; a row that needs attention passes an accent role. */
+    subtitleColor: Color = MaterialTheme.colorScheme.onSurfaceVariant,
     leadingContent: @Composable (() -> Unit)? = null,
     trailingContent: @Composable (() -> Unit)? = null,
     shape: CornerBasedShape = MaterialTheme.shapes.large,
@@ -127,7 +130,7 @@ fun ListItemCardV2(
                     Text(
                         text = subtitle,
                         style = PennyWiseText.metadata,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = subtitleColor,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )

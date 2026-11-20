@@ -11,11 +11,14 @@ import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
 import com.pennywiseai.tracker.domain.insights.Insight
 import com.pennywiseai.tracker.domain.insights.InsightAction
 import com.pennywiseai.tracker.domain.insights.InsightFact
+import com.pennywiseai.tracker.domain.spending.Runway
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.bidiIsolate
+import java.math.BigDecimal
+import java.text.NumberFormat
 import java.time.LocalDate
 
 /**
@@ -114,6 +117,15 @@ internal fun insightText(insight: Insight): InsightText = when (val f = insight.
             stringResource(R.string.insights_metric_limit) to f.limit.format(),
         ),
     )
+    is InsightFact.MoneyLasts -> InsightText(
+        title = stringResource(R.string.insights_runway_title, runwayLength(f.months, f.lowConfidence)),
+        body = stringResource(R.string.insights_runway_good_body, Runway.TARGET_MONTHS),
+        metrics = listOf(
+            stringResource(R.string.insights_metric_held) to f.balance.format(),
+            stringResource(R.string.insights_metric_usual_month) to f.monthlySpend.format(),
+        ),
+        note = stringResource(R.string.insights_runway_estimate).takeIf { f.lowConfidence },
+    )
     is InsightFact.BillsDue -> InsightText(
         title = pluralStringResource(R.plurals.insights_bills_title, f.withinDays, f.total.format(), f.withinDays),
         body = ListFormatter.getInstance(LocalConfiguration.current.locales[0]).format(f.names.map { merchant(it) })
@@ -136,6 +148,7 @@ internal fun actionLabel(action: InsightAction): String = stringResource(
         is InsightAction.OpenTransaction -> R.string.insights_action_transaction
         is InsightAction.OpenAccount -> R.string.insights_action_account
         InsightAction.OpenSubscriptions -> R.string.insights_action_subscriptions
+        InsightAction.OpenAccounts -> R.string.insights_action_accounts
     }
 )
 
@@ -143,6 +156,39 @@ internal fun actionLabel(action: InsightAction): String = stringResource(
 @Composable
 internal fun percent(value: Int): String =
     if (AmountPrivacy.hidden) AmountPrivacy.MASK else stringResource(R.string.insights_percent, value)
+
+/**
+ * "2.4 months", "1 month", "under a month". Months say how two amounts relate, so
+ * they hide with them.
+ */
+@Composable
+internal fun months(value: BigDecimal): String {
+    if (AmountPrivacy.hidden) return AmountPrivacy.MASK
+    if (value < BigDecimal.ONE) return stringResource(R.string.insights_months_under_one)
+    val number = NumberFormat.getNumberInstance(LocalConfiguration.current.locales[0])
+        .apply { maximumFractionDigits = 1 }
+        .format(value)
+    val whole = value.stripTrailingZeros().scale() <= 0
+    return if (whole) pluralStringResource(R.plurals.insights_months, value.toInt(), number)
+    else stringResource(R.string.insights_months_decimal, number)
+}
+
+/**
+ * [months], qualified when some balances were left out of it ([lowConfidence]): "about
+ * 6.5 months", or "under a month, from the balances known", since unknown accounts may hold more.
+ */
+@Composable
+internal fun runwayLength(value: BigDecimal, lowConfidence: Boolean): String {
+    if (lowConfidence && !AmountPrivacy.hidden && value < BigDecimal.ONE) {
+        return stringResource(R.string.insights_months_under_one_partial)
+    }
+    val lasts = months(value)
+    return if (lowConfidence && !AmountPrivacy.hidden) {
+        stringResource(R.string.insights_runway_about, lasts)
+    } else {
+        lasts
+    }
+}
 
 /**
  * "4×" says how two amounts relate, so it hides with them too. A plural, since

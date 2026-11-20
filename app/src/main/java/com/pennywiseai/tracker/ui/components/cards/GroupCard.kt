@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.foundation.shape.CornerBasedShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.outlined.FolderOpen
 import androidx.compose.material3.Icon
@@ -37,7 +38,9 @@ fun GroupCard(
     convertedAmounts: Map<Long, BigDecimal> = emptyMap(),
     displayCurrency: String? = null,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /** A row's place in a grouped list (Home's Recent); a lone card by default. */
+    shape: CornerBasedShape = MaterialTheme.shapes.large,
 ) {
     val view = LocalView.current
 
@@ -82,6 +85,7 @@ fun GroupCard(
         subtitle = subtitle,
         amount = formattedAmount,
         amountColor = amountColor,
+        shape = shape,
         onClick = {
             view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
             onClick()

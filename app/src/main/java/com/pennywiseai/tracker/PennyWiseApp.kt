@@ -30,12 +30,15 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation3.runtime.NavKey
 import androidx.navigation3.runtime.rememberNavBackStack
 import com.pennywiseai.tracker.navigation.AppLock
+import com.pennywiseai.tracker.navigation.BudgetGroups
 import com.pennywiseai.tracker.navigation.Home
 import com.pennywiseai.tracker.navigation.OnBoarding
 import com.pennywiseai.tracker.navigation.PennyWiseNavHost
+import com.pennywiseai.tracker.navigation.Plan
 import com.pennywiseai.tracker.navigation.navigate
 import com.pennywiseai.tracker.presentation.applock.AppLockViewModel
 import com.pennywiseai.tracker.ui.ShakeToHideAmounts
+import com.pennywiseai.tracker.ui.components.AmountBarScreenHost
 import com.pennywiseai.tracker.ui.theme.PennyWiseTheme
 import com.pennywiseai.tracker.ui.viewmodel.ThemeViewModel
 import com.pennywiseai.tracker.widget.WidgetRefresher
@@ -161,6 +164,7 @@ fun PennyWiseApp(
         backStack.add(com.pennywiseai.tracker.navigation.AddTransaction(sharedText = text))
         onSharedTextHandled?.invoke()
     }
+    var widgetPlan by remember { mutableStateOf<Plan?>(null) }
     NavigateWhenUnlocked(
         request = widgetDestination,
         onboarded = themeUiState.hasCompletedOnboarding,
@@ -169,13 +173,20 @@ fun PennyWiseApp(
         refreshLock = actualAppLockViewModel::refreshLockState,
         showLockScreen = showLockScreen,
     ) { destination ->
+        if (destination is Plan && backStack.lastOrNull() == Home) {
+            widgetPlan = destination.copy(request = System.nanoTime())
+            onWidgetDestinationHandled?.invoke()
+            return@NavigateWhenUnlocked
+        }
+        // A widget opened over an editor leaves the editor on the back stack.
+        val target = if (destination is Plan) BudgetGroups() else destination
         // Replace the same kind of screen only when it's on top, so a repeated "+"
         // starts New goal again; anything under it (an unsaved edit) stays.
         val top = backStack.lastOrNull()
-        if (top != null && top::class == destination::class) {
-            backStack[backStack.lastIndex] = destination
+        if (top != null && top::class == target::class) {
+            backStack[backStack.lastIndex] = target
         } else {
-            backStack.add(destination)
+            backStack.add(target)
         }
         onWidgetDestinationHandled?.invoke()
     }
@@ -249,12 +260,17 @@ fun PennyWiseApp(
         redSpending = themeUiState.redSpending
     ) {
         Box(Modifier.fillMaxSize()) {
-            PennyWiseNavHost(
-                backStack = backStack,
-                // Out of the accessibility tree too, or TalkBack reads what the cover hides.
-                modifier = if (covered) Modifier.clearAndSetSemantics { } else Modifier,
-                onEditComplete = onEditComplete ?: {}
-            )
+            // + − × ÷ = on the keyboard for every amount field on a screen.
+            AmountBarScreenHost {
+                PennyWiseNavHost(
+                    backStack = backStack,
+                    // Out of the accessibility tree too, or TalkBack reads what the cover hides.
+                    modifier = if (covered) Modifier.clearAndSetSemantics { } else Modifier,
+                    onEditComplete = onEditComplete ?: {},
+                    widgetPlan = widgetPlan,
+                    onWidgetPlanHandled = { widgetPlan = null }
+                )
+            }
             if (covered) {
                 Box(
                     Modifier

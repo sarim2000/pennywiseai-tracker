@@ -131,7 +131,6 @@
     <string name="txn_detail_label_reference">Артикул</string>
     <string name="txn_detail_receipt">Квитанция</string>
     <string name="txn_detail_receipt_tap_to_view">Нажмите для просмотра</string>
-    <string name="txn_detail_receipt_missing">Фото чека не входит в эту резервную копию</string>
     <string name="txn_detail_sms_hide">Скрыть СМС</string>
     <string name="txn_detail_sms_show">Показать оригинальные SMS</string>
     <string name="txn_detail_field_amount">Сумма</string>
@@ -233,7 +232,6 @@
     <string name="txn_list_filter_account">Счет</string>
     <string name="txn_list_filter_category">Категория</string>
     <string name="txn_list_filters">Фильтры</string>
-    <string name="txn_list_filters_two">2 фильтра</string>
     <string name="txn_list_categories_all_except">Все кроме %1$s</string>
     <plurals name="txn_list_categories_count">
         <item quantity="one">Категория %1$d</item>

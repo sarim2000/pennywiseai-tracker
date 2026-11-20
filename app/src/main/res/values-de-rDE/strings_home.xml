@@ -3,7 +3,6 @@
     <!-- ══ Home screen ══ -->
     <string name="home_transaction_deleted">Transaktion gelöscht</string>
     <string name="home_undo">Rückgängig</string>
-    <string name="home_upgrade_pro">Upgrade auf PennyWise Pro</string>
     <string name="home_profile_filter">Profilfilter</string>
     <string name="home_more_options">Weitere Optionen</string>
     <string name="home_view_all">Alle anzeigen</string>
@@ -11,15 +10,12 @@
     <string name="home_manage">Verwalten</string>
     <string name="home_search_transactions">Transaktionen durchsuchen</string>
     <string name="home_cancel">Abbrechen</string>
-    <string name="home_close">Schließen</string>
     <!-- Home sections (headers + edit-home sheet) -->
     <string name="home_section_budgets">Budget</string>
     <string name="home_section_goals">Ziele</string>
     <string name="home_section_loans">Darlehen</string>
     <string name="home_section_groups">Gruppen</string>
-    <string name="home_section_recent_transactions">Letzte Transaktionen</string>
     <string name="home_section_accounts">Bankkonten</string>
-    <string name="home_section_subscriptions">Nächste Abonnements</string>
     <string name="home_section_activity">Aktivität</string>
     <!-- Empty state -->
     <string name="home_empty_headline">Noch keine Transaktionen</string>
@@ -36,24 +32,14 @@
     <string name="home_resync_rebuild_desc">Liest SMS-Transaktionen neu ein, um Verbesserungen der Erkennung zu übernehmen. Änderungen an SMS-Transaktionen werden zurückgesetzt. Manuelle, importierte, Darlehens- und gruppierte Transaktionen bleiben erhalten.</string>
     <!-- More options sheet -->
     <string name="home_menu_title">Weitere Optionen</string>
-    <string name="home_menu_settings">Einstellungen</string>
     <string name="home_menu_edit_home">Homescreen bearbeiten</string>
     <string name="home_menu_discord">Trete Discord bei für Feedback</string>
     <string name="home_menu_rate">Im Play Store bewerten</string>
-    <string name="home_version">v%1$s</string>
     <!-- Edit home screen sheet -->
     <string name="home_edit_title">Homescreen bearbeiten</string>
     <string name="home_edit_description">Sektionen auf dem Startbildschirm neu anordnen oder ausblenden.</string>
     <string name="home_edit_move_up">Bewege %1$s nach oben</string>
     <string name="home_edit_move_down">Bewege %1$s nach unten</string>
-    <!-- Calculation breakdown dialog -->
-    <string name="home_breakdown_title">Berechnungsaufteilung</string>
-    <!-- Month name, then day range, e.g. "March 1-15" -->
-    <string name="home_breakdown_period">%1$s 1-%2$d</string>
-    <string name="home_breakdown_formula">Formel: Einkommen - Ausgaben = Nettowert\nGrün (+) = Einsparungen | Rot (-) = Überausgaben</string>
-    <string name="home_breakdown_income">Einkommen</string>
-    <string name="home_breakdown_expenses">Ausgaben</string>
-    <string name="home_breakdown_net_worth">Nettowert</string>
     <!-- Subscriptions + loans summary cards -->
     <plurals name="home_active_subscriptions">
         <item quantity="one">%1$d aktives Abonnement</item>
@@ -67,11 +53,6 @@
     <string name="home_loans_owed_to_you">%1$s schuldet dir</string>
     <string name="home_loans_you_owe">Du schuldest %1$s</string>
     <!-- ══ Greeting card (home header) ══ -->
-    <string name="greeting_last_day_of_month">Letzter Tag von %1$s</string>
-    <plurals name="greeting_days_left_in_month">
-        <item quantity="one">%1$d Tag übrig in %2$s</item>
-        <item quantity="other">%1$d Tage übrig in %2$s</item>
-    </plurals>
     <string name="greeting_good_morning">Guten Morgen</string>
     <string name="greeting_good_afternoon">Guten Nachmittag</string>
     <string name="greeting_good_evening">Guten Abend</string>
@@ -82,8 +63,8 @@
     <!-- ══ Bottom navigation ══ -->
     <string name="nav_home">Startseite</string>
     <string name="nav_transactions">Zeitleiste</string>
-    <string name="nav_analytics">Analytik</string>
-    <string name="nav_chat">Chat</string>
+    <string name="nav_analytics">Einblicke</string>
+    <string name="nav_chat">Fragen</string>
     <!-- ══ Shared components ══ -->
     <string name="expandable_list_view_less">Weniger anzeigen</string>
     <string name="expandable_list_view_all_more">Alle anzeigen (%1$d mehr)</string>

@@ -1,11 +1,10 @@
 package com.pennywiseai.tracker.ui.components
 
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Check
@@ -17,16 +16,19 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
+import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.ui.icons.categoryLabel
+import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
 import com.pennywiseai.tracker.ui.theme.Dimensions
-import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
+import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
-import com.pennywiseai.tracker.ui.icons.categoryLabel
 
 data class SplitItem(
     val id: Long = 0,
@@ -230,16 +232,15 @@ private fun SplitRow(
             modifier = Modifier.fillMaxWidth()
         ) {
             TextField(
-                value = categoryLabel(split.category),
-                onValueChange = {},
+                state = rememberSyncedTextFieldState(categoryLabel(split.category)) {},
                 readOnly = true,
-                singleLine = true,
+                lineLimits = TextFieldLineLimits.SingleLine,
                 modifier = Modifier
                     .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
                     .fillMaxWidth(),
                 textStyle = MaterialTheme.typography.bodyMedium,
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                shape = MaterialTheme.shapes.medium,
+                shape = RoundedField.shape,
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                     unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -249,6 +250,7 @@ private fun SplitRow(
             )
 
             ExposedDropdownMenu(
+                shape = MaterialTheme.shapes.large,
                 expanded = expanded,
                 onDismissRequest = { expanded = false }
             ) {
@@ -276,9 +278,9 @@ private fun SplitRow(
             verticalAlignment = Alignment.CenterVertically
         ) {
             // Amount field
-            TextField(
-                value = amountText,
-                onValueChange = { newValue ->
+            val amount = rememberAmountEntry(
+                amountText,
+                { newValue ->
                     val filtered = newValue.filter { it.isDigit() || it == '.' }
                     if (filtered.count { it == '.' } <= 1) {
                         amountText = filtered
@@ -286,8 +288,16 @@ private fun SplitRow(
                         onAmountChanged(parsedAmount)
                     }
                 },
-                singleLine = true,
-                modifier = Modifier.weight(1f),
+                currency
+            )
+            val amountSum = amount.sumHint
+            TextField(
+                state = amount.state,
+                inputTransformation = amount.inputTransformation,
+                isError = amountSum?.isError == true,
+                supportingText = amountSum.orSupporting(),
+                lineLimits = TextFieldLineLimits.SingleLine,
+                modifier = Modifier.weight(1f).then(amount.modifier),
                 textStyle = MaterialTheme.typography.bodyMedium,
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                 prefix = {
@@ -296,7 +306,7 @@ private fun SplitRow(
                         style = MaterialTheme.typography.bodyMedium
                     )
                 },
-                shape = MaterialTheme.shapes.medium,
+                shape = RoundedField.shape,
                 colors = TextFieldDefaults.colors(
                     focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                     unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,

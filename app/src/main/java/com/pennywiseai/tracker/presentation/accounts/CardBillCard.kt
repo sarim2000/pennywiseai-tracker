@@ -6,7 +6,11 @@ import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.InputTransformation
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
@@ -29,9 +33,16 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.domain.spending.CardBillStatus
+import com.pennywiseai.tracker.ui.components.AmountBarDialogHost
+import com.pennywiseai.tracker.ui.components.RoundedField
+import com.pennywiseai.tracker.ui.components.cards.IconTile
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.SHORT_DATE
+import com.pennywiseai.tracker.ui.components.orSupporting
+import com.pennywiseai.tracker.ui.components.rememberAmountEntry
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
@@ -52,20 +63,30 @@ fun CardBillCard(
     val bill = status.bill
     val today = LocalDate.now()
 
+    val overdue = bill?.isOverdue(today) == true
     PennyWiseCardV2(
         modifier = Modifier.fillMaxWidth(),
+        shape = MaterialTheme.shapes.extraLarge,
         contentPadding = Spacing.md,
         onClick = { editing = true }
     ) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+        ) {
+            // An overdue bill says so in colour before the words are read.
+            IconTile(
+                icon = Icons.AutoMirrored.Filled.ReceiptLong,
+                containerColor = if (overdue) MaterialTheme.colorScheme.errorContainer else MaterialTheme.colorScheme.secondaryContainer,
+                contentColor = if (overdue) MaterialTheme.colorScheme.onErrorContainer else MaterialTheme.colorScheme.onSecondaryContainer
+            )
             Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
                 Text(
                     text = stringResource(R.string.card_bill_title),
-                    style = MaterialTheme.typography.titleSmall,
+                    style = PennyWiseText.rowTitle,
                     fontWeight = FontWeight.SemiBold,
                     color = MaterialTheme.colorScheme.onSurface
                 )
-                val overdue = bill?.isOverdue(today) == true
                 val entered = card.cardBillAmount != null && card.cardDueDay != null
                 Text(
                     text = when {
@@ -135,6 +156,12 @@ fun CardBillCard(
     }
 }
 
+// Up to two digits; anything else is rejected.
+private val DueDayInput = InputTransformation {
+    val text = asCharSequence()
+    if (text.length > 2 || !text.all(Char::isDigit)) revertAllChanges()
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun CardBillDialog(
@@ -147,12 +174,17 @@ private fun CardBillDialog(
     onClear: () -> Unit
 ) {
     // No day until the user types one: a made-up due day could mark the bill overdue.
-    var dayText by remember { mutableStateOf(dueDay?.toString().orEmpty()) }
+    val dayState = rememberTextFieldState(dueDay?.toString().orEmpty())
+    val dayText = dayState.text.toString()
     val day = dayText.trim().toIntOrNull()?.takeIf { it in 1..31 }
     val dayValid = dayText.isBlank() || day != null
-    var text by remember { mutableStateOf(amount?.toPlainString().orEmpty()) }
+    // Saveable like the day, so a rotation keeps the two together.
+    var text by rememberSaveable { mutableStateOf(amount?.toPlainString().orEmpty()) }
     val parsed = text.trim().toBigDecimalOrNull()
-    val valid = text.isBlank() || (parsed != null && parsed.signum() >= 0)
+    val amountEntry = rememberAmountEntry(text, { text = it }, currency)
+    val amountSum = amountEntry.sumHint
+    // A sum that can't be an amount ("5÷0") isn't a blank one: Save would clear the bill.
+    val valid = (text.isBlank() || (parsed != null && parsed.signum() >= 0)) && amountSum?.isError != true
     var confirmClear by remember { mutableStateOf(false) }
 
     if (confirmClear) {
@@ -182,45 +214,50 @@ private fun CardBillDialog(
         onDismissRequest = onDismiss,
         title = { Text(stringResource(R.string.card_bill_title)) },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
-                OutlinedTextField(
-                    value = dayText,
-                    onValueChange = { if (it.length <= 2 && it.all(Char::isDigit)) dayText = it },
-                    label = { Text(stringResource(R.string.card_bill_due_day_label)) },
-                    supportingText = {
-                        Text(
-                            stringResource(
-                                when {
-                                    !dayValid -> R.string.card_bill_due_day_error
-                                    // Empty is a real state: no due day, so nothing is set aside yet.
-                                    dayText.isBlank() -> R.string.card_bill_due_day_not_set
-                                    else -> R.string.card_bill_due_day_description
-                                }
+            AmountBarDialogHost {
+                Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
+                    OutlinedTextField(
+                        state = dayState,
+                        inputTransformation = DueDayInput,
+                        label = { Text(stringResource(R.string.card_bill_due_day_label)) },
+                        supportingText = {
+                            Text(
+                                stringResource(
+                                    when {
+                                        !dayValid -> R.string.card_bill_due_day_error
+                                        // Empty is a real state: no due day, so nothing is set aside yet.
+                                        dayText.isBlank() -> R.string.card_bill_due_day_not_set
+                                        else -> R.string.card_bill_due_day_description
+                                    }
+                                )
                             )
-                        )
-                    },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    singleLine = true,
-                    isError = !dayValid,
-                    modifier = Modifier.fillMaxWidth()
-                )
-                OutlinedTextField(
-                    value = text,
-                    onValueChange = { text = it },
-                    label = { Text(stringResource(R.string.card_bill_amount_label, currency)) },
-                    supportingText = {
-                        Text(stringResource(if (forNewStatement) R.string.card_bill_amount_new_hint else R.string.card_bill_amount_hint))
-                    },
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    singleLine = true,
-                    isError = !valid,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        lineLimits = TextFieldLineLimits.SingleLine,
+                        isError = !dayValid,
+                        modifier = Modifier.fillMaxWidth(),
+                        shape = RoundedField.shape
+                    )
+                    OutlinedTextField(
+                        state = amountEntry.state,
+                        inputTransformation = amountEntry.inputTransformation,
+                        label = { Text(stringResource(R.string.card_bill_amount_label, currency)) },
+                        supportingText = amountSum.orSupporting {
+                            Text(stringResource(if (forNewStatement) R.string.card_bill_amount_new_hint else R.string.card_bill_amount_hint))
+                        },
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        lineLimits = TextFieldLineLimits.SingleLine,
+                        isError = amountSum?.isError ?: !valid,
+                        modifier = Modifier.fillMaxWidth().then(amountEntry.modifier),
+                        shape = RoundedField.shape
+                    )
+                }
             }
         },
         confirmButton = {
             TextButton(
-                onClick = { onSave(day, parsed) },
+                // Read the fields now, not as last drawn: a Save in the same frame as an edit gets the edit.
+                onClick = withCommittedText { onSave(dayState.text.toString().trim().toIntOrNull()?.takeIf { it in 1..31 }, text.trim().toBigDecimalOrNull()) },
                 enabled = valid && dayValid,
                 shapes = ButtonDefaults.shapes()
             ) { Text(stringResource(R.string.accounts_action_save)) }

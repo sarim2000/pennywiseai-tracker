@@ -43,6 +43,13 @@
         <item quantity="many">%1$d معاملة</item>
         <item quantity="other">%1$d معاملة</item>
     </plurals>
+    <string name="insights_category_share_label">الحصة</string>
+    <string name="insights_category_share_value">%1$d%%</string>
+    <string name="insights_category_count_label">المعاملات</string>
+    <string name="insights_category_average_label">المتوسط</string>
+    <string name="insights_category_top_merchants">أكثر التجار</string>
+    <string name="insights_category_see_transactions">عرض المعاملات</string>
+    <string name="insights_category_focus">عرض هذه الفئة فقط هنا</string>
     <plurals name="analytics_transaction_count_subscription">
         <item quantity="zero">%1$d معاملة • اشتراك</item>
         <item quantity="one">%1$d معاملة • اشتراك</item>

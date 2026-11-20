@@ -295,7 +295,7 @@ class BudgetRolloverRoutingTest {
     }
 
     @Test
-    fun `Home counts a budget's investments as the Budgets screen and its carry do`() {
+    fun `investments count only in a type bucket, on Home as on the Budgets screen and in its carry`() {
         val invested = { amount: String, at: LocalDateTime ->
             spend(amount, at = at, category = "Investments", type = TransactionType.INVESTMENT)
         }
@@ -303,10 +303,11 @@ class BudgetRolloverRoutingTest {
             spend("60", at = lastWeek), invested("30", lastWeek),
             spend("10"), invested("30", today.atTime(9, 0))
         )
-        // Tracking every expense: last week's 90 leaves 10 to carry; 40 spent this week.
+        // Tracking every expense: investments aren't spending, so last week's 60 leaves
+        // 40 to carry; 10 spent this week.
         val trackAll = repository(budget().copy(categories = emptyList()), transactions)
         for (g in listOf(summary(trackAll, unified = false), summary(trackAll, unified = true), home(trackAll))) {
-            assertFigures(g, carry = "10", limit = "110", remaining = "70")
+            assertFigures(g, carry = "40", limit = "140", remaining = "130")
         }
         // A type bucket row counts the investments, on Home too.
         val withBucket = budget().let { group ->

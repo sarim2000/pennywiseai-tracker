@@ -330,7 +330,7 @@ class OnBoardingViewModel @Inject constructor(
             com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
             // Onboarding already scanned: Home's "tap here to scan" hint would teach a step done.
             if (state.scanCompleted) userPreferencesRepository.markScanTutorialShown()
-            userPreferencesRepository.updateHasCompletedOnboarding(true)
+            userPreferencesRepository.updateHasCompletedOnboarding(true, freshInstall = true)
             _uiState.update { it.copy(isCompleting = false) }
             onComplete()
         }

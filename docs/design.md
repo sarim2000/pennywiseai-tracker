@@ -113,13 +113,27 @@ Also here: `progressBarHeight` (8dp — one height for budget, loan and download
 tracks), `legendDot` (10dp), `calendarDot` (6dp), `fab` (56dp), `fabBottomInset`,
 `fabScrollClearance`, `hairline` (0.5dp), `dividerThickness`.
 
-The Floating nav style is a pill of icon-only tabs (`floatingNavHeight` 64dp,
-`floatingNavBottomGap` 12dp above the system bar) with a sliding selected
-indicator (`floatingNavIndicatorWidth` × `floatingNavIndicatorHeight`, a
-`primary` tint at `Alpha.selectedIndicator`). A tab's one primary action docks
-beside it as a 64dp `primary` squircle (`dockedActionCornerRadius` 20dp): the
-screen calls `DockNavAction(...)` when `LocalNavDock.current` is non-null and
+The Floating nav style is a pill of four icon-only tabs — Home · Transactions · Plan ·
+Insights (`floatingNavHeight` 64dp, `floatingNavBottomGap` 12dp above the
+system bar) with a sliding selected indicator (`floatingNavIndicatorWidth` ×
+`floatingNavIndicatorHeight`, solid `primary` under an `onPrimary` icon, so the
+open tab shows at 3:1 or more without relying on a faint tint); a
+long-press names the tab. Ask sits beside the pill as a 64dp `primaryContainer`
+squircle (`dockedActionCornerRadius` 20dp) holding the owl drawn in full
+(`chatDockMascot` 52dp); it rounds into a circle while Ask is open. A tab's one
+primary action stacks above Ask at the end edge as a smaller `primary` squircle
+(`dockedActionSmallSize` 48dp, `dockedActionSmallCornerRadius` 16dp): Home and
+Transactions dock Add, the Plan tab docks Add budget / Add bill / New goal (a section
+with nothing in it yet shows its own create button instead). With Ask hidden, the
+action takes Ask's slot at full size. The screen calls
+`DockNavAction(...)` when `LocalNavDock.current` is non-null and
 drops its own FAB, so the bar and the action never stack over content.
+
+Each tab's own first screen ends its header in the user's avatar, clipped to
+`MaterialShapes.Cookie9Sided` (`TabProfileButton`, fed by `LocalTabProfile`), which
+opens Settings. Pushed screens keep their back arrow instead. It is 40dp (`Icon.avatar`) on
+every tab, Home included, with its margin outside the shape: the title and the avatar both
+sit on the 16dp content margin, and the last action icon's glyph sits 16dp from the avatar.
 
 ### Elevation (`Dimensions.Elevation`)
 
@@ -238,12 +252,21 @@ the jobs the plain roles don't cover:
 
 Reference `MaterialTheme.shapes.*` rather than re-typing
 `RoundedCornerShape(16.dp)`. Cards use `large`; grouped-list interiors use
-`extraSmall`; pill shapes use `CircleShape`.
+`small`; pill shapes use `CircleShape`.
 
 Expressive accents use `MaterialShapes` (opt-in `ExperimentalMaterial3ExpressiveApi`):
 merchant avatars (`BrandIcon`, `LetterAvatar`) and the empty-state badge are
 `MaterialShapes.Cookie9Sided.toShape()`. Keep these to identity/hero glyphs —
-not containers or buttons.
+not containers or buttons. Home's shortcut row is the one deliberate exception:
+each shortcut keeps its own shape as its glyph, the label under it says what it
+opens, and only a queue (Unsorted) carries a count badge. The user picks up to four
+in Edit home; defaults are Unsorted, Search, Review and Calendar, the places that
+take two or more taps otherwise (Coming up already opens Bills).
+
+Home shows one money answer: the hero (what's left, or this month's spending) with
+Safe to spend as a row at its foot. The sections under it are compact rows with one
+amount each (budgets: name, status, what's left; accounts: bank, last 4, balance) and
+share one heading, `HomeSectionHeader` ("See all", or "Manage" for accounts).
 
 ---
 
@@ -322,12 +345,19 @@ handling — no raw `Scaffold`. Pass `title` for its plain top bar, or a
 scaffold also takes `snackbarHost`; tab screens under the overlaid nav bar pad
 it by `Dimensions.Component.bottomBarHeight`.
 
-- `CustomTitleTopAppBar`'s expanded bar is the M3 Expressive
-  `LargeFlexibleTopAppBar`; the collapsed bar is a centred single-row bar.
-  Expanded heights are the `Dimensions.Component.appBarExpandedHeight*` and
-  `homeAppBarExpandedHeight` tokens — no dp literals.
-- Titles use `titleLarge` collapsed and `headlineMediumEmphasized` expanded
+- `CustomTitleTopAppBar`'s expanded bar on a pushed screen (back button) is the
+  M3 Expressive `LargeFlexibleTopAppBar`, with heights from the
+  `Dimensions.Component.appBarExpandedHeight*` tokens. A tab root has no back
+  button, so it gets its own header with no empty top row: optional **overline**,
+  the big title, then the screen's actions and the tab avatar on the same row,
+  starting `appBarTabTopRow` under the status bar. Home puts its greeting there.
+  Both collapse into the same single-row bar.
+- Titles use `titleLarge` collapsed and `headlineLargeEmphasized` expanded
   (one of the emphasized hero moments below).
+- **Overline** (optional): a short label above a tab's title ("November" over
+  "Transactions", "Your spending" over "Insights").
+- Screens sit on the flat `background`. No gradient or cover banner behind a
+  header.
 - **Subtitle** (optional, on `CustomTitleTopAppBar`): one short line of context the
   screen would otherwise lose on scroll — e.g. Transactions shows the active
   period, because its period chip hides when the list scrolls. It shows in
@@ -343,9 +373,15 @@ it by `Dimensions.Component.bottomBarHeight`.
   every currency).
 - **Page / section / dialog loading** → `LoadingIndicator()`. Tiny inline
   spinners inside buttons or rows stay `CircularProgressIndicator`.
-- **Activity progress** (scan, import, export, download) →
-  `LinearWavyProgressIndicator`. **Data meters** (budget used, loan repaid)
-  stay flat `LinearProgressIndicator` — the wave signals *work happening*.
+- **Activity progress** (scan, import, export, download) → the moving,
+  indeterminate or animated `LinearWavyProgressIndicator`. **Data meters**
+  (budget used, goal saved, loan repaid, category share, card utilisation) →
+  `WavyMeter`: a determinate wave that stands still (no travel, no stop dot),
+  `dense = true` in list rows. Glance widgets and tiny goal rings stay flat.
+- **Corners.** No sharp corners: grouped rows join at `shapes.small` (8dp),
+  menus and snackbars use `shapes.large`, filled and outlined text fields use
+  `RoundedField` (all four corners, no underline). Full-bleed bottom sheets keep
+  the library shape (rounded top, flush with the screen edge).
 - Motion comes from `MotionScheme.expressive()` in `PennyWiseTheme`; read
   specs from `MaterialTheme.motionScheme` instead of hand-rolled `tween`s.
   **Spatial** specs (offset, size, scale, rotation) are springs that
@@ -496,9 +532,38 @@ because the same role also renders small labels.
   must carry one, pass it through `readableOn()` against what it sits on.
 - **On a coloured fill**, use the fill's own `on*` role, plus a sign, label or
   icon. Semantic colours on `primaryContainer` & co. are not guaranteed.
+  A whole card of content (Home's hero) wraps itself in
+  `onColoredFill(fill, ink)`: text roles become the ink, `primary` is nudged
+  until it reads there (a Mihon palette can make `primary` the fill itself),
+  `outline` becomes a 3:1 mark. A semantic colour that must keep its hue there
+  goes through `readableOn(listOf(fill), layers = …)`, or with
+  `GRAPHIC_CONTRAST` for a chart line or bar. A meter's track there is the ink
+  at `Alpha.meterTrack`: the surface wash and the card can straddle mid-grey,
+  and then no colour reaches 3:1 on both.
+- **Pressed and focused.** Material's state layer is the content colour at
+  10% (`STATE_LAYER_ALPHA`) over the whole component, text included, so it
+  pulls text and fill together. Text on a clickable card is checked under it
+  (`readableOn(…, layers = listOf(ink.stateLayer()))`). On a mid-tone fill no
+  ink survives it, so the fill makes the room: `clickableFillFor(ink)` nudges
+  the card's colour a touch, hue kept.
+- **Hue is kept.** `readableOn` moves a colour's Oklab lightness and keeps as
+  much chroma as sRGB allows there, so red on a teal card becomes pink, not
+  grey. Text on a mid-tone card still ends near white or black, so a colour
+  that carries meaning there also gets a mark (the hero's trend arrow), which
+  only needs 3:1 and keeps more hue.
+- **A surface wash on a coloured card** (a chip or row at 65% surface) takes
+  the surface's tone, so it takes the surface's ink, not the card's:
+  `onSurfaceWash(fill, cardInk)`. White ink on a teal card is white on pale
+  teal there.
 - **A custom fill** (a semantic or category colour as a background) has no
   `on*` role, so pass `fill.bestInk()` explicitly. `contentColorFor()` can't
   infer one, and black-or-white always clears 4.58:1.
+- **A colour on a wash of itself** (a category glyph or a chip label on its
+  own 12–20% tint) goes through `inkOnWash(color, alpha)`; pass
+  `GRAPHIC_CONTRAST` for an icon. `CategoryIcon(washAlpha = …)` does this for
+  you, and a bare `CategoryIcon` already reaches 3:1 on any surface.
+  `WavyMeter` nudges its colour to 3:1 on its track, so a pale budget or
+  category colour still shows.
 - **Alpha**: check the composited colour, not the base. Never dim
   `onSurfaceVariant` (see Alpha).
 - Hand-built schemes (default, Rosé Pine) go through `withReadableInk()`. It
@@ -514,11 +579,13 @@ because the same role also renders small labels.
 
 ### Guard tests
 
-`SchemeContrastTest` (and `PaletteContrastTest` for the fixed palettes) assert
+`SchemeContrastTest` (and `PaletteContrastTest` for the fixed palettes;
+`ColoredFillContrastTest` for the hero card and its wash) assert
 the floors above for every theme and accent in light, dark and AMOLED: each
 `on*`/fill pair (including inverse), and every text and semantic ink on every
-neutral surface. A new palette or accent that fails can't merge. Dynamic
-(wallpaper) colour can't be unit-tested, so check it on a device.
+neutral surface; the hero also under its press layers. A new palette or
+accent that fails can't merge. Dynamic (wallpaper) colour can't be
+unit-tested, so check it on a device.
 
 ### What colour means
 

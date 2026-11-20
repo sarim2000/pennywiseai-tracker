@@ -13,7 +13,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.style.TextAlign
-import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
 
@@ -41,12 +40,13 @@ fun SummaryCardV2(
         ) {
             // Label first, figure second: the label is the quieter element, so
             // it sits above at label weight while the figure carries the size.
+            // Ink is the card's own on-colour at full opacity: a caller's
+            // secondaryContainer card needs onSecondaryContainer, and any dimming
+            // drops some palettes under 4.5:1.
             Text(
                 text = title,
                 style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.onPrimaryContainer.copy(
-                    alpha = Dimensions.Alpha.subtitle
-                ),
+                color = colors.contentColor,
                 textAlign = TextAlign.Center
             )
             Spacer(modifier = Modifier.height(Spacing.xs))
@@ -61,9 +61,7 @@ fun SummaryCardV2(
                 Text(
                     text = subtitle,
                     style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(
-                        alpha = Dimensions.Alpha.subtitle
-                    ),
+                    color = colors.contentColor,
                     textAlign = TextAlign.Center
                 )
             }

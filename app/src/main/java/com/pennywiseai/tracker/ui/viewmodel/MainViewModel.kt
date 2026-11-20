@@ -51,6 +51,11 @@ class MainViewModel @Inject constructor(
             .map { list -> list.associate { it.merchantName to it.alias } }
             .stateIn(viewModelScope, SharingStarted.Eagerly, emptyMap())
 
+    /** The user's name and picture, for the avatar ending each tab's header. Null until read. */
+    val profile: StateFlow<ProfileLook?> = userPreferencesRepository.userPreferences
+        .map { ProfileLook(it.userName, it.profileImageUri, it.profileBackgroundColor) }
+        .stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
     init {
         checkWhatsNew()
     }
@@ -86,3 +91,6 @@ class MainViewModel @Inject constructor(
         }
     }
 }
+
+/** How the user appears in a tab header's avatar. */
+data class ProfileLook(val name: String, val imageUri: String?, val backgroundColor: Int)

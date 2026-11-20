@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.presentation.home
 import com.pennywiseai.tracker.data.database.entity.BudgetEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
 import com.pennywiseai.tracker.data.database.entity.BudgetImpactType
+import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.repository.BudgetCategorySpending
@@ -13,6 +14,8 @@ import com.pennywiseai.tracker.data.repository.BudgetWindow
 import com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.budgetPercentUsed
 import com.pennywiseai.tracker.data.repository.budgetSpend
+import com.pennywiseai.tracker.domain.spending.SpendForecast
+import com.pennywiseai.tracker.ui.components.cards.HomeHeroBudget
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
@@ -85,8 +88,9 @@ internal suspend fun homeBudgetSummary(
         val isTrackingAll = group.categories.isEmpty()
         val window = raw.currentWindows[group.budget.id]
         // A rollover budget adds up as the Budgets screen and its carry do: over its
-        // window up to today, a parent row counting its sub-categories (#374), type
-        // buckets counted. Other budgets keep Home's own sum.
+        // window up to today, a parent row counting its sub-categories (#374). Other
+        // category budgets keep Home's own sum. A type-bucket row (the Investments
+        // target) reads its bucket either way, as on the Budgets screen and the widget.
         val rollover = group.budget.rolloverEnabled
         val transactions = (if (rollover) raw.currentWindowTransactions(group.budget.id) else null) ?: inWindow(window)
         val (categoryAmounts, categoryLimitBoosts, typeAmounts) = aggregateBudgetCategorySpending(
@@ -98,14 +102,14 @@ internal suspend fun homeBudgetSummary(
         val daysRemaining = daysRemainingFor(group.budget)
         val daysElapsed = daysElapsedFor(group.budget)
         val catSpending = group.categories.map { cat ->
-            val actual = if (rollover && cat.matchType != null) {
+            val actual = if (cat.matchType != null) {
                 typeAmounts[cat.matchType] ?: BigDecimal.ZERO
             } else {
                 categoryAmounts[cat.categoryName] ?: BigDecimal.ZERO
             }
             val convertedBudget = convert(cat.budgetAmount, baseCurrency, displayCurrency) ?: BigDecimal.ZERO
             val effectiveBudget = convertedBudget +
-                (if (rollover && cat.matchType != null) BigDecimal.ZERO else categoryLimitBoosts[cat.categoryName] ?: BigDecimal.ZERO)
+                (if (cat.matchType != null) BigDecimal.ZERO else categoryLimitBoosts[cat.categoryName] ?: BigDecimal.ZERO)
             val pctUsed = if (effectiveBudget > BigDecimal.ZERO) {
                 (actual.toFloat() / effectiveBudget.toFloat() * 100f).coerceAtLeast(0f)
             } else 0f
@@ -135,9 +139,9 @@ internal suspend fun homeBudgetSummary(
                 catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.budgetAmount }
             }
         )
+        // All spending adds up as on the Budgets screen, investments left out.
         val totalActual = when {
-            rollover -> budgetSpend(group, transactions, raw.parentOf, toDisplay).amount
-            isTrackingAll -> categoryAmounts.values.fold(BigDecimal.ZERO) { acc, v -> acc + v }
+            rollover || isTrackingAll -> budgetSpend(group, transactions, raw.parentOf, toDisplay).amount
             else -> catSpending.fold(BigDecimal.ZERO) { acc, c -> acc + c.actualAmount }
         }
         val remaining = totalBudget - totalActual
@@ -200,4 +204,49 @@ internal suspend fun homeBudgetSummary(
         daysRemaining = pageDaysRemaining,
         currency = displayCurrency
     )
+}
+
+/**
+ * The budget Home's hero leads with: a spending limit on all expenses whose window runs
+ * today. A monthly one wins, since the hero speaks of the month; otherwise the longest
+ * window. Null when there's none, and the hero shows this month's spending instead. The
+ * summary is in one currency, so its figures never mix currencies.
+ */
+internal fun BudgetOverallSummary.heroBudget(today: LocalDate): HomeHeroBudget? {
+    val group = groups.filter {
+        it.isTrackingAllExpenses && it.group.budget.groupType == BudgetGroupType.LIMIT && it.hasLimit &&
+            it.windowDays > 0 && !today.isBefore(it.windowStart) && !today.isAfter(it.windowEnd)
+    }.maxWithOrNull(compareBy({ it.periodType == BudgetPeriodType.MONTHLY }, { it.windowDays })) ?: return null
+    return HomeHeroBudget(
+        budgetId = group.group.budget.id,
+        name = group.group.budget.name.takeUnless {
+            group.periodType == BudgetPeriodType.MONTHLY && group.windowStart.dayOfMonth == 1 &&
+                group.windowEnd == group.windowStart.plusMonths(1).minusDays(1)
+        },
+        windowStart = group.windowStart,
+        spent = group.totalActual,
+        limit = group.totalBudget,
+        currency = currency,
+        daysLeft = ChronoUnit.DAYS.between(today, group.windowEnd).toInt() + 1,
+        pace = paceAgainstLimit(group.totalActual, group.totalBudget, group.windowStart, group.windowEnd, today),
+    )
+}
+
+/**
+ * How far under (positive) or over (negative) [limit] a window should end at the pace so
+ * far: [spent] / days elapsed × days in the window. Null until [SpendForecast.MIN_DAYS]
+ * days have passed (too early to call) and on the last day (nothing left to project).
+ */
+internal fun paceAgainstLimit(
+    spent: BigDecimal,
+    limit: BigDecimal,
+    start: LocalDate,
+    end: LocalDate,
+    today: LocalDate,
+): BigDecimal? {
+    val elapsed = ChronoUnit.DAYS.between(start, today) + 1
+    val total = ChronoUnit.DAYS.between(start, end) + 1
+    if (elapsed < SpendForecast.MIN_DAYS || elapsed >= total) return null
+    val projected = spent.multiply(BigDecimal(total)).divide(BigDecimal(elapsed), 0, RoundingMode.HALF_UP)
+    return limit - projected
 }

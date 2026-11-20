@@ -7,6 +7,7 @@ import androidx.compose.material.icons.outlined.Person
 import androidx.compose.material.icons.outlined.Work
 import androidx.compose.material3.DropdownMenu
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.SelectableDropdownMenuItem
 import androidx.compose.material3.Text
@@ -27,6 +28,7 @@ fun ProfileFilterDropdown(
     onDismiss: () -> Unit
 ) {
     DropdownMenu(
+        shape = MaterialTheme.shapes.large,
         expanded = expanded,
         onDismissRequest = onDismiss
     ) {

@@ -4,6 +4,7 @@ Install the Debug APK you want to test on a fresh, disposable Android emulator.
 Open PennyWise. The first launch seeds an empty database, finishes onboarding,
 skips SMS access and shows JOD as the base currency. A database with existing
 content, including customized built-in categories or profiles, is left alone.
+Built-in rule templates can already be present when seeding runs.
 An existing installation that already finished onboarding is skipped as well.
 The app remembers the first launch after the check, even if you clear transactions later.
 
@@ -21,6 +22,8 @@ The fixture writes roughly 4,200–4,700 transactions across 12 calendar months
 and both profiles. The exact count depends on the launch date. It includes
 Arab Bank and Bank al Etihad (JOD), Chase (USD), and Deutsche Bank (EUR).
 All amounts, account suffixes, merchants, and messages are synthetic.
+For Unified Currency with JOD as the display currency, the fixture includes
+offline demo rates of JOD 0.71 per USD and JOD 0.80 per EUR.
 The [chart fixture](../app/src/debug/java/com/pennywiseai/tracker/debug/DemoChartTransactions.kt)
 generates daily activity relative to launch, and both entry points insert the
 same fixture in one Room transaction.

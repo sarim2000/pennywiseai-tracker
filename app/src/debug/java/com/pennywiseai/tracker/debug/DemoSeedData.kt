@@ -32,7 +32,7 @@ internal suspend fun PennyWiseDatabase.seedDemoData(today: LocalDate, receipt: (
         return@withWriteTransaction DemoSeedStatus.ALREADY_SEEDED
     }
 
-    // Only the exact built-in categories and profiles from DatabaseCallback count as empty.
+    // A customization to Room's built-in categories or profiles is user data.
     val defaults = DefaultCategoryData.ALL
     val categories = categoryDao().getAllCategoriesList().associateBy { it.name }
     val defaultCategories = categories.size == defaults.size && defaults.withIndex().all { (index, seed) ->
@@ -55,7 +55,8 @@ internal suspend fun PennyWiseDatabase.seedDemoData(today: LocalDate, receipt: (
     }
     for (table in tables) {
         val quotedTable = table.replace("\"", "\"\"")
-        if (usePrepared("SELECT 1 FROM \"$quotedTable\" LIMIT 1") { it.step() }) {
+        val filter = if (table == "transaction_rules") "WHERE is_system_template = 0" else ""
+        if (usePrepared("SELECT 1 FROM \"$quotedTable\" $filter LIMIT 1") { it.step() }) {
             return@withWriteTransaction DemoSeedStatus.HAS_DATA
         }
     }
@@ -149,10 +150,13 @@ private class DemoLedger(private val db: PennyWiseDatabase, private val today: L
             nickname = "Demo Credit", currency = card.currency))
         val expiry = now.plusYears(1)
         val zone = ZoneId.systemDefault()
-        db.exchangeRateDao().insertExchangeRate(ExchangeRateEntity(
-            fromCurrency = "USD", toCurrency = DEMO_CURRENCY, rate = BigDecimal("0.71"), provider = "Debug demo",
-            updatedAt = now, expiresAt = expiry, updatedAtUnix = now.atZone(zone).toEpochSecond(),
+        val usdRate = ExchangeRateEntity(
+            fromCurrency = business.currency, toCurrency = DEMO_CURRENCY, rate = BigDecimal("0.71"),
+            provider = "Debug demo", updatedAt = now, expiresAt = expiry, updatedAtUnix = now.atZone(zone).toEpochSecond(),
             expiresAtUnix = expiry.atZone(zone).toEpochSecond(), isCustomRate = true
+        )
+        db.exchangeRateDao().insertExchangeRates(listOf(
+            usdRate, usdRate.copy(fromCurrency = euros.currency, rate = BigDecimal("0.80"))
         ))
     }
 

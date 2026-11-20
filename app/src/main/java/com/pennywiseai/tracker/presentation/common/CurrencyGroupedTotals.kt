@@ -35,7 +35,13 @@ data class CurrencyTotals(
     val credit: BigDecimal = BigDecimal.ZERO,
     val transfer: BigDecimal = BigDecimal.ZERO,
     val investment: BigDecimal = BigDecimal.ZERO,
-    val transactionCount: Int = 0
+    val transactionCount: Int = 0,
+    /**
+     * [transfer] for a total across currencies: a transfer pair whose legs are in two
+     * currencies counts only in its source leg's bucket. Each bucket alone keeps its
+     * own leg in [transfer], as Home does for one currency.
+     */
+    val transferAcrossCurrencies: BigDecimal = transfer,
 ) {
     /**
      * Net = true cash flow (income − expenses). Credit-card spend, transfers,

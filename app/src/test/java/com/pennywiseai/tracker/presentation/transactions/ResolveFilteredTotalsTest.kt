@@ -145,4 +145,28 @@ class ResolveFilteredTotalsTest {
         assertSame("10", totals.expenses)
         assertEquals(1, totals.transactionCount)
     }
+
+    @Test
+    fun `a transfer pair across two currencies counts once in a unified total`() = runTest {
+        fun leg(id: Long, amount: String, currency: String, account: String) = TransactionEntity(
+            id = id,
+            amount = BigDecimal(amount),
+            merchantName = "Own account",
+            category = "Transfer",
+            transactionType = TransactionType.TRANSFER,
+            dateTime = LocalDateTime.of(2026, 1, 1, 12, 0),
+            transactionHash = "pair-$id",
+            currency = currency,
+            accountNumber = account,
+            fromAccount = "1111",
+            toAccount = "2222",
+            transferPairId = "pair",
+        )
+        val groupedRows = calculateCurrencyGroupedTotals(listOf(leg(1, "830", "INR", "1111"), leg(2, "10", "USD", "2222")))
+        // Each currency on its own still shows its own leg.
+        assertSame("830", resolveFilteredTotals(groupedRows, "INR", isUnified = false, rates()).transfer)
+        assertSame("10", resolveFilteredTotals(groupedRows, "USD", isUnified = false, rates()).transfer)
+        // Unified, only the source leg (₹830 = $8.30) counts: not $8.30 + $10.
+        assertSame("8.30", resolveFilteredTotals(groupedRows, "USD", isUnified = true, rates("INR" to "0.01")).transfer)
+    }
 }

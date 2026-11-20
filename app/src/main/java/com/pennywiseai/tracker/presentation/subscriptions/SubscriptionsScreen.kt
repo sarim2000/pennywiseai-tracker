@@ -51,6 +51,7 @@ import com.pennywiseai.tracker.presentation.plan.planOverline
 import com.pennywiseai.tracker.ui.animations.StaggeredEntrance
 import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.ui.animations.pwExpand
+import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
 import com.pennywiseai.tracker.ui.animations.rememberEntranceDone
 import com.pennywiseai.tracker.ui.animations.staggerDelayMs
 import com.pennywiseai.tracker.ui.components.*
@@ -83,6 +84,7 @@ import com.pennywiseai.tracker.utils.Money
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -97,6 +99,8 @@ fun SubscriptionsScreen(
     showBack: Boolean = false,
     /** Set when drawn as the Plan tab's Bills section. */
     planTab: PlanTabHost? = null,
+    /** The bill a Home row was tapped on: scrolled to and briefly tinted. */
+    focusBillId: Long? = null,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val accounts by viewModel.accounts.collectAsStateWithLifecycle()
@@ -189,6 +193,75 @@ fun SubscriptionsScreen(
                 viewModel.undoEnd()
             }
         }
+    }
+
+    // Where a bill row sits in the list below. Mirrors the items it emits, in order, so keep
+    // the two in step.
+    fun billIndex(section: BillSection, position: Int): Int {
+        var index = 0
+        if (planTab != null) index++
+        if (uiState.activeSubscriptions.any { it.direction == SubscriptionDirection.EXPENSE }) index++
+        for (shown in listOf(BillSection.OVERDUE, BillSection.UPCOMING)) {
+            val bills = groups[shown].orEmpty()
+            if (bills.isEmpty()) continue
+            index++
+            if (shown == section) return index + position
+            index += bills.size
+        }
+        if (uiState.suggestions.isNotEmpty()) {
+            index++
+            if (showSuggestions) index += uiState.suggestions.size
+        }
+        for ((collapsible, expanded) in listOf(
+            BillSection.PAID to showPaid,
+            BillSection.INCOME to showIncome,
+            BillSection.UNDATED to showUndated
+        )) {
+            val bills = groups[collapsible] ?: continue
+            index++
+            if (collapsible == section) return index + position
+            if (expanded) index += bills.size
+        }
+        return index
+    }
+
+    // Opened on one bill: open its section, scroll to it and tint it for a moment, once the
+    // bills are in. Saveable, so a rotation or a refreshed list doesn't do it again. Its
+    // menu (edit, mark paid, …) is the bill's detail, so no sheet opens.
+    var focusPending by rememberSaveable { mutableStateOf(focusBillId != null) }
+    var highlightId by remember { mutableStateOf<Long?>(null) }
+    LaunchedEffect(uiState.isLoading) {
+        if (!focusPending || uiState.isLoading) return@LaunchedEffect
+        // An ended, hidden or deleted bill isn't here: just the list.
+        val (section, bills) = groups.entries.firstOrNull { (_, bills) -> bills.any { it.id == focusBillId } }
+            ?: run {
+                focusPending = false
+                return@LaunchedEffect
+            }
+        when (section) {
+            BillSection.PAID -> showPaid = true
+            BillSection.INCOME -> showIncome = true
+            BillSection.UNDATED -> showUndated = true
+            BillSection.OVERDUE, BillSection.UPCOMING -> Unit
+        }
+        val index = billIndex(section, bills.indexOfFirst { it.id == focusBillId })
+        // Wait out the layout from before its section opened: the row at that index has to be this bill.
+        val info = snapshotFlow { lazyListState.layoutInfo }.first { info ->
+            info.totalItemsCount > index && info.visibleItemsInfo.none { it.index == index && it.key != focusBillId }
+        }
+        val row = info.visibleItemsInfo.firstOrNull { it.key == focusBillId }
+        if (row == null || row.offset < 0 || row.offset + row.size > info.viewportEndOffset - info.afterContentPadding) {
+            lazyListState.scrollToItem(index)
+        }
+        // Spent only once it's on screen, so a rotation midway still lands on it.
+        focusPending = false
+        highlightId = focusBillId
+    }
+    val animationsEnabled = rememberAnimationsEnabled()
+    LaunchedEffect(highlightId, animationsEnabled) {
+        if (highlightId == null) return@LaunchedEffect
+        if (animationsEnabled) delay(FOCUS_HIGHLIGHT_MILLIS)
+        highlightId = null
     }
 
     // With the floating nav bar, the Plan tab docks "Add" beside it instead of a FAB.
@@ -289,6 +362,7 @@ fun SubscriptionsScreen(
                             accounts = accounts,
                             isPaidThisCycle = subscription.id in uiState.paidThisCycleIds,
                             settled = subscription.id == uiState.settledSubscriptionId,
+                            highlighted = subscription.id == highlightId,
                             convertedAmount = uiState.convertedAmounts[subscription.id],
                             displayCurrency = uiState.displayCurrency,
                             today = today,
@@ -449,6 +523,9 @@ internal fun paymentsProgress(subscription: SubscriptionEntity): String? {
 /** Gap between the blocks of a Plan section (hero, suggestions, payments); rows inside a block sit 2dp apart. */
 private val BlockGap = Spacing.smd
 
+/** How long the bill Plan was opened on stays tinted. */
+private const val FOCUS_HIGHLIGHT_MILLIS = 1500L
+
 internal enum class BillSection(@get:StringRes val title: Int) {
     OVERDUE(R.string.plan_bills_overdue),
     UPCOMING(R.string.plan_bills_upcoming),
@@ -589,6 +666,7 @@ private fun SwipeableSubscriptionItem(
     accounts: List<AccountBalanceEntity> = emptyList(),
     isPaidThisCycle: Boolean = false,
     settled: Boolean = false,
+    highlighted: Boolean = false,
     convertedAmount: BigDecimal? = null,
     displayCurrency: String? = null,
     today: LocalDate,
@@ -608,6 +686,13 @@ private fun SwipeableSubscriptionItem(
     val amountPrefix = if (isIncome) "+" else ""
     val markLabel = if (isIncome) R.string.subscriptions_menu_mark_received else R.string.subscriptions_menu_mark_paid
     val shape = position.toShape()
+    // The bill Plan was opened on takes a raised tone for a moment. A neutral surface, so every
+    // ink on the row still reads on it.
+    val containerColor by animateColorAsState(
+        if (highlighted) MaterialTheme.colorScheme.surfaceContainerHighest else MaterialTheme.colorScheme.surfaceContainerLow,
+        animationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
+        label = "focus highlight"
+    )
 
     // Not rememberSaveable: a restored row (e.g. after Undo) must start at rest, or onDismiss re-fires.
     val threshold = SwipeToDismissBoxDefaults.positionalThreshold
@@ -647,7 +732,11 @@ private fun SwipeableSubscriptionItem(
             }
         },
         content = {
-            GroupedColumn(position = position, verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            GroupedColumn(
+                position = position,
+                containerColor = containerColor,
+                verticalArrangement = Arrangement.spacedBy(Spacing.xs)
+            ) {
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
                     verticalAlignment = Alignment.CenterVertically

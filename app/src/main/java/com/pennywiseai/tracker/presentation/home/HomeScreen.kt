@@ -76,6 +76,7 @@ fun HomeScreen(
     onNavigateToSettings: () -> Unit = {},
     onNavigateToTransactions: () -> Unit = {},
     onNavigateToSubscriptions: () -> Unit = {},
+    onBillClick: (Long) -> Unit = {},
     onNavigateToReview: (ReviewKind) -> Unit = {},
     onNavigateToNetWorth: (currency: String) -> Unit = {},
     onNavigateToShareStudio: () -> Unit = {},
@@ -728,7 +729,8 @@ fun HomeScreen(
                                     StaggeredEntrance(delayMs = delayMs, skip = hasAnimated) {
                                         HomeComingUpSection(
                                             upcomingSubscriptions = uiState.upcomingSubscriptions,
-                                            onNavigateToSubscriptions = onNavigateToSubscriptions
+                                            onNavigateToSubscriptions = onNavigateToSubscriptions,
+                                            onBillClick = onBillClick
                                         )
                                     }
                                 }

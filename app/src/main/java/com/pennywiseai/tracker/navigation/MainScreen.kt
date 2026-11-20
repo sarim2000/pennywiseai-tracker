@@ -266,7 +266,7 @@ fun MainScreen(
     fun openPlan(from: BottomNavItem, section: PlanSection, focusId: Long? = null) {
         if (BottomNavItem.Plan.route in themeState.hiddenNavTabs) {
             when (section) {
-                PlanSection.BILLS -> open(from, Subscriptions)
+                PlanSection.BILLS -> open(from, Subscriptions(focusBillId = focusId))
                 else -> openRoot(BudgetGroups(focusBudgetId = focusId))
             }
             return
@@ -414,6 +414,9 @@ fun MainScreen(
                 onBudgetClick = { budgetId ->
                     openPlan(tab, PlanSection.BUDGETS, budgetId)
                 },
+                onBillClick = { billId ->
+                    openPlan(tab, PlanSection.BILLS, billId)
+                },
                 onNavigateToGoals = {
                     openPlan(tab, PlanSection.GOALS)
                 },
@@ -500,6 +503,9 @@ fun MainScreen(
 
         entry<Subscriptions> { key ->
             SubscriptionsScreen(
+                focusBillId = key.focusBillId,
+                // Pushed over a tab (the Plan tab hidden), so it needs its own way back.
+                showBack = true,
                 onNavigateBack = {
                     backFrom(tab, key)
                 },
@@ -548,6 +554,7 @@ fun MainScreen(
                             )
                             PlanSection.BILLS -> SubscriptionsScreen(
                                 planTab = host,
+                                focusBillId = focus,
                                 onAddSubscriptionClick = { openRoot(AddTransaction(form = AddForm.SUBSCRIPTION)) },
                             )
                             PlanSection.GOALS -> PlanGoalsScreen(

@@ -251,8 +251,9 @@ data class ShareStudio(
 
 // Screens inside MainScreen's tab stacks (Settings, SettingsPage, Categories, Faq
 // and ImportStatement live only there; UnrecognizedSms also opens on the root stack).
+/** The Bills screen; [focusBillId] is the bill a Home row was tapped on while the Plan tab is hidden. */
 @Serializable
-data object Subscriptions : NavKey
+data class Subscriptions(val focusBillId: Long? = null) : NavKey
 
 @Serializable
 data object Appearance : NavKey

@@ -381,12 +381,13 @@ internal fun HomeAccountsSection(
 
 /**
  * "Coming up": the next few bills, soonest first, each in its own currency. Overdue ones
- * say so in error; today's and tomorrow's in warning. "See all" opens Bills.
+ * say so in error; today's and tomorrow's in warning. "See all" opens Bills; a row opens Bills on that bill.
  */
 @Composable
 internal fun HomeComingUpSection(
     upcomingSubscriptions: List<SubscriptionEntity>,
-    onNavigateToSubscriptions: () -> Unit
+    onNavigateToSubscriptions: () -> Unit,
+    onBillClick: (Long) -> Unit
 ) {
     val today = rememberToday()
     val next = remember(upcomingSubscriptions) {
@@ -408,7 +409,7 @@ internal fun HomeComingUpSection(
                     subscription = sub,
                     today = today,
                     position = ListItemPosition.from(index, next.size),
-                    onClick = onNavigateToSubscriptions
+                    onClick = { onBillClick(sub.id) }
                 )
             }
         }

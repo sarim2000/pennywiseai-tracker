@@ -538,7 +538,7 @@ fun PennyWiseNavHost(
 
 /** Where a bill on the calendar leads: the subscriptions, the recurring payments, or the card. */
 private fun billDestination(source: com.pennywiseai.tracker.domain.spending.BillSource): NavKey = when (source) {
-    com.pennywiseai.tracker.domain.spending.BillSource.Subscription -> Subscriptions
+    com.pennywiseai.tracker.domain.spending.BillSource.Subscription -> Subscriptions()
     com.pennywiseai.tracker.domain.spending.BillSource.Recurring -> RecurringTransactions
     is com.pennywiseai.tracker.domain.spending.BillSource.Card -> AccountDetail(source.bankName, source.accountLast4)
 }

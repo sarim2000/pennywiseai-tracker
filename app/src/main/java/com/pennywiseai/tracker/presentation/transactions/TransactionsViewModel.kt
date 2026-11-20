@@ -1277,23 +1277,19 @@ class TransactionsViewModel @Inject constructor(
     }
 
     /**
-     * Include/exclude one category in the list filter (#786). The effective
-     * selection starts as "everything available"; unticking narrows it, and
-     * ticking the last one back returns to no filter. An empty selection is
-     * never stored — it would show nothing and read as a broken list.
+     * Picks or unpicks one category in the list filter (#786). Nothing picked
+     * means every category; the first pick narrows the list to it, later picks
+     * add to it, and unpicking the last returns to no filter. An empty selection
+     * is never stored: it would show nothing and read as a broken list.
      */
-    fun toggleCategory(category: String, available: List<String>) {
+    fun toggleCategory(category: String) {
         val current = _categoriesFilter.value
             ?: _categoryFilter.value?.let { listOf(it) }
-            ?: available
+            ?: emptyList()
         val next = if (category in current) current - category else current + category
         _categoryFilter.value = null
         _categoriesFromBudget.value = false
-        _categoriesFilter.value = when {
-            next.isEmpty() -> null
-            next.toSet() == available.toSet() -> null
-            else -> next.filter { it in available }
-        }
+        _categoriesFilter.value = next.ifEmpty { null }
     }
 
     /** Converted amounts for transactions in foreign currencies (unified mode). */

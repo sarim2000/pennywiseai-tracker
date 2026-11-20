@@ -252,10 +252,16 @@
     <string name="txn_list_filter_account">Account</string>
     <string name="txn_list_filter_category">Category</string>
     <string name="txn_list_filters">Filters</string>
-    <string name="txn_list_filters_two">2 Filters</string>
     <plurals name="txn_list_filters_active">
         <item quantity="one">Filters, %1$d on</item>
         <item quantity="other">Filters, %1$d on</item>
+    </plurals>
+    <string name="txn_filters_sort_by">Sort by</string>
+    <string name="txn_filters_type">Type</string>
+    <string name="txn_filters_category_hint">Pick one or more; none picked shows every category</string>
+    <plurals name="txn_filters_show_results">
+        <item quantity="one">Show %1$d transaction</item>
+        <item quantity="other">Show %1$d transactions</item>
     </plurals>
     <string name="txn_list_remove_filter">Remove filter: %1$s</string>
     <string name="txn_list_categories_all_except">All except %1$s</string>

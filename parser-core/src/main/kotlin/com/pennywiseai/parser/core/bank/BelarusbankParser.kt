@@ -98,6 +98,10 @@ class BelarusbankParser : BankParser() {
         return cleaned.takeIf { it.isNotEmpty() && isValidMerchantName(it) }
     }
 
+    // Every accepted SMS is a card operation ("KARTA #1234").
+    override fun detectIsCard(message: String): Boolean =
+        transactionPattern.containsMatchIn(message) || super.detectIsCard(message)
+
     override fun isTransactionMessage(message: String): Boolean {
         // No keyword exclusions: the anchored pattern must match the whole SMS, and
         // substring checks ("otp", "offer") would reject merchants like HOTPOINT.

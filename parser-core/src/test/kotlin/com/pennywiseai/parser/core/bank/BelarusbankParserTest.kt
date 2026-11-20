@@ -26,6 +26,7 @@ class BelarusbankParserTest {
                 message = "OPLATA 80.81 BYN  KARTA #1111 DATA 11.11.2011 11:11:11 SUPERMARKET 'GREEN' MCC:5411 OSTATOK 72.75 BYN",
                 sender = "ASB.BY",
                 expected = ExpectedTransaction(
+                    isFromCard = true,
                     amount = BigDecimal("80.81"),
                     currency = "BYN",
                     type = TransactionType.EXPENSE,
@@ -39,6 +40,7 @@ class BelarusbankParserTest {
                 message = "POPOLNENIE KARTOCHKI 500.00 BYN  KARTA #2222 DATA 07.11.2026 23:04:21 PERSON TO PERSON>MINSK>BY MCC:6012 OSTATOK 1000.00 BYN",
                 sender = "ASB.BY",
                 expected = ExpectedTransaction(
+                    isFromCard = true,
                     amount = BigDecimal("500.00"),
                     currency = "BYN",
                     type = TransactionType.INCOME,
@@ -50,6 +52,7 @@ class BelarusbankParserTest {
                 message = "NALICHNYE 100.00 USD  KARTA #3333 DATA 26.10.2023 17:42:31 DANA MALL' RB.795 ATM>MINSK>BY MCC:6011 OSTATOK 1505.15 BYN",
                 sender = "ASB.BY",
                 expected = ExpectedTransaction(
+                    isFromCard = true,
                     amount = BigDecimal("100.00"),
                     currency = "USD",
                     accountCurrency = "BYN",
@@ -63,11 +66,13 @@ class BelarusbankParserTest {
                 message = "ZACHISLENIE ZARABOTNOY PLATY 3000.00 EUR KARTA #4444 DATA 31.12.2025 12:00:00 OSTATOK 23098.67 BYN",
                 sender = "ASB.BY",
                 expected = ExpectedTransaction(
+                    isFromCard = true,
                     amount = BigDecimal("3000.00"),
                     currency = "EUR",
                     accountCurrency = "BYN",
                     type = TransactionType.INCOME,
                     accountLast4 = "4444",
+                    expectNullMerchant = true,
                     balance = BigDecimal("23098.67")
                 )
             ),
@@ -76,6 +81,7 @@ class BelarusbankParserTest {
                 message = "OPLATA 15.00 BYN  KARTA #6666 DATA 09.11.2026 10:00:00 HOTPOINT OFFERTA MCC:5722 OSTATOK 70.00 BYN",
                 sender = "ASB.BY",
                 expected = ExpectedTransaction(
+                    isFromCard = true,
                     amount = BigDecimal("15.00"),
                     currency = "BYN",
                     type = TransactionType.EXPENSE,
@@ -89,6 +95,7 @@ class BelarusbankParserTest {
                 message = "OTMENA ZACHISLENIYA 40.00 BYN  KARTA #7777 DATA 10.11.2026 10:00:00 OSTATOK 30.00 BYN",
                 sender = "ASB.BY",
                 expected = ExpectedTransaction(
+                    isFromCard = true,
                     amount = BigDecimal("40.00"),
                     currency = "BYN",
                     type = TransactionType.EXPENSE,
@@ -101,12 +108,31 @@ class BelarusbankParserTest {
                 message = "OTMENA OPLATY 12.50 BYN  KARTA #5555 DATA 08.11.2026 10:00:00 SHOP 'TEST' MCC:5411 OSTATOK 85.25 BYN",
                 sender = "ASB.BY",
                 expected = ExpectedTransaction(
+                    isFromCard = true,
                     amount = BigDecimal("12.50"),
                     currency = "BYN",
                     type = TransactionType.INCOME,
                     accountLast4 = "5555",
                     balance = BigDecimal("85.25")
                 )
+            ),
+            ParserTestCase(
+                name = "OTP is ignored",
+                message = "Vash kod podtverzhdeniya: 000000. Nikomu ne soobshchayte etot kod.",
+                sender = "ASB.BY",
+                shouldParse = false
+            ),
+            ParserTestCase(
+                name = "Promo is ignored",
+                message = "Skidka 10% pri oplate kartoy Belarusbank do 30.11.2026!",
+                sender = "ASB.BY",
+                shouldParse = false
+            ),
+            ParserTestCase(
+                name = "Payment reminder is ignored",
+                message = "Napominaem: platezh po kreditu 150.00 BYN neobkhodimo vnesti do 25.11.2026.",
+                sender = "ASB.BY",
+                shouldParse = false
             ),
         )
 
@@ -121,4 +147,23 @@ class BelarusbankParserTest {
 
         return ParserTestUtils.runTestSuite(parser, messageCases, senderCases)
     }
+
+    @TestFactory
+    fun `factory routes ASB_BY to Belarusbank`(): List<DynamicTest> =
+        ParserTestUtils.runFactoryTestSuite(
+            listOf(
+                SimpleTestCase(
+                    bankName = "Belarusbank",
+                    sender = "ASB.BY",
+                    currency = "BYN",
+                    message = "OPLATA 80.81 BYN  KARTA #1111 DATA 11.11.2011 11:11:11 SUPERMARKET 'GREEN' MCC:5411 OSTATOK 72.75 BYN",
+                    expected = ExpectedTransaction(
+                        amount = BigDecimal("80.81"),
+                        currency = "BYN",
+                        type = TransactionType.EXPENSE
+                    )
+                )
+            ),
+            "Belarusbank Factory Tests"
+        )
 }

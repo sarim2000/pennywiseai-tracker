@@ -275,8 +275,8 @@ fun PennyWiseBottomNavigation(
 }
 
 /**
- * The Ask tab as the bar's big squircle: the owl, drawn in full, on a primary
- * container. M3 Expressive shape morphs carry its state: it rounds into a circle
+ * The Ask tab as the bar's big squircle: the owl, drawn in full in onPrimaryContainer,
+ * on a primary container. M3 Expressive shape morphs carry its state: it rounds into a circle
  * while Ask is open and squares off while held.
  */
 @OptIn(ExperimentalMaterial3Api::class)
@@ -325,7 +325,9 @@ private fun ChatDockButton(
                 size = Dimensions.Component.chatDockMascot,
                 shape = reaction?.shape ?: MascotShape.Owl,
                 mood = reaction?.mood ?: MascotMood.Calm,
-                tint = MaterialTheme.colorScheme.primary
+                // The container's own ink: palettes like Teal Turquoise make primary and
+                // primaryContainer one colour, which hid the owl.
+                tint = MaterialTheme.colorScheme.onPrimaryContainer
             )
         }
     }

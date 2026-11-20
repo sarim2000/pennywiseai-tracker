@@ -23,6 +23,7 @@ import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.repository.GroupSummary
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.income
+import com.pennywiseai.tracker.ui.theme.inkOnWash
 import com.pennywiseai.tracker.ui.theme.investment
 import com.pennywiseai.tracker.ui.theme.spending
 import com.pennywiseai.tracker.utils.CurrencyFormatter
@@ -62,7 +63,7 @@ fun HomeGroupCard(
                         text = summary.group.name.take(1).uppercase(),
                         style = MaterialTheme.typography.titleSmall,
                         fontWeight = FontWeight.Bold,
-                        color = accentColor
+                        color = MaterialTheme.colorScheme.inkOnWash(accentColor, 0.15f)
                     )
                 }
                 Column {

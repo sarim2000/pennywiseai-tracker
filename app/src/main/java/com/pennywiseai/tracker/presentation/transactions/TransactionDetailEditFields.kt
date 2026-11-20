@@ -190,7 +190,7 @@ internal fun DateTimeField(
                 ) {
                     Text(
                         text = String.format("%02d", hour),
-                        color = MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.inkOnWash(MaterialTheme.colorScheme.primary, 0.2f),
                         style = PennyWiseText.amountMedium,
                         modifier = Modifier.padding(Spacing.xs)
                     )

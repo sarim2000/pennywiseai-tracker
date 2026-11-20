@@ -69,7 +69,11 @@ fun SmsAccessCard(
                 .padding(end = Spacing.xs),
             horizontalArrangement = Arrangement.End,
         ) {
-            TextButton(onClick = onRequest, shapes = ButtonDefaults.shapes()) {
+            TextButton(
+                onClick = onRequest,
+                colors = ButtonDefaults.textButtonColors(contentColor = ink),
+                shapes = ButtonDefaults.shapes(),
+            ) {
                 Text(
                     stringResource(
                         if (access.blocked) R.string.sms_access_open_settings

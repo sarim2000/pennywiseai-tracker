@@ -773,7 +773,11 @@ private fun RuleSuggestionCard(text: String, onCreate: () -> Unit, onDismiss: ()
         Button(onClick = onCreate, shapes = ButtonDefaults.shapes()) {
             Text(stringResource(R.string.txn_detail_remember))
         }
-        TextButton(onClick = onDismiss, shapes = ButtonDefaults.shapes()) {
+        TextButton(
+            onClick = onDismiss,
+            shapes = ButtonDefaults.shapes(),
+            colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.onPrimaryContainer)
+        ) {
             Text(stringResource(R.string.txn_detail_remember_not_now))
         }
     }

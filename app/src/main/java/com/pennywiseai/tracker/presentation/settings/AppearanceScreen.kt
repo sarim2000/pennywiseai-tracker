@@ -43,6 +43,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.RadioButton
+import androidx.compose.material3.RadioButtonDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
@@ -589,7 +590,11 @@ private fun NavBarStyleSelector(
                     MaterialTheme.colorScheme.surfaceContainerLow
                 },
             ) {
-                RadioButton(selected = selected, onClick = null)
+                RadioButton(
+                    selected = selected,
+                    onClick = null,
+                    colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.onSecondaryContainer)
+                )
                 Column(modifier = Modifier.weight(1f)) {
                     Text(stringResource(title), style = MaterialTheme.typography.bodyLarge)
                     Text(
@@ -659,7 +664,11 @@ private fun FontSelector(
                     MaterialTheme.colorScheme.surfaceContainerLow
                 },
             ) {
-                RadioButton(selected = selected, onClick = null)
+                RadioButton(
+                    selected = selected,
+                    onClick = null,
+                    colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.onSecondaryContainer)
+                )
                 Column(modifier = Modifier.weight(1f)) {
                     Text(
                         text = option.name,

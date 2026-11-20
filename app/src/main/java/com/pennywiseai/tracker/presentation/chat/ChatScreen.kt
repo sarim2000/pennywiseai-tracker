@@ -697,7 +697,9 @@ private fun ModelRequiredBanner(
                 LinearWavyProgressIndicator(
                     progress = { downloadProgress / 100f },
                     modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                    color = MaterialTheme.colorScheme.onTertiaryContainer,
+                    // The default secondaryContainer track can match the bar on this card (1.3:1 in some palettes).
+                    trackColor = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.2f)
                 )
             }
         } else {

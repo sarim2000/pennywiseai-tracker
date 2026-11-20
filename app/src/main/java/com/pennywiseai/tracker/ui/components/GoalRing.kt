@@ -30,7 +30,10 @@ import com.pennywiseai.tracker.data.repository.GoalProgress
 import com.pennywiseai.tracker.domain.goals.percent
 import com.pennywiseai.tracker.domain.goals.ratioOf
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.GRAPHIC_CONTRAST
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.neutralSurfaces
+import com.pennywiseai.tracker.ui.theme.readableOn
 import com.pennywiseai.tracker.utils.AmountPrivacy
 import kotlinx.coroutines.flow.first
 import java.math.BigDecimal
@@ -83,7 +86,10 @@ fun GoalRing(
     if (AmountPrivacy.hidden) return
 
     val track = MaterialTheme.colorScheme.surfaceContainerHighest
+    // The goal's hue, nudged to 3:1 on the track and the card, as WavyMeter does, so a
+    // preset like yellow (light) or indigo (dark) still shows.
     val color = progress.goal.color.toColorOr(MaterialTheme.colorScheme.primary)
+        .readableOn(listOf(track) + MaterialTheme.colorScheme.neutralSurfaces, GRAPHIC_CONTRAST)
     val description = stringResource(R.string.goals_ring_description, progress.percent())
     Box(
         modifier = modifier.size(size).clearAndSetSemantics { if (announceProgress) contentDescription = description },

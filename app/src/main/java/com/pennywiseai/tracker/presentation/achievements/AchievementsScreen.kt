@@ -51,7 +51,10 @@ import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.progressLabel
 import com.pennywiseai.tracker.ui.components.tierLabel
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.GRAPHIC_CONTRAST
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.neutralSurfaces
+import com.pennywiseai.tracker.ui.theme.readableOn
 import com.pennywiseai.tracker.utils.AppDates
 
 /**
@@ -217,7 +220,11 @@ private fun AchievementRow(a: Achievement, position: ListItemPosition, onShare: 
                             .weight(1f)
                             .height(Spacing.xs)
                             .clip(CircleShape),
-                        color = badgeArt(a.id).hue,
+                        // The badge hue nudged to 3:1 on its track and card, as WavyMeter does.
+                        color = badgeArt(a.id).hue.readableOn(
+                            listOf(MaterialTheme.colorScheme.surfaceContainerHighest) + MaterialTheme.colorScheme.neutralSurfaces,
+                            GRAPHIC_CONTRAST
+                        ),
                         trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                         drawStopIndicator = {},
                     )

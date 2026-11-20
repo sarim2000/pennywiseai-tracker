@@ -9,10 +9,10 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.Close
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.ButtonDefaults
+import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
+import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
@@ -72,7 +72,11 @@ fun PaydaySuggestionCard(
             horizontalArrangement = Arrangement.End,
             verticalAlignment = Alignment.CenterVertically,
         ) {
-            TextButton(onClick = onAccept, shapes = ButtonDefaults.shapes()) {
+            TextButton(
+                onClick = onAccept,
+                colors = ButtonDefaults.textButtonColors(contentColor = ink),
+                shapes = ButtonDefaults.shapes(),
+            ) {
                 Text(stringResource(R.string.home_payday_card_action, day))
             }
             IconButton(onClick = onDismiss, shapes = IconButtonDefaults.shapes()) {

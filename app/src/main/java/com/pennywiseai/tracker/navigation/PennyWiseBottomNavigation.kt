@@ -146,6 +146,7 @@ fun PennyWiseBottomNavigation(
                                         label = stringResource(item.titleRes),
                                         selected = selected,
                                         mutedWhenUnselected = hidePill && hideLabels,
+                                        onPill = selected && !hidePill,
                                         size = iconSize,
                                         reaction = chatReaction
                                     )
@@ -438,8 +439,9 @@ private fun FloatingNavPill(
  * The Chat tab's owl, or the shape of a [reaction] for a moment. It takes the accent in
  * both states so the assistant stands out, and the pill or indicator marks selection —
  * unless [mutedWhenUnselected] (no pill and no label), when colour is the only cue left
- * and it mutes like its neighbours. It is decoration: the slot keeps the tab's name and
- * the click goes to the tab.
+ * and it mutes like its neighbours. On the primaryContainer pill ([onPill]) it takes the
+ * pill's ink: palettes like Teal Turquoise make primary and primaryContainer one colour.
+ * It is decoration: the slot keeps the tab's name and the click goes to the tab.
  */
 @Composable
 private fun ChatTabMascot(
@@ -448,14 +450,18 @@ private fun ChatTabMascot(
     mutedWhenUnselected: Boolean,
     size: Dp,
     reaction: MascotReaction?,
+    onPill: Boolean = false,
 ) {
     Box(modifier = Modifier.semantics { contentDescription = label }) {
         Mascot(
             size = size,
             shape = reaction?.shape ?: MascotShape.Owl,
             mood = reaction?.mood ?: MascotMood.Calm,
-            tint = if (selected || !mutedWhenUnselected) MaterialTheme.colorScheme.primary
-            else MaterialTheme.colorScheme.onSurfaceVariant
+            tint = when {
+                onPill -> MaterialTheme.colorScheme.onPrimaryContainer
+                selected || !mutedWhenUnselected -> MaterialTheme.colorScheme.primary
+                else -> MaterialTheme.colorScheme.onSurfaceVariant
+            }
         )
     }
 }

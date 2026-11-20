@@ -679,6 +679,8 @@ fun VoiceMicButton(voice: VoiceInput, enabled: Boolean, onTap: () -> Unit) {
             when (voice.state) {
                 VoiceInput.State.Finishing -> CircularProgressIndicator(
                     modifier = Modifier.size(Dimensions.Icon.medium),
+                    // It spins on the primaryContainer circle, which can be primary itself.
+                    color = MaterialTheme.colorScheme.onPrimaryContainer,
                     strokeWidth = 2.dp
                 )
                 else -> Icon(

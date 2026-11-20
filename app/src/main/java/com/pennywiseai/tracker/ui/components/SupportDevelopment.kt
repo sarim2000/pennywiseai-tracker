@@ -36,7 +36,9 @@ import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.GRAPHIC_CONTRAST
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.readableOn
 import com.pennywiseai.tracker.ui.theme.yellow_dark
 import com.pennywiseai.tracker.ui.theme.yellow_light
 import com.pennywiseai.tracker.ui.theme.yellow_on_light
@@ -63,7 +65,13 @@ fun SupportDevelopmentDialog(onDismiss: () -> Unit) {
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        icon = { Icon(Icons.Default.Favorite, contentDescription = null, tint = yellow_dark) },
+        icon = {
+            Icon(
+                Icons.Default.Favorite,
+                contentDescription = null,
+                tint = yellow_dark.readableOn(listOf(MaterialTheme.colorScheme.surfaceContainerHigh), GRAPHIC_CONTRAST)
+            )
+        },
         title = { Text(stringResource(R.string.support_title)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
@@ -137,7 +145,7 @@ fun SupportNudgeCard(
             Icon(
                 Icons.Default.Favorite,
                 contentDescription = null,
-                tint = yellow_dark,
+                tint = yellow_dark.readableOn(listOf(yellow_light), GRAPHIC_CONTRAST),
                 modifier = Modifier.size(Dimensions.Icon.small)
             )
             Text(

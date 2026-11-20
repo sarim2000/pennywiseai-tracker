@@ -85,6 +85,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.ColorFilter
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalLayoutDirection
@@ -107,11 +108,14 @@ import com.pennywiseai.tracker.presentation.settings.BackgroundAccessChecklist
 import com.pennywiseai.tracker.ui.components.rememberSmsAccess
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.GRAPHIC_CONTRAST
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.bestInk
 import com.pennywiseai.tracker.ui.theme.income
 import com.pennywiseai.tracker.ui.theme.inkOnWash
 import com.pennywiseai.tracker.ui.theme.isAppInDarkTheme
+import com.pennywiseai.tracker.ui.theme.readableOn
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.text.Collator
 import java.util.Currency
@@ -574,7 +578,7 @@ private fun ProfileStep(
                         Icon(
                             imageVector = Icons.Default.Check,
                             contentDescription = stringResource(R.string.onboarding_selected_cd),
-                            tint = MaterialTheme.colorScheme.surface,
+                            tint = Color(colorInt).bestInk(),
                             modifier = Modifier.size(Dimensions.Icon.medium)
                         )
                     }
@@ -1044,6 +1048,12 @@ private fun StepIndicator(
     modifier: Modifier = Modifier
 ) {
     val steps = OnBoardingStep.entries
+    // The faded dots keep their look but reach 3:1 on the page, so every step stays visible.
+    val page = MaterialTheme.colorScheme.background
+    val pastColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f).compositeOver(page)
+        .readableOn(listOf(page), GRAPHIC_CONTRAST)
+    val upcomingColor = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f).compositeOver(page)
+        .readableOn(listOf(page), GRAPHIC_CONTRAST)
     Row(
         modifier = modifier,
         horizontalArrangement = Arrangement.Center,
@@ -1060,8 +1070,8 @@ private fun StepIndicator(
                     .background(
                         when {
                             isActive -> MaterialTheme.colorScheme.primary
-                            isPast -> MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                            else -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.2f)
+                            isPast -> pastColor
+                            else -> upcomingColor
                         }
                     )
             )

@@ -41,7 +41,12 @@ internal enum class AccountBadgeKind { BANK, CARD, LOAN }
  * shape and colour role.
  */
 @Composable
-internal fun AccountBadge(name: String, kind: AccountBadgeKind, modifier: Modifier = Modifier) {
+internal fun AccountBadge(
+    name: String,
+    kind: AccountBadgeKind,
+    modifier: Modifier = Modifier,
+    rowFill: Color? = null,
+) {
     val colors = MaterialTheme.colorScheme
     val (shape, color) = when (kind) {
         AccountBadgeKind.BANK -> MaterialShapes.Cookie9Sided.toShape() to colors.primary
@@ -50,8 +55,8 @@ internal fun AccountBadge(name: String, kind: AccountBadgeKind, modifier: Modifi
     }
     val fill = color.copy(alpha = Dimensions.Alpha.categoryTint)
     // Secondary and tertiary are fills, not ink: check the letter against the tint as it composites
-    // over each neutral surface (the row sits on one).
-    val ink = color.readableOn(colors.neutralSurfaces.map { fill.compositeOver(it) })
+    // over the row ([rowFill] when tinted, else each neutral surface it could sit on).
+    val ink = color.readableOn((rowFill?.let(::listOf) ?: colors.neutralSurfaces).map { fill.compositeOver(it) })
     Box(
         modifier = modifier
             .size(Dimensions.Icon.avatarLarge)
@@ -169,6 +174,11 @@ internal fun AccountItem(
                 AccountBadge(
                     name = name,
                     kind = if (account.isLoan) AccountBadgeKind.LOAN else AccountBadgeKind.BANK,
+                    rowFill = if (isLowBalance) {
+                        accountRowContainer(highlight = true, isHidden).compositeOver(MaterialTheme.colorScheme.background)
+                    } else {
+                        null
+                    },
                 )
                 Column(
                     modifier = Modifier.weight(1f),

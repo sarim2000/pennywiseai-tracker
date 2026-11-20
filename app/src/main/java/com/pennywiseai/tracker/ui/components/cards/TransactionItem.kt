@@ -174,7 +174,8 @@ fun TransactionItem(
         subtitle = subtitle,
         amount = CurrencyFormatter.signed(amountPrefix, formattedAmount),
         amountColor = amountColor,
-        subtitleColor = (if (unsorted) colorScheme.tertiary else colorScheme.onSurfaceVariant).onRow(containerColor),
+        // tertiary is a fill, not ink: some palettes make it the surface colour itself.
+        subtitleColor = (if (unsorted) colorScheme.tertiary.readableOn(colorScheme.neutralSurfaces) else colorScheme.onSurfaceVariant).onRow(containerColor),
         shape = listItemPosition.toShape(),
         contentPadding = Dimensions.Padding.cardCompact,
         onClick = {

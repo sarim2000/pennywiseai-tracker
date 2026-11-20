@@ -1,11 +1,14 @@
 package com.pennywiseai.tracker.debug
 
+import android.content.Context
 import android.content.ContextWrapper
 import androidx.datastore.preferences.core.PreferenceDataStoreFactory
 import androidx.room3.Room
 import androidx.sqlite.driver.AndroidSQLiteDriver
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.platform.app.InstrumentationRegistry
+import com.pennywiseai.tracker.data.currency.CurrencyConversionService
+import com.pennywiseai.tracker.data.currency.ExchangeRateProvider
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.ChatMessage
 import com.pennywiseai.tracker.data.database.entity.expandWithChildren
@@ -13,8 +16,15 @@ import com.pennywiseai.tracker.data.database.longs
 import com.pennywiseai.tracker.data.model.SpendingComparison
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.PlanningRepository
+import com.pennywiseai.tracker.data.repository.RuleRepositoryImpl
 import com.pennywiseai.tracker.di.DatabaseCallback
+import com.pennywiseai.tracker.domain.service.RuleEngine
+import com.pennywiseai.tracker.domain.service.RuleTemplateService
 import com.pennywiseai.tracker.domain.spending.RecurringCharge
+import com.pennywiseai.tracker.domain.usecase.InitializeRuleTemplatesUseCase
+import io.mockk.Called
+import io.mockk.mockk
+import io.mockk.verify
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.cancel
@@ -89,33 +99,54 @@ class DemoSeedDataTest {
     }
 
     @Test
-    fun automaticSeedRemembersSkippedFirstLaunchAfterExistingDataIsCleared() = runBlocking {
-        val scope = CoroutineScope(Dispatchers.IO)
-        val context = object : ContextWrapper(InstrumentationRegistry.getInstrumentation().targetContext) {
-            override fun getNoBackupFilesDir() = temporaryFolder.root
-            override fun getFilesDir() = temporaryFolder.root
-        }
-        val store = PreferenceDataStoreFactory.create(scope = scope) {
-            temporaryFolder.root.resolve("demo-test.preferences_pb")
-        }
-        val preferences = UserPreferencesRepository(store) {}
-        val db = database()
-        try {
-            db.chatDao().insertMessage(ChatMessage(id = "existing", message = "Existing test history", isUser = true))
-            DemoSeeder(context, db, preferences).prepare()
-            assertFalse(preferences.userPreferences.first().hasCompletedOnboarding)
-            assertEquals(1, db.chatDao().getMessageCount())
-            db.chatDao().deleteAllMessages()
+    fun prepareSeedsFreshDatabaseAndProvidesOfflineConversionToJod() = withSeeder { db, context, preferences ->
+        assertEquals(0, db.transactionDao().countAllTransactions())
+        assertFalse(preferences.userPreferences.first().hasCompletedOnboarding)
 
-            val seeder = DemoSeeder(context, db, preferences)
-            seeder.prepare()
-            assertEquals(0, db.transactionDao().countAllTransactions())
-            assertEquals(DemoSeedStatus.CREATED, seeder.seed(date))
-            assertTrue(preferences.userPreferences.first().hasCompletedOnboarding)
-        } finally {
-            db.close()
-            scope.cancel()
-        }
+        DemoSeeder(context, db, preferences).prepare()
+
+        assertTrue(db.transactionDao().countAllTransactions() >= 4_000)
+        assertTrue(preferences.userPreferences.first().hasCompletedOnboarding)
+        assertEquals("JOD", preferences.baseCurrency.first())
+
+        val provider = mockk<ExchangeRateProvider>()
+        val conversion = CurrencyConversionService(db.exchangeRateDao(), provider, preferences)
+        assertEquals(BigDecimal("177.500"), conversion.convertAmountOrNull(BigDecimal("250.00"), "USD", "JOD"))
+        assertEquals(BigDecimal("140.000"), conversion.convertAmountOrNull(BigDecimal("175.00"), "EUR", "JOD"))
+        verify { provider wasNot Called }
+    }
+
+    @Test
+    fun prepareAllowsBuiltInRuleTemplatesAndCustomRulesStillBlockSeed() = withSeeder { db, context, preferences ->
+        val rules = db.ruleDao()
+        val repository = RuleRepositoryImpl(rules, db.ruleApplicationDao(), RuleEngine())
+        InitializeRuleTemplatesUseCase(repository, RuleTemplateService())()
+        val templates = rules.getAllRules().first()
+        val customRule = templates.first { it.isSystemTemplate }.copy(id = "custom-rule", isSystemTemplate = false)
+        rules.insertRule(customRule)
+        assertEquals(DemoSeedStatus.HAS_DATA, db.seedDemoData(date) { error("Seed must skip receipt") })
+        assertEquals(customRule, rules.getRuleById(customRule.id))
+        rules.deleteRuleById(customRule.id)
+
+        DemoSeeder(context, db, preferences).prepare()
+
+        assertTrue(db.transactionDao().countAllTransactions() >= 4_000)
+        assertEquals(templates, rules.getAllRules().first().filter { it.isSystemTemplate })
+    }
+
+    @Test
+    fun automaticSeedRemembersSkippedFirstLaunchAfterExistingDataIsCleared() = withSeeder { db, context, preferences ->
+        db.chatDao().insertMessage(ChatMessage(id = "existing", message = "Existing test history", isUser = true))
+        DemoSeeder(context, db, preferences).prepare()
+        assertFalse(preferences.userPreferences.first().hasCompletedOnboarding)
+        assertEquals(1, db.chatDao().getMessageCount())
+        db.chatDao().deleteAllMessages()
+
+        val seeder = DemoSeeder(context, db, preferences)
+        seeder.prepare()
+        assertEquals(0, db.transactionDao().countAllTransactions())
+        assertEquals(DemoSeedStatus.CREATED, seeder.seed(date))
+        assertTrue(preferences.userPreferences.first().hasCompletedOnboarding)
     }
 
     @Test
@@ -153,6 +184,25 @@ class DemoSeedDataTest {
     private fun database() = Room.inMemoryDatabaseBuilder(
         InstrumentationRegistry.getInstrumentation().targetContext, PennyWiseDatabase::class.java
     ).setDriver(AndroidSQLiteDriver()).addCallback(DatabaseCallback()).build()
+
+    private fun withSeeder(block: suspend (PennyWiseDatabase, Context, UserPreferencesRepository) -> Unit) = runBlocking {
+        val scope = CoroutineScope(Dispatchers.IO)
+        val context = object : ContextWrapper(InstrumentationRegistry.getInstrumentation().targetContext) {
+            override fun getNoBackupFilesDir() = temporaryFolder.root
+            override fun getFilesDir() = temporaryFolder.root
+        }
+        val store = PreferenceDataStoreFactory.create(scope = scope) {
+            temporaryFolder.root.resolve("demo-test.preferences_pb")
+        }
+        val preferences = UserPreferencesRepository(store) {}
+        val db = database()
+        try {
+            block(db, context, preferences)
+        } finally {
+            db.close()
+            scope.cancel()
+        }
+    }
 
     private fun Map<String, BigDecimal>.plainAmounts() = mapValues { (_, value) -> value.stripTrailingZeros().toPlainString() }
 }

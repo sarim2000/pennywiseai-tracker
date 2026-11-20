@@ -124,7 +124,7 @@ fun Mascot(
     LaunchedEffect(motion, lifecycle, thinking) { state.runClock(motion, lifecycle, thinking) }
     SideEffect {
         state.look = look
-        state.value = value
+        state.setFigure(value, shape)
     }
     val motionScheme = MaterialTheme.motionScheme
     val blendSpec = motionScheme.defaultEffectsSpec<Float>()
@@ -137,7 +137,7 @@ fun Mascot(
     LaunchedEffect(mood) { state.changeMood(mood, currentMotion, blendSpec, lifecycle) }
     // Only a new cue restarts the change: one dropped (a reaction ending) plays out.
     val cueRequest = remember { CueRequests(cue) }.idFor(cue)
-    LaunchedEffect(shape, cueRequest) { state.change(shape, cue, currentMotion, morphSpec) }
+    LaunchedEffect(shape, cueRequest) { state.change(shape, cue, { currentMotion }, morphSpec) }
 
     val colors = if (detailed) mascotColors(tint) else null
     // The artwork is symmetric and never mirrored; only where it looks and leans is.
@@ -158,7 +158,7 @@ fun Mascot(
                 val morph = from?.let {
                     MorphDrawing(
                         from = it,
-                        fromGeometry = it.shape.geometry(state.value),
+                        fromGeometry = it.shape.geometry(it.value),
                         target = state.profileOf(current, state.value),
                     )
                 }
@@ -275,8 +275,22 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
     /** The pose last drawn: where a mood change blends from. */
     private var shown = MascotPose()
 
-    /** The shape's figure (see [Mascot]). */
+    /** [shape]'s figure (see [Mascot]). */
     var value by mutableFloatStateOf(0f)
+        private set
+
+    /** The figure last passed in: [value], or the one that came with a shape still to morph in. */
+    private var latestValue = 0f
+
+    /**
+     * Takes the figure the caller passed with [forShape]. One that comes with a new shape
+     * waits for the morph to start, so the old shape keeps its own figure as it bends
+     * away: a gauge's needle, a pie's slice, Bars' gaze.
+     */
+    fun setFigure(figure: Float, forShape: MascotShape) {
+        latestValue = figure
+        if (forShape == shape) value = figure
+    }
 
     private val lookState = mutableStateOf<Offset?>(null)
     private val dragLookState = mutableStateOf<Offset?>(null)
@@ -318,7 +332,11 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
         if (cue != null && morphFrom == null && arrival.value < 1f) {
             pose = arrived(pose, cue, (arrival.value * ARRIVAL_MS).toLong())
         }
-        morphFrom?.let { pose = withCutArrival(pose, it.moves, morph.value) }
+        morphFrom?.let { from ->
+            pose = withCutArrival(pose, from.moves, morph.value)
+            // Bars' trend gaze eases out with the morph instead of snapping to the centre.
+            from.gaze?.let { pose = lookAt(pose, it, from.gazeWeight * (1f - morph.value.coerceIn(0f, 1f))) }
+        }
         val w = blend.value
         from?.let { if (w < 1f) pose = blendPose(it, pose, w) }
         val target = dragLook ?: look
@@ -418,13 +436,15 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
      * own. A change that lands mid-morph starts from the outline as it is, so nothing jumps.
      * The same shape with a non-null [cue] plays it in place (or once a morph cut short into
      * it lands). Called again only for a new shape or a new cue (see [CueRequests]).
+     * [motion] is read again once the morph lands: "Remove animations" turned on during
+     * it lets the morph finish but plays no cue.
      */
-    suspend fun change(target: MascotShape, cue: MascotCue?, motion: MascotMotion, spec: FiniteAnimationSpec<Float>) {
+    suspend fun change(target: MascotShape, cue: MascotCue?, motion: () -> MascotMotion, spec: FiniteAnimationSpec<Float>) {
         val first = !started
         started = true
         if (target == shape && morphFrom == null) {
             if (first || cue == null) return
-            if (motion == MascotMotion.Still) {
+            if (motion() == MascotMotion.Still) {
                 arrival.snapTo(1f)
                 arrivedCue = null
                 return
@@ -432,23 +452,29 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
             play(cue)
             return
         }
-        if (motion == MascotMotion.Still) {
+        if (motion() == MascotMotion.Still) {
             arrival.snapTo(1f)
             morphFrom = null
             arrivedCue = null
             shape = target
+            value = latestValue
             morph.snapTo(1f)
             return
         }
         if (target != shape) {
             // Before the cue stops: a check half stamped is caught half stamped.
             morphFrom = outlineOnScreen()
+            // The old cue now lives in morphFrom. Left set, a morph back that lands with
+            // "Remove animations" on would show the old check without its cue.
+            arrivedCue = null
             arrival.snapTo(1f)
             shape = target
+            value = latestValue
             morph.snapTo(0f)
         }
         morph.animateTo(1f, spec)
         morphFrom = null
+        if (motion() == MascotMotion.Still) return
         play(cue ?: defaultCue(target))
     }
 
@@ -467,8 +493,10 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
         val here = profileOf(shape, value)
         // A jar mid-dip or a wallet mid-lean keeps that pose and lets it go through the morph.
         val moving = arrivedCue?.takeIf { arrival.value < 1f }?.let { CutArrival(it, (arrival.value * ARRIVAL_MS).toLong(), 1f) }
+        val gaze = if (shape == MascotShape.Bars && value != 0f) trendGaze(value) else null
         val from = morphFrom ?: return MorphFrom(
-            here, g.eyes, g.pivot, shape,
+            here, g.eyes, g.pivot, shape, value,
+            gaze = gaze,
             stamp = checkAlpha(arrivedCue, arrival.value),
             stampAt = checkSpot(shape),
             moves = moving,
@@ -482,12 +510,16 @@ private class MascotState(initialMood: MascotMood, initialShape: MascotShape) {
             pivot = lerp(from.pivot, g.pivot, p),
             // The face that shows most, and how much of it, as drawMorph draws them.
             shape = if (early) from.shape else shape,
+            value = if (early) from.value else value,
             faceAlpha = if (early) fromFaceAlpha(from, w) else fadeAt(1f - FACE_FADE, 1f, w),
             owl = lerp(from.owl, owlness(shape), w),
             stamp = fromStampAlpha(from, w),
             stampAt = from.stampAt,
             squint = morphEyes(from, p),
             moves = from.moves?.let { it.copy(weight = cutWeight(it, p)) }?.takeIf { it.weight > 0f },
+            // Into Bars, pose() already looks along the trend; out of it, what's left of the old look.
+            gaze = gaze ?: from.gaze,
+            gazeWeight = if (gaze != null) 1f else from.gazeWeight * (1f - w),
         )
     }
 

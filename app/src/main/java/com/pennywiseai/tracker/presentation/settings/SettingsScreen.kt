@@ -831,7 +831,11 @@ internal fun SettingsChoiceSheet(
                         MaterialTheme.colorScheme.surfaceContainerLow
                     },
                 ) {
-                    RadioButton(selected = choice.selected, onClick = null)
+                    RadioButton(
+                        selected = choice.selected,
+                        onClick = null,
+                        colors = RadioButtonDefaults.colors(selectedColor = MaterialTheme.colorScheme.onSecondaryContainer)
+                    )
                     Column(modifier = Modifier.weight(1f)) {
                         Text(choice.label, style = MaterialTheme.typography.bodyLarge)
                         if (choice.description != null) {

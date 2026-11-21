@@ -215,7 +215,12 @@ Settings → Appearance → Fonts picks an `AppFont`; `PennyWiseTheme` maps it t
   and when `LocalGoogleSansFlexActive` is false (system font, SN Pro, non-Latin
   locale; `withFlexAxes` returns the style unchanged then anyway). Keep one
   text node per amount or label for TalkBack. The places that animate axes:
-  - the amount odometer: a `GRAD` pulse when an amount changes;
+  - the amount odometer (`AnimatedCurrencyText`): a `GRAD` pulse when an
+    amount changes, while only the digit slots that changed roll (up when the
+    amount grew, down when it shrank). It stays one `Text` and draws the roll
+    from that text's layout, so `maxLines`, `autoSize` and TalkBack are the
+    plain text's; it just swaps on first show, under reduced motion, when the
+    text doesn't fit one line, or when `autoSize` picks another size;
   - NavDock items and chips/toggles: `GRAD` up when selected or pressed;
   - the collapsing top-app-bar title: `opsz` and `ROND` follow the collapse
     fraction;

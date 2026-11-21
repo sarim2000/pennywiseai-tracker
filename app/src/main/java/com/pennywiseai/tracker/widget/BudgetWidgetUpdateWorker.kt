@@ -22,6 +22,7 @@ import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.budgetPercentUsed
 import com.pennywiseai.tracker.data.repository.budgetSpend
+import com.pennywiseai.tracker.data.repository.dayCounts
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -264,7 +265,10 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                     netSavings = netSavings,
                     savingsRate = savingsRate,
                     savingsDelta = savingsDelta,
-                    currency = currency
+                    currency = currency,
+                    daysElapsed = raw.daysElapsed,
+                    // Both counts take in today.
+                    windowDays = raw.daysElapsed + raw.daysRemaining - 1
                 )
             } else {
                 val spending = budgetGroupRepository.getGroupSpending(
@@ -292,7 +296,9 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                     netSavings = spending.netSavings,
                     savingsRate = spending.savingsRate,
                     savingsDelta = savingsDelta,
-                    currency = currency
+                    currency = currency,
+                    daysElapsed = spending.pageWindow.dayCounts(today, isCurrentMonth = true).first,
+                    windowDays = spending.pageWindow.days
                 )
             }
 

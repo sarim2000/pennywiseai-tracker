@@ -223,8 +223,11 @@ Settings → Appearance → Fonts picks an `AppFont`; `PennyWiseTheme` maps it t
     plain text's; it just swaps on first show, under reduced motion, when the
     text doesn't fit one line, or when `autoSize` picks another size;
   - NavDock items and chips/toggles: `GRAD` up when selected or pressed;
-  - the collapsing top-app-bar title: `opsz` and `ROND` follow the collapse
-    fraction;
+  - the collapsing top-app-bar title (`CustomTitleTopAppBar`, `TitleMorph`):
+    both the expanded and the collapsed title go from `ROND` 100 at `opsz` 32
+    (expanded) to `ROND` 40 at `opsz` 22 (collapsed) in six steps of the
+    collapse fraction, read through `derivedStateOf` so it recomposes per
+    step, not per pixel. Reduced motion holds the nearer end;
   - the onboarding "PennyWise" wordmark: a one-time staggered per-letter sweep.
 - No wider (`wdth`) cut for the expanded app-bar title: long translated titles
   already wrap, and the axis would add ~120 KB.

@@ -118,15 +118,20 @@ class BudgetSummaryProviderTest {
     }
 
     @Test
-    fun `unified - a budget with no categories ignores rows it never counts`() {
+    fun `unified - a budget with no categories is incomplete for card spend with no rate`() {
+        // It counts card spend as its native card does, so leaving one out reads low.
         val all = budget(1, "Everything")
         assertEquals(
-            mapOf("Everything" to false),
+            mapOf("Everything" to true),
             flags(provider(true, listOf(all), listOf(tx(1, "10", "Others", "XYZ", TransactionType.CREDIT))))
         )
         assertEquals(
             mapOf("Everything" to true),
             flags(provider(true, listOf(all), listOf(tx(1, "10", "Others", "XYZ"))))
+        )
+        assertEquals(
+            mapOf("Everything" to false),
+            flags(provider(true, listOf(all), listOf(tx(1, "10", "Others", "XYZ", TransactionType.TRANSFER))))
         )
     }
 

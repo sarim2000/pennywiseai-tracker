@@ -938,9 +938,9 @@ class BudgetGroupRepository @Inject constructor(
         year: Int,
         month: Int,
         currency: String,
-        convert: (suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?)? = null
+        convert: (suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?)? = null,
+        today: LocalDate = LocalDate.now()
     ): List<PastWindowSpending> {
-        val today = LocalDate.now()
         val startDay = userPreferencesRepository.getBudgetCycleStartDay()
         val ym = YearMonth.of(year, month)
         val monthEnd = ym.atEndOfMonth()

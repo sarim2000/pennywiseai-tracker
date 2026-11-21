@@ -235,12 +235,27 @@ class BudgetWindowTest {
     // ── historyWindowsForMonth ────────────────────────────────────────
 
     @Test
-    fun `history of a 5-anchored monthly budget in the current month lists the running cycle`() {
+    fun `history of a 5-anchored monthly budget in the current month lists the ended and the running cycle`() {
         val budget = budgetOf(BudgetPeriodType.MONTHLY, monthStartDay = 5)
         val windows = historyWindowsForMonth(budget, 2026, 11, today = LocalDate.of(2026, 11, 20), globalStartDay = 1)
 
-        // The Budgets page shows Nov 5..Dec 4; windowsForMonth alone gives Oct 5..Nov 4.
-        assertEquals(listOf(LocalDate.of(2026, 11, 5) to LocalDate.of(2026, 12, 4)), windows.map { it.start to it.end })
+        // Oct 5..Nov 4 ended this month and isn't under October (Sep 5..Oct 4 is);
+        // Nov 5..Dec 4 is the one the Budgets page shows.
+        assertEquals(
+            listOf(
+                LocalDate.of(2026, 10, 5) to LocalDate.of(2026, 11, 4),
+                LocalDate.of(2026, 11, 5) to LocalDate.of(2026, 12, 4)
+            ),
+            windows.map { it.start to it.end }
+        )
+    }
+
+    @Test
+    fun `history before the start day lists the running cycle once`() {
+        val budget = budgetOf(BudgetPeriodType.MONTHLY, monthStartDay = 5)
+        val windows = historyWindowsForMonth(budget, 2026, 11, today = LocalDate.of(2026, 11, 3), globalStartDay = 1)
+
+        assertEquals(listOf(LocalDate.of(2026, 10, 5) to LocalDate.of(2026, 11, 4)), windows.map { it.start to it.end })
     }
 
     @Test

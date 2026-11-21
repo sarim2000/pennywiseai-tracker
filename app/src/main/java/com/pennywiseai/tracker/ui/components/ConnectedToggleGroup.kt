@@ -16,6 +16,7 @@ import androidx.compose.material3.LocalTextStyle
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleButton
+import androidx.compose.material3.ToggleButtonDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -24,9 +25,9 @@ import androidx.compose.ui.semantics.role
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import androidx.compose.ui.unit.sp
+import com.pennywiseai.tracker.ui.theme.Spacing
 
 /**
  * Single-choice Material 3 Expressive connected button group — the replacement
@@ -34,7 +35,8 @@ import androidx.compose.ui.unit.sp
  * tapping any button calls [onSelect] with its option (including the already
  * selected one, matching `SegmentedButton.onClick`).
  *
- * Labels are single-line with ellipsis so long translations don't wrap.
+ * Labels are single-line with ellipsis so long translations don't wrap (a tile's
+ * supporting line gets two).
  * With [fillMaxWidth] the row fills the available width and the buttons share
  * it equally; otherwise each button wraps its label.
  *
@@ -73,10 +75,16 @@ fun <T> ConnectedChoiceRow(
                     .then(if (supportingText != null) Modifier.fillMaxHeight() else Modifier)
                     .semantics { role = Role.RadioButton },
                 shapes = shapes,
+                // A tile sits on the page, whose colour the default unselected fill matches.
+                colors = if (supportingText == null) {
+                    ToggleButtonDefaults.colors()
+                } else {
+                    ToggleButtonDefaults.colors(containerColor = MaterialTheme.colorScheme.surfaceContainerHighest)
+                },
                 contentPadding = if (supportingText == null) {
                     ButtonDefaults.ContentPadding
                 } else {
-                    PaddingValues(horizontal = 8.dp, vertical = 16.dp)
+                    PaddingValues(horizontal = Spacing.sm, vertical = Spacing.md)
                 },
             ) {
                 if (supportingText == null) {
@@ -96,13 +104,15 @@ fun <T> ConnectedChoiceRow(
                             fontFamily = fontFamily(option),
                             maxLines = 1,
                             // Shrinks a long name (e.g. "Google Sans Flex") to fit a narrow tile.
-                            autoSize = TextAutoSize.StepBased(minFontSize = 11.sp, maxFontSize = (textStyle ?: MaterialTheme.typography.titleMedium).fontSize),
+                            autoSize = TextAutoSize.StepBased(minFontSize = MaterialTheme.typography.labelSmall.fontSize, maxFontSize = (textStyle ?: MaterialTheme.typography.titleMedium).fontSize),
                         )
                         Text(
                             text = supportingText(option),
                             style = MaterialTheme.typography.bodySmall,
                             fontFamily = fontFamily(option),
-                            maxLines = 1,
+                            textAlign = TextAlign.Center,
+                            // Two lines: a third of the width cut longer translations short.
+                            maxLines = 2,
                             overflow = TextOverflow.Ellipsis,
                         )
                     }

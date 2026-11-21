@@ -19,6 +19,8 @@
     <string name="goals_archived">संग्रह गरिएको</string>
     <string name="goals_due_on">अन्तिम मिति %1$s</string>
     <string name="goals_ring_description">%1$d%% बचत भयो</string>
+    <!-- Goal card in the Plan tab. %1$s = target amount, %2$s = due date -->
+    <!-- %1$s = amount -->
     <plurals name="goals_months_left">
         <item quantity="one">%d महिना बाँकी</item>
         <item quantity="other">%d महिना बाँकी</item>

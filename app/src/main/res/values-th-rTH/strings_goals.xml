@@ -19,6 +19,8 @@
     <string name="goals_archived">เก็บถาวร</string>
     <string name="goals_due_on">ครบกำหนด %1$s</string>
     <string name="goals_ring_description">เก็บแล้ว %1$d%%</string>
+    <!-- Goal card in the Plan tab. %1$s = target amount, %2$s = due date -->
+    <!-- %1$s = amount -->
     <plurals name="goals_months_left">
         <item quantity="other">เหลือ %d เดือน</item>
     </plurals>

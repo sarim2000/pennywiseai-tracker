@@ -26,6 +26,9 @@
     <string name="home_fab_sync">Sawazisha SMS (bonyeza kwa muda kusoma upya zote)</string>
     <string name="home_fab_sync_hint">Shikilia kusoma upya zote</string>
     <string name="home_resync_title">Soma ujumbe tena</string>
+    <!-- Home shortcut labels sit under a 64dp shape: keep them to about 10 characters -->
+    <!-- Read out for the Unsorted shortcut with its count badge -->
+    <!-- %1$d is the most shortcuts the row holds (4) -->
     <string name="home_resync_scan_again">Skani ujumbe wote tena</string>
     <string name="home_resync_scan_again_desc">Huongeza chochote kilichorukwa. Mabadiliko yako na miamala yote iliyopo hubaki kama ilivyo.</string>
     <string name="home_resync_rebuild">Jenga upya kuanzia mwanzo</string>
@@ -145,6 +148,7 @@
     <string name="balance_card_summary_expenses">Matumizi</string>
     <string name="balance_card_summary_lent">Uliyokopesha</string>
     <string name="balance_card_summary_saved">Akiba</string>
+    <!-- TalkBack: what tapping a figure does ("double tap to see its transactions") -->
     <!-- Budget card -->
     <string name="budget_card_over_budget">%1$s juu ya bajeti</string>
     <string name="budget_card_remaining">%1$s imebaki</string>
@@ -313,6 +317,16 @@
     <string name="home_payday_card_body">Inaonekana mshahara wako hufika tarehe %1$d ya mwezi. Ungependa kila mwezi wa bajeti uanze siku hiyo? Unaweza kubadilisha hili kwenye Mipangilio.</string>
     <string name="home_payday_card_action">Anza tarehe %1$d</string>
     <string name="home_payday_card_dismiss">Ondoa</string>
+    <!-- Home hero card. %1$s is a month name ("November") -->
+    <!-- %1$s is the user's own budget name -->
+    <!-- %1$s is a month name ("November") -->
+    <!-- %1$s is the user's own budget name -->
+    <!-- %1$s is a formatted amount -->
+    <!-- The budget limit under the progress bar; %1$s is a formatted amount -->
+    <!-- What can still be spent each day; %1$s is a formatted amount -->
+    <!-- Home nudge under the hero: the mascot's one line. %1$s is a formatted amount -->
+    <!-- Home sections -->
+    <!-- Subtitle of a recent transaction still in Others -->
     <!-- Month-end forecast on the "Spent this month" card -->
     <string name="forecast_on_track">Unaelekea %1$s kufikia %2$s</string>
     <string name="forecast_over_usual">%1$s zaidi ya kawaida</string>

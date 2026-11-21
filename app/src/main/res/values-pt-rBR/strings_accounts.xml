@@ -148,6 +148,9 @@
     <string name="manage_accounts_credit_limit">Limite de Crédito</string>
     <!-- %1$d = utilization percentage -->
     <string name="manage_accounts_utilization_used">(%1$d%% utilizado)</string>
+    <!-- %1$d = utilization percentage, %2$s = formatted credit limit -->
+    <!-- %1$s = formatted available credit -->
+    <!-- Summary cards at the top of Manage Accounts -->
     <string name="manage_accounts_more_options">Mais opções</string>
     <string name="manage_accounts_action_edit">Alterar</string>
     <string name="manage_accounts_action_update">Atualização</string>

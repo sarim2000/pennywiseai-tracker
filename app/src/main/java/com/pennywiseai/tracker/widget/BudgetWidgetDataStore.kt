@@ -4,6 +4,7 @@ import android.content.Context
 import androidx.datastore.preferences.core.booleanPreferencesKey
 import androidx.datastore.preferences.core.edit
 import androidx.datastore.preferences.core.floatPreferencesKey
+import androidx.datastore.preferences.core.intPreferencesKey
 import androidx.datastore.preferences.core.stringPreferencesKey
 import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
@@ -26,6 +27,8 @@ object BudgetWidgetDataStore {
     private val SAVINGS_RATE = floatPreferencesKey("savings_rate")
     private val SAVINGS_DELTA = stringPreferencesKey("savings_delta")
     private val CURRENCY = stringPreferencesKey("currency")
+    private val DAYS_ELAPSED = intPreferencesKey("days_elapsed")
+    private val WINDOW_DAYS = intPreferencesKey("window_days")
 
     fun getData(context: Context): Flow<BudgetWidgetData> {
         return context.widgetDataStore.data.map { prefs ->
@@ -41,7 +44,9 @@ object BudgetWidgetDataStore {
                 netSavings = prefs[NET_SAVINGS]?.toBigDecimalOrNull() ?: BigDecimal.ZERO,
                 savingsRate = prefs[SAVINGS_RATE] ?: 0f,
                 savingsDelta = prefs[SAVINGS_DELTA]?.takeIf { it.isNotBlank() }?.toBigDecimalOrNull(),
-                currency = prefs[CURRENCY] ?: "INR"
+                currency = prefs[CURRENCY] ?: "INR",
+                daysElapsed = prefs[DAYS_ELAPSED] ?: 0,
+                windowDays = prefs[WINDOW_DAYS] ?: 0
             )
         }
             // A failed read (corrupt file, unknown enum) shows the empty widget
@@ -62,6 +67,8 @@ object BudgetWidgetDataStore {
             prefs[SAVINGS_RATE] = data.savingsRate
             prefs[SAVINGS_DELTA] = data.savingsDelta?.toPlainString() ?: ""
             prefs[CURRENCY] = data.currency
+            prefs[DAYS_ELAPSED] = data.daysElapsed
+            prefs[WINDOW_DAYS] = data.windowDays
         }
     }
 }

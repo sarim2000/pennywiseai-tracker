@@ -234,6 +234,9 @@ Settings → Appearance → Fonts picks an `AppFont`; `PennyWiseTheme` maps it t
   - the onboarding "PennyWise" wordmark (inside the welcome title): once per
     onboarding, each letter inks in from thin to the title's weight (`wght`,
     with a passing `GRAD` swell), its line breaks held so nothing re-wraps.
+    It starts once frames arrive steadily, not at first composition: a cold
+    start's first frames stall, and a sweep timed from composition would
+    finish before anything is drawn.
 - No wider (`wdth`) cut for the expanded app-bar title: long translated titles
   already wrap, and the axis would add ~120 KB.
 - The picker draws each option in its own family, and its tiles grow with their

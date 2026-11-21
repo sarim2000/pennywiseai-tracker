@@ -12,6 +12,7 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.res.stringResource
@@ -69,6 +70,10 @@ internal fun WelcomeTitle(
     val progress = remember(brand) { List(brand.length) { Animatable(0f) } }
     val spec = MaterialTheme.motionScheme.slowSpatialSpec<Float>()
     LaunchedEffect(Unit) {
+        // A cold start's first frames come after long main-thread stalls (first
+        // composition, disk reads); timed from composition, the sweep would play
+        // out inside them and the first drawn frame would already be final.
+        awaitSteadyFrames()
         onPlayed()
         delay(LEAD_IN_MS)
         coroutineScope {
@@ -118,6 +123,23 @@ internal fun WelcomeTitle(
     }
 }
 
+/**
+ * Returns once frames arrive at a steady pace ([STEADY_FRAMES] in a row, each
+ * within [STEADY_FRAME_NANOS] of the last), so what follows is actually drawn.
+ * Gives up after [MAX_WAIT_FRAMES] on a device that never gets there.
+ */
+private suspend fun awaitSteadyFrames() {
+    var last = withFrameNanos { it }
+    var steady = 0
+    var frames = 0
+    while (steady < STEADY_FRAMES && frames < MAX_WAIT_FRAMES) {
+        val now = withFrameNanos { it }
+        steady = if (now - last <= STEADY_FRAME_NANOS) steady + 1 else 0
+        last = now
+        frames++
+    }
+}
+
 /** [text] with each soft break [layout] chose at a space made a hard one; same length. */
 private fun pinLineBreaks(text: String, layout: TextLayoutResult): String {
     val chars = text.toCharArray()
@@ -144,5 +166,17 @@ private const val START_WEIGHT = 200f
 /** Between letters; with the spring, the word settles in under a second. */
 private const val LETTER_STAGGER_MS = 50L
 
-/** Lets the screen land (and the splash clear on first launch) before the word moves. */
+/**
+ * Lets the screen land (and the splash clear on first launch) before the word
+ * moves; counted once frames are steady.
+ */
 private const val LEAD_IN_MS = 250L
+
+/** Frames in a row that must come on time before the lead-in starts. */
+private const val STEADY_FRAMES = 3
+
+/** "On time": within three 60 Hz vsyncs of the frame before. */
+private const val STEADY_FRAME_NANOS = 50_000_000L
+
+/** At most this many frames of waiting, so a device that never runs steady still plays it. */
+private const val MAX_WAIT_FRAMES = 12

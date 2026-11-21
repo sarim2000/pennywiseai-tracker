@@ -21,8 +21,10 @@ enum class ChallengeKind {
 @Serializable
 data class ChallengeRun(
     val kind: ChallengeKind = ChallengeKind.NO_SPEND_DAYS,
-    /** The (top-level) category a [ChallengeKind.CATEGORY_WEEK] goes without. */
+    /** The (top-level) category a [ChallengeKind.CATEGORY_WEEK] goes without, by its name when started. */
     val categoryName: String? = null,
+    /** That category's id, so a rename doesn't lose the challenge's expenses; null for older runs. */
+    val categoryId: Long? = null,
     val startEpochDay: Long = 0,
     val length: Int = WEEK,
     val target: Int = NO_SPEND_TARGET,
@@ -33,6 +35,9 @@ data class ChallengeRun(
     /** Whether [row] spoils its day. */
     fun counts(row: ChallengeRow): Boolean = kind == ChallengeKind.NO_SPEND_DAYS || categoryName in row.categories
 
+    /** The same run, whatever its category is called now. */
+    fun sameAs(other: ChallengeRun?): Boolean = other != null && kind == other.kind && startEpochDay == other.startEpochDay
+
     /** Once per run: the same challenge started another day is a new moment. */
     val celebrationKey: String get() = "challenge:$start:$kind"
 
@@ -40,9 +45,10 @@ data class ChallengeRun(
         const val WEEK = 7
         const val NO_SPEND_TARGET = 3
 
-        fun start(kind: ChallengeKind, categoryName: String?, today: LocalDate) = ChallengeRun(
+        fun start(kind: ChallengeKind, categoryName: String?, today: LocalDate, categoryId: Long? = null) = ChallengeRun(
             kind = kind,
             categoryName = categoryName.takeIf { kind == ChallengeKind.CATEGORY_WEEK },
+            categoryId = categoryId.takeIf { kind == ChallengeKind.CATEGORY_WEEK },
             startEpochDay = today.toEpochDay(),
             length = WEEK,
             target = if (kind == ChallengeKind.NO_SPEND_DAYS) NO_SPEND_TARGET else WEEK,
@@ -70,8 +76,11 @@ data class ChallengeState(
 
     /** Moves [run] to history, if it's still the active one (two screens may both see it end). */
     fun finish(run: ChallengeRun, cleanDays: Int, won: Boolean): ChallengeState =
-        if (active != run) this
-        else ChallengeState(null, (listOf(ChallengeOutcome(run, cleanDays, won)) + history).take(HISTORY))
+        if (active == null || !run.sameAs(active)) this
+        else ChallengeState(null, (listOf(ChallengeOutcome(active, cleanDays, won)) + history).take(HISTORY))
+
+    /** Give up [run] only if it's still the one running: a rollover may have finished it meanwhile. */
+    fun giveUp(run: ChallengeRun): ChallengeState = if (run.sameAs(active)) copy(active = null) else this
 
     fun markSeen(): ChallengeState = copy(history = history.mapIndexed { i, o -> if (i == 0) o.copy(seen = true) else o })
 
@@ -111,12 +120,17 @@ data class ChallengeProgress(
     val days: List<ChallengeDay>,
     /** 1-based day of the window today falls on. */
     val dayNumber: Int,
+    /** Today is past the window's last day. */
+    val over: Boolean = false,
 ) {
     val cleanDays: Int get() = days.count { it.status == DayStatus.CLEAN }
     val won: Boolean get() = cleanDays >= run.target
 
-    /** Won early, or the window is over. */
-    val finished: Boolean get() = won || days.none { it.status == DayStatus.TODAY || it.status == DayStatus.FUTURE }
+    /**
+     * Won early, or the window is over. A loss waits for the window's end even when it's
+     * certain, so an expense corrected the same day (made a transfer) can still clear it.
+     */
+    val finished: Boolean get() = won || over
 
     /** The target is still within reach. */
     val winnable: Boolean get() = cleanDays + days.count { it.status == DayStatus.TODAY || it.status == DayStatus.FUTURE } >= run.target
@@ -141,7 +155,9 @@ fun ChallengeRun.progress(rows: List<ChallengeRow>, today: LocalDate): Challenge
         }
         ChallengeDay(date, status, if (status == DayStatus.MISSED) hits else emptyList())
     }
-    return ChallengeProgress(this, days, (ChronoUnit.DAYS.between(start, today) + 1).toInt().coerceIn(1, length))
+    // ponytail: a clean day settles at midnight, so a message dated that day arriving later
+    // can't undo a win already recorded; hold days for a grace period if banks lag that much.
+    return ChallengeProgress(this, days, (ChronoUnit.DAYS.between(start, today) + 1).toInt().coerceIn(1, length), today.isAfter(end))
 }
 
 const val FOOD_AND_DINING = "Food & Dining"

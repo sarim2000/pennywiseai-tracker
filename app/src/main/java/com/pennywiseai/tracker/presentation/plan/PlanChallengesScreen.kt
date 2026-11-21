@@ -33,7 +33,6 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.saveable.rememberSaveable
@@ -89,8 +88,6 @@ fun PlanChallengesScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val celebrate by viewModel.celebrate.collectAsStateWithLifecycle()
     var confirmGiveUp by rememberSaveable { mutableStateOf(false) }
-    val result = state?.result
-    LaunchedEffect(result) { result?.let(viewModel::onShownResult) }
 
     Box(Modifier.fillMaxSize()) {
         PlanListScreen(host) {
@@ -124,7 +121,7 @@ fun PlanChallengesScreen(
             title = { Text(stringResource(R.string.challenge_give_up_title)) },
             text = { Text(stringResource(R.string.challenge_give_up_body)) },
             confirmButton = {
-                TextButton(onClick = { confirmGiveUp = false; viewModel.giveUp() }, shapes = ButtonDefaults.shapes()) {
+                TextButton(onClick = { confirmGiveUp = false; state?.active?.run?.let(viewModel::giveUp) }, shapes = ButtonDefaults.shapes()) {
                     Text(stringResource(R.string.challenge_give_up))
                 }
             },

@@ -68,6 +68,25 @@ class ChallengesTest {
     }
 
     @Test
+    fun `a certain loss still waits for the window to end`() {
+        // A day-7 expense corrected to a transfer the same afternoon can still clear the day.
+        val rows = (1..6).map { row(it, FOOD_AND_DINING) }
+        val lastDay = noFood.progress(rows, today = start.plusDays(6))
+        assertFalse(lastDay.winnable)
+        assertFalse(lastDay.finished)
+        assertTrue(noFood.progress(rows, today = start.plusDays(7)).finished)
+    }
+
+    @Test
+    fun `giving up only stops the run it was asked for`() {
+        val renamed = noFood.copy(categoryName = "Dining")
+        assertNull(ChallengeState(active = noFood).giveUp(renamed).active)
+        assertEquals(noFood, ChallengeState(active = noFood).giveUp(noSpend).active)
+        // Finishing a renamed copy records the stored run.
+        assertEquals(noFood, ChallengeState(active = noFood).finish(renamed, 7, true).history.first().run)
+    }
+
+    @Test
     fun `a clean category week is won when it ends, not before`() {
         val rows = listOf(row(2, "Shopping"))
         assertFalse(noFood.progress(rows, today = start.plusDays(6)).finished) // the last day is still today

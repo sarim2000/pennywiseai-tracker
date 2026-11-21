@@ -25,13 +25,15 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.distinctUntilChanged
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
 import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.Duration
 import java.time.LocalDate
-import java.time.LocalDateTime
+import java.time.ZoneId
+import java.time.ZonedDateTime
 import javax.inject.Inject
 
 data class ChallengesUiState(
@@ -57,7 +59,9 @@ class ChallengesViewModel @Inject constructor(
         while (true) {
             val day = LocalDate.now()
             emit(day)
-            delay(Duration.between(LocalDateTime.now(), day.plusDays(1).atStartOfDay()).toMillis() + 1)
+            // Zoned, so a DST night (23 or 25 hours) still wakes at the real midnight.
+            val zone = ZoneId.systemDefault()
+            delay(Duration.between(ZonedDateTime.now(zone), day.plusDays(1).atStartOfDay(zone)).toMillis() + 1)
         }
     }.distinctUntilChanged()
 
@@ -74,13 +78,13 @@ class ChallengesViewModel @Inject constructor(
                 categoryRepository.getAllCategories(),
             ) { rows, creditAsExpense, categories ->
                 val counted = challengeRows(rows, creditAsExpense, categories.parentNameOf())
-                val progress = run?.progress(counted, today)
+                // Matched by the category's current name: a rename moves its expenses with it.
+                val current = run?.let { r -> r.categoryId?.let { id -> categories.firstOrNull { it.id == id } }?.let { r.copy(categoryName = it.name) } ?: r }
+                val progress = current?.progress(counted, today)
                 // Shown as the result at once, not after the write lands: a list that briefly
                 // showed only the presets would keep them anchored and push the result off screen.
                 val finished = progress?.takeIf { it.finished }?.let { ChallengeOutcome(run, it.cleanDays, it.won) }
-                if (finished != null) {
-                    viewModelScope.launch { preferences.updateChallenges { it.finish(run, finished.cleanDays, finished.won) } }
-                }
+                if (finished != null) commit(finished)
                 ChallengesUiState(
                     active = progress?.takeUnless { it.finished },
                     result = finished ?: stored.unseenResult,
@@ -95,22 +99,30 @@ class ChallengesViewModel @Inject constructor(
     /** True while a won challenge is being celebrated. */
     val celebrate: StateFlow<Boolean> = _celebrate.asStateFlow()
 
-    /** The screen shows [result]: a win cheers, once per run. */
-    fun onShownResult(result: ChallengeOutcome) {
-        if (!result.won) return
-        viewModelScope.launch { if (preferences.celebrateOnce(result.run.celebrationKey)) _celebrate.value = true }
+    /** Records [outcome]; a win cheers once per run, and only once the record has landed. */
+    private fun commit(outcome: ChallengeOutcome) {
+        viewModelScope.launch {
+            var recorded = false
+            preferences.updateChallenges { state ->
+                state.finish(outcome.run, outcome.cleanDays, outcome.won).also { recorded = it.active == null && state.active != null }
+            }
+            if (recorded && outcome.won && preferences.celebrateOnce(outcome.run.celebrationKey)) _celebrate.value = true
+        }
     }
 
     fun onCelebrated() { _celebrate.value = false }
 
     fun start(kind: ChallengeKind, categoryName: String?) {
-        val run = ChallengeRun.start(kind, categoryName, LocalDate.now())
-        viewModelScope.launch { preferences.updateChallenges { it.markSeen().copy(active = run) } }
+        viewModelScope.launch {
+            val categoryId = categoryName?.let { name -> categoryRepository.getAllCategories().first().firstOrNull { it.name == name }?.id }
+            val run = ChallengeRun.start(kind, categoryName, LocalDate.now(), categoryId)
+            preferences.updateChallenges { it.markSeen().copy(active = run) }
+        }
     }
 
-    /** Leaves quietly: nothing is recorded against the user. */
-    fun giveUp() {
-        viewModelScope.launch { preferences.updateChallenges { it.copy(active = null) } }
+    /** Leaves [run] quietly: nothing is recorded against the user. */
+    fun giveUp(run: ChallengeRun) {
+        viewModelScope.launch { preferences.updateChallenges { it.giveUp(run) } }
     }
 
     fun dismissResult() {
@@ -135,7 +147,8 @@ internal fun challengeRows(
     ChallengeRow(
         id = tx.id,
         date = tx.dateTime.toLocalDate(),
-        categories = row.getAmountByCategory().keys.map { it.ifEmpty { "Others" }.let { name -> parentOf[name] ?: name } }.toSet(),
+        // Only shares with something counted: a split's zero share doesn't spend its category.
+        categories = row.getAmountByCategory().filterValues { it.signum() > 0 }.keys.map { it.ifEmpty { "Others" }.let { name -> parentOf[name] ?: name } }.toSet(),
         merchant = tx.merchantName,
     )
 }

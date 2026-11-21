@@ -48,7 +48,7 @@ data class MonthUnderBudget(val month: YearMonth, val currency: String) {
  * spending limits count: a TARGET (savings, investments) or EXPECTED budget isn't one
  * to stay under. Needs at least one limit, some spending against them, and no limit over.
  */
-fun monthUnderBudget(today: LocalDate, previous: BudgetOverallSummary, dismissed: String?): MonthUnderBudget? {
+fun monthUnderBudget(today: LocalDate, previous: BudgetOverallSummary, dismissed: Set<String>): MonthUnderBudget? {
     if (today.dayOfMonth > UNDER_BUDGET_CARD_DAYS) return null
     // Monthly limits only: a month's summary shows a Weekly budget's last week and clips a
     // One-time budget to the month, so neither says whether it held.
@@ -60,7 +60,33 @@ fun monthUnderBudget(today: LocalDate, previous: BudgetOverallSummary, dismissed
         limits.any { it.totalActual.signum() > 0 } &&
         limits.all { it.totalActual <= it.totalBudget && !it.hasUnconvertedSpend }
     return MonthUnderBudget(YearMonth.from(today).minusMonths(1), previous.currency)
-        .takeIf { kept && it.key != dismissed }
+        .takeIf { kept && it.key !in dismissed }
+}
+
+/**
+ * [ready] is false until this visit has decided whether [win] exists. The Budgets list
+ * waits for that before a deep link scrolls, so a late card can't shift the row.
+ */
+data class UnderBudgetCardState(val win: MonthUnderBudget? = null, val ready: Boolean = false)
+
+/**
+ * Index of [focusBudgetId] in the Budgets lazy list. Keys match that list: goals, the
+ * under-budget card, the month selector, then the hero and the other budgets.
+ */
+internal fun budgetFocusIndex(
+    focusBudgetId: Long,
+    hasGoals: Boolean,
+    hasWin: Boolean,
+    heroId: Long?,
+    otherIds: List<Long>,
+): Int? {
+    val keys = ArrayList<Any>(otherIds.size + 3)
+    if (hasGoals) keys.add("goals")
+    if (hasWin) keys.add("under-budget")
+    keys.add("month")
+    if (heroId != null) keys.add(heroId)
+    keys.addAll(otherIds)
+    return keys.indexOf(focusBudgetId).takeIf { it >= 0 }
 }
 
 /** A small tonal note at the top of the Budgets list. No figures, so it's safe while amounts are hidden. */
@@ -81,7 +107,7 @@ fun MonthUnderBudgetCard(win: MonthUnderBudget, onDismiss: () -> Unit, modifier:
             Mascot(
                 size = Dimensions.Icon.extraLarge,
                 mood = MascotMood.Happy,
-                tint = MaterialTheme.colorScheme.tertiary,
+                tint = MaterialTheme.colorScheme.onTertiaryContainer,
             )
             Column(Modifier.weight(1f).padding(horizontal = Spacing.md)) {
                 Text(

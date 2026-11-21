@@ -29,7 +29,9 @@ import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import java.io.IOException
 import java.time.LocalDate
+import java.time.YearMonth
 import javax.inject.Inject
 import javax.inject.Singleton
 import kotlin.random.Random
@@ -59,9 +61,40 @@ internal object SmsScanAllTimeMigration : androidx.datastore.core.DataMigration<
     }
 }
 
+/**
+ * The under-budget card's dismissal was one string, so a second currency replaced the first.
+ * Anyone who already dismissed a card keeps that one key when it becomes a set.
+ */
+internal object BudgetMonthCardDismissalsMigration : androidx.datastore.core.DataMigration<Preferences> {
+    private const val NAME = "budget_month_card_dismissed"
+
+    override suspend fun cleanUp() {}
+
+    override suspend fun shouldMigrate(currentData: Preferences): Boolean =
+        currentData.asMap().any { (key, value) -> key.name == NAME && value is String }
+
+    override suspend fun migrate(currentData: Preferences): Preferences {
+        val prefs = currentData.toMutablePreferences()
+        val old = prefs.asMap().entries.firstOrNull { it.key.name == NAME }?.value as? String
+        prefs.remove(stringPreferencesKey(NAME))
+        if (!old.isNullOrEmpty()) prefs[stringSetPreferencesKey(NAME)] = setOf(old)
+        return prefs
+    }
+}
+
+/**
+ * Dismissal keys still worth keeping: last month's, and only during the first [eligibleDays]
+ * of this one. Keys look like `budget_month:2026-10:JOD`.
+ */
+internal fun eligibleBudgetMonthDismissals(keys: Set<String>, today: LocalDate, eligibleDays: Int): Set<String> {
+    if (today.dayOfMonth > eligibleDays) return emptySet()
+    val prefix = "budget_month:${YearMonth.from(today).minusMonths(1)}:"
+    return keys.filterTo(linkedSetOf()) { it.startsWith(prefix) }
+}
+
 private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
     name = USER_PREFERENCES_STORE_NAME,
-    produceMigrations = { _ -> listOf(SmsScanAllTimeMigration) }
+    produceMigrations = { _ -> listOf(SmsScanAllTimeMigration, BudgetMonthCardDismissalsMigration) }
 )
 
 /**
@@ -151,8 +184,8 @@ open class UserPreferencesRepository internal constructor(
         val DISMISSED_INSIGHTS = stringSetPreferencesKey("dismissed_insights")
         // Moments already celebrated with confetti ("goal_reached:12"), so each fires once. Device-local.
         val CELEBRATED_MOMENTS = stringSetPreferencesKey("celebrated_moments")
-        // The "month ended under budget" card dismissed ("budget_month:2026-10:INR"). Device-local.
-        val BUDGET_MONTH_CARD_DISMISSED = stringPreferencesKey("budget_month_card_dismissed")
+        // "Month ended under budget" cards the user closed ("budget_month:2026-10:INR"), one per currency. Device-local.
+        val BUDGET_MONTH_CARD_DISMISSED = stringSetPreferencesKey("budget_month_card_dismissed")
         // The first day ("2026-11-09") of the last week whose Home guess was answered or
         // dismissed. The guess itself is never stored. Device-local.
         val WEEKLY_GUESS_HANDLED_WEEK = stringPreferencesKey("weekly_guess_handled_week")
@@ -1417,16 +1450,21 @@ open class UserPreferencesRepository internal constructor(
 
     /**
      * Records [keys] as celebrated in one edit and returns the ones that weren't yet:
-     * the moments to celebrate now. Asking again returns nothing.
+     * the moments to celebrate now. Asking again returns nothing. A full disk returns
+     * nothing either, so nothing plays and a later visit can retry.
      */
     suspend fun claimCelebrations(keys: Collection<String>): Set<String> {
-        var fresh = emptySet<String>()
-        dataStore.edit { preferences ->
-            val celebrated = preferences[PreferencesKeys.CELEBRATED_MOMENTS] ?: emptySet()
-            fresh = keys.toSet() - celebrated
-            if (fresh.isNotEmpty()) preferences[PreferencesKeys.CELEBRATED_MOMENTS] = celebrated + fresh
+        return try {
+            var fresh = emptySet<String>()
+            dataStore.edit { preferences ->
+                val celebrated = preferences[PreferencesKeys.CELEBRATED_MOMENTS] ?: emptySet()
+                fresh = keys.toSet() - celebrated
+                if (fresh.isNotEmpty()) preferences[PreferencesKeys.CELEBRATED_MOMENTS] = celebrated + fresh
+            }
+            fresh
+        } catch (_: IOException) {
+            emptySet()
         }
-        return fresh
     }
 
     /** The week (its first day) whose weekly guess was answered or dismissed. */
@@ -1440,12 +1478,39 @@ open class UserPreferencesRepository internal constructor(
     /** True only the first time [key] is asked for. */
     suspend fun celebrateOnce(key: String): Boolean = claimCelebrations(listOf(key)).isNotEmpty()
 
-    /** The last "month ended under budget" card the user closed, by its celebration key. */
-    val budgetMonthCardDismissed: Flow<String?> = dataStore.data
-        .map { it[PreferencesKeys.BUDGET_MONTH_CARD_DISMISSED] }
+    /** "Month ended under budget" cards the user closed, one key per currency. */
+    val budgetMonthCardsDismissed: Flow<Set<String>> = dataStore.data
+        .map { it[PreferencesKeys.BUDGET_MONTH_CARD_DISMISSED] ?: emptySet() }
 
-    suspend fun dismissBudgetMonthCard(key: String) {
-        dataStore.edit { it[PreferencesKeys.BUDGET_MONTH_CARD_DISMISSED] = key }
+    /**
+     * Remembers [key] and drops months outside the first [eligibleDays] of the next month.
+     * [eligibleDays] is the card's own window, so this store doesn't grow a second copy of that rule.
+     */
+    suspend fun dismissBudgetMonthCard(key: String, today: LocalDate, eligibleDays: Int) {
+        editBudgetMonthDismissals(today, eligibleDays) { it + key }
+    }
+
+    /** Drops dismissal keys whose month is outside the first [eligibleDays] of the next one. */
+    suspend fun pruneBudgetMonthDismissals(today: LocalDate, eligibleDays: Int) {
+        editBudgetMonthDismissals(today, eligibleDays) { it }
+    }
+
+    private suspend fun editBudgetMonthDismissals(
+        today: LocalDate,
+        eligibleDays: Int,
+        update: (Set<String>) -> Set<String>,
+    ) {
+        try {
+            dataStore.edit { prefs ->
+                val current = prefs[PreferencesKeys.BUDGET_MONTH_CARD_DISMISSED] ?: emptySet()
+                val kept = eligibleBudgetMonthDismissals(update(current), today, eligibleDays)
+                if (kept == current) return@edit
+                if (kept.isEmpty()) prefs.remove(PreferencesKeys.BUDGET_MONTH_CARD_DISMISSED)
+                else prefs[PreferencesKeys.BUDGET_MONTH_CARD_DISMISSED] = kept
+            }
+        } catch (_: IOException) {
+            // Full disk: leave the stored set alone so a later visit can try again.
+        }
     }
 
     // Replace UPI VPAs with matching contact names at display time.

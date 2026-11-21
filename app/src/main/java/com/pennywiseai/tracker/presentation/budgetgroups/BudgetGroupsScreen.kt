@@ -774,6 +774,8 @@ private fun SpendingPaceChart(
         LineChart(
             modifier = Modifier
                 .fillMaxWidth()
+                // Room for a tapped point's popup, which hangs below the point, above the caption.
+                .padding(bottom = Spacing.md)
                 .height(Dimensions.Component.budgetPaceChartHeight),
             data = listOf(
                 Line(
@@ -809,6 +811,11 @@ private fun SpendingPaceChart(
                 contentBuilder = { value ->
                     CurrencyFormatter.formatAbbreviated(value, currency)
                 }
+            ),
+            popupProperties = PopupProperties(
+                textStyle = PennyWiseText.chartLabel.copy(color = themeColors.inverseOnSurface),
+                containerColor = themeColors.inverseSurface,
+                contentBuilder = { CurrencyFormatter.formatCurrency(it.value, currency) }
             ),
             labelHelperProperties = LabelHelperProperties(enabled = false),
             labelProperties = LabelProperties(enabled = false),

@@ -419,6 +419,7 @@ private fun DetailHero(
         // Loan chip
         if (loan != null) {
             val loanColor = MaterialTheme.colorScheme.loan
+            val loanInk = MaterialTheme.colorScheme.inkOnWash(loanColor, Dimensions.Alpha.categoryTint)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
@@ -447,13 +448,13 @@ private fun DetailHero(
                             Icons.Default.SwapHoriz,
                             contentDescription = null,
                             modifier = Modifier.size(Dimensions.Icon.small),
-                            tint = loanColor
+                            tint = loanInk
                         )
                     },
                     colors = SuggestionChipDefaults.suggestionChipColors(
                         containerColor = loanColor.copy(alpha = Dimensions.Alpha.categoryTint),
-                        labelColor = loanColor,
-                        iconContentColor = loanColor
+                        labelColor = loanInk,
+                        iconContentColor = loanInk
                     ),
                     shape = CircleShape,
                     border = null

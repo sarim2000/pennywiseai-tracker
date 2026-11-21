@@ -26,6 +26,7 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.StrokeCap
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
@@ -475,7 +476,8 @@ private fun BudgetGroupsContent(
                         deleteGroupId = null
                     },
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error
+                        containerColor = MaterialTheme.colorScheme.error,
+                        contentColor = MaterialTheme.colorScheme.onError
                     ),
                     shapes = ButtonDefaults.shapes()
                 ) {
@@ -563,7 +565,7 @@ private fun BudgetCard(
             onClick = { expanded = !expanded },
             modifier = Modifier.semantics { stateDescription = detailAction }
         ) {
-            BudgetStatusContent(groupSpending, currency, hero = hero, dense = !hero) {
+            BudgetStatusContent(groupSpending, currency, hero = hero, dense = !hero, containerColor = color) {
                 Icon(
                     if (expanded) Icons.Default.ExpandLess else Icons.Default.ExpandMore,
                     contentDescription = null,
@@ -632,7 +634,7 @@ private fun BudgetDetails(
                             .background(categoryColor.copy(alpha = Dimensions.Alpha.categoryTint)),
                         contentAlignment = Alignment.Center
                     ) {
-                        CategoryIcon(category = category.categoryName, size = Dimensions.Icon.inline, tint = categoryColor)
+                        CategoryIcon(category = category.categoryName, size = Dimensions.Icon.inline, washAlpha = Dimensions.Alpha.categoryTint)
                     }
                     Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
                         Text(categoryLabel(category.categoryName), style = PennyWiseText.rowTitle)
@@ -764,6 +766,12 @@ private fun SpendingPaceChart(
         paceValues.getOrNull(cumulativeSpending.lastIndex.coerceAtMost(paceValues.lastIndex))?.let { pace -> actual > pace }
     } ?: false
     val spendingColor = if (isOverPace) themeColors.error else themeColors.primary
+    // The pace line stays muted but visible: 3:1 on the card and on the spending wash it crosses.
+    val card = themeColors.surfaceContainerLow
+    val paceColor = themeColors.onSurfaceVariant.copy(alpha = 0.4f).compositeOver(card).readableOn(
+        listOf(card, spendingColor.copy(alpha = 0.2f).compositeOver(card)),
+        GRAPHIC_CONTRAST
+    )
     val today = rememberToday()
     val pace = if (today in spending.windowStart..spending.windowEnd) {
         val elapsed = java.time.temporal.ChronoUnit.DAYS.between(spending.windowStart, today).toInt() + 1
@@ -795,7 +803,7 @@ private fun SpendingPaceChart(
                 Line(
                     label = stringResource(R.string.budgets_chart_pace),
                     values = paceValues,
-                    color = SolidColor(themeColors.onSurfaceVariant),
+                    color = SolidColor(paceColor),
                     drawStyle = DrawStyle.Stroke(width = Dimensions.Component.dividerThicknessEmphasis),
                     strokeAnimationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
                     curvedEdges = false,

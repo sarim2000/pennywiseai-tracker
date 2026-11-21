@@ -98,6 +98,7 @@ class UserPreferencesKeysGoldenTest {
             "red_spending" to "Boolean",
             "budget_alerts_enabled" to "Boolean",
             "budget_cycle_start_day" to "Int",
+            "budget_month_card_dismissed" to "String",
             "conscience_enabled" to "Boolean",
             "celebrated_moments" to "Set<String>",
             "conscience_log" to "Set<String>",

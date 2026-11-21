@@ -68,6 +68,7 @@ import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.RolloverLine
 import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.components.cards.needsExchangeRate
+import com.pennywiseai.tracker.ui.components.celebration.Celebration
 import com.pennywiseai.tracker.ui.components.mascot.Mascot
 import com.pennywiseai.tracker.ui.components.mascot.MascotShape
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
@@ -116,6 +117,8 @@ fun BudgetGroupsScreen(
     focusBudgetId: Long? = null,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
+    val underBudget by viewModel.underBudget.collectAsStateWithLifecycle()
+    val celebrate by viewModel.celebrate.collectAsStateWithLifecycle()
     val goalsSection: (@Composable () -> Unit)? = if (planTab != null) null else {
         {
             com.pennywiseai.tracker.presentation.goals.GoalsSection(
@@ -230,6 +233,9 @@ fun BudgetGroupsScreen(
                 bottomPadding = paddingValues.calculateBottomPadding() + Dimensions.Component.fabScrollClearance +
                     if (planTab != null) Dimensions.Component.bottomBarHeight else Spacing.none,
                 uiState = uiState,
+                underBudget = underBudget,
+                onUnderBudgetShown = viewModel::onUnderBudgetShown,
+                onDismissUnderBudget = viewModel::dismissUnderBudget,
                 goalsSection = goalsSection,
                 focusBudgetId = focusBudgetId,
                 onPreviousMonth = { viewModel.selectPreviousMonth() },
@@ -249,6 +255,8 @@ fun BudgetGroupsScreen(
                 onAddRate = onNavigateToExchangeRates
             )
         }
+        // Scaffold content stacks like a Box: this draws over the list.
+        Celebration(play = celebrate, onFinished = viewModel::onCelebrated)
     }
 }
 
@@ -317,6 +325,9 @@ private fun BudgetGroupsContent(
     topPadding: Dp,
     bottomPadding: Dp,
     uiState: BudgetGroupsUiState,
+    underBudget: MonthUnderBudget?,
+    onUnderBudgetShown: (MonthUnderBudget) -> Unit,
+    onDismissUnderBudget: (MonthUnderBudget) -> Unit,
     goalsSection: (@Composable () -> Unit)?,
     focusBudgetId: Long? = null,
     onPreviousMonth: () -> Unit,
@@ -339,6 +350,8 @@ private fun BudgetGroupsContent(
     } else null
     val hero = summary.groups.firstOrNull { it.group.budget.id == heroId }
     val otherGroups = if (summaryReady) summary.groups.filterNot { it.group.budget.id == heroId } else emptyList()
+    // Last month's win belongs to this month's page only.
+    val win = underBudget?.takeIf { isCurrentMonth }
     var deleteGroupId by remember { mutableStateOf<Long?>(null) }
     var deleteGroupName by remember { mutableStateOf("") }
 
@@ -352,8 +365,8 @@ private fun BudgetGroupsContent(
     var expandBudgetId by remember { mutableStateOf<Long?>(null) }
     LaunchedEffect(summaryReady) {
         if (!focusPending || !summaryReady) return@LaunchedEffect
-        // Budgets follow the month selector and, on the standalone page, Goals.
-        val firstBudgetIndex = if (goalsSection == null) 1 else 2
+        // Budgets follow the month selector, the win card when shown and, on the standalone page, Goals.
+        val firstBudgetIndex = (if (goalsSection == null) 1 else 2) + if (win != null) 1 else 0
         val index = when (focusBudgetId) {
             hero?.group?.budget?.id -> firstBudgetIndex
             else -> otherGroups.indexOfFirst { it.group.budget.id == focusBudgetId }
@@ -395,8 +408,19 @@ private fun BudgetGroupsContent(
         // Goals (#914) sit above the spending budgets; they aren't month-based.
         goalsSection?.let { item(key = "goals") { it() } }
 
+        win?.let { w ->
+            item(key = "under-budget") {
+                LaunchedEffect(w.key) { onUnderBudgetShown(w) }
+                MonthUnderBudgetCard(
+                    win = w,
+                    onDismiss = { onDismissUnderBudget(w) },
+                    modifier = Modifier.padding(top = if (goalsSection != null) BlockGap else Spacing.none),
+                )
+            }
+        }
+
         item(key = "month") {
-            Box(Modifier.padding(top = if (goalsSection != null) BlockGap else Spacing.none)) {
+            Box(Modifier.padding(top = if (goalsSection != null || win != null) BlockGap else Spacing.none)) {
                 MonthSelector(
                     year = uiState.selectedYear,
                     month = uiState.selectedMonth,

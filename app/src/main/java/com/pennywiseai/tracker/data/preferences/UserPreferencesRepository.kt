@@ -151,6 +151,8 @@ open class UserPreferencesRepository internal constructor(
         val DISMISSED_INSIGHTS = stringSetPreferencesKey("dismissed_insights")
         // Moments already celebrated with confetti ("goal_reached:12"), so each fires once. Device-local.
         val CELEBRATED_MOMENTS = stringSetPreferencesKey("celebrated_moments")
+        // The "month ended under budget" card dismissed ("budget_month:2026-10:INR"). Device-local.
+        val BUDGET_MONTH_CARD_DISMISSED = stringPreferencesKey("budget_month_card_dismissed")
 
         // App Lock preferences
         val APP_LOCK_ENABLED = booleanPreferencesKey("app_lock_enabled")
@@ -319,6 +321,7 @@ open class UserPreferencesRepository internal constructor(
             K.CONSCIENCE_LOG, K.ACTIVE_DOWNLOAD_ID, K.SHARE_PROMPT_HANDLED_MONTH, K.PRO_HOME_CARD_HANDLED,
             K.PAYDAY_SUGGESTION_HANDLED, K.RECURRING_HOME_CARD_SEEN, K.RECURRING_HOME_CARD_DISMISSED_AT,
             K.TRACKING_CARD_SNOOZED_UNTIL, K.RECURRING_OFFER_LOG, K.DISMISSED_INSIGHTS, K.CELEBRATED_MOMENTS,
+            K.BUDGET_MONTH_CARD_DISMISSED,
             K.APP_LOCK_ENABLED, K.APP_LOCK_TIMEOUT_MINUTES, K.LAST_AUTH_TIMESTAMP, K.APP_LOCK_NO_SCREEN_LOCK_NOTICE_SHOWN, K.HAS_USED_FULL_RESYNC,
             K.PRO_CACHED_IS_PRO, K.LICENSE_VALIDATED_AT, K.LICENSE_PRODUCT_NAME, K.SUPPORT_NUDGE_LAST_SHOWN_DAY,
             K.LAST_STATEMENT_IMPORT_AT, K.LAST_SEEN_APP_VERSION, K.MONTHLY_BUDGET_LIMIT,
@@ -1424,6 +1427,14 @@ open class UserPreferencesRepository internal constructor(
 
     /** True only the first time [key] is asked for. */
     suspend fun celebrateOnce(key: String): Boolean = claimCelebrations(listOf(key)).isNotEmpty()
+
+    /** The last "month ended under budget" card the user closed, by its celebration key. */
+    val budgetMonthCardDismissed: Flow<String?> = dataStore.data
+        .map { it[PreferencesKeys.BUDGET_MONTH_CARD_DISMISSED] }
+
+    suspend fun dismissBudgetMonthCard(key: String) {
+        dataStore.edit { it[PreferencesKeys.BUDGET_MONTH_CARD_DISMISSED] = key }
+    }
 
     // Replace UPI VPAs with matching contact names at display time.
     // Off by default — turning on prompts for READ_CONTACTS.

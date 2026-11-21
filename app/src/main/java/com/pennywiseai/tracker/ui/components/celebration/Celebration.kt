@@ -121,6 +121,7 @@ private class Piece(
 object CelebrationKeys {
     fun goalReached(goalId: Long) = "goal_reached:$goalId"
     fun achievement(key: String, tier: Int) = "achievement:$key:$tier"
+    fun budgetMonth(month: java.time.YearMonth, currency: String) = "budget_month:$month:$currency"
 
     /**
      * Claimed with the first visit's tiers. When it's among the fresh claims, those tiers

@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
@@ -73,6 +74,34 @@ class BudgetGroupsViewModel @Inject constructor(
             started = SharingStarted.Eagerly,
             initialValue = YearMonth.now()
         )
+
+    /** Last month's spending limits all kept, during the first week of this one; else null. */
+    val underBudget: StateFlow<MonthUnderBudget?> = run {
+        val today = LocalDate.now()
+        // Past the first week there's nothing to show: skip last month's query.
+        if (today.dayOfMonth > UNDER_BUDGET_CARD_DAYS) flowOf(null)
+        else combine(
+            budgetSummaryProvider.summary(YearMonth.from(today).minusMonths(1)),
+            userPreferencesRepository.budgetMonthCardDismissed,
+        ) { summary, dismissed -> monthUnderBudget(today, summary, dismissed) }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+
+    private val _celebrate = MutableStateFlow(false)
+
+    /** True while the under-budget month is being celebrated, once per month and currency. */
+    val celebrate: StateFlow<Boolean> = _celebrate.asStateFlow()
+
+    fun onUnderBudgetShown(win: MonthUnderBudget) {
+        viewModelScope.launch {
+            if (userPreferencesRepository.celebrateOnce(win.key)) _celebrate.value = true
+        }
+    }
+
+    fun onCelebrated() { _celebrate.value = false }
+
+    fun dismissUnderBudget(win: MonthUnderBudget) {
+        viewModelScope.launch { userPreferencesRepository.dismissBudgetMonthCard(win.key) }
+    }
 
     init {
         // Default to today's calendar month. A user on startDay=25 viewing

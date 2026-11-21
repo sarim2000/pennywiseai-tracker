@@ -57,8 +57,9 @@ Agreed with Codex (`gpt-6.1-sol`, high) over two rounds. Its objections that we 
   - **Default plan:** the body uses the theme accent in both states, and the pill marks selection.
   - **When pill and labels are both hidden:** fall back to the muted tint when unselected, because colour would then be the only selection cue.
   - The preview has a "Muted tab" toggle for comparing the two.
-- **At 24/32dp:** a two-tone silhouette only, with the eyes cut in the colour behind it. No mask, iris, coin or receipt lines **(Codex)**. The arrivals still play, since they are the tab's reaction: the receipt's check is cut out like the eyes and is the one mark that stays; the coin's shine is cut through it and its sparkles drawn in the tint around it; the coin dropping into the jar is drawn in the tint. Each is gone within its arrival (under 1.6s).
+- **At 24/32dp:** a two-tone silhouette only, with the eyes cut in the colour behind it. No mask, iris, coin or receipt lines **(Codex)**. The one mark is an arrival's: the receipt's check, cut out like the eyes.
 - **Coming back to the bar:** the bar returns from under a pushed screen (Add) already holding the save's reaction. The owl shows for a beat (350ms) and then turns, so the change is seen rather than already done.
+- **Amount chip (2026-11-17):** while a single save's reaction holds, a small pill above the Chat slot shows what was saved: `+` in the income colour, `-` in the spending colour, transfers and investments unsigned. It formats with `CurrencyFormatter` (so it shows `••••` while amounts are hidden), takes no touches and is silent to TalkBack. A batch (a chat card of several rows, a scan) shows none.
 - **Behaviour:** no poke, drag, haptic or separate focus target on the tab. The click goes to the parent. The accessible name stays the localized "Chat", and the drawing is decorative.
 - **Hidden tab:** if the user hid the Chat tab, the mascot runs no animation and queues nothing.
 - **RTL:** the artwork is symmetric and is not mirrored. Directional gaze is mirrored.
@@ -78,6 +79,27 @@ Agreed with Codex (`gpt-6.1-sol`, high) over two rounds. Its objections that we 
 - **Foreground only:** react only to saves made while the app is in the foreground (`AppForegroundState`). Saves that happened in the background are never replayed when the user returns.
 - **SMS scans:** show the SMS bubble only during a foreground scan the user started, with the existing progress UI kept. At most one neutral beat afterwards, and only if new rows were saved. No reaction to rebuilds.
 - **Not on the tab:** budget, bill-due and subscription triggers stay on their own screens.
+
+### Moment reactions on the tab (2026-11-17)
+
+Besides plain saves, the tab answers a few things the user just finished: progress, closure, learning and care for their records. Each comes through `MascotMoments` (`data/events/MascotMoments.kt`), announced once, after the action committed, from the user's own action in the foreground. Never from a worker, a restore replaying rows, or a screen first observing a state.
+
+| Moment | Shape · mood | Cue | Chip |
+|---|---|---|---|
+| Money put into a goal by hand | Jar · Calm | CoinDrop | the amount, unsigned |
+| A goal reached | Jar (full) · Happy | Brim | "Goal reached" |
+| A debt paid off | Wallet · Happy | PaidOff | "Paid off" |
+| An unrecognised message taught | Bubble · Calm | Learned | "Learned" |
+| Rules applied to past rows | Receipt · Calm | Sorted | "N updated" |
+| A statement imported | Receipt · Calm | Read | "N imported" |
+| A backup saved / restored | Shield · Calm | Secured | "Backup saved" / "Restored" |
+| A bill tracked / marked paid | Bell · Calm | Ring / Paid | "Now tracking" / the amount, "-" |
+| Amounts hidden / shown | Owl · Calm | CoverEyes / Peek | none |
+
+- **Rank:** a save < an action < a milestone < a toggle. A higher rank takes over from what's showing, with a hold of its own; anything else folds in. The latest toggle answers for the switch as it is now, and holds only ~1.4s.
+- **Made off the tabs:** most moments happen on a pushed screen, where the bar is away. The reaction waits for the bar (up to 90s) and its hold starts once the bar is back, so the user sees it on return; a hold already running ends on time.
+- **Cues** are apart from shapes: a new one on the same shape plays in place (the owl covering its eyes, a jar saved into brimming). A cue's check sits on any shape and carries across a morph.
+- **Left out:** creating a goal, a rule, a split or an account (setup, already confirmed on screen); a subscription ended (it isn't cancelled); renewal reminders, automatic detection and scheduled backups (background); first transaction, streaks and months closed (no reliable commit); budget thresholds (computed in a worker, and `Worried` stays off the tab).
 
 ### Event source **(Codex)**
 - **No "newest Room row" observer and no universal repository hook.** Many paths insert rows (imports, backups, recurring, autopay, loans), and most of them must not react.

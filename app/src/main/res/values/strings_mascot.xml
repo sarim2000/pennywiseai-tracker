@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- The chip above the Chat tab while its mascot reacts: a few words on what the user just did. -->
+    <string name="mascot_chip_goal_reached">Goal reached</string>
+    <string name="mascot_chip_paid_off">Paid off</string>
+    <string name="mascot_chip_learned">Learned</string>
+    <string name="mascot_chip_backup_saved">Backup saved</string>
+    <string name="mascot_chip_restored">Restored</string>
+    <string name="mascot_chip_bill_tracked">Now tracking</string>
+    <plurals name="mascot_chip_rules_applied">
+        <item quantity="one">%d updated</item>
+        <item quantity="other">%d updated</item>
+    </plurals>
+    <plurals name="mascot_chip_imported">
+        <item quantity="one">%d imported</item>
+        <item quantity="other">%d imported</item>
+    </plurals>
+</resources>

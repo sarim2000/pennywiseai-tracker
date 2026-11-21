@@ -314,6 +314,7 @@
     <string name="rules_reset">Zurücksetzen</string>
     <string name="rules_auto_categorization_title">Automatische Kategorisierung</string>
     <string name="rules_auto_categorization_body">Regeln aktivieren, um Ihre Transaktionen automatisch anhand von Mustern zu kategorisieren</string>
+    <!-- Tags in front of a rule's two lines: when it matches, then what it does -->
     <string name="rules_group_daily">Tägliche Ausgaben</string>
     <string name="rules_group_income">Einkommen &amp; Cashback</string>
     <string name="rules_group_recurring">Wiederkehrende Zahlungen</string>

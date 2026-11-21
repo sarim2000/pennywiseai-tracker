@@ -310,6 +310,7 @@
     <string name="rules_reset">रीसेट गर्नुहोस्</string>
     <string name="rules_auto_categorization_title">स्वचालित वर्गीकरण</string>
     <string name="rules_auto_categorization_body">नियमहरू सक्षम गर्नुहोस् ताकि तपाईंका लेनदेनहरू ढाँचाको आधारमा स्वचालित रूपमा वर्गीकृत हुन्छन्</string>
+    <!-- Tags in front of a rule's two lines: when it matches, then what it does -->
     <string name="rules_group_daily">दैनिकी खर्चहरू</string>
     <string name="rules_group_income">आम्दानी र क्यासब्याक</string>
     <string name="rules_group_recurring">पुनरावृत्त तिर्ने रकमहरू</string>

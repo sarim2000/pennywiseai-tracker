@@ -297,6 +297,8 @@ cd pennywiseai-tracker
 adb install app/build/outputs/apk/standard/debug/app-standard-universal-debug.apk
 ```
 
+Open the Debug app on a fresh emulator to load [the demo ledger](docs/debug-demo-data.md) automatically and try Chat with known answers.
+
 ### Requirements
 
 - Android 8.0+ (API 26)

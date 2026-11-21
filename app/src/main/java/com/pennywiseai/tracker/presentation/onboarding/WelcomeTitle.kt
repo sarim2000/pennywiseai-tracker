@@ -8,6 +8,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -35,6 +36,7 @@ import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import kotlin.math.PI
+import kotlin.math.roundToInt
 import kotlin.math.sin
 
 /**
@@ -100,18 +102,16 @@ internal fun WelcomeTitle(
         val shown = remember(text, style, maxWidth) {
             pinLineBreaks(text, measurer.measure(text, style, constraints = Constraints(maxWidth = maxWidth)))
         }
+        // Each letter's point on the axis grid, read through derivedStateOf: the
+        // title recomposes when some letter steps to a new variant, not per frame.
+        val steps by remember(progress, startWeight, endWeight) {
+            derivedStateOf { progress.map { LetterStep.at(it.value, startWeight, endWeight) } }
+        }
         val annotated = buildAnnotatedString {
             append(shown)
-            progress.forEachIndexed { i, letter ->
-                val p = letter.value
-                // Ink rises mid-stroke and is gone by the end, where the overshoot
-                // is carried by weight alone.
-                val ink = sin(PI * p.coerceIn(0f, 1f)).toFloat()
+            steps.forEachIndexed { i, step ->
                 // Every letter walks the same quantized path, so they share cached fonts.
-                val letterStyle = style.withFlexAxes(
-                    weight = lerp(startWeight, endWeight, p),
-                    gradeBoost = GoogleSansFlexAxes.EMPHASIS_GRADE * ink,
-                )
+                val letterStyle = style.withFlexAxes(weight = step.weight, gradeBoost = step.gradeBoost)
                 addStyle(letterStyle.toSpanStyle(), brandStart + i, brandStart + i + 1)
             }
         }
@@ -120,6 +120,23 @@ internal fun WelcomeTitle(
             style = style,
             modifier = Modifier.clearAndSetSemantics { this.text = AnnotatedString(text) },
         )
+    }
+}
+
+/** A letter's axes at one point of its ink-in, snapped to Google Sans Flex's grid. */
+private data class LetterStep(val weight: Float, val gradeBoost: Float) {
+    companion object {
+        fun at(progress: Float, startWeight: Float, endWeight: Float): LetterStep {
+            // Ink rises mid-stroke and is gone by the end, where the overshoot
+            // is carried by weight alone.
+            val ink = sin(PI * progress.coerceIn(0f, 1f)).toFloat()
+            return LetterStep(
+                weight = snap(lerp(startWeight, endWeight, progress), GoogleSansFlexAxes.WEIGHT_STEP),
+                gradeBoost = snap(GoogleSansFlexAxes.EMPHASIS_GRADE * ink, GoogleSansFlexAxes.GRADE_STEP),
+            )
+        }
+
+        private fun snap(value: Float, step: Int) = (value / step).roundToInt() * step.toFloat()
     }
 }
 

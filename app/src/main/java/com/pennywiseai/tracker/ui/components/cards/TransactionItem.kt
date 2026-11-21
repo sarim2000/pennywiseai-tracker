@@ -78,7 +78,7 @@ fun TransactionItem(
         TransactionType.CREDIT -> colorScheme.credit
         TransactionType.TRANSFER -> colorScheme.transfer
         TransactionType.INVESTMENT -> colorScheme.investment
-    }
+    }.onRow(containerColor)
 
     val dateTimeFormatter = if (showDate) AppDates.dayMonthTimeFormatter() else AppDates.pattern("h:mm a")
     val dateTimeText = remember(transaction.dateTime, dateTimeFormatter) {
@@ -176,11 +176,8 @@ fun TransactionItem(
         subtitle = subtitle,
         amount = CurrencyFormatter.signed(amountPrefix, formattedAmount),
         amountColor = amountColor,
-        subtitleColor = rowInk ?: if (unsorted) {
-            colorScheme.tertiary.readableOn(colorScheme.neutralSurfaces)
-        } else {
-            colorScheme.onSurfaceVariant
-        },
+        // tertiary is a fill, not ink: some palettes make it the surface colour itself.
+        subtitleColor = (if (unsorted) colorScheme.tertiary.readableOn(colorScheme.neutralSurfaces) else colorScheme.onSurfaceVariant).onRow(containerColor),
         shape = listItemPosition.toShape(),
         contentPadding = Dimensions.Padding.card,
         onClick = {
@@ -224,7 +221,7 @@ fun TransactionItem(
                     Text(
                         text = "($nativeAmount)",
                         style = PennyWiseText.amountSmall,
-                        color = rowInk ?: colorScheme.onSurfaceVariant,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.onRow(containerColor),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -325,7 +322,11 @@ fun TransactionAvatar(
                 Icon(
                     imageVector = icon.icon,
                     contentDescription = categoryLabel(category),
-                    tint = rowFill?.let { icon.tint.readableOn(listOf(wash.compositeOver(it))) } ?: icon.tint,
+                    tint = if (rowFill != null) {
+                        icon.tint.copy(alpha = 1f).readableOn(listOf(wash.compositeOver(rowFill)), GRAPHIC_CONTRAST)
+                    } else {
+                        colorScheme.inkOnWash(icon.tint, Dimensions.Alpha.categoryTint, GRAPHIC_CONTRAST)
+                    },
                     modifier = Modifier.size(glyphSize)
                 )
             }
@@ -338,3 +339,6 @@ fun TransactionAvatar(
         }
     }
 }
+
+/** This ink on a selected row's override fill (primaryContainer), which isn't the surface it was picked for. */
+private fun Color.onRow(containerColor: Color?): Color = containerColor?.let { readableOn(listOf(it)) } ?: this

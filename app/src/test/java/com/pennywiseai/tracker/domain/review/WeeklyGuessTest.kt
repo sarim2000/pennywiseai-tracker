@@ -101,8 +101,7 @@ class WeeklyGuessTest {
 
     @Test
     fun `a tiny week, or one far below a big history, still has a pick that hits`() {
-        fun reachable(q: WeeklyGuessQuestion) = generateSequence(BigDecimal.ZERO) { it + q.step }
-            .takeWhile { it <= q.max }.any { isCloseGuess(it, q.actual) }
+        fun reachable(q: WeeklyGuessQuestion) = sliderStops(q.max, q.step, q.actual).any { isCloseGuess(it, q.actual) }
         val tiny = question(mapOf("USD" to weeks(mapOf("Food & Dining" to "0.40"))))!!
         assertTrue(reachable(tiny))
         assertTrue(tiny.chips.all { it <= tiny.max })
@@ -110,6 +109,42 @@ class WeeklyGuessTest {
             mapOf("USD" to weeks(mapOf("Food & Dining" to "1000"), mapOf("Food & Dining" to "1000"), mapOf("Food & Dining" to "12"))),
         )!!
         assertTrue(reachable(quiet))
+    }
+
+    @Test
+    fun `an ordinary week keeps every whole step`() {
+        val q = question(
+            mapOf(
+                "USD" to weeks(
+                    mapOf("Food & Dining" to "60"),
+                    mapOf("Food & Dining" to "100"),
+                    mapOf("Food & Dining" to "70"),
+                    mapOf("Food & Dining" to "90"),
+                    mapOf("Food & Dining" to "50"),
+                )
+            ),
+        )!!
+        val stops = sliderStops(q.max, q.step, q.actual)
+        assertEquals((0..40).map { BigDecimal(it * 5) }, stops)
+    }
+
+    @Test
+    fun `a tiny week after a large history stays within the slider's stop limit and can still hit`() {
+        val q = question(
+            mapOf(
+                "USD" to weeks(
+                    mapOf("Food & Dining" to "100000"),
+                    mapOf("Food & Dining" to "100000"),
+                    mapOf("Food & Dining" to "0.01"),
+                )
+            ),
+        )!!
+        val stops = sliderStops(q.max, q.step, q.actual)
+        assertTrue(stops.size <= MAX_SLIDER_POSITIONS)
+        assertEquals(BigDecimal.ZERO, stops.first())
+        assertEquals(q.max, stops.last())
+        assertTrue(stops.any { isCloseGuess(it, q.actual) })
+        assertTrue(stops.drop(1).dropLast(1).filter { it >= BigDecimal.ONE }.all { it.scale() <= 0 })
     }
 
     @Test

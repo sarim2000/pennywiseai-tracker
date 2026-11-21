@@ -11,13 +11,13 @@ import kotlinx.coroutines.async
 import kotlinx.coroutines.awaitAll
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import java.math.BigDecimal
-import java.util.concurrent.CountDownLatch
-import java.time.LocalDateTime
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.math.BigDecimal
+import java.time.LocalDateTime
+import java.util.concurrent.CountDownLatch
 
 /**
  * #881: with the network down or the app's internet blocked, a failed lazy rate
@@ -39,6 +39,42 @@ class CurrencyConversionServiceOfflineTest {
         assertNull(service.getExchangeRate("USD", "INR"))
 
         coVerify(exactly = 1) { provider.fetchAllExchangeRatesWithMetadata(any()) }
+    }
+
+    @Test
+    fun `a provider next update already in the past does not refetch on every refresh`() = runBlocking {
+        // In-memory rates table behind the DAO calls the refresh path makes.
+        val rows = mutableMapOf<String, ExchangeRateEntity>()
+        val dao = mockk<ExchangeRateDao>(relaxed = true)
+        coEvery { dao.insertExchangeRate(any()) } answers {
+            val e = firstArg<ExchangeRateEntity>(); rows["${e.fromCurrency}_${e.toCurrency}"] = e; 1L
+        }
+        coEvery { dao.getExchangeRateIgnoringExpiry(any(), any()) } answers { rows["${firstArg<String>()}_${secondArg<String>()}"] }
+        coEvery { dao.hasValidRate(any(), any(), any()) } answers {
+            val e = rows["${firstArg<String>()}_${secondArg<String>()}"]
+            if (e != null && e.expiresAt.isAfter(thirdArg<LocalDateTime>())) 1 else 0
+        }
+        coEvery { dao.getMaxExpiryTimeUnix(any()) } answers {
+            rows.values.filter { it.fromCurrency == firstArg<String>() }.maxOfOrNull { it.expiresAtUnix }
+        }
+        val nowUnix = System.currentTimeMillis() / 1000
+        val provider = mockk<ExchangeRateProvider>()
+        coEvery { provider.fetchAllExchangeRatesWithMetadata(any()) } returns ExchangeRateResponseWithMetadata(
+            rates = mapOf("INR" to BigDecimal("83.5"), "AED" to BigDecimal("3.6725")),
+            nextUpdateTimeUnix = nowUnix - 3600, // the provider's "next update" has already passed
+            lastUpdateTimeUnix = nowUnix - 86_400,
+            provider = "test",
+            baseCurrency = "USD"
+        )
+        val service = CurrencyConversionService(dao, provider, mockk<UserPreferencesRepository>(relaxed = true))
+
+        // The second call is the Home rates observer re-running on the first call's write.
+        service.refreshExchangeRatesForAccount(listOf("INR", "AED"))
+        service.refreshExchangeRatesForAccount(listOf("INR", "AED"))
+
+        coVerify(exactly = 1) { provider.fetchAllExchangeRatesWithMetadata(any()) }
+        assertEquals(6, rows.size)
+        assertTrue(rows.values.all { it.expiresAt.isAfter(LocalDateTime.now()) && it.expiresAtUnix > nowUnix })
     }
 
     @Test

@@ -487,7 +487,7 @@
     <string name="weekly_guess_recorded">Recorded</string>
     <!-- %1$s is an amount, %2$d a whole percent. -->
     <string name="weekly_guess_gap">Off by %1$s (%2$d%%)</string>
-    <string name="weekly_guess_note">Recorded from your bank messages, so cash isn\'t in it.</string>
+    <string name="weekly_guess_note">Recorded from your transactions. Cash counts only when you add it.</string>
     <string name="weekly_guess_see_week">See the week</string>
     <string name="weekly_guess_done">Done</string>
 

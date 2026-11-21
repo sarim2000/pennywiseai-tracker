@@ -52,4 +52,28 @@ class BudgetWidgetMoodTest {
         // A snapshot from before the widget stored its window.
         assertEquals(MascotMood.Calm, mood(spent = 400, daysElapsed = 0, windowDays = 0))
     }
+
+    @Test
+    fun `over budget with no stored window is calm`() {
+        // Written before the widget stored its window: remaining can already be over.
+        val stale = BudgetWidgetData(
+            totalSpent = BigDecimal(3001),
+            totalLimit = BigDecimal(3000),
+            remaining = BigDecimal("-1")
+        )
+        assertEquals(MascotMood.Calm, budgetMood(stale))
+    }
+
+    @Test
+    fun `over a limit rollover carried to zero is worried`() {
+        val carriedToZero = BudgetWidgetData(
+            totalSpent = BigDecimal(100),
+            totalLimit = BigDecimal.ZERO,
+            hasLimit = true,
+            remaining = BigDecimal("-100"),
+            daysElapsed = 10,
+            windowDays = 30
+        )
+        assertEquals(MascotMood.Worried, budgetMood(carriedToZero))
+    }
 }

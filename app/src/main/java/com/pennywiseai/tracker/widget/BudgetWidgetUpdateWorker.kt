@@ -284,6 +284,15 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
 
                 val limitRemaining = spending.totalLimitBudget - spending.totalLimitSpent
                 val usage = widgetLimitUsage(spending.totalLimitBudget, spending.totalLimitSpent, spending.groups)
+                val pageWindow = spending.pageWindow
+                // dayCounts clamps a future or ended window into 1..days, which still
+                // produces a pace. Outside the window there is nothing to pace.
+                val todayInPageWindow = !today.isBefore(pageWindow.start) && !today.isAfter(pageWindow.end)
+                val daysElapsed = if (todayInPageWindow) {
+                    pageWindow.dayCounts(today, isCurrentMonth = true).first
+                } else {
+                    0
+                }
 
                 BudgetWidgetData(
                     totalSpent = spending.totalLimitSpent,
@@ -297,8 +306,8 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                     savingsRate = spending.savingsRate,
                     savingsDelta = savingsDelta,
                     currency = currency,
-                    daysElapsed = spending.pageWindow.dayCounts(today, isCurrentMonth = true).first,
-                    windowDays = spending.pageWindow.days
+                    daysElapsed = daysElapsed,
+                    windowDays = pageWindow.days
                 )
             }
 

@@ -29,6 +29,11 @@ data class BudgetWidgetData(
  */
 internal fun budgetMood(data: BudgetWidgetData): MascotMood {
     if (!data.hasLimit) return MascotMood.Calm
+    // A snapshot from before the window was stored can be over budget with both counts at 0.
+    // Calm until a refresh supplies a running window. A real window whose rollover carried
+    // the limit to 0 is still Worried: budgetPace refuses a zero budget, so this check is first.
+    val windowRunning = data.windowDays >= 1 && data.daysElapsed in 1..data.windowDays
+    if (!windowRunning) return MascotMood.Calm
     if (wholeUnits(data.remaining) < BigDecimal.ZERO) return MascotMood.Worried
     val pace = budgetPace(data.totalSpent, data.totalLimit, data.daysElapsed, data.windowDays) ?: return MascotMood.Calm
     return if (pace.daysOver > 0) MascotMood.Thinking else MascotMood.Happy

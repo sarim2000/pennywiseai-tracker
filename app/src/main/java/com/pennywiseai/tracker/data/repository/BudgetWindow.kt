@@ -106,6 +106,28 @@ fun BudgetWindow.overlaps(other: BudgetWindow): Boolean =
     !this.start.isAfter(other.end) && !this.end.isBefore(other.start)
 
 /**
+ * The windows Budget History lists for [year]/[month], oldest first: [windowsForMonth],
+ * plus, for a monthly budget in [today]'s month, the cycle holding [today] (the one the
+ * Budgets page and its rollover use). [windowsForMonth] picks the cycle holding the
+ * 1st, so from a mid-month start day on the running cycle is a different one; the
+ * cycle that just ended stays listed under this month, as it isn't under the last.
+ */
+fun historyWindowsForMonth(
+    budget: BudgetEntity,
+    year: Int,
+    month: Int,
+    today: LocalDate,
+    globalStartDay: Int = BudgetCycle.DEFAULT_START_DAY
+): List<BudgetWindow> {
+    val windows = windowsForMonth(budget, year, month, globalStartDay)
+    if (budget.periodType != BudgetPeriodType.MONTHLY || java.time.YearMonth.of(year, month) != java.time.YearMonth.from(today)) {
+        return windows
+    }
+    val running = resolveBudgetWindow(budget, today, globalStartDay)
+    return windows.filterNot { it.overlaps(running) } + running
+}
+
+/**
  * The list of windows for [budget] that intersect the [year]/[month] calendar
  * period. Drives the historical view on the Budgets page:
  *

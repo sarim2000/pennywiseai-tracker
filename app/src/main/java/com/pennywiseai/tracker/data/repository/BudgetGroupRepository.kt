@@ -938,14 +938,14 @@ class BudgetGroupRepository @Inject constructor(
         year: Int,
         month: Int,
         currency: String,
-        convert: (suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?)? = null
+        convert: (suspend (fromCurrency: String, amount: BigDecimal) -> BigDecimal?)? = null,
+        today: LocalDate = LocalDate.now()
     ): List<PastWindowSpending> {
-        val today = LocalDate.now()
         val startDay = userPreferencesRepository.getBudgetCycleStartDay()
         val ym = YearMonth.of(year, month)
         val monthEnd = ym.atEndOfMonth()
         val isCurrentMonth = year == today.year && month == today.monthValue
-        val windows = windowsForMonth(budget, year, month, startDay)
+        val windows = historyWindowsForMonth(budget, year, month, today, startDay)
         // Resolve the group once so the per-window spend query doesn't
         // re-hit the dao for every window.
         val group = getGroupOrFallback(budget)

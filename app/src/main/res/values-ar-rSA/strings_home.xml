@@ -3,7 +3,6 @@
     <!-- ══ Home screen ══ -->
     <string name="home_transaction_deleted">تم حذف المعاملة</string>
     <string name="home_undo">تراجع</string>
-    <string name="home_upgrade_pro">الترقية إلى PennyWise Pro</string>
     <string name="home_profile_filter">فلتر الملف الشخصي</string>
     <string name="home_more_options">خيارات أكثر</string>
     <string name="home_view_all">عرض الكل</string>
@@ -11,15 +10,12 @@
     <string name="home_manage">إدارة</string>
     <string name="home_search_transactions">البحث في المعاملات</string>
     <string name="home_cancel">إلغاء</string>
-    <string name="home_close">إغلاق</string>
     <!-- Home sections (headers + edit-home sheet) -->
     <string name="home_section_budgets">الميزانيات</string>
     <string name="home_section_goals">الأهداف</string>
     <string name="home_section_loans">القروض</string>
     <string name="home_section_groups">المجموعات</string>
-    <string name="home_section_recent_transactions">المعاملات الأخيرة</string>
     <string name="home_section_accounts">الحسابات البنكية</string>
-    <string name="home_section_subscriptions">الاشتراكات القادمة</string>
     <string name="home_section_money_in_motion">حركة الأموال</string>
     <string name="home_section_activity">النشاط</string>
     <!-- Empty state -->
@@ -37,24 +33,14 @@
     <string name="home_resync_rebuild_desc">يعيد قراءة معاملات الرسائل القصيرة للاستفادة من تحسينات قراءة الرسائل. تُلغى تعديلاتك على هذه المعاملات، ويُحتفظ بالمعاملات اليدوية والمستوردة ومعاملات القروض والمعاملات المجمّعة.</string>
     <!-- More options sheet -->
     <string name="home_menu_title">المزيد من الخيارات</string>
-    <string name="home_menu_settings">الإعدادات</string>
     <string name="home_menu_edit_home">تعديل الشاشة الرئيسية</string>
     <string name="home_menu_discord">انضم إلى Discord وشاركنا ملاحظاتك</string>
     <string name="home_menu_rate">قيّم التطبيق على Google Play</string>
-    <string name="home_version">v%1$s</string>
     <!-- Edit home screen sheet -->
     <string name="home_edit_title">تعديل الشاشة الرئيسية</string>
     <string name="home_edit_description">أعد ترتيب أقسام الشاشة الرئيسية أو أخفِها.</string>
     <string name="home_edit_move_up">تحريك %1$s لأعلى</string>
     <string name="home_edit_move_down">تحريك %1$s لأسفل</string>
-    <!-- Calculation breakdown dialog -->
-    <string name="home_breakdown_title">تفصيل الحساب</string>
-    <!-- Month name, then day range, e.g. "March 1-15" -->
-    <string name="home_breakdown_period">%1$s 1-%2$d</string>
-    <string name="home_breakdown_formula">الصيغة: الدخل - المصروفات = صافي الثروة\nالأخضر (+) = المدخرات | الأحمر (-) = الإنفاق الزائد</string>
-    <string name="home_breakdown_income">الدخل</string>
-    <string name="home_breakdown_expenses">المصروفات</string>
-    <string name="home_breakdown_net_worth">صافي الثروة</string>
     <!-- Subscriptions + loans summary cards -->
     <plurals name="home_active_subscriptions">
         <item quantity="zero">لا اشتراكات نشطة</item>
@@ -76,15 +62,6 @@
     <string name="home_loans_owed_to_you">مستحق لك %1$s</string>
     <string name="home_loans_you_owe">أنت مدين بـ %1$s</string>
     <!-- ══ Greeting card (home header) ══ -->
-    <string name="greeting_last_day_of_month">آخر يوم في %1$s</string>
-    <plurals name="greeting_days_left_in_month">
-        <item quantity="zero">لا أيام متبقية في %2$s</item>
-        <item quantity="one">%1$d يوم متبقٍ في %2$s</item>
-        <item quantity="two">يومان متبقيان في %2$s</item>
-        <item quantity="few">%1$d أيام متبقية في %2$s</item>
-        <item quantity="many">%1$d يومًا متبقيًا في %2$s</item>
-        <item quantity="other">%1$d يوم متبقٍ في %2$s</item>
-    </plurals>
     <string name="greeting_good_morning">صباح الخير</string>
     <string name="greeting_good_afternoon">طاب مساؤك</string>
     <string name="greeting_good_evening">مساء الخير</string>
@@ -95,8 +72,8 @@
     <!-- ══ Bottom navigation ══ -->
     <string name="nav_home">الرئيسية</string>
     <string name="nav_transactions">المعاملات</string>
-    <string name="nav_analytics">التحليلات</string>
-    <string name="nav_chat">الدردشة</string>
+    <string name="nav_analytics">الرؤى</string>
+    <string name="nav_chat">اسأل</string>
     <!-- ══ Shared components ══ -->
     <string name="expandable_list_view_less">عرض أقل</string>
     <string name="expandable_list_view_all_more">عرض الكل (%1$d أخرى)</string>

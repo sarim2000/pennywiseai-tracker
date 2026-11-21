@@ -23,6 +23,7 @@ import kotlinx.coroutines.flow.combine
 import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.flatMapLatest
+import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -31,6 +32,8 @@ import javax.inject.Inject
 
 data class BudgetGroupsUiState(
     val summary: BudgetOverallSummary? = null,
+    /** The month [summary] was computed for; it trails [selectedMonth] while a new one loads. */
+    val summaryMonth: YearMonth? = null,
     val isLoading: Boolean = true,
     val hasGroups: Boolean = false,
     val selectedYear: Int = LocalDate.now().year,
@@ -113,10 +116,11 @@ class BudgetGroupsViewModel @Inject constructor(
 
         viewModelScope.launch {
             selectedYearMonth.flatMapLatest { yearMonth ->
-                budgetSummaryProvider.summary(yearMonth)
-            }.collect { summary ->
+                budgetSummaryProvider.summary(yearMonth).map { yearMonth to it }
+            }.collect { (yearMonth, summary) ->
                 _uiState.value = _uiState.value.copy(
                     summary = summary,
+                    summaryMonth = yearMonth,
                     hasGroups = summary.groups.isNotEmpty(),
                     isLoading = false
                 )

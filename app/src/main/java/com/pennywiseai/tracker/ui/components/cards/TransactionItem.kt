@@ -2,8 +2,16 @@ package com.pennywiseai.tracker.ui.components.cards
 
 import android.content.res.Resources
 import android.view.HapticFeedbackConstants
+import androidx.compose.foundation.Image
+import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.shape.CircleShape
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Help
+import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.contentColorFor
@@ -11,10 +19,16 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.isSpecified
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalView
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.Dp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.contacts.LocalMerchantDisplay
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
@@ -23,8 +37,11 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.formatAmount
 import com.pennywiseai.tracker.ui.LocalNavAnimatedVisibilityScope
 import com.pennywiseai.tracker.ui.LocalSharedTransitionScope
-import com.pennywiseai.tracker.ui.components.BrandIcon
+import com.pennywiseai.tracker.ui.components.EmojiGlyph
+import com.pennywiseai.tracker.ui.icons.IconProvider
+import com.pennywiseai.tracker.ui.icons.IconResource
 import com.pennywiseai.tracker.ui.icons.categoryLabel
+import com.pennywiseai.tracker.ui.icons.isValidCategoryOverride
 import com.pennywiseai.tracker.ui.sharedElementIcon
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.ui.theme.spending
@@ -49,17 +66,15 @@ fun TransactionItem(
     /** Optional long-press handler — used for bulk-edit selection entry. */
     onLongClick: (() -> Unit)? = null,
     /** Overrides the row's container colour (e.g. for selected state). */
-    containerColor: androidx.compose.ui.graphics.Color? = null,
+    containerColor: Color? = null,
     modifier: Modifier = Modifier,
 ) {
     val view = LocalView.current
     val colorScheme = MaterialTheme.colorScheme
-    val amountColor = when (transaction.transactionType) {
+    val rowInk = containerColor?.let { colorScheme.contentColorFor(it).takeIf { ink -> ink.isSpecified } ?: it.bestInk() }
+    val amountColor = rowInk ?: when (transaction.transactionType) {
         TransactionType.INCOME -> colorScheme.income
-        TransactionType.EXPENSE -> containerColor
-            ?.let { colorScheme.contentColorFor(it) }
-            ?.takeIf { it.isSpecified }
-            ?: colorScheme.spending
+        TransactionType.EXPENSE -> colorScheme.spending
         TransactionType.CREDIT -> colorScheme.credit
         TransactionType.TRANSFER -> colorScheme.transfer
         TransactionType.INVESTMENT -> colorScheme.investment
@@ -89,18 +104,20 @@ fun TransactionItem(
     val description = transaction.description?.takeIf { it.isNotBlank() }
 
     val resources = LocalContext.current.resources
-    val categoryText = categoryLabel(transaction.category)
+    val unsorted = isUnsortedCategory(transaction.category)
+    val categoryText = if (unsorted) {
+        resources.getString(R.string.home_section_unsorted)
+    } else {
+        categoryLabel(transaction.category)
+    }
     val subtitle = remember(transaction, splitShare, categoryText, dateTimeText, isEffectivelyBusiness, AmountPrivacy.hidden) {
         buildList {
             // First, so a long description can't truncate it out of the one-line subtitle.
             if (splitShare != null) add(resources.getString(R.string.txn_item_tag_split_of, transaction.formatAmount()))
+            // "Groceries · 6:42 PM": what it was, then when.
+            add(categoryText)
             if (description != null) add(CurrencyFormatter.maskAmountsIn(description))
             add(dateTimeText)
-            if (transaction.category.isNotBlank() &&
-                !transaction.category.equals("Uncategorized", ignoreCase = true)
-            ) {
-                add(categoryText)
-            }
 
             if (showTypeLabel) {
                 when (transaction.transactionType) {
@@ -110,7 +127,10 @@ fun TransactionItem(
                             add(resources.getString(R.string.txn_item_tag_transfer))
                         }
                     }
-                    TransactionType.INVESTMENT -> add(resources.getString(R.string.txn_item_tag_investment))
+                    TransactionType.INVESTMENT -> {
+                        val label = resources.getString(R.string.txn_item_tag_investment)
+                        if (!categoryText.equals(label, ignoreCase = true)) add(label)
+                    }
                     else -> {}
                 }
             }
@@ -156,8 +176,13 @@ fun TransactionItem(
         subtitle = subtitle,
         amount = CurrencyFormatter.signed(amountPrefix, formattedAmount),
         amountColor = amountColor,
+        subtitleColor = rowInk ?: if (unsorted) {
+            colorScheme.tertiary.readableOn(colorScheme.neutralSurfaces)
+        } else {
+            colorScheme.onSurfaceVariant
+        },
         shape = listItemPosition.toShape(),
-        contentPadding = Dimensions.Padding.cardCompact,
+        contentPadding = Dimensions.Padding.card,
         onClick = {
             view.performHapticFeedback(HapticFeedbackConstants.CLOCK_TICK)
             onClick()
@@ -176,12 +201,11 @@ fun TransactionItem(
             } else {
                 Modifier
             }
-            BrandIcon(
+            TransactionAvatar(
                 merchantName = transaction.merchantName,
+                category = transaction.category,
                 modifier = iconModifier,
-                size = Dimensions.Icon.list,
-                showBackground = true,
-                category = transaction.category
+                rowFill = containerColor
             )
         },
         trailingContent = {
@@ -200,7 +224,7 @@ fun TransactionItem(
                     Text(
                         text = "($nativeAmount)",
                         style = PennyWiseText.amountSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        color = rowInk ?: colorScheme.onSurfaceVariant,
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -238,5 +262,79 @@ private fun transferTitleOverride(transaction: TransactionEntity, resources: Res
         to != null && mine != to -> resources.getString(R.string.txn_item_transfer_to, toLabel)
         from != null && mine != from -> resources.getString(R.string.txn_item_transfer_from, fromLabel)
         else -> null
+    }
+}
+
+/**
+ * Whether the row still needs a category: blank, the legacy "Uncategorized" sentinel
+ * ([isValidCategoryOverride]), or Others, where SMS rows land when nothing matched.
+ * Others is the set Home's "Needs a category" count walks, so the row says the same
+ * thing as that count.
+ *
+ * ponytail: matches Others by its built-in name; a user who renamed Others keeps the
+ * count on Home but not this styling. Pass the current name in if that ever matters.
+ */
+fun isUnsortedCategory(category: String): Boolean =
+    !category.isValidCategoryOverride() || category.equals("Others", ignoreCase = true)
+
+/**
+ * A transaction's leading badge: its category glyph on a wash of the category
+ * colour, a brand logo when one is bundled, or a "?" on tertiary for a row that
+ * still needs a category. The row uses a circle; the detail screen passes an
+ * Expressive cookie [shape] at a larger [size].
+ */
+@Composable
+fun TransactionAvatar(
+    merchantName: String,
+    category: String,
+    modifier: Modifier = Modifier,
+    size: Dp = Dimensions.Icon.list,
+    glyphSize: Dp = Dimensions.Icon.medium,
+    shape: Shape = CircleShape,
+    rowFill: Color? = null,
+) {
+    val colorScheme = MaterialTheme.colorScheme
+    // Not remembered: it reads the live user category styles, as BrandIcon does.
+    val icon = IconProvider.getTransactionIcon(merchantName, category)
+    val base = modifier.size(size).clip(shape)
+    when {
+        isUnsortedCategory(category) && icon !is IconResource.DrawableResource -> Box(
+            modifier = base.background(colorScheme.tertiaryContainer),
+            contentAlignment = Alignment.Center
+        ) {
+            Icon(
+                imageVector = Icons.AutoMirrored.Filled.Help,
+                contentDescription = categoryLabel(category),
+                tint = colorScheme.onTertiaryContainer,
+                modifier = Modifier.size(glyphSize)
+            )
+        }
+        icon is IconResource.DrawableResource -> Box(
+            modifier = base.background(colorScheme.surfaceContainerHighest),
+            contentAlignment = Alignment.Center
+        ) {
+            Image(
+                painter = painterResource(id = icon.resId),
+                contentDescription = merchantName,
+                modifier = Modifier.size(glyphSize)
+            )
+        }
+        icon is IconResource.VectorIcon -> {
+            val wash = icon.tint.copy(alpha = Dimensions.Alpha.categoryTint)
+            Box(modifier = base.background(wash), contentAlignment = Alignment.Center) {
+                Icon(
+                    imageVector = icon.icon,
+                    contentDescription = categoryLabel(category),
+                    tint = rowFill?.let { icon.tint.readableOn(listOf(wash.compositeOver(it))) } ?: icon.tint,
+                    modifier = Modifier.size(glyphSize)
+                )
+            }
+        }
+        icon is IconResource.Emoji -> Box(
+            modifier = base.background(icon.tint.copy(alpha = Dimensions.Alpha.categoryTint)),
+            contentAlignment = Alignment.Center
+        ) {
+            EmojiGlyph(icon.emoji, glyphSize)
+        }
     }
 }

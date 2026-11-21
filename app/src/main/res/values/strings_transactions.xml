@@ -140,6 +140,18 @@
     <string name="txn_detail_receipt_missing">Receipt not included in this backup</string>
     <string name="txn_detail_sms_hide">Hide SMS</string>
     <string name="txn_detail_sms_show">Show original SMS</string>
+    <string name="txn_detail_original_sms">Original SMS</string>
+    <string name="txn_detail_label_date">Date</string>
+    <string name="txn_detail_label_note">Note</string>
+    <string name="txn_detail_note_add">Add</string>
+    <string name="txn_detail_report_mistake">Report a reading mistake</string>
+    <string name="txn_detail_delete_transaction">Delete transaction</string>
+    <string name="txn_detail_uncategorized_hint">I couldn\'t tell what this was. Pick a category above and I can remember it for next time.</string>
+    <string name="txn_detail_remember_prompt">Always put %1$s in %2$s?</string>
+    <string name="txn_detail_remember">Remember</string>
+    <string name="txn_detail_remember_not_now">Not now</string>
+    <string name="txn_detail_remember_saved">Got it, I\'ll remember</string>
+    <string name="txn_detail_error_update_category">Couldn\'t change the category: %1$s</string>
     <string name="txn_detail_field_amount">Amount</string>
     <string name="txn_detail_field_merchant">Merchant</string>
     <string name="txn_detail_field_alias">Display alias (Optional)</string>
@@ -240,7 +252,18 @@
     <string name="txn_list_filter_account">Account</string>
     <string name="txn_list_filter_category">Category</string>
     <string name="txn_list_filters">Filters</string>
-    <string name="txn_list_filters_two">2 Filters</string>
+    <plurals name="txn_list_filters_active">
+        <item quantity="one">Filters, %1$d on</item>
+        <item quantity="other">Filters, %1$d on</item>
+    </plurals>
+    <string name="txn_filters_sort_by">Sort by</string>
+    <string name="txn_filters_type">Type</string>
+    <string name="txn_filters_category_hint">Pick one or more; none picked shows every category</string>
+    <plurals name="txn_filters_show_results">
+        <item quantity="one">Show %1$d transaction</item>
+        <item quantity="other">Show %1$d transactions</item>
+    </plurals>
+    <string name="txn_list_remove_filter">Remove filter: %1$s</string>
     <string name="txn_list_categories_all_except">All except %1$s</string>
     <plurals name="txn_list_categories_count">
         <item quantity="one">%1$d category</item>
@@ -249,6 +272,11 @@
     <string name="txn_list_search">Search</string>
     <string name="txn_list_search_in_category">Search in %1$s...</string>
     <string name="txn_list_search_placeholder">Search transactions...</string>
+    <string name="txn_list_search_hint">Search merchant, category, amount</string>
+    <string name="txn_list_chip_transfers">Transfers</string>
+    <string name="txn_list_spent">Spent</string>
+    <string name="txn_list_spent_in">Spent in %1$s</string>
+    <string name="txn_list_money_in">Money in</string>
     <string name="txn_list_clear_search">Clear search</string>
     <string name="txn_list_empty_no_results">No results for \"%1$s\"</string>
     <string name="txn_list_empty_period">Nothing for %1$s</string>
@@ -452,24 +480,18 @@
     <string name="quick_add_voice_unclear">Couldn\'t find one amount in that. Try again, or type it.</string>
     <string name="quick_add_voice_chat_hidden">Questions go to Chat, which is hidden. Show it in Appearance settings, or say a spend.</string>
     <string name="quick_add_voice_type">Type instead</string>
-    <!-- Amount calculator: a keypad sheet opened from the amount field -->
-    <string name="calculator_open">Calculator</string>
-    <string name="calculator_title">Work out the amount</string>
-    <string name="calculator_apply">Use amount</string>
+    <!-- Amount sums: the operator row above the keyboard while an amount field has focus -->
+    <string name="amount_bar_done">Done</string>
     <string name="calculator_must_be_positive">The amount must be more than zero</string>
     <string name="calculator_divide_by_zero">Can\'t divide by zero</string>
     <string name="calculator_too_large">That amount is too large</string>
     <!-- The sum is unfinished or doesn't make sense yet, e.g. "12+" or "1..2" -->
-    <string name="calculator_too_long">That sum is too long. Shorten it or press =</string>
     <string name="calculator_unfinished">Finish the sum to use it</string>
-    <string name="calculator_clear">Clear</string>
     <string name="calculator_divide">Divide</string>
     <string name="calculator_multiply">Multiply</string>
     <string name="calculator_minus">Minus</string>
     <string name="calculator_plus">Plus</string>
     <string name="calculator_equals">Equals</string>
-    <string name="calculator_decimal_point">Decimal point</string>
-    <string name="calculator_backspace">Delete</string>
     <string name="date_range_title">Select Date Range</string>
     <string name="date_range_ok">OK</string>
     <string name="date_range_cancel">Cancel</string>

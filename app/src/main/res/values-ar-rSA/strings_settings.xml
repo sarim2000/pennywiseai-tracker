@@ -310,7 +310,7 @@
     <string name="settings_accounts_categories_title">الحسابات والفئات</string>
     <string name="settings_accounts_categories_summary">القواعد الذكية، مشتريات البطاقة، جهات الاتصال</string>
     <string name="settings_planning_title">التخطيط</string>
-    <string name="settings_planning_summary">الميزانيات، الاشتراكات، المتكررة، القروض</string>
+    <string name="settings_planning_summary">دورة الميزانية، المعاملات المتكررة، القروض</string>
     <string name="settings_currency_summary">العملة الافتراضية، التحويل، أسعار الصرف</string>
     <string name="settings_formats_title">اللغة والتنسيقات</string>
     <string name="settings_formats_summary">اللغة، الأرقام، التواريخ</string>
@@ -322,7 +322,7 @@
     <!-- Settings pages: the short explanation at the top of each page -->
     <string name="settings_tracking_intro">يقرأ PennyWise رسائل البنوك وإشعاراتها على هاتفك مباشرة ليضيف معاملاتك تلقائيًا.</string>
     <string name="settings_accounts_categories_intro">اختر الحسابات التي تتابعها وكيف تُصنَّف معاملاتك.</string>
-    <string name="settings_planning_intro">ضع حدودًا للإنفاق وتابع ما هو قادم. تحدد دورة الميزانية أيضًا الفترة التي تعرضها الرئيسية والتحليلات.</string>
+    <string name="settings_planning_intro">أدر دورة الميزانية والمعاملات المتكررة والقروض. تحدد دورة الميزانية الفترة المعروضة في الرئيسية والرؤى.</string>
     <string name="settings_currency_intro">تحتفظ كل معاملة بعملتها الأصلية. تُستخدم عملتك الافتراضية للإجماليات والتحويلات، ويعرض الوضع الموحد كل شيء بعملة واحدة.</string>
     <string name="settings_formats_intro">اختر طريقة عرض النصوص والمبالغ والتواريخ في التطبيق.</string>
     <string name="settings_notifications_intro">اختر ما يخبرك به PennyWise. ويمكنك أيضًا إسكات كل نوع من التنبيهات على حدة من إعدادات النظام.</string>

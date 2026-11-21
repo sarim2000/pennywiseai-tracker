@@ -1,17 +1,13 @@
 package com.pennywiseai.tracker.presentation.home
 
 import androidx.compose.foundation.background
-import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
-import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.Category
-import androidx.compose.material.icons.filled.Search
 import androidx.compose.material.icons.filled.SwapHoriz
 import androidx.compose.material.icons.filled.Sync
 import androidx.compose.material3.*
@@ -21,32 +17,38 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.zIndex
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionEntity
+import com.pennywiseai.tracker.data.database.entity.formatAmount
+import com.pennywiseai.tracker.data.database.entity.formatBalance
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.data.repository.GoalProgress
 import com.pennywiseai.tracker.data.repository.GroupSummary
 import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
 import com.pennywiseai.tracker.ui.components.BrandIcon
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
-import com.pennywiseai.tracker.ui.components.cards.AccountCarousel
 import com.pennywiseai.tracker.ui.components.cards.BudgetCarousel
 import com.pennywiseai.tracker.ui.components.cards.GroupCard
+import com.pennywiseai.tracker.ui.components.cards.GroupedList
+import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.HomeGroupCard
+import com.pennywiseai.tracker.ui.components.cards.IconTile
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
+import com.pennywiseai.tracker.ui.components.cards.TransactionAvatar
 import com.pennywiseai.tracker.ui.components.cards.TransactionItem
+import com.pennywiseai.tracker.ui.components.cards.toShape
 import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
-import com.pennywiseai.tracker.ui.effects.frostedBlur
 import com.pennywiseai.tracker.ui.theme.*
+import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
-import com.pennywiseai.tracker.utils.Money
-import dev.chrisbanes.haze.HazeState
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
@@ -57,30 +59,27 @@ import java.time.temporal.ChronoUnit
 @Composable
 internal fun HomeBudgetsSection(
     summary: BudgetOverallSummary,
-    onNavigateToBudgets: () -> Unit
+    /** The budget the hero already shows. */
+    excludeBudgetId: Long?,
+    onNavigateToBudgets: () -> Unit,
+    onBudgetClick: (Long) -> Unit
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
     ) {
-        SectionHeaderV2(
+        HomeSectionHeader(
             title = stringResource(R.string.home_section_budgets),
-            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-            action = {
-                TextButton(onClick = onNavigateToBudgets, shapes = ButtonDefaults.shapes()) {
-                    Text(stringResource(R.string.home_view_all))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        modifier = Modifier.size(Dimensions.Icon.small)
-                    )
-                }
-            }
+            onSeeAll = onNavigateToBudgets,
+            modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
         )
         BudgetCarousel(
             summary = summary,
             onClick = onNavigateToBudgets,
+            onBudgetClick = onBudgetClick,
             onCreateBudget = onNavigateToBudgets,
-            modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+            excludeBudgetId = excludeBudgetId,
+            compact = true
         )
     }
 }
@@ -88,25 +87,16 @@ internal fun HomeBudgetsSection(
 @Composable
 internal fun HomeGoalsSection(
     goals: List<GoalProgress>,
-    onNavigateToBudgets: () -> Unit,
+    onViewAll: () -> Unit,
     onGoalClick: (Long) -> Unit
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
     ) {
-        SectionHeaderV2(
+        HomeSectionHeader(
             title = stringResource(R.string.home_section_goals),
-            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-            action = {
-                TextButton(onClick = onNavigateToBudgets, shapes = ButtonDefaults.shapes()) {
-                    Text(stringResource(R.string.home_view_all))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        modifier = Modifier.size(Dimensions.Icon.small)
-                    )
-                }
-            }
+            onSeeAll = onViewAll,
+            modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
         )
         com.pennywiseai.tracker.presentation.goals.GoalsHomeCard(
             goals = goals,
@@ -120,32 +110,26 @@ internal fun HomeGoalsSection(
 internal fun HomeLoansSection(
     summary: LoanSummary,
     selectedCurrency: String,
-    onNavigateToLoans: () -> Unit
+    onNavigateToLoans: () -> Unit,
+    onLoanClick: (Long) -> Unit
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
     ) {
-        SectionHeaderV2(
+        HomeSectionHeader(
             title = stringResource(R.string.home_section_loans),
-            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-            action = {
-                TextButton(onClick = onNavigateToLoans, shapes = ButtonDefaults.shapes()) {
-                    Text(stringResource(R.string.home_view_all))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        modifier = Modifier.size(Dimensions.Icon.small)
-                    )
-                }
-            }
+            onSeeAll = onNavigateToLoans,
+            modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
         )
+        // One loan: the card is that loan, so it opens it rather than a list of one.
+        val onlyLoan = summary.activeLoans.singleOrNull()
         Box(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
             ActiveLoansSummaryCard(
                 loans = summary.activeLoans,
                 totalLentRemaining = summary.totalLentRemaining,
                 totalBorrowedRemaining = summary.totalBorrowedRemaining,
                 currency = selectedCurrency,
-                onClick = onNavigateToLoans
+                onClick = if (onlyLoan != null) ({ onLoanClick(onlyLoan.id) }) else onNavigateToLoans
             )
         }
     }
@@ -220,19 +204,10 @@ internal fun HomeGroupsSection(
     Column(
         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
     ) {
-        SectionHeaderV2(
+        HomeSectionHeader(
             title = stringResource(R.string.home_section_groups),
-            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-            action = {
-                TextButton(onClick = onNavigateToTransactionGroups, shapes = ButtonDefaults.shapes()) {
-                    Text(stringResource(R.string.home_view_all))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        modifier = Modifier.size(Dimensions.Icon.small)
-                    )
-                }
-            }
+            onSeeAll = onNavigateToTransactionGroups,
+            modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
         )
         LazyRow(
             contentPadding = PaddingValues(horizontal = Dimensions.Padding.content),
@@ -248,45 +223,30 @@ internal fun HomeGroupsSection(
     }
 }
 
+/** Every Home section's heading: the shared section title, and "See all" when there's a fuller screen behind it. */
 @Composable
-internal fun HomeRecentTransactionsHeader(
-    onNavigateToTransactionsWithSearch: () -> Unit,
-    onNavigateToTransactions: () -> Unit
+internal fun HomeSectionHeader(
+    title: String,
+    onSeeAll: (() -> Unit)?,
+    modifier: Modifier = Modifier,
+    actionLabel: String = stringResource(R.string.home_see_all),
 ) {
-    Column(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
-        SectionHeaderV2(
-            title = stringResource(R.string.home_section_recent_transactions),
-            action = {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    // Search button
-                    IconButton(
-                        onClick = onNavigateToTransactionsWithSearch,
-                        modifier = Modifier.size(Dimensions.Component.iconButton),
-                        shapes = IconButtonDefaults.shapes()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Search,
-                            contentDescription = stringResource(R.string.home_search_transactions),
-                            tint = MaterialTheme.colorScheme.primary
-                        )
-                    }
-
-                    // View All button
-                    TextButton(onClick = onNavigateToTransactions, shapes = ButtonDefaults.shapes()) {
-                        Text(stringResource(R.string.home_view_all))
-                        Icon(
-                            imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                            contentDescription = null,
-                            modifier = Modifier.size(Dimensions.Icon.small)
-                        )
-                    }
+    SectionHeaderV2(
+        title = title,
+        modifier = modifier,
+        action = onSeeAll?.let { onClick ->
+            {
+                TextButton(onClick = onClick, shapes = ButtonDefaults.shapes()) {
+                    Text(actionLabel)
+                    Icon(
+                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        modifier = Modifier.size(Dimensions.Icon.small)
+                    )
                 }
             }
-        )
-    }
+        }
+    )
 }
 
 @Composable
@@ -312,6 +272,10 @@ internal fun HomeRecentTransactionsEmptyState(
     )
 }
 
+/**
+ * The latest transactions as one grouped block: category badge, merchant, "Category ·
+ * time" (a row still in Others says it needs a category), amount at the end.
+ */
 @Composable
 internal fun HomeRecentTransactionsList(
     recentItems: List<HomeRecentItem>,
@@ -321,20 +285,22 @@ internal fun HomeRecentTransactionsList(
     onTransactionClick: (Long) -> Unit,
     onGroupClick: (Long) -> Unit
 ) {
-    Column(
-        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.listGap)
-    ) {
-        val profileAccountKeys = remember(accountBalances) {
-            buildProfileAccountKeys(accountBalances)
-        }
-        recentItems.forEach { item ->
+    val profileAccountKeys = remember(accountBalances) {
+        buildProfileAccountKeys(accountBalances)
+    }
+    val today = rememberToday()
+    GroupedList(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
+        recentItems.forEachIndexed { index, item ->
+            val position = ListItemPosition.from(index, recentItems.size)
             when (item) {
                 is HomeRecentItem.SingleTransaction -> TransactionItem(
                     transaction = item.transaction,
                     convertedAmount = item.convertedAmount,
                     displayCurrency = if (isUnifiedMode) selectedCurrency else null,
+                    // Today's rows just say when; older ones say which day too.
+                    showDate = item.transaction.dateTime.toLocalDate() != today,
                     showTypeLabel = false,
+                    listItemPosition = position,
                     profileAccountKeys = profileAccountKeys,
                     onClick = { onTransactionClick(item.transaction.id) }
                 )
@@ -343,6 +309,7 @@ internal fun HomeRecentTransactionsList(
                     transactions = item.transactions,
                     convertedAmounts = item.convertedAmounts,
                     displayCurrency = if (isUnifiedMode) selectedCurrency else null,
+                    shape = position.toShape(),
                     onClick = { onGroupClick(item.group.id) }
                 )
             }
@@ -350,284 +317,177 @@ internal fun HomeRecentTransactionsList(
     }
 }
 
+/**
+ * The accounts as compact rows: bank, last 4 and type, and the balance in the account's own
+ * currency (pre-converted in unified mode when a rate was found). Low balances say so in error.
+ * Hidden amounts follow Home's one eye, on the hero.
+ */
 @Composable
 internal fun HomeAccountsSection(
     accountBalances: List<AccountBalanceEntity>,
     creditCards: List<AccountBalanceEntity>,
-    isUnifiedMode: Boolean,
-    selectedCurrency: String,
-    isBalanceHidden: Boolean,
-    blurEffects: Boolean,
-    hazeStateBanner: HazeState,
     onNavigateToManageAccounts: () -> Unit,
     onAccountClick: (bankName: String, accountLast4: String) -> Unit,
-    onToggleBalanceVisibility: () -> Unit
 ) {
+    val accounts = accountBalances + creditCards
     Column(
         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
     ) {
-        SectionHeaderV2(
+        HomeSectionHeader(
             title = stringResource(R.string.home_section_accounts),
-            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-            action = {
-                TextButton(onClick = onNavigateToManageAccounts, shapes = ButtonDefaults.shapes()) {
-                    Text(stringResource(R.string.home_manage))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        modifier = Modifier.size(Dimensions.Icon.small)
+            onSeeAll = onNavigateToManageAccounts,
+            actionLabel = stringResource(R.string.home_manage),
+            modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
+        )
+        GroupedList(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
+            accounts.forEachIndexed { index, account ->
+                val isCard = index >= accountBalances.size
+                // Matches Manage Accounts' low-balance alert (#509).
+                val isLow = !isCard && account.lowBalanceThreshold?.let { account.balance <= it } == true
+                val subtitle = listOfNotNull(
+                    "••${account.accountLast4}".takeIf { account.accountLast4 != AccountBalanceEntity.WALLET_ACCOUNT_MARKER },
+                    stringResource(
+                        when {
+                            isLow -> R.string.account_card_low_balance
+                            isCard -> R.string.account_card_type_credit
+                            else -> R.string.account_card_type_savings
+                        }
+                    )
+                ).joinToString(" · ")
+                GroupedRow(
+                    position = ListItemPosition.from(index, accounts.size),
+                    onClick = { onAccountClick(account.bankName, account.accountLast4) },
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.smd)
+                ) {
+                    BrandIcon(merchantName = account.bankName, size = Dimensions.Icon.list, showBackground = true)
+                    RowLabels(
+                        title = account.bankName,
+                        subtitle = subtitle,
+                        subtitleColor = if (isLow) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant,
+                        subtitleMaxLines = 1
+                    )
+                    // A card's figure is what's owed on it, not its limit.
+                    Text(
+                        text = account.formatBalance(),
+                        style = PennyWiseText.amountRow,
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 1
                     )
                 }
             }
-        )
-        AccountCarousel(
-            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-            bankAccounts = accountBalances,
-            creditCards = creditCards,
-            onAccountClick = onAccountClick,
-            isUnifiedMode = isUnifiedMode,
-            selectedCurrency = selectedCurrency,
-            blurEffects = blurEffects,
-            hazeState = hazeStateBanner,
-            isAmountHidden = isBalanceHidden,
-            onToggleAmountsHidden = { onToggleBalanceVisibility() }
-        )
+        }
     }
 }
 
+/**
+ * "Coming up": the next few bills, soonest first, each in its own currency. Overdue ones
+ * say so in error; today's and tomorrow's in warning. "See all" opens Bills; a row opens Bills on that bill.
+ */
 @Composable
-internal fun HomeSubscriptionsSection(
+internal fun HomeComingUpSection(
     upcomingSubscriptions: List<SubscriptionEntity>,
-    upcomingSubscriptionsTotal: BigDecimal,
-    upcomingSubscriptionsByCurrency: Map<String, Money>,
-    nextDueSubscription: SubscriptionEntity?,
-    isUnifiedMode: Boolean,
-    selectedCurrency: String,
-    blurEffects: Boolean,
-    hazeStateBanner: HazeState,
-    onNavigateToSubscriptions: () -> Unit
+    onNavigateToSubscriptions: () -> Unit,
+    onBillClick: (Long) -> Unit
 ) {
+    val today = rememberToday()
+    val next = remember(upcomingSubscriptions) {
+        upcomingSubscriptions
+            .sortedWith(compareBy(nullsLast()) { it.nextPaymentDate })
+            .take(COMING_UP_ROWS)
+    }
     Column(
+        modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
     ) {
-        SectionHeaderV2(
-            title = stringResource(R.string.home_section_subscriptions),
-            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-            action = {
-                TextButton(onClick = onNavigateToSubscriptions, shapes = ButtonDefaults.shapes()) {
-                    Text(stringResource(R.string.home_view_all))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        modifier = Modifier.size(Dimensions.Icon.small)
-                    )
-                }
-            }
+        HomeSectionHeader(
+            title = stringResource(R.string.home_section_coming_up),
+            onSeeAll = onNavigateToSubscriptions
         )
-        Box(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
-            UpcomingSubscriptionsCard(
-                subscriptions = upcomingSubscriptions,
-                totalAmount = upcomingSubscriptionsTotal,
-                totalByCurrency = upcomingSubscriptionsByCurrency,
-                nextDue = nextDueSubscription,
-                isUnified = isUnifiedMode,
-                currency = selectedCurrency,
-                onClick = onNavigateToSubscriptions,
-                blurEffects = blurEffects,
-                hazeState = hazeStateBanner
-            )
+        GroupedList {
+            next.forEachIndexed { index, sub ->
+                ComingUpRow(
+                    subscription = sub,
+                    today = today,
+                    position = ListItemPosition.from(index, next.size),
+                    onClick = { onBillClick(sub.id) }
+                )
+            }
         }
     }
 }
-
-/** Diameter of one avatar in the overlapping subscription stack. */
-private val STACKED_AVATAR_SIZE = Dimensions.Icon.large
-
-/** Horizontal step between stacked avatars — less than the diameter, so they
- *  overlap and read as a group. */
-private val STACKED_AVATAR_STEP = Spacing.lg - Spacing.xs
-
-/** The surface-coloured ring that separates one stacked avatar from the next. */
-private val STACKED_AVATAR_RING = Spacing.xxs
 
 @Composable
-private fun UpcomingSubscriptionsCard(
-    subscriptions: List<SubscriptionEntity>,
-    totalAmount: BigDecimal,
-    totalByCurrency: Map<String, com.pennywiseai.tracker.utils.Money> = emptyMap(),
-    nextDue: SubscriptionEntity? = null,
-    isUnified: Boolean = false,
-    currency: String,
-    onClick: () -> Unit = {},
-    blurEffects: Boolean = false,
-    hazeState: HazeState? = null
+private fun ComingUpRow(
+    subscription: SubscriptionEntity,
+    today: LocalDate,
+    position: ListItemPosition,
+    onClick: () -> Unit,
 ) {
-    val containerColor = if (blurEffects)
-        MaterialTheme.colorScheme.secondaryContainer.copy(alpha = 0.5f)
-    else MaterialTheme.colorScheme.secondaryContainer
-
-    PennyWiseCardV2(
-        modifier = Modifier
-            .fillMaxWidth()
-            .then(
-                if (blurEffects && hazeState != null) Modifier
-                    .clip(RoundedCornerShape(Dimensions.CornerRadius.large))
-                    .frostedBlur(hazeState, tint = containerColor)
-                else Modifier
-            ),
+    val date = subscription.nextPaymentDate
+    val days = date?.let { ChronoUnit.DAYS.between(today, it).toInt() }
+    val due = when {
+        date == null || days == null -> null
+        days < 0 -> stringResource(R.string.home_due_overdue)
+        days == 0 -> stringResource(R.string.home_due_today)
+        days == 1 -> stringResource(R.string.home_due_tomorrow)
+        else -> "${date.format(AppDates.pattern("EEE"))}, ${date.format(AppDates.dayMonthFormatter())}"
+    }
+    val account = subscription.bankName?.let { bank ->
+        subscription.accountLast4?.let { "$bank ••$it" } ?: bank
+    }
+    val subtitle = listOfNotNull(due, account).joinToString(" · ")
+    val subtitleColor = when {
+        days != null && days < 0 -> MaterialTheme.colorScheme.error
+        days != null && days <= 1 -> MaterialTheme.colorScheme.warning
+        else -> MaterialTheme.colorScheme.onSurfaceVariant
+    }
+    GroupedRow(
+        position = position,
         onClick = onClick,
-        colors = CardDefaults.cardColors(
-            containerColor = containerColor
-        ),
-        contentPadding = Dimensions.Padding.content
+        horizontalArrangement = Arrangement.spacedBy(Spacing.smd)
     ) {
-        Row(
-            modifier = Modifier
-                .fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.weight(1f)
-            ) {
-                if (subscriptions.isNotEmpty()) {
-                    val maxIcons = 4
-                    val visibleSubs = subscriptions.take(maxIcons)
-                    val extraCount = subscriptions.size - maxIcons
-                    // Overlapping avatar stack. The trailing Spacer reserves the
-                    // stack's true width, since the offset children don't
-                    // contribute to the Box's measured size — derive it from the
-                    // same constants rather than restating the numbers.
-                    val stackedCount = visibleSubs.size + if (extraCount > 0) 1 else 0
-                    Box {
-                        visibleSubs.forEachIndexed { index, sub ->
-                            BrandIcon(
-                                merchantName = sub.merchantName,
-                                size = STACKED_AVATAR_SIZE,
-                                modifier = Modifier
-                                    .offset(x = STACKED_AVATAR_STEP * index)
-                                    .zIndex((maxIcons - index).toFloat())
-                                    .border(
-                                        width = STACKED_AVATAR_RING,
-                                        color = MaterialTheme.colorScheme.surface,
-                                        shape = CircleShape
-                                    )
-                                    .clip(CircleShape)
-                            )
-                        }
-                        if (extraCount > 0) {
-                            Box(
-                                modifier = Modifier
-                                    .offset(x = STACKED_AVATAR_STEP * visibleSubs.size)
-                                    .zIndex(0f)
-                                    .size(STACKED_AVATAR_SIZE)
-                                    .border(
-                                        width = STACKED_AVATAR_RING,
-                                        color = MaterialTheme.colorScheme.surface,
-                                        shape = CircleShape
-                                    )
-                                    .clip(CircleShape)
-                                    .background(MaterialTheme.colorScheme.surfaceVariant),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Text(
-                                    text = "+$extraCount",
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-                        Spacer(
-                            modifier = Modifier
-                                .width(
-                                    STACKED_AVATAR_SIZE +
-                                        STACKED_AVATAR_STEP * (stackedCount - 1).coerceAtLeast(0)
-                                )
-                                .height(STACKED_AVATAR_SIZE)
-                        )
-                    }
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.CalendarToday,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.onSecondaryContainer,
-                        modifier = Modifier.size(Dimensions.Icon.medium)
-                    )
-                }
-                Column {
-                    Text(
-                        text = pluralStringResource(R.plurals.home_active_subscriptions, subscriptions.size, subscriptions.size),
-                        style = MaterialTheme.typography.bodyLarge,
-                        fontWeight = FontWeight.Medium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer
-                    )
-                    Text(
-                        // Unified mode: one converted figure. Native mode: per-currency
-                        // ("₹499 · $10") so a mixed set isn't summed into a mislabel.
-                        text = stringResource(
-                            R.string.home_subscriptions_monthly_total,
-                            if (isUnified) {
-                                CurrencyFormatter.formatCurrency(totalAmount, currency)
-                            } else {
-                                CurrencyFormatter.formatByCurrency(
-                                    totalByCurrency,
-                                    fallbackCurrency = currency
-                                )
-                            }
-                        ),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = Dimensions.Alpha.subtitle)
-                    )
-                    val nextDate = nextDue?.nextPaymentDate
-                    if (nextDue != null && nextDate != null) {
-                        val days = ChronoUnit.DAYS.between(LocalDate.now(), nextDate).toInt()
-                        val due = when {
-                            days < 0 -> stringResource(R.string.home_subscriptions_due_overdue)
-                            days == 0 -> stringResource(R.string.home_subscriptions_due_today)
-                            days == 1 -> stringResource(R.string.home_subscriptions_due_tomorrow)
-                            else -> pluralStringResource(R.plurals.home_subscriptions_due_in_days, days, days)
-                        }
-                        Text(
-                            text = stringResource(R.string.home_subscriptions_next_due, nextDue.merchantName, due),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = if (days < 0) MaterialTheme.colorScheme.error
-                            else MaterialTheme.colorScheme.onSecondaryContainer.copy(alpha = Dimensions.Alpha.subtitle),
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-            }
-            Text(
-                text = stringResource(R.string.home_view),
-                style = MaterialTheme.typography.labelLarge,
-                color = MaterialTheme.colorScheme.primary,
-                fontWeight = FontWeight.Medium
-            )
+        val category = subscription.category
+        if (category.isNullOrBlank()) {
+            BrandIcon(merchantName = subscription.merchantName, size = Dimensions.Icon.list)
+        } else {
+            TransactionAvatar(merchantName = subscription.merchantName, category = category)
         }
+        RowLabels(
+            title = subscription.merchantName,
+            subtitle = subtitle.ifEmpty { null },
+            subtitleColor = subtitleColor,
+            subtitleMaxLines = 1
+        )
+        Text(
+            text = subscription.formatAmount(),
+            style = PennyWiseText.amountRow,
+            color = MaterialTheme.colorScheme.onSurface,
+            maxLines = 1
+        )
     }
 }
+
+/** How many bills "Coming up" lists; the rest are a "See all" away. */
+private const val COMING_UP_ROWS = 3
 
 @Composable
 internal fun HomeActivitySection(
     transactionHeatmap: Map<Long, Int>,
-    blurEffects: Boolean,
-    hazeStateBanner: HazeState
+    onOpenCalendar: () -> Unit
 ) {
     Column(
         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
     ) {
-        SectionHeaderV2(
+        // The calendar is the day-by-day view behind the heatmap's squares.
+        HomeSectionHeader(
             title = stringResource(R.string.home_section_activity),
+            onSeeAll = onOpenCalendar,
+            actionLabel = stringResource(R.string.home_shortcut_calendar),
             modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
         )
         com.pennywiseai.tracker.ui.components.cards.HeatmapWidget(
             transactionHeatmap = transactionHeatmap,
-            modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-            blurEffects = blurEffects,
-            hazeState = hazeStateBanner
+            modifier = Modifier.padding(horizontal = Dimensions.Padding.content)
         )
     }
 }
@@ -636,61 +496,61 @@ internal fun HomeActivitySection(
 internal const val UNSORTED_WALK_SIZE = 20
 
 /**
- * "3 transactions this month need a category": a count only, no amounts. Tapping walks
- * the oldest [UNSORTED_WALK_SIZE] in the category picker, as the evening recap does.
+ * "7 need a category": one compact row, a count only, no amounts. Tapping walks the
+ * oldest [UNSORTED_WALK_SIZE] in the category picker, as the evening recap does.
  */
 @Composable
-internal fun HomeUnsortedCard(
+internal fun HomeUnsortedRow(
     count: Int,
     onSort: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
-    PennyWiseCardV2(
-        modifier = modifier.fillMaxWidth(),
-        contentPadding = Spacing.none,
+    val action = when {
+        count > UNSORTED_WALK_SIZE -> stringResource(R.string.home_unsorted_action_batch, UNSORTED_WALK_SIZE)
+        count > 1 -> stringResource(R.string.notif_daily_action_sort_all)
+        else -> stringResource(R.string.notif_daily_action_sort)
+    }
+    GroupedRow(
+        position = ListItemPosition.Single,
         onClick = onSort,
+        modifier = modifier,
+        horizontalArrangement = Arrangement.spacedBy(Spacing.smd)
     ) {
-        Row(
-            modifier = Modifier.padding(start = Spacing.md, top = Spacing.md, end = Spacing.md),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.smd),
-        ) {
-            Icon(
-                imageVector = Icons.Default.Category,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.onSurfaceVariant,
-                modifier = Modifier.size(Dimensions.Icon.medium),
-            )
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.xxs)) {
-                Text(
-                    text = pluralStringResource(R.plurals.home_unsorted_title, count, count),
-                    style = MaterialTheme.typography.titleSmall,
-                    color = MaterialTheme.colorScheme.onSurface,
-                )
-                Text(
-                    text = pluralStringResource(R.plurals.home_unsorted_body, count),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                )
-            }
-        }
-        Row(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(end = Spacing.xs),
-            horizontalArrangement = Arrangement.End,
-        ) {
-            TextButton(onClick = onSort, shapes = ButtonDefaults.shapes()) {
-                Text(
-                    when {
-                        count > UNSORTED_WALK_SIZE -> stringResource(R.string.home_unsorted_action_batch, UNSORTED_WALK_SIZE)
-                        count > 1 -> stringResource(R.string.notif_daily_action_sort_all)
-                        else -> stringResource(R.string.notif_daily_action_sort)
-                    }
-                )
-            }
-        }
+        IconTile(
+            icon = Icons.Default.Category,
+            containerColor = MaterialTheme.colorScheme.surfaceContainerHighest,
+            contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+            size = Dimensions.Icon.list,
+            glyphSize = Dimensions.Icon.inline
+        )
+        RowLabels(title = pluralStringResource(R.plurals.home_unsorted_row, count, count))
+        Text(
+            text = action,
+            style = MaterialTheme.typography.labelLarge,
+            color = MaterialTheme.colorScheme.primary
+        )
     }
 }
+
+/** Today, read again on every resume, so "Today" and "Tomorrow" move on past midnight. */
+@Composable
+internal fun rememberToday(): LocalDate {
+    var today by remember { mutableStateOf(LocalDate.now()) }
+    androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
+        today = LocalDate.now()
+        onPauseOrDispose { }
+    }
+    // And at midnight while Home stays open, so "Due today" turns into "Overdue" on time.
+    LaunchedEffect(today) {
+        val untilTomorrow = java.time.Duration.between(java.time.LocalDateTime.now(), today.plusDays(1).atStartOfDay())
+        kotlinx.coroutines.delay(untilTomorrow.toMillis().coerceAtLeast(0) + MIDNIGHT_SLACK_MILLIS)
+        today = LocalDate.now()
+    }
+    return today
+}
+
+/** A second past midnight, so the clock has surely turned when the date is read again. */
+private const val MIDNIGHT_SLACK_MILLIS = 1_000L
 
 /**
  * The two insights that matter most, in any currency; the card opens the Insights page.
@@ -705,56 +565,32 @@ internal fun HomeInsightsSection(
     Column(
         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.headerToContent)
     ) {
-        SectionHeaderV2(
+        HomeSectionHeader(
             title = stringResource(R.string.home_section_insights),
             modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
-            action = {
-                TextButton(onClick = onNavigateToInsights, shapes = ButtonDefaults.shapes()) {
-                    Text(stringResource(R.string.home_view_all))
-                    Icon(
-                        imageVector = Icons.AutoMirrored.Filled.KeyboardArrowRight,
-                        contentDescription = null,
-                        modifier = Modifier.size(Dimensions.Icon.small)
-                    )
-                }
-            }
+            onSeeAll = onNavigateToInsights
         )
-        PennyWiseCardV2(
-            onClick = onNavigateToInsights,
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Dimensions.Padding.content)
-        ) {
-            // Titles like "Your money would last 4 months" don't name a currency, so say
-            // which each is once any isn't the one Home shows.
-            val showCurrency = insights.any { it.currency != homeCurrency }
-            Column(verticalArrangement = Arrangement.spacedBy(Spacing.smd)) {
-                insights.forEach { insight ->
-                    val (icon, color) = com.pennywiseai.tracker.presentation.insights.severityStyle(insight.severity)
-                    // Without section headers here, the icon says how much it matters: "Needs attention, …".
-                    Row(
-                        modifier = Modifier.semantics(mergeDescendants = true) {},
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.spacedBy(Spacing.smd)
-                    ) {
-                        Icon(
-                            icon,
-                            contentDescription = com.pennywiseai.tracker.presentation.insights.severityLabel(insight.severity),
-                            tint = color,
-                            modifier = Modifier.size(Dimensions.Icon.medium)
-                        )
+        // Titles like "Your money would last 4 months" don't name a currency, so say
+        // which each is once any isn't the one Home shows.
+        val showCurrency = insights.any { it.currency != homeCurrency }
+        GroupedList(modifier = Modifier.padding(horizontal = Dimensions.Padding.content)) {
+            insights.forEachIndexed { index, insight ->
+                GroupedRow(
+                    position = ListItemPosition.from(index, insights.size),
+                    onClick = onNavigateToInsights,
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.smd)
+                ) {
+                    com.pennywiseai.tracker.presentation.insights.SeverityTile(insight.severity)
+                    RowLabels(
+                        title = com.pennywiseai.tracker.presentation.insights.insightText(insight).title,
+                        titleMaxLines = 2
+                    )
+                    if (showCurrency) {
                         Text(
-                            text = com.pennywiseai.tracker.presentation.insights.insightText(insight).title,
-                            style = MaterialTheme.typography.bodyLarge,
-                            modifier = Modifier.weight(1f)
+                            text = insight.currency,
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
-                        if (showCurrency) {
-                            Text(
-                                text = insight.currency,
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
                     }
                 }
             }

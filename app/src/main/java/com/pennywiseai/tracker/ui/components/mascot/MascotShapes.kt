@@ -7,6 +7,8 @@ import androidx.compose.ui.geometry.RoundRect
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.PathFillType
 import androidx.compose.ui.graphics.PathOperation
+import androidx.compose.ui.graphics.asAndroidPath
+import androidx.compose.ui.graphics.asComposePath
 import androidx.compose.ui.graphics.vector.PathParser
 import kotlin.math.cos
 import kotlin.math.sin
@@ -27,17 +29,17 @@ enum class MascotShape { Owl, Coin, Receipt, Wallet, Jar, Bubble, Pie, Bars, Bel
  */
 internal data class EyeSpec(val x: Float, val y: Float, val spacing: Float, val scale: Float)
 
-/** The detailed owl's eye discs, in box units. */
+/** The owl's line art: two eye rings that meet over the beak, in a round face, in box units. */
 internal object OwlEye {
-    const val LEFT_X = 35f
-    const val RIGHT_X = 65f
-    const val Y = 50f
-    const val DISC_R = 13f
-    const val IRIS_R = 7f
-    const val PUPIL_R = 3.5f
+    const val LEFT_X = 36f
+    const val RIGHT_X = 64f
+    const val Y = 54f
+    const val RING_R = 13.5f
 
-    /** How far the iris moves for a full gaze (|gaze| = 1). */
-    const val GAZE_TRAVEL = 4f
+    /** How far the face reaches past its path; the rings cut out are a touch finer, the beak finer still. */
+    const val LINE = 5f
+    const val RING_LINE = 4.5f
+    const val BEAK_LINE = 3f
 }
 
 /** A shape's paths, built once per drawing cache. */
@@ -47,9 +49,6 @@ internal class MascotGeometry(
     val eyes: EyeSpec,
     /** The point the head tilts and hops about: where it stands. */
     val pivot: Offset,
-    /** The detailed owl's face mask (two discs and the beak's wedge), or null. */
-    val mask: Path? = null,
-    val beak: Path? = null,
     /** An object's markings, drawn over its body at [detailAlpha], at the detailed size only. */
     val details: Path? = null,
     val detailAlpha: Float = DETAIL_ALPHA,
@@ -69,21 +68,20 @@ private const val DETAIL_ALPHA = 0.32f
  */
 internal fun MascotShape.geometry(value: Float = 0f): MascotGeometry = when (this) {
     MascotShape.Owl -> MascotGeometry(
-        // Ear tufts, a round belly: the PennyWise logo owl.
-        body = svgPath(
-            "M50 26 C40 26 29 20 20 11 C22 21 18 29 16 37 C12 46 12 60 18 72 C25 85 38 91 50 91 " +
-                "C62 91 75 85 82 72 C88 60 88 46 84 37 C82 29 78 21 80 11 C71 20 60 26 50 26 Z"
+        // A solid round face with soft-tipped ears. Its eye rings and diamond beak are cut
+        // out of it, and so are the pill eyes inside the rings (Mascot.kt).
+        // ic_notification.xml is the same drawing.
+        body = Path.combine(
+            PathOperation.Difference,
+            union(svgPath(OWL_FACE), stroked(svgPath(OWL_FACE), OwlEye.LINE)),
+            union(
+                stroked(Path().apply { addOval(circle(OwlEye.LEFT_X, OwlEye.Y, OwlEye.RING_R)) }, OwlEye.RING_LINE),
+                stroked(Path().apply { addOval(circle(OwlEye.RIGHT_X, OwlEye.Y, OwlEye.RING_R)) }, OwlEye.RING_LINE),
+                owlBeak(),
+            ),
         ),
-        eyes = EyeSpec(x = 50f, y = 52f, spacing = 28f, scale = 1.05f),
+        eyes = EyeSpec(x = 50f, y = OwlEye.Y, spacing = OwlEye.RIGHT_X - OwlEye.LEFT_X, scale = 1.1f),
         pivot = STANDING,
-        // One non-zero fill, so every contour winds clockwise like the wedge: a
-        // counter-clockwise disc would cancel it where they overlap and leave holes.
-        mask = Path().apply {
-            addOval(circle(OwlEye.LEFT_X, OwlEye.Y, 18f), Path.Direction.Clockwise)
-            addOval(circle(OwlEye.RIGHT_X, OwlEye.Y, 18f), Path.Direction.Clockwise)
-            addPath(svgPath("M33 62 L67 62 L50 76 Z"))
-        },
-        beak = svgPath("M45.5 61 L54.5 61 L50 69 Z"),
     )
     MascotShape.Coin -> MascotGeometry(
         body = Path().apply { addOval(circle(50f, 52f, 38f)) },
@@ -247,3 +245,26 @@ private fun roundRect(x: Float, y: Float, w: Float, h: Float, r: Float) =
 private fun union(vararg parts: Path): Path = parts.reduce { a, b -> Path.combine(PathOperation.Union, a, b) }
 
 private fun svgPath(d: String): Path = PathParser().parsePathString(d).toPath()
+
+private const val OWL_FACE =
+    "M50 22 C58 22 64 23 70 25 L77 17 Q81 13 82 19 L83 31 C87 38 89 45 89 53 C89 74 72 89 50 89 " +
+        "C28 89 11 74 11 53 C11 45 13 38 17 31 L18 19 Q19 13 23 17 L30 25 C36 23 42 22 50 22 Z"
+private const val OWL_BEAK = "M50 66 L53 70 L50 75 L47 70 Z"
+
+/** The owl's beak as cut out of its face: the diamond with its rounded edge. */
+internal fun owlBeak(): Path = union(svgPath(OWL_BEAK), stroked(svgPath(OWL_BEAK), OwlEye.BEAK_LINE))
+
+/** The middle of [owlBeak]: it grows from here as a morph becomes the owl. */
+internal val OWL_BEAK_CENTER = Offset(50f, 70.5f)
+
+/** [line] stroked [width] wide with round ends and joins, as a filled outline. */
+private fun stroked(line: Path, width: Float): Path {
+    val out = android.graphics.Path()
+    android.graphics.Paint().apply {
+        style = android.graphics.Paint.Style.STROKE
+        strokeWidth = width
+        strokeCap = android.graphics.Paint.Cap.ROUND
+        strokeJoin = android.graphics.Paint.Join.ROUND
+    }.getFillPath(line.asAndroidPath(), out)
+    return out.asComposePath()
+}

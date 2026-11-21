@@ -53,4 +53,87 @@
     <string name="mascot_playground_reactions_body">Each button announces a save the way a real one does, so the Chat tab below reacts. Nothing is saved. A tap during a reaction folds into it.</string>
     <string name="mascot_playground_grid_title">Every shape and mood</string>
     <string name="mascot_playground_grid_body">Tap one to show it above.</string>
+    <!-- rd:home -->
+    <!-- Home hero under the budget meter: "₹4,264 spent of ₹40,000"; both are formatted amounts -->
+    <string name="home_hero_view_budget">View budget</string>
+    <string name="home_hero_see_transactions">Transactions</string>
+    <!-- Home row: this month's transactions still in Others -->
+    <plurals name="home_unsorted_row">
+        <item quantity="one">%d needs a category</item>
+        <item quantity="other">%d need a category</item>
+    </plurals>
+
+    <!-- rd:insights -->
+    <string name="insights_filters_default">Filters · %1$s</string>
+    <string name="insights_filters_active">Filters (%1$d) · %2$s</string>
+    <string name="insights_filter_type">Transaction type</string>
+    <string name="insights_filter_all_profiles">All profiles</string>
+    <string name="insights_forecast_amount">%1$s · %2$s</string>
+    <string name="insights_expanded">Expanded</string>
+    <string name="insights_collapsed">Collapsed</string>
+    <string name="insights_spending_trend">Spending trend</string>
+    <string name="insights_type_trend">%1$s trend</string>
+    <string name="insights_chart_values">View chart values</string>
+    <string name="insights_no_transactions">No transactions</string>
+    <string name="insights_ask">Ask about your money</string>
+
+    <!-- rd:add -->
+    <string name="add_error_duplicate">This transaction is already saved</string>
+    <string name="add_more_types">More types</string>
+    <string name="add_field_account">Account</string>
+    <string name="add_field_date">Date</string>
+    <string name="add_field_time">Time</string>
+    <string name="add_field_currency">Currency: %1$s</string>
+    <string name="add_more_details_hint">Time, notes, tags, receipt</string>
+    <string name="add_sub_more_details_hint">Notes, instalments</string>
+    <string name="add_detail_notes">Notes</string>
+    <string name="add_detail_reference">Reference</string>
+    <string name="add_detail_tags">Tags</string>
+    <string name="add_detail_receipt">Receipt</string>
+    <string name="add_sub_next_payment">Next payment</string>
+    <string name="add_select">Select</string>
+    <string name="quick_add_all_categories">All categories</string>
+    <string name="quick_add_today">Today</string>
+    <string name="quick_add_yesterday">Yesterday</string>
+    <string name="quick_add_other_date">Other date</string>
+    <string name="quick_add_summary">%1$s · %2$s</string>
+
+    <!-- rd:browse -->
+    <string name="txn_detail_more_details">More details</string>
+    <string name="ask_model_missing_title">Quick questions work now</string>
+    <string name="ask_model_missing_action">Download for custom questions (%1$d MB)</string>
+    <string name="ask_clear_confirm_title">Clear this conversation?</string>
+    <string name="ask_clear_confirm_body">The chat history is removed from this device.</string>
+    <!-- rd:plan -->
+    <string name="plan_budget_remaining">%1$s left</string>
+    <string name="plan_budget_starts">Starts %1$s</string>
+    <string name="plan_budget_tracking">Tracking spending</string>
+    <string name="plan_budget_target">Target %1$s</string>
+    <string name="plan_budget_expected">%1$s expected</string>
+    <string name="plan_budget_over_estimate">Over estimate</string>
+    <string name="plan_budget_category_limit">Limit</string>
+    <string name="plan_budget_missing_rate">Missing exchange rate</string>
+    <string name="plan_budget_calculation">How this limit is calculated</string>
+    <string name="plan_budget_base">Base limit %1$s</string>
+    <string name="plan_budget_converted_limit">%1$s, converted to %2$s</string>
+    <string name="plan_budget_pace_summary">Actual %1$s · Budget pace %2$s</string>
+    <string name="plan_goals_saved_of">Saved %1$s of %2$s</string>
+    <string name="plan_bills_monthly_estimate">Estimated monthly cost</string>
+    <string name="plan_bills_overdue">Overdue</string>
+    <string name="plan_bills_upcoming">Upcoming</string>
+    <string name="plan_bills_paid">Paid this cycle (%1$d)</string>
+    <string name="plan_bills_income">Recurring income (%1$d)</string>
+    <string name="plan_bills_undated">Undated (%1$d)</string>
+    <string name="plan_bills_ended">Ended (%1$d)</string>
+    <plurals name="plan_bills_review_suggestions">
+        <item quantity="one">Review %1$d suggestion</item>
+        <item quantity="other">Review %1$d suggestions</item>
+    </plurals>
+    <!-- rd:settings -->
+    <string name="settings_notifications_permission_title">Allow notifications</string>
+    <string name="settings_notifications_permission_subtitle">PennyWise summaries and alerts. Bank messages the app reads are separate.</string>
+    <string name="appearance_accessibility_section">Accessibility</string>
+    <!-- rd:lead -->
+    <string name="settings_help_community_subtitle">Chat with other PennyWise users</string>
+    <string name="settings_help_rate_subtitle">Rate PennyWise on Google Play</string>
 </resources>

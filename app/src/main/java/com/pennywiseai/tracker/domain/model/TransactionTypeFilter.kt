@@ -7,7 +7,7 @@ enum class TransactionTypeFilter {
     INCOME,
     EXPENSE,
     CREDIT,
-    /** Expense + credit-card spend together (#898). Analytics-only, see [inTransactionsList]. */
+    /** Expense + credit-card spend together (#898). */
     SPENDING,
     TRANSFER,
     INVESTMENT;
@@ -27,11 +27,4 @@ enum class TransactionTypeFilter {
     /** Spend views that net refunds (INCOME + DEDUCT_SPENT) off their totals (#629). */
     val netsRefunds: Boolean
         get() = this == EXPENSE || this == SPENDING
-
-    /**
-     * Offered in the Transactions screen's type menu. SPENDING is an Analytics
-     * view (#898); the list already shows expense and credit totals side by side.
-     */
-    val inTransactionsList: Boolean
-        get() = this != SPENDING
 }

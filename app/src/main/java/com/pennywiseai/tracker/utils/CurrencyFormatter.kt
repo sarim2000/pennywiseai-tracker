@@ -288,12 +288,16 @@ object CurrencyFormatter {
      * [signPrefix] (e.g. "-" or "+") expresses the sign for the whole figure, so
      * the magnitude is rendered absolute — a net-negative sub-total (refunds >
      * charges in one currency) renders "-€200", never "--€200".
+     *
+     * [keepSign] instead gives each currency its own sign, for balances that can
+     * go either way: an overdrawn "-$100 · ₹500" must not read as $100 held.
      */
     fun formatByCurrency(
         totalsByCurrency: Map<String, Money>,
         signPrefix: String = "",
         fallbackCurrency: String = "INR",
-        maskIfHidden: Boolean = true
+        maskIfHidden: Boolean = true,
+        keepSign: Boolean = false
     ): String {
         // One mask, not one per currency: "•••• · ••••" would still say how many there are.
         if (maskIfHidden && AmountPrivacy.hidden) return AmountPrivacy.MASK
@@ -306,7 +310,10 @@ object CurrencyFormatter {
         }
         return nonZero
             .sortedByDescending { it.amount.abs() }
-            .joinToString(" · ") { Money(it.amount.abs(), it.currency).format(signPrefix, maskIfHidden = false) }
+            .joinToString(" · ") {
+                val prefix = if (keepSign && it.amount.signum() < 0) "-" else signPrefix
+                Money(it.amount.abs(), it.currency).format(prefix, maskIfHidden = false)
+            }
     }
 
     /**

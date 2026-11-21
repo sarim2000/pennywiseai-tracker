@@ -232,6 +232,40 @@ class BudgetWindowTest {
         assertEquals(LocalDate.of(2026, 11, 30), windows.first().end)
     }
 
+    // ── historyWindowsForMonth ────────────────────────────────────────
+
+    @Test
+    fun `history of a 5-anchored monthly budget in the current month lists the ended and the running cycle`() {
+        val budget = budgetOf(BudgetPeriodType.MONTHLY, monthStartDay = 5)
+        val windows = historyWindowsForMonth(budget, 2026, 11, today = LocalDate.of(2026, 11, 20), globalStartDay = 1)
+
+        // Oct 5..Nov 4 ended this month and isn't under October (Sep 5..Oct 4 is);
+        // Nov 5..Dec 4 is the one the Budgets page shows.
+        assertEquals(
+            listOf(
+                LocalDate.of(2026, 10, 5) to LocalDate.of(2026, 11, 4),
+                LocalDate.of(2026, 11, 5) to LocalDate.of(2026, 12, 4)
+            ),
+            windows.map { it.start to it.end }
+        )
+    }
+
+    @Test
+    fun `history before the start day lists the running cycle once`() {
+        val budget = budgetOf(BudgetPeriodType.MONTHLY, monthStartDay = 5)
+        val windows = historyWindowsForMonth(budget, 2026, 11, today = LocalDate.of(2026, 11, 3), globalStartDay = 1)
+
+        assertEquals(listOf(LocalDate.of(2026, 10, 5) to LocalDate.of(2026, 11, 4)), windows.map { it.start to it.end })
+    }
+
+    @Test
+    fun `history of a past month keeps the windowsForMonth cycle`() {
+        val budget = budgetOf(BudgetPeriodType.MONTHLY, monthStartDay = 5)
+        val windows = historyWindowsForMonth(budget, 2026, 10, today = LocalDate.of(2026, 11, 20), globalStartDay = 1)
+
+        assertEquals(windowsForMonth(budget, 2026, 10, globalStartDay = 1), windows)
+    }
+
     // ── overlaps ──────────────────────────────────────────────────────
 
     @Test
@@ -270,8 +304,8 @@ class BudgetWindowTest {
         val monthEnd = LocalDate.of(2026, 6, 30)
         val window = BudgetWindow(LocalDate.of(2026, 6, 30), LocalDate.of(2026, 7, 6), 7)
         val isCurrentMonth = false
-        val isCurrentWeek = !isCurrentMonth && false ||
-            isCurrentMonth && !today.isBefore(window.start) && !today.isAfter(window.end)
+        val isCurrentWeek = (!isCurrentMonth && false) ||
+            (isCurrentMonth && !today.isBefore(window.start) && !today.isAfter(window.end))
         assertEquals(false, isCurrentWeek)
         // The repo's effective end for the spend query is the cap date,
         // which is monthEnd for a frozen window.

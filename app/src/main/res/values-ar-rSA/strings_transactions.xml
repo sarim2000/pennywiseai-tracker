@@ -243,7 +243,17 @@
     <string name="txn_list_filter_account">الحساب</string>
     <string name="txn_list_filter_category">الفئة</string>
     <string name="txn_list_filters">الفلاتر</string>
-    <string name="txn_list_filters_two">فلتران</string>
+    <string name="txn_filters_sort_by">الترتيب حسب</string>
+    <string name="txn_filters_type">النوع</string>
+    <string name="txn_filters_category_hint">اختر فئة أو أكثر؛ بدون اختيار تظهر كل الفئات</string>
+    <plurals name="txn_filters_show_results">
+        <item quantity="zero">عرض %1$d معاملة</item>
+        <item quantity="one">عرض %1$d معاملة</item>
+        <item quantity="two">عرض معاملتين</item>
+        <item quantity="few">عرض %1$d معاملات</item>
+        <item quantity="many">عرض %1$d معاملة</item>
+        <item quantity="other">عرض %1$d معاملة</item>
+    </plurals>
     <string name="txn_list_categories_all_except">الكل باستثناء %1$s</string>
     <plurals name="txn_list_categories_count">
         <item quantity="zero">%1$d فئة</item>

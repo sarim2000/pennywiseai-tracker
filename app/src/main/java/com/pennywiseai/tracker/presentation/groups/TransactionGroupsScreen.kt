@@ -3,10 +3,12 @@ package com.pennywiseai.tracker.presentation.groups
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -19,16 +21,15 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardCapitalization
-import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.repository.GroupSummary
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.GroupedRow
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.*
@@ -114,14 +115,15 @@ fun TransactionGroupsScreen(
                 start = Dimensions.Padding.content,
                 end = Dimensions.Padding.content,
                 top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
-                bottom = paddingValues.calculateBottomPadding() + 80.dp
+                bottom = paddingValues.calculateBottomPadding() + Dimensions.Component.bottomBarHeight
             ),
-            verticalArrangement = Arrangement.spacedBy(Spacing.sm),
+            verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap),
             flingBehavior = rememberOverscrollFlingBehavior { lazyListState }
         ) {
-            items(uiState.groups, key = { it.group.id }) { summary ->
+            itemsIndexed(uiState.groups, key = { _, summary -> summary.group.id }) { index, summary ->
                 GroupListItem(
                     summary = summary,
+                    position = ListItemPosition.from(index, uiState.groups.size),
                     onClick = { onNavigateToGroupDetail(summary.group.id) },
                     modifier = Modifier.animateItem()
                 )
@@ -140,84 +142,74 @@ fun TransactionGroupsScreen(
 @Composable
 private fun GroupListItem(
     summary: GroupSummary,
+    position: ListItemPosition,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val accentColor = MaterialTheme.colorScheme.income
-
-    PennyWiseCardV2(
-        modifier = modifier.fillMaxWidth(),
-        onClick = onClick
+    GroupedRow(
+        position = position,
+        onClick = onClick,
+        modifier = modifier,
     ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.spacedBy(Spacing.md),
-            verticalAlignment = Alignment.CenterVertically
+        Box(
+            modifier = Modifier
+                .size(Dimensions.Icon.avatarLarge)
+                .clip(CircleShape)
+                .background(MaterialTheme.colorScheme.surfaceContainerHighest),
+            contentAlignment = Alignment.Center
         ) {
-            Box(
-                modifier = Modifier
-                    .size(44.dp)
-                    .clip(CircleShape)
-                    .background(accentColor.copy(alpha = 0.15f)),
-                contentAlignment = Alignment.Center
-            ) {
+            Text(
+                text = summary.group.name.take(1).uppercase(),
+                style = MaterialTheme.typography.titleMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                summary.group.name,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+            if (!summary.group.note.isNullOrBlank()) {
                 Text(
-                    text = summary.group.name.take(1).uppercase(),
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Bold,
-                    color = accentColor
+                    summary.group.note,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
                 )
             }
+            Text(
+                pluralStringResource(R.plurals.groups_transaction_count, summary.transactionCount, summary.transactionCount),
+                style = MaterialTheme.typography.bodyMedium,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
 
-            Column(modifier = Modifier.weight(1f)) {
+        Column(horizontalAlignment = Alignment.End) {
+            if (summary.hasExpense) {
                 Text(
-                    summary.group.name,
-                    style = MaterialTheme.typography.bodyLarge,
-                    fontWeight = FontWeight.Medium,
-                    color = MaterialTheme.colorScheme.onSurface
-                )
-                if (!summary.group.note.isNullOrBlank()) {
-                    Text(
-                        summary.group.note,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 1
-                    )
-                }
-                Text(
-                    pluralStringResource(R.plurals.groups_transaction_count, summary.transactionCount, summary.transactionCount),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    CurrencyFormatter.formatByCurrency(summary.expenseByCurrency, signPrefix = "-"),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.spending
                 )
             }
-
-            Column(horizontalAlignment = Alignment.End) {
-                if (summary.hasExpense) {
-                    val expenseColor = MaterialTheme.colorScheme.spending
-                    Text(
-                        CurrencyFormatter.formatByCurrency(summary.expenseByCurrency, signPrefix = "-"),
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.SemiBold,
-                        color = expenseColor
-                    )
-                }
-                if (summary.hasInvested) {
-                    Text(
-                        stringResource(
-                            R.string.group_card_invested,
-                            CurrencyFormatter.formatByCurrency(summary.investedByCurrency)
-                        ),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.investment
-                    )
-                }
-                if (summary.hasIncome) {
-                    Text(
-                        CurrencyFormatter.formatByCurrency(summary.incomeByCurrency, signPrefix = "+"),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = accentColor
-                    )
-                }
+            if (summary.hasInvested) {
+                Text(
+                    stringResource(
+                        R.string.group_card_invested,
+                        CurrencyFormatter.formatByCurrency(summary.investedByCurrency)
+                    ),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.investment
+                )
+            }
+            if (summary.hasIncome) {
+                Text(
+                    CurrencyFormatter.formatByCurrency(summary.incomeByCurrency, signPrefix = "+"),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.income
+                )
             }
         }
     }
@@ -228,8 +220,8 @@ private fun CreateGroupDialog(
     onDismiss: () -> Unit,
     onCreate: (String, String?) -> Unit
 ) {
-    var name by remember { mutableStateOf("") }
-    var note by remember { mutableStateOf("") }
+    val nameState = rememberTextFieldState()
+    val noteState = rememberTextFieldState()
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -237,10 +229,9 @@ private fun CreateGroupDialog(
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(Spacing.sm)) {
                 TextField(
-                    value = name,
-                    onValueChange = { name = it },
+                    state = nameState,
                     label = { Text(stringResource(R.string.group_name)) },
-                    singleLine = true,
+                    lineLimits = TextFieldLineLimits.SingleLine,
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
                     shape = MaterialTheme.shapes.large,
                     colors = TextFieldDefaults.colors(
@@ -250,10 +241,9 @@ private fun CreateGroupDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
                 TextField(
-                    value = note,
-                    onValueChange = { note = it },
+                    state = noteState,
                     label = { Text(stringResource(R.string.group_note)) },
-                    singleLine = true,
+                    lineLimits = TextFieldLineLimits.SingleLine,
                     shape = MaterialTheme.shapes.large,
                     colors = TextFieldDefaults.colors(
                         focusedIndicatorColor = Color.Transparent,
@@ -265,8 +255,8 @@ private fun CreateGroupDialog(
         },
         confirmButton = {
             TextButton(
-                onClick = { onCreate(name, note.ifBlank { null }) },
-                enabled = name.isNotBlank(),
+                onClick = { onCreate(nameState.text.toString(), noteState.text.toString().ifBlank { null }) },
+                enabled = nameState.text.isNotBlank(),
                 shapes = ButtonDefaults.shapes()
             ) {
                 Text(stringResource(R.string.groups_create_confirm))

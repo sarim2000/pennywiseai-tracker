@@ -1,27 +1,12 @@
 package com.pennywiseai.tracker.presentation.analytics
 
-import com.pennywiseai.tracker.R
-import androidx.compose.ui.res.stringResource
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.foundation.background
-import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Text
-import androidx.compose.runtime.*
-import androidx.compose.ui.Alignment
+import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Sell
+import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
-import com.pennywiseai.tracker.ui.components.ExpandableList
-import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
-import com.pennywiseai.tracker.ui.theme.Spacing
+import androidx.compose.ui.graphics.vector.ImageVector
 import com.pennywiseai.tracker.utils.CurrencyFormatter
-import com.pennywiseai.tracker.ui.theme.Dimensions
 import java.math.BigDecimal
 import kotlin.math.absoluteValue
 
@@ -50,133 +35,33 @@ fun tagColor(name: String): Color {
     return TagPalette[index]
 }
 
+/**
+ * A share breakdown in segmented rows: tags, and (#422) the day-of-week view,
+ * which passes one colour, an icon of its own and all seven rows.
+ */
 @Composable
 fun TagBreakdownCard(
     tags: List<TagData>,
     currency: String,
     modifier: Modifier = Modifier,
-    // Also draws the day-of-week bars (#422): no title, all seven rows, one colour.
-    title: String? = stringResource(R.string.analytics_spending_by_tag),
-    visibleItemCount: Int = 5,
+    visibleItemCount: Int = 6,
     barColor: (String) -> Color = ::tagColor,
+    icon: ImageVector? = Icons.Default.Sell,
     // Null, or the "No tag" row: the row isn't tappable (no Transactions filter for it).
     onTagClick: ((TagData) -> Unit)? = {}
 ) {
-    val maxAmount = tags.map { it.amount }.maxOrNull() ?: BigDecimal.ZERO
-
-    PennyWiseCardV2(
-        modifier = modifier.fillMaxWidth()
-    ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(Spacing.md)
-        ) {
-            if (title != null) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.titleMedium,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-
-            ExpandableList(
-                items = tags,
-                visibleItemCount = visibleItemCount
-            ) { tag ->
-                TagBar(
-                    tag = tag,
-                    maxAmount = maxAmount,
-                    currency = currency,
-                    barColor = barColor(tag.name),
-                    onClick = if (onTagClick == null || tag.isUntagged) null else ({ onTagClick(tag) })
-                )
-            }
-        }
-    }
-}
-
-@Composable
-private fun TagBar(
-    tag: TagData,
-    maxAmount: BigDecimal,
-    currency: String,
-    barColor: Color,
-    onClick: (() -> Unit)?
-) {
-    val targetFraction = if (maxAmount > BigDecimal.ZERO) {
-        (tag.amount.toFloat() / maxAmount.toFloat()).coerceIn(0f, 1f)
-    } else 0f
-
-    var visible by remember { mutableStateOf(false) }
-    LaunchedEffect(Unit) { visible = true }
-
-    val animatedFraction by animateFloatAsState(
-        targetValue = if (visible) targetFraction else 0f,
-        animationSpec = MaterialTheme.motionScheme.slowEffectsSpec(),
-        label = "tag_bar_${tag.name}"
-    )
-
-    Column(
-        modifier = Modifier
-            .fillMaxWidth()
-            .clip(MaterialTheme.shapes.small)
-            .then(if (onClick != null) Modifier.clickable(onClick = onClick) else Modifier)
-            .padding(vertical = Spacing.xs),
-        verticalArrangement = Arrangement.spacedBy(Spacing.xs)
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Row(
-                modifier = Modifier.weight(1f),
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(Dimensions.Component.legendDot)
-                        .clip(CircleShape)
-                        .background(barColor)
-                )
-                Text(
-                    text = tag.name,
-                    style = MaterialTheme.typography.bodyMedium,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                Text(
-                    text = stringResource(R.string.analytics_percent, tag.percentage.toInt()),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                Text(
-                    text = CurrencyFormatter.formatCurrency(tag.amount, currency),
-                    style = MaterialTheme.typography.bodyMedium,
-                    fontWeight = FontWeight.Medium
-                )
-            }
-        }
-
-        Box(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(8.dp)
-                .clip(MaterialTheme.shapes.extraSmall)
-                .background(MaterialTheme.colorScheme.surfaceVariant)
-        ) {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth(animatedFraction)
-                    .fillMaxHeight()
-                    .clip(MaterialTheme.shapes.extraSmall)
-                    .background(barColor)
-            )
-        }
+    val maxAmount = tags.maxOfOrNull { it.amount } ?: BigDecimal.ZERO
+    ExpandableGroupedList(items = tags, modifier = modifier, visibleCount = visibleItemCount) { tag, position ->
+        val color = barColor(tag.name)
+        ShareRow(
+            position = position,
+            title = tag.name,
+            amount = CurrencyFormatter.formatCurrency(tag.amount, currency),
+            percent = tag.percentage.toInt(),
+            fraction = shareOfMax(tag.amount, maxAmount),
+            barColor = color,
+            onClick = if (onTagClick == null || tag.isUntagged) null else ({ onTagClick(tag) }),
+            leading = icon?.let { { TintBadge(it, color) } }
+        )
     }
 }

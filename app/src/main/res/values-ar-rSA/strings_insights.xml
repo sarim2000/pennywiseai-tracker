@@ -3,7 +3,7 @@
     <!-- Home: the section, its title in Edit home, and the menu entry -->
     <string name="home_section_insights">الرؤى</string>
     <!-- Insights screen -->
-    <string name="insights_title">الرؤى</string>
+    <string name="insights_title">رؤى مالية</string>
     <string name="insights_back">رجوع</string>
     <string name="insights_this_cycle">هذه الدورة</string>
     <string name="insights_spent">المصروف</string>

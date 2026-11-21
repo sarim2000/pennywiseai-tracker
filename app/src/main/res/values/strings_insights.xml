@@ -4,7 +4,7 @@
     <string name="home_section_insights">Insights</string>
 
     <!-- Insights screen -->
-    <string name="insights_title">Insights</string>
+    <string name="insights_title">Money insights</string>
     <string name="insights_back">Back</string>
     <string name="insights_this_cycle">This cycle</string>
     <string name="insights_spent">Spent</string>

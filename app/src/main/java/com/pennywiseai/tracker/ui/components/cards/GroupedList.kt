@@ -15,8 +15,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material3.Icon
 import androidx.compose.material3.ListItemDefaults
-import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.SegmentedListItem
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.contentColorFor
@@ -25,6 +25,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.takeOrElse
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.Dp
@@ -35,7 +36,7 @@ import com.pennywiseai.tracker.ui.theme.Spacing
 /**
  * The app's one grouped-list pattern: sibling rows share a tonal surface and
  * are separated by a 2dp gutter, with the outer corners of the block rounded
- * and the interior corners nearly square. The shape does the grouping, so no
+ * and the interior corners softly rounded (8dp). The shape does the grouping, so no
  * dividers are needed.
  *
  * [GroupedList] handles the gutter; each child passes its
@@ -85,6 +86,7 @@ fun GroupedRow(
     horizontalArrangement: Arrangement.Horizontal = Arrangement.spacedBy(Spacing.md),
     content: @Composable RowScope.() -> Unit
 ) {
+    val ink = rowInk(containerColor)
     val row: @Composable () -> Unit = {
         Row(
             modifier = Modifier
@@ -100,6 +102,7 @@ fun GroupedRow(
         Surface(
             modifier = modifier.fillMaxWidth(),
             color = containerColor,
+            contentColor = ink,
             shape = position.toShape(),
             content = row
         )
@@ -107,7 +110,7 @@ fun GroupedRow(
     }
     // M3 Expressive segmented list item: same resting corners as the static
     // row, plus the native press/focus shape morph (to shapes.large) and
-    // list-item semantics. Its tokens match ours (extraSmall interior,
+    // list-item semantics. Its tokens match ours (small interior,
     // large outer, 2dp gap), so the block looks identical at rest.
     SegmentedListItem(
         onClick = onClick,
@@ -120,9 +123,9 @@ fun GroupedRow(
         // (disabled rows explain themselves, e.g. an error-coloured subtitle).
         colors = ListItemDefaults.segmentedColors(
             containerColor = containerColor,
-            contentColor = contentColorFor(containerColor),
+            contentColor = ink,
             disabledContainerColor = containerColor,
-            disabledContentColor = contentColorFor(containerColor)
+            disabledContentColor = ink
         ),
         contentPadding = PaddingValues(),
         content = row
@@ -131,13 +134,19 @@ fun GroupedRow(
 
 /**
  * A column variant of [GroupedRow] for rows whose content stacks (a row plus
- * an expanded dropdown or progress bar underneath).
+ * an expanded section or a meter underneath).
+ *
+ * [contentColor] overrides the ink when [containerColor] is translucent: the
+ * default contrast check treats that fill as black and the text disappears.
  */
 @Composable
 fun GroupedColumn(
     position: ListItemPosition,
     modifier: Modifier = Modifier,
+    onClick: (() -> Unit)? = null,
+    enabled: Boolean = true,
     containerColor: Color = MaterialTheme.colorScheme.surfaceContainerLow,
+    contentColor: Color = Color.Unspecified,
     contentPadding: PaddingValues = PaddingValues(
         horizontal = Spacing.md,
         vertical = Dimensions.Padding.listRowVertical
@@ -145,11 +154,8 @@ fun GroupedColumn(
     verticalArrangement: Arrangement.Vertical = Arrangement.spacedBy(Spacing.smd),
     content: @Composable ColumnScope.() -> Unit
 ) {
-    Surface(
-        modifier = modifier.fillMaxWidth(),
-        color = containerColor,
-        shape = position.toShape()
-    ) {
+    val ink = if (contentColor == Color.Unspecified) rowInk(containerColor) else contentColor
+    val column: @Composable () -> Unit = {
         Column(
             modifier = Modifier
                 .fillMaxWidth()
@@ -158,6 +164,30 @@ fun GroupedColumn(
             content = content
         )
     }
+    if (onClick == null) {
+        Surface(
+            modifier = modifier.fillMaxWidth(),
+            color = containerColor,
+            contentColor = ink,
+            shape = position.toShape(),
+            content = column
+        )
+        return
+    }
+    SegmentedListItem(
+        onClick = onClick,
+        shapes = ListItemDefaults.shapes(shape = position.toShape()),
+        modifier = modifier.fillMaxWidth(),
+        enabled = enabled,
+        colors = ListItemDefaults.segmentedColors(
+            containerColor = containerColor,
+            contentColor = ink,
+            disabledContainerColor = containerColor,
+            disabledContentColor = ink
+        ),
+        contentPadding = PaddingValues(),
+        content = column
+    )
 }
 
 /**
@@ -232,3 +262,13 @@ fun RowScope.RowLabels(
         }
     }
 }
+
+/**
+ * The ink for a row on [containerColor]: the scheme's pair for a scheme fill, and
+ * `onSurface` for a custom tint (a category or budget colour over the surface). M3's
+ * `contentColorFor` falls back to the inherited content colour there, which is dark
+ * ink inside some dark-theme parents, so a tinted row's title went dark on dark.
+ */
+@Composable
+private fun rowInk(containerColor: Color): Color =
+    MaterialTheme.colorScheme.contentColorFor(containerColor).takeOrElse { MaterialTheme.colorScheme.onSurface }

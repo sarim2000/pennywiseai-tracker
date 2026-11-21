@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.presentation.rules
 
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -11,7 +12,9 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.domain.model.rule.*
+import com.pennywiseai.tracker.ui.components.RoundedField
 import com.pennywiseai.tracker.ui.icons.categoryLabel
+import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
 import com.pennywiseai.tracker.ui.theme.Spacing
 
 @StringRes
@@ -44,16 +47,18 @@ internal fun ActionEditor(
             onExpandedChange = { actionTypeDropdownExpanded = !actionTypeDropdownExpanded }
         ) {
             TextField(
-                value = stringResource(actionTypeLabel(action.actionType)),
-                onValueChange = { },
+                state = rememberSyncedTextFieldState(stringResource(actionTypeLabel(action.actionType))) {},
                 readOnly = true,
                 label = { Text(stringResource(R.string.rules_action_type_label)) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = actionTypeDropdownExpanded) },
-                modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+                shape = RoundedField.shape,
+                colors = RoundedField.colors()
             )
             ExposedDropdownMenu(
                 expanded = actionTypeDropdownExpanded,
-                onDismissRequest = { actionTypeDropdownExpanded = false }
+                onDismissRequest = { actionTypeDropdownExpanded = false },
+                shape = MaterialTheme.shapes.large
             ) {
                 // Offer exactly what the engine can carry out on this field. The
                 // list used to be hardcoded to Set/Clear, which hid the Append and
@@ -113,28 +118,32 @@ internal fun ActionEditor(
                 onExpandedChange = { actionFieldDropdownExpanded = !actionFieldDropdownExpanded }
             ) {
                 TextField(
-                    value = stringResource(
-                        when (action.field) {
-                            TransactionField.CATEGORY -> R.string.rules_field_category
-                            TransactionField.MERCHANT -> R.string.rules_field_merchant_name
-                            TransactionField.TYPE -> R.string.rules_field_transaction_type
-                            TransactionField.NARRATION -> R.string.rules_field_description
-                            TransactionField.BANK_NAME -> R.string.rules_field_account
-                            TransactionField.TAGS -> R.string.rules_field_tags
-                            TransactionField.TRANSFER_FROM_ACCOUNT -> R.string.rules_field_transfer_from_account
-                            TransactionField.TRANSFER_TO_ACCOUNT -> R.string.rules_field_transfer_to_account
-                            else -> R.string.rules_field_label
-                        }
-                    ),
-                    onValueChange = { },
+                    state = rememberSyncedTextFieldState(
+                        stringResource(
+                            when (action.field) {
+                                TransactionField.CATEGORY -> R.string.rules_field_category
+                                TransactionField.MERCHANT -> R.string.rules_field_merchant_name
+                                TransactionField.TYPE -> R.string.rules_field_transaction_type
+                                TransactionField.NARRATION -> R.string.rules_field_description
+                                TransactionField.BANK_NAME -> R.string.rules_field_account
+                                TransactionField.TAGS -> R.string.rules_field_tags
+                                TransactionField.TRANSFER_FROM_ACCOUNT -> R.string.rules_field_transfer_from_account
+                                TransactionField.TRANSFER_TO_ACCOUNT -> R.string.rules_field_transfer_to_account
+                                else -> R.string.rules_field_label
+                            }
+                        )
+                    ) {},
                     readOnly = true,
                     label = { Text(stringResource(R.string.rules_action)) },
                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = actionFieldDropdownExpanded) },
-                    modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                    modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+                    shape = RoundedField.shape,
+                    colors = RoundedField.colors()
                 )
                 ExposedDropdownMenu(
                     expanded = actionFieldDropdownExpanded,
-                    onDismissRequest = { actionFieldDropdownExpanded = false }
+                    onDismissRequest = { actionFieldDropdownExpanded = false },
+                    shape = MaterialTheme.shapes.large
                 ) {
                     listOf(
                         TransactionField.CATEGORY to R.string.rules_field_category,
@@ -188,12 +197,13 @@ internal fun ActionEditor(
                     }
 
                     TextField(
-                        value = action.value,
-                        onValueChange = { onActionChange(action.copy(value = it)) },
+                        state = rememberSyncedTextFieldState(action.value) { onActionChange(action.copy(value = it)) },
                         label = { Text(stringResource(R.string.rules_category_name_label)) },
                         placeholder = { Text(stringResource(R.string.rules_category_name_placeholder)) },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        lineLimits = TextFieldLineLimits.SingleLine,
+                        shape = RoundedField.shape,
+                        colors = RoundedField.colors()
                     )
                 }
 
@@ -247,37 +257,39 @@ internal fun ActionEditor(
                     }
 
                     TextField(
-                        value = action.value,
-                        onValueChange = { onActionChange(action.copy(value = it)) },
+                        state = rememberSyncedTextFieldState(action.value) { onActionChange(action.copy(value = it)) },
                         label = { Text(stringResource(R.string.rules_field_merchant_name)) },
                         placeholder = { Text(stringResource(R.string.rules_merchant_placeholder)) },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        lineLimits = TextFieldLineLimits.SingleLine,
+                        shape = RoundedField.shape,
+                        colors = RoundedField.colors()
                     )
                 }
 
                 TransactionField.NARRATION -> {
                     // Description/Narration input
                     TextField(
-                        value = action.value,
-                        onValueChange = { onActionChange(action.copy(value = it)) },
+                        state = rememberSyncedTextFieldState(action.value) { onActionChange(action.copy(value = it)) },
                         label = { Text(stringResource(R.string.rules_field_description)) },
                         placeholder = { Text(stringResource(R.string.rules_description_value_placeholder)) },
                         modifier = Modifier.fillMaxWidth(),
-                        minLines = 2,
-                        maxLines = 3
+                        lineLimits = TextFieldLineLimits.MultiLine(minHeightInLines = 2, maxHeightInLines = 3),
+                        shape = RoundedField.shape,
+                        colors = RoundedField.colors()
                     )
                 }
 
                 TransactionField.BANK_NAME -> {
                     // Account / bank the transaction belongs to.
                     TextField(
-                        value = action.value,
-                        onValueChange = { onActionChange(action.copy(value = it)) },
+                        state = rememberSyncedTextFieldState(action.value) { onActionChange(action.copy(value = it)) },
                         label = { Text(stringResource(R.string.rules_account_bank_label)) },
                         placeholder = { Text(stringResource(R.string.rules_value_placeholder_bank)) },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        lineLimits = TextFieldLineLimits.SingleLine,
+                        shape = RoundedField.shape,
+                        colors = RoundedField.colors()
                     )
                 }
 
@@ -301,24 +313,26 @@ internal fun ActionEditor(
 
                 TransactionField.TAGS -> {
                     TextField(
-                        value = action.value,
-                        onValueChange = { onActionChange(action.copy(value = it)) },
+                        state = rememberSyncedTextFieldState(action.value) { onActionChange(action.copy(value = it)) },
                         label = { Text(stringResource(R.string.rules_tag_name_label)) },
                         placeholder = { Text(stringResource(R.string.rules_value_placeholder_merchant)) },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        lineLimits = TextFieldLineLimits.SingleLine,
+                        shape = RoundedField.shape,
+                        colors = RoundedField.colors()
                     )
                 }
 
                 else -> {
                     // Generic text input for other fields
                     TextField(
-                        value = action.value,
-                        onValueChange = { onActionChange(action.copy(value = it)) },
+                        state = rememberSyncedTextFieldState(action.value) { onActionChange(action.copy(value = it)) },
                         label = { Text(stringResource(R.string.rules_value_label)) },
                         placeholder = { Text(stringResource(R.string.rules_value_placeholder_generic)) },
                         modifier = Modifier.fillMaxWidth(),
-                        singleLine = true
+                        lineLimits = TextFieldLineLimits.SingleLine,
+                        shape = RoundedField.shape,
+                        colors = RoundedField.colors()
                     )
                 }
             }

@@ -155,8 +155,8 @@ class UserPreferencesStorageGoldenTest {
         // Home and recurring suggestions.
         assertEquals(
             listOf(
-                "SAFE_TO_SPEND", "BUDGETS", "UNSORTED", "INSIGHTS", "RECENT_TRANSACTIONS", "ACCOUNTS", "SUBSCRIPTIONS",
-                "LOANS", "GOALS", "GROUPS", "MONEY_IN_MOTION", "ACTIVITY"
+                "SAFE_TO_SPEND", "SHORTCUTS", "UNSORTED", "INSIGHTS", "RECENT_TRANSACTIONS", "SUBSCRIPTIONS", "BUDGETS", "GOALS",
+                "ACCOUNTS", "LOANS", "GROUPS", "MONEY_IN_MOTION", "ACTIVITY"
             ).map { it to (it != "INSIGHTS") },
             repository.homeSectionLayout.first().map { (section, visible) -> section.name to visible }
         )
@@ -395,6 +395,20 @@ class UserPreferencesStorageGoldenTest {
         assertTrue(repository.getHasShownReviewPrompt().first())
         assertTrue(repository.hasShownReviewPrompt())
         assertEquals(9_000L, repository.getLastReviewPromptTime().first())
+    }
+
+    @Test
+    fun `only a fresh onboarding seeds the Home layout, and never over a stored one`() = runBlocking {
+        // Legacy auto-complete for upgraders: no layout written.
+        repository.updateHasCompletedOnboarding(true)
+        assertNull(stored()[string("home_sections")])
+        // Fresh install: Activity starts hidden.
+        repository.updateHasCompletedOnboarding(true, freshInstall = true)
+        assertTrue("!ACTIVITY" in stored()[string("home_sections")].orEmpty().split(","))
+        // A stored (or restored) layout is left exactly as it is.
+        store.edit { it[string("home_sections")] = "ACTIVITY,!UNSORTED" }
+        repository.updateHasCompletedOnboarding(true, freshInstall = true)
+        assertEquals("ACTIVITY,!UNSORTED", stored()[string("home_sections")])
     }
 
     @Test

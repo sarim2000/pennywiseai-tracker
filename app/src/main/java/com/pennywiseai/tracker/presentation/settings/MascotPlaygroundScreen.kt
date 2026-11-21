@@ -47,10 +47,14 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.ViewModel
+import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.events.MascotMoment
+import com.pennywiseai.tracker.data.events.MascotMoments
 import com.pennywiseai.tracker.data.events.TransactionEvents
 import com.pennywiseai.tracker.data.events.TransactionOrigin
+import com.pennywiseai.tracker.data.preferences.CurrencyPreferences
 import com.pennywiseai.tracker.ui.animations.pwCollapse
 import com.pennywiseai.tracker.ui.animations.pwExpand
 import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
@@ -62,18 +66,69 @@ import com.pennywiseai.tracker.ui.components.mascot.MascotShape
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.ui.theme.tabular
+import com.pennywiseai.tracker.utils.Money
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.launch
+import java.math.BigDecimal
 import javax.inject.Inject
 import kotlin.math.roundToInt
 
-/** Announces saves for the playground's reaction buttons, through the app's own event source. */
+/** Announces saves and moments for the playground's reaction buttons, through the app's own event sources. */
 @HiltViewModel
 class MascotPlaygroundViewModel @Inject constructor(
     private val transactionEvents: TransactionEvents,
+    private val currencyPreferences: CurrencyPreferences,
+    private val mascotMoments: MascotMoments,
 ) : ViewModel() {
-    /** What a manual add of [type] announces once it commits. Nothing is written. */
-    fun fire(type: TransactionType) = transactionEvents.onSaved(type, TransactionOrigin.MANUAL)
+    /**
+     * What a manual add of [type] announces once it commits, with a sample amount in the
+     * base currency for the tab's chip. Nothing is written.
+     */
+    fun fire(type: TransactionType) {
+        viewModelScope.launch {
+            val money = Money(SAMPLE_AMOUNT, currencyPreferences.baseCurrency.first())
+            transactionEvents.onSaved(type, TransactionOrigin.MANUAL, money = money)
+        }
+    }
+
+    /** Announces the moment named [name] (see [PLAYGROUND_MOMENTS]), with sample figures. Nothing changes. */
+    fun fireMoment(name: String) {
+        viewModelScope.launch {
+            val money = Money(SAMPLE_AMOUNT, currencyPreferences.baseCurrency.first())
+            sampleMoment(name, money)?.let(mascotMoments::announce)
+        }
+    }
+
+    private companion object {
+        val SAMPLE_AMOUNT = BigDecimal("12.50")
+    }
 }
+
+/** Every moment, by the code's own name, in the order the playground shows them. */
+internal val PLAYGROUND_MOMENTS = listOf(
+    "GoalContributed", "GoalReached", "DebtPaidOff", "MessageTaught", "RulesApplied", "StatementImported",
+    "BackupSaved", "BackupRestored", "BillTracked", "BillPaid", "AmountsHidden", "AmountsShown",
+)
+
+/** The moment named [name], with [money] and a sample count where it carries one. */
+internal fun sampleMoment(name: String, money: Money): MascotMoment? = when (name) {
+    "GoalContributed" -> MascotMoment.GoalContributed(money)
+    "GoalReached" -> MascotMoment.GoalReached
+    "DebtPaidOff" -> MascotMoment.DebtPaidOff
+    "MessageTaught" -> MascotMoment.MessageTaught
+    "RulesApplied" -> MascotMoment.RulesApplied(SAMPLE_COUNT)
+    "StatementImported" -> MascotMoment.StatementImported(SAMPLE_COUNT)
+    "BackupSaved" -> MascotMoment.BackupSaved
+    "BackupRestored" -> MascotMoment.BackupRestored
+    "BillTracked" -> MascotMoment.BillTracked
+    "BillPaid" -> MascotMoment.BillPaid(money)
+    "AmountsHidden" -> MascotMoment.AmountsHidden
+    "AmountsShown" -> MascotMoment.AmountsShown
+    else -> null
+}
+
+private const val SAMPLE_COUNT = 12
 
 /**
  * Developer mode's mascot playground, for checking it on a device: a large mascot to poke
@@ -126,7 +181,7 @@ fun MascotPlaygroundScreen(
                             .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
                             .padding(horizontal = Spacing.md + Spacing.xs, vertical = Spacing.xs)
                     ) {
-                        Mascot(size = Dimensions.Icon.medium, shape = shape, mood = mood, value = shown)
+                        Mascot(size = Dimensions.Icon.medium, shape = shape, mood = mood, value = shown, tint = MaterialTheme.colorScheme.onPrimaryContainer)
                     }
                 }
                 Text(
@@ -178,6 +233,23 @@ fun MascotPlaygroundScreen(
                         TransactionType.entries.forEach { type ->
                             OutlinedButton(onClick = { viewModel.fire(type) }, shapes = ButtonDefaults.shapes()) {
                                 Text(stringResource(type.label()))
+                            }
+                        }
+                    }
+                }
+                item {
+                    SectionHeaderV2(
+                        title = stringResource(R.string.mascot_playground_moments_title),
+                        subtitle = stringResource(R.string.mascot_playground_moments_body),
+                        topSpacing = Spacing.Layout.sectionGap,
+                    )
+                    FlowRow(
+                        horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                        modifier = Modifier.padding(top = Spacing.Layout.headerToContent),
+                    ) {
+                        PLAYGROUND_MOMENTS.forEach { name ->
+                            OutlinedButton(onClick = { viewModel.fireMoment(name) }, shapes = ButtonDefaults.shapes()) {
+                                Text(name)
                             }
                         }
                     }

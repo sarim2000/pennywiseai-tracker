@@ -239,7 +239,7 @@ private fun LoanPersonRow(
                 text = person.name.take(1).uppercase(),
                 style = MaterialTheme.typography.titleMedium,
                 fontWeight = FontWeight.Bold,
-                color = accent
+                color = MaterialTheme.colorScheme.inkOnWash(accent, 0.15f)
             )
         }
         Column(modifier = Modifier.weight(1f)) {
@@ -339,7 +339,7 @@ fun LoanListItem(
             Text(
                 text = loan.personName.take(1).uppercase(),
                 style = MaterialTheme.typography.titleMedium,
-                color = directionColor
+                color = MaterialTheme.colorScheme.inkOnWash(directionColor, Dimensions.Alpha.categoryTint)
             )
         }
         Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {

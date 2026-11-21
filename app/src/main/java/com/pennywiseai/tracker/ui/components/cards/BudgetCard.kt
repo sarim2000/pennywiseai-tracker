@@ -49,13 +49,14 @@ fun BudgetCard(
     modifier: Modifier = Modifier
 ) {
     val color = groupSpending.group.budget.color.toColorOr(MaterialTheme.colorScheme.primary)
+    val container = color.copy(alpha = 0.10f).compositeOver(MaterialTheme.colorScheme.surfaceContainerLow)
     GroupedRow(
         position = ListItemPosition.Single,
         modifier = modifier,
-        containerColor = color.copy(alpha = 0.10f).compositeOver(MaterialTheme.colorScheme.surfaceContainerLow),
+        containerColor = container,
         onClick = onClick
     ) {
-        BudgetStatusContent(groupSpending, currency)
+        BudgetStatusContent(groupSpending, currency, containerColor = container)
     }
 }
 
@@ -67,6 +68,8 @@ internal fun BudgetStatusContent(
     dense: Boolean = false,
     /** One line and a dense meter: name, status and the one amount (Home's rows). */
     compact: Boolean = false,
+    /** The row's fill when it isn't a neutral surface, so the meter is checked against it. */
+    containerColor: Color? = null,
     headingAction: @Composable () -> Unit = {}
 ) {
     val budget = spending.group.budget
@@ -162,7 +165,8 @@ internal fun BudgetStatusContent(
                     else -> color
                 },
                 trackColor = scheme.surfaceContainerHighest,
-                dense = dense || compact
+                dense = dense || compact,
+                containerColor = containerColor
             )
         }
         if (compact) {

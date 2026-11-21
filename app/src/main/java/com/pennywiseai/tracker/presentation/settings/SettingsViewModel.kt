@@ -23,6 +23,8 @@ import com.pennywiseai.tracker.data.backup.ExportResult
 import com.pennywiseai.tracker.data.backup.ImportResult
 import com.pennywiseai.tracker.data.backup.ImportStrategy
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
+import com.pennywiseai.tracker.data.events.MascotMoment
+import com.pennywiseai.tracker.data.events.MascotMoments
 import com.pennywiseai.tracker.data.manager.SmsScanParamsCalculator
 import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
@@ -80,6 +82,7 @@ class SettingsViewModel @Inject constructor(
     private val moneyAlertChecker: com.pennywiseai.tracker.worker.MoneyAlertChecker,
     private val budgetGroupRepository: com.pennywiseai.tracker.data.repository.BudgetGroupRepository,
     private val currencyConversionService: com.pennywiseai.tracker.data.currency.CurrencyConversionService,
+    private val mascotMoments: MascotMoments,
     entitlementGate: EntitlementGate,
 ) : ViewModel() {
 
@@ -619,6 +622,7 @@ class SettingsViewModel @Inject constructor(
                 }
                 _importExportMessage.value = UiText.Res(R.string.settings_backup_saved)
                 _exportedBackupFile.value = null
+                mascotMoments.announce(MascotMoment.BackupSaved)
             } catch (e: Exception) {
                 // Drop the empty or half-written file so it isn't mistaken for a backup
                 // later. A file the user chose to replace keeps its old content if we never
@@ -699,6 +703,8 @@ class SettingsViewModel @Inject constructor(
                         } else {
                             UiText.Res(R.string.settings_import_backup_success, counts)
                         }
+                        // Rows that failed to insert make it a partial restore, which the message says: no shield.
+                        if (result.skippedRows == 0) mascotMoments.announce(MascotMoment.BackupRestored)
                     }
                     is ImportResult.Error -> {
                         _importExportMessage.value = UiText.Res(R.string.settings_import_failed, listOf("${result.message}"))
@@ -840,6 +846,9 @@ class SettingsViewModel @Inject constructor(
                                 UiText.Res(R.string.settings_folder_backup_saved)
                             }
                         }
+                        // Only the user reaches here (back up now, a new folder, turning it on);
+                        // the scheduled worker writes its backups on its own.
+                        mascotMoments.announce(MascotMoment.BackupSaved)
                         exportResult.skippedReceipts
                     }
                     is FolderBackupWriter.Result.Failure -> {

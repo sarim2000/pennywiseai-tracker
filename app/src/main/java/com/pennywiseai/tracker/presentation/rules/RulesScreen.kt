@@ -21,6 +21,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.pluralStringResource
@@ -43,12 +44,14 @@ import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.cards.GroupedColumn
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.toShape
+import com.pennywiseai.tracker.ui.components.readableProgressColors
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.readableOn
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import java.util.Locale
@@ -662,7 +665,12 @@ private fun BatchApplyDialog(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
-                            LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
+                            val progressColors = readableProgressColors()
+                            LinearWavyProgressIndicator(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = progressColors.indicator,
+                                trackColor = progressColors.track
+                            )
                             Text(stringResource(R.string.rules_batch_scanning), style = MaterialTheme.typography.bodySmall)
                         }
                     }
@@ -703,13 +711,21 @@ private fun BatchApplyDialog(
                                     fontWeight = FontWeight.Medium
                                 )
                                 dryRunResult.samples.take(5).forEach { diff ->
+                                    // The half-tint matches no on* role (onSurface was 2:1 on it in some
+                                    // themes), so ink it against the fill as composited on the dialog.
+                                    val blockFill = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
+                                        .compositeOver(MaterialTheme.colorScheme.surfaceContainerHigh)
                                     Card(
                                         modifier = Modifier.fillMaxWidth(),
                                         colors = CardDefaults.cardColors(
                                             containerColor = if (diff.isBlock)
                                                 MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.5f)
                                             else
-                                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                                                MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                                            contentColor = if (diff.isBlock)
+                                                MaterialTheme.colorScheme.onSurface.readableOn(listOf(blockFill))
+                                            else
+                                                LocalContentColor.current
                                         )
                                     ) {
                                         Column(modifier = Modifier.padding(Spacing.sm)) {
@@ -723,7 +739,7 @@ private fun BatchApplyDialog(
                                                 Text(
                                                     text = stringResource(R.string.rules_batch_sample_blocked),
                                                     style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.error
+                                                    color = MaterialTheme.colorScheme.error.readableOn(listOf(blockFill))
                                                 )
                                             } else if (diff.modified != null) {
                                                 val mod = diff.modified
@@ -795,7 +811,12 @@ private fun BatchApplyDialog(
                             horizontalAlignment = Alignment.CenterHorizontally,
                             verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                         ) {
-                            LinearWavyProgressIndicator(modifier = Modifier.fillMaxWidth())
+                            val progressColors = readableProgressColors()
+                            LinearWavyProgressIndicator(
+                                modifier = Modifier.fillMaxWidth(),
+                                color = progressColors.indicator,
+                                trackColor = progressColors.track
+                            )
                             Text(
                                 text = pluralStringResource(R.plurals.rules_batch_processing, progress.second, progress.first, progress.second),
                                 style = MaterialTheme.typography.bodySmall

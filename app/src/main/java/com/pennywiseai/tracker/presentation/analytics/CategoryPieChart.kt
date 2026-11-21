@@ -13,6 +13,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import com.pennywiseai.tracker.R
@@ -23,7 +24,10 @@ import com.pennywiseai.tracker.ui.effects.BlurredAnimatedVisibility
 import com.pennywiseai.tracker.ui.icons.CategoryMapping
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.GRAPHIC_CONTRAST
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.inkOnWash
+import com.pennywiseai.tracker.ui.theme.readableOn
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import ir.ehsannarmani.compose_charts.PieChart
 import ir.ehsannarmani.compose_charts.models.LabelHelperProperties
@@ -113,6 +117,7 @@ fun CategoryPieChart(
                     CategoryIcon(
                         category = label,
                         size = Dimensions.Icon.large,
+                        tint = MaterialTheme.colorScheme.inkOnWash(pie.color, 0.2f, GRAPHIC_CONTRAST),
                         modifier = Modifier
                             .size(Dimensions.Icon.hero)
                             .clip(CircleShape)
@@ -159,11 +164,12 @@ private fun PieLegendItem(
 ) {
     val percentage = (value / totalAmount * 100).toInt()
 
+    val rowFill = if (isSelected) MaterialTheme.colorScheme.secondaryContainer
+    else MaterialTheme.colorScheme.surfaceContainerHigh
     GroupedRow(
         position = position,
         onClick = onClick,
-        containerColor = if (isSelected) MaterialTheme.colorScheme.secondaryContainer
-        else MaterialTheme.colorScheme.surfaceContainerHigh,
+        containerColor = rowFill,
         horizontalArrangement = Arrangement.spacedBy(Spacing.sm)
     ) {
         val ink = if (isSelected) MaterialTheme.colorScheme.onSecondaryContainer else MaterialTheme.colorScheme.onSurface
@@ -183,7 +189,8 @@ private fun PieLegendItem(
             CategoryIcon(
                 category = label,
                 size = Dimensions.Icon.small,
-                tint = color,
+                // Checked on the row it sits on: a selected row's secondaryContainer isn't neutral.
+                tint = color.readableOn(listOf(color.copy(alpha = 0.18f).compositeOver(rowFill)), GRAPHIC_CONTRAST),
                 modifier = Modifier.clearAndSetSemantics {}
             )
         }

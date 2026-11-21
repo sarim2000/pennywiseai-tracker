@@ -55,6 +55,7 @@ import com.pennywiseai.tracker.presentation.chat.ChatTabViewModel
 import com.pennywiseai.tracker.presentation.common.TimePeriod
 import com.pennywiseai.tracker.presentation.home.HomeFigureRows
 import com.pennywiseai.tracker.presentation.home.HomeScreen
+import com.pennywiseai.tracker.presentation.plan.PlanChallengesScreen
 import com.pennywiseai.tracker.presentation.plan.PlanGoalsScreen
 import com.pennywiseai.tracker.presentation.plan.PlanTabHost
 import com.pennywiseai.tracker.presentation.settings.AppearanceScreen
@@ -406,6 +407,9 @@ fun MainScreen(
                 onNavigateToReview = { kind ->
                     openRoot(com.pennywiseai.tracker.navigation.Review(kind.name))
                 },
+                onNavigateToWeekReview = { weekStart ->
+                    openRoot(com.pennywiseai.tracker.navigation.Review(com.pennywiseai.tracker.domain.review.ReviewKind.WEEK.name, weekStart.toString()))
+                },
                 onNavigateToInsights = {
                     openRoot(Insights)
                 },
@@ -573,6 +577,10 @@ fun MainScreen(
                                 host = host,
                                 onOpenGoal = { openRoot(GoalDetail(it)) },
                                 onCreateGoal = { openRoot(GoalEdit(-1L)) },
+                            )
+                            PlanSection.CHALLENGES -> PlanChallengesScreen(
+                                host = host,
+                                onOpenTransaction = { openRoot(TransactionDetail(it)) },
                             )
                         }
                     }

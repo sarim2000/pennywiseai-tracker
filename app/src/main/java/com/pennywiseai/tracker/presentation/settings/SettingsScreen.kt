@@ -2,6 +2,7 @@ package com.pennywiseai.tracker.presentation.settings
 
 import android.content.Intent
 import android.net.Uri
+import androidx.activity.compose.BackHandler
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.background
@@ -16,6 +17,8 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.selection.selectableGroup
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.input.clearText
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -33,6 +36,7 @@ import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.Surface
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -41,6 +45,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.layout.onSizeChanged
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalLayoutDirection
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.Role
@@ -109,6 +114,16 @@ fun SettingsScreen(
     val hub by hubViewModel.state.collectAsStateWithLifecycle()
     var showUpgradeSheet by remember { mutableStateOf(false) }
     var showSupportDialog by remember { mutableStateOf(false) }
+    // Search takes over the bar and the page; Back closes it before it leaves Settings.
+    var searching by rememberSaveable { mutableStateOf(false) }
+    // Not saved: a field recreated on the way back from a result stays unfocused.
+    var focusSearch by remember { mutableStateOf(false) }
+    val searchQuery = rememberTextFieldState()
+    val closeSearch = {
+        searching = false
+        searchQuery.clearText()
+    }
+    BackHandler(enabled = searching, onBack = closeSearch)
     // F-Droid builds have no Play billing, so they show a "Support development"
     // tip jar instead of the (un-buyable) Pro upsell. Play builds keep Pro.
     val isFdroidBuild = com.pennywiseai.tracker.BuildConfig.IS_FDROID_BUILD
@@ -123,11 +138,29 @@ fun SettingsScreen(
         customTopBar = {
             TopAppBar(
                 title = {
-                    AnimatedVisibility(visible = showBarTitle, enter = pwFadeIn(), exit = pwFadeOut()) {
-                        Text(stringResource(R.string.settings_title))
+                    if (searching) {
+                        SettingsSearchField(searchQuery, focus = focusSearch)
+                    } else {
+                        AnimatedVisibility(visible = showBarTitle, enter = pwFadeIn(), exit = pwFadeOut()) {
+                            Text(stringResource(R.string.settings_title))
+                        }
                     }
                 },
-                navigationIcon = { SettingsNavigationContent(onNavigateBack) },
+                navigationIcon = { SettingsNavigationContent(if (searching) closeSearch else onNavigateBack) },
+                actions = {
+                    if (!searching) {
+                        IconButton(onClick = {
+                            searching = true
+                            focusSearch = true
+                        }, shapes = IconButtonDefaults.shapes()) {
+                            Icon(Icons.Default.Search, contentDescription = stringResource(R.string.settings_search))
+                        }
+                    } else if (searchQuery.text.isNotEmpty()) {
+                        IconButton(onClick = { searchQuery.clearText() }, shapes = IconButtonDefaults.shapes()) {
+                            Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.txn_list_clear_search))
+                        }
+                    }
+                },
                 colors = TopAppBarDefaults.topAppBarColors(
                     containerColor = MaterialTheme.colorScheme.background,
                     scrolledContainerColor = MaterialTheme.colorScheme.background,
@@ -135,6 +168,20 @@ fun SettingsScreen(
             )
         },
     ) { paddingValues ->
+        if (searching) {
+            val direction = LocalLayoutDirection.current
+            SettingsSearchResults(
+                query = searchQuery.text.toString(),
+                contentPadding = PaddingValues(
+                    start = paddingValues.calculateStartPadding(direction) + Dimensions.Padding.content,
+                    top = paddingValues.calculateTopPadding(),
+                    end = paddingValues.calculateEndPadding(direction) + Dimensions.Padding.content,
+                    bottom = paddingValues.calculateBottomPadding() + Spacing.Layout.scrollBottomPadding,
+                ),
+                onNavigate = onNavigate,
+            )
+            return@PennyWiseScaffold
+        }
         Column(
             modifier = Modifier
                 .fillMaxSize()

@@ -198,8 +198,9 @@ Settings → Appearance → Fonts picks an `AppFont`; `PennyWiseTheme` maps it t
 - **Optical size per role.** Each role pins `opsz` to its own font size in sp
   (`labelSmall` 11, `bodyLarge` 16, `displayLarge` 57); money styles take the
   optical size of their own size (`heroAmount` is 36, not the body's 16).
-  Small sizes get sturdier stems and open counters; `opsz` never changes
-  advance widths in this font.
+  Small sizes get sturdier stems and open counters, and slightly wider
+  advances (`opsz` 11 is ~8% wider than 18; 22 → 32 narrows ~0.7%). `ROND`
+  and `GRAD` never change advance widths.
 - **Grade per theme.** Light-on-dark text reads heavier, so dark mode draws
   `GRAD` 0 and light mode `GRAD` 20 (the axis has no negative grade).
   `typographyFor(appFont, latinScript, darkTheme)` picks it.

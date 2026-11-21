@@ -22,7 +22,6 @@ import com.pennywiseai.tracker.data.ledger.breakdownByCurrency
 import com.pennywiseai.tracker.data.ledger.convertedSpent
 import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.manager.InAppReviewManager
-import com.pennywiseai.tracker.data.manager.InAppUpdateManager
 import com.pennywiseai.tracker.data.preferences.HomeSection
 import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
 import com.pennywiseai.tracker.data.preferences.HomeShortcut
@@ -110,7 +109,6 @@ class HomeViewModel @Inject constructor(
     private val currencyConversionService: CurrencyConversionService,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val profileRepository: ProfileRepository,
-    private val inAppUpdateManager: InAppUpdateManager,
     private val inAppReviewManager: InAppReviewManager,
     private val deleteTransactionUseCase: DeleteTransactionUseCase,
     private val restoreTransactionUseCase: RestoreTransactionUseCase,
@@ -1314,21 +1312,6 @@ class HomeViewModel @Inject constructor(
         }
     }
 
-    /**
-     * Checks for app updates using Google Play In-App Updates.
-     * Should be called with the current activity context.
-     * @param activity The activity context
-     * @param snackbarHostState Optional SnackbarHostState for showing restart prompt
-     * @param scope Optional CoroutineScope for launching the snackbar
-     */
-    fun checkForAppUpdate(
-        activity: ComponentActivity,
-        snackbarHostState: androidx.compose.material3.SnackbarHostState? = null,
-        scope: kotlinx.coroutines.CoroutineScope? = null
-    ) {
-        inAppUpdateManager.checkForUpdate(activity, snackbarHostState, scope)
-    }
-
     fun deleteTransaction(transaction: TransactionEntity) {
         viewModelScope.launch {
             _deletedTransaction.value = transaction
@@ -1604,11 +1587,6 @@ class HomeViewModel @Inject constructor(
         isUnifiedMode: Boolean
     ): List<AccountBalanceEntity> = convertAccounts(entities, targetCurrency, isUnifiedMode) { from, to ->
         currencyConversionService.getExchangeRate(from, to)
-    }
-
-    override fun onCleared() {
-        super.onCleared()
-        inAppUpdateManager.cleanup()
     }
 
     private companion object {

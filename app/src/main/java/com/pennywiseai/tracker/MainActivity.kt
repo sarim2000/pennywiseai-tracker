@@ -16,6 +16,7 @@ import androidx.core.graphics.drawable.IconCompat
 import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.pennywiseai.tracker.data.repository.AppLockRepository
 import com.pennywiseai.tracker.navigation.PlanSection
@@ -96,6 +97,7 @@ class MainActivity : FragmentActivity() {
 
     @Inject lateinit var appLockRepository: AppLockRepository
     @Inject lateinit var chatDrafts: com.pennywiseai.tracker.data.manager.ChatDraftInbox
+    @Inject lateinit var inAppUpdateManager: com.pennywiseai.tracker.data.manager.InAppUpdateManager
 
     override fun attachBaseContext(newBase: android.content.Context) {
         super.attachBaseContext(newBase.withLatinDigits())
@@ -135,6 +137,7 @@ class MainActivity : FragmentActivity() {
         lifecycleScope.launch(kotlinx.coroutines.Dispatchers.Default) { registerQuickAddShortcut() }
 
         setContent {
+            val updateReady by inAppUpdateManager.restartPrompt.collectAsStateWithLifecycle()
             PennyWiseApp(
                 editTransactionId = editTransactionId,
                 openAddTransaction = openAddTransaction,
@@ -148,7 +151,10 @@ class MainActivity : FragmentActivity() {
                 onOpenChatHandled = {
                     openChat = null
                     chatDrafts.requestOpen()
-                }
+                },
+                updateReady = updateReady,
+                onUpdateRestart = inAppUpdateManager::completeUpdate,
+                onUpdateLater = inAppUpdateManager::dismissRestart
             )
         }
     }
@@ -168,6 +174,13 @@ class MainActivity : FragmentActivity() {
         } else {
             window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
         }
+    }
+
+    // Each time the app opens, not just when Home first shows: a warm start back into
+    // any screen offers a new version too, and a finished download asks for a restart.
+    override fun onResume() {
+        super.onResume()
+        inAppUpdateManager.onResume(this)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

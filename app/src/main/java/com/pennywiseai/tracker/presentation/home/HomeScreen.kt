@@ -264,24 +264,12 @@ fun HomeScreen(
     // Staggered entrance — only animates on first composition.
     val hasAnimated = rememberEntranceDone()
 
-    // Check for app updates and reviews when the screen is first displayed
+    // Check for in-app reviews when the screen is first displayed (updates: MainActivity)
     LaunchedEffect(Unit) {
         // Refresh account balances to ensure proper currency conversion
         viewModel.refreshAccountBalances()
 
-        activity?.let {
-            val componentActivity = it as ComponentActivity
-
-            // Check for app updates
-            viewModel.checkForAppUpdate(
-                activity = componentActivity,
-                snackbarHostState = snackbarHostState,
-                scope = scope
-            )
-
-            // Check for in-app review eligibility
-            viewModel.checkForInAppReview(componentActivity)
-        }
+        (activity as? ComponentActivity)?.let { viewModel.checkForInAppReview(it) }
     }
 
     // A new day moves the forecast and Safe to spend on, even with no data change.

@@ -218,17 +218,19 @@ internal fun ThemeStyle.palette(): BaseColorScheme? = when (this) {
  * the system font, which ignores the picked weight there: headings render
  * regular and the two scripts clash. Those locales get the system font, whose
  * per-script families carry every weight.
+ *
+ * Google Sans Flex also takes the theme's grade: [darkTheme] draws it a notch
+ * lighter, since light-on-dark text reads heavier.
  */
-internal fun typographyFor(appFont: AppFont, latinScript: Boolean): Typography =
-    if (!latinScript) {
-        getTypography(FontFamily.Default)
-    } else {
-        when (appFont) {
-            AppFont.SYSTEM -> getTypography(FontFamily.Default)
-            AppFont.SN_PRO -> getTypography(SNProFontFamily)
-            AppFont.GOOGLE_SANS_FLEX -> getTypography(GoogleSansFlexFamily, GoogleSansFlexHeadingFamily)
-        }
-    }
+internal fun typographyFor(appFont: AppFont, latinScript: Boolean, darkTheme: Boolean = false): Typography = when {
+    usesGoogleSansFlex(appFont, latinScript) ->
+        googleSansFlexTypography(if (darkTheme) GoogleSansFlexAxes.DARK_GRADE else GoogleSansFlexAxes.LIGHT_GRADE)
+    latinScript && appFont == AppFont.SN_PRO -> getTypography(SNProFontFamily)
+    else -> getTypography(FontFamily.Default)
+}
+
+internal fun usesGoogleSansFlex(appFont: AppFont, latinScript: Boolean): Boolean =
+    latinScript && appFont == AppFont.GOOGLE_SANS_FLEX
 
 @Composable
 fun PennyWiseTheme(
@@ -261,9 +263,13 @@ fun PennyWiseTheme(
 
     val locale = LocalConfiguration.current.locales[0]
     val latinScript = remember(locale) { ULocale.addLikelySubtags(ULocale.forLocale(locale)).script == "Latn" }
-    val typography = remember(appFont, latinScript) { typographyFor(appFont, latinScript) }
+    val typography = remember(appFont, latinScript, darkTheme) { typographyFor(appFont, latinScript, darkTheme) }
 
-    CompositionLocalProvider(LocalBlurEffects provides blurEffects, LocalRedSpending provides redSpending) {
+    CompositionLocalProvider(
+        LocalBlurEffects provides blurEffects,
+        LocalRedSpending provides redSpending,
+        LocalGoogleSansFlexActive provides usesGoogleSansFlex(appFont, latinScript),
+    ) {
         MaterialExpressiveTheme(
             colorScheme = colorScheme,
             // Springy, overshooting spatial motion for every M3 component.

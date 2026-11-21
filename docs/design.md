@@ -165,12 +165,12 @@ at making hierarchy readable in a dense, number-heavy UI:
 
 ### Typeface — three choices, Google Sans Flex by default
 
-Settings → Appearance → Fonts picks an `AppFont`; `PennyWiseTheme` maps it to
-`getTypography(bodyFamily, headingFamily)`.
+Settings → Appearance → Fonts picks an `AppFont`; `PennyWiseTheme` maps it to a
+`Typography` through `typographyFor(appFont, latinScript, darkTheme)`.
 
 | `AppFont` | Families | Script coverage |
 |---|---|---|
-| `GOOGLE_SANS_FLEX` (**default**) | `GoogleSansFlexFamily` for body, label and money; `GoogleSansFlexHeadingFamily` for display, headline and title | **Latin only.** Arabic, Cyrillic, Devanagari, … fall back per glyph to the system font |
+| `GOOGLE_SANS_FLEX` (**default**) | `googleSansFlexTypography(grade)`: a family per role — `ROND` 0 for body, label and money, `ROND` 100 for display, headline and title, each at its own `opsz`. `GoogleSansFlexFamily` / `GoogleSansFlexHeadingFamily` are the untuned defaults (`opsz` 18, `GRAD` 0) for text drawn outside the theme | **Latin only.** Arabic, Cyrillic, Devanagari, … fall back per glyph to the system font |
 | `SYSTEM` | `FontFamily.Default` for both | Every script |
 | `SN_PRO` | `SNProFontFamily` (static files) for both | Latin and Cyrillic |
 
@@ -178,23 +178,48 @@ Settings → Appearance → Fonts picks an `AppFont`; `PennyWiseTheme` maps it t
   the user taps a font, so an absent key means "never chose" and follows
   `AppFont.DEFAULT` (Google Sans Flex); a stored `SYSTEM` or `SN_PRO` is an
   explicit choice and is kept. The font is not part of backups.
-- **One variable file.** `core/designsystem/src/main/res/font/google_sans_flex.ttf` is the upstream v5.000
-  variable font instanced with fontTools to the `wght` (100–900) and `ROND`
-  (0–100) axes, with `slnt` 0, `opsz` 18 and `wdth` 100 pinned: about 300 KB
-  instead of 3.9 MB. Its OFL notice ships in `assets/licenses/fonts-OFL.txt`
-  (SN Pro's too). A new axis costs size: add it only with a role that uses it.
+- **One variable file.** `core/designsystem/src/main/res/font/google_sans_flex.ttf` is the upstream
+  v4.007 Android build instanced with fontTools to the `wght` (100–900), `ROND`
+  (0–100), `opsz` (11–57) and `GRAD` (0–100) axes, with `slnt` 0 and `wdth`
+  100 pinned: about 805 KB instead of 3.9 MB. v4.007 is the last release with
+  `GRAD` (v5.000 dropped it; its other changes are at optical sizes below 9).
+  `opsz` costs ~240 KB and `GRAD` ~100 KB; `opsz` is cut to the type scale's
+  11–57. Its OFL notice ships in `assets/licenses/fonts-OFL.txt` (SN Pro's
+  too). A new axis costs size: add it only with a role that uses it.
 - **Static instances, one per weight.** Each family declares a `Font` for every
-  weight 100–900, each pinning `wght` (and `ROND`). Compose picks the closest
-  *declared* weight, so without a 700 entry every `*Emphasized` style would
-  render at 600, identical to its base. `GoogleSansFlexTypographyTest` guards it.
+  weight 100–900, each pinning `wght`, `ROND`, `opsz` and `GRAD`. Compose picks
+  the closest *declared* weight, so without a 700 entry every `*Emphasized`
+  style would render at 600, identical to its base. `GoogleSansFlexTypographyTest`
+  guards it.
 - **Roundness.** Headings use `ROND` 100: fully rounded terminals, the
   Expressive voice. Body, labels and money use `ROND` 0, which reads crisper at
-  small sizes and in figures. `PennyWiseText` money styles take the body family
-  even when they are sized from a heading role (`heroAmount` is
-  `displaySmallEmphasized`), so amounts stay `ROND` 0 with `tnum`.
-- **Never animate a font axis.** Every axis value is a separate typeface;
-  animating `wght` or `ROND` re-lays out the text every frame. Animate size,
-  colour or alpha instead.
+  small sizes and in figures. `PennyWiseText` money styles (and `money()`) are
+  `ROND` 0 with `tnum` even when sized from a heading role.
+- **Optical size per role.** Each role pins `opsz` to its own font size in sp
+  (`labelSmall` 11, `bodyLarge` 16, `displayLarge` 57); money styles take the
+  optical size of their own size (`heroAmount` is 36, not the body's 16).
+  Small sizes get sturdier stems and open counters; `opsz` never changes
+  advance widths in this font.
+- **Grade per theme.** Light-on-dark text reads heavier, so dark mode draws
+  `GRAD` 0 and light mode `GRAD` 20 (the axis has no negative grade).
+  `typographyFor(appFont, latinScript, darkTheme)` picks it.
+- **Axis animation only through the quantized cache.** Every axis setting is
+  a separate Android `Typeface`, and Compose caches only 16; building fonts per
+  frame janks and can crash. Animate an axis only with
+  `TextStyle.withFlexAxes(...)` (`GoogleSansFlexAxes.kt`): it snaps `wght` to
+  25, `ROND` and `GRAD` to 10 and `opsz` to the type-scale sizes, and serves
+  families and typefaces from bounded process-wide caches. Never build a
+  `Font` or `FontFamily` in a composable. Prefer `GRAD` for emphasis: it
+  thickens strokes without changing widths, so nothing reflows; `wght` does
+  reflow. Skip the animation under reduced motion (`rememberAnimationsEnabled()`)
+  and when `LocalGoogleSansFlexActive` is false (system font, SN Pro, non-Latin
+  locale; `withFlexAxes` returns the style unchanged then anyway). Keep one
+  text node per amount or label for TalkBack. The places that animate axes:
+  - the amount odometer: a `GRAD` pulse when an amount changes;
+  - NavDock items and chips/toggles: `GRAD` up when selected or pressed;
+  - the collapsing top-app-bar title: `opsz` and `ROND` follow the collapse
+    fraction;
+  - the onboarding "PennyWise" wordmark: a one-time staggered per-letter sweep.
 - No wider (`wdth`) cut for the expanded app-bar title: long translated titles
   already wrap, and the axis would add ~120 KB.
 - The picker draws each option in its own family, and its tiles grow with their

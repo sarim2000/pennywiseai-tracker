@@ -470,4 +470,25 @@
         <item quantity="other">Incomplete: %1$d card bills aren\'t set aside</item>
     </plurals>
 
+    <!-- Weekly guess: a Home card and its sheet. %1$s is a category name, %2$s a currency code. -->
+    <string name="weekly_guess_label">Weekly guess</string>
+    <string name="weekly_guess_question">How much did you spend on %1$s last week, in %2$s?</string>
+    <string name="weekly_guess_open">Make your guess</string>
+    <string name="weekly_guess_not_now">Not now</string>
+    <!-- %1$s is the week's dates, e.g. "Nov 9 – 15". -->
+    <string name="weekly_guess_week">%1$s · from your bank messages</string>
+    <string name="weekly_guess_your_guess">Your guess</string>
+    <string name="weekly_guess_lock_in">Lock in my guess</string>
+    <string name="weekly_guess_hit">Sharp guess!</string>
+    <string name="weekly_guess_miss">Now you know</string>
+    <!-- %1$d is a whole percent. -->
+    <string name="weekly_guess_hit_body">Within %1$d%% of what was recorded.</string>
+    <string name="weekly_guess_miss_body">Most of us guess off. Now you have the real figure.</string>
+    <string name="weekly_guess_recorded">Recorded</string>
+    <!-- %1$s is an amount, %2$d a whole percent. -->
+    <string name="weekly_guess_gap">Off by %1$s (%2$d%%)</string>
+    <string name="weekly_guess_note">Recorded from your bank messages, so cash isn\'t in it.</string>
+    <string name="weekly_guess_see_week">See the week</string>
+    <string name="weekly_guess_done">Done</string>
+
 </resources>

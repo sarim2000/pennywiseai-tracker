@@ -98,7 +98,9 @@ class UserPreferencesKeysGoldenTest {
             "red_spending" to "Boolean",
             "budget_alerts_enabled" to "Boolean",
             "budget_cycle_start_day" to "Int",
+            "budget_month_card_dismissed" to "String",
             "conscience_enabled" to "Boolean",
+            "celebrated_moments" to "Set<String>",
             "conscience_log" to "Set<String>",
             "conscience_retired_lines" to "Set<String>",
             "count_credit_as_expense" to "Boolean",
@@ -171,6 +173,7 @@ class UserPreferencesKeysGoldenTest {
             "upi_id" to "String",
             "use_contacts_for_vpa" to "Boolean",
             "user_name" to "String",
+            "weekly_guess_handled_week" to "String",
             "weekly_summary_enabled" to "Boolean",
             "weekly_summary_last_week" to "String",
         )

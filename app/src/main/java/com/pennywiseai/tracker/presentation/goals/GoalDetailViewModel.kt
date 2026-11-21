@@ -6,8 +6,10 @@ import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.billing.EntitlementGate
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.GoalContributionEntity
+import com.pennywiseai.tracker.data.preferences.UserPreferencesRepository
 import com.pennywiseai.tracker.data.repository.GoalDetail
 import com.pennywiseai.tracker.data.repository.GoalRepository
+import com.pennywiseai.tracker.ui.components.celebration.CelebrationKeys
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
@@ -44,6 +46,7 @@ class GoalDetailViewModel @Inject constructor(
     private val goalRepository: GoalRepository,
     private val conversionService: CurrencyConversionService,
     private val entitlementGate: EntitlementGate,
+    private val preferences: UserPreferencesRepository,
     savedStateHandle: SavedStateHandle,
 ) : ViewModel() {
 
@@ -62,6 +65,20 @@ class GoalDetailViewModel @Inject constructor(
 
     private val saved: BigDecimal
         get() = (state.value as? GoalDetailState.Loaded)?.detail?.progress?.saved ?: BigDecimal.ZERO
+
+    private val _celebrate = MutableStateFlow(false)
+
+    /** True while a goal's first-ever "Reached" is being celebrated. */
+    val celebrate: StateFlow<Boolean> = _celebrate.asStateFlow()
+
+    /** The screen shows this goal as reached: cheer, the first time only. */
+    fun onShownReached(goalUid: String) {
+        viewModelScope.launch {
+            if (preferences.celebrateOnce(CelebrationKeys.goalReached(goalUid))) _celebrate.value = true
+        }
+    }
+
+    fun onCelebrated() { _celebrate.value = false }
 
     fun resetSheet() { _sheet.value = MoneySheetState() }
 

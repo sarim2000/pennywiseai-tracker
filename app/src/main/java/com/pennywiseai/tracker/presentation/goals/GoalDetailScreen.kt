@@ -79,6 +79,7 @@ import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
 import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
+import com.pennywiseai.tracker.ui.components.celebration.Celebration
 import com.pennywiseai.tracker.ui.components.orSupporting
 import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
@@ -113,6 +114,7 @@ fun GoalDetailScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val merchants by viewModel.merchants.collectAsStateWithLifecycle()
     val sheet by viewModel.sheet.collectAsStateWithLifecycle()
+    val celebrate by viewModel.celebrate.collectAsStateWithLifecycle()
     var mode by remember { mutableStateOf<MoneySheetMode?>(null) }
     var showDelete by rememberSaveable { mutableStateOf(false) }
     var showUpgrade by rememberSaveable { mutableStateOf(false) }
@@ -127,46 +129,51 @@ fun GoalDetailScreen(
     val detail = (state as? GoalDetailState.Loaded)?.detail
     val progress = detail?.progress
     fun open(m: MoneySheetMode) { viewModel.resetSheet(); mode = m }
+    // Whether it was reached just now by Add money or long ago, the first sight of it cheers.
+    LaunchedEffect(progress?.status) { if (progress?.status == GoalStatus.REACHED) viewModel.onShownReached(progress.goal.uid) }
 
-    PennyWiseScaffold(
-        title = progress?.goal?.name.orEmpty(),
-        navigationIcon = {
-            IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
-                Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.goal_back))
-            }
-        },
-        actions = {
-            if (progress != null) {
-                IconButton(onClick = { onShare(progress.goal.id) }, shapes = IconButtonDefaults.shapes()) {
-                    Icon(Icons.Default.Share, contentDescription = stringResource(R.string.goal_share))
+    Box(Modifier.fillMaxSize()) {
+        PennyWiseScaffold(
+            title = progress?.goal?.name.orEmpty(),
+            navigationIcon = {
+                IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
+                    Icon(Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.goal_back))
                 }
-            }
-        },
-    ) { padding ->
-        if (detail == null || progress == null) {
-            Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { LoadingIndicator() }
-            return@PennyWiseScaffold
-        }
-        GoalDetailContent(
-            detail = detail,
-            padding = padding,
-            onAdd = { open(MoneySheetMode.Add) },
-            onTakeOut = { open(MoneySheetMode.TakeOut) },
-            addedFrom = addedFrom,
-            onAddedSettled = { addedFrom = null },
-            merchants = merchants,
-            management = {
-                GoalManagement(
-                    progress = progress,
-                    onEdit = { onEdit(progress.goal.id) },
-                    onRepeat = { viewModel.repeatForNextYear(onCreated = onOpenGoal, onBlocked = { showUpgrade = true }) },
-                    onArchive = { viewModel.setArchived(progress.status != GoalStatus.ARCHIVED) },
-                    onDelete = { showDelete = true },
-                )
             },
-            // A row taken from a transaction opens it; the rest open the edit sheet.
-            onContribution = { c -> c.transactionId?.let(onOpenTransaction) ?: open(MoneySheetMode.Edit(c)) },
-        )
+            actions = {
+                if (progress != null) {
+                    IconButton(onClick = { onShare(progress.goal.id) }, shapes = IconButtonDefaults.shapes()) {
+                        Icon(Icons.Default.Share, contentDescription = stringResource(R.string.goal_share))
+                    }
+                }
+            },
+        ) { padding ->
+            if (detail == null || progress == null) {
+                Box(Modifier.fillMaxSize().padding(padding), contentAlignment = Alignment.Center) { LoadingIndicator() }
+                return@PennyWiseScaffold
+            }
+            GoalDetailContent(
+                detail = detail,
+                padding = padding,
+                onAdd = { open(MoneySheetMode.Add) },
+                onTakeOut = { open(MoneySheetMode.TakeOut) },
+                addedFrom = addedFrom,
+                onAddedSettled = { addedFrom = null },
+                merchants = merchants,
+                management = {
+                    GoalManagement(
+                        progress = progress,
+                        onEdit = { onEdit(progress.goal.id) },
+                        onRepeat = { viewModel.repeatForNextYear(onCreated = onOpenGoal, onBlocked = { showUpgrade = true }) },
+                        onArchive = { viewModel.setArchived(progress.status != GoalStatus.ARCHIVED) },
+                        onDelete = { showDelete = true },
+                    )
+                },
+                // A row taken from a transaction opens it; the rest open the edit sheet.
+                onContribution = { c -> c.transactionId?.let(onOpenTransaction) ?: open(MoneySheetMode.Edit(c)) },
+            )
+        }
+        Celebration(play = celebrate, onFinished = viewModel::onCelebrated)
     }
 
     val goal = progress?.goal

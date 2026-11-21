@@ -11,15 +11,21 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.semantics.clearAndSetSemantics
+import androidx.compose.ui.text.style.TextAlign
 import com.pennywiseai.tracker.ui.components.BalancePoint
 import com.pennywiseai.tracker.ui.components.buildHeatmapMonthLabels
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import java.time.DayOfWeek
+import java.time.LocalDate
 import java.time.format.TextStyle
 import java.time.temporal.ChronoUnit
+
+/** A month or less reads as a calendar; anything longer as a week-column strip. */
+private const val CALENDAR_MAX_WEEKS = 6
 
 /** One rounded cell per day. The text values are available from the trend card. */
 @Composable
@@ -39,11 +45,70 @@ fun SpendingHeatmap(data: List<BalancePoint>, modifier: Modifier = Modifier) {
     val textStyle = MaterialTheme.typography.labelSmall
     val gap = Spacing.xs
 
+    fun cellColor(date: LocalDate): Color {
+        val intensity = (amounts[date] ?: 0.0) / maxAmount
+        return when {
+            date < firstDate || date > endDate -> colors.surfaceContainerLow
+            intensity == 0.0 -> colors.surfaceContainerHighest
+            intensity < 0.25 -> colors.primary.copy(alpha = 0.25f)
+            intensity < 0.5 -> colors.primary.copy(alpha = 0.5f)
+            intensity < 0.75 -> colors.primary.copy(alpha = 0.75f)
+            else -> colors.primary
+        }
+    }
+
+    if (totalWeeks <= CALENDAR_MAX_WEEKS) {
+        // Weekdays across, one row per week: the cells share the full card width.
+        Column(
+            modifier = modifier.fillMaxWidth().clearAndSetSemantics {},
+            verticalArrangement = Arrangement.spacedBy(gap)
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
+                dayLabels.forEach { label ->
+                    Text(
+                        text = label,
+                        modifier = Modifier.weight(1f),
+                        style = textStyle,
+                        color = colors.onSurfaceVariant,
+                        textAlign = TextAlign.Center
+                    )
+                }
+            }
+            repeat(totalWeeks) { week ->
+                Row(horizontalArrangement = Arrangement.spacedBy(gap)) {
+                    repeat(7) { day ->
+                        val date = startDate.plusWeeks(week.toLong()).plusDays(day.toLong())
+                        val inRange = date in firstDate..endDate
+                        val strong = ((amounts[date] ?: 0.0) / maxAmount) >= 0.5
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .aspectRatio(1.25f)
+                                .background(cellColor(date), MaterialTheme.shapes.small),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (inRange) {
+                                Text(
+                                    text = date.dayOfMonth.toString(),
+                                    style = textStyle,
+                                    color = if (strong) colors.onPrimary else colors.onSurfaceVariant
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+        }
+        return
+    }
+
     BoxWithConstraints(modifier.fillMaxWidth()) {
         val availableWidth = maxWidth - Dimensions.Icon.medium - gap
-        val cellSize = ((availableWidth - gap * (totalWeeks - 1)) / totalWeeks)
-            .coerceIn(Dimensions.Icon.inline, Dimensions.Icon.large)
-        val gridFits = cellSize * totalWeeks + gap * (totalWeeks - 1) <= availableWidth
+        // Columns stretch to fill the width; rows stay capped so the strip never gets tall.
+        val cellWidth = ((availableWidth - gap * (totalWeeks - 1)) / totalWeeks)
+            .coerceAtLeast(Dimensions.Icon.inline)
+        val cellSize = cellWidth.coerceAtMost(Dimensions.Icon.large)
+        val gridFits = cellWidth * totalWeeks + gap * (totalWeeks - 1) <= availableWidth + gap / 2
         val scrollState = rememberLazyListState()
         LaunchedEffect(totalWeeks, gridFits) {
             if (!gridFits) scrollState.scrollToItem(totalWeeks - 1)
@@ -69,21 +134,15 @@ fun SpendingHeatmap(data: List<BalancePoint>, modifier: Modifier = Modifier) {
             ) {
                 items(totalWeeks) { week ->
                     Column(
-                        modifier = Modifier.width(cellSize).clearAndSetSemantics {},
+                        modifier = Modifier.width(cellWidth).clearAndSetSemantics {},
                         verticalArrangement = Arrangement.spacedBy(gap)
                     ) {
                         repeat(7) { day ->
                             val date = startDate.plusWeeks(week.toLong()).plusDays(day.toLong())
-                            val intensity = (amounts[date] ?: 0.0) / maxAmount
-                            val color = when {
-                                date < firstDate || date > endDate -> colors.surfaceContainerLow
-                                intensity == 0.0 -> colors.surfaceContainerHighest
-                                intensity < 0.25 -> colors.primary.copy(alpha = 0.25f)
-                                intensity < 0.5 -> colors.primary.copy(alpha = 0.5f)
-                                intensity < 0.75 -> colors.primary.copy(alpha = 0.75f)
-                                else -> colors.primary
-                            }
-                            Box(Modifier.size(cellSize).background(color, MaterialTheme.shapes.small))
+                            Box(
+                                Modifier.width(cellWidth).height(cellSize)
+                                    .background(cellColor(date), MaterialTheme.shapes.small)
+                            )
                         }
 
                         Text(

@@ -29,6 +29,8 @@ object BudgetWidgetDataStore {
     private val CURRENCY = stringPreferencesKey("currency")
     private val DAYS_ELAPSED = intPreferencesKey("days_elapsed")
     private val WINDOW_DAYS = intPreferencesKey("window_days")
+    /** Blank means no folded pace: an old snapshot, or one shared window. */
+    private val FOLDED_DAYS_OVER = stringPreferencesKey("folded_days_over")
 
     fun getData(context: Context): Flow<BudgetWidgetData> {
         return context.widgetDataStore.data.map { prefs ->
@@ -46,7 +48,8 @@ object BudgetWidgetDataStore {
                 savingsDelta = prefs[SAVINGS_DELTA]?.takeIf { it.isNotBlank() }?.toBigDecimalOrNull(),
                 currency = prefs[CURRENCY] ?: "INR",
                 daysElapsed = prefs[DAYS_ELAPSED] ?: 0,
-                windowDays = prefs[WINDOW_DAYS] ?: 0
+                windowDays = prefs[WINDOW_DAYS] ?: 0,
+                foldedDaysOver = prefs[FOLDED_DAYS_OVER]?.takeIf { it.isNotBlank() }?.toIntOrNull()
             )
         }
             // A failed read (corrupt file, unknown enum) shows the empty widget
@@ -69,6 +72,7 @@ object BudgetWidgetDataStore {
             prefs[CURRENCY] = data.currency
             prefs[DAYS_ELAPSED] = data.daysElapsed
             prefs[WINDOW_DAYS] = data.windowDays
+            prefs[FOLDED_DAYS_OVER] = data.foldedDaysOver?.toString() ?: ""
         }
     }
 }

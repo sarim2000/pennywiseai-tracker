@@ -22,7 +22,6 @@ import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.budgetPercentUsed
 import com.pennywiseai.tracker.data.repository.budgetSpend
-import com.pennywiseai.tracker.data.repository.dayCounts
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
@@ -284,15 +283,25 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
 
                 val limitRemaining = spending.totalLimitBudget - spending.totalLimitSpent
                 val usage = widgetLimitUsage(spending.totalLimitBudget, spending.totalLimitSpent, spending.groups)
-                val pageWindow = spending.pageWindow
-                // dayCounts clamps a future or ended window into 1..days, which still
-                // produces a pace. Outside the window there is nothing to pace.
-                val todayInPageWindow = !today.isBefore(pageWindow.start) && !today.isAfter(pageWindow.end)
-                val daysElapsed = if (todayInPageWindow) {
-                    pageWindow.dayCounts(today, isCurrentMonth = true).first
-                } else {
-                    0
-                }
+                // Each limit's own window, not pageWindow: that union also holds every
+                // other slice that meets the month, so it does not match this spend.
+                val pace = widgetLimitPace(
+                    today,
+                    spending.groups.mapNotNull { group ->
+                        if (group.group.budget.groupType != BudgetGroupType.LIMIT || group.windowDays < 1) {
+                            null
+                        } else {
+                            WidgetLimitWindow(
+                                spent = group.totalActual,
+                                limit = group.totalBudget,
+                                windowStart = group.windowStart,
+                                windowEnd = group.windowEnd,
+                                daysElapsed = group.daysElapsed,
+                                windowDays = group.windowDays
+                            )
+                        }
+                    }
+                )
 
                 BudgetWidgetData(
                     totalSpent = spending.totalLimitSpent,
@@ -306,8 +315,9 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                     savingsRate = spending.savingsRate,
                     savingsDelta = savingsDelta,
                     currency = currency,
-                    daysElapsed = daysElapsed,
-                    windowDays = pageWindow.days
+                    daysElapsed = pace.daysElapsed,
+                    windowDays = pace.windowDays,
+                    foldedDaysOver = pace.foldedDaysOver
                 )
             }
 

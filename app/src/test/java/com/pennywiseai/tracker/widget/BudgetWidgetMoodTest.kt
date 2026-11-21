@@ -2,8 +2,10 @@ package com.pennywiseai.tracker.widget
 
 import com.pennywiseai.tracker.ui.components.mascot.MascotMood
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Test
 import java.math.BigDecimal
+import java.time.LocalDate
 
 class BudgetWidgetMoodTest {
 
@@ -75,5 +77,110 @@ class BudgetWidgetMoodTest {
             windowDays = 30
         )
         assertEquals(MascotMood.Worried, budgetMood(carriedToZero))
+    }
+
+    @Test
+    fun `a weekly limit on day 2 of 7 is thinking`() {
+        val (pace, mood) = paced(
+            "2026-11-17",
+            slice(spent = 300, limit = 700, start = "2026-11-16", end = "2026-11-22", daysElapsed = 2, windowDays = 7)
+        )
+        assertEquals(2, pace.daysElapsed)
+        assertEquals(7, pace.windowDays)
+        assertNull(pace.foldedDaysOver)
+        assertEquals(MascotMood.Thinking, mood)
+    }
+
+    @Test
+    fun `a budget that starts on the 25th keeps that cycle`() {
+        val pace = widgetLimitPace(
+            LocalDate.parse("2026-11-26"),
+            listOf(slice(spent = 100, limit = 3000, start = "2026-11-25", end = "2026-12-24", daysElapsed = 2, windowDays = 30))
+        )
+        assertEquals(2, pace.daysElapsed)
+        assertEquals(30, pace.windowDays)
+        assertNull(pace.foldedDaysOver)
+    }
+
+    @Test
+    fun `today outside the only window is calm`() {
+        val (pace, mood) = paced(
+            "2026-11-23",
+            slice(spent = 800, limit = 700, start = "2026-11-16", end = "2026-11-22", daysElapsed = 7, windowDays = 7)
+        )
+        assertEquals(0, pace.daysElapsed)
+        assertEquals(0, pace.windowDays)
+        assertNull(pace.foldedDaysOver)
+        assertEquals(MascotMood.Calm, mood)
+    }
+
+    @Test
+    fun `mixed windows under an even spend are happy`() {
+        val (pace, mood) = paced(
+            "2026-11-17",
+            slice(spent = 300, limit = 700, start = "2026-11-16", end = "2026-11-22", daysElapsed = 2, windowDays = 7),
+            slice(spent = 100, limit = 3000, start = "2026-11-01", end = "2026-11-30", daysElapsed = 10, windowDays = 30)
+        )
+        assertEquals(-4, pace.foldedDaysOver)
+        assertEquals(MascotMood.Happy, mood)
+    }
+
+    @Test
+    fun `mixed windows past an even spend are thinking`() {
+        val (pace, mood) = paced(
+            "2026-11-17",
+            slice(spent = 600, limit = 700, start = "2026-11-16", end = "2026-11-22", daysElapsed = 2, windowDays = 7),
+            slice(spent = 2000, limit = 3000, start = "2026-11-01", end = "2026-11-30", daysElapsed = 10, windowDays = 30)
+        )
+        assertEquals(7, pace.foldedDaysOver)
+        assertEquals(MascotMood.Thinking, mood)
+    }
+
+    @Test
+    fun `a folded pace is not the page total`() {
+        // 1,000 of 3,000 on day 10 of 30 is an even spend. The fold still says two days over.
+        val onPaceForThePage = BudgetWidgetData(
+            totalSpent = BigDecimal(1000),
+            totalLimit = BigDecimal(3000),
+            remaining = BigDecimal(2000),
+            daysElapsed = 10,
+            windowDays = 30,
+            foldedDaysOver = 2
+        )
+        assertEquals(MascotMood.Thinking, budgetMood(onPaceForThePage))
+    }
+
+    private fun slice(
+        spent: Int,
+        limit: Int,
+        start: String,
+        end: String,
+        daysElapsed: Int,
+        windowDays: Int
+    ) = WidgetLimitWindow(
+        spent = BigDecimal(spent),
+        limit = BigDecimal(limit),
+        windowStart = LocalDate.parse(start),
+        windowEnd = LocalDate.parse(end),
+        daysElapsed = daysElapsed,
+        windowDays = windowDays
+    )
+
+    /** The page total is the sum of the slices. The pace is not given a page window. */
+    private fun paced(today: String, vararg slices: WidgetLimitWindow): Pair<WidgetLimitPace, MascotMood> {
+        val pace = widgetLimitPace(LocalDate.parse(today), slices.toList())
+        val spent = slices.fold(BigDecimal.ZERO) { acc, slice -> acc + slice.spent }
+        val limit = slices.fold(BigDecimal.ZERO) { acc, slice -> acc + slice.limit }
+        val mood = budgetMood(
+            BudgetWidgetData(
+                totalSpent = spent,
+                totalLimit = limit,
+                remaining = limit - spent,
+                daysElapsed = pace.daysElapsed,
+                windowDays = pace.windowDays,
+                foldedDaysOver = pace.foldedDaysOver
+            )
+        )
+        return pace to mood
     }
 }

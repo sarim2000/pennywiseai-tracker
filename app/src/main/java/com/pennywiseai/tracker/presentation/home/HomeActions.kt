@@ -79,8 +79,11 @@ internal fun HomeTopBarActions(
     }
 }
 
-/** Height of [HomeFabStack]'s buttons: the small Add FAB, the gap, then Sync. */
-internal val HomeFabStackHeight = Dimensions.Component.fabSmall + Spacing.smd + Dimensions.Component.fab
+/**
+ * Height of [HomeFabStack]'s buttons: the small Add FAB, the gap, then Sync. The
+ * small FAB draws 40dp but lays out in a 48dp slot (its minimum touch target).
+ */
+internal val HomeFabStackHeight = Dimensions.Component.minTouchTarget + Spacing.smd + Dimensions.Component.fab
 
 /**
  * Bottom padding for Home's list, so its last row can scroll clear of what floats

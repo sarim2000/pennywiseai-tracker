@@ -13,12 +13,25 @@ class HomeListBottomPaddingTest {
     // Gesture navigation, three-button navigation, and none (e.g. a hidden bar).
     private val systemBarInsets = listOf(0.dp, 24.dp, 48.dp)
 
+    // M3 SmallFloatingActionButton: a 40dp button centred in a 48dp touch-target slot.
+    private val smallFabSlot = 48.dp
+    private val smallFabVisible = 40.dp
+
     @Test
-    fun `normal nav - the list scrolls clear of the Add and Sync stack`() {
+    fun `the stack height counts the small FAB's touch-target slot`() {
+        assertTrue(HomeFabStackHeight >= smallFabSlot + Spacing.smd + Dimensions.Component.fab)
+    }
+
+    @Test
+    fun `normal nav - the last row ends a full gap above the Add FAB`() {
         systemBarInsets.forEach { systemBar ->
-            val stackTop = systemBar + Dimensions.Component.fabBottomInset + HomeFabStackHeight
+            val addFabTop = systemBar + Dimensions.Component.fabBottomInset + Dimensions.Component.fab +
+                Spacing.smd + smallFabSlot - (smallFabSlot - smallFabVisible) / 2
             val padding = homeListBottomPadding(systemBar, floatingNav = false)
-            assertClears(padding, stackTop, "system bar $systemBar")
+            assertTrue(
+                "system bar $systemBar: padding $padding must end ${Spacing.md} above $addFabTop",
+                padding >= addFabTop + Spacing.md
+            )
         }
     }
 

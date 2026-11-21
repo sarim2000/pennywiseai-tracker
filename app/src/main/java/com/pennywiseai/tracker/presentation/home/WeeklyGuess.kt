@@ -317,7 +317,7 @@ private fun GuessReveal(
             )
             Text(
                 text = stringResource(R.string.weekly_guess_your_guess) + " · " + CurrencyFormatter.formatCurrency(guess, currency),
-                style = MaterialTheme.typography.titleMedium,
+                style = MaterialTheme.typography.titleMedium.money(),
             )
             Text(
                 text = stringResource(

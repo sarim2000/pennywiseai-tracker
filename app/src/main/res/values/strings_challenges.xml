@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Plan → Challenges. Days are checked against the user's bank messages. -->
+    <string name="challenges_title">Challenges</string>
+    <string name="challenges_start_one">Start a challenge</string>
+    <string name="challenges_try_another">Try another</string>
+    <string name="challenges_subtitle">Checked against your bank messages, one day at a time</string>
+    <plurals name="challenge_no_spend_title">
+        <item quantity="one">%d no-spend day</item>
+        <item quantity="other">%d no-spend days</item>
+    </plurals>
+    <!-- %1$d: days to keep clean, %2$d: days in the challenge (7) -->
+    <plurals name="challenge_no_spend_body">
+        <item quantity="one">Any %1$d of the next %2$d days with no spending in your bank messages.</item>
+        <item quantity="other">Any %1$d of the next %2$d days with no spending in your bank messages.</item>
+    </plurals>
+    <!-- %1$s: a spending category, e.g. "Food &amp; Dining" -->
+    <string name="challenge_category_week_title">A week without %1$s</string>
+    <string name="challenge_category_week_body">No %1$s in your bank messages for a whole week.</string>
+    <string name="challenge_start">Start</string>
+    <!-- TalkBack label of a Start button; %1$s: the challenge's title -->
+    <string name="challenge_start_description">Start %1$s</string>
+    <!-- %1$d: today's day number, %2$d: days in the challenge -->
+    <string name="challenge_active_overline">Active challenge · Day %1$d of %2$d</string>
+    <!-- %1$d: clean days so far, %2$d: clean days needed -->
+    <plurals name="challenge_days_done">
+        <item quantity="one">%1$d of %2$d day done</item>
+        <item quantity="other">%1$d of %2$d days done</item>
+    </plurals>
+    <!-- TalkBack for one day: %1$s the date ("Thursday, 20 Nov"), %2$s its state -->
+    <string name="challenge_day_description">%1$s: %2$s</string>
+    <string name="challenge_day_clean">clean</string>
+    <!-- %1$s: the merchants that counted against the day -->
+    <string name="challenge_day_missed">missed, %1$s. Double tap to see it</string>
+    <string name="challenge_day_today">today, clean so far</string>
+    <string name="challenge_day_future">still to come</string>
+    <!-- Heading over a missed day's transactions; %1$s: the date -->
+    <string name="challenge_missed_on">Counted on %1$s</string>
+    <string name="challenge_today_no_spend">Today so far: no spending in your messages. Keep going!</string>
+    <!-- %1$s: the category the user is going without -->
+    <string name="challenge_today_no_category">Today so far: no %1$s in your messages. Keep going!</string>
+    <!-- %1$s: the merchant of today's counted expense -->
+    <string name="challenge_today_missed">%1$s counted today. Tomorrow is a fresh day.</string>
+    <string name="challenge_give_up">Give up</string>
+    <string name="challenge_give_up_title">Stop this challenge?</string>
+    <string name="challenge_give_up_body">No problem. You can start another whenever you like.</string>
+    <string name="challenge_keep_going">Keep going</string>
+    <string name="challenge_won_title">You did it!</string>
+    <!-- %1$s: the challenge's title -->
+    <string name="challenge_won_body">%1$s, done. Nice work.</string>
+    <!-- %1$d: clean days, %2$d: days needed -->
+    <string name="challenge_close_title">%1$d of %2$d, so close!</string>
+    <string name="challenge_lost_title">%1$d of %2$d days</string>
+    <!-- %1$s: the challenge's title -->
+    <string name="challenge_lost_body">%1$s is over. Every clean day still counted.</string>
+    <string name="challenge_try_again">Try again</string>
+    <string name="challenge_done">Done</string>
+</resources>

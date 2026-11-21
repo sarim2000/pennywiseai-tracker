@@ -18,6 +18,7 @@ import com.pennywiseai.tracker.data.preferences.HomeSection
 import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
 import com.pennywiseai.tracker.data.preferences.HomeShortcut
 import com.pennywiseai.tracker.data.preferences.HomeShortcutLayout
+import com.pennywiseai.tracker.domain.challenges.ChallengeState
 import com.pennywiseai.tracker.domain.conscience.ConscienceCadence
 import com.pennywiseai.tracker.domain.conscience.ConscienceCandidate
 import com.pennywiseai.tracker.domain.conscience.ConscienceChoice
@@ -156,6 +157,8 @@ open class UserPreferencesRepository internal constructor(
         // The first day ("2026-11-09") of the last week whose Home guess was answered or
         // dismissed. The guess itself is never stored. Device-local.
         val WEEKLY_GUESS_HANDLED_WEEK = stringPreferencesKey("weekly_guess_handled_week")
+        // Plan → Challenges: the running challenge and the last few results, as JSON. Device-local.
+        val CHALLENGES = stringPreferencesKey("challenges")
 
         // App Lock preferences
         val APP_LOCK_ENABLED = booleanPreferencesKey("app_lock_enabled")
@@ -326,7 +329,8 @@ open class UserPreferencesRepository internal constructor(
             K.TRACKING_CARD_SNOOZED_UNTIL, K.RECURRING_OFFER_LOG, K.DISMISSED_INSIGHTS, K.CELEBRATED_MOMENTS,
             K.BUDGET_MONTH_CARD_DISMISSED,
             K.WEEKLY_GUESS_HANDLED_WEEK,
-            K.APP_LOCK_ENABLED, K.APP_LOCK_TIMEOUT_MINUTES, K.LAST_AUTH_TIMESTAMP, K.APP_LOCK_NO_SCREEN_LOCK_NOTICE_SHOWN, K.HAS_USED_FULL_RESYNC,
+            K.CHALLENGES, K.APP_LOCK_ENABLED, K.APP_LOCK_TIMEOUT_MINUTES, K.LAST_AUTH_TIMESTAMP,
+            K.APP_LOCK_NO_SCREEN_LOCK_NOTICE_SHOWN, K.HAS_USED_FULL_RESYNC,
             K.PRO_CACHED_IS_PRO, K.LICENSE_VALIDATED_AT, K.LICENSE_PRODUCT_NAME, K.SUPPORT_NUDGE_LAST_SHOWN_DAY,
             K.LAST_STATEMENT_IMPORT_AT, K.LAST_SEEN_APP_VERSION, K.MONTHLY_BUDGET_LIMIT,
             K.HAS_MIGRATED_TO_BUDGET_GROUPS, K.SHAKE_TO_HIDE_HINT_SHOWN, K.HAS_COMPLETED_ONBOARDING,
@@ -1446,6 +1450,18 @@ open class UserPreferencesRepository internal constructor(
 
     suspend fun dismissBudgetMonthCard(key: String) {
         dataStore.edit { it[PreferencesKeys.BUDGET_MONTH_CARD_DISMISSED] = key }
+    }
+
+    val challenges: Flow<ChallengeState> = dataStore.data
+        .map { ChallengeState.fromJson(it[PreferencesKeys.CHALLENGES]) }
+
+    /** Applies [change] to the stored challenges in one edit. */
+    suspend fun updateChallenges(change: (ChallengeState) -> ChallengeState) {
+        dataStore.edit { preferences ->
+            val current = ChallengeState.fromJson(preferences[PreferencesKeys.CHALLENGES])
+            val next = change(current)
+            if (next != current) preferences[PreferencesKeys.CHALLENGES] = next.toJson()
+        }
     }
 
     // Replace UPI VPAs with matching contact names at display time.

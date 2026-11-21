@@ -60,10 +60,10 @@ data object Categories : NavKey
 
 /** What the Plan tab shows. */
 @Serializable
-enum class PlanSection { BUDGETS, BILLS, GOALS }
+enum class PlanSection { BUDGETS, BILLS, GOALS, CHALLENGES }
 
 /**
- * The Plan tab: budgets, bills and goals behind one switch. [request] makes each explicit
+ * The Plan tab: budgets, bills, goals and challenges behind one switch. [request] makes each explicit
  * "open Plan on X" a new key, so it shows X even when the tab last showed another section.
  * [focusId] is the budget or bill (by [section]) a Home row was tapped on, shown first.
  */

@@ -267,7 +267,10 @@ object Dimensions {
         /** Standard FAB diameter. */
         val fab = 56.dp
 
-        /** How far a FAB stack sits above the bottom edge, clearing the nav bar. */
+        /** Small FAB side (M3 `SmallFloatingActionButton`). */
+        val fabSmall = 40.dp
+
+        /** How far a FAB stack sits above the system bar inset, clearing the nav bar. */
         val fabBottomInset = 96.dp
 
         /**

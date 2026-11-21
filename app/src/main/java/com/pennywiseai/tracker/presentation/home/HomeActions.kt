@@ -18,6 +18,7 @@ import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.unit.Dp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.ui.components.ProfileFilterDropdown
@@ -78,12 +79,30 @@ internal fun HomeTopBarActions(
     }
 }
 
+/** Height of [HomeFabStack]'s buttons: the small Add FAB, the gap, then Sync. */
+internal val HomeFabStackHeight = Dimensions.Component.fabSmall + Spacing.smd + Dimensions.Component.fab
+
+/**
+ * Bottom padding for Home's list, so its last row can scroll clear of what floats
+ * over it. [systemBarBottom] is the Scaffold's bottom inset (the system nav bar).
+ */
+internal fun homeListBottomPadding(systemBarBottom: Dp, floatingNav: Boolean): Dp =
+    if (floatingNav) {
+        // The floating pill, with Add docked above Ask beside it.
+        Dimensions.Component.bottomBarHeight + Dimensions.Component.fabScrollClearance
+    } else {
+        // The nav bar, then the Add + Sync stack standing above it.
+        systemBarBottom + Dimensions.Component.fabBottomInset + HomeFabStackHeight + Spacing.md
+    }
+
 /**
  * The FAB stack shown when the floating nav bar is off: Add on top, Sync
- * below it (tap to scan, long-press for "Read messages again").
+ * below it (tap to scan, long-press for "Read messages again"). It stands
+ * [Dimensions.Component.fabBottomInset] above [systemBarBottom], clear of the nav bar.
  */
 @Composable
 internal fun BoxScope.HomeFabStack(
+    systemBarBottom: Dp,
     isScanning: Boolean,
     showSyncHint: Boolean,
     onNavigateToAddScreen: () -> Unit,
@@ -98,7 +117,7 @@ internal fun BoxScope.HomeFabStack(
             .align(Alignment.BottomEnd)
             .padding(
                 end = Dimensions.Padding.content,
-                bottom = Dimensions.Component.fabBottomInset
+                bottom = systemBarBottom + Dimensions.Component.fabBottomInset
             ),
         verticalArrangement = Arrangement.spacedBy(Spacing.smd),
         horizontalAlignment = Alignment.End

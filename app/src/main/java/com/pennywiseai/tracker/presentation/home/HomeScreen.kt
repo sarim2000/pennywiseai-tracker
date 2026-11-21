@@ -401,9 +401,11 @@ fun HomeScreen(
                 flingBehavior = rememberOverscrollFlingBehavior { lazyListState },
                 contentPadding = PaddingValues(
                     top = Spacing.md + paddingValues.calculateTopPadding(),
-                    // Clears the nav bar plus the Add + Sync FAB stack above it.
-                    bottom = Dimensions.Component.bottomBarHeight +
-                        Dimensions.Component.fabScrollClearance
+                    // Clears the nav bar plus the actions floating above it.
+                    bottom = homeListBottomPadding(
+                        systemBarBottom = paddingValues.calculateBottomPadding(),
+                        floatingNav = navDock != null
+                    )
                 ),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md)
             ) {
@@ -827,6 +829,7 @@ fun HomeScreen(
             } else {
                 // FABs - Direct access (no speed dial)
                 HomeFabStack(
+                    systemBarBottom = paddingValues.calculateBottomPadding(),
                     isScanning = uiState.isScanning,
                     showSyncHint = uiState.recentItems.isEmpty() && !uiState.isLoading,
                     onNavigateToAddScreen = onNavigateToAddScreen,

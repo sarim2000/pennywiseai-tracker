@@ -110,7 +110,7 @@ a mistake next to its neighbours.
 the real target still reaches 48dp.
 
 Also here: `progressBarHeight` (8dp — one height for budget, loan and download
-tracks), `legendDot` (10dp), `calendarDot` (6dp), `fab` (56dp), `fabBottomInset`,
+tracks), `legendDot` (10dp), `calendarDot` (6dp), `fab` (56dp), `fabSmall` (40dp), `fabBottomInset`,
 `fabScrollClearance`, `hairline` (0.5dp), `dividerThickness`.
 
 The Floating nav style is a pill of four icon-only tabs — Home · Transactions · Plan ·

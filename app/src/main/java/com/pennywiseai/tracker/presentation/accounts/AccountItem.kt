@@ -117,13 +117,14 @@ private fun accountRowContainer(highlight: Boolean, isHidden: Boolean): Color = 
 /**
  * This ink on a row from [AccountRowFrame]. The low-balance tint matches no on* role
  * (errorContainer is near-black in some light themes), so on it the ink is checked against
- * the fill as composited on the list. Unchanged on a neutral row.
+ * the fill as composited on the list, and under the row's press and focus layer (the same
+ * onSurface layer other clickable text passes). Unchanged on a neutral row.
  */
 @Composable
 internal fun Color.onAccountRow(highlight: Boolean, isHidden: Boolean): Color {
     if (!highlight) return this
     val fill = accountRowContainer(highlight, isHidden).compositeOver(MaterialTheme.colorScheme.background)
-    return readableOn(listOf(fill))
+    return readableOn(listOf(fill), layers = listOf(MaterialTheme.colorScheme.onSurface.stateLayer()))
 }
 
 /** Where a row's extra lines start: under its name, past the badge. */

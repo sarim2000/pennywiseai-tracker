@@ -8,11 +8,8 @@ import androidx.compose.material3.WavyProgressIndicatorDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.compositeOver
 import com.pennywiseai.tracker.ui.theme.Dimensions
-import com.pennywiseai.tracker.ui.theme.GRAPHIC_CONTRAST
 import com.pennywiseai.tracker.ui.theme.neutralSurfaces
-import com.pennywiseai.tracker.ui.theme.readableOn
 
 /**
  * The app's one determinate data meter (budget spent, goal saved, category
@@ -27,8 +24,9 @@ import com.pennywiseai.tracker.ui.theme.readableOn
  *
  * [color] keeps its hue but is nudged to 3:1 on the track and the card it sits on, so a
  * pale budget or category colour (preset yellow) still shows. Pass [containerColor] when
- * that card isn't a neutral surface (a tinted or primaryContainer card). Don't animate
- * [color]: each in-between frame would be checked and cached.
+ * that card isn't a neutral surface (a tinted or primaryContainer card). When no indicator
+ * can clear both (a pale card and a dark track), the track moves and the indicator is
+ * checked again. Don't animate [color]: each in-between frame would be checked and cached.
  */
 @OptIn(ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -40,15 +38,17 @@ fun WavyMeter(
     dense: Boolean = false,
     containerColor: Color? = null,
 ) {
-    val cards = containerColor?.let { listOf(it) } ?: MaterialTheme.colorScheme.neutralSurfaces
-    // A translucent track is seen over the card, so that's what the fill is checked against.
-    val tracks = cards.map { trackColor.compositeOver(it) }
+    val scheme = MaterialTheme.colorScheme
+    val cards = containerColor?.let { listOf(it) } ?: scheme.neutralSurfaces
+    // A translucent track is seen over the card. If the nudged indicator still misses
+    // either background, the track changes and the indicator is recomputed.
+    val meter = readableMeterColors(color, trackColor, cards, scheme.surfaceContainerHighest)
     val clamped = fraction.coerceIn(0f, 1f)
     LinearWavyProgressIndicator(
         progress = { clamped },
         modifier = modifier.fillMaxWidth(),
-        color = color.readableOn(tracks + cards, GRAPHIC_CONTRAST),
-        trackColor = trackColor,
+        color = meter.indicator,
+        trackColor = meter.track,
         stopSize = Dimensions.Component.wavyMeterStop,
         amplitude = if (dense) DenseAmplitude else WavyProgressIndicatorDefaults.indicatorAmplitude,
         wavelength = if (dense) Dimensions.Component.wavyMeterDenseWavelength else WavyProgressIndicatorDefaults.LinearDeterminateWavelength,

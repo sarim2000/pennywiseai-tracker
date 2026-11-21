@@ -179,7 +179,7 @@ fun TransactionItem(
         amount = CurrencyFormatter.signed(amountPrefix, formattedAmount),
         amountColor = amountColor,
         // tertiary is a fill, not ink: some palettes make it the surface colour itself.
-        subtitleColor = (if (unsorted) colorScheme.unsorted else colorScheme.onSurfaceVariant).onRow(containerColor),
+        subtitleColor = (if (unsorted) colorScheme.unsorted else colorScheme.onSurfaceVariant).onRow(containerColor, rowInk),
         shape = listItemPosition.toShape(),
         contentPadding = Dimensions.Padding.card,
         onClick = {
@@ -223,7 +223,7 @@ fun TransactionItem(
                     Text(
                         text = "($nativeAmount)",
                         style = PennyWiseText.amountSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant.onRow(containerColor),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.onRow(containerColor, rowInk),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
@@ -350,5 +350,13 @@ fun TransactionAvatar(
     }
 }
 
-/** This ink on a selected row's override fill (primaryContainer), which isn't the surface it was picked for. */
-private fun Color.onRow(containerColor: Color?): Color = containerColor?.let { readableOn(listOf(it)) } ?: this
+/**
+ * This ink on a selected row's override fill (primaryContainer), which isn't the surface it was
+ * picked for. Also under that row's press and focus layer, which is its content colour.
+ * Unchanged when the row has no override fill.
+ */
+private fun Color.onRow(containerColor: Color?, contentInk: Color? = null): Color {
+    containerColor ?: return this
+    val layer = contentInk ?: containerColor.bestInk()
+    return readableOn(listOf(containerColor), layers = listOf(layer.stateLayer()))
+}

@@ -60,6 +60,7 @@ import com.pennywiseai.tracker.ui.components.mascot.MascotShape
 import com.pennywiseai.tracker.ui.components.mascot.REACTION_HOLD_MS
 import com.pennywiseai.tracker.ui.components.mascot.typingGaze
 import com.pennywiseai.tracker.ui.components.readableProgressColors
+import com.pennywiseai.tracker.ui.components.visibleTrack
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.icons.categoryLabel
@@ -701,12 +702,15 @@ private fun ModelRequiredBanner(
                         Text(stringResource(R.string.chat_cancel))
                     }
                 }
+                val banner = MaterialTheme.colorScheme.tertiaryContainer
+                val indicator = MaterialTheme.colorScheme.onTertiaryContainer
                 LinearWavyProgressIndicator(
                     progress = { downloadProgress / 100f },
                     modifier = Modifier.fillMaxWidth(),
-                    color = MaterialTheme.colorScheme.onTertiaryContainer,
-                    // The default secondaryContainer track can match the bar on this card (1.3:1 in some palettes).
-                    trackColor = MaterialTheme.colorScheme.onTertiaryContainer.copy(alpha = 0.2f)
+                    color = indicator,
+                    // A 20% wash of the indicator sits near 1.5:1 on this card. The track
+                    // moves up to 3:1; the indicator colour stays.
+                    trackColor = indicator.visibleTrack(banner)
                 )
             }
         } else {

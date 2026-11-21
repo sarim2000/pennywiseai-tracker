@@ -223,7 +223,12 @@ private fun GoalPickRow(progress: GoalProgress, selected: Boolean, position: Lis
         onClick = onClick,
         containerColor = if (selected) MaterialTheme.colorScheme.secondaryContainer else MaterialTheme.colorScheme.surfaceContainerLow,
     ) {
-        GoalRing(progress, Dimensions.Component.goalRingSmall, Dimensions.Component.goalRingSmallStroke) {}
+        GoalRing(
+            progress,
+            Dimensions.Component.goalRingSmall,
+            Dimensions.Component.goalRingSmallStroke,
+            containerColor = if (selected) MaterialTheme.colorScheme.secondaryContainer else null,
+        ) {}
         RowLabels(
             title = goal.name,
             subtitle = stringResource(

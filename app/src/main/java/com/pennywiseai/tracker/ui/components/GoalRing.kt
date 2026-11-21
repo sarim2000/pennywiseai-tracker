@@ -59,6 +59,8 @@ fun GoalRing(
     addedFrom: BigDecimal? = null,
     onAddedSettled: () -> Unit = {},
     announceProgress: Boolean = true,
+    /** The fill behind the ring when it isn't a neutral surface (a selected row's secondaryContainer). */
+    containerColor: Color? = null,
     content: @Composable (percent: Int) -> Unit,
 ) {
     // Effects specs throughout: a progress arc never bounces past its value.
@@ -86,12 +88,19 @@ fun GoalRing(
 
     if (AmountPrivacy.hidden) return
 
-    val track = MaterialTheme.colorScheme.surfaceContainerHighest
-    // The goal's hue, nudged to 3:1 on the track and the card, as WavyMeter does, so a
-    // preset like yellow (light) or indigo (dark) still shows.
-    val backgrounds = listOf(track) + MaterialTheme.colorScheme.neutralSurfaces
-    val color = progress.goal.color.toColorOr(MaterialTheme.colorScheme.primary)
-        .readableOn(backgrounds, GRAPHIC_CONTRAST)
+    val scheme = MaterialTheme.colorScheme
+    // The goal's hue, nudged to 3:1 on the track and the card behind it, as the meters do.
+    // [containerColor] replaces the neutral surfaces when the ring sits on a coloured row.
+    val cards = containerColor?.let { listOf(it) } ?: scheme.neutralSurfaces
+    val meter = readableMeterColors(
+        progress.goal.color.toColorOr(scheme.primary),
+        scheme.surfaceContainerHighest,
+        cards,
+        scheme.surfaceContainerHighest,
+    )
+    val track = meter.track
+    val color = meter.indicator
+    val backgrounds = cards.map { track.compositeOver(it) } + cards
     // The emphasis fades the ring toward the track, as an opaque colour held at 3:1 too: a
     // translucent stroke lost the contrast the ring just gained (1.8:1 for yellow).
     val faded = color.copy(alpha = Dimensions.Alpha.medium).compositeOver(track)

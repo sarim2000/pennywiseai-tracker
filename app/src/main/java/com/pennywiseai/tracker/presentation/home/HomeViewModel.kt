@@ -12,6 +12,7 @@ import androidx.work.workDataOf
 import com.pennywiseai.tracker.data.currency.CurrencyConversionService
 import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
+import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.LoanEntity
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.SubscriptionDirection
@@ -43,10 +44,16 @@ import com.pennywiseai.tracker.data.repository.TransactionRepository
 import com.pennywiseai.tracker.domain.model.BudgetCycle
 import com.pennywiseai.tracker.domain.model.buildProfileAccountKeys
 import com.pennywiseai.tracker.domain.model.filterTransactionsByProfile
+import com.pennywiseai.tracker.domain.review.GUESS_HISTORY_WEEKS
 import com.pennywiseai.tracker.domain.review.PeriodReviewLoader
 import com.pennywiseai.tracker.domain.review.ReviewKind
 import com.pennywiseai.tracker.domain.review.ReviewPrompt
+import com.pennywiseai.tracker.domain.review.WeeklyGuessQuestion
+import com.pennywiseai.tracker.domain.review.isCloseGuess
+import com.pennywiseai.tracker.domain.review.localFirstDayOfWeek
 import com.pennywiseai.tracker.domain.review.reviewPromptFor
+import com.pennywiseai.tracker.domain.review.reviewRange
+import com.pennywiseai.tracker.domain.review.weeklyGuessQuestion
 import com.pennywiseai.tracker.domain.spending.Bill
 import com.pennywiseai.tracker.domain.spending.BillSource
 import com.pennywiseai.tracker.domain.spending.CardBillsLoader
@@ -55,6 +62,7 @@ import com.pennywiseai.tracker.domain.spending.SubscriptionCost
 import com.pennywiseai.tracker.domain.usecase.DeleteTransactionUseCase
 import com.pennywiseai.tracker.domain.usecase.RestoreTransactionUseCase
 import com.pennywiseai.tracker.presentation.common.filterAccountsByProfile
+import com.pennywiseai.tracker.ui.components.celebration.CelebrationKeys
 import com.pennywiseai.tracker.utils.Money
 import com.pennywiseai.tracker.utils.canReadSms
 import com.pennywiseai.tracker.utils.sumByCurrency
@@ -80,7 +88,9 @@ import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.flow.mapLatest
 import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import java.math.BigDecimal
 import java.math.RoundingMode
 import java.time.LocalDate
@@ -283,6 +293,17 @@ class HomeViewModel @Inject constructor(
     private val _reviewPrompt = MutableStateFlow<ReviewPrompt?>(null)
     val reviewPrompt: StateFlow<ReviewPrompt?> = _reviewPrompt.asStateFlow()
 
+    /**
+     * The weekly guess on offer (null hides it) and the open guess sheet. The sheet keeps
+     * its own copy of the question, so answering (which retires the card) leaves it open,
+     * and a rotation keeps the guess. The guess lives only here, never on disk. Declared
+     * above init{} for the same reason as [_reviewPrompt].
+     */
+    private val _weeklyGuess = MutableStateFlow<WeeklyGuessQuestion?>(null)
+    val weeklyGuess: StateFlow<WeeklyGuessQuestion?> = _weeklyGuess.asStateFlow()
+    private val _guessSheet = MutableStateFlow<WeeklyGuessSheet?>(null)
+    val guessSheet: StateFlow<WeeklyGuessSheet?> = _guessSheet.asStateFlow()
+
     /** The one-time Home card pointing engaged free users to Pro (#945). */
     val showProHomeCard: StateFlow<Boolean> = combine(
         entitlementGate.resolvedProEntitlement,
@@ -433,6 +454,7 @@ class HomeViewModel @Inject constructor(
         loadUnifiedModePreferences()
         loadUserName()
         observeReviewPrompt()
+        observeWeeklyGuess()
         // Mirror the "count card spend as expense" pref into UI state so the
         // "Money in motion" card can hide its Credit chip when it's on (#705).
         viewModelScope.launch {
@@ -1404,6 +1426,75 @@ class HomeViewModel @Inject constructor(
                 userPreferencesRepository.markSharePromptHandled(prompt.key)
             }
         }
+    }
+
+    /**
+     * Last week's guess, until it's answered or dismissed. Follows the date, the rows in
+     * scope, Home's currency and the categories; reads nothing for a week already handled.
+     */
+    private fun observeWeeklyGuess() {
+        viewModelScope.launch {
+            combine(
+                today,
+                periodReviewLoader.rowCountChanges(),
+                _uiState.map { it.selectedCurrency }.distinctUntilChanged(),
+                userPreferencesRepository.weeklyGuessHandledWeek.distinctUntilChanged(),
+                categoryRepository.getAllCategories(),
+            ) { day, _, currency, handled, categories -> GuessInputs(day, currency, handled, categories) }
+                .collectLatest { (day, currency, handled, categories) ->
+                    val weekStart = reviewRange(ReviewKind.WEEK, -1, day, 1, localFirstDayOfWeek()).start
+                    _weeklyGuess.value = if (handled == weekStart.toString()) null else withContext(Dispatchers.Default) {
+                        val detail = periodReviewLoader.lastWeeks(GUESS_HISTORY_WEEKS + 1, day)
+                        weeklyGuessQuestion(
+                            weeks = detail.cycles,
+                            rowsByCurrency = detail.spendRows
+                                .filter { !it.transaction.dateTime.toLocalDate().isBefore(weekStart) }
+                                .groupingBy { it.transaction.currency }.eachCount(),
+                            food = categories.nameForBuiltin("Food & Dining"),
+                            others = setOf("Others", categories.nameForBuiltin("Others")),
+                            preferred = currency,
+                        )
+                    }
+                }
+        }
+    }
+
+    private data class GuessInputs(val day: LocalDate, val currency: String, val handled: String?, val categories: List<CategoryEntity>)
+
+    fun openWeeklyGuess() {
+        _guessSheet.value = _weeklyGuess.value?.let(::WeeklyGuessSheet)
+    }
+
+    /** Locks in [guess]: the week is handled either way, and a close guess is cheered once. */
+    fun lockInWeeklyGuess(guess: BigDecimal) {
+        val sheet = _guessSheet.value ?: return
+        val question = sheet.question
+        _guessSheet.value = sheet.copy(guess = guess)
+        handleWeeklyGuess(question.weekStart)
+        if (!isCloseGuess(guess, question.actual)) return
+        viewModelScope.launch {
+            if (userPreferencesRepository.celebrateOnce(CelebrationKeys.weeklyGuess(question.weekStart))) {
+                _guessSheet.update { it?.copy(celebrate = true) }
+            }
+        }
+    }
+
+    /** "Not now": the card is gone until next week. */
+    fun dismissWeeklyGuess() {
+        _weeklyGuess.value?.let { handleWeeklyGuess(it.weekStart) }
+    }
+
+    fun closeWeeklyGuess() {
+        _guessSheet.value = null
+    }
+
+    fun onWeeklyGuessCelebrated() {
+        _guessSheet.update { it?.copy(celebrate = false) }
+    }
+
+    private fun handleWeeklyGuess(weekStart: LocalDate) {
+        _weeklyGuess.value = null
+        viewModelScope.launch { userPreferencesRepository.markWeeklyGuessHandled(weekStart.toString()) }
     }
 
     /** "Start on day N" on the payday card: the budget cycle moves to payday, and the card never comes back. */

@@ -469,7 +469,7 @@ it by `Dimensions.Component.bottomBarHeight`.
 - **Celebrations** (`ui/components/celebration/Celebration.kt`): a ~1.2 s
   confetti burst of theme-coloured cookies and sparkles, with
   `HapticFeedbackType.Confirm`, for a moment the user earned (a goal shown as
-  reached, a new achievement tier). Each moment has a key claimed once in
+  reached, a new achievement tier, a weekly guess within 15%). Each moment has a key claimed once in
   DataStore (`celebrateOnce` / `claimCelebrations`, device-only), so it never
   repeats; a first Achievements visit records past tiers without confetti. It
   draws over the screen and takes no touches; with "Remove animations" only the

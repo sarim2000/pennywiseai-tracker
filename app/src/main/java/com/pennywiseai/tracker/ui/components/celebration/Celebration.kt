@@ -134,6 +134,9 @@ object CelebrationKeys {
     fun achievement(key: String, tier: Int) = "achievement:$key:$tier"
     fun budgetMonth(month: java.time.YearMonth, currency: String) = "budget_month:$month:$currency"
 
+    /** A close weekly guess; [weekStart] is the week's first day ("2026-11-09"). */
+    fun weeklyGuess(weekStart: java.time.LocalDate) = "guess:$weekStart"
+
     /**
      * Claimed with the first visit's tiers. When it's among the fresh claims, those tiers
      * are history (an install or upgrade), recorded without confetti.

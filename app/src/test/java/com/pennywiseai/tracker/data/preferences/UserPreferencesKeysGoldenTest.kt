@@ -173,6 +173,7 @@ class UserPreferencesKeysGoldenTest {
             "upi_id" to "String",
             "use_contacts_for_vpa" to "Boolean",
             "user_name" to "String",
+            "weekly_guess_handled_week" to "String",
             "weekly_summary_enabled" to "Boolean",
             "weekly_summary_last_week" to "String",
         )

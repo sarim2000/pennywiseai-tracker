@@ -58,6 +58,7 @@ import com.pennywiseai.tracker.ui.components.skeleton.TransactionItemSkeleton
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
 import com.pennywiseai.tracker.ui.theme.*
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.TrackingProblem
 import com.pennywiseai.tracker.utils.canReceiveSms
 import com.pennywiseai.tracker.utils.trackingProblem
@@ -78,6 +79,8 @@ fun HomeScreen(
     onNavigateToSubscriptions: () -> Unit = {},
     onBillClick: (Long) -> Unit = {},
     onNavigateToReview: (ReviewKind) -> Unit = {},
+    /** Opens the Week review on the week starting that day. */
+    onNavigateToWeekReview: (java.time.LocalDate) -> Unit = {},
     onNavigateToInsights: () -> Unit = {},
     onNavigateToNetWorth: (currency: String) -> Unit = {},
     onNavigateToShareStudio: () -> Unit = {},
@@ -118,6 +121,8 @@ fun HomeScreen(
     val homeShortcuts by viewModel.homeShortcuts.collectAsStateWithLifecycle()
     val showSafeToSpend = homeSectionLayout.any { it.first == HomeSection.SAFE_TO_SPEND && it.second }
     val reviewPrompt by viewModel.reviewPrompt.collectAsStateWithLifecycle()
+    val weeklyGuess by viewModel.weeklyGuess.collectAsStateWithLifecycle()
+    val guessSheet by viewModel.guessSheet.collectAsStateWithLifecycle()
     val showProHomeCard by viewModel.showProHomeCard.collectAsStateWithLifecycle()
     val paydaySuggestion by viewModel.paydaySuggestion.collectAsStateWithLifecycle()
     val recurringSuggestions by viewModel.recurringSuggestions.collectAsStateWithLifecycle()
@@ -505,6 +510,7 @@ fun HomeScreen(
                     // rather than asking a favour, and only appears when the finished period
                     // actually has enough in it to be worth reading.
                     val prompt = reviewPrompt
+                    val guess = weeklyGuess
                     if (prompt != null) {
                         item {
                             ReviewPromptBanner(
@@ -514,6 +520,17 @@ fun HomeScreen(
                                     onNavigateToReview(prompt.kind)
                                 },
                                 onDismiss = { viewModel.markReviewPromptHandled() },
+                                modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
+                            )
+                        }
+                    } else if (guess != null && !uiState.isScanning && !AmountPrivacy.hidden) {
+                        // Last week's guess waits for a review prompt, and for a running
+                        // import (the figure would move under it). Hidden amounts hide it.
+                        item {
+                            WeeklyGuessCard(
+                                question = guess,
+                                onOpen = viewModel::openWeeklyGuess,
+                                onDismiss = viewModel::dismissWeeklyGuess,
                                 modifier = Modifier.padding(horizontal = Dimensions.Padding.content),
                             )
                         }
@@ -878,6 +895,19 @@ fun HomeScreen(
                 onAccountClick(card.bankName, card.accountLast4)
             },
             onDismiss = { showSafeToSpendSheet = false }
+        )
+    }
+
+    guessSheet?.let { sheet ->
+        WeeklyGuessSheet(
+            sheet = sheet,
+            onLockIn = viewModel::lockInWeeklyGuess,
+            onSeeWeek = {
+                viewModel.closeWeeklyGuess()
+                onNavigateToWeekReview(sheet.question.weekStart)
+            },
+            onCelebrated = viewModel::onWeeklyGuessCelebrated,
+            onDismiss = viewModel::closeWeeklyGuess,
         )
     }
 

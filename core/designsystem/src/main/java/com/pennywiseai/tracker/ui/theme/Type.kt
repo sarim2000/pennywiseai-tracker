@@ -214,16 +214,20 @@ fun getTypography(
 
 /**
  * The scale in Google Sans Flex, each role pinned to its own optical size
- * (`opsz` = its font size in sp): small labels get the sturdier, more open
- * small-size cut, display figures the finer large one. Headings are rounded,
- * body and labels square; [grade] is the theme's (lighter in dark mode, see
- * [GoogleSansFlexAxes.DARK_GRADE]).
+ * (`opsz` = its font size in sp): small body text gets the sturdier, more open
+ * small-size cut, display figures the finer large one. Labels stay at
+ * [GoogleSansFlexAxes.LABEL_OPTICAL_SIZE] so they keep the widths their slots
+ * were sized for. Headings are rounded, body and labels square; [grade] is the
+ * theme's (lighter in dark mode, see [GoogleSansFlexAxes.DARK_GRADE]).
  */
 internal fun googleSansFlexTypography(grade: Float): Typography {
     val b = baseTypography(FontFamily.Default, FontFamily.Default)
     fun TextStyle.heading() =
         copy(fontFamily = googleSansFlexFamily(GoogleSansFlexAxes.HEADING_ROUNDNESS, fontSize, grade))
     fun TextStyle.body() = copy(fontFamily = googleSansFlexFamily(GoogleSansFlexAxes.BODY_ROUNDNESS, fontSize, grade))
+    fun TextStyle.label() = copy(
+        fontFamily = googleSansFlexFamily(GoogleSansFlexAxes.BODY_ROUNDNESS, GoogleSansFlexAxes.LABEL_OPTICAL_SIZE, grade)
+    )
     return Typography(
         displayLarge = b.displayLarge.heading(), displayMedium = b.displayMedium.heading(),
         displaySmall = b.displaySmall.heading(),
@@ -231,7 +235,7 @@ internal fun googleSansFlexTypography(grade: Float): Typography {
         headlineSmall = b.headlineSmall.heading(),
         titleLarge = b.titleLarge.heading(), titleMedium = b.titleMedium.heading(), titleSmall = b.titleSmall.heading(),
         bodyLarge = b.bodyLarge.body(), bodyMedium = b.bodyMedium.body(), bodySmall = b.bodySmall.body(),
-        labelLarge = b.labelLarge.body(), labelMedium = b.labelMedium.body(), labelSmall = b.labelSmall.body(),
+        labelLarge = b.labelLarge.label(), labelMedium = b.labelMedium.label(), labelSmall = b.labelSmall.label(),
     ).withEmphasized()
 }
 

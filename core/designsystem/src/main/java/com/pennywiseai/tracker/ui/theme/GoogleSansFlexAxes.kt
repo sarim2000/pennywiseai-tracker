@@ -47,6 +47,15 @@ object GoogleSansFlexAxes {
      */
     val OPTICAL_SIZES: List<Int> = listOf(11, 12, 14, 16, 18, 22, 24, 28, 32, 36, 45, 57)
 
+    /**
+     * Label roles' `opsz`, whatever their size. Below 18 the axis widens
+     * advances (`opsz` 12 sets "Transactions" ~8% wider), and labels sit in
+     * fixed-width single-line slots (nav items, toggles, chips, buttons) that
+     * were sized at 18, so a smaller cut wraps them. Body text reflows freely
+     * and keeps its own size's cut.
+     */
+    const val LABEL_OPTICAL_SIZE = 18f
+
     /** Body, label and money: square terminals, crisp at small sizes and in figures. */
     const val BODY_ROUNDNESS = 0f
 

@@ -64,8 +64,16 @@ class GoogleSansFlexTypographyTest {
 
     @Test
     fun opticalSizeFollowsEachRolesFontSize() {
-        (headingStyles + bodyStyles).forEach { (name, style) ->
+        (headingStyles + bodyStyles).filterKeys { !it.isLabel() }.forEach { (name, style) ->
             assertEquals(name, style.fontSize.value.toInt(), style.flexKeyOrNull()!!.opticalSize)
+        }
+    }
+
+    @Test
+    fun labelsKeepTheWidthsTheirSlotsWereSizedFor() {
+        // A smaller opsz widens advances and wrapped "Transactions" in the nav bar.
+        bodyStyles.filterKeys { it.isLabel() }.forEach { (name, style) ->
+            assertEquals(name, GoogleSansFlexAxes.LABEL_OPTICAL_SIZE.toInt(), style.flexKeyOrNull()!!.opticalSize)
         }
     }
 
@@ -120,10 +128,13 @@ class GoogleSansFlexTypographyTest {
         assertEquals("$label: wght", weight.weight, font.key.weight)
         assertEquals("$label: ROND", roundness.toInt(), font.key.roundness)
         assertEquals("$label: GRAD", grade.toInt(), font.key.grade)
-        assertEquals("$label: opsz", quantizeOpticalSize(style.fontSize.value), font.key.opticalSize)
+        val opticalSize = if (label.isLabel()) GoogleSansFlexAxes.LABEL_OPTICAL_SIZE else style.fontSize.value
+        assertEquals("$label: opsz", quantizeOpticalSize(opticalSize), font.key.opticalSize)
         assertEquals("$label: wght setting", weight.weight.toFloat(), font.axis("wght"))
         assertEquals("$label: opsz setting", font.key.opticalSize.toFloat(), font.axis("opsz"))
     }
+
+    private fun String.isLabel() = startsWith("label")
 
     private fun fontFor(family: FontFamily?, weight: FontWeight): GoogleSansFlexFont? =
         (family as FontListFontFamily).fonts.filterIsInstance<GoogleSansFlexFont>().singleOrNull { it.weight == weight }

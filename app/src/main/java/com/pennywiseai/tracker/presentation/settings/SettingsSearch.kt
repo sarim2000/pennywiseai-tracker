@@ -40,7 +40,12 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalResources
+import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.LiveRegionMode
+import androidx.compose.ui.semantics.contentDescription
+import androidx.compose.ui.semantics.liveRegion
+import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.navigation3.runtime.NavKey
@@ -77,15 +82,23 @@ internal class SettingsSearchEntry(
     @StringRes val parent: Int?,
     val icon: ImageVector,
     val target: NavKey,
+    /** More words that find the row: synonyms, or rows on its page that only show once it is on. */
+    val keywords: List<Int> = emptyList(),
 )
 
-private class Row(@StringRes val title: Int, @StringRes val subtitle: Int? = null, val target: NavKey? = null)
+private class Row(
+    @StringRes val title: Int,
+    @StringRes val subtitle: Int? = null,
+    val target: NavKey? = null,
+    val keywords: List<Int> = emptyList(),
+)
 
 // ponytail: a hand-kept list of the rows on each page, since the pages declare their
 // rows inline. A tap opens the row's page (or its own screen); scrolling to the row
-// itself waits until someone misses it. Rows that appear once a control on their own
-// page is set (lock timeout, display currency, AMOLED) are kept: the page shows how.
-// Left out: rows that hang on something elsewhere (main account needs an account,
+// itself waits until someone misses it. A row that only shows once a switch above it
+// is on (lock timeout, display currency, back up now) is a keyword of that switch, so
+// the tap never lands on a page without it. SettingsSearchTest fails when a page gains
+// a row this list neither holds nor skips. Left out: rows that hang on something elsewhere (main account needs an account,
 // Budgets/Subscriptions a hidden Plan tab, the conscience nudge the app language,
 // Mascot Playground developer mode), the Pro/support row, which differs by flavor,
 // and the Help links, which leave the app. Pro-gated screens (AI access, webhooks)
@@ -93,7 +106,7 @@ private class Row(@StringRes val title: Int, @StringRes val subtitle: Int? = nul
 internal val settingsSearchIndex: List<SettingsSearchEntry> = buildList {
     fun page(title: Int, subtitle: Int?, icon: ImageVector, target: NavKey, vararg rows: Row) {
         add(SettingsSearchEntry(title, subtitle, null, icon, target))
-        rows.forEach { add(SettingsSearchEntry(it.title, it.subtitle, title, icon, it.target ?: target)) }
+        rows.forEach { add(SettingsSearchEntry(it.title, it.subtitle, title, icon, it.target ?: target, it.keywords)) }
     }
     fun section(title: Int, subtitle: Int, icon: ImageVector, section: SettingsSection, vararg rows: Row) =
         page(title, subtitle, icon, SettingsPage(section), *rows)
@@ -130,15 +143,16 @@ internal val settingsSearchIndex: List<SettingsSearchEntry> = buildList {
     section(
         R.string.settings_currency_section, R.string.settings_currency_summary, Icons.Default.CurrencyExchange, SettingsSection.CURRENCY,
         Row(R.string.settings_default_currency_title, R.string.settings_default_currency_subtitle),
-        Row(R.string.settings_unified_currency_title, R.string.settings_unified_currency_subtitle),
-        // Shows once unified currency is on; its switch is on the same page.
-        Row(R.string.settings_display_currency_title, R.string.settings_display_currency_subtitle),
+        Row(
+            R.string.settings_unified_currency_title, R.string.settings_unified_currency_subtitle,
+            keywords = listOf(R.string.settings_display_currency_title),
+        ),
         Row(R.string.settings_exchange_rates_title, R.string.settings_exchange_rates_subtitle, ExchangeRates),
     )
     page(
         R.string.settings_appearance_title, R.string.settings_appearance_subtitle, Icons.Default.Palette, Appearance,
-        Row(R.string.appearance_mode_light),
-        Row(R.string.appearance_mode_dark),
+        Row(R.string.appearance_mode_light, keywords = listOf(R.string.settings_search_keywords_light)),
+        Row(R.string.appearance_mode_dark, keywords = listOf(R.string.settings_search_keywords_dark)),
         Row(R.string.appearance_fonts_section),
         Row(R.string.appearance_navigation_section),
         Row(R.string.appearance_bottom_bar_section, R.string.appearance_bottom_bar_subtitle),
@@ -163,9 +177,10 @@ internal val settingsSearchIndex: List<SettingsSearchEntry> = buildList {
     )
     section(
         R.string.settings_security_section, R.string.settings_security_summary, Icons.Default.Lock, SettingsSection.SECURITY,
-        Row(R.string.settings_app_lock_title),
-        // Shows once App Lock is on.
-        Row(R.string.settings_lock_timeout_title),
+        Row(
+            R.string.settings_app_lock_title,
+            keywords = listOf(R.string.settings_lock_timeout_title, R.string.settings_search_keywords_app_lock),
+        ),
         Row(R.string.settings_shake_to_hide_title, R.string.settings_shake_to_hide_subtitle),
     )
     section(
@@ -173,7 +188,14 @@ internal val settingsSearchIndex: List<SettingsSearchEntry> = buildList {
         Row(R.string.settings_export_data_title, R.string.settings_export_data_subtitle),
         Row(R.string.settings_export_include_receipts_title, R.string.settings_export_include_receipts_subtitle),
         Row(R.string.settings_import_data_title, R.string.settings_import_data_subtitle),
-        Row(R.string.settings_folder_backup_title),
+        Row(
+            R.string.settings_folder_backup_title,
+            keywords = listOf(
+                R.string.settings_backup_now_title,
+                R.string.settings_folder_backup_include_receipts_title,
+                R.string.settings_change_backup_folder_title,
+            ),
+        ),
         Row(R.string.settings_import_csv_title, R.string.settings_import_csv_subtitle),
         Row(R.string.settings_delete_all_title, R.string.settings_delete_all_subtitle),
     )
@@ -210,27 +232,43 @@ internal fun normalizeForSearch(text: String): String =
         .replace('ة', 'ه')
         .replace("ـ", "")
         .lowercase()
+        .trim()
+
+internal fun searchWords(query: String): List<String> = normalizeForSearch(query).split(' ').filter { it.isNotEmpty() }
 
 /**
- * The items holding every word of [query] in their [title] or [rest], titles that
- * start with the query first, then titles holding it all, then the rest; list order
- * breaks ties.
+ * The items holding every word of [query] somewhere in their [fields] (title first,
+ * then the rest by weight), best first: the exact title, a title starting with the
+ * query, then by how well each word matched. A word starting a word beats one inside
+ * a word ("curr" puts Currency above Recurring), and an earlier field beats a later
+ * one. List order breaks ties.
+ * ponytail: substring match, no typo tolerance ("bakup" finds nothing); fuzzy
+ * matching if people ask for it.
  */
-internal fun <T> List<T>.matchingSearch(query: String, title: (T) -> String, rest: (T) -> String): List<T> {
-    val needle = normalizeForSearch(query).trim()
-    val words = needle.split(whitespace).filter { it.isNotEmpty() }
+internal fun <T> List<T>.matchingSearch(query: String, fields: (T) -> List<String>): List<T> {
+    val words = searchWords(query)
     if (words.isEmpty()) return emptyList()
-    return map { Triple(it, normalizeForSearch(title(it)), normalizeForSearch(rest(it))) }
-        .filter { (_, t, r) -> words.all { it in t || it in r } }
-        .sortedBy { (_, t, _) ->
-            when {
-                t.startsWith(needle) -> 0
-                words.all { it in t } -> 1
-                else -> 2
-            }
+    val needle = words.joinToString(" ")
+    return mapNotNull { item ->
+        val texts = fields(item).map(::normalizeForSearch)
+        val cost = words.sumOf { word -> wordCost(word, texts) ?: return@mapNotNull null }
+        val title = texts.first()
+        item to when {
+            title == needle -> -2
+            title.startsWith(needle) -> -1
+            else -> cost
         }
-        .map { it.first }
+    }.sortedBy { it.second }.map { it.first }
 }
+
+/** How well [word] matches its best field in [texts]; null when it is in none. */
+private fun wordCost(word: String, texts: List<String>): Int? = texts.indices.mapNotNull { i ->
+    when {
+        texts[i].startsWith(word) || " $word" in texts[i] -> i
+        word in texts[i] -> texts.size + i
+        else -> null
+    }
+}.minOrNull()
 
 /**
  * The hub's search field, in place of the bar's title. It takes focus only when [focus]
@@ -240,6 +278,8 @@ internal fun <T> List<T>.matchingSearch(query: String, title: (T) -> String, res
 internal fun SettingsSearchField(state: TextFieldState, focus: Boolean, modifier: Modifier = Modifier) {
     val focusRequester = remember { FocusRequester() }
     LaunchedEffect(Unit) { if (focus) focusRequester.requestFocus() }
+    // The placeholder goes once there is text, so TalkBack gets the label from here.
+    val label = stringResource(R.string.settings_search)
     BasicTextField(
         state = state,
         lineLimits = TextFieldLineLimits.SingleLine,
@@ -247,12 +287,13 @@ internal fun SettingsSearchField(state: TextFieldState, focus: Boolean, modifier
         cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
         modifier = modifier
             .fillMaxWidth()
-            .focusRequester(focusRequester),
+            .focusRequester(focusRequester)
+            .semantics { contentDescription = label },
         decorator = { innerTextField ->
             Box {
                 if (state.text.isEmpty()) {
                     Text(
-                        text = stringResource(R.string.settings_search),
+                        text = label,
                         style = MaterialTheme.typography.bodyLarge,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         maxLines = 1,
@@ -265,39 +306,45 @@ internal fun SettingsSearchField(state: TextFieldState, focus: Boolean, modifier
     )
 }
 
-private class ResolvedEntry(val entry: SettingsSearchEntry, val title: String, val subtitle: String, val searchText: String)
+private class ResolvedEntry(
+    val entry: SettingsSearchEntry,
+    val title: String,
+    val subtitle: String?,
+    val parent: String?,
+    val fields: List<String>,
+)
 
-/** What matches [query], each row naming the page it lives on; nothing until something is typed. */
+/**
+ * What matches [query], each row naming the page it lives on, or its own subtitle
+ * when that is where a word matched. Counts are announced to TalkBack as they change.
+ */
 @Composable
 internal fun SettingsSearchResults(query: String, contentPadding: PaddingValues, onNavigate: (NavKey) -> Unit) {
     val resources = LocalResources.current
     val resolved = remember(resources) {
         settingsSearchIndex.map { entry ->
+            val title = resources.getString(entry.title)
             val subtitle = entry.subtitle?.let(resources::getString)
             val parent = entry.parent?.let(resources::getString)
-            ResolvedEntry(
-                entry = entry,
-                title = resources.getString(entry.title),
-                subtitle = parent ?: subtitle.orEmpty(),
-                searchText = listOfNotNull(subtitle, parent).joinToString(" "),
-            )
+            val keywords = entry.keywords.joinToString(" ") { resources.getString(it) }
+            ResolvedEntry(entry, title, subtitle, parent, listOf(title, subtitle.orEmpty(), keywords, parent.orEmpty()))
         }
     }
-    val results = remember(resolved, query) { resolved.matchingSearch(query, { it.title }, { it.searchText }) }
+    val results = remember(resolved, query) { resolved.matchingSearch(query) { it.fields } }
+    val words = remember(query) { searchWords(query) }
 
     if (results.isEmpty()) {
-        if (query.isNotBlank()) {
-            Text(
-                text = stringResource(R.string.settings_search_empty, query.trim()),
-                style = MaterialTheme.typography.bodyLarge,
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                textAlign = TextAlign.Center,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(contentPadding)
-                    .padding(Dimensions.Padding.content),
-            )
-        }
+        Text(
+            text = stringResource(R.string.settings_search_empty, query.trim()),
+            style = MaterialTheme.typography.bodyLarge,
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            textAlign = TextAlign.Center,
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(contentPadding)
+                .padding(Dimensions.Padding.content)
+                .semantics { liveRegion = LiveRegionMode.Polite },
+        )
         return
     }
     LazyColumn(
@@ -307,11 +354,24 @@ internal fun SettingsSearchResults(query: String, contentPadding: PaddingValues,
         contentPadding = contentPadding,
         verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap),
     ) {
+        item(key = "count") {
+            Text(
+                text = pluralStringResource(R.plurals.settings_search_results, results.size, results.size),
+                style = MaterialTheme.typography.labelLarge,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                modifier = Modifier
+                    .padding(horizontal = Spacing.md)
+                    .semantics { liveRegion = LiveRegionMode.Polite },
+            )
+        }
         itemsIndexed(results, key = { _, it -> "${it.entry.title}/${it.entry.target}" }) { index, result ->
+            val ownSubtitle = result.subtitle?.let(::normalizeForSearch)
+            val title = normalizeForSearch(result.title)
+            val matchedSubtitle = ownSubtitle != null && words.any { it !in title && it in ownSubtitle }
             SettingsNavItem(
                 icon = result.entry.icon,
                 title = result.title,
-                subtitle = result.subtitle,
+                subtitle = if (matchedSubtitle) result.subtitle else result.parent ?: result.subtitle.orEmpty(),
                 onClick = { onNavigate(result.entry.target) },
                 position = ListItemPosition.from(index, results.size),
             )

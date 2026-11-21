@@ -116,8 +116,13 @@ fun SettingsScreen(
     var showSupportDialog by remember { mutableStateOf(false) }
     // Search takes over the bar and the page; Back closes it before it leaves Settings.
     var searching by rememberSaveable { mutableStateOf(false) }
-    // Not saved: a field recreated on the way back from a result stays unfocused.
-    var focusSearch by remember { mutableStateOf(false) }
+    // Saved so rotation keeps the keyboard up; cleared on the way into a result so the
+    // field stays unfocused when the user comes back to the list.
+    var focusSearch by rememberSaveable { mutableStateOf(false) }
+    val navigate: (NavKey) -> Unit = {
+        focusSearch = false
+        onNavigate(it)
+    }
     val searchQuery = rememberTextFieldState()
     val closeSearch = {
         searching = false
@@ -148,15 +153,21 @@ fun SettingsScreen(
                 },
                 navigationIcon = { SettingsNavigationContent(if (searching) closeSearch else onNavigateBack) },
                 actions = {
+                    // Same filled circle and edge inset as the back button.
+                    val barIconInset = Modifier.padding(end = Spacing.md)
+                    val barIconColors = IconButtonDefaults.iconButtonColors(
+                        containerColor = MaterialTheme.colorScheme.surfaceContainer,
+                        contentColor = MaterialTheme.colorScheme.onBackground,
+                    )
                     if (!searching) {
                         IconButton(onClick = {
                             searching = true
                             focusSearch = true
-                        }, shapes = IconButtonDefaults.shapes()) {
+                        }, colors = barIconColors, shapes = IconButtonDefaults.shapes(), modifier = barIconInset) {
                             Icon(Icons.Default.Search, contentDescription = stringResource(R.string.settings_search))
                         }
                     } else if (searchQuery.text.isNotEmpty()) {
-                        IconButton(onClick = { searchQuery.clearText() }, shapes = IconButtonDefaults.shapes()) {
+                        IconButton(onClick = { searchQuery.clearText() }, colors = barIconColors, shapes = IconButtonDefaults.shapes(), modifier = barIconInset) {
                             Icon(Icons.Default.Clear, contentDescription = stringResource(R.string.txn_list_clear_search))
                         }
                     }
@@ -168,17 +179,18 @@ fun SettingsScreen(
             )
         },
     ) { paddingValues ->
-        if (searching) {
+        // Until something is typed the hub stays under the field.
+        if (searching && searchQuery.text.isNotBlank()) {
             val direction = LocalLayoutDirection.current
             SettingsSearchResults(
                 query = searchQuery.text.toString(),
                 contentPadding = PaddingValues(
                     start = paddingValues.calculateStartPadding(direction) + Dimensions.Padding.content,
-                    top = paddingValues.calculateTopPadding(),
+                    top = paddingValues.calculateTopPadding() + Spacing.md,
                     end = paddingValues.calculateEndPadding(direction) + Dimensions.Padding.content,
                     bottom = paddingValues.calculateBottomPadding() + Spacing.Layout.scrollBottomPadding,
                 ),
-                onNavigate = onNavigate,
+                onNavigate = navigate,
             )
             return@PennyWiseScaffold
         }
@@ -199,7 +211,7 @@ fun SettingsScreen(
             )
 
             // What people came to Settings for most, one tap away instead of a page deep.
-            SettingsShortcutTiles(state = hub, onNavigate = onNavigate)
+            SettingsShortcutTiles(state = hub, onNavigate = navigate)
 
             // Its own block, high on the page: the highest-discoverability slot.
             SettingsGroup {
@@ -230,7 +242,7 @@ fun SettingsScreen(
                 }
             }
 
-            fun open(section: SettingsSection) = onNavigate(SettingsPage(section))
+            fun open(section: SettingsSection) = navigate(SettingsPage(section))
 
             SettingsGroupHeader(stringResource(R.string.settings_hub_money))
             SettingsGroup {
@@ -271,7 +283,7 @@ fun SettingsScreen(
                     icon = Icons.Default.Palette,
                     title = stringResource(R.string.settings_appearance_title),
                     subtitle = stringResource(R.string.settings_appearance_subtitle),
-                    onClick = { onNavigate(Appearance) },
+                    onClick = { navigate(Appearance) },
                     position = ListItemPosition.Top,
                     trailingText = stringResource(
                         when (hub.isDarkTheme) {
@@ -341,7 +353,7 @@ fun SettingsScreen(
                     icon = Icons.AutoMirrored.Filled.Help,
                     title = stringResource(R.string.settings_help_faq_title),
                     subtitle = stringResource(R.string.settings_help_faq_subtitle),
-                    onClick = { onNavigate(Faq) },
+                    onClick = { navigate(Faq) },
                     position = ListItemPosition.Top,
                 )
                 HubRow(

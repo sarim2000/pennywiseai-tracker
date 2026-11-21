@@ -1435,7 +1435,8 @@ class HomeViewModel @Inject constructor(
     private fun observeWeeklyGuess() {
         viewModelScope.launch {
             combine(
-                today,
+                // The card-spend setting changes Review's figures without changing any rows.
+                combine(today, userPreferencesRepository.countCreditCardAsExpense.distinctUntilChanged()) { day, _ -> day },
                 periodReviewLoader.rowCountChanges(),
                 _uiState.map { it.selectedCurrency }.distinctUntilChanged(),
                 userPreferencesRepository.weeklyGuessHandledWeek.distinctUntilChanged(),

@@ -100,6 +100,19 @@ class WeeklyGuessTest {
     }
 
     @Test
+    fun `a tiny week, or one far below a big history, still has a pick that hits`() {
+        fun reachable(q: WeeklyGuessQuestion) = generateSequence(BigDecimal.ZERO) { it + q.step }
+            .takeWhile { it <= q.max }.any { isCloseGuess(it, q.actual) }
+        val tiny = question(mapOf("USD" to weeks(mapOf("Food & Dining" to "0.40"))))!!
+        assertTrue(reachable(tiny))
+        assertTrue(tiny.chips.all { it <= tiny.max })
+        val quiet = question(
+            mapOf("USD" to weeks(mapOf("Food & Dining" to "1000"), mapOf("Food & Dining" to "1000"), mapOf("Food & Dining" to "12"))),
+        )!!
+        assertTrue(reachable(quiet))
+    }
+
+    @Test
     fun `without history the slider is twice last week`() {
         assertEquals(BigDecimal("150"), guessMax(BigDecimal("70"), emptyList()))
         // Weeks with no spending in the category don't pull it to nothing.

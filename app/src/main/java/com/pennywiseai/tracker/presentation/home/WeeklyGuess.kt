@@ -26,12 +26,16 @@ import androidx.compose.material3.IconButtonDefaults
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Slider
+import androidx.compose.material3.SliderDefaults
+import androidx.compose.material3.SliderState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
@@ -57,6 +61,8 @@ import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.DateRangeUtils
 import java.math.BigDecimal
+import java.math.RoundingMode
+import kotlin.math.roundToInt
 
 /** The open guess: its question, the locked-in guess once there is one, and whether to cheer it. */
 data class WeeklyGuessSheet(
@@ -179,6 +185,7 @@ internal fun WeeklyGuessSheet(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun GuessPicker(question: WeeklyGuessQuestion, onLockIn: (BigDecimal) -> Unit) {
     // A quarter of the way, as a starting point the user moves: never the answer's own spot.
@@ -202,10 +209,21 @@ private fun GuessPicker(question: WeeklyGuessQuestion, onLockIn: (BigDecimal) ->
                 color = MaterialTheme.colorScheme.primary,
                 maxLines = 1,
             )
+            // In whole steps, so a keyboard or TalkBack nudge moves one step rather than
+            // a fraction that snaps back. The ticks aren't drawn: there can be dozens.
+            val stepCount = question.max.divide(question.step, 0, RoundingMode.DOWN).toInt()
+            val index = amount.divide(question.step, 0, RoundingMode.HALF_UP).toFloat()
+            val slider = remember(question.weekStart, stepCount) {
+                SliderState(index, (stepCount - 1).coerceAtLeast(0), 0f..stepCount.toFloat())
+            }
+            // A chip moves the thumb too.
+            SideEffect { if (slider.value != index) slider.value = index }
             Slider(
-                value = amount.toFloat(),
-                onValueChange = { picked = snap(BigDecimal(it.toDouble()), question.step).min(question.max).toPlainString() },
-                valueRange = 0f..question.max.toFloat(),
+                state = slider,
+                onValueChange = {
+                    picked = (question.step * BigDecimal(it.roundToInt())).min(question.max).stripTrailingZeros().toPlainString()
+                },
+                track = { SliderDefaults.Track(sliderState = it, drawTick = { _, _ -> }) },
                 modifier = Modifier.semantics {
                     contentDescription = label
                     stateDescription = shown

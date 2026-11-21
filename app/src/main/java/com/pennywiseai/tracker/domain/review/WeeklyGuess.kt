@@ -63,7 +63,9 @@ internal fun weeklyGuessQuestion(
     val week = totals.last()
     val actual = week.byCategory.getValue(category)
     val max = guessMax(actual, totals.dropLast(1).takeLast(GUESS_HISTORY_WEEKS).filter { it.hasActivity }.map { it.byCategory[category] ?: BigDecimal.ZERO })
-    val step = guessStep(max)
+    // A step fine enough that some pick lands within the hit band, even for a tiny week.
+    val step = generateSequence(guessStep(max)) { it.divide(BigDecimal.TEN) }
+        .first { it <= actual * BigDecimal("0.3") }.plain()
     return WeeklyGuessQuestion(
         weekStart = week.start,
         weekEnd = week.end,

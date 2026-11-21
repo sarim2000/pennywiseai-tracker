@@ -898,7 +898,9 @@ fun HomeScreen(
         )
     }
 
-    guessSheet?.let { sheet ->
+    // Hiding amounts closes the guess: its gap and grading would still give the figure away.
+    LaunchedEffect(AmountPrivacy.hidden) { if (AmountPrivacy.hidden) viewModel.closeWeeklyGuess() }
+    guessSheet?.takeUnless { AmountPrivacy.hidden }?.let { sheet ->
         WeeklyGuessSheet(
             sheet = sheet,
             onLockIn = viewModel::lockInWeeklyGuess,

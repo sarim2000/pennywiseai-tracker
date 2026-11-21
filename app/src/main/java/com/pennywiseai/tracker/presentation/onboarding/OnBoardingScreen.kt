@@ -139,6 +139,9 @@ fun OnBoardingScreen(
         Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU &&
         ContextCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS) !=
         PackageManager.PERMISSION_GRANTED
+    // Hoisted past the step transitions so the wordmark plays once per onboarding,
+    // not again on coming back to the first step.
+    var wordmarkPlayed by rememberSaveable { mutableStateOf(false) }
     Scaffold(
         bottomBar = {
             OnBoardingBottomBar(
@@ -201,7 +204,9 @@ fun OnBoardingScreen(
             when (step) {
                 OnBoardingStep.WELCOME -> WelcomeStep(
                     uiState = uiState,
-                    viewModel = viewModel
+                    viewModel = viewModel,
+                    wordmarkPlayed = wordmarkPlayed,
+                    onWordmarkPlayed = { wordmarkPlayed = true }
                 )
                 OnBoardingStep.PROFILE -> ProfileStep(
                     uiState = uiState,
@@ -228,7 +233,9 @@ fun OnBoardingScreen(
 @Composable
 private fun WelcomeStep(
     uiState: OnBoardingUiState,
-    viewModel: OnBoardingViewModel
+    viewModel: OnBoardingViewModel,
+    wordmarkPlayed: Boolean,
+    onWordmarkPlayed: () -> Unit
 ) {
     Column(
         modifier = Modifier
@@ -250,11 +257,14 @@ private fun WelcomeStep(
 
         Spacer(modifier = Modifier.height(Spacing.xl))
 
-        Text(
+        WelcomeTitle(
             text = stringResource(R.string.onboarding_welcome_title),
-            style = MaterialTheme.typography.headlineLarge,
-            textAlign = TextAlign.Center,
-            fontWeight = FontWeight.Bold
+            style = MaterialTheme.typography.headlineLarge.copy(
+                fontWeight = FontWeight.Bold,
+                textAlign = TextAlign.Center
+            ),
+            played = wordmarkPlayed,
+            onPlayed = onWordmarkPlayed
         )
 
         Spacer(modifier = Modifier.height(Spacing.md))

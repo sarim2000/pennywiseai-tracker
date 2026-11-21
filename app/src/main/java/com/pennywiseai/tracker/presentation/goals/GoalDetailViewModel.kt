@@ -72,9 +72,9 @@ class GoalDetailViewModel @Inject constructor(
     val celebrate: StateFlow<Boolean> = _celebrate.asStateFlow()
 
     /** The screen shows this goal as reached: cheer, the first time only. */
-    fun onShownReached() {
+    fun onShownReached(goalUid: String) {
         viewModelScope.launch {
-            if (preferences.celebrateOnce(CelebrationKeys.goalReached(goalId))) _celebrate.value = true
+            if (preferences.celebrateOnce(CelebrationKeys.goalReached(goalUid))) _celebrate.value = true
         }
     }
 

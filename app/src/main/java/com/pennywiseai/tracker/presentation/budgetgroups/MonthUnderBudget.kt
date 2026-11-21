@@ -22,6 +22,7 @@ import androidx.compose.ui.semantics.heading
 import androidx.compose.ui.semantics.semantics
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
+import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
 import com.pennywiseai.tracker.data.repository.BudgetOverallSummary
 import com.pennywiseai.tracker.ui.components.celebration.CelebrationKeys
 import com.pennywiseai.tracker.ui.components.mascot.Mascot
@@ -49,9 +50,12 @@ data class MonthUnderBudget(val month: YearMonth, val currency: String) {
  */
 fun monthUnderBudget(today: LocalDate, previous: BudgetOverallSummary, dismissed: String?): MonthUnderBudget? {
     if (today.dayOfMonth > UNDER_BUDGET_CARD_DAYS) return null
-    val limits = previous.groups.filter { it.group.budget.groupType == BudgetGroupType.LIMIT && it.hasLimit }
-    // ponytail: a Weekly limit is judged on its displayed (last) week, as the page shows it;
-    // check previousWindows too if users ask why a blown first week still cheered.
+    // Monthly limits only: a month's summary shows a Weekly budget's last week and clips a
+    // One-time budget to the month, so neither says whether it held.
+    // ponytail: weekly and one-time limits neither count nor block; judge their own windows if asked.
+    val limits = previous.groups.filter {
+        it.group.budget.groupType == BudgetGroupType.LIMIT && it.periodType == BudgetPeriodType.MONTHLY && it.hasLimit
+    }
     val kept = limits.isNotEmpty() &&
         limits.any { it.totalActual.signum() > 0 } &&
         limits.all { it.totalActual <= it.totalBudget && !it.hasUnconvertedSpend }

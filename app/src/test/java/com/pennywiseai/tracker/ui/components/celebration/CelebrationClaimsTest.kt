@@ -38,15 +38,15 @@ class CelebrationClaimsTest {
 
     @Test
     fun `keys name the moment`() {
-        assertEquals("goal_reached:12", CelebrationKeys.goalReached(12))
+        assertEquals("goal_reached:uid-12", CelebrationKeys.goalReached("uid-12"))
         assertEquals("achievement:streak:2", CelebrationKeys.achievement("streak", 2))
     }
 
     @Test
     fun `a moment is celebrated once`() = runBlocking {
-        assertTrue(repository.celebrateOnce(CelebrationKeys.goalReached(1)))
-        assertFalse(repository.celebrateOnce(CelebrationKeys.goalReached(1)))
-        assertTrue(repository.celebrateOnce(CelebrationKeys.goalReached(2)))
+        assertTrue(repository.celebrateOnce(CelebrationKeys.goalReached("a")))
+        assertFalse(repository.celebrateOnce(CelebrationKeys.goalReached("a")))
+        assertTrue(repository.celebrateOnce(CelebrationKeys.goalReached("b")))
     }
 
     @Test

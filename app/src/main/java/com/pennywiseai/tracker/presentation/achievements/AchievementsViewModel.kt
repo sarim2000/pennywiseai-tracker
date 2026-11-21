@@ -60,7 +60,9 @@ class AchievementsViewModel @Inject constructor(
      * before this existed (install, upgrade) are history, not news.
      */
     fun onShown(list: List<Achievement>) {
-        val keys = list.filter { it.earned }.map { CelebrationKeys.achievement(it.id.key, it.tier) }
+        // Every tier up to the earned one, so losing a tier later (a deleted transaction)
+        // doesn't make a lower one look new.
+        val keys = list.flatMap { a -> (1..a.tier).map { CelebrationKeys.achievement(a.id.key, it) } }
         viewModelScope.launch {
             val fresh = preferences.claimCelebrations(keys + CelebrationKeys.ACHIEVEMENTS_SEEDED)
             if (CelebrationKeys.celebratesAchievements(fresh)) _celebrate.value = true

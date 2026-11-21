@@ -81,7 +81,8 @@ class BudgetGroupsViewModel @Inject constructor(
         // Past the first week there's nothing to show: skip last month's query.
         if (today.dayOfMonth > UNDER_BUDGET_CARD_DAYS) flowOf(null)
         else combine(
-            budgetSummaryProvider.summary(YearMonth.from(today).minusMonths(1)),
+            // Flagged: spending in another currency it can't count would hide an overspend.
+            budgetSummaryProvider.summary(YearMonth.from(today).minusMonths(1), flagUncounted = true),
             userPreferencesRepository.budgetMonthCardDismissed,
         ) { summary, dismissed -> monthUnderBudget(today, summary, dismissed) }
     }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)

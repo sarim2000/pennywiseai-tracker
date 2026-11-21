@@ -68,6 +68,14 @@ class MonthUnderBudgetTest {
     }
 
     @Test
+    fun `weekly limits neither count nor block`() {
+        // The month's page shows only a Weekly budget's last week, which can hide a blown first one.
+        val weekly = group("900").copy(periodType = BudgetPeriodType.WEEKLY)
+        assertEquals("JOD", monthUnderBudget(nov3, summary(group("100"), weekly), null)?.currency)
+        assertNull(monthUnderBudget(nov3, summary(group("100").copy(periodType = BudgetPeriodType.WEEKLY)), null))
+    }
+
+    @Test
     fun `shows the first week only, and not once dismissed`() {
         val kept = summary(group("100"))
         assertEquals(YearMonth.of(2026, 10), monthUnderBudget(LocalDate.parse("2026-11-07"), kept, null)?.month)

@@ -363,6 +363,14 @@ private fun BudgetGroupsContent(
     // so a rotation or a refreshed list doesn't do it again after the user has moved on.
     var focusPending by rememberSaveable { mutableStateOf(focusBudgetId != null) }
     var expandBudgetId by remember { mutableStateOf<Long?>(null) }
+    // The win card loads after the list, and a lazy list keeps its first item in place, so the
+    // card would land above the top, half hidden. A list still at its top scrolls up to show it.
+    LaunchedEffect(win != null) {
+        val cardIndex = if (goalsSection == null) 0 else 1
+        if (win != null && !focusPending && lazyListState.firstVisibleItemIndex <= cardIndex + 1) {
+            lazyListState.scrollToItem(0)
+        }
+    }
     LaunchedEffect(summaryReady) {
         if (!focusPending || !summaryReady) return@LaunchedEffect
         // Budgets follow the month selector, the win card when shown and, on the standalone page, Goals.

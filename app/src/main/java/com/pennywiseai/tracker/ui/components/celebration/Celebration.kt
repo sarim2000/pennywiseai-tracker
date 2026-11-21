@@ -12,8 +12,10 @@ import androidx.compose.material3.toPath
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberUpdatedState
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.graphics.Color
@@ -36,8 +38,8 @@ private const val PIECES = 56
 /**
  * A one-shot confetti burst with a Confirm haptic, for a moment the user earned (a goal
  * reached, a new badge). Place it last in a screen-filling Box; it draws over the screen
- * and never takes a touch. When [play] turns true it bursts once, then calls [onFinished],
- * where the caller clears [play]. With animations off only the haptic lands: the screen's
+ * and never takes a touch. When [play] turns true it calls [onFinished] (where the caller
+ * clears [play]) and bursts once. With animations off only the haptic lands: the screen's
  * own "reached" state is the static badge. Claim the moment first with
  * `UserPreferencesRepository.celebrateOnce`, so it fires once per key, ever.
  */
@@ -47,17 +49,25 @@ fun Celebration(play: Boolean, onFinished: () -> Unit, modifier: Modifier = Modi
     val animate = rememberAnimationsEnabled()
     val finished by rememberUpdatedState(onFinished)
     val time = remember { Animatable(0f) }
+    // The request is consumed as the burst starts, so a rotation mid-burst can't replay it
+    // (haptic included): the burst itself lives only in this composition.
+    var playing by remember { mutableStateOf(false) }
     LaunchedEffect(play) {
         if (!play) return@LaunchedEffect
+        playing = true
+        finished()
+    }
+    LaunchedEffect(playing) {
+        if (!playing) return@LaunchedEffect
         haptics.performHapticFeedback(HapticFeedbackType.Confirm)
         if (animate) {
             time.snapTo(0f)
             // A linear clock, not a spring: the pieces' own physics shape the motion.
             time.animateTo(1f, tween(BURST_MILLIS, easing = LinearEasing))
         }
-        finished()
+        playing = false
     }
-    if (!play || !animate) return
+    if (!playing || !animate) return
 
     val scheme = MaterialTheme.colorScheme
     val colors = listOf(scheme.primary, scheme.secondary, scheme.tertiary, scheme.primaryContainer, scheme.tertiaryContainer)
@@ -119,7 +129,8 @@ private class Piece(
 
 /** Celebration keys: one per moment, so each fires once on this device. */
 object CelebrationKeys {
-    fun goalReached(goalId: Long) = "goal_reached:$goalId"
+    /** By uid, not row id: a restore can give another goal the same id. */
+    fun goalReached(goalUid: String) = "goal_reached:$goalUid"
     fun achievement(key: String, tier: Int) = "achievement:$key:$tier"
     fun budgetMonth(month: java.time.YearMonth, currency: String) = "budget_month:$month:$currency"
 

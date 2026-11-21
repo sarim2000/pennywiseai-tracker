@@ -130,7 +130,7 @@ fun GoalDetailScreen(
     val progress = detail?.progress
     fun open(m: MoneySheetMode) { viewModel.resetSheet(); mode = m }
     // Whether it was reached just now by Add money or long ago, the first sight of it cheers.
-    LaunchedEffect(progress?.status) { if (progress?.status == GoalStatus.REACHED) viewModel.onShownReached() }
+    LaunchedEffect(progress?.status) { if (progress?.status == GoalStatus.REACHED) viewModel.onShownReached(progress.goal.uid) }
 
     Box(Modifier.fillMaxSize()) {
         PennyWiseScaffold(

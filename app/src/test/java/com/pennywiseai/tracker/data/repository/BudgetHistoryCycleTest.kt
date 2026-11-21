@@ -102,6 +102,14 @@ class BudgetHistoryCycleTest {
     }
 
     @Test
+    fun `an ended cycle is frozen as of its own end, not the month end`() {
+        val today = LocalDate.of(2026, 11, 20)
+
+        assertEquals(LocalDate.of(2026, 11, 4), history(11, today)[0].capDate)
+        assertEquals(LocalDate.of(2026, 10, 4), history(10, today).single().capDate)
+    }
+
+    @Test
     fun `before the start day the running cycle is listed once and is live`() {
         val november = history(11, LocalDate.of(2026, 11, 3))
 

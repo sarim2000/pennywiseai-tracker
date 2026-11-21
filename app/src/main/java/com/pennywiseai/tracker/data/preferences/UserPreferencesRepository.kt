@@ -71,6 +71,9 @@ private val Context.dataStore: DataStore<Preferences> by preferencesDataStore(
  */
 const val DAILY_SUMMARY_DEFAULT = false
 
+/** The name stored for someone who never gave one. */
+const val DEFAULT_USER_NAME = "User"
+
 @Singleton
 open class UserPreferencesRepository internal constructor(
     private val dataStore: DataStore<Preferences>,
@@ -420,7 +423,7 @@ open class UserPreferencesRepository internal constructor(
                 coverStyle = preferences[PreferencesKeys.COVER_STYLE]?.let {
                     try { CoverStyle.valueOf(it) } catch (_: Exception) { CoverStyle.AURORA }
                 } ?: CoverStyle.AURORA,
-                userName = preferences[PreferencesKeys.USER_NAME] ?: "User",
+                userName = preferences[PreferencesKeys.USER_NAME] ?: DEFAULT_USER_NAME,
                 profileImageUri = preferences[PreferencesKeys.PROFILE_IMAGE_URI]
                     ?: if (preferences[PreferencesKeys.HAS_COMPLETED_ONBOARDING] == true) "avatar://0" else null,
                 profileBackgroundColor = preferences[PreferencesKeys.PROFILE_BACKGROUND_COLOR] ?: 0,
@@ -1574,6 +1577,19 @@ open class UserPreferencesRepository internal constructor(
         }
     }
 
+    /** Name, picture and colour in one edit, so a failed write can't leave half a profile. */
+    suspend fun updateProfile(name: String, imageUri: String?, backgroundColor: Int) {
+        dataStore.edit { preferences ->
+            preferences[PreferencesKeys.USER_NAME] = name
+            if (imageUri == null) {
+                preferences.remove(PreferencesKeys.PROFILE_IMAGE_URI)
+            } else {
+                preferences[PreferencesKeys.PROFILE_IMAGE_URI] = imageUri
+            }
+            preferences[PreferencesKeys.PROFILE_BACKGROUND_COLOR] = backgroundColor
+        }
+    }
+
     /**
      * [freshInstall]: onboarding just finished on a new install (not the legacy
      * auto-complete for upgraders), so Home starts from [HomeSectionLayout.FRESH_INSTALL]
@@ -1680,7 +1696,7 @@ data class UserPreferences(
     val navBarStyle: NavBarStyle = NavBarStyle.FLOATING,
     val hiddenNavTabs: Set<String> = emptySet(),
     val coverStyle: CoverStyle = CoverStyle.AURORA,
-    val userName: String = "User",
+    val userName: String = DEFAULT_USER_NAME,
     val profileImageUri: String? = null,
     val profileBackgroundColor: Int = 0,
     val hasCompletedOnboarding: Boolean = false,

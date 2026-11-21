@@ -314,6 +314,13 @@
     <!-- Settings hub: the profile block and shortcut tiles -->
     <string name="settings_profile_privacy_pill">Your data never leaves this phone</string>
     <string name="settings_profile_privacy_pill_sharing">Shared only where you turned it on</string>
+    <string name="settings_profile_edit">Edit profile</string>
+    <string name="settings_profile_picture">Picture</string>
+    <!-- %1$d = position of the color in the picker, e.g. 3 -->
+    <string name="settings_profile_color_cd">Color %1$d</string>
+    <string name="settings_profile_photo">Choose a photo</string>
+    <string name="settings_profile_save">Save</string>
+    <string name="settings_profile_photo_failed">Couldn\'t use that photo</string>
     <plurals name="settings_tile_accounts_count">
         <item quantity="one">%1$d linked</item>
         <item quantity="other">%1$d linked</item>

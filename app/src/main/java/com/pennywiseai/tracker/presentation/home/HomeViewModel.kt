@@ -1334,20 +1334,10 @@ class HomeViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(showBreakdownDialog = false)
     }
 
-    /**
-     * Checks for app updates using Google Play In-App Updates.
-     * Should be called with the current activity context.
-     * @param activity The activity context
-     * @param snackbarHostState Optional SnackbarHostState for showing restart prompt
-     * @param scope Optional CoroutineScope for launching the snackbar
-     */
-    fun checkForAppUpdate(
-        activity: ComponentActivity,
-        snackbarHostState: androidx.compose.material3.SnackbarHostState? = null,
-        scope: kotlinx.coroutines.CoroutineScope? = null
-    ) {
-        inAppUpdateManager.checkForUpdate(activity, snackbarHostState, scope)
-    }
+    /** A Play update finished downloading; Home offers the restart that installs it. */
+    val updateDownloaded = inAppUpdateManager.updateDownloaded
+
+    fun completeAppUpdate() = inAppUpdateManager.completeUpdate()
 
     fun deleteTransaction(transaction: TransactionEntity) {
         viewModelScope.launch {
@@ -1655,11 +1645,6 @@ class HomeViewModel @Inject constructor(
         isUnifiedMode: Boolean
     ): List<AccountBalanceEntity> = convertAccounts(entities, targetCurrency, isUnifiedMode) { from, to ->
         currencyConversionService.getExchangeRate(from, to)
-    }
-
-    override fun onCleared() {
-        super.onCleared()
-        inAppUpdateManager.cleanup()
     }
 
     private companion object {

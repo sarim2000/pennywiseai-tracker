@@ -94,6 +94,7 @@ class MainActivity : FragmentActivity() {
 
     @Inject lateinit var appLockRepository: AppLockRepository
     @Inject lateinit var chatDrafts: com.pennywiseai.tracker.data.manager.ChatDraftInbox
+    @Inject lateinit var inAppUpdateManager: com.pennywiseai.tracker.data.manager.InAppUpdateManager
 
     override fun attachBaseContext(newBase: android.content.Context) {
         super.attachBaseContext(newBase.withLatinDigits())
@@ -166,6 +167,13 @@ class MainActivity : FragmentActivity() {
         } else {
             window.clearFlags(WindowManager.LayoutParams.FLAG_SECURE)
         }
+    }
+
+    // Each time the app opens, not just when Home first shows: a warm start back into
+    // any screen offers a new version too, and a finished download asks for a restart.
+    override fun onResume() {
+        super.onResume()
+        inAppUpdateManager.onResume(this)
     }
 
     override fun onSaveInstanceState(outState: Bundle) {

@@ -209,23 +209,26 @@ fun HomeScreen(
     // Staggered entrance — only animates on first composition.
     val hasAnimated = rememberEntranceDone()
 
-    // Check for app updates and reviews when the screen is first displayed
+    // Check for in-app reviews when the screen is first displayed (updates: MainActivity)
     LaunchedEffect(Unit) {
         // Refresh account balances to ensure proper currency conversion
         viewModel.refreshAccountBalances()
 
-        activity?.let {
-            val componentActivity = it as ComponentActivity
+        (activity as? ComponentActivity)?.let { viewModel.checkForInAppReview(it) }
+    }
 
-            // Check for app updates
-            viewModel.checkForAppUpdate(
-                activity = componentActivity,
-                snackbarHostState = snackbarHostState,
-                scope = scope
+    // A downloaded Play update waits for this restart to install.
+    val updateDownloaded by viewModel.updateDownloaded.collectAsStateWithLifecycle()
+    val updateReadyMessage = stringResource(R.string.home_update_ready)
+    val updateRestartLabel = stringResource(R.string.home_update_restart)
+    LaunchedEffect(updateDownloaded) {
+        if (updateDownloaded) {
+            val result = snackbarHostState.showSnackbar(
+                message = updateReadyMessage,
+                actionLabel = updateRestartLabel,
+                duration = SnackbarDuration.Indefinite
             )
-
-            // Check for in-app review eligibility
-            viewModel.checkForInAppReview(componentActivity)
+            if (result == SnackbarResult.ActionPerformed) viewModel.completeAppUpdate()
         }
     }
 

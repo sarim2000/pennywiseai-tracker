@@ -114,7 +114,8 @@ class BudgetHistoryViewModel @Inject constructor(
             currency = displayCurrency,
             convert = convert
         )
-        val totalSpent = history.fold(BigDecimal.ZERO) { acc, w -> acc + w.spent }
+        val headerHistory = historyHeaderWindows(budget, history)
+        val totalSpent = headerHistory.fold(BigDecimal.ZERO) { acc, w -> acc + w.spent }
         val isCurrentMonth = yearMonth == YearMonth.now()
         val today = java.time.LocalDate.now()
         val displayedWindow = if (isCurrentMonth) {
@@ -147,7 +148,7 @@ class BudgetHistoryViewModel @Inject constructor(
             totalSpent = totalSpent,
             currency = displayCurrency,
             baseCurrency = baseCurrency,
-            budgetAmount = historyBudgetTotal(budget, history)
+            budgetAmount = historyBudgetTotal(budget, headerHistory)
         )
         openBreakdown?.let(::loadBreakdown)
     }
@@ -188,6 +189,14 @@ class BudgetHistoryViewModel @Inject constructor(
         _uiState.value = _uiState.value.copy(breakdown = null, isLoadingBreakdown = false)
     }
 }
+
+/**
+ * The windows the Budget History header totals. A monthly budget's current month also
+ * lists the cycle that ended in it ([historyWindowsForMonth], oldest first), and one
+ * monthly limit can't be set against two cycles, so the header counts the latest only.
+ */
+internal fun historyHeaderWindows(budget: BudgetEntity, history: List<PastWindowSpending>): List<PastWindowSpending> =
+    if (budget.periodType == com.pennywiseai.tracker.data.database.entity.BudgetPeriodType.MONTHLY) history.takeLast(1) else history
 
 /**
  * The month's budget on the Budget History header: the base limit for each window,

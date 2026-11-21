@@ -237,8 +237,8 @@ fun UpiIdDialog(initial: String, onDismiss: () -> Unit, onSave: (String) -> Bool
             }
         },
         confirmButton = {
-            TextButton(onClick = {
-                if (allowClear && value.isBlank()) { onSave(""); return@TextButton }
+            TextButton(onClick = withCommittedText {
+                if (allowClear && value.isBlank()) { onSave(""); return@withCommittedText }
                 invalid = !onSave(value)
             }, shapes = ButtonDefaults.shapes()) { Text(stringResource(R.string.split_upi_save)) }
         },

@@ -28,6 +28,22 @@ class ProfilePhotosTest {
     }
 
     @Test
+    fun `a tall decode is scaled so both sides fit`() {
+        assertEquals(21 to 512, ProfilePhotos.boundedSides(512, 12000, 512))
+    }
+
+    @Test
+    fun `an ordinary portrait already inside the bound is unchanged`() {
+        assertEquals(384 to 512, ProfilePhotos.boundedSides(384, 512, 512))
+        assertEquals(400 to 300, ProfilePhotos.boundedSides(400, 300, 512))
+    }
+
+    @Test
+    fun `a portrait slightly past the bound keeps its frame and fits`() {
+        assertEquals(383 to 512, ProfilePhotos.boundedSides(512, 683, 512))
+    }
+
+    @Test
     fun `does nothing while the current picture is unknown`() {
         seed()
         ProfilePhotos.sweep(tmp.root, null)

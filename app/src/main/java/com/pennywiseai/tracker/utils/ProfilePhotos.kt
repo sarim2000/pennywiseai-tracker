@@ -30,9 +30,11 @@ object ProfilePhotos {
     /**
      * Copies a picked photo into app storage (the picker's grant doesn't outlive the
      * process) and returns its file URI. It is decoded, turned upright, scaled to fill
-     * [MAX_PX] and re-encoded, which also drops its EXIF (location included). Each pick
-     * gets its own file name, so the image loader can't serve the previous photo from
-     * its cache. Null, with a toast, when the photo can't be decoded or written.
+     * [MAX_PX] and re-encoded, which also drops its EXIF (location included). Fill keeps
+     * the aspect ratio, so a very tall decode can still be longer than [MAX_PX]; that
+     * side is scaled down before the file is written. Each pick gets its own file name,
+     * so the image loader can't serve the previous photo from its cache. Null, with a
+     * toast, when the photo can't be decoded or written.
      */
     suspend fun import(context: Context, source: Uri): String? {
         val request = ImageRequest.Builder(context)
@@ -43,9 +45,21 @@ object ProfilePhotos {
             .memoryCachePolicy(CachePolicy.DISABLED)
             .build()
         val bitmap = (SingletonImageLoader.get(context).execute(request) as? SuccessResult)?.image?.toBitmap()
-        val uri = bitmap?.let { save(it, context.filesDir) }
+        val fitted = bitmap?.let { fitWithin(it, MAX_PX) }
+        val uri = fitted?.let { save(it, context.filesDir) }
+        if (bitmap != null && fitted != null && fitted !== bitmap) bitmap.recycle()
         if (uri == null) Toast.makeText(context, R.string.settings_profile_photo_failed, Toast.LENGTH_SHORT).show()
         return uri
+    }
+
+    /**
+     * Scales [bitmap] so neither side exceeds [maxPx]. A photo already inside the bound,
+     * including an ordinary portrait Coil has filled to about [maxPx], is returned as it is.
+     */
+    private fun fitWithin(bitmap: Bitmap, maxPx: Int): Bitmap {
+        val (width, height) = boundedSides(bitmap.width, bitmap.height, maxPx)
+        if (width == bitmap.width && height == bitmap.height) return bitmap
+        return Bitmap.createScaledBitmap(bitmap, width, height, true)
     }
 
     private suspend fun save(bitmap: Bitmap, dir: File): String? = withContext(Dispatchers.IO) {
@@ -59,6 +73,18 @@ object ProfilePhotos {
         } finally {
             tmp.delete()
         }
+    }
+
+    /**
+     * Width and height that keep [width] and [height]'s aspect ratio with neither side
+     * above [maxPx]. A zero side, or a photo already inside the bound, is unchanged.
+     */
+    internal fun boundedSides(width: Int, height: Int, maxPx: Int): Pair<Int, Int> {
+        val longSide = maxOf(width, height)
+        if (width <= 0 || height <= 0 || longSide <= maxPx) return width to height
+        val fittedWidth = (width.toLong() * maxPx / longSide).toInt().coerceAtLeast(1)
+        val fittedHeight = (height.toLong() * maxPx / longSide).toInt().coerceAtLeast(1)
+        return fittedWidth to fittedHeight
     }
 
     /**

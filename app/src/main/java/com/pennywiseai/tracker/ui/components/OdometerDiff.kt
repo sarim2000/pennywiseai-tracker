@@ -40,18 +40,22 @@ internal data class OdometerPlan(val moves: List<GlyphMove>, val exits: List<Gly
  *
  * A formatted amount is a prefix (sign, currency symbol), a numeric core (first
  * digit to last digit) and a suffix (a trailing symbol or code). The core is
- * aligned from the right so units stay over units when the number gains or
- * loses digits; the prefix is aligned from the right too, so `₹` still pairs
- * with `₹` when a minus sign appears before it; the suffix is aligned from the
- * left. Amounts use tabular figures, so a digit paired with a digit occupies
- * the same width and can roll in place.
+ * split on its decimal separator: the integer part is aligned from the right so
+ * units stay over units when the number gains or loses digits, and the fraction
+ * (separator included) from the left, so `$461` → `$448.6` keeps `461` over
+ * `448` and brings `.6` in rather than pairing `61` with `.6`. The prefix is
+ * aligned from the right too, so `₹` still pairs with `₹` when a minus sign
+ * appears before it; the suffix is aligned from the left. Amounts use tabular
+ * figures, so a digit paired with a digit occupies the same width and can roll
+ * in place.
  */
 internal fun odometerPlan(old: String, new: String): OdometerPlan? {
     val oldParts = AmountParts.of(old) ?: return null
     val newParts = AmountParts.of(new) ?: return null
     val pairs = ArrayList<Pair<Int?, Int?>>(maxOf(old.length, new.length))
     pairs += alignEnd(oldParts.prefix, newParts.prefix)
-    pairs += alignEnd(oldParts.core, newParts.core)
+    pairs += alignEnd(oldParts.integer, newParts.integer)
+    pairs += alignStart(oldParts.fraction, newParts.fraction)
     pairs += alignStart(oldParts.suffix, newParts.suffix)
 
     val moves = arrayOfNulls<GlyphMove>(new.length)
@@ -73,22 +77,27 @@ internal fun odometerPlan(old: String, new: String): OdometerPlan? {
     return OdometerPlan(
         moves = moves.map { checkNotNull(it) },
         exits = exits,
-        rollsUp = (compareAmounts(old, new) ?: 1) >= 0,
+        rollsUp = compareValues(oldParts, newParts) >= 0,
     )
 }
 
 /**
  * Compares two formatted amounts by value: positive when [new] is larger, null
- * when it can't tell. Both strings come from the same formatter, so their
- * digits are compared as one integer each — valid only when both carry the same
- * number of fraction digits, judged from the run after the last separator
- * (one or two digits is a fraction; three is a thousands group).
+ * when either has no digits. The formatter drops trailing zeros (`$448.6`,
+ * `$461`), so each side's digits are scaled to the same number of fraction
+ * digits before comparing.
  */
 internal fun compareAmounts(old: String, new: String): Int? {
-    val a = AmountParts.of(old)?.value ?: return null
-    val b = AmountParts.of(new)?.value ?: return null
-    if (a.second != b.second) return null
-    return b.first.compareTo(a.first)
+    val a = AmountParts.of(old) ?: return null
+    val b = AmountParts.of(new) ?: return null
+    return compareValues(a, b)
+}
+
+private fun compareValues(old: AmountParts, new: AmountParts): Int {
+    val (a, aScale) = old.value
+    val (b, bScale) = new.value
+    val scale = maxOf(aScale, bScale)
+    return b.multiply(BigInteger.TEN.pow(scale - bScale)).compareTo(a.multiply(BigInteger.TEN.pow(scale - aScale)))
 }
 
 private fun alignEnd(old: IntRange, new: IntRange): List<Pair<Int?, Int?>> {
@@ -105,8 +114,19 @@ private fun alignStart(old: IntRange, new: IntRange): List<Pair<Int?, Int?>> {
     }
 }
 
-/** A formatted amount split around its numeric core. */
+/**
+ * A formatted amount split around its numeric core, and the core split into its
+ * [integer] part and its [fraction] (the decimal separator and the digits after
+ * it; empty for a whole amount). The decimal separator is the last separator
+ * when one or two digits follow it; three is a thousands group.
+ */
 private class AmountParts(val text: String, val prefix: IntRange, val core: IntRange, val suffix: IntRange) {
+
+    private val point: Int? = core.lastOrNull { !text[it].isDigit() }?.takeIf { core.last - it in 1..2 }
+
+    val integer: IntRange get() = core.first until (point ?: core.last + 1)
+
+    val fraction: IntRange get() = (point ?: core.last + 1)..core.last
 
     /** Signed digits as one integer, and the fraction-digit count they're scaled by. */
     val value: Pair<BigInteger, Int>
@@ -117,8 +137,7 @@ private class AmountParts(val text: String, val prefix: IntRange, val core: IntR
                 digits = digits.multiply(BigInteger.TEN).add(BigInteger.valueOf(d.toLong()))
             }
             val negative = text.substring(prefix).any { it == '-' || it == '−' || it == '(' }
-            val lastRun = core.last - (core.lastOrNull { !text[it].isDigit() } ?: core.first - 1)
-            val scale = if (core.any { !text[it].isDigit() } && lastRun in 1..2) lastRun else 0
+            val scale = point?.let { core.last - it } ?: 0
             return (if (negative) digits.negate() else digits) to scale
         }
 

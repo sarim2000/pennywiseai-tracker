@@ -82,10 +82,39 @@ class OdometerDiffTest {
     }
 
     @Test
-    fun `an unknown direction rolls up`() {
-        // Fraction digits differ, so the digit strings aren't on the same scale.
-        assertNull(compareAmounts("₹1,000", "₹999.5"))
-        assertTrue(checkNotNull(odometerPlan("₹1,000", "₹999.5")).rollsUp)
+    fun `amounts with a different number of decimals compare by value`() {
+        assertEquals(-1, compareAmounts("₹1,000", "₹999.5"))
+        assertEquals(-1, compareAmounts("$461", "$448.6"))
+        assertEquals(1, compareAmounts("$448.6", "$461"))
+        assertEquals(1, compareAmounts("$448.6", "$448.65"))
+        assertEquals(0, compareAmounts("$5", "$5.00"))
+        assertNull(compareAmounts("••••", "$5"))
+    }
+
+    @Test
+    fun `gaining decimals keeps integer over integer and brings the fraction in`() {
+        val plan = checkNotNull(odometerPlan("$461", "$448.6"))
+        // `$` and the hundreds stay; tens and units roll; `.6` enters.
+        assertEquals(listOf(Same, Same, Roll, Roll, Enter, Enter), plan.moves.map { it.change })
+        assertEquals(listOf(0, 1, 2, 3, null, null), plan.moves.map { it.oldIndex })
+        assertTrue(plan.exits.isEmpty())
+        assertFalse(plan.rollsUp)
+    }
+
+    @Test
+    fun `losing decimals rolls the fraction out`() {
+        val plan = checkNotNull(odometerPlan("$448.6", "$461"))
+        assertEquals(listOf(Same, Same, Roll, Roll), plan.moves.map { it.change })
+        assertEquals(listOf(4, 5), plan.exits.map { it.oldIndex })
+        assertTrue(plan.rollsUp)
+    }
+
+    @Test
+    fun `a longer fraction aligns from the separator`() {
+        val plan = checkNotNull(odometerPlan("1.234,5 €", "1.234,56 €"))
+        assertEquals(Enter, plan.moves[7].change)
+        assertTrue(plan.moves.filterIndexed { i, _ -> i != 7 }.all { it.change == Same })
+        assertTrue(plan.exits.isEmpty())
     }
 
     @Test

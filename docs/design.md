@@ -466,6 +466,14 @@ it by `Dimensions.Component.bottomBarHeight`.
   stays drawn, settled, under it for the beat, then goes. With "Remove
   animations" every settle skips the beat and the check (the chat's would
   hold Send), but the haptic still lands.
+- **Celebrations** (`ui/components/celebration/Celebration.kt`): a ~1.2 s
+  confetti burst of theme-coloured cookies and sparkles, with
+  `HapticFeedbackType.Confirm`, for a moment the user earned (a goal shown as
+  reached, a new achievement tier). Each moment has a key claimed once in
+  DataStore (`celebrateOnce` / `claimCelebrations`, device-only), so it never
+  repeats; a first Achievements visit records past tiers without confetti. It
+  draws over the screen and takes no touches; with "Remove animations" only the
+  haptic lands, and the screen's own reached/earned state stays the static mark.
 - **A screen of sibling money figures enters as one group.** Period Review
   fades its loaded content in once on first visit — fade only, no travel,
   saveable flag — instead of staggering its cards (rules 1, 2 and 5); later

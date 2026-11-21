@@ -3,9 +3,10 @@ SIL Open Font License, Version 1.1, reproduced below.
 
 Google Sans Flex (google_sans_flex.ttf)
   Copyright 2022 The Google Sans Flex Project Authors (github.com/googlefonts/googlesans-flex)
-  Upstream: https://github.com/googlefonts/googlesans-flex (release v5.000)
-  Modified: instanced with fontTools to the wght (100-900) and ROND axes,
-  with slnt 0, opsz 18 and wdth 100 pinned, to reduce its size.
+  Upstream: https://github.com/googlefonts/googlesans-flex (release v4.007, Android build)
+  Modified: instanced with fontTools to the wght (100-900), ROND (0-100),
+  opsz (11-57) and GRAD (0-100) axes, with slnt 0 and wdth 100 pinned,
+  to reduce its size.
   "Google", "Google Sans" and "Google Sans Flex" are trademarks of Google LLC.
   PennyWise is not affiliated with or endorsed by Google.
 

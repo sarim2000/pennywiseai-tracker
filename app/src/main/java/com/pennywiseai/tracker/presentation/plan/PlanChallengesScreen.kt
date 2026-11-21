@@ -103,13 +103,13 @@ fun PlanChallengesScreen(
                 item(key = "result") {
                     ResultCard(
                         outcome,
-                        onTryAgain = { viewModel.start(outcome.run.kind, outcome.run.categoryName) },
+                        onTryAgain = { viewModel.start(outcome.run.kind, outcome.run.categoryName, outcome.run.categoryId) },
                         onDone = viewModel::dismissResult,
                     )
                 }
             }
             item(key = "presets") {
-                ChallengePresets(categories = shown.categories, afterResult = shown.result != null, onStart = viewModel::start)
+                ChallengePresets(categories = shown.categories, afterResult = shown.result != null, onStart = { kind, name -> viewModel.start(kind, name) })
             }
         }
         Celebration(play = celebrate, onFinished = viewModel::onCelebrated)

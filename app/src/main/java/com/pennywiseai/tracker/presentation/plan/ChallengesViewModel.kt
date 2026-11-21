@@ -112,10 +112,16 @@ class ChallengesViewModel @Inject constructor(
 
     fun onCelebrated() { _celebrate.value = false }
 
-    fun start(kind: ChallengeKind, categoryName: String?) {
+    fun start(kind: ChallengeKind, categoryName: String?, categoryId: Long? = null) {
         viewModelScope.launch {
-            val categoryId = categoryName?.let { name -> categoryRepository.getAllCategories().first().firstOrNull { it.name == name }?.id }
-            val run = ChallengeRun.start(kind, categoryName, LocalDate.now(), categoryId)
+            val categories = categoryRepository.getAllCategories().first()
+            // A retry passes the id from the run that just ended, so a rename still
+            // starts the same category. A first start has no id, and the name is the lookup.
+            val renamed = categoryId?.let { id -> categories.firstOrNull { it.id == id } }
+            val name = renamed?.name ?: categoryName
+            val id = renamed?.id
+                ?: categoryName?.let { wanted -> categories.firstOrNull { it.name == wanted }?.id }
+            val run = ChallengeRun.start(kind, name, LocalDate.now(), id)
             preferences.updateChallenges { it.markSeen().copy(active = run) }
         }
     }

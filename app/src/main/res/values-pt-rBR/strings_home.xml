@@ -26,6 +26,9 @@
     <string name="home_fab_sync">Sincronizar SMS (toque longo para resync completo)</string>
     <string name="home_fab_sync_hint">Segure para obter resync completo</string>
     <string name="home_resync_title">Ler mensagens de novo</string>
+    <!-- Home shortcut labels sit under a 64dp shape: keep them to about 10 characters -->
+    <!-- Read out for the Unsorted shortcut with its count badge -->
+    <!-- %1$d is the most shortcuts the row holds (4) -->
     <string name="home_resync_scan_again">Verificar todas as mensagens de novo</string>
     <string name="home_resync_scan_again_desc">Adiciona o que ficou de fora. Suas edições e todas as transações existentes continuam como estão.</string>
     <string name="home_resync_rebuild">Refazer do zero</string>
@@ -63,7 +66,6 @@
     <!-- ══ Bottom navigation ══ -->
     <string name="nav_home">Início</string>
     <string name="nav_transactions">Transações</string>
-    <string name="nav_analytics">Insights</string>
     <string name="nav_chat">Perguntar</string>
     <!-- ══ Shared components ══ -->
     <string name="expandable_list_view_less">Ver menos</string>
@@ -145,6 +147,7 @@
     <string name="balance_card_summary_expenses">Despesas</string>
     <string name="balance_card_summary_lent">Emprestado</string>
     <string name="balance_card_summary_saved">Guardado</string>
+    <!-- TalkBack: what tapping a figure does ("double tap to see its transactions") -->
     <!-- Budget card -->
     <string name="budget_card_percent">%1$d%%</string>
     <string name="budget_card_over_budget">%1$s acima do orçamento</string>
@@ -316,6 +319,16 @@
     <string name="home_payday_card_body">Parece que seu salário cai no dia %1$d do mês. Começar cada mês do orçamento nesse dia? Você pode mudar isso nas Configurações.</string>
     <string name="home_payday_card_action">Começar no dia %1$d</string>
     <string name="home_payday_card_dismiss">Dispensar</string>
+    <!-- Home hero card. %1$s is a month name ("November") -->
+    <!-- %1$s is the user's own budget name -->
+    <!-- %1$s is a month name ("November") -->
+    <!-- %1$s is the user's own budget name -->
+    <!-- %1$s is a formatted amount -->
+    <!-- The budget limit under the progress bar; %1$s is a formatted amount -->
+    <!-- What can still be spent each day; %1$s is a formatted amount -->
+    <!-- Home nudge under the hero: the mascot's one line. %1$s is a formatted amount -->
+    <!-- Home sections -->
+    <!-- Subtitle of a recent transaction still in Others -->
     <!-- Month-end forecast on the "Spent this month" card -->
     <string name="forecast_on_track">No ritmo para %1$s até %2$s</string>
     <string name="forecast_over_usual">%1$s acima do normal</string>

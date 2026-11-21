@@ -330,6 +330,7 @@
     <string name="rules_reset">Resetovat</string>
     <string name="rules_auto_categorization_title">Automatická kategorizace</string>
     <string name="rules_auto_categorization_body">Povolte pravidla pro automatickou kategorizaci transakcí na základě vzorů</string>
+    <!-- Tags in front of a rule's two lines: when it matches, then what it does -->
     <string name="rules_group_daily">Denní výdaje</string>
     <string name="rules_group_income">Příjmy &amp; Cashback</string>
     <string name="rules_group_recurring">Opakované platby</string>

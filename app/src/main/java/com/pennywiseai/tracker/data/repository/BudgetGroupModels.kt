@@ -37,6 +37,8 @@ data class BudgetCategorySpending(
  *    or the page's `monthEnd` for older / future weeks in the same
  *    month (frozen at month end).
  *  - For a historical month: the page's `monthEnd` for every window.
+ *  Budget History also caps it at the window's own end, so a cycle that
+ *  already ended shows the day it ended.
  *
  * [isLive] is true when the cap date is `today` and the window still has
  * days left to accumulate spend — the card uses it to show a "Live"

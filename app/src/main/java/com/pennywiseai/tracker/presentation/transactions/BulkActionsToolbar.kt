@@ -26,6 +26,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.ui.theme.readableOn
 
 /**
  * Bulk-edit actions (#369) as an M3 Expressive floating toolbar at the bottom
@@ -81,8 +82,9 @@ fun BulkActionsToolbar(
                     Icon(
                         Icons.Default.Delete,
                         contentDescription = stringResource(R.string.txn_list_delete_selected),
-                        // The light error tone reads on the inverse fill in both themes.
-                        tint = MaterialTheme.colorScheme.errorContainer
+                        // The light error tone, nudged until it reads on the inverse fill: custom
+                        // schemes make errorContainer the same tone as error (2.2:1 in dark).
+                        tint = MaterialTheme.colorScheme.errorContainer.readableOn(listOf(MaterialTheme.colorScheme.inverseSurface))
                     )
                 }
                 // Linking needs exactly two rows — the manual counterpart to the

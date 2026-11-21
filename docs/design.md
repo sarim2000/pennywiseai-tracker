@@ -230,7 +230,7 @@ Settings → Appearance → Fonts picks an `AppFont`; `PennyWiseTheme` maps it t
     both the expanded and the collapsed title go from `ROND` 100 at `opsz` 32
     (expanded) to `ROND` 40 at `opsz` 22 (collapsed) in six steps of the
     collapse fraction, read through `derivedStateOf` so it recomposes per
-    step, not per pixel. Reduced motion holds the nearer end;
+    step, not per pixel. Under reduced motion both keep their static style;
   - the onboarding "PennyWise" wordmark (inside the welcome title): once per
     onboarding, each letter inks in from thin to the title's weight (`wght`,
     with a passing `GRAD` swell), its line breaks held so nothing re-wraps.

@@ -18,22 +18,16 @@ class TitleMorphTest {
 
     @Test
     fun theFractionMapsToAFewSteps() {
-        val steps = (0..1000).map { TitleMorph.step(it / 1000f, animate = true) }
+        val steps = (0..1000).map { TitleMorph.step(it / 1000f) }
         assertEquals((0..TitleMorph.STEPS).toList(), steps.distinct())
-        assertEquals(0, TitleMorph.step(-0.2f, animate = true))
-        assertEquals(TitleMorph.STEPS, TitleMorph.step(1.3f, animate = true))
-    }
-
-    @Test
-    fun reducedMotionHoldsTheNearerEnd() {
-        assertEquals(0, TitleMorph.step(0.3f, animate = false))
-        assertEquals(TitleMorph.STEPS, TitleMorph.step(0.7f, animate = false))
+        assertEquals(0, TitleMorph.step(-0.2f))
+        assertEquals(TitleMorph.STEPS, TitleMorph.step(1.3f))
     }
 
     @Test
     fun aWholeCollapseReusesAHandfulOfFamilies() {
         val families = (0..1000).map {
-            title.morphedTitle(TitleMorph.step(it / 1000f, animate = true), expanded, collapsed).fontFamily
+            title.morphedTitle(TitleMorph.step(it / 1000f), expanded, collapsed).fontFamily
         }
         // One per step at most (some steps share an optical-size stop).
         assertEquals(TitleMorph.STEPS + 1, families.distinct().size)

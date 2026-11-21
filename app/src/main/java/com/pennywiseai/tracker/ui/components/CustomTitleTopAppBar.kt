@@ -483,18 +483,8 @@ internal object TitleMorph {
     const val EXPANDED_ROUNDNESS = GoogleSansFlexAxes.HEADING_ROUNDNESS
     const val COLLAPSED_ROUNDNESS = 40f
 
-    /**
-     * The step for [collapsedFraction] (0 expanded … [STEPS] collapsed). Without
-     * [animate] (reduced motion) the title holds one end state, the nearer one.
-     */
-    fun step(collapsedFraction: Float, animate: Boolean): Int {
-        val fraction = collapsedFraction.coerceIn(0f, 1f)
-        return when {
-            animate -> (fraction * STEPS).roundToInt()
-            fraction < 0.5f -> 0
-            else -> STEPS
-        }
-    }
+    /** The step for [collapsedFraction]: 0 expanded … [STEPS] collapsed. */
+    fun step(collapsedFraction: Float): Int = (collapsedFraction.coerceIn(0f, 1f) * STEPS).roundToInt()
 }
 
 /**
@@ -514,18 +504,17 @@ internal fun TextStyle.morphedTitle(step: Int, expandedSize: TextUnit, collapsed
 
 /**
  * [base] (a theme style) morphed to [state]'s point along the collapse, or
- * [base] itself without a collapsing bar or Google Sans Flex. The fraction is
- * read through the quantized step, so the title recomposes a few times per
- * collapse rather than on every scrolled pixel.
+ * [base] itself without a collapsing bar, without Google Sans Flex, or under
+ * reduced motion (the morph is an animation, so both titles keep their static
+ * style). The fraction is read through the quantized step, so the title
+ * recomposes a few times per collapse rather than on every scrolled pixel.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun collapsingTitleStyle(base: TextStyle, state: TopAppBarState?): TextStyle {
     if (state == null || !LocalGoogleSansFlexActive.current) return base
-    val animate = rememberAnimationsEnabled()
-    val step by remember(state, animate) {
-        derivedStateOf { TitleMorph.step(state.collapsedFraction, animate) }
-    }
+    if (!rememberAnimationsEnabled()) return base
+    val step by remember(state) { derivedStateOf { TitleMorph.step(state.collapsedFraction) } }
     val typography = MaterialTheme.typography
     return base.morphedTitle(step, typography.headlineLargeEmphasized.fontSize, typography.titleLarge.fontSize)
 }

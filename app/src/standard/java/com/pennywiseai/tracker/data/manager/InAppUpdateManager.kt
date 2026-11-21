@@ -18,7 +18,7 @@ import javax.inject.Singleton
 
 /**
  * Google Play In-App Updates (flexible): offered when the app opens, downloaded
- * in the background, then [updateDownloaded] asks the UI for a restart.
+ * in the background, then [restartPrompt] asks the UI for a restart.
  */
 @Singleton
 class InAppUpdateManager @Inject constructor(
@@ -26,17 +26,22 @@ class InAppUpdateManager @Inject constructor(
 ) {
     private val appUpdateManager: AppUpdateManager = AppUpdateManagerFactory.create(context)
 
-    private val _updateDownloaded = MutableStateFlow(false)
-    val updateDownloaded: StateFlow<Boolean> = _updateDownloaded
+    private val _restartPrompt = MutableStateFlow(false)
+    val restartPrompt: StateFlow<Boolean> = _restartPrompt
 
-    // ponytail: once per process, so returning from Play's own dialog (a resume) or a
-    // "No thanks" doesn't loop it; the next cold start offers it again.
+    // ponytail: both once per process, so returning from Play's own dialog (a resume),
+    // "No thanks" or "Later" doesn't loop it; the next cold start asks again.
     private var offered = false
+    private var restartDeclined = false
+
+    private fun downloaded() {
+        if (!restartDeclined) _restartPrompt.value = true
+    }
 
     // A singleton, registered for the process: it holds no Activity.
     private val listener = InstallStateUpdatedListener { state ->
         when (state.installStatus()) {
-            InstallStatus.DOWNLOADED -> _updateDownloaded.value = true
+            InstallStatus.DOWNLOADED -> downloaded()
             InstallStatus.FAILED -> Log.e(TAG, "Update failed with error code: ${state.installErrorCode()}")
             else -> {}
         }
@@ -50,13 +55,13 @@ class InAppUpdateManager @Inject constructor(
     fun onResume(activity: Activity) {
         appUpdateManager.appUpdateInfo.addOnSuccessListener { info ->
             when {
-                info.installStatus() == InstallStatus.DOWNLOADED -> _updateDownloaded.value = true
+                info.installStatus() == InstallStatus.DOWNLOADED -> downloaded()
                 !offered &&
                     info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE &&
                     info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE) &&
                     !activity.isFinishing -> {
-                    offered = true
-                    try {
+                    // Only a flow that started counts, so a failed launch is retried next resume.
+                    offered = try {
                         appUpdateManager.startUpdateFlowForResult(
                             info,
                             activity,
@@ -65,15 +70,23 @@ class InAppUpdateManager @Inject constructor(
                         )
                     } catch (e: Exception) {
                         Log.e(TAG, "Failed to start update flow", e)
+                        false
                     }
                 }
             }
         }.addOnFailureListener { Log.e(TAG, "Update check failed", it) }
     }
 
-    /** Installs the downloaded update; Play restarts the app. */
+    /** Installs the downloaded update; Play restarts the app. On failure the next resume asks again. */
     fun completeUpdate() {
-        appUpdateManager.completeUpdate()
+        _restartPrompt.value = false
+        appUpdateManager.completeUpdate().addOnFailureListener { Log.e(TAG, "Update install failed", it) }
+    }
+
+    /** "Later": no more restart prompts until the next cold start. */
+    fun dismissRestart() {
+        restartDeclined = true
+        _restartPrompt.value = false
     }
 
     private companion object {

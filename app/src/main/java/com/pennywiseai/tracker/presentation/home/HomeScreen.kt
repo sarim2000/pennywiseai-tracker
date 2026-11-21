@@ -217,21 +217,6 @@ fun HomeScreen(
         (activity as? ComponentActivity)?.let { viewModel.checkForInAppReview(it) }
     }
 
-    // A downloaded Play update waits for this restart to install.
-    val updateDownloaded by viewModel.updateDownloaded.collectAsStateWithLifecycle()
-    val updateReadyMessage = stringResource(R.string.home_update_ready)
-    val updateRestartLabel = stringResource(R.string.home_update_restart)
-    LaunchedEffect(updateDownloaded) {
-        if (updateDownloaded) {
-            val result = snackbarHostState.showSnackbar(
-                message = updateReadyMessage,
-                actionLabel = updateRestartLabel,
-                duration = SnackbarDuration.Indefinite
-            )
-            if (result == SnackbarResult.ActionPerformed) viewModel.completeAppUpdate()
-        }
-    }
-
     // A new day moves the forecast and Safe to spend on, even with no data change.
     androidx.lifecycle.compose.LifecycleResumeEffect(Unit) {
         viewModel.refreshDate()

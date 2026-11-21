@@ -9,9 +9,11 @@ import javax.inject.Singleton
 /** F-Droid stub: F-Droid and IzzyOnDroid deliver updates themselves. */
 @Singleton
 class InAppUpdateManager @Inject constructor() {
-    val updateDownloaded: StateFlow<Boolean> = MutableStateFlow(false)
+    val restartPrompt: StateFlow<Boolean> = MutableStateFlow(false)
 
     fun onResume(activity: Activity) {}
 
     fun completeUpdate() {}
+
+    fun dismissRestart() {}
 }

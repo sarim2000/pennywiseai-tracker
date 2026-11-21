@@ -16,6 +16,7 @@ import androidx.core.graphics.drawable.IconCompat
 import androidx.core.net.toUri
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.fragment.app.FragmentActivity
+import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.lifecycleScope
 import com.pennywiseai.tracker.data.repository.AppLockRepository
 import com.pennywiseai.tracker.receiver.SmsBroadcastReceiver
@@ -134,6 +135,7 @@ class MainActivity : FragmentActivity() {
         lifecycleScope.launch(kotlinx.coroutines.Dispatchers.Default) { registerQuickAddShortcut() }
 
         setContent {
+            val updateReady by inAppUpdateManager.restartPrompt.collectAsStateWithLifecycle()
             PennyWiseApp(
                 editTransactionId = editTransactionId,
                 openAddTransaction = openAddTransaction,
@@ -147,7 +149,10 @@ class MainActivity : FragmentActivity() {
                 onOpenChatHandled = {
                     openChat = null
                     chatDrafts.requestOpen()
-                }
+                },
+                updateReady = updateReady,
+                onUpdateRestart = inAppUpdateManager::completeUpdate,
+                onUpdateLater = inAppUpdateManager::dismissRestart
             )
         }
     }

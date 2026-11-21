@@ -3,8 +3,6 @@
     <!-- ══ Home screen ══ -->
     <string name="home_transaction_deleted">Transaction deleted</string>
     <string name="home_undo">Undo</string>
-    <string name="home_update_ready">Update ready. Restart to install it.</string>
-    <string name="home_update_restart">Restart</string>
     <string name="home_upgrade_pro">Upgrade to PennyWise Pro</string>
     <string name="home_profile_filter">Profile filter</string>
     <string name="home_more_options">More options</string>

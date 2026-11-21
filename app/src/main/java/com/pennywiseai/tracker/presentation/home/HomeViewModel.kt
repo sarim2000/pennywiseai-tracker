@@ -22,7 +22,6 @@ import com.pennywiseai.tracker.data.ledger.breakdownByCurrency
 import com.pennywiseai.tracker.data.ledger.convertedSpent
 import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.manager.InAppReviewManager
-import com.pennywiseai.tracker.data.manager.InAppUpdateManager
 import com.pennywiseai.tracker.data.preferences.HomeSection
 import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
 import com.pennywiseai.tracker.data.preferences.IgnoredAccountsStore
@@ -109,7 +108,6 @@ class HomeViewModel @Inject constructor(
     private val currencyConversionService: CurrencyConversionService,
     private val userPreferencesRepository: UserPreferencesRepository,
     private val profileRepository: ProfileRepository,
-    private val inAppUpdateManager: InAppUpdateManager,
     private val inAppReviewManager: InAppReviewManager,
     private val deleteTransactionUseCase: DeleteTransactionUseCase,
     private val restoreTransactionUseCase: RestoreTransactionUseCase,
@@ -1333,11 +1331,6 @@ class HomeViewModel @Inject constructor(
     fun hideBreakdownDialog() {
         _uiState.value = _uiState.value.copy(showBreakdownDialog = false)
     }
-
-    /** A Play update finished downloading; Home offers the restart that installs it. */
-    val updateDownloaded = inAppUpdateManager.updateDownloaded
-
-    fun completeAppUpdate() = inAppUpdateManager.completeUpdate()
 
     fun deleteTransaction(transaction: TransactionEntity) {
         viewModelScope.launch {

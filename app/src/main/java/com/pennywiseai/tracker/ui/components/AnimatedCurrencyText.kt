@@ -24,10 +24,14 @@ import androidx.compose.ui.graphics.drawscope.ContentDrawScope
 import androidx.compose.ui.graphics.drawscope.clipRect
 import androidx.compose.ui.graphics.drawscope.translate
 import androidx.compose.ui.graphics.takeOrElse
+import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.TextLayoutResult
+import androidx.compose.ui.text.TextMeasurer
 import androidx.compose.ui.text.TextStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.drawText
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.rememberTextMeasurer
 import androidx.compose.ui.unit.LayoutDirection
 import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
 import com.pennywiseai.tracker.ui.theme.GoogleSansFlexAxes
@@ -80,7 +84,9 @@ fun AnimatedCurrencyText(
     val motion = MaterialTheme.motionScheme
     val pulses = LocalGoogleSansFlexActive.current
     val scope = rememberCoroutineScope()
-    val odometer = remember { Odometer(scope) }
+    // No cache: each roll measures its masks once and holds them itself.
+    val measurer = rememberTextMeasurer(cacheSize = 0)
+    val odometer = remember(measurer) { Odometer(scope, measurer) }
     // Effects specs, not spatial ones: money settles without overshooting its slot.
     val rollSpec = motion.slowEffectsSpec<Float>()
     val pulseSpec = motion.slowEffectsSpec<Float>()
@@ -104,41 +110,58 @@ fun AnimatedCurrencyText(
     )
 }
 
-/** The roll in flight: the old text's layout and where each glyph goes. */
-private class Roll(val old: TextLayoutResult, val newWidth: Int, val pieces: List<Piece>, val rollsUp: Boolean)
-
 /**
- * One clipped region of the roll, in the new text's coordinates. A region starts
- * [shift] away from where the new layout puts it (its old place) and slides home.
+ * The roll in flight. Every piece is drawn from a copy of a layout in which only
+ * its own characters are visible ([masked]), never by clipping a glyph's box out
+ * of the full text: a glyph's ink can overhang its advance (Google Sans Flex's
+ * comma reaches under the digit before it), so a box clip would carry a sliver
+ * of the comma along with a rolling digit and cut the rest of it short.
  */
-private sealed interface Piece {
-    val left: Float
-    val right: Float
-    val shift: Float
-
-    /** Glyphs that stay the same; adjacent ones with the same shift share a piece. */
-    class Slide(override val left: Float, override val right: Float, override val shift: Float) : Piece
-
-    /** A digit slot rolling from the old layout's glyph at [oldLeft] to the new one. */
-    class Turn(
-        override val left: Float,
-        override val right: Float,
-        override val shift: Float,
-        val oldLeft: Float,
-        val delay: Float,
-    ) : Piece
-
-    /** A new glyph rolling in from blank. */
-    class Enter(override val left: Float, override val right: Float, val delay: Float) : Piece {
-        override val shift = 0f
-    }
-
-    /** An old glyph rolling out; [left]/[right] are its old box, [shift] the anchor offset. */
-    class Exit(override val left: Float, override val right: Float, override val shift: Float, val delay: Float) :
-        Piece
+private class Roll(
+    val newWidth: Int,
+    val pieces: List<Piece>,
+    val rollsUp: Boolean,
+    /** Old-text masks by character range, built once. */
+    val old: Map<IntRange, TextLayoutResult>,
+    /** New-text masks by character range; rebuilt when the pulse re-lays the text out. */
+    var new: Map<IntRange, TextLayoutResult>,
+) {
+    val newRanges: List<IntRange> get() = pieces.mapNotNull { it.newRange }
 }
 
-private class Odometer(private val scope: CoroutineScope) {
+/** One moving part of the roll; [shift] is how far its glyphs start from home. */
+private sealed interface Piece {
+    val newRange: IntRange? get() = null
+    val oldRange: IntRange? get() = null
+
+    /** Glyphs that stay the same; adjacent ones with the same shift share a piece. */
+    class Slide(override val newRange: IntRange, val shift: Float) : Piece
+
+    /** A digit slot rolling from old glyph [oldIndex] (at [oldLeft]) to new glyph [newIndex] (at [left]). */
+    class Turn(
+        newIndex: Int,
+        oldIndex: Int,
+        val left: Float,
+        val oldLeft: Float,
+        val shift: Float,
+        val delay: Float,
+    ) : Piece {
+        override val newRange = newIndex..newIndex
+        override val oldRange = oldIndex..oldIndex
+    }
+
+    /** A new glyph rolling in from blank. */
+    class Enter(newIndex: Int, val delay: Float) : Piece {
+        override val newRange = newIndex..newIndex
+    }
+
+    /** An old glyph rolling out; [shift] is the start-anchor offset. */
+    class Exit(oldIndex: Int, val shift: Float, val delay: Float) : Piece {
+        override val oldRange = oldIndex..oldIndex
+    }
+}
+
+private class Odometer(private val scope: CoroutineScope, private val measurer: TextMeasurer) {
     var rollSpec: FiniteAnimationSpec<Float> = snap()
     var pulseSpec: FiniteAnimationSpec<Float> = snap()
     var pulses = false
@@ -163,8 +186,10 @@ private class Odometer(private val scope: CoroutineScope) {
         if (old == null) return // first show: nothing to roll from
         if (old.layoutInput.text == new.layoutInput.text) {
             // Laid out again in place (the pulse's grade, the same constraints): a
-            // roll stays valid only while the glyphs it was planned on haven't moved.
-            if (roll != null && !sameGeometry(old, new)) stopRoll()
+            // roll stays valid only while the glyphs it was planned on haven't
+            // moved; its new-side masks follow the new grade.
+            val roll = roll ?: return
+            if (sameGeometry(old, new)) roll.new = masks(new, roll.newRanges) else stopRoll()
             return
         }
         startRoll(old, new)
@@ -201,21 +226,28 @@ private class Odometer(private val scope: CoroutineScope) {
             when (move.change) {
                 GlyphChange.Same -> {
                     val last = pieces.lastOrNull()
-                    if (last is Piece.Slide && last.shift == shift && last.right == box.left) {
-                        pieces[pieces.lastIndex] = Piece.Slide(last.left, box.right, shift)
+                    if (last is Piece.Slide && last.shift == shift && last.newRange.last == move.newIndex - 1) {
+                        pieces[pieces.lastIndex] = Piece.Slide(last.newRange.first..move.newIndex, shift)
                     } else {
-                        pieces += Piece.Slide(box.left, box.right, shift)
+                        pieces += Piece.Slide(move.newIndex..move.newIndex, shift)
                     }
                 }
-                GlyphChange.Roll -> pieces += Piece.Turn(box.left, box.right, shift, oldLeft!!, delayOf(move.rank))
-                GlyphChange.Enter -> pieces += Piece.Enter(box.left, box.right, delayOf(move.rank))
+                GlyphChange.Roll -> pieces += Piece.Turn(
+                    move.newIndex, move.oldIndex!!, box.left, oldLeft!!, shift, delayOf(move.rank),
+                )
+                GlyphChange.Enter -> pieces += Piece.Enter(move.newIndex, delayOf(move.rank))
             }
         }
         for (exit in plan.exits) {
-            val box = old.getBoundingBox(exit.oldIndex)
-            if (box.width > 0f) pieces += Piece.Exit(box.left, box.right, anchor, delayOf(exit.rank))
+            if (old.getBoundingBox(exit.oldIndex).width > 0f) pieces += Piece.Exit(exit.oldIndex, anchor, delayOf(exit.rank))
         }
-        roll = Roll(old, new.size.width, pieces, plan.rollsUp)
+        roll = Roll(
+            newWidth = new.size.width,
+            pieces = pieces,
+            rollsUp = plan.rollsUp,
+            old = masks(old, pieces.mapNotNull { it.oldRange }),
+            new = masks(new, pieces.mapNotNull { it.newRange }),
+        )
         progress = 0f
         rollJob?.cancel()
         rollJob = scope.launch {
@@ -230,6 +262,34 @@ private class Odometer(private val scope: CoroutineScope) {
         progress = 1f
     }
 
+    /**
+     * [layout]'s text re-measured once per range with every other character
+     * transparent: same input, so the same glyph positions, kerning and shaping.
+     */
+    private fun masks(layout: TextLayoutResult, ranges: List<IntRange>): Map<IntRange, TextLayoutResult> {
+        val input = layout.layoutInput
+        val text = input.text
+        return ranges.associateWith { range ->
+            val masked = buildAnnotatedString {
+                append(text)
+                if (range.first > 0) addStyle(Hidden, 0, range.first)
+                if (range.last + 1 < text.length) addStyle(Hidden, range.last + 1, text.length)
+            }
+            measurer.measure(
+                text = masked,
+                style = input.style,
+                overflow = input.overflow,
+                softWrap = input.softWrap,
+                maxLines = input.maxLines,
+                placeholders = input.placeholders,
+                constraints = input.constraints,
+                layoutDirection = input.layoutDirection,
+                density = input.density,
+                fontFamilyResolver = input.fontFamilyResolver,
+            )
+        }
+    }
+
     fun ContentDrawScope.draw(color: Color) {
         val roll = roll
         val new = layout
@@ -242,36 +302,41 @@ private class Odometer(private val scope: CoroutineScope) {
         val bottom = new.getLineBottom(0)
         // Up: the old glyph leaves through the top and the new one comes from below.
         val travel = (bottom - top) * if (roll.rollsUp) -1f else 1f
+        // Rolling glyphs are cut at the line box only, never at their sides.
+        val wide = size.width
         for (piece in roll.pieces) {
-            val dx = piece.shift * (1f - p)
+            val newMask = piece.newRange?.let { roll.new[it] }
+            val oldMask = piece.oldRange?.let { roll.old[it] }
             when (piece) {
-                // Unchanged glyphs don't roll: no need to cut them at the line box.
-                is Piece.Slide -> clipRect(piece.left + dx, -size.height, piece.right + dx, 2 * size.height) {
-                    translate(left = dx) { drawText(new, color) }
-                }
+                // Unchanged glyphs don't roll: no need to cut them at all.
+                is Piece.Slide -> translate(left = piece.shift * (1f - p)) { newMask?.let { drawText(it, color) } }
                 is Piece.Turn -> {
+                    val dx = piece.shift * (1f - p)
                     val t = stagger(p, piece.delay)
-                    clipRect(piece.left + dx, top, piece.right + dx, bottom) {
-                        translate(piece.left + dx - piece.oldLeft, travel * t) { drawText(roll.old, color) }
-                        translate(dx, -travel * (1f - t)) { drawText(new, color) }
+                    clipRect(-wide, top, 2 * wide, bottom) {
+                        translate(piece.left + dx - piece.oldLeft, travel * t) { oldMask?.let { drawText(it, color) } }
+                        translate(dx, -travel * (1f - t)) { newMask?.let { drawText(it, color) } }
                     }
                 }
                 is Piece.Enter -> {
                     val t = stagger(p, piece.delay)
-                    clipRect(piece.left, top, piece.right, bottom) {
-                        translate(top = -travel * (1f - t)) { drawText(new, color, alpha = t) }
+                    clipRect(-wide, top, 2 * wide, bottom) {
+                        translate(top = -travel * (1f - t)) { newMask?.let { drawText(it, color, alpha = t) } }
                     }
                 }
                 is Piece.Exit -> {
                     val t = stagger(p, piece.delay)
-                    clipRect(piece.left + piece.shift, top, piece.right + piece.shift, bottom) {
-                        translate(piece.shift, travel * t) { drawText(roll.old, color, alpha = 1f - t) }
+                    clipRect(-wide, top, 2 * wide, bottom) {
+                        translate(piece.shift, travel * t) { oldMask?.let { drawText(it, color, alpha = 1f - t) } }
                     }
                 }
             }
         }
     }
 }
+
+/** Paints a character nothing, without changing how the text measures or shapes. */
+private val Hidden = SpanStyle(color = Color.Transparent)
 
 /** Each step of rank waits a little longer, so the roll ripples from the units up. */
 private fun delayOf(rank: Int): Float = STAGGER * rank.coerceAtMost(MAX_STAGGER_STEPS)

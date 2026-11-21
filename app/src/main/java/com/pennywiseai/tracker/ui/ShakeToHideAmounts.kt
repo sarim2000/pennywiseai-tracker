@@ -19,6 +19,8 @@ import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewModelScope
 import com.pennywiseai.tracker.R
+import com.pennywiseai.tracker.data.events.MascotMoment
+import com.pennywiseai.tracker.data.events.MascotMoments
 import com.pennywiseai.tracker.data.preferences.PrivacyPreferences
 import com.pennywiseai.tracker.utils.ShakeDetector
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -38,7 +40,8 @@ import javax.inject.Inject
  */
 @HiltViewModel
 class ShakeToHideViewModel @Inject constructor(
-    private val preferences: PrivacyPreferences
+    private val preferences: PrivacyPreferences,
+    private val mascotMoments: MascotMoments,
 ) : ViewModel() {
     val enabled: StateFlow<Boolean> = preferences.shakeToHideAmounts
         .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), false)
@@ -60,6 +63,7 @@ class ShakeToHideViewModel @Inject constructor(
         viewModelScope.launch {
             // Before any choice only Home is hidden, so the first shake hides everywhere.
             val hidden = preferences.toggleBalanceHidden(hiddenWhenUnset = false)
+            mascotMoments.announce(if (hidden) MascotMoment.AmountsHidden else MascotMoment.AmountsShown)
             toggled.send(Toggled(hidden, preferences.claimShakeToHideHint()))
         }
     }

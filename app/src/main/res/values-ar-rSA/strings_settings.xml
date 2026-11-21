@@ -2,6 +2,19 @@
 <resources>
     <!-- ══ Settings screen ══ -->
     <string name="settings_title">الإعدادات</string>
+    <string name="settings_search">ابحث في الإعدادات</string>
+    <string name="settings_search_empty">لا توجد إعدادات تطابق “%1$s”</string>
+    <plurals name="settings_search_results">
+        <item quantity="zero">%1$d إعداد</item>
+        <item quantity="one">%1$d إعداد</item>
+        <item quantity="two">%1$d إعداد</item>
+        <item quantity="few">%1$d إعدادات</item>
+        <item quantity="many">%1$d إعدادًا</item>
+        <item quantity="other">%1$d إعداد</item>
+    </plurals>
+    <string name="settings_search_keywords_dark">الوضع الداكن، المظهر الداكن، الوضع الليلي، السمة، المظهر</string>
+    <string name="settings_search_keywords_light">الوضع الفاتح، المظهر الفاتح، الوضع النهاري، السمة، المظهر</string>
+    <string name="settings_search_keywords_app_lock">كلمة المرور، رمز PIN، بصمة الإصبع، بصمة الوجه، المصادقة الحيوية</string>
     <string name="settings_back">الرجوع</string>
     <!-- Shared dialog actions -->
     <string name="settings_action_cancel">إلغاء</string>

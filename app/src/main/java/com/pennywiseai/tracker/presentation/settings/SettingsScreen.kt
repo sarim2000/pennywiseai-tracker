@@ -35,6 +35,7 @@ import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.Surface
 import androidx.compose.material3.toShape
 import androidx.compose.runtime.*
+import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -111,7 +112,7 @@ fun SettingsScreen(
     val hub by hubViewModel.state.collectAsStateWithLifecycle()
     var showUpgradeSheet by remember { mutableStateOf(false) }
     var showSupportDialog by remember { mutableStateOf(false) }
-    var showEditProfile by remember { mutableStateOf(false) }
+    var showEditProfile by rememberSaveable { mutableStateOf(false) }
     // F-Droid builds have no Play billing, so they show a "Support development"
     // tip jar instead of the (un-buyable) Pro upsell. Play builds keep Pro.
     val isFdroidBuild = com.pennywiseai.tracker.BuildConfig.IS_FDROID_BUILD
@@ -425,12 +426,12 @@ private fun SettingsProfileHeader(state: SettingsHubState, onEdit: () -> Unit, m
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(Spacing.sm),
     ) {
-        val editLabel = stringResource(R.string.settings_profile_edit)
-        // The pencil badge says the avatar is tappable; the badge is part of the one button.
+        // The pencil badge says the avatar is tappable and names the one button. Editing
+        // waits for the stored profile, or the sheet would start from blanks.
         Box(
             modifier = Modifier
                 .clip(MaterialTheme.shapes.extraLarge)
-                .clickable(onClickLabel = editLabel, role = Role.Button, onClick = onEdit),
+                .clickable(enabled = state.isLoaded, role = Role.Button, onClick = onEdit),
         ) {
             ProfileAvatar(
                 name = state.name,
@@ -449,7 +450,7 @@ private fun SettingsProfileHeader(state: SettingsHubState, onEdit: () -> Unit, m
             ) {
                 Icon(
                     Icons.Default.Edit,
-                    contentDescription = editLabel,
+                    contentDescription = stringResource(R.string.settings_profile_edit),
                     modifier = Modifier
                         .padding(Spacing.xs)
                         .size(Dimensions.Icon.small),

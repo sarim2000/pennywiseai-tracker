@@ -13,9 +13,12 @@ import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.runtime.snapshotFlow
 import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.drawWithContent
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalWindowInfo
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.clearAndSetSemantics
 import androidx.compose.ui.semantics.text
@@ -32,8 +35,10 @@ import com.pennywiseai.tracker.ui.animations.rememberAnimationsEnabled
 import com.pennywiseai.tracker.ui.theme.GoogleSansFlexAxes
 import com.pennywiseai.tracker.ui.theme.LocalGoogleSansFlexActive
 import com.pennywiseai.tracker.ui.theme.withFlexAxes
+import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 import kotlin.math.PI
 import kotlin.math.roundToInt
@@ -71,10 +76,16 @@ internal fun WelcomeTitle(
 
     val progress = remember(brand) { List(brand.length) { Animatable(0f) } }
     val spec = MaterialTheme.motionScheme.slowSpatialSpec<Float>()
+    val windowInfo = LocalWindowInfo.current
+    val drawn = remember { CompletableDeferred<Unit>() }
     LaunchedEffect(Unit) {
-        // A cold start's first frames come after long main-thread stalls (first
-        // composition, disk reads); timed from composition, the sweep would play
-        // out inside them and the first drawn frame would already be final.
+        // On a cold start Compose runs steady frames long before anything is on
+        // screen: the splash holds the first draw, and the starting window covers
+        // the app until it has drawn. Wait for the title's own first draw and for
+        // the window to take focus (the starting window never does), then for the
+        // frames to settle, so the sweep plays where it can be seen.
+        drawn.await()
+        snapshotFlow { windowInfo.isWindowFocused }.first { it }
         awaitSteadyFrames()
         onPlayed()
         delay(LEAD_IN_MS)
@@ -118,7 +129,12 @@ internal fun WelcomeTitle(
         Text(
             text = annotated,
             style = style,
-            modifier = Modifier.clearAndSetSemantics { this.text = AnnotatedString(text) },
+            modifier = Modifier
+                .clearAndSetSemantics { this.text = AnnotatedString(text) }
+                .drawWithContent {
+                    drawContent()
+                    drawn.complete(Unit)
+                },
         )
     }
 }
@@ -184,8 +200,8 @@ private const val START_WEIGHT = 200f
 private const val LETTER_STAGGER_MS = 50L
 
 /**
- * Lets the screen land (and the splash clear on first launch) before the word
- * moves; counted once frames are steady.
+ * Lets the screen land (and the splash finish fading on first launch) before
+ * the word moves; counted once the window has focus and frames are steady.
  */
 private const val LEAD_IN_MS = 250L
 

@@ -4,6 +4,7 @@ import kotlinx.serialization.Serializable
 import kotlinx.serialization.json.Json
 import java.time.LocalDate
 import java.time.temporal.ChronoUnit
+import java.util.UUID
 
 @Serializable
 enum class ChallengeKind {
@@ -20,6 +21,8 @@ enum class ChallengeKind {
  */
 @Serializable
 data class ChallengeRun(
+    /** Set when the challenge starts. Older saved runs have none until the next load. */
+    val id: String? = null,
     val kind: ChallengeKind = ChallengeKind.NO_SPEND_DAYS,
     /** The (top-level) category a [ChallengeKind.CATEGORY_WEEK] goes without, by its name when started. */
     val categoryName: String? = null,
@@ -35,8 +38,11 @@ data class ChallengeRun(
     /** Whether [row] spoils its day. */
     fun counts(row: ChallengeRow): Boolean = kind == ChallengeKind.NO_SPEND_DAYS || categoryName in row.categories
 
-    /** The same run, whatever its category is called now. */
-    fun sameAs(other: ChallengeRun?): Boolean = other != null && kind == other.kind && startEpochDay == other.startEpochDay
+    /**
+     * The same start, whatever its category is called now.
+     * A missing id matches nothing, so two runs from before ids existed are not the same one.
+     */
+    fun sameAs(other: ChallengeRun?): Boolean = other != null && id != null && id == other.id
 
     /** Once per run: the same challenge started another day is a new moment. */
     val celebrationKey: String get() = "challenge:$start:$kind"
@@ -46,6 +52,7 @@ data class ChallengeRun(
         const val NO_SPEND_TARGET = 3
 
         fun start(kind: ChallengeKind, categoryName: String?, today: LocalDate, categoryId: Long? = null) = ChallengeRun(
+            id = newChallengeId(),
             kind = kind,
             categoryName = categoryName.takeIf { kind == ChallengeKind.CATEGORY_WEEK },
             categoryId = categoryId.takeIf { kind == ChallengeKind.CATEGORY_WEEK },
@@ -92,8 +99,27 @@ data class ChallengeState(
 
         /** Empty for nothing stored, or for state this version can't read. */
         fun fromJson(raw: String?): ChallengeState =
-            raw?.let { runCatching { json.decodeFromString(serializer(), it) }.getOrNull() } ?: ChallengeState()
+            raw?.let { runCatching { json.decodeFromString(serializer(), it) }.getOrNull()?.ensuredIds() } ?: ChallengeState()
     }
+}
+
+private fun newChallengeId(): String = UUID.randomUUID().toString()
+
+/**
+ * Gives every stored run an id, so the next save keeps it.
+ * An older run has none on disk: the id is derived from the run, so a second read of the
+ * same JSON agrees and giving up still finds the one on screen.
+ */
+private fun ChallengeState.ensuredIds(): ChallengeState = copy(
+    active = active?.withId(),
+    history = history.map { it.copy(run = it.run.withId()) },
+)
+
+private fun ChallengeRun.withId(): ChallengeRun = if (id != null) this else copy(id = legacyChallengeId())
+
+private fun ChallengeRun.legacyChallengeId(): String {
+    val name = "$kind|$startEpochDay|${categoryName.orEmpty()}|${categoryId ?: ""}"
+    return UUID.nameUUIDFromBytes(name.toByteArray(Charsets.UTF_8)).toString()
 }
 
 /** One counted expense: its day and its top-level categories (a split can carry several). */

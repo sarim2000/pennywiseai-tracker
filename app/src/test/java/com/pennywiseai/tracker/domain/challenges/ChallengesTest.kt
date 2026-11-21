@@ -80,10 +80,39 @@ class ChallengesTest {
     @Test
     fun `giving up only stops the run it was asked for`() {
         val renamed = noFood.copy(categoryName = "Dining")
+        assertEquals(noFood.id, renamed.id)
         assertNull(ChallengeState(active = noFood).giveUp(renamed).active)
         assertEquals(noFood, ChallengeState(active = noFood).giveUp(noSpend).active)
         // Finishing a renamed copy records the stored run.
         assertEquals(noFood, ChallengeState(active = noFood).finish(renamed, 7, true).history.first().run)
+        // Another category started the same day is a different run.
+        val shopping = ChallengeRun.start(ChallengeKind.CATEGORY_WEEK, "Shopping", start)
+        assertEquals(shopping, ChallengeState(active = shopping).giveUp(noFood).active)
+        assertFalse(noFood.sameAs(null))
+    }
+
+    @Test
+    fun `a run with no id matches nothing, and old JSON grows an id that the next save keeps`() {
+        val bare = ChallengeRun(
+            kind = ChallengeKind.CATEGORY_WEEK,
+            categoryName = FOOD_AND_DINING,
+            startEpochDay = start.toEpochDay(),
+        )
+        assertFalse(bare.sameAs(bare))
+        assertEquals(bare, ChallengeState(active = bare).giveUp(bare).active)
+        val raw = """{"active":{"kind":"CATEGORY_WEEK","categoryName":"Food & Dining","startEpochDay":${start.toEpochDay()},"length":7,"target":7},"history":[{"run":{"kind":"NO_SPEND_DAYS","startEpochDay":${start.toEpochDay()}},"cleanDays":2,"won":false,"seen":true}]}"""
+        val loaded = ChallengeState.fromJson(raw)
+        val active = loaded.active!!
+        assertEquals(FOOD_AND_DINING, active.categoryName)
+        assertTrue(active.id != null)
+        assertTrue(loaded.history.single().run.id != null)
+        assertFalse(active.sameAs(loaded.history.single().run))
+        // A second read of the same old JSON assigns the same ids, so give-up still matches.
+        val reread = ChallengeState.fromJson(raw)
+        assertEquals(loaded, reread)
+        assertNull(reread.giveUp(active).active)
+        assertEquals(loaded, ChallengeState.fromJson(loaded.toJson()))
+        assertNull(loaded.giveUp(active.copy(categoryName = "Dining")).active)
     }
 
     @Test

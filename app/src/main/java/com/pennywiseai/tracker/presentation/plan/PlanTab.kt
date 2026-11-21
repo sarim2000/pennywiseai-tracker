@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.presentation.plan
 import androidx.annotation.StringRes
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
@@ -137,7 +138,9 @@ fun PlanTopBar(host: PlanTabHost?, titleBar: @Composable () -> Unit) {
         titleBar()
     } else {
         Column {
-            titleBar()
+            // The title bar draws its expanded and collapsed bars as siblings, which the
+            // Scaffold slot overlays; a bare Column stacked them (a blank band when collapsed).
+            Box { titleBar() }
             PlanSwitcher(
                 host,
                 Modifier.background(MaterialTheme.colorScheme.background)

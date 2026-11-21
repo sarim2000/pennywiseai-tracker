@@ -6,6 +6,7 @@ import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.ledger.breakdownByCurrency
 import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.repository.TransactionRepository.MonthlyBreakdown
+import com.pennywiseai.tracker.ui.components.cards.isUnsortedCategory
 import kotlinx.coroutines.test.runTest
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -131,6 +132,13 @@ class HomeFiguresTest {
         )
         // "Misc" stands in for a renamed Others; a row split across categories is filed already.
         assertEquals(listOf(older.id, newer.id), unsortedIds(rows, "Misc", setOf(split.id)))
+    }
+
+    @Test fun `a row Home counts as needing a category is styled as one`() {
+        val others = tx("10", TransactionType.EXPENSE, category = "Others")
+        assertEquals(listOf(others.id), unsortedIds(listOf(others), "Others", emptySet()))
+        assertTrue(isUnsortedCategory(others.category))
+        assertFalse(isUnsortedCategory("Food"))
     }
 
     @Test fun `transfers and investments are neither income nor spend`() {

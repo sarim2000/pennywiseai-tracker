@@ -263,11 +263,16 @@ private fun transferTitleOverride(transaction: TransactionEntity, resources: Res
 }
 
 /**
- * Whether the row has no category at all: blank or the legacy "Uncategorized"
- * sentinel, the same test the row used to leave the category out of its subtitle
- * ([isValidCategoryOverride]). Others is a real category the user may have picked.
+ * Whether the row still needs a category: blank, the legacy "Uncategorized" sentinel
+ * ([isValidCategoryOverride]), or Others, where SMS rows land when nothing matched.
+ * Others is the set Home's "Needs a category" count walks, so the row says the same
+ * thing as that count.
+ *
+ * ponytail: matches Others by its built-in name; a user who renamed Others keeps the
+ * count on Home but not this styling. Pass the current name in if that ever matters.
  */
-fun isUnsortedCategory(category: String): Boolean = !category.isValidCategoryOverride()
+fun isUnsortedCategory(category: String): Boolean =
+    !category.isValidCategoryOverride() || category.equals("Others", ignoreCase = true)
 
 /**
  * A transaction's leading badge: its category glyph on a wash of the category

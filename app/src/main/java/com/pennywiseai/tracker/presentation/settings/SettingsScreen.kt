@@ -116,8 +116,8 @@ fun SettingsScreen(
     var showSupportDialog by remember { mutableStateOf(false) }
     // Search takes over the bar and the page; Back closes it before it leaves Settings.
     var searching by rememberSaveable { mutableStateOf(false) }
-    // Saved so rotation keeps the keyboard up; cleared on the way into a result so the
-    // field stays unfocused when the user comes back to the list.
+    // Saved so rotation requests focus again when the field was focused. Set when search
+    // opens, cleared on the way into a result, and updated from the field's own focus.
     var focusSearch by rememberSaveable { mutableStateOf(false) }
     val navigate: (NavKey) -> Unit = {
         focusSearch = false
@@ -144,7 +144,11 @@ fun SettingsScreen(
             TopAppBar(
                 title = {
                     if (searching) {
-                        SettingsSearchField(searchQuery, focus = focusSearch)
+                        SettingsSearchField(
+                            searchQuery,
+                            focus = focusSearch,
+                            onFocusChange = { focusSearch = it },
+                        )
                     } else {
                         AnimatedVisibility(visible = showBarTitle, enter = pwFadeIn(), exit = pwFadeOut()) {
                             Text(stringResource(R.string.settings_title))

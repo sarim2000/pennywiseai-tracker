@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.settings
 
+import android.os.Build
 import com.lemonappdev.konsist.api.Konsist
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.navigation.SettingsPage
@@ -18,19 +19,20 @@ class SettingsSearchTest {
 
     @Test
     fun `every settings page can be found`() {
-        val targets = settingsSearchIndex.map { it.target }.toSet()
+        val targets = settingsSearchIndex().map { it.target }.toSet()
         SettingsSection.entries.forEach { assertTrue("$it missing", SettingsPage(it) in targets) }
     }
 
     @Test
     fun `no row is listed twice`() {
-        val keys = settingsSearchIndex.map { it.title to it.target }
+        val keys = settingsSearchIndex().map { it.title to it.target }
         assertEquals(keys.size, keys.toSet().size)
     }
 
     @Test
     fun `every row on a settings page is indexed or skipped on purpose`() {
-        val indexed = settingsSearchIndex.flatMap { listOf(it.title) + it.keywords }.toSet()
+        // Android 12, so rows Appearance shows only from then (Blur Effects) still have to be indexed.
+        val indexed = settingsSearchIndex(Build.VERSION_CODES.S).flatMap { listOf(it.title) + it.keywords }.toSet()
         val rowTitle = Regex("""(?<!sub)title = stringResource\((\w+)\.string\.(\w+)""")
         val pages = Konsist.scopeFromPackage("com.pennywiseai.tracker.presentation.settings", "app", "main").files
             .filter { it.name.matches(Regex("Settings\\w*Pages?|SettingsScreen|AppearanceScreen")) }
@@ -93,6 +95,22 @@ class SettingsSearchTest {
         assertEquals(listOf("Folder backup", "Import data", "Export data"), backup.search("backup"))
         // Dropped punctuation leaves no double space to break "starts with".
         assertEquals(listOf("Backup & data", "Data backup"), rows("Data backup", "Backup & data").search("backup data"))
+    }
+
+    @Test
+    fun `amoled terms find dark, the choice that shows the control`() {
+        val index = settingsSearchIndex()
+        assertTrue(index.none { it.title == R.string.appearance_amoled_title })
+        val dark = index.single { it.title == R.string.appearance_mode_dark }
+        assertTrue(R.string.appearance_amoled_title in dark.keywords)
+        assertTrue(R.string.appearance_amoled_subtitle in dark.keywords)
+    }
+
+    @Test
+    fun `blur effects is searchable only on Android 12 and up`() {
+        val blur = R.string.appearance_blur_title
+        assertTrue(settingsSearchIndex(Build.VERSION_CODES.S).any { it.title == blur })
+        assertTrue(settingsSearchIndex(Build.VERSION_CODES.S - 1).none { it.title == blur })
     }
 
     private companion object {

@@ -1,5 +1,6 @@
 package com.pennywiseai.tracker.presentation.settings
 
+import android.os.Build
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -33,10 +34,14 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.focus.FocusRequester
 import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalResources
@@ -91,22 +96,28 @@ private class Row(
     @StringRes val subtitle: Int? = null,
     val target: NavKey? = null,
     val keywords: List<Int> = emptyList(),
+    /** False drops the row. Used when the page hides the control, so search never opens a page without it. */
+    val visible: Boolean = true,
 )
 
 // ponytail: a hand-kept list of the rows on each page, since the pages declare their
 // rows inline. A tap opens the row's page (or its own screen); scrolling to the row
 // itself waits until someone misses it. A row that only shows once a switch above it
 // is on (lock timeout, display currency, back up now) is a keyword of that switch, so
-// the tap never lands on a page without it. SettingsSearchTest fails when a page gains
-// a row this list neither holds nor skips. Left out: rows that hang on something elsewhere (main account needs an account,
+// the tap never lands on a page without it. AMOLED black is a keyword of Dark, because
+// Light hides that switch. Blur effects is left out below Android 12, where Appearance
+// hides it. SettingsSearchTest fails when a page gains a row this list neither holds
+// nor skips. Left out: rows that hang on something elsewhere (main account needs an account,
 // Budgets/Subscriptions a hidden Plan tab, the conscience nudge the app language,
 // Mascot Playground developer mode), the Pro/support row, which differs by flavor,
 // and the Help links, which leave the app. Pro-gated screens (AI access, webhooks)
 // point at their page so its upgrade gate applies.
-internal val settingsSearchIndex: List<SettingsSearchEntry> = buildList {
+internal fun settingsSearchIndex(sdkInt: Int = Build.VERSION.SDK_INT): List<SettingsSearchEntry> = buildList {
     fun page(title: Int, subtitle: Int?, icon: ImageVector, target: NavKey, vararg rows: Row) {
         add(SettingsSearchEntry(title, subtitle, null, icon, target))
-        rows.forEach { add(SettingsSearchEntry(it.title, it.subtitle, title, icon, it.target ?: target, it.keywords)) }
+        rows.filter { it.visible }.forEach {
+            add(SettingsSearchEntry(it.title, it.subtitle, title, icon, it.target ?: target, it.keywords))
+        }
     }
     fun section(title: Int, subtitle: Int, icon: ImageVector, section: SettingsSection, vararg rows: Row) =
         page(title, subtitle, icon, SettingsPage(section), *rows)
@@ -152,14 +163,24 @@ internal val settingsSearchIndex: List<SettingsSearchEntry> = buildList {
     page(
         R.string.settings_appearance_title, R.string.settings_appearance_subtitle, Icons.Default.Palette, Appearance,
         Row(R.string.appearance_mode_light, keywords = listOf(R.string.settings_search_keywords_light)),
-        Row(R.string.appearance_mode_dark, keywords = listOf(R.string.settings_search_keywords_dark)),
+        Row(
+            R.string.appearance_mode_dark,
+            keywords = listOf(
+                R.string.settings_search_keywords_dark,
+                // Light hides the switch, so these words open Dark, which is what shows it.
+                R.string.appearance_amoled_title,
+                R.string.appearance_amoled_subtitle,
+            ),
+        ),
         Row(R.string.appearance_fonts_section),
         Row(R.string.appearance_navigation_section),
         Row(R.string.appearance_bottom_bar_section, R.string.appearance_bottom_bar_subtitle),
-        // Shows unless the theme is Light.
-        Row(R.string.appearance_amoled_title, R.string.appearance_amoled_subtitle),
-        // ponytail: Android 12+ only; below that the tap lands on Appearance without it.
-        Row(R.string.appearance_blur_title, R.string.appearance_blur_subtitle),
+        // Same gate as AppearanceScreen: Build.VERSION_CODES.S (Android 12).
+        Row(
+            R.string.appearance_blur_title,
+            R.string.appearance_blur_subtitle,
+            visible = sdkInt >= Build.VERSION_CODES.S,
+        ),
         Row(R.string.appearance_red_spending_title, R.string.appearance_red_spending_subtitle),
     )
     section(
@@ -271,12 +292,22 @@ private fun wordCost(word: String, texts: List<String>): Int? = texts.indices.ma
 }.minOrNull()
 
 /**
- * The hub's search field, in place of the bar's title. It takes focus only when [focus]
- * (just opened), so coming back from a result doesn't pop the keyboard over the list.
+ * The hub's search field, in place of the bar's title. [focus] requests focus when the
+ * field is created (just opened, or recreated by rotation while it was focused), so
+ * coming back from a result doesn't pop the keyboard over the list. [onFocusChange]
+ * reports later focus, including a tap on the field after that.
  */
 @Composable
-internal fun SettingsSearchField(state: TextFieldState, focus: Boolean, modifier: Modifier = Modifier) {
+internal fun SettingsSearchField(
+    state: TextFieldState,
+    focus: Boolean,
+    onFocusChange: (Boolean) -> Unit,
+    modifier: Modifier = Modifier,
+) {
     val focusRequester = remember { FocusRequester() }
+    // Attaching reports unfocused before the open or rotation request lands.
+    // Ignore that, or it clears the saved focus and the next rotation leaves the keyboard down.
+    var gainedFocus by remember { mutableStateOf(false) }
     LaunchedEffect(Unit) { if (focus) focusRequester.requestFocus() }
     // The placeholder goes once there is text, so TalkBack gets the label from here.
     val label = stringResource(R.string.settings_search)
@@ -288,6 +319,11 @@ internal fun SettingsSearchField(state: TextFieldState, focus: Boolean, modifier
         modifier = modifier
             .fillMaxWidth()
             .focusRequester(focusRequester)
+            // hasFocus, not isFocused: the field's inner editor is the focused child.
+            .onFocusChanged { focusState ->
+                if (focusState.hasFocus) gainedFocus = true
+                if (gainedFocus) onFocusChange(focusState.hasFocus)
+            }
             .semantics { contentDescription = label },
         decorator = { innerTextField ->
             Box {
@@ -322,7 +358,7 @@ private class ResolvedEntry(
 internal fun SettingsSearchResults(query: String, contentPadding: PaddingValues, onNavigate: (NavKey) -> Unit) {
     val resources = LocalResources.current
     val resolved = remember(resources) {
-        settingsSearchIndex.map { entry ->
+        settingsSearchIndex().map { entry ->
             val title = resources.getString(entry.title)
             val subtitle = entry.subtitle?.let(resources::getString)
             val parent = entry.parent?.let(resources::getString)

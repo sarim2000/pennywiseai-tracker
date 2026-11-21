@@ -390,6 +390,9 @@ fun HomeScreen(
             )
         }
     ) { paddingValues ->
+        // Only for new users (no transactions yet): the long-press hint under Sync.
+        val showSyncHint = uiState.recentItems.isEmpty() && !uiState.isLoading
+        val syncHintHeight = if (showSyncHint) homeSyncHintHeight() else 0.dp
         Box(modifier = Modifier.fillMaxSize().background(MaterialTheme.colorScheme.background)) {
             // Home sits on the plain background, like every other tab.
             LazyColumn(
@@ -404,7 +407,8 @@ fun HomeScreen(
                     // Clears the nav bar plus the actions floating above it.
                     bottom = homeListBottomPadding(
                         systemBarBottom = paddingValues.calculateBottomPadding(),
-                        floatingNav = navDock != null
+                        floatingNav = navDock != null,
+                        syncHintHeight = syncHintHeight
                     )
                 ),
                 verticalArrangement = Arrangement.spacedBy(Spacing.md)
@@ -831,7 +835,7 @@ fun HomeScreen(
                 HomeFabStack(
                     systemBarBottom = paddingValues.calculateBottomPadding(),
                     isScanning = uiState.isScanning,
-                    showSyncHint = uiState.recentItems.isEmpty() && !uiState.isLoading,
+                    showSyncHint = showSyncHint,
                     onNavigateToAddScreen = onNavigateToAddScreen,
                     onSync = { viewModel.scanSmsMessages() },
                     onRequestFullResync = { showFullResyncDialog = true },

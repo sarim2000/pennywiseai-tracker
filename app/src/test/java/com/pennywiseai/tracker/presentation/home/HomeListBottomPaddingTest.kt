@@ -35,6 +35,22 @@ class HomeListBottomPaddingTest {
     }
 
     @Test
+    fun `normal nav - the Sync hint's lift is cleared too`() {
+        // labelSmall's 16sp line plus the xs gap, at font scales 1.0, 1.3 and 2.0.
+        listOf(20.dp, 25.dp, 36.dp).forEach { hint ->
+            systemBarInsets.forEach { systemBar ->
+                val addFabTop = systemBar + Dimensions.Component.fabBottomInset + hint + Dimensions.Component.fab +
+                    Spacing.smd + smallFabSlot - (smallFabSlot - smallFabVisible) / 2
+                val padding = homeListBottomPadding(systemBar, floatingNav = false, syncHintHeight = hint)
+                assertTrue(
+                    "system bar $systemBar, hint $hint: padding $padding must end ${Spacing.md} above $addFabTop",
+                    padding >= addFabTop + Spacing.md
+                )
+            }
+        }
+    }
+
+    @Test
     fun `normal nav - the stack stands above the nav bar`() {
         systemBarInsets.forEach { systemBar ->
             val navBarTop = systemBar + Dimensions.Component.bottomBarHeight

@@ -14,11 +14,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.geometry.Rect
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.platform.LocalView
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.unit.Dp
+import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.ui.components.ProfileFilterDropdown
@@ -86,17 +88,26 @@ internal fun HomeTopBarActions(
 internal val HomeFabStackHeight = Dimensions.Component.minTouchTarget + Spacing.smd + Dimensions.Component.fab
 
 /**
- * Bottom padding for Home's list, so its last row can scroll clear of what floats
- * over it. [systemBarBottom] is the Scaffold's bottom inset (the system nav bar).
+ * How much the Sync hint under [HomeFabStack]'s Sync button lifts the stack: the gap
+ * above it plus one labelSmall line, which grows with the font scale.
  */
-internal fun homeListBottomPadding(systemBarBottom: Dp, floatingNav: Boolean): Dp =
+@Composable
+internal fun homeSyncHintHeight(): Dp =
+    Spacing.xs + with(LocalDensity.current) { MaterialTheme.typography.labelSmall.lineHeight.toDp() }
+
+/**
+ * Bottom padding for Home's list, so its last row can scroll clear of what floats
+ * over it. [systemBarBottom] is the Scaffold's bottom inset (the system nav bar);
+ * [syncHintHeight] is how much the Sync hint lifts the FAB stack while it shows.
+ */
+internal fun homeListBottomPadding(systemBarBottom: Dp, floatingNav: Boolean, syncHintHeight: Dp = 0.dp): Dp =
     if (floatingNav) {
         // The floating pill's row sits above the nav bar; Add docks above Ask's squircle in it.
         systemBarBottom + Dimensions.Component.floatingNavBottomGap + Dimensions.Component.floatingNavHeight +
             Spacing.sm + Dimensions.Component.dockedActionSmallSize + Spacing.md
     } else {
         // The nav bar, then the Add + Sync stack standing above it.
-        systemBarBottom + Dimensions.Component.fabBottomInset + HomeFabStackHeight + Spacing.md
+        systemBarBottom + Dimensions.Component.fabBottomInset + syncHintHeight + HomeFabStackHeight + Spacing.md
     }
 
 /**

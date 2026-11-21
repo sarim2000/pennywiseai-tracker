@@ -36,6 +36,7 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.LayoutDirection
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
+import androidx.lifecycle.compose.LifecycleResumeEffect
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
@@ -117,8 +118,13 @@ fun BudgetGroupsScreen(
     focusBudgetId: Long? = null,
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val underBudget by viewModel.underBudget.collectAsStateWithLifecycle()
+    val underBudgetState by viewModel.underBudget.collectAsStateWithLifecycle()
     val celebrate by viewModel.celebrate.collectAsStateWithLifecycle()
+    // The screen already resumes to re-read "today"; the card's query follows the same path.
+    LifecycleResumeEffect(Unit) {
+        viewModel.refreshDate()
+        onPauseOrDispose { }
+    }
     val goalsSection: (@Composable () -> Unit)? = if (planTab != null) null else {
         {
             com.pennywiseai.tracker.presentation.goals.GoalsSection(
@@ -233,7 +239,8 @@ fun BudgetGroupsScreen(
                 bottomPadding = paddingValues.calculateBottomPadding() + Dimensions.Component.fabScrollClearance +
                     if (planTab != null) Dimensions.Component.bottomBarHeight else Spacing.none,
                 uiState = uiState,
-                underBudget = underBudget,
+                underBudget = underBudgetState.win,
+                underBudgetReady = underBudgetState.ready,
                 onUnderBudgetShown = viewModel::onUnderBudgetShown,
                 onDismissUnderBudget = viewModel::dismissUnderBudget,
                 goalsSection = goalsSection,
@@ -326,6 +333,7 @@ private fun BudgetGroupsContent(
     bottomPadding: Dp,
     uiState: BudgetGroupsUiState,
     underBudget: MonthUnderBudget?,
+    underBudgetReady: Boolean,
     onUnderBudgetShown: (MonthUnderBudget) -> Unit,
     onDismissUnderBudget: (MonthUnderBudget) -> Unit,
     goalsSection: (@Composable () -> Unit)?,
@@ -371,16 +379,18 @@ private fun BudgetGroupsContent(
             lazyListState.scrollToItem(0)
         }
     }
-    LaunchedEffect(summaryReady) {
-        if (!focusPending || !summaryReady) return@LaunchedEffect
-        // Budgets follow the month selector, the win card when shown and, on the standalone page, Goals.
-        val firstBudgetIndex = (if (goalsSection == null) 1 else 2) + if (win != null) 1 else 0
-        val index = when (focusBudgetId) {
-            hero?.group?.budget?.id -> firstBudgetIndex
-            else -> otherGroups.indexOfFirst { it.group.budget.id == focusBudgetId }
-                .takeIf { it >= 0 }
-                ?.let { firstBudgetIndex + it + if (hero != null) 1 else 0 }
-        } ?: run {
+    // The win card is an optional header. Wait until its decision is in, then find the budget
+    // by the same key the list uses, so a late card can't scroll the deep link to the row above.
+    val headerSettled = !isCurrentMonth || underBudgetReady
+    LaunchedEffect(summaryReady, headerSettled, win != null) {
+        if (!focusPending || !summaryReady || !headerSettled || focusBudgetId == null) return@LaunchedEffect
+        val index = budgetFocusIndex(
+            focusBudgetId = focusBudgetId,
+            hasGoals = goalsSection != null,
+            hasWin = win != null,
+            heroId = hero?.group?.budget?.id,
+            otherIds = otherGroups.map { it.group.budget.id },
+        ) ?: run {
             focusPending = false
             return@LaunchedEffect
         }
@@ -422,7 +432,9 @@ private fun BudgetGroupsContent(
                 MonthUnderBudgetCard(
                     win = w,
                     onDismiss = { onDismissUnderBudget(w) },
-                    modifier = Modifier.padding(top = if (goalsSection != null) BlockGap else Spacing.none),
+                    modifier = Modifier
+                        .animateItem()
+                        .padding(top = if (goalsSection != null) BlockGap else Spacing.none),
                 )
             }
         }

@@ -1430,14 +1430,21 @@ class HomeViewModel @Inject constructor(
 
     /**
      * Last week's guess, until it's answered or dismissed. Follows the date, the rows in
-     * scope, Home's currency and the categories; reads nothing for a week already handled.
+     * scope, Home's currency, the categories and the splits: a split save changes the
+     * recorded total without changing the transaction count. Reads nothing for a week
+     * already handled.
      */
     private fun observeWeeklyGuess() {
         viewModelScope.launch {
             combine(
                 // The card-spend setting changes Review's figures without changing any rows.
                 combine(today, userPreferencesRepository.countCreditCardAsExpense.distinctUntilChanged()) { day, _ -> day },
-                periodReviewLoader.rowCountChanges(),
+                // Splits land in their own table, sometimes after the transaction row, so the
+                // question has to recompute on that write too or it keeps the old total.
+                combine(
+                    periodReviewLoader.rowCountChanges(),
+                    transactionRepository.observeSplitsForActiveTransactions(),
+                ) { _, _ -> },
                 _uiState.map { it.selectedCurrency }.distinctUntilChanged(),
                 userPreferencesRepository.weeklyGuessHandledWeek.distinctUntilChanged(),
                 categoryRepository.getAllCategories(),

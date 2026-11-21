@@ -10,6 +10,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.TextAutoSize
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
@@ -51,17 +52,19 @@ import com.pennywiseai.tracker.domain.review.CLOSE_GUESS_PERCENT
 import com.pennywiseai.tracker.domain.review.WeeklyGuessQuestion
 import com.pennywiseai.tracker.domain.review.guessGapPercent
 import com.pennywiseai.tracker.domain.review.isCloseGuess
+import com.pennywiseai.tracker.domain.review.sliderStops
 import com.pennywiseai.tracker.domain.review.snap
 import com.pennywiseai.tracker.ui.components.celebration.Celebration
 import com.pennywiseai.tracker.ui.components.mascot.Mascot
 import com.pennywiseai.tracker.ui.components.mascot.MascotMood
 import com.pennywiseai.tracker.ui.icons.categoryLabel
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
+import com.pennywiseai.tracker.ui.theme.money
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import com.pennywiseai.tracker.utils.DateRangeUtils
 import java.math.BigDecimal
-import java.math.RoundingMode
 import kotlin.math.roundToInt
 
 /** The open guess: its question, the locked-in guess once there is one, and whether to cheer it. */
@@ -203,25 +206,30 @@ private fun GuessPicker(question: WeeklyGuessQuestion, onLockIn: (BigDecimal) ->
             modifier = Modifier.fillMaxWidth().padding(Spacing.md),
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
+            val amountStyle = MaterialTheme.typography.displayMedium.money()
             Text(
                 text = shown,
-                style = MaterialTheme.typography.displayMedium,
+                style = amountStyle,
                 color = MaterialTheme.colorScheme.primary,
                 maxLines = 1,
+                autoSize = TextAutoSize.StepBased(PennyWiseText.autoSizeFloor, amountStyle.fontSize),
             )
-            // In whole steps, so a keyboard or TalkBack nudge moves one step rather than
-            // a fraction that snaps back. The ticks aren't drawn: there can be dozens.
-            val stepCount = question.max.divide(question.step, 0, RoundingMode.DOWN).toInt()
-            val index = amount.divide(question.step, 0, RoundingMode.HALF_UP).toFloat()
-            val slider = remember(question.weekStart, stepCount) {
-                SliderState(index, (stepCount - 1).coerceAtLeast(0), 0f..stepCount.toFloat())
+            // Whole stops, and never more than the slider can allocate a tick for. A keyboard
+            // or TalkBack nudge moves one stop. The ticks aren't drawn.
+            val stops = remember(question.weekStart, question.max, question.step, question.actual) {
+                sliderStops(question.max, question.step, question.actual)
+            }
+            val index = stops.indices.minBy { (stops[it] - amount).abs() }.toFloat()
+            val slider = remember(question.weekStart, stops) {
+                SliderState(index, (stops.size - 2).coerceAtLeast(0), 0f..stops.lastIndex.toFloat())
             }
             // A chip moves the thumb too.
             SideEffect { if (slider.value != index) slider.value = index }
             Slider(
                 state = slider,
                 onValueChange = {
-                    picked = (question.step * BigDecimal(it.roundToInt())).min(question.max).stripTrailingZeros().toPlainString()
+                    val at = it.roundToInt().coerceIn(stops.indices)
+                    picked = stops[at].stripTrailingZeros().toPlainString()
                 },
                 track = { SliderDefaults.Track(sliderState = it, drawTick = { _, _ -> }) },
                 modifier = Modifier.semantics {
@@ -300,10 +308,12 @@ private fun GuessReveal(
                 style = MaterialTheme.typography.labelLarge,
                 modifier = Modifier.padding(top = Spacing.sm),
             )
+            val recordedStyle = MaterialTheme.typography.displaySmall.money()
             Text(
                 text = CurrencyFormatter.formatCurrency(question.actual, currency),
-                style = MaterialTheme.typography.displaySmall,
+                style = recordedStyle,
                 maxLines = 1,
+                autoSize = TextAutoSize.StepBased(PennyWiseText.autoSizeFloor, recordedStyle.fontSize),
             )
             Text(
                 text = stringResource(R.string.weekly_guess_your_guess) + " · " + CurrencyFormatter.formatCurrency(guess, currency),

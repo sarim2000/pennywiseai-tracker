@@ -106,6 +106,47 @@ internal fun guessStep(max: BigDecimal): BigDecimal {
     return magnitude.divide(BigDecimal(20)).max(BigDecimal.ONE).plain()
 }
 
+/**
+ * Most positions the guess slider may offer. Material 3 allocates one tick per position and
+ * walks them on every drag; a tiny week after a large history would otherwise ask for
+ * hundreds of millions and the allocation fails.
+ */
+internal const val MAX_SLIDER_POSITIONS = 1_000
+
+/**
+ * Where the thumb can sit, from 0 up to [max].
+ *
+ * An ordinary week is every multiple of [step]. When that would blow past [MAX_SLIDER_POSITIONS],
+ * the stops are whole numbers across the same range, with one of them inside the 15% hit band
+ * so a quiet week is still guessable.
+ */
+internal fun sliderStops(max: BigDecimal, step: BigDecimal, actual: BigDecimal): List<BigDecimal> {
+    if (step.signum() <= 0 || max.signum() <= 0) return listOf(BigDecimal.ZERO)
+    if (max <= step.multiply(BigDecimal(MAX_SLIDER_POSITIONS))) {
+        val count = max.divide(step, 0, RoundingMode.DOWN).intValueExact()
+        return (0..count).map { step.multiply(BigDecimal(it)).plain() }
+    }
+    val gaps = MAX_SLIDER_POSITIONS - 1
+    val coarse = (0..gaps).map { i ->
+        when (i) {
+            0 -> BigDecimal.ZERO
+            gaps -> max.plain()
+            else -> max.multiply(BigDecimal(i)).divide(BigDecimal(gaps), 0, RoundingMode.HALF_UP).plain()
+        }
+    }.distinct()
+    return withReachableHit(coarse, actual)
+}
+
+/** [stops] unchanged when one of them already hits; otherwise one interior stop moves into the band. */
+private fun withReachableHit(stops: List<BigDecimal>, actual: BigDecimal): List<BigDecimal> {
+    if (stops.any { isCloseGuess(it, actual) }) return stops
+    val whole = actual.setScale(0, RoundingMode.HALF_UP).plain()
+    val hit = if (whole.signum() > 0 && isCloseGuess(whole, actual)) whole else actual.plain()
+    if (stops.size < 3) return (stops + hit).distinct().sorted()
+    val index = (1 until stops.lastIndex).minBy { (stops[it] - hit).abs() }
+    return stops.mapIndexed { i, value -> if (i == index) hit else value }.distinct().sorted()
+}
+
 /** [value] to the nearest [step]. */
 internal fun snap(value: BigDecimal, step: BigDecimal): BigDecimal =
     value.divide(step, 0, RoundingMode.HALF_UP).multiply(step).plain()

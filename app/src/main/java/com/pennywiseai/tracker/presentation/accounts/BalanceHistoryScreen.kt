@@ -1,11 +1,13 @@
 package com.pennywiseai.tracker.presentation.accounts
 
+import android.content.ClipData
 import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.Message
@@ -18,10 +20,11 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.ui.platform.LocalClipboardManager
+import androidx.compose.ui.platform.ClipEntry
+import androidx.compose.ui.platform.Clipboard
+import androidx.compose.ui.platform.LocalClipboard
 import androidx.compose.ui.res.pluralStringResource
 import androidx.compose.ui.res.stringResource
-import androidx.compose.ui.text.AnnotatedString
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextOverflow
@@ -33,14 +36,17 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.PennyWiseEmptyState
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.orSupporting
+import com.pennywiseai.tracker.ui.components.rememberAmountEntry
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
+import kotlinx.coroutines.launch
 import java.math.BigDecimal
 import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class)
-@Suppress("DEPRECATION")
 @Composable
 fun BalanceHistoryScreen(
     onNavigateBack: () -> Unit,
@@ -53,7 +59,7 @@ fun BalanceHistoryScreen(
     var editingValue by remember { mutableStateOf("") }
     var showDeleteConfirmation by remember { mutableStateOf<Long?>(null) }
     var expandedSources by remember { mutableStateOf<Set<Long>>(emptySet()) }
-    val clipboard = LocalClipboardManager.current
+    val clipboard = LocalClipboard.current
 
     val scrollBehaviorSmall = TopAppBarDefaults.pinnedScrollBehavior()
     val scrollBehaviorLarge = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
@@ -196,7 +202,6 @@ fun BalanceHistoryScreen(
     }
 }
 
-@Suppress("DEPRECATION")
 @Composable
 private fun BalanceHistoryItem(
     balance: AccountBalanceEntity,
@@ -212,9 +217,10 @@ private fun BalanceHistoryItem(
     onSaveEdit: () -> Unit,
     onCancelEdit: () -> Unit,
     onToggleExpand: () -> Unit,
-    clipboard: androidx.compose.ui.platform.ClipboardManager,
+    clipboard: Clipboard,
     modifier: Modifier = Modifier
 ) {
+    val scope = rememberCoroutineScope()
     PennyWiseCardV2(
         modifier = modifier
             .fillMaxWidth()
@@ -364,14 +370,18 @@ private fun BalanceHistoryItem(
                 Column(
                     verticalArrangement = Arrangement.spacedBy(Spacing.sm)
                 ) {
+                    val entry = rememberAmountEntry(editingValue, onEditValueChange, accountPrimaryCurrency)
+                    val sum = entry.sumHint
                     TextField(
-                        value = editingValue,
-                        onValueChange = onEditValueChange,
+                        state = entry.state,
+                        inputTransformation = entry.inputTransformation,
                         keyboardOptions = KeyboardOptions(
                             keyboardType = KeyboardType.Decimal
                         ),
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth(),
+                        isError = sum?.isError == true,
+                        supportingText = sum.orSupporting(),
+                        lineLimits = TextFieldLineLimits.SingleLine,
+                        modifier = Modifier.fillMaxWidth().then(entry.modifier),
                         label = { Text(stringResource(R.string.balance_history_new_balance)) },
                         leadingIcon = {
                             Text(
@@ -395,7 +405,7 @@ private fun BalanceHistoryItem(
                         verticalArrangement = Arrangement.Center
                     ) {
                         Button(
-                            onClick = onSaveEdit,
+                            onClick = withCommittedText(onSaveEdit),
                             enabled = editingValue.toBigDecimalOrNull() != null,
                             modifier = Modifier.weight(1f),
                             shapes = ButtonDefaults.shapes()
@@ -503,7 +513,9 @@ private fun BalanceHistoryItem(
                                 if (isExpanded) {
                                     IconButton(
                                         onClick = {
-                                            clipboard.setText(AnnotatedString(smsSource))
+                                            scope.launch {
+                                                clipboard.setClipEntry(ClipEntry(ClipData.newPlainText("SMS", smsSource)))
+                                            }
                                         },
                                         shapes = IconButtonDefaults.shapes()
                                     ) {

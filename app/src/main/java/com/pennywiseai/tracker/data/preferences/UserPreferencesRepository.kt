@@ -16,6 +16,8 @@ import com.pennywiseai.tracker.core.TransactionWidgets
 import com.pennywiseai.tracker.data.backup.SettingsSnapshot
 import com.pennywiseai.tracker.data.preferences.HomeSection
 import com.pennywiseai.tracker.data.preferences.HomeSectionLayout
+import com.pennywiseai.tracker.data.preferences.HomeShortcut
+import com.pennywiseai.tracker.data.preferences.HomeShortcutLayout
 import com.pennywiseai.tracker.domain.conscience.ConscienceCadence
 import com.pennywiseai.tracker.domain.conscience.ConscienceCandidate
 import com.pennywiseai.tracker.domain.conscience.ConscienceChoice
@@ -230,6 +232,9 @@ open class UserPreferencesRepository internal constructor(
         // Home screen section order / visibility (#770) — see HomeSectionLayout
         val HOME_SECTIONS = stringPreferencesKey("home_sections")
 
+        // Home's shortcut row, in order — see HomeShortcutLayout
+        val HOME_SHORTCUTS = stringPreferencesKey("home_shortcuts")
+
         // Accounts left out of Home's "Safe to spend", as "bankName_last4" keys
         val SAFE_TO_SPEND_EXCLUDED = stringSetPreferencesKey("safe_to_spend_excluded_accounts")
 
@@ -283,7 +288,7 @@ open class UserPreferencesRepository internal constructor(
             K.THEME_STYLE, K.ACCENT_COLOR, K.APP_FONT, K.SYSTEM_PROMPT, K.BASE_CURRENCY,
             K.STATEMENT_COLUMN_MAPPINGS, K.DISPLAY_CURRENCY, K.NAV_BAR_STYLE,
             K.NUMBER_FORMAT_STYLE, K.DATE_FORMAT_STYLE, K.ANALYTICS_CHART_TYPE, K.ANALYTICS_GROUP_BY,
-            K.COVER_STYLE, K.HOME_SECTIONS, K.USER_NAME, K.PROFILE_IMAGE_URI, K.MAIN_ACCOUNT_KEY
+            K.COVER_STYLE, K.HOME_SECTIONS, K.HOME_SHORTCUTS, K.USER_NAME, K.PROFILE_IMAGE_URI, K.MAIN_ACCOUNT_KEY
         )
         val STRING_SETS = listOf(K.CONSCIENCE_RETIRED_LINES, K.HIDDEN_NAV_TABS, K.SAFE_TO_SPEND_EXCLUDED)
 
@@ -1523,6 +1528,18 @@ open class UserPreferencesRepository internal constructor(
         }
     }
 
+    // Home's shortcut row
+    val homeShortcuts: Flow<List<HomeShortcut>> = dataStore.data
+        .map { preferences -> HomeShortcutLayout.decode(preferences[PreferencesKeys.HOME_SHORTCUTS]) }
+
+    /** Read-modify-write inside one `edit`, like [updateHomeSectionLayout]. */
+    suspend fun updateHomeShortcuts(transform: (List<HomeShortcut>) -> List<HomeShortcut>) {
+        dataStore.edit { preferences ->
+            val current = HomeShortcutLayout.decode(preferences[PreferencesKeys.HOME_SHORTCUTS])
+            preferences[PreferencesKeys.HOME_SHORTCUTS] = HomeShortcutLayout.encode(transform(current))
+        }
+    }
+
     /** Accounts left out of "Safe to spend" ("bankName_last4"); empty = every spendable account counts. */
     val safeToSpendExcludedAccounts: Flow<Set<String>> = dataStore.data
         .map { preferences -> preferences[PreferencesKeys.SAFE_TO_SPEND_EXCLUDED] ?: emptySet() }
@@ -1557,9 +1574,18 @@ open class UserPreferencesRepository internal constructor(
         }
     }
 
-    suspend fun updateHasCompletedOnboarding(completed: Boolean) {
+    /**
+     * [freshInstall]: onboarding just finished on a new install (not the legacy
+     * auto-complete for upgraders), so Home starts from [HomeSectionLayout.FRESH_INSTALL]
+     * unless a layout is already stored.
+     */
+    suspend fun updateHasCompletedOnboarding(completed: Boolean, freshInstall: Boolean = false) {
         dataStore.edit { preferences ->
             preferences[PreferencesKeys.HAS_COMPLETED_ONBOARDING] = completed
+            if (completed && freshInstall) {
+                HomeSectionLayout.seedForFreshInstall(preferences[PreferencesKeys.HOME_SECTIONS])
+                    ?.let { preferences[PreferencesKeys.HOME_SECTIONS] = it }
+            }
         }
     }
 

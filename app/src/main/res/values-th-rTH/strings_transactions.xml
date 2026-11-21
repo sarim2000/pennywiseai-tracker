@@ -216,7 +216,6 @@
     <string name="txn_list_filter_account">บัญชี</string>
     <string name="txn_list_filter_category">หมวดหมู่</string>
     <string name="txn_list_filters">ตัวกรอง</string>
-    <string name="txn_list_filters_two">2 ตัวกรอง</string>
     <string name="txn_list_categories_all_except">ทั้งหมดยกเว้น %1$s</string>
     <plurals name="txn_list_categories_count">
         <item quantity="other">%1$d หมวดหมู่</item>

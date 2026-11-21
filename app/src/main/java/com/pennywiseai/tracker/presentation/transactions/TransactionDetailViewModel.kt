@@ -253,12 +253,89 @@ class TransactionDetailViewModel @Inject constructor(
         viewModelScope.launch {
             val txn = _transaction.value ?: return@launch
             if (txn.excludedFromAnalytics == excluded) return@launch
-            transactionRepository.updateTransaction(
-                txn.copy(excludedFromAnalytics = excluded, updatedAt = LocalDateTime.now())
-            )
+            transactionRepository.setExcludedFromAnalytics(txn.id, excluded)
             _transaction.value = transactionRepository.getTransactionById(txn.id)
             com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
         }
+    }
+
+    /**
+     * The category picked from the detail screen's Category chip, while the screen
+     * offers to remember it for this merchant ("Remember"); null when it isn't.
+     * Offered only after the user picks one there, and only when the merchant's
+     * learned category differs, so it never nags about a choice already saved.
+     * Bound to the transaction, merchant and category that made it: once an edit
+     * changes any of them, the offer is gone instead of remembering the wrong pair.
+     */
+    private data class RuleOffer(val transactionId: Long, val merchant: String, val category: String)
+    private val _ruleSuggestion = MutableStateFlow<RuleOffer?>(null)
+    private fun TransactionEntity?.matches(offer: RuleOffer?): Boolean =
+        this != null && offer != null && id == offer.transactionId &&
+            merchantName == offer.merchant && category == offer.category
+    val ruleSuggestion: StateFlow<String?> = combine(_ruleSuggestion, _transaction) { offer, txn ->
+        offer?.category?.takeIf { txn.matches(offer) }
+    }.stateIn(viewModelScope, SharingStarted.Eagerly, null)
+
+    /** A one-off confirmation for the snackbar ("Got it, I'll remember"); cleared once shown. */
+    private val _notice = MutableStateFlow<UiText?>(null)
+    val notice: StateFlow<UiText?> = _notice.asStateFlow()
+
+    fun clearNotice() {
+        _notice.value = null
+    }
+
+    /**
+     * Sets this transaction's category from the read-only view, without the editor.
+     * Writes only the category, like the list's swipe-to-change, then offers to
+     * remember the pick for the merchant's future SMS.
+     */
+    fun quickUpdateCategory(category: String) {
+        viewModelScope.launch {
+            val txn = _transaction.value ?: return@launch
+            if (txn.category == category) return@launch
+            // Publish first: an edit opened while the write is in flight must copy the new
+            // category, or its full-row save would put the old one back.
+            _transaction.value = txn.copy(category = category)
+            try {
+                transactionRepository.updateCategory(txn.id, category)
+            } catch (e: Exception) {
+                if (_transaction.value?.id == txn.id && _transaction.value?.category == category) _transaction.value = txn
+                _errorMessage.value = UiText.Res(R.string.txn_detail_error_update_category, listOf(e.message.toString()))
+                return@launch
+            }
+            // The write is in: a follow-up failing mustn't undo it on screen.
+            runCatching {
+                _transaction.value = transactionRepository.getTransactionById(txn.id)
+                com.pennywiseai.tracker.widget.WidgetRefresher.refreshTransactionWidgets(context)
+                _ruleSuggestion.value = null
+                val merchant = txn.merchantName
+                if (!LearnCategoryUseCase.isPlaceholderMerchant(merchant) &&
+                    !com.pennywiseai.tracker.ui.components.cards.isUnsortedCategory(category) &&
+                    category != merchantMappingRepository.getCategoryForMerchant(merchant)
+                ) {
+                    _ruleSuggestion.value = RuleOffer(txn.id, merchant, category)
+                }
+            }.onFailure { android.util.Log.w("TransactionDetailVM", "After category change", it) }
+        }
+    }
+
+    /** "Remember": a merchant mapping, so future SMS from this merchant land in the suggested category. */
+    fun acceptRuleSuggestion() {
+        val offer = _ruleSuggestion.value?.takeIf { _transaction.value.matches(it) } ?: return
+        _ruleSuggestion.value = null
+        viewModelScope.launch {
+            try {
+                merchantMappingRepository.setMapping(offer.merchant, offer.category)
+                _notice.value = UiText.Res(R.string.txn_detail_remember_saved)
+            } catch (e: Exception) {
+                if (_transaction.value.matches(offer)) _ruleSuggestion.compareAndSet(null, offer)
+                _errorMessage.value = UiText.Res(R.string.txn_detail_error_update_category, listOf(e.message.toString()))
+            }
+        }
+    }
+
+    fun dismissRuleSuggestion() {
+        _ruleSuggestion.value = null
     }
 
     // Split-related state
@@ -276,8 +353,10 @@ class TransactionDetailViewModel @Inject constructor(
     private val _isAddingAdjustment = MutableStateFlow(false)
     val isAddingAdjustment: StateFlow<Boolean> = _isAddingAdjustment.asStateFlow()
 
-    private val _hasSplits = MutableStateFlow(false)
-    val hasSplits: StateFlow<Boolean> = _hasSplits.asStateFlow()
+    // Whether splits are *saved* for this transaction; null until loaded. Draft
+    // edits (removeSplits) don't touch it, so a cancelled edit can't leave it wrong.
+    private val _hasSplits = MutableStateFlow<Boolean?>(null)
+    val hasSplits: StateFlow<Boolean?> = _hasSplits.asStateFlow()
 
     // Category names by recent use, most first — the picker's "Most used" (#1058).
     val mostUsedCategories: StateFlow<List<String>> = transactionRepository.observeRecentCategoryUsage()
@@ -340,6 +419,7 @@ class TransactionDetailViewModel @Inject constructor(
     fun loadTransaction(transactionId: Long) {
         viewModelScope.launch {
             val transaction = transactionRepository.getTransactionById(transactionId)
+            if (_transaction.value?.id != transactionId) _hasSplits.value = null
             _transaction.value = transaction
             transaction?.let {
                 determinePrimaryCurrency(it)
@@ -497,7 +577,7 @@ class TransactionDetailViewModel @Inject constructor(
         }
 
         // Restore split state from original splits
-        if (_hasSplits.value) {
+        if (_hasSplits.value == true) {
             _splits.value = _originalSplits.value
             _showSplitEditor.value = true
         }
@@ -531,7 +611,7 @@ class TransactionDetailViewModel @Inject constructor(
 
         // Reset split state to original values
         _splits.value = _originalSplits.value
-        _showSplitEditor.value = _hasSplits.value
+        _showSplitEditor.value = _hasSplits.value == true
     }
 
     fun toggleApplyToAllFromMerchant() {
@@ -849,7 +929,6 @@ class TransactionDetailViewModel @Inject constructor(
     fun removeSplits() {
         _splits.value = emptyList()
         _showSplitEditor.value = false
-        _hasSplits.value = false
     }
 
     /**

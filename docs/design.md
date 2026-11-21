@@ -113,13 +113,26 @@ Also here: `progressBarHeight` (8dp — one height for budget, loan and download
 tracks), `legendDot` (10dp), `calendarDot` (6dp), `fab` (56dp), `fabBottomInset`,
 `fabScrollClearance`, `hairline` (0.5dp), `dividerThickness`.
 
-The Floating nav style is a pill of icon-only tabs (`floatingNavHeight` 64dp,
-`floatingNavBottomGap` 12dp above the system bar) with a sliding selected
-indicator (`floatingNavIndicatorWidth` × `floatingNavIndicatorHeight`, a
-`primary` tint at `Alpha.selectedIndicator`). A tab's one primary action docks
-beside it as a 64dp `primary` squircle (`dockedActionCornerRadius` 20dp): the
-screen calls `DockNavAction(...)` when `LocalNavDock.current` is non-null and
+The Floating nav style is a pill of four icon-only tabs — Home · Transactions · Plan ·
+Insights (`floatingNavHeight` 64dp, `floatingNavBottomGap` 12dp above the
+system bar) with a sliding selected indicator (`floatingNavIndicatorWidth` ×
+`floatingNavIndicatorHeight`, a `primary` tint at `Alpha.selectedIndicator`); a
+long-press names the tab. Ask sits beside the pill as a 64dp `primaryContainer`
+squircle (`dockedActionCornerRadius` 20dp) holding the owl drawn in full
+(`chatDockMascot` 52dp); it rounds into a circle while Ask is open. A tab's one
+primary action stacks above Ask at the end edge as a smaller `primary` squircle
+(`dockedActionSmallSize` 48dp, `dockedActionSmallCornerRadius` 16dp): Home and
+Transactions dock Add, the Plan tab docks Add budget / Add bill / New goal (a section
+with nothing in it yet shows its own create button instead). With Ask hidden, the
+action takes Ask's slot at full size. The screen calls
+`DockNavAction(...)` when `LocalNavDock.current` is non-null and
 drops its own FAB, so the bar and the action never stack over content.
+
+Each tab's own first screen ends its header in the user's avatar, clipped to
+`MaterialShapes.Cookie9Sided` (`TabProfileButton`, fed by `LocalTabProfile`), which
+opens Settings. Pushed screens keep their back arrow instead. It is 40dp (`Icon.avatar`) on
+every tab, Home included, with its margin outside the shape: the title and the avatar both
+sit on the 16dp content margin, and the last action icon's glyph sits 16dp from the avatar.
 
 ### Elevation (`Dimensions.Elevation`)
 
@@ -238,12 +251,21 @@ the jobs the plain roles don't cover:
 
 Reference `MaterialTheme.shapes.*` rather than re-typing
 `RoundedCornerShape(16.dp)`. Cards use `large`; grouped-list interiors use
-`extraSmall`; pill shapes use `CircleShape`.
+`small`; pill shapes use `CircleShape`.
 
 Expressive accents use `MaterialShapes` (opt-in `ExperimentalMaterial3ExpressiveApi`):
 merchant avatars (`BrandIcon`, `LetterAvatar`) and the empty-state badge are
 `MaterialShapes.Cookie9Sided.toShape()`. Keep these to identity/hero glyphs —
-not containers or buttons.
+not containers or buttons. Home's shortcut row is the one deliberate exception:
+each shortcut keeps its own shape as its glyph, the label under it says what it
+opens, and only a queue (Unsorted) carries a count badge. The user picks up to four
+in Edit home; defaults are Unsorted, Search, Review and Calendar, the places that
+take two or more taps otherwise (Coming up already opens Bills).
+
+Home shows one money answer: the hero (what's left, or this month's spending) with
+Safe to spend as a row at its foot. The sections under it are compact rows with one
+amount each (budgets: name, status, what's left; accounts: bank, last 4, balance) and
+share one heading, `HomeSectionHeader` ("See all", or "Manage" for accounts).
 
 ---
 
@@ -322,12 +344,19 @@ handling — no raw `Scaffold`. Pass `title` for its plain top bar, or a
 scaffold also takes `snackbarHost`; tab screens under the overlaid nav bar pad
 it by `Dimensions.Component.bottomBarHeight`.
 
-- `CustomTitleTopAppBar`'s expanded bar is the M3 Expressive
-  `LargeFlexibleTopAppBar`; the collapsed bar is a centred single-row bar.
-  Expanded heights are the `Dimensions.Component.appBarExpandedHeight*` and
-  `homeAppBarExpandedHeight` tokens — no dp literals.
-- Titles use `titleLarge` collapsed and `headlineMediumEmphasized` expanded
+- `CustomTitleTopAppBar`'s expanded bar on a pushed screen (back button) is the
+  M3 Expressive `LargeFlexibleTopAppBar`, with heights from the
+  `Dimensions.Component.appBarExpandedHeight*` tokens. A tab root has no back
+  button, so it gets its own header with no empty top row: optional **overline**,
+  the big title, then the screen's actions and the tab avatar on the same row,
+  starting `appBarTabTopRow` under the status bar. Home puts its greeting there.
+  Both collapse into the same single-row bar.
+- Titles use `titleLarge` collapsed and `headlineLargeEmphasized` expanded
   (one of the emphasized hero moments below).
+- **Overline** (optional): a short label above a tab's title ("November" over
+  "Transactions", "Your spending" over "Insights").
+- Screens sit on the flat `background`. No gradient or cover banner behind a
+  header.
 - **Subtitle** (optional, on `CustomTitleTopAppBar`): one short line of context the
   screen would otherwise lose on scroll — e.g. Transactions shows the active
   period, because its period chip hides when the list scrolls. It shows in
@@ -343,9 +372,15 @@ it by `Dimensions.Component.bottomBarHeight`.
   every currency).
 - **Page / section / dialog loading** → `LoadingIndicator()`. Tiny inline
   spinners inside buttons or rows stay `CircularProgressIndicator`.
-- **Activity progress** (scan, import, export, download) →
-  `LinearWavyProgressIndicator`. **Data meters** (budget used, loan repaid)
-  stay flat `LinearProgressIndicator` — the wave signals *work happening*.
+- **Activity progress** (scan, import, export, download) → the moving,
+  indeterminate or animated `LinearWavyProgressIndicator`. **Data meters**
+  (budget used, goal saved, loan repaid, category share, card utilisation) →
+  `WavyMeter`: a determinate wave that stands still (no travel, no stop dot),
+  `dense = true` in list rows. Glance widgets and tiny goal rings stay flat.
+- **Corners.** No sharp corners: grouped rows join at `shapes.small` (8dp),
+  menus and snackbars use `shapes.large`, filled and outlined text fields use
+  `RoundedField` (all four corners, no underline). Full-bleed bottom sheets keep
+  the library shape (rounded top, flush with the screen edge).
 - Motion comes from `MotionScheme.expressive()` in `PennyWiseTheme`; read
   specs from `MaterialTheme.motionScheme` instead of hand-rolled `tween`s.
   **Spatial** specs (offset, size, scale, rotation) are springs that

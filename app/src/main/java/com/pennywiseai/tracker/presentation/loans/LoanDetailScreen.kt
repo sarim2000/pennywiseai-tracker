@@ -3,11 +3,13 @@ package com.pennywiseai.tracker.presentation.loans
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.lazy.rememberLazyListState
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
@@ -21,9 +23,6 @@ import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.ui.unit.dp
 import androidx.hilt.lifecycle.viewmodel.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
@@ -33,20 +32,31 @@ import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.domain.loan.LoanMath
 import com.pennywiseai.tracker.domain.loan.LoanOverflow
+import com.pennywiseai.tracker.ui.components.AmountBarDialogHost
+import com.pennywiseai.tracker.ui.components.AmountBarHost
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
 import com.pennywiseai.tracker.ui.components.LoanOverflowDialog
+import com.pennywiseai.tracker.ui.components.PennyWiseScaffold
+import com.pennywiseai.tracker.ui.components.RoundedField
+import com.pennywiseai.tracker.ui.components.WavyMeter
+import com.pennywiseai.tracker.ui.components.cards.GroupedRow
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.orSupporting
+import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
 import com.pennywiseai.tracker.ui.effects.rememberOverscrollFlingBehavior
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.*
 import com.pennywiseai.tracker.ui.theme.Dimensions
+import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.spending
+import com.pennywiseai.tracker.utils.AmountPrivacy
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
 import java.math.BigDecimal
-import java.time.format.DateTimeFormatter
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalMaterial3ExpressiveApi::class)
 @Composable
@@ -66,10 +76,10 @@ fun LoanDetailScreen(
 
     val loan = uiState.loan
 
-    Scaffold(
+    PennyWiseScaffold(
         modifier = Modifier.nestedScroll(scrollBehaviorLarge.nestedScrollConnection),
         containerColor = androidx.compose.ui.graphics.Color.Transparent,
-        topBar = {
+        customTopBar = {
             CustomTitleTopAppBar(
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
@@ -86,7 +96,7 @@ fun LoanDetailScreen(
                         IconButton(onClick = { showMenu = true }, shapes = IconButtonDefaults.shapes()) {
                             Icon(Icons.Default.MoreVert, contentDescription = stringResource(R.string.loan_detail_more))
                         }
-                        DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }) {
+                        DropdownMenu(expanded = showMenu, onDismissRequest = { showMenu = false }, shape = MaterialTheme.shapes.large) {
                             if (loan.status == LoanStatus.ACTIVE) {
                                 DropdownMenuItem(
                                     text = { Text(stringResource(R.string.loan_detail_menu_set_expected_return)) },
@@ -136,7 +146,7 @@ fun LoanDetailScreen(
             ) {
                 LoadingIndicator()
             }
-            return@Scaffold
+            return@PennyWiseScaffold
         }
 
         val directionColor = if (loan.direction == LoanDirection.LENT) {
@@ -163,7 +173,7 @@ fun LoanDetailScreen(
                 start = Dimensions.Padding.content,
                 end = Dimensions.Padding.content,
                 top = Dimensions.Padding.content + paddingValues.calculateTopPadding(),
-                bottom = paddingValues.calculateBottomPadding() + 80.dp
+                bottom = paddingValues.calculateBottomPadding() + Dimensions.Component.fabScrollClearance
             ),
             verticalArrangement = Arrangement.spacedBy(Spacing.md),
             flingBehavior = rememberOverscrollFlingBehavior { lazyListState }
@@ -182,7 +192,7 @@ fun LoanDetailScreen(
                         ) {
                             Box(
                                 modifier = Modifier
-                                    .size(48.dp)
+                                    .size(Dimensions.Icon.avatarLarge)
                                     .clip(CircleShape)
                                     .background(directionColor.copy(alpha = 0.15f)),
                                 contentAlignment = Alignment.Center
@@ -235,21 +245,12 @@ fun LoanDetailScreen(
                             )
                         }
 
-                        // Progress bar
-                        if (loan.status == LoanStatus.ACTIVE) {
-                            LinearProgressIndicator(
-                                progress = { progress },
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .height(Dimensions.Component.progressBarHeight)
-                                    .clip(CircleShape),
+                        if (loan.status == LoanStatus.ACTIVE && !AmountPrivacy.hidden) {
+                            WavyMeter(
+                                fraction = progress,
+                                modifier = Modifier.heightIn(min = Dimensions.Component.progressBarHeight),
                                 color = progressColor,
-                                trackColor = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                            )
-                            Text(
-                                stringResource(R.string.loan_detail_percent_repaid, (progress * 100).toInt()),
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                trackColor = MaterialTheme.colorScheme.surfaceContainerHighest
                             )
                         }
                     }
@@ -266,13 +267,13 @@ fun LoanDetailScreen(
                     )
                 }
 
-                items(uiState.linkedTransactions, key = { it.id }) { txn ->
+                itemsIndexed(uiState.linkedTransactions, key = { _, txn -> txn.id }) { index, txn ->
                     // Principal flows the loan's way (LENT→money out, BORROWED→money in).
                     val isOriginal = LoanMath.isPrincipal(loan.direction, txn.transactionType)
                     LoanTransactionItem(
                         transaction = txn,
                         isOriginal = isOriginal,
-                        loanDirection = loan.direction,
+                        position = ListItemPosition.from(index, uiState.linkedTransactions.size),
                         onClick = { onNavigateToTransactionDetail(txn.id) },
                         modifier = Modifier.animateItem()
                     )
@@ -307,29 +308,35 @@ fun LoanDetailScreen(
             onDismissRequest = { viewModel.hideEditAmountDialog() },
             title = { Text(stringResource(R.string.loan_detail_expected_return_title)) },
             text = {
-                TextField(
-                    value = editAmount,
-                    onValueChange = { value ->
-                        if (value.isEmpty() || value.matches(Regex("^\\d*\\.?\\d*$"))) {
-                            editAmount = value
-                        }
-                    },
-                    label = { Text(stringResource(R.string.loan_detail_expected_return_label)) },
-                    prefix = { Text(CurrencyFormatter.getCurrencySymbol(loan.currency)) },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    shape = MaterialTheme.shapes.large,
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
+                AmountBarDialogHost {
+                    val entry = rememberAmountEntry(
+                        editAmount,
+                        { value ->
+                            if (value.isEmpty() || value.matches(Regex("^\\d*\\.?\\d*$"))) {
+                                editAmount = value
+                            }
+                        },
+                        loan.currency
                     )
-                )
+                    val sum = entry.sumHint
+                    TextField(
+                        state = entry.state,
+                        inputTransformation = entry.inputTransformation,
+                        label = { Text(stringResource(R.string.loan_detail_expected_return_label)) },
+                        prefix = { Text(CurrencyFormatter.getCurrencySymbol(loan.currency)) },
+                        isError = sum?.isError == true,
+                        supportingText = sum.orSupporting(),
+                        lineLimits = TextFieldLineLimits.SingleLine,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        modifier = entry.modifier,
+                        shape = RoundedField.shape,
+                        colors = RoundedField.colors()
+                    )
+                }
             },
             confirmButton = {
                 TextButton(
-                    onClick = {
+                    onClick = withCommittedText {
                         editAmount.toBigDecimalOrNull()?.let { viewModel.updateLoanAmount(it) }
                     },
                     enabled = editAmount.toBigDecimalOrNull()?.let { it > java.math.BigDecimal.ZERO } == true,
@@ -395,7 +402,7 @@ fun LoanDetailScreen(
 private fun LoanTransactionItem(
     transaction: TransactionEntity,
     isOriginal: Boolean,
-    loanDirection: LoanDirection,
+    position: ListItemPosition,
     onClick: () -> Unit,
     modifier: Modifier = Modifier
 ) {
@@ -410,59 +417,29 @@ private fun LoanTransactionItem(
     }
     val sign = if (moneyIn) "+" else "-"
 
-    PennyWiseCardV2(
-        modifier = modifier.fillMaxWidth(),
-        onClick = onClick
-    ) {
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-            verticalAlignment = Alignment.CenterVertically
-        ) {
-            Column(modifier = Modifier.weight(1f)) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(Spacing.xs)
-                ) {
-                    Text(
-                        transaction.merchantName,
-                        style = MaterialTheme.typography.bodyMedium,
-                        fontWeight = FontWeight.Medium
-                    )
-                    if (isOriginal) {
-                        SuggestionChip(
-                            onClick = {},
-                            label = { Text(stringResource(R.string.loan_detail_original_chip), style = MaterialTheme.typography.labelSmall) },
-                            modifier = Modifier.height(24.dp),
-                            border = null as androidx.compose.foundation.BorderStroke?,
-                            colors = SuggestionChipDefaults.suggestionChipColors(
-                                containerColor = MaterialTheme.colorScheme.surfaceVariant
-                            )
-                        )
-                    }
-                }
+    GroupedRow(position = position, onClick = onClick, modifier = modifier) {
+        Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+            Text(transaction.merchantName, style = PennyWiseText.rowTitle)
+            val date = transaction.dateTime.format(AppDates.dateFormatter())
+            val status = if (isOriginal) stringResource(R.string.loan_detail_original_chip) else null
+            Text(
+                listOfNotNull(date, status).joinToString(" · "),
+                style = PennyWiseText.rowSubtitle,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            transaction.description?.takeIf { it.isNotBlank() }?.let { note ->
                 Text(
-                    transaction.dateTime.format(AppDates.dateFormatter()),
-                    style = MaterialTheme.typography.labelSmall,
+                    CurrencyFormatter.maskAmountsIn(note),
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                // This transaction's own note, not the loan's (#876).
-                transaction.description?.takeIf { it.isNotBlank() }?.let { note ->
-                    Text(
-                        CurrencyFormatter.maskAmountsIn(note),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                }
             }
             Text(
-                // Show the portion assigned to this loan, not the full transaction
-                // amount — matches how the loan total is computed (#681).
-                text = CurrencyFormatter.signed(sign, CurrencyFormatter.formatCurrency(transaction.loanContribution ?: transaction.amount, transaction.currency)),
-                style = MaterialTheme.typography.bodyMedium,
-                fontWeight = FontWeight.SemiBold,
+                CurrencyFormatter.signed(
+                    sign,
+                    CurrencyFormatter.formatCurrency(transaction.loanContribution ?: transaction.amount, transaction.currency)
+                ),
+                style = PennyWiseText.amountRow,
                 color = color
             )
         }
@@ -489,110 +466,104 @@ private fun RecordPaymentBottomSheet(
         sheetState = sheetState,
         dragHandle = { BottomSheetDefaults.DragHandle() }
     ) {
-        Column(
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(horizontal = Dimensions.Padding.content)
-                .padding(bottom = Spacing.xl)
-                .navigationBarsPadding()
-                .imePadding(),
-            verticalArrangement = Arrangement.spacedBy(Spacing.md)
-        ) {
-            Text(
-                stringResource(R.string.loan_detail_record_payment_from, personName),
-                style = MaterialTheme.typography.titleMedium,
-                fontWeight = FontWeight.SemiBold
-            )
-            Text(
-                stringResource(R.string.loan_detail_amount_remaining, CurrencyFormatter.formatCurrency(remainingAmount, currency)),
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            // Link existing transactions
-            if (recentUnlinkedTransactions.isNotEmpty()) {
+        AmountBarHost {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(horizontal = Dimensions.Padding.content)
+                    .padding(bottom = Spacing.xl)
+                    .navigationBarsPadding()
+                    .imePadding()
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(Spacing.md)
+            ) {
                 Text(
-                    stringResource(R.string.loan_detail_link_existing),
-                    style = MaterialTheme.typography.labelMedium,
+                    stringResource(R.string.loan_detail_record_payment_from, personName),
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold
+                )
+                Text(
+                    stringResource(R.string.loan_detail_amount_remaining, CurrencyFormatter.formatCurrency(remainingAmount, currency)),
+                    style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                // Every candidate, scrolling in its own window so older ones are reachable (#1308)
-                // and manual entry below stays in view.
-                LazyColumn(
-                    modifier = Modifier.heightIn(max = Dimensions.Component.dialogListMaxHeight),
-                    verticalArrangement = Arrangement.spacedBy(Spacing.md)
-                ) {
-                    items(recentUnlinkedTransactions, key = { it.id }) { txn ->
-                        PennyWiseCardV2(
-                            modifier = Modifier.fillMaxWidth(),
-                            onClick = { onLinkTransaction(txn.id) }
-                        ) {
-                            Row(
-                                modifier = Modifier.fillMaxWidth(),
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                verticalAlignment = Alignment.CenterVertically
+
+                // Link existing transactions
+                if (recentUnlinkedTransactions.isNotEmpty()) {
+                    Text(
+                        stringResource(R.string.loan_detail_link_existing),
+                        style = MaterialTheme.typography.labelMedium,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    // Every candidate, scrolling in its own window so older ones are reachable (#1308)
+                    // and manual entry below stays in view.
+                    LazyColumn(
+                        modifier = Modifier.heightIn(max = Dimensions.Component.dialogListMaxHeight),
+                        verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)
+                    ) {
+                        itemsIndexed(recentUnlinkedTransactions, key = { _, txn -> txn.id }) { index, txn ->
+                            GroupedRow(
+                                position = ListItemPosition.from(index, recentUnlinkedTransactions.size),
+                                onClick = { onLinkTransaction(txn.id) }
                             ) {
-                                Column(modifier = Modifier.weight(1f)) {
-                                    Text(txn.merchantName, style = MaterialTheme.typography.bodyMedium)
+                                Column(Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(Spacing.xs)) {
+                                    Text(txn.merchantName, style = PennyWiseText.rowTitle)
                                     Text(
                                         txn.dateTime.format(AppDates.dayMonthFormatter()),
-                                        style = MaterialTheme.typography.labelSmall,
+                                        style = PennyWiseText.rowSubtitle,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
+                                    Text(CurrencyFormatter.formatCurrency(txn.amount, txn.currency), style = PennyWiseText.amountRow)
                                 }
-                                Text(
-                                    CurrencyFormatter.formatCurrency(txn.amount, txn.currency),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    fontWeight = FontWeight.SemiBold
-                                )
                             }
                         }
                     }
                 }
 
-                HorizontalDivider(modifier = Modifier.padding(vertical = Spacing.xs))
-            }
-
-            // Manual entry
-            Text(
-                if (recentUnlinkedTransactions.isNotEmpty()) stringResource(R.string.loan_detail_or_enter_manually) else stringResource(R.string.loan_detail_enter_amount),
-                style = MaterialTheme.typography.labelMedium,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            Row(
-                horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
-                TextField(
-                    value = manualAmount,
-                    onValueChange = { value ->
-                        if (value.isEmpty() || value.matches(Regex("^\\d*\\.?\\d*$"))) {
-                            manualAmount = value
-                        }
-                    },
-                    label = { Text(stringResource(R.string.loan_detail_amount_label)) },
-                    prefix = { Text(CurrencyFormatter.getCurrencySymbol(currency)) },
-                    singleLine = true,
-                    modifier = Modifier.weight(1f),
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    shape = MaterialTheme.shapes.large,
-                    colors = TextFieldDefaults.colors(
-                        focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
-                        focusedIndicatorColor = Color.Transparent,
-                        unfocusedIndicatorColor = Color.Transparent
-                    )
+                // Manual entry
+                Text(
+                    if (recentUnlinkedTransactions.isNotEmpty()) stringResource(R.string.loan_detail_or_enter_manually) else stringResource(R.string.loan_detail_enter_amount),
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
-                Button(
-                    onClick = {
-                        manualAmount.toBigDecimalOrNull()?.let { onManualPayment(it) }
-                    },
-                    enabled = manualAmount.toBigDecimalOrNull()?.let { it > BigDecimal.ZERO } == true,
-                    shape = RoundedCornerShape(Dimensions.CornerRadius.medium),
-                    colors = ButtonDefaults.buttonColors(containerColor = loanColor)
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(Spacing.sm),
+                    verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Text(stringResource(R.string.loan_detail_add))
+                    val entry = rememberAmountEntry(
+                        manualAmount,
+                        { value ->
+                            if (value.isEmpty() || value.matches(Regex("^\\d*\\.?\\d*$"))) {
+                                manualAmount = value
+                            }
+                        },
+                        currency
+                    )
+                    val sum = entry.sumHint
+                    TextField(
+                        state = entry.state,
+                        inputTransformation = entry.inputTransformation,
+                        label = { Text(stringResource(R.string.loan_detail_amount_label)) },
+                        prefix = { Text(CurrencyFormatter.getCurrencySymbol(currency)) },
+                        isError = sum?.isError == true,
+                        supportingText = sum.orSupporting(),
+                        lineLimits = TextFieldLineLimits.SingleLine,
+                        modifier = Modifier.weight(1f).then(entry.modifier),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        shape = RoundedField.shape,
+                        colors = RoundedField.colors()
+                    )
+                    Button(
+                        onClick = withCommittedText {
+                            manualAmount.toBigDecimalOrNull()?.let { onManualPayment(it) }
+                        },
+                        enabled = manualAmount.toBigDecimalOrNull()?.let { it > BigDecimal.ZERO } == true,
+                        shape = MaterialTheme.shapes.large,
+                        colors = ButtonDefaults.buttonColors(containerColor = loanColor)
+                    ) {
+                        Text(stringResource(R.string.loan_detail_add))
+                    }
                 }
             }
         }

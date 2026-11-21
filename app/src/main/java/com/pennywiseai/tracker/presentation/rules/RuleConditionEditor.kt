@@ -3,6 +3,7 @@ package com.pennywiseai.tracker.presentation.rules
 import androidx.annotation.StringRes
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
@@ -15,6 +16,8 @@ import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.domain.model.rule.*
 import com.pennywiseai.tracker.ui.components.FinancialAccountIdentity
+import com.pennywiseai.tracker.ui.components.RoundedField
+import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
 import com.pennywiseai.tracker.ui.theme.Spacing
 
 /** The operator a field should reset to when it becomes the condition's field. */
@@ -107,16 +110,18 @@ internal fun ConditionFieldSelector(
             TransactionField.ACCOUNT to R.string.rules_field_account
         )
         TextField(
-            value = stringResource(fieldOptions.firstOrNull { it.first == condition.field }?.second ?: R.string.rules_field_amount),
-            onValueChange = { },
+            state = rememberSyncedTextFieldState(stringResource(fieldOptions.firstOrNull { it.first == condition.field }?.second ?: R.string.rules_field_amount)) {},
             readOnly = true,
             label = { Text(stringResource(R.string.rules_field_label)) },
             trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = fieldDropdownExpanded) },
-            modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+            modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+            shape = RoundedField.shape,
+            colors = RoundedField.colors()
         )
         ExposedDropdownMenu(
             expanded = fieldDropdownExpanded,
-            onDismissRequest = { fieldDropdownExpanded = false }
+            onDismissRequest = { fieldDropdownExpanded = false },
+            shape = MaterialTheme.shapes.large
         ) {
             fieldOptions.forEach { (field, label) ->
                 DropdownMenuItem(
@@ -226,13 +231,14 @@ internal fun ConditionFieldSelector(
 
         TransactionField.TRANSACTION_DAY_OF_MONTH -> {
             TextField(
-                value = condition.value,
-                onValueChange = { onConditionChange(condition.copy(value = it)) },
+                state = rememberSyncedTextFieldState(condition.value) { onConditionChange(condition.copy(value = it)) },
                 label = { Text(stringResource(R.string.rules_day_of_month_label)) },
                 placeholder = { Text(stringResource(R.string.rules_day_of_month_placeholder)) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                lineLimits = TextFieldLineLimits.SingleLine,
+                shape = RoundedField.shape,
+                colors = RoundedField.colors()
             )
         }
 
@@ -246,8 +252,7 @@ internal fun ConditionFieldSelector(
             )
 
             TextField(
-                value = condition.value,
-                onValueChange = { },
+                state = rememberSyncedTextFieldState(condition.value) {},
                 readOnly = true,
                 label = { Text(stringResource(R.string.rules_time_label)) },
                 placeholder = { Text(stringResource(R.string.rules_time_placeholder)) },
@@ -257,7 +262,9 @@ internal fun ConditionFieldSelector(
                     }
                 },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                lineLimits = TextFieldLineLimits.SingleLine,
+                shape = RoundedField.shape,
+                colors = RoundedField.colors()
             )
 
             if (showTimePicker) {
@@ -280,24 +287,26 @@ internal fun ConditionFieldSelector(
 
         TransactionField.TRANSACTION_HOUR -> {
             TextField(
-                value = condition.value,
-                onValueChange = { onConditionChange(condition.copy(value = it)) },
+                state = rememberSyncedTextFieldState(condition.value) { onConditionChange(condition.copy(value = it)) },
                 label = { Text(stringResource(R.string.rules_hour_label)) },
                 placeholder = { Text(stringResource(R.string.rules_hour_placeholder)) },
                 keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                lineLimits = TextFieldLineLimits.SingleLine,
+                shape = RoundedField.shape,
+                colors = RoundedField.colors()
             )
         }
 
         TransactionField.TRANSACTION_DATE -> {
             TextField(
-                value = condition.value,
-                onValueChange = { onConditionChange(condition.copy(value = it)) },
+                state = rememberSyncedTextFieldState(condition.value) { onConditionChange(condition.copy(value = it)) },
                 label = { Text(stringResource(R.string.rules_date_label)) },
                 placeholder = { Text(stringResource(R.string.rules_date_placeholder)) },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                lineLimits = TextFieldLineLimits.SingleLine,
+                shape = RoundedField.shape,
+                colors = RoundedField.colors()
             )
         }
 
@@ -310,8 +319,7 @@ internal fun ConditionFieldSelector(
 
         else -> {
             TextField(
-                value = condition.value,
-                onValueChange = { onConditionChange(condition.copy(value = it)) },
+                state = rememberSyncedTextFieldState(condition.value) { onConditionChange(condition.copy(value = it)) },
                 label = { Text(stringResource(R.string.rules_value_label)) },
                 placeholder = {
                     Text(
@@ -333,7 +341,9 @@ internal fun ConditionFieldSelector(
                     KeyboardOptions.Default
                 },
                 modifier = Modifier.fillMaxWidth(),
-                singleLine = true
+                lineLimits = TextFieldLineLimits.SingleLine,
+                shape = RoundedField.shape,
+                colors = RoundedField.colors()
             )
         }
     }
@@ -370,16 +380,18 @@ internal fun RuleAccountPicker(
             onExpandedChange = { accountDropdownExpanded = !accountDropdownExpanded }
         ) {
             TextField(
-                value = displayText,
-                onValueChange = {},
+                state = rememberSyncedTextFieldState(displayText) {},
                 readOnly = true,
                 label = { Text(label) },
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = accountDropdownExpanded) },
-                modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable)
+                modifier = Modifier.fillMaxWidth().menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable),
+                shape = RoundedField.shape,
+                colors = RoundedField.colors()
             )
             ExposedDropdownMenu(
                 expanded = accountDropdownExpanded,
-                onDismissRequest = { accountDropdownExpanded = false }
+                onDismissRequest = { accountDropdownExpanded = false },
+                shape = MaterialTheme.shapes.large
             ) {
                 allAccounts.forEach { account ->
                     val key = "${account.bankName}||${account.accountLast4}"

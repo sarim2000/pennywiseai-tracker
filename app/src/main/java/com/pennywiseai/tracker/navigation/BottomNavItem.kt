@@ -6,6 +6,7 @@ import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.ReceiptLong
 import androidx.compose.material.icons.filled.Analytics
 import androidx.compose.material.icons.filled.Home
+import androidx.compose.material.icons.filled.Savings
 import androidx.compose.ui.graphics.vector.ImageVector
 import com.pennywiseai.tracker.R
 
@@ -26,6 +27,13 @@ sealed class BottomNavItem(
         icon = Icons.AutoMirrored.Filled.ReceiptLong
     )
 
+    /** Budgets, bills and goals in one place (was three separate screens behind menus). */
+    data object Plan : BottomNavItem(
+        route = "plan",
+        titleRes = R.string.nav_plan,
+        icon = Icons.Default.Savings
+    )
+
     data object Analytics : BottomNavItem(
         route = "analytics",
         titleRes = R.string.nav_analytics,
@@ -42,7 +50,7 @@ sealed class BottomNavItem(
         // Getters, not vals: a companion val naming the subclasses can be read
         // before they're initialised and come back null.
         /** Every tab, in bar order. */
-        val all: List<BottomNavItem> get() = listOf(Home, Transactions, Analytics, Chat)
+        val all: List<BottomNavItem> get() = listOf(Home, Transactions, Plan, Analytics, Chat)
 
         /** Tabs the user can hide from the bar (#912). Home always stays. */
         val hideable: List<BottomNavItem> get() = all - Home

@@ -1,10 +1,10 @@
 package com.pennywiseai.tracker.presentation.transactions
 
-import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.text.KeyboardActions
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.TextFieldLineLimits
+import androidx.compose.foundation.text.input.rememberTextFieldState
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
@@ -16,9 +16,13 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.ImeAction
-import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.data.database.entity.TransactionGroupEntity
+import com.pennywiseai.tracker.ui.components.RoundedField
+import com.pennywiseai.tracker.ui.components.cards.GroupedList
+import com.pennywiseai.tracker.ui.components.cards.GroupedRow
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
+import com.pennywiseai.tracker.ui.components.cards.RowLabels
 import com.pennywiseai.tracker.ui.theme.*
 
 /**
@@ -38,7 +42,8 @@ internal fun BulkGroupPickerSheet(
     onDismiss: () -> Unit
 ) {
     var showCreateField by remember { mutableStateOf(false) }
-    var newGroupName by remember { mutableStateOf("") }
+    val newGroupNameState = rememberTextFieldState()
+    val newGroupName = newGroupNameState.text.toString()
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
@@ -57,19 +62,17 @@ internal fun BulkGroupPickerSheet(
             if (groups.isNotEmpty()) {
                 // Cap the list height and let it scroll so a long group list
                 // doesn't push "Create new group" off the bottom of the sheet.
-                Column(
+                // Cap the list height and let it scroll so a long group list
+                // doesn't push "Create new group" off the bottom of the sheet.
+                GroupedList(
                     modifier = Modifier
-                        .heightIn(max = 280.dp)
+                        .heightIn(max = Dimensions.Component.dialogListMaxHeight)
                         .verticalScroll(rememberScrollState())
                 ) {
-                    groups.forEach { group ->
-                        Row(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { onGroupSelected(group) }
-                                .padding(vertical = Spacing.sm),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(Spacing.md)
+                    groups.forEachIndexed { index, group ->
+                        GroupedRow(
+                            position = ListItemPosition.from(index, groups.size),
+                            onClick = { onGroupSelected(group) }
                         ) {
                             Icon(
                                 imageVector = Icons.Outlined.FolderOpen,
@@ -77,10 +80,7 @@ internal fun BulkGroupPickerSheet(
                                 tint = MaterialTheme.colorScheme.onSurfaceVariant,
                                 modifier = Modifier.size(Dimensions.Icon.medium)
                             )
-                            Text(
-                                text = group.name,
-                                style = MaterialTheme.typography.bodyMedium
-                            )
+                            RowLabels(title = group.name)
                         }
                     }
                 }
@@ -89,19 +89,17 @@ internal fun BulkGroupPickerSheet(
 
             if (showCreateField) {
                 OutlinedTextField(
-                    value = newGroupName,
-                    onValueChange = { newGroupName = it },
+                    shape = RoundedField.shape,
+                    state = newGroupNameState,
                     label = { Text(stringResource(R.string.txn_list_group_name)) },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
+                    lineLimits = TextFieldLineLimits.SingleLine,
                     keyboardOptions = KeyboardOptions(imeAction = ImeAction.Done),
-                    keyboardActions = KeyboardActions(
-                        onDone = {
-                            if (newGroupName.isNotBlank()) {
-                                onCreateGroup(newGroupName.trim())
-                            }
+                    onKeyboardAction = {
+                        if (newGroupName.isNotBlank()) {
+                            onCreateGroup(newGroupName.trim())
                         }
-                    ),
+                    },
                     trailingIcon = {
                         IconButton(
                             onClick = {

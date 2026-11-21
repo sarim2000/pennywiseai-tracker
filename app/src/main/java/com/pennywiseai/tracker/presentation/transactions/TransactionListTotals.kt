@@ -10,7 +10,14 @@ import com.pennywiseai.tracker.presentation.common.CurrencyTotals
 import com.pennywiseai.tracker.utils.CurrencyUtils
 import java.math.BigDecimal
 
-internal fun calculateCurrencyGroupedTotals(transactions: List<TransactionEntity>): CurrencyGroupedTotals {
+/**
+ * [netRefunds] are refunds a spend view doesn't list but nets off its Expenses, as Home
+ * does: they aren't counted as rows, and a currency with only refunds gets no bucket.
+ */
+internal fun calculateCurrencyGroupedTotals(
+    transactions: List<TransactionEntity>,
+    netRefunds: List<TransactionEntity> = emptyList(),
+): CurrencyGroupedTotals {
     // Loan disbursements/repayments and analytics-excluded transactions still
     // appear in the list (it's the full ledger) but must not count toward the
     // period's Income/Expense/etc. totals — loans are tracked in the Loans
@@ -18,13 +25,21 @@ internal fun calculateCurrencyGroupedTotals(transactions: List<TransactionEntity
     // user. Matches the Home/Analytics convention (HomeViewModel#1142).
     val nonLoanTransactions = transactions.forTotals()
     val transactionsByCurrency = nonLoanTransactions.groupBy { it.currency }
+    val unlistedRefunds = netRefunds.forTotals().groupBy { it.currency }
+    // Pairs counted once before grouping, as Home's unified Transferred figure does:
+    // after grouping, a pair across currencies has one leg in each bucket.
+    val transferAcrossCurrencies = nonLoanTransactions
+        .filter { it.transactionType == TransactionType.TRANSFER }
+        .countingTransferPairsOnce { it }
+        .groupBy { it.currency }
+        .mapValues { (_, rows) -> rows.sumOf { it.amount } }
 
     val totalsByCurrency = transactionsByCurrency.mapValues { (currency, currencyTransactions) ->
         // A "Refund" (INCOME + DEDUCT_SPENT) is the reversal of a previous
         // expense, so it shrinks "Expenses" (floored at zero) and does not
         // appear in "Income". "Extra budget" (ADD_TO_LIMIT) is real money in
         // and stays in income — same treatment as HomeViewModel.
-        val refundTotal = currencyTransactions
+        val refundTotal = (currencyTransactions + unlistedRefunds[currency].orEmpty())
             .filter {
                 it.transactionType == TransactionType.INCOME &&
                     it.budgetImpactType == BudgetImpactType.DEDUCT_SPENT
@@ -49,8 +64,6 @@ internal fun calculateCurrencyGroupedTotals(transactions: List<TransactionEntity
 
         val transfer = currencyTransactions
             .filter { it.transactionType == TransactionType.TRANSFER }
-            // ponytail: a pair across currencies counts in each currency, so it
-            // shows twice in a unified total; dedupe before grouping if that matters.
             .countingTransferPairsOnce { it }
             .sumOf { it.amount }
 
@@ -65,7 +78,8 @@ internal fun calculateCurrencyGroupedTotals(transactions: List<TransactionEntity
             credit = credit,
             transfer = transfer,
             investment = investment,
-            transactionCount = currencyTransactions.size
+            transactionCount = currencyTransactions.size,
+            transferAcrossCurrencies = transferAcrossCurrencies[currency] ?: BigDecimal.ZERO,
         )
     }
 
@@ -116,7 +130,7 @@ internal suspend fun resolveFilteredTotals(
                 income += totals.income
                 expenses += totals.expenses
                 credit += totals.credit
-                transfer += totals.transfer
+                transfer += totals.transferAcrossCurrencies
                 investment += totals.investment
             } else {
                 // Skip unconvertible currency pairs (add nothing) rather than
@@ -125,7 +139,7 @@ internal suspend fun resolveFilteredTotals(
                 income += convertOrNull(totals.income, cur, currency) ?: BigDecimal.ZERO
                 expenses += convertOrNull(totals.expenses, cur, currency) ?: BigDecimal.ZERO
                 credit += convertOrNull(totals.credit, cur, currency) ?: BigDecimal.ZERO
-                transfer += convertOrNull(totals.transfer, cur, currency) ?: BigDecimal.ZERO
+                transfer += convertOrNull(totals.transferAcrossCurrencies, cur, currency) ?: BigDecimal.ZERO
                 investment += convertOrNull(totals.investment, cur, currency) ?: BigDecimal.ZERO
             }
             count += totals.transactionCount

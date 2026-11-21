@@ -58,6 +58,22 @@ data class SettingsPage(val section: SettingsSection) : NavKey
 @Serializable
 data object Categories : NavKey
 
+/** What the Plan tab shows. */
+@Serializable
+enum class PlanSection { BUDGETS, BILLS, GOALS }
+
+/**
+ * The Plan tab: budgets, bills and goals behind one switch. [request] makes each explicit
+ * "open Plan on X" a new key, so it shows X even when the tab last showed another section.
+ * [focusId] is the budget or bill (by [section]) a Home row was tapped on, shown first.
+ */
+@Serializable
+data class Plan(
+    val section: PlanSection = PlanSection.BUDGETS,
+    val request: Long = 0,
+    val focusId: Long? = null,
+) : NavKey
+
 @Serializable
 data object Analytics : NavKey
 
@@ -66,6 +82,10 @@ data object Chat : NavKey
 
 @Serializable
 data class TransactionDetail(val transactionId: Long) : NavKey
+
+/** Which form the Add screen opens on. */
+@Serializable
+enum class AddForm { TRANSACTION, SUBSCRIPTION }
 
 @OptIn(ExperimentalSerializationApi::class)
 @Serializable
@@ -84,6 +104,8 @@ data class AddTransaction(
     val type: String? = null,
     val dateTime: String? = null,
     val unrecognizedSmsId: Long? = null,
+    // Bills' "+" opens the Subscription form directly.
+    val form: AddForm = AddForm.TRANSACTION,
     // Unique per open, so two Add screens on the stack never share one ViewModel/draft
     // (Navigation 3 keys an entry's ViewModels by its key). Always encoded, so the
     // same value comes back after process death.
@@ -114,7 +136,9 @@ data class BudgetGroups(
     val createGoal: Boolean = false,
     // Distinct per widget tap: entries are keyed by value, so a repeated "+" needs
     // a new key to get a fresh screen (and New goal again).
-    val tapId: Long = 0L
+    val tapId: Long = 0L,
+    // The budget a Home row was tapped on, while the Plan tab is hidden.
+    val focusBudgetId: Long? = null,
 ) : NavKey
 
 @Serializable
@@ -231,8 +255,9 @@ data class ShareStudio(
 
 // Screens inside MainScreen's tab stacks (Settings, SettingsPage, Categories, Faq
 // and ImportStatement live only there; UnrecognizedSms also opens on the root stack).
+/** The Bills screen; [focusBillId] is the bill a Home row was tapped on while the Plan tab is hidden. */
 @Serializable
-data object Subscriptions : NavKey
+data class Subscriptions(val focusBillId: Long? = null) : NavKey
 
 @Serializable
 data object Appearance : NavKey

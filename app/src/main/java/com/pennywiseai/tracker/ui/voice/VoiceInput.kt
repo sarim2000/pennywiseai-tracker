@@ -192,6 +192,9 @@ class VoiceInput internal constructor(
     private var userStopped = false
     private val main = Handler(Looper.getMainLooper())
 
+    /** The screen went: a late callback (a download finishing) must not start new recognizers. */
+    private var released = false
+
     /** Mic tap: start with what's in the box as the start of the message, or stop. */
     fun toggle(text: String) {
         when (state) {
@@ -287,7 +290,14 @@ class VoiceInput internal constructor(
     }
 
     internal fun release() {
+        released = true
         cancel()
+        main.removeCallbacksAndMessages(null)
+        // The speech service's binder stubs hold our callbacks, and so this object, long after
+        // destroy(). Let go of everything the screen handed in, so they can't keep the Activity.
+        requestPermission = {}
+        onText = {}
+        onDone = {}
         probe?.destroy()
         probe = null
         spare?.destroy()
@@ -401,7 +411,7 @@ class VoiceInput internal constructor(
      * ([replace] false) waits for a slow answer instead of cancelling it.
      */
     fun refresh(replace: Boolean = true) {
-        if (!available || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        if (released || !available || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
         if (!replace && probe != null) return
         mine = userLanguages()
         querySupport()
@@ -456,7 +466,7 @@ class VoiceInput internal constructor(
 
     fun download(tag: String) {
         menuOpen = false
-        if (!available || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
+        if (released || !available || Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU) return
         // API 34+: its own recognizer per download, so a second one can't swallow the first one's callback.
         // API 33 has no callback (so nothing to swallow, and no moment to release): reuse one.
         val r = downloads.takeIf { Build.VERSION.SDK_INT < Build.VERSION_CODES.UPSIDE_DOWN_CAKE }?.firstOrNull()
@@ -472,6 +482,7 @@ class VoiceInput internal constructor(
                 object : ModelDownloadListener {
                     override fun onProgress(completedPercent: Int) = Unit
                     override fun onSuccess() {
+                        if (released) return
                         done(r)
                         note = Note(R.string.voice_download_done, tag, isError = false)
                         // Switch to it only if the user didn't pick something else meanwhile.
@@ -483,12 +494,14 @@ class VoiceInput internal constructor(
                     }
 
                     override fun onScheduled() {
+                        if (released) return
                         done(r)
                         note = Note(R.string.voice_download_scheduled, tag, isError = false)
                         refresh()
                     }
 
                     override fun onError(error: Int) {
+                        if (released) return
                         done(r)
                         note = Note(R.string.voice_download_failed, tag)
                         refresh()
@@ -713,7 +726,7 @@ private fun VoiceLanguageMenu(voice: VoiceInput) {
         }
     }
     var showAll by remember(voice.menuOpen) { mutableStateOf(false) }
-    DropdownMenu(expanded = voice.menuOpen, onDismissRequest = { voice.menuOpen = false }) {
+    DropdownMenu(expanded = voice.menuOpen, onDismissRequest = { voice.menuOpen = false }, shape = MaterialTheme.shapes.large) {
         val current = voice.language
         val usable = voice.usable
         usable.forEachIndexed { index, tag ->

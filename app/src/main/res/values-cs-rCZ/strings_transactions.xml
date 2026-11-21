@@ -232,7 +232,6 @@
     <string name="txn_list_filter_account">Účet</string>
     <string name="txn_list_filter_category">Kategorie</string>
     <string name="txn_list_filters">Filtry</string>
-    <string name="txn_list_filters_two">2 filtry</string>
     <string name="txn_list_categories_all_except">Vše kromě %1$s</string>
     <plurals name="txn_list_categories_count">
         <item quantity="one">Kategorie %1$d</item>

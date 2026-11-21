@@ -3,8 +3,9 @@ package com.pennywiseai.tracker.presentation.accounts
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.input.InputTransformation
+import androidx.compose.foundation.text.input.TextFieldLineLimits
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -27,13 +28,26 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.domain.model.AccountType
 import com.pennywiseai.tracker.ui.components.CustomTitleTopAppBar
+import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.PennyWiseCardV2
+import com.pennywiseai.tracker.ui.components.cards.toShape
+import com.pennywiseai.tracker.ui.components.orSupporting
+import com.pennywiseai.tracker.ui.components.rememberAmountEntry
 import com.pennywiseai.tracker.ui.effects.overScrollVertical
+import com.pennywiseai.tracker.ui.text.rememberSyncedTextFieldState
+import com.pennywiseai.tracker.ui.text.withCommittedText
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import dev.chrisbanes.haze.HazeState
 import dev.chrisbanes.haze.hazeSource
+
+private val Last4Input = InputTransformation { if (length > 4) revertAllChanges() }
+
+// A cash account's identifier falls back to "CASH" when cleared.
+private val CashIdentifierInput = InputTransformation {
+    if (length == 0) replace(0, length, "CASH")
+}
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -132,10 +146,6 @@ fun AddAccountScreen(
                 }
             }
 
-            val acctFullShape = RoundedCornerShape(16.dp)
-            val acctTopShape = RoundedCornerShape(topStart = 16.dp, topEnd = 16.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
-            val acctMiddleShape = RoundedCornerShape(4.dp)
-            val acctBottomShape = RoundedCornerShape(topStart = 4.dp, topEnd = 4.dp, bottomStart = 16.dp, bottomEnd = 16.dp)
             val acctColors = TextFieldDefaults.colors(
                 focusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
                 unfocusedContainerColor = MaterialTheme.colorScheme.surfaceContainerLow,
@@ -157,10 +167,11 @@ fun AddAccountScreen(
                 onExpandedChange = { showTypeDropdown = it }
             ) {
                 TextField(
-                    value = formState.accountType.name.lowercase().let { s ->
-                        if (s.isEmpty()) s else s.substring(0, 1).uppercase() + s.substring(1)
-                    },
-                    onValueChange = {},
+                    state = rememberSyncedTextFieldState(
+                        formState.accountType.name.lowercase().let { s ->
+                            if (s.isEmpty()) s else s.substring(0, 1).uppercase() + s.substring(1)
+                        }
+                    ) {},
                     readOnly = true,
                     label = { Text(stringResource(R.string.add_account_type_label), fontWeight = FontWeight.SemiBold) },
                     trailingIcon = { Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null) },
@@ -173,13 +184,14 @@ fun AddAccountScreen(
                             contentDescription = null
                         )
                     },
-                    shape = acctFullShape,
+                    shape = ListItemPosition.Single.toShape(),
                     colors = acctColors
                 )
 
                 ExposedDropdownMenu(
                     expanded = showTypeDropdown,
-                    onDismissRequest = { showTypeDropdown = false }
+                    onDismissRequest = { showTypeDropdown = false },
+                    shape = MaterialTheme.shapes.large
                 ) {
                     AccountType.values().forEach { type ->
                         DropdownMenuItem(
@@ -209,8 +221,7 @@ fun AddAccountScreen(
                 onExpandedChange = { showCurrencyDropdown = it }
             ) {
                 TextField(
-                    value = "${formState.currency}  ${CurrencyFormatter.getCurrencySymbol(formState.currency)}",
-                    onValueChange = {},
+                    state = rememberSyncedTextFieldState("${formState.currency}  ${CurrencyFormatter.getCurrencySymbol(formState.currency)}") {},
                     readOnly = true,
                     label = { Text(stringResource(R.string.add_account_currency_label), fontWeight = FontWeight.SemiBold) },
                     trailingIcon = { Icon(Icons.Rounded.KeyboardArrowDown, contentDescription = null) },
@@ -218,13 +229,14 @@ fun AddAccountScreen(
                     modifier = Modifier
                         .fillMaxWidth()
                         .menuAnchor(ExposedDropdownMenuAnchorType.PrimaryNotEditable, enabled = true),
-                    shape = acctFullShape,
+                    shape = ListItemPosition.Single.toShape(),
                     colors = acctColors
                 )
 
                 ExposedDropdownMenu(
                     expanded = showCurrencyDropdown,
-                    onDismissRequest = { showCurrencyDropdown = false }
+                    onDismissRequest = { showCurrencyDropdown = false },
+                    shape = MaterialTheme.shapes.large
                 ) {
                     CurrencyFormatter.getSupportedCurrencies().sorted().forEach { code ->
                         DropdownMenuItem(
@@ -238,26 +250,27 @@ fun AddAccountScreen(
                 }
             }
 
-            // Account Name + Last 4 + Balance (connected group)
+            // Name, last 4 and balance join; a credit limit closes the stack.
+            val credit = formState.accountType == AccountType.CREDIT
+            val stackSize = if (credit) 4 else 3
             Column(
                 modifier = Modifier.fillMaxWidth(),
-                verticalArrangement = Arrangement.spacedBy(1.5.dp)
+                verticalArrangement = Arrangement.spacedBy(Spacing.Layout.groupedListGap)
             ) {
                 TextField(
-                    value = formState.bankName,
-                    onValueChange = viewModel::updateBankName,
+                    state = rememberSyncedTextFieldState(formState.bankName, viewModel::updateBankName),
                     label = { Text(stringResource(R.string.add_account_name_label), fontWeight = FontWeight.SemiBold) },
                     leadingIcon = { Icon(Icons.Default.Business, contentDescription = null) },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
+                    lineLimits = TextFieldLineLimits.SingleLine,
                     keyboardOptions = KeyboardOptions(capitalization = KeyboardCapitalization.Words),
-                    shape = acctTopShape,
+                    shape = ListItemPosition.from(0, stackSize).toShape(),
                     colors = acctColors
                 )
 
                 TextField(
-                    value = formState.accountLast4,
-                    onValueChange = viewModel::updateAccountLast4,
+                    state = rememberSyncedTextFieldState(formState.accountLast4, viewModel::updateAccountLast4),
+                    inputTransformation = if (formState.accountType == AccountType.CASH) CashIdentifierInput else Last4Input,
                     label = {
                         Text(
                             if (formState.accountType == AccountType.CASH) stringResource(R.string.add_account_identifier_label) else stringResource(R.string.add_account_last4_label),
@@ -266,15 +279,17 @@ fun AddAccountScreen(
                     },
                     leadingIcon = { Icon(Icons.Default.Tag, contentDescription = null) },
                     modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
+                    lineLimits = TextFieldLineLimits.SingleLine,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    shape = if (formState.accountType == AccountType.CREDIT) acctMiddleShape else acctBottomShape,
+                    shape = ListItemPosition.from(1, stackSize).toShape(),
                     colors = acctColors
                 )
 
+                val balance = rememberAmountEntry(formState.balance, viewModel::updateBalance, formState.currency)
+                val balanceSum = balance.sumHint
                 TextField(
-                    value = formState.balance,
-                    onValueChange = viewModel::updateBalance,
+                    state = balance.state,
+                    inputTransformation = balance.inputTransformation,
                     label = {
                         Text(
                             // A card's balance is what's owed on it, like a loan's; never the credit left.
@@ -289,25 +304,30 @@ fun AddAccountScreen(
                         )
                     },
                     leadingIcon = { Icon(Icons.Default.Payments, contentDescription = null) },
-                    modifier = Modifier.fillMaxWidth(),
-                    singleLine = true,
+                    isError = balanceSum?.isError == true,
+                    supportingText = balanceSum.orSupporting(),
+                    modifier = Modifier.fillMaxWidth().then(balance.modifier),
+                    lineLimits = TextFieldLineLimits.SingleLine,
                     keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                    shape = if (formState.accountType == AccountType.CREDIT) acctMiddleShape else acctFullShape,
+                    shape = ListItemPosition.from(2, stackSize).toShape(),
                     colors = acctColors
                 )
 
                 // Credit Limit (only for credit cards)
-                if (formState.accountType == AccountType.CREDIT) {
+                if (credit) {
+                    val limit = rememberAmountEntry(formState.creditLimit, viewModel::updateCreditLimit, formState.currency)
+                    val limitSum = limit.sumHint
                     TextField(
-                        value = formState.creditLimit,
-                        onValueChange = viewModel::updateCreditLimit,
+                        state = limit.state,
+                        inputTransformation = limit.inputTransformation,
                         label = { Text(stringResource(R.string.add_account_credit_limit_label), fontWeight = FontWeight.SemiBold) },
                         leadingIcon = { Icon(Icons.Default.CreditScore, contentDescription = null) },
-                        supportingText = { Text(stringResource(R.string.add_account_credit_limit_hint)) },
-                        modifier = Modifier.fillMaxWidth(),
-                        singleLine = true,
+                        isError = limitSum?.isError == true,
+                        supportingText = limitSum.orSupporting { Text(stringResource(R.string.add_account_credit_limit_hint)) },
+                        modifier = Modifier.fillMaxWidth().then(limit.modifier),
+                        lineLimits = TextFieldLineLimits.SingleLine,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        shape = acctBottomShape,
+                        shape = ListItemPosition.from(3, stackSize).toShape(),
                         colors = acctColors
                     )
                 }
@@ -315,7 +335,7 @@ fun AddAccountScreen(
 
             // Save Button
             Button(
-                onClick = {
+                onClick = withCommittedText {
                     viewModel.addAccount()
                     if (formState.errorMessage == null) {
                         onNavigateBack()

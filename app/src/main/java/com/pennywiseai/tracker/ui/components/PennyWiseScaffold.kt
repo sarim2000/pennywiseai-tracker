@@ -26,7 +26,9 @@ fun PennyWiseScaffold(
     floatingActionButton: @Composable () -> Unit = {},
     floatingActionButtonPosition: FabPosition = FabPosition.End,
     containerColor: Color = MaterialTheme.colorScheme.background,
-    contentColor: Color = contentColorFor(containerColor),
+    // A transparent container (Plan's sections) matches no scheme role, and contentColorFor
+    // then falls back to black; the page behind it is the background.
+    contentColor: Color = if (containerColor.alpha == 0f) MaterialTheme.colorScheme.onBackground else contentColorFor(containerColor),
     content: @Composable (PaddingValues) -> Unit
 ) {
     Scaffold(
@@ -37,7 +39,8 @@ fun PennyWiseScaffold(
                 navigationIcon = navigationIcon ?: {},
                 actions = actions,
                 colors = TopAppBarDefaults.topAppBarColors(
-                    containerColor = if (transparentTopBar) Color.Transparent else MaterialTheme.colorScheme.surface
+                    // The page's own colour: surface is the card tone, a band over the page.
+                    containerColor = if (transparentTopBar) Color.Transparent else containerColor
                 )
             )
         },

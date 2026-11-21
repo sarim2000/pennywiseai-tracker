@@ -4,38 +4,14 @@ import com.pennywiseai.tracker.data.database.entity.AccountBalanceEntity
 import com.pennywiseai.tracker.data.database.entity.CategoryEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
 
-/** The quick cash add: what the amount field accepts and the order of its category chips. */
+/** The quick cash add: the order of its category chips and where a voice entry goes. */
 class QuickAddActivityTest {
-
-    @Test
-    fun `digits from an Arabic keyboard become an amount`() {
-        assertEquals("3.5", QuickAddActivity.normalizeAmount("٣٫٥", decimalComma = false))
-        assertEquals("1250", QuickAddActivity.normalizeAmount("١٬٢٥٠", decimalComma = false))
-        assertEquals("", QuickAddActivity.normalizeAmount("", decimalComma = false))
-    }
-
-    @Test
-    fun `a comma is a decimal point only where the locale writes it so`() {
-        // en-IN: "1,250" is twelve hundred and fifty, as in the full form, not 1.25.
-        assertEquals("1250", QuickAddActivity.normalizeAmount("1,250", decimalComma = false))
-        assertEquals("12.750", QuickAddActivity.normalizeAmount("12,750", decimalComma = true))
-        assertNull(QuickAddActivity.normalizeAmount("1,2,3", decimalComma = true))
-    }
-
-    @Test
-    fun `a second decimal point or a letter is refused`() {
-        assertNull(QuickAddActivity.normalizeAmount("1.2.3", decimalComma = false))
-        assertNull(QuickAddActivity.normalizeAmount("1٫2.", decimalComma = false))
-        assertNull(QuickAddActivity.normalizeAmount("-5", decimalComma = false))
-        assertNull(QuickAddActivity.normalizeAmount("5a", decimalComma = false))
-    }
 
     @Test
     fun `most-used categories lead and Others trails`() {

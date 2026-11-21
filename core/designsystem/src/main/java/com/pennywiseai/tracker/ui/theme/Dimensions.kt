@@ -69,6 +69,9 @@ object Dimensions {
 
         /** A primary tint marking the selected tab in the floating nav bar. */
         const val selectedIndicator = 0.18f
+
+        /** A category colour washed behind its own glyph (transaction rows, detail badge). */
+        const val categoryTint = 0.14f
     }
 
     // ── Icon sizes ────────────────────────────────────────────────────────
@@ -101,6 +104,10 @@ object Dimensions {
 
         /** The merchant avatar heading a detail screen (transaction detail). */
         val hero = 56.dp
+
+        /** The category badge heading the transaction detail screen, and its glyph. */
+        val detailBadge = 92.dp
+        val detailBadgeGlyph = 44.dp
 
         /** The glyph inside an empty-state circle. */
         val emptyStateGlyph = 32.dp
@@ -137,8 +144,11 @@ object Dimensions {
         /** The same bar with a subtitle line — one M3 subtitle step (24dp) taller. */
         val appBarExpandedHeightWithSubtitle = 134.dp
 
+        /** Top row of a tab root's expanded bar: no back button, so just an inset above the title. */
+        val appBarTabTopRow = 16.dp
+
         /** Home's expanded bar, tall enough to hold the GreetingCard. */
-        val homeAppBarExpandedHeight = 150.dp
+        val homeAppBarExpandedHeight = 158.dp
 
         /** The year review's month bars. */
         val reviewBarHeight = 72.dp
@@ -148,6 +158,15 @@ object Dimensions {
 
         /** Widest a current value may get at the end of a settings row. */
         val rowValueMaxWidth = 96.dp
+
+        /** The shaped tile of a Home shortcut (Budgets, Bills, Accounts…). */
+        val shortcutTile = 64.dp
+
+        /** Height of a status pill such as Home's "Updated 5 min ago". */
+        val statusChipHeight = 32.dp
+
+        /** The Pro "membership ring" edging Home's avatar. */
+        val avatarRingWidth = 2.dp
 
         /** Height of the floating nav pill, and the side of the action docked beside it. */
         val floatingNavHeight = 64.dp
@@ -163,6 +182,13 @@ object Dimensions {
         val dockedActionCornerRadius = 20.dp
         /** Corner while the docked action is held — the M3 Expressive press morph. */
         val dockedActionPressedCornerRadius = 12.dp
+
+        /** The docked action when it stacks above Ask's squircle: smaller, so the owl leads. */
+        val dockedActionSmallSize = 48.dp
+        val dockedActionSmallCornerRadius = 16.dp
+
+        /** The owl inside Ask's squircle: large enough to draw in full (past [Icon.large]). */
+        val chatDockMascot = 52.dp
 
         val buttonHeight = 48.dp
 
@@ -198,6 +224,10 @@ object Dimensions {
          */
         val progressBarHeight = 8.dp
 
+        /** `WavyMeter`: no stop dot and no travel (a still wave), and the calmer wavelength for dense list rows. */
+        val wavyMeterStop = 0.dp
+        val wavyMeterDenseWavelength = 24.dp
+
         /** The "today" tick on a budget meter: stands a little proud of the track so it reads over the fill. */
         val paceTickHeight = 14.dp
         val paceTickWidth = 2.dp
@@ -213,6 +243,14 @@ object Dimensions {
         /** The big goal ring on the goal's own screen, and its stroke. */
         val goalRingLarge = 168.dp
         val goalRingLargeStroke = 12.dp
+
+        /** Insights hero: the period-history chart, its widest bar and its shortest non-zero bar. */
+        val insightsChartHeight = 160.dp
+        val insightsBarMaxWidth = 32.dp
+        val insightsBarMinHeight = 12.dp
+
+        /** The gauge owl on the Plan tab's budget hero card. */
+        val planHeroMascot = 64.dp
 
         /** One column of a spreadsheet preview (statement import's column mapping, #13). */
         val tableCellWidth = 112.dp
@@ -238,6 +276,11 @@ object Dimensions {
          * that also have a bottom nav bar.
          */
         val fabScrollClearance = 112.dp
+
+        /** The owl heading the empty Ask chat and its model screens. */
+        val chatHeroMascot = 112.dp
+
+        val budgetPaceChartHeight = 120.dp
     }
 
     // ── Motion ────────────────────────────────────────────────────────────

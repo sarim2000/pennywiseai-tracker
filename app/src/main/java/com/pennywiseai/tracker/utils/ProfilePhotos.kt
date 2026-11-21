@@ -29,18 +29,18 @@ object ProfilePhotos {
 
     /**
      * Copies a picked photo into app storage (the picker's grant doesn't outlive the
-     * process) and returns its file URI. It is decoded, turned upright, scaled to fill
-     * [MAX_PX] and re-encoded, which also drops its EXIF (location included). Fill keeps
-     * the aspect ratio, so a very tall decode can still be longer than [MAX_PX]; that
-     * side is scaled down before the file is written. Each pick gets its own file name,
-     * so the image loader can't serve the previous photo from its cache. Null, with a
-     * toast, when the photo can't be decoded or written.
+     * process) and returns its file URI. It is decoded, turned upright, scaled so neither
+     * side exceeds [MAX_PX], and re-encoded, which also drops its EXIF (location included).
+     * Fit subsamples the long side during decode, so a very tall photo is not allocated in
+     * full. [fitWithin] still bounds a decode that comes back slightly over. Each pick gets
+     * its own file name, so the image loader can't serve the previous photo from its cache.
+     * Null, with a toast, when the photo can't be decoded or written.
      */
     suspend fun import(context: Context, source: Uri): String? {
         val request = ImageRequest.Builder(context)
             .data(source)
             .size(MAX_PX)
-            .scale(Scale.FILL)
+            .scale(Scale.FIT)
             .allowHardware(false)
             .memoryCachePolicy(CachePolicy.DISABLED)
             .build()
@@ -54,7 +54,7 @@ object ProfilePhotos {
 
     /**
      * Scales [bitmap] so neither side exceeds [maxPx]. A photo already inside the bound,
-     * including an ordinary portrait Coil has filled to about [maxPx], is returned as it is.
+     * including a decode Coil has fitted to about [maxPx], is returned as it is.
      */
     private fun fitWithin(bitmap: Bitmap, maxPx: Int): Bitmap {
         val (width, height) = boundedSides(bitmap.width, bitmap.height, maxPx)

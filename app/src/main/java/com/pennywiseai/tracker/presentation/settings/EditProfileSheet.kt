@@ -45,6 +45,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.saveable.rememberSaveable
 import androidx.compose.runtime.setValue
@@ -89,15 +90,31 @@ internal fun EditProfileSheet(
     // Saveable, so rotation or the process dying behind the photo picker keeps the draft.
     var imageUri by rememberSaveable { mutableStateOf(state.imageUri) }
     var color by rememberSaveable { mutableIntStateOf(state.backgroundColor) }
-    // The photo being imported. Save waits for it; picking anything else drops it.
+    // The photo being imported. Save waits for it. A later avatar choice bumps the token;
+    // clearing pendingPhoto only schedules recomposition and does not stop this import.
     var pendingPhoto by rememberSaveable { mutableStateOf<Uri?>(null) }
-    LaunchedEffect(pendingPhoto) {
+    var selectionToken by remember { mutableIntStateOf(0) }
+    LaunchedEffect(selectionToken) {
         val picked = pendingPhoto ?: return@LaunchedEffect
-        onImportPhoto(picked)?.let { imageUri = it }
-        pendingPhoto = null
+        val startedToken = selectionToken
+        val imported = onImportPhoto(picked)
+        val next = applyPhotoImport(
+            draft = PhotoImportDraft(
+                imageUri = imageUri,
+                importPending = pendingPhoto != null,
+                selectionToken = selectionToken,
+            ),
+            startedToken = startedToken,
+            importedUri = imported,
+        )
+        imageUri = next.imageUri
+        if (!next.importPending) pendingPhoto = null
     }
     val photoPicker = rememberLauncherForActivityResult(ActivityResultContracts.PickVisualMedia()) { picked ->
-        if (picked != null) pendingPhoto = picked
+        if (picked != null) {
+            selectionToken += 1
+            pendingPhoto = picked
+        }
     }
     val name = nameState.text.toString()
     val canSave = name.isNotBlank() && pendingPhoto == null
@@ -161,6 +178,7 @@ internal fun EditProfileSheet(
                         selected = imageUri == uri,
                         label = stringResource(R.string.onboarding_avatar_cd, index + 1),
                         onClick = {
+                            selectionToken += 1
                             imageUri = uri
                             pendingPhoto = null
                         },
@@ -263,3 +281,24 @@ private fun Choice(selected: Boolean, label: String, onClick: () -> Unit, conten
 /** Every option, avatar or colour, is a full 48dp target inside its ring. */
 private val TILE = Dimensions.Icon.avatarLarge
 private val RING = Dimensions.Component.avatarRingWidth
+
+/** Avatar draft a finished photo import may change, and the choice generation it must still match. */
+internal data class PhotoImportDraft(
+    val imageUri: String?,
+    val importPending: Boolean,
+    val selectionToken: Int,
+)
+
+/**
+ * Writes [importedUri] and clears the pending import only while [startedToken] is still
+ * [draft]'s selection. A preset or a newer photo bumps that token; this result is dropped
+ * so it cannot overwrite the later choice or clear the newer import.
+ */
+internal fun applyPhotoImport(
+    draft: PhotoImportDraft,
+    startedToken: Int,
+    importedUri: String?,
+): PhotoImportDraft {
+    if (startedToken != draft.selectionToken) return draft
+    return draft.copy(imageUri = importedUri ?: draft.imageUri, importPending = false)
+}

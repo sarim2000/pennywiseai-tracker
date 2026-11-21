@@ -4,21 +4,23 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontListFontFamily
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.font.ResourceFont
-import com.pennywiseai.core.designsystem.R
+import com.pennywiseai.tracker.data.preferences.AppFont
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotNull
+import org.junit.Assert.assertSame
+import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
  * Google Sans Flex ships as one variable font, so each weight is a Font entry
  * pinning `wght`. Compose resolves a style's weight to the closest *declared*
  * entry: a missing 700 would render every `*Emphasized` style at 600, identical
- * to its base. Every weight the scale uses must have its own matching instance.
+ * to its base. Every weight the scale uses must have its own matching instance,
+ * at its role's roundness and optical size and the theme's grade.
  */
 class GoogleSansFlexTypographyTest {
 
-    private val typography = getTypography(GoogleSansFlexFamily, GoogleSansFlexHeadingFamily)
+    private val typography = typographyFor(AppFont.GOOGLE_SANS_FLEX, latinScript = true, darkTheme = false)
 
     private val headingStyles: Map<String, TextStyle> = with(typography) {
         mapOf(
@@ -53,11 +55,34 @@ class GoogleSansFlexTypographyTest {
     @Test
     fun everyStyleWeightHasItsOwnInstance() {
         headingStyles.forEach { (name, style) ->
-            assertDeclared(name, style.fontFamily, style.fontWeight!!, GOOGLE_SANS_FLEX_HEADING_ROUNDNESS)
+            assertDeclared(name, style, GoogleSansFlexAxes.HEADING_ROUNDNESS, GoogleSansFlexAxes.LIGHT_GRADE)
         }
         bodyStyles.forEach { (name, style) ->
-            assertDeclared(name, style.fontFamily, style.fontWeight!!, 0f)
+            assertDeclared(name, style, GoogleSansFlexAxes.BODY_ROUNDNESS, GoogleSansFlexAxes.LIGHT_GRADE)
         }
+    }
+
+    @Test
+    fun opticalSizeFollowsEachRolesFontSize() {
+        (headingStyles + bodyStyles).filterKeys { !it.isLabel() }.forEach { (name, style) ->
+            assertEquals(name, style.fontSize.value.toInt(), style.flexKeyOrNull()!!.opticalSize)
+        }
+    }
+
+    @Test
+    fun labelsKeepTheWidthsTheirSlotsWereSizedFor() {
+        // A smaller opsz widens advances and wrapped "Transactions" in the nav bar.
+        bodyStyles.filterKeys { it.isLabel() }.forEach { (name, style) ->
+            assertEquals(name, GoogleSansFlexAxes.LABEL_OPTICAL_SIZE.toInt(), style.flexKeyOrNull()!!.opticalSize)
+        }
+    }
+
+    @Test
+    fun darkThemeDrawsALowerGrade() {
+        val dark = typographyFor(AppFont.GOOGLE_SANS_FLEX, latinScript = true, darkTheme = true)
+        assertDeclared("dark bodyLarge", dark.bodyLarge, GoogleSansFlexAxes.BODY_ROUNDNESS, GoogleSansFlexAxes.DARK_GRADE)
+        assertDeclared("dark titleLarge", dark.titleLarge, GoogleSansFlexAxes.HEADING_ROUNDNESS, GoogleSansFlexAxes.DARK_GRADE)
+        assertTrue(GoogleSansFlexAxes.DARK_GRADE < GoogleSansFlexAxes.LIGHT_GRADE)
     }
 
     @Test
@@ -72,21 +97,48 @@ class GoogleSansFlexTypographyTest {
     fun everyWeightFromThinToBlackIsDeclared() {
         // Covers weights set outside the scale: PennyWiseText's Bold money, a stray Black.
         (100..900 step 100).map { FontWeight(it) }.forEach { weight ->
-            assertDeclared("body ${weight.weight}", GoogleSansFlexFamily, weight, 0f)
-            assertDeclared("heading ${weight.weight}", GoogleSansFlexHeadingFamily, weight, GOOGLE_SANS_FLEX_HEADING_ROUNDNESS)
+            listOf(GoogleSansFlexFamily, typography.bodyLarge.fontFamily, typography.headlineSmall.fontFamily)
+                .forEach { assertNotNull("${weight.weight} in $it", fontFor(it, weight)) }
         }
     }
 
-    private fun assertDeclared(label: String, family: FontFamily?, weight: FontWeight, roundness: Float) {
-        val fonts = (family as FontListFontFamily).fonts.filterIsInstance<ResourceFont>()
-        val font = fonts.singleOrNull { it.weight == weight }
-        assertNotNull("$label: no Font declared for weight ${weight.weight}", font)
-        font!!
-        assertEquals("$label: font file", R.font.google_sans_flex, font.resId)
-        assertEquals("$label: wght", weight.weight.toFloat(), font.axis("wght"))
-        assertEquals("$label: ROND", roundness, font.axis("ROND"))
+    @Test
+    fun moneyIsSquareAtItsOwnOpticalSize() {
+        // heroAmount is displaySmallEmphasized (36sp, a rounded heading) drawn as money.
+        val hero = typography.displaySmallEmphasized.asMoney(typography.bodyLarge.fontFamily)
+        val key = hero.flexKeyOrNull()!!
+        assertEquals(GoogleSansFlexAxes.BODY_ROUNDNESS.toInt(), key.roundness)
+        assertEquals(36, key.opticalSize)
+        assertEquals(GoogleSansFlexAxes.LIGHT_GRADE.toInt(), key.grade)
+        assertEquals("tnum", hero.fontFeatureSettings)
+        assertNotNull(fontFor(hero.fontFamily, FontWeight.Bold))
     }
 
-    private fun ResourceFont.axis(tag: String): Float? =
+    @Test
+    fun otherFontsKeepTheBodyFamilyForMoney() {
+        val sn = typographyFor(AppFont.SN_PRO, latinScript = true)
+        assertSame(SNProFontFamily, sn.displaySmall.asMoney(sn.bodyLarge.fontFamily).fontFamily)
+    }
+
+    private fun assertDeclared(label: String, style: TextStyle, roundness: Float, grade: Float) {
+        val weight = style.fontWeight!!
+        val font = fontFor(style.fontFamily, weight)
+        assertNotNull("$label: no Font declared for weight ${weight.weight}", font)
+        font!!
+        assertEquals("$label: wght", weight.weight, font.key.weight)
+        assertEquals("$label: ROND", roundness.toInt(), font.key.roundness)
+        assertEquals("$label: GRAD", grade.toInt(), font.key.grade)
+        val opticalSize = if (label.isLabel()) GoogleSansFlexAxes.LABEL_OPTICAL_SIZE else style.fontSize.value
+        assertEquals("$label: opsz", quantizeOpticalSize(opticalSize), font.key.opticalSize)
+        assertEquals("$label: wght setting", weight.weight.toFloat(), font.axis("wght"))
+        assertEquals("$label: opsz setting", font.key.opticalSize.toFloat(), font.axis("opsz"))
+    }
+
+    private fun String.isLabel() = startsWith("label")
+
+    private fun fontFor(family: FontFamily?, weight: FontWeight): GoogleSansFlexFont? =
+        (family as FontListFontFamily).fonts.filterIsInstance<GoogleSansFlexFont>().singleOrNull { it.weight == weight }
+
+    private fun GoogleSansFlexFont.axis(tag: String): Float? =
         variationSettings.settings.singleOrNull { it.axisName == tag }?.toVariationValue(null)
 }

@@ -6,7 +6,6 @@ import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.Font
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontStyle
-import androidx.compose.ui.text.font.FontVariation
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.sp
 import com.pennywiseai.core.designsystem.R
@@ -31,41 +30,24 @@ val SNProFontFamily = FontFamily(
 )
 
 /**
- * Every weight the Google Sans Flex families declare: all nine, so any
- * `FontWeight` in the app — the scale, its +100 `*Emphasized` step, the
- * `PennyWiseText` money weights — resolves to its own instance. Compose picks
- * the *closest declared* Font, so a missing 700 would quietly render an
- * emphasized style at 600, identical to its base.
- */
-private val GoogleSansFlexWeights: List<FontWeight> = (100..900 step 100).map { FontWeight(it) }
-
-/** ROND (roundness) for the heading family: fully rounded terminals. */
-internal const val GOOGLE_SANS_FLEX_HEADING_ROUNDNESS = 100f
-
-/**
  * Google Sans Flex — Material 3 Expressive's typeface — from one variable font
- * (`res/font/google_sans_flex.ttf`, instanced down to its `wght` and `ROND`
- * axes). Each Font pins both axes; they are never animated. Latin only: text in
- * other scripts falls back per glyph to the system font.
+ * (`res/font/google_sans_flex.ttf`, instanced down to its `wght`, `ROND`,
+ * `opsz` and `GRAD` axes). Each family declares every weight 100–900, so any
+ * `FontWeight` in the app resolves to its own instance: Compose picks the
+ * *closest declared* Font, so a missing 700 would quietly render an emphasized
+ * style at 600, identical to its base. Latin only: text in other scripts falls
+ * back per glyph to the system font.
+ *
+ * These two are the font's default optical size (18) and grade (0), for text
+ * drawn outside the theme (the share card, the font picker). The theme's own
+ * typography pins each role's optical size and the theme's grade; see
+ * [googleSansFlexTypography].
  */
-private fun googleSansFlex(roundness: Float) = FontFamily(
-    GoogleSansFlexWeights.map { weight ->
-        Font(
-            R.font.google_sans_flex,
-            weight,
-            variationSettings = FontVariation.Settings(
-                FontVariation.weight(weight.weight),
-                FontVariation.Setting("ROND", roundness),
-            ),
-        )
-    }
-)
-
-/** Body, label and money text: square terminals (ROND 0), crisp at small sizes and in figures. */
-val GoogleSansFlexFamily = googleSansFlex(roundness = 0f)
+val GoogleSansFlexFamily = googleSansFlexFamily(GoogleSansFlexAxes.BODY_ROUNDNESS, opticalSize = 18f, grade = 0f)
 
 /** Display, headline and title roles: the rounded, expressive cut. */
-val GoogleSansFlexHeadingFamily = googleSansFlex(roundness = GOOGLE_SANS_FLEX_HEADING_ROUNDNESS)
+val GoogleSansFlexHeadingFamily =
+    googleSansFlexFamily(GoogleSansFlexAxes.HEADING_ROUNDNESS, opticalSize = 18f, grade = 0f)
 
 /**
  * The type scale.
@@ -225,12 +207,41 @@ private fun baseTypography(fontFamily: FontFamily, headingFamily: FontFamily): T
  * @param headingFamily the family for display, headline and title roles;
  *   defaults to [fontFamily].
  */
-@OptIn(ExperimentalMaterial3ExpressiveApi::class)
 fun getTypography(
     fontFamily: FontFamily = FontFamily.Default,
     headingFamily: FontFamily = fontFamily,
-): Typography {
-    val b = baseTypography(fontFamily, headingFamily)
+): Typography = baseTypography(fontFamily, headingFamily).withEmphasized()
+
+/**
+ * The scale in Google Sans Flex, each role pinned to its own optical size
+ * (`opsz` = its font size in sp): small body text gets the sturdier, more open
+ * small-size cut, display figures the finer large one. Labels stay at
+ * [GoogleSansFlexAxes.LABEL_OPTICAL_SIZE] so they keep the widths their slots
+ * were sized for. Headings are rounded, body and labels square; [grade] is the
+ * theme's (lighter in dark mode, see [GoogleSansFlexAxes.DARK_GRADE]).
+ */
+internal fun googleSansFlexTypography(grade: Float): Typography {
+    val b = baseTypography(FontFamily.Default, FontFamily.Default)
+    fun TextStyle.heading() =
+        copy(fontFamily = googleSansFlexFamily(GoogleSansFlexAxes.HEADING_ROUNDNESS, fontSize, grade))
+    fun TextStyle.body() = copy(fontFamily = googleSansFlexFamily(GoogleSansFlexAxes.BODY_ROUNDNESS, fontSize, grade))
+    fun TextStyle.label() = copy(
+        fontFamily = googleSansFlexFamily(GoogleSansFlexAxes.BODY_ROUNDNESS, GoogleSansFlexAxes.LABEL_OPTICAL_SIZE, grade)
+    )
+    return Typography(
+        displayLarge = b.displayLarge.heading(), displayMedium = b.displayMedium.heading(),
+        displaySmall = b.displaySmall.heading(),
+        headlineLarge = b.headlineLarge.heading(), headlineMedium = b.headlineMedium.heading(),
+        headlineSmall = b.headlineSmall.heading(),
+        titleLarge = b.titleLarge.heading(), titleMedium = b.titleMedium.heading(), titleSmall = b.titleSmall.heading(),
+        bodyLarge = b.bodyLarge.body(), bodyMedium = b.bodyMedium.body(), bodySmall = b.bodySmall.body(),
+        labelLarge = b.labelLarge.label(), labelMedium = b.labelMedium.label(), labelSmall = b.labelSmall.label(),
+    ).withEmphasized()
+}
+
+@OptIn(ExperimentalMaterial3ExpressiveApi::class)
+private fun Typography.withEmphasized(): Typography {
+    val b = this
     // 400 → 500, 600 → 700: Material's own emphasized step.
     fun TextStyle.emphasized() =
         copy(fontWeight = FontWeight(((fontWeight ?: FontWeight.Normal).weight + 100).coerceAtMost(900)))

@@ -15,6 +15,7 @@ import com.pennywiseai.tracker.utils.inAppLanguage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import dagger.hilt.android.qualifiers.ApplicationContext
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
@@ -75,17 +76,38 @@ class BudgetGroupsViewModel @Inject constructor(
             initialValue = YearMonth.now()
         )
 
-    /** Last month's spending limits all kept, during the first week of this one; else null. */
-    val underBudget: StateFlow<MonthUnderBudget?> = run {
-        val today = LocalDate.now()
-        // Past the first week there's nothing to show: skip last month's query.
-        if (today.dayOfMonth > UNDER_BUDGET_CARD_DAYS) flowOf(null)
-        else combine(
-            // Flagged: spending in another currency it can't count would hide an overspend.
-            budgetSummaryProvider.summary(YearMonth.from(today).minusMonths(1), flagUncounted = true),
-            userPreferencesRepository.budgetMonthCardDismissed,
-        ) { summary, dismissed -> monthUnderBudget(today, summary, dismissed) }
-    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), null)
+    /**
+     * The day the under-budget card is judged against. [refreshDate] moves it when the
+     * screen resumes, so a ViewModel that lives across midnight doesn't keep yesterday's card.
+     */
+    private val today = MutableStateFlow(LocalDate.now())
+
+    /**
+     * Last month's spending limits all kept, during the first week of this one.
+     * [UnderBudgetCardState.ready] stays false until that decision arrives, including "no card".
+     */
+    val underBudget: StateFlow<UnderBudgetCardState> = today.flatMapLatest { day ->
+        val decided: Flow<MonthUnderBudget?> = if (day.dayOfMonth > UNDER_BUDGET_CARD_DAYS) {
+            // Past the first week there's nothing to show: skip last month's query.
+            flowOf(null)
+        } else {
+            combine(
+                // Flagged: spending in another currency it can't count would hide an overspend.
+                budgetSummaryProvider.summary(YearMonth.from(day).minusMonths(1), flagUncounted = true),
+                userPreferencesRepository.budgetMonthCardsDismissed,
+            ) { summary, dismissed -> monthUnderBudget(day, summary, dismissed) }
+        }
+        // The StateFlow starts not-ready, so a deep link waits for this decision instead of
+        // scrolling before a late card shifts the rows. A new day replaces that value.
+        decided.map { win -> UnderBudgetCardState(win = win, ready = true) }
+    }.stateIn(viewModelScope, SharingStarted.WhileSubscribed(5_000), UnderBudgetCardState())
+
+    /** Re-reads today. The Budgets screen calls this from its resume path. */
+    fun refreshDate() {
+        val now = LocalDate.now()
+        today.value = now
+        viewModelScope.launch { userPreferencesRepository.pruneBudgetMonthDismissals(now, UNDER_BUDGET_CARD_DAYS) }
+    }
 
     private val _celebrate = MutableStateFlow(false)
 
@@ -101,7 +123,9 @@ class BudgetGroupsViewModel @Inject constructor(
     fun onCelebrated() { _celebrate.value = false }
 
     fun dismissUnderBudget(win: MonthUnderBudget) {
-        viewModelScope.launch { userPreferencesRepository.dismissBudgetMonthCard(win.key) }
+        viewModelScope.launch {
+            userPreferencesRepository.dismissBudgetMonthCard(win.key, today.value, UNDER_BUDGET_CARD_DAYS)
+        }
     }
 
     init {

@@ -1,6 +1,5 @@
 package com.pennywiseai.tracker.presentation.home
 
-import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
@@ -10,8 +9,8 @@ import org.junit.Test
 /** Home's last row must scroll clear of the actions floating over the list, in both nav styles. */
 class HomeListBottomPaddingTest {
 
-    // Gesture navigation, three-button navigation, and none (e.g. a hidden bar).
-    private val systemBarInsets = listOf(0.dp, 24.dp, 48.dp)
+    // None (e.g. a hidden bar), gesture navigation, three-button navigation, and a large taskbar.
+    private val systemBarInsets = listOf(0.dp, 24.dp, 48.dp, 60.dp)
 
     // M3 SmallFloatingActionButton: a 40dp button centred in a 48dp touch-target slot.
     private val smallFabSlot = 48.dp
@@ -50,10 +49,10 @@ class HomeListBottomPaddingTest {
             val dockTop = systemBar + Dimensions.Component.floatingNavBottomGap +
                 Dimensions.Component.floatingNavHeight + Spacing.sm + Dimensions.Component.dockedActionSmallSize
             val padding = homeListBottomPadding(systemBar, floatingNav = true)
-            assertClears(padding, dockTop, "system bar $systemBar")
+            assertTrue(
+                "system bar $systemBar: padding $padding must end ${Spacing.md} above $dockTop",
+                padding >= dockTop + Spacing.md
+            )
         }
     }
-
-    private fun assertClears(padding: Dp, obstacleTop: Dp, case: String) =
-        assertTrue("$case: padding $padding must clear $obstacleTop", padding >= obstacleTop + Spacing.sm)
 }

@@ -91,8 +91,9 @@ internal val HomeFabStackHeight = Dimensions.Component.minTouchTarget + Spacing.
  */
 internal fun homeListBottomPadding(systemBarBottom: Dp, floatingNav: Boolean): Dp =
     if (floatingNav) {
-        // The floating pill, with Add docked above Ask beside it.
-        Dimensions.Component.bottomBarHeight + Dimensions.Component.fabScrollClearance
+        // The floating pill's row sits above the nav bar; Add docks above Ask's squircle in it.
+        systemBarBottom + Dimensions.Component.floatingNavBottomGap + Dimensions.Component.floatingNavHeight +
+            Spacing.sm + Dimensions.Component.dockedActionSmallSize + Spacing.md
     } else {
         // The nav bar, then the Add + Sync stack standing above it.
         systemBarBottom + Dimensions.Component.fabBottomInset + HomeFabStackHeight + Spacing.md

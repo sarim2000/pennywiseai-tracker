@@ -54,8 +54,8 @@ class HomeListBottomPaddingTest {
     fun `normal nav - the stack stands above the nav bar`() {
         systemBarInsets.forEach { systemBar ->
             val navBarTop = systemBar + Dimensions.Component.bottomBarHeight
-            val stackBottom = systemBar + Dimensions.Component.fabBottomInset
-            assertTrue("system bar $systemBar", stackBottom > navBarTop)
+            val stackBottom = homeFabStackBottomPadding(systemBar)
+            assertTrue("system bar $systemBar: stack bottom $stackBottom must clear $navBarTop", stackBottom > navBarTop)
         }
     }
 

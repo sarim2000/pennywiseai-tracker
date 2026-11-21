@@ -87,6 +87,9 @@ internal fun HomeTopBarActions(
  */
 internal val HomeFabStackHeight = Dimensions.Component.minTouchTarget + Spacing.smd + Dimensions.Component.fab
 
+/** How far [HomeFabStack] stands above the bottom edge: clear of the system bar and the nav bar. */
+internal fun homeFabStackBottomPadding(systemBarBottom: Dp): Dp = systemBarBottom + Dimensions.Component.fabBottomInset
+
 /**
  * How much the Sync hint under [HomeFabStack]'s Sync button lifts the stack: the gap
  * above it plus one labelSmall line, which grows with the font scale.
@@ -107,7 +110,7 @@ internal fun homeListBottomPadding(systemBarBottom: Dp, floatingNav: Boolean, sy
             Spacing.sm + Dimensions.Component.dockedActionSmallSize + Spacing.md
     } else {
         // The nav bar, then the Add + Sync stack standing above it.
-        systemBarBottom + Dimensions.Component.fabBottomInset + syncHintHeight + HomeFabStackHeight + Spacing.md
+        homeFabStackBottomPadding(systemBarBottom) + syncHintHeight + HomeFabStackHeight + Spacing.md
     }
 
 /**
@@ -132,7 +135,7 @@ internal fun BoxScope.HomeFabStack(
             .align(Alignment.BottomEnd)
             .padding(
                 end = Dimensions.Padding.content,
-                bottom = systemBarBottom + Dimensions.Component.fabBottomInset
+                bottom = homeFabStackBottomPadding(systemBarBottom)
             ),
         verticalArrangement = Arrangement.spacedBy(Spacing.smd),
         horizontalAlignment = Alignment.End

@@ -121,4 +121,24 @@ class OdometerDiffTest {
     fun `an unchanged amount has nothing to move`() {
         assertFalse(checkNotNull(odometerPlan("₹42.00", "₹42.00")).changed)
     }
+
+    @Test
+    fun `three-decimal currencies read the decimal from either string`() {
+        // KWD 12.345 is twelve dinars, not 12,345: the other string's `.5` settles it.
+        assertEquals(1, compareAmounts("KWD 12.345", "KWD 15.5"))
+        assertEquals(-1, compareAmounts("KWD 15.5", "KWD 12.345"))
+        assertEquals(1, compareAmounts("KWD 1,012.345", "KWD 1,015.5"))
+        val plan = checkNotNull(odometerPlan("KWD 12.345", "KWD 15.5"))
+        // `12` over `15` (units roll), `.` stays, `3` rolls to `5`, `45` roll out.
+        assertEquals(listOf(Same, Same, Same, Same, Same, Roll, Same, Roll), plan.moves.map { it.change })
+        assertEquals(listOf(8, 9), plan.exits.map { it.oldIndex })
+    }
+
+    @Test
+    fun `a lone three-digit group is grouping in both strings`() {
+        assertEquals(',', decimalSeparatorOf("1.234,5 €", "999 €"))
+        assertNull(decimalSeparatorOf("₹19,164", "₹10,700"))
+        assertEquals(-1, compareAmounts("₹19,164", "₹10,700"))
+        assertEquals(1, compareAmounts("1.234 €", "1.235 €"))
+    }
 }

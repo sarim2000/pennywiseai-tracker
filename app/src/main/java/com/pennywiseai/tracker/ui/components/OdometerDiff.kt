@@ -50,8 +50,9 @@ internal data class OdometerPlan(val moves: List<GlyphMove>, val exits: List<Gly
  * in place.
  */
 internal fun odometerPlan(old: String, new: String): OdometerPlan? {
-    val oldParts = AmountParts.of(old) ?: return null
-    val newParts = AmountParts.of(new) ?: return null
+    val point = decimalSeparatorOf(old, new)
+    val oldParts = AmountParts.of(old, point) ?: return null
+    val newParts = AmountParts.of(new, point) ?: return null
     val pairs = ArrayList<Pair<Int?, Int?>>(maxOf(old.length, new.length))
     pairs += alignEnd(oldParts.prefix, newParts.prefix)
     pairs += alignEnd(oldParts.integer, newParts.integer)
@@ -88,8 +89,9 @@ internal fun odometerPlan(old: String, new: String): OdometerPlan? {
  * digits before comparing.
  */
 internal fun compareAmounts(old: String, new: String): Int? {
-    val a = AmountParts.of(old) ?: return null
-    val b = AmountParts.of(new) ?: return null
+    val point = decimalSeparatorOf(old, new)
+    val a = AmountParts.of(old, point) ?: return null
+    val b = AmountParts.of(new, point) ?: return null
     return compareValues(a, b)
 }
 
@@ -115,14 +117,45 @@ private fun alignStart(old: IntRange, new: IntRange): List<Pair<Int?, Int?>> {
 }
 
 /**
+ * The decimal separator two amounts of one currency share, or null when neither
+ * shows one. A string alone can't always tell: `12.345` is twelve dinars in KWD
+ * (three decimals) and twelve thousand in EUR (`.` groups), and the formatter
+ * drops trailing zeros. So both strings vote, strongest evidence first: two
+ * different separators (the last is decimal, `1.234,5`); then a final separator
+ * followed by one or two digits (no grouping is that short). Failing both, a
+ * lone `.`/`,` with three digits after it is read as grouping in both strings —
+ * consistently, so digits still pair up and compare correctly.
+ */
+internal fun decimalSeparatorOf(a: String, b: String): Char? {
+    val cores = listOf(a, b).mapNotNull { text ->
+        val first = text.indexOfFirst { it.isDigit() }
+        if (first < 0) null else text.substring(first, text.indexOfLast { it.isDigit() } + 1)
+    }
+    cores.forEach { core ->
+        val separators = core.filterNot { it.isDigit() }
+        if (separators.toSet().size > 1) return separators.last()
+    }
+    cores.forEach { core ->
+        val last = core.indexOfLast { !it.isDigit() }
+        if (last >= 0 && core.length - 1 - last in 1..2) return core[last]
+    }
+    return null
+}
+
+/**
  * A formatted amount split around its numeric core, and the core split into its
  * [integer] part and its [fraction] (the decimal separator and the digits after
- * it; empty for a whole amount). The decimal separator is the last separator
- * when one or two digits follow it; three is a thousands group.
+ * it; empty for a whole amount). [decimal] comes from [decimalSeparatorOf].
  */
-private class AmountParts(val text: String, val prefix: IntRange, val core: IntRange, val suffix: IntRange) {
+private class AmountParts(
+    val text: String,
+    val prefix: IntRange,
+    val core: IntRange,
+    val suffix: IntRange,
+    decimal: Char?,
+) {
 
-    private val point: Int? = core.lastOrNull { !text[it].isDigit() }?.takeIf { core.last - it in 1..2 }
+    private val point: Int? = decimal?.let { d -> core.lastOrNull { text[it] == d } }
 
     val integer: IntRange get() = core.first until (point ?: core.last + 1)
 
@@ -142,11 +175,11 @@ private class AmountParts(val text: String, val prefix: IntRange, val core: IntR
         }
 
     companion object {
-        fun of(text: String): AmountParts? {
+        fun of(text: String, decimal: Char?): AmountParts? {
             val first = text.indexOfFirst { it.isDigit() }
             if (first < 0) return null
             val last = text.indexOfLast { it.isDigit() }
-            return AmountParts(text, 0 until first, first..last, last + 1 until text.length)
+            return AmountParts(text, 0 until first, first..last, last + 1 until text.length, decimal)
         }
     }
 }

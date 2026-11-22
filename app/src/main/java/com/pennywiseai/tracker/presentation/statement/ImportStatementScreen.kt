@@ -125,8 +125,9 @@ fun ImportStatementScreen(
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 title = stringResource(R.string.import_statement_title),
                 hasBackButton = true,
-                // Only the preview's rows and the result's balance check show amounts.
-                revealAmountsAction = uiState is ImportStatementUiState.Preview ||
+                // Only the mapping sample, the preview's rows and the result's balance check show amounts.
+                revealAmountsAction = uiState is ImportStatementUiState.Mapping ||
+                    uiState is ImportStatementUiState.Preview ||
                     uiState is ImportStatementUiState.Success,
                 navigationContent = {
                     Box(

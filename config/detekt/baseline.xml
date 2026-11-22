@@ -1808,10 +1808,8 @@
     <ID>NewLineAtEndOfFile:OneCardParser.kt$com.pennywiseai.parser.core.bank.OneCardParser.kt</ID>
     <ID>NewLineAtEndOfFile:ParsedTransactionMapper.kt$com.pennywiseai.tracker.data.mapper.ParsedTransactionMapper.kt</ID>
     <ID>NewLineAtEndOfFile:RuleAction.kt$com.pennywiseai.tracker.domain.model.rule.RuleAction.kt</ID>
-    <ID>NewLineAtEndOfFile:RuleApplicationDao.kt$com.pennywiseai.tracker.data.database.dao.RuleApplicationDao.kt</ID>
     <ID>NewLineAtEndOfFile:RuleApplicationEntity.kt$com.pennywiseai.tracker.data.database.entity.RuleApplicationEntity.kt</ID>
     <ID>NewLineAtEndOfFile:RuleCondition.kt$com.pennywiseai.tracker.domain.model.rule.RuleCondition.kt</ID>
-    <ID>NewLineAtEndOfFile:RuleDao.kt$com.pennywiseai.tracker.data.database.dao.RuleDao.kt</ID>
     <ID>NewLineAtEndOfFile:RuleEntity.kt$com.pennywiseai.tracker.data.database.entity.RuleEntity.kt</ID>
     <ID>NewLineAtEndOfFile:RuleModule.kt$com.pennywiseai.tracker.di.RuleModule.kt</ID>
     <ID>NewLineAtEndOfFile:RulesScreen.kt$com.pennywiseai.tracker.presentation.rules.RulesScreen.kt</ID>
@@ -2634,7 +2632,6 @@
     <ID>TooManyFunctions:RecentTransactionsWidgetDataStore.kt$RecentTransactionsWidgetDataStore</ID>
     <ID>TooManyFunctions:RecurringTransactionRepository.kt$RecurringTransactionRepository</ID>
     <ID>TooManyFunctions:RuleApplicationDao.kt$RuleApplicationDao</ID>
-    <ID>TooManyFunctions:RuleDao.kt$RuleDao</ID>
     <ID>TooManyFunctions:RuleEngine.kt$RuleEngine</ID>
     <ID>TooManyFunctions:RuleRepository.kt$RuleRepository</ID>
     <ID>TooManyFunctions:RuleRepositoryImpl.kt$RuleRepositoryImpl : RuleRepository</ID>

@@ -9,7 +9,6 @@ interface RuleRepository {
     fun getAllRules(): Flow<List<TransactionRule>>
     suspend fun getActiveRules(): List<TransactionRule>
     suspend fun getActiveRulesByType(type: TransactionType): List<TransactionRule>
-    suspend fun getActiveRulesByTypes(types: List<TransactionType>): List<TransactionRule>
     suspend fun getRuleById(ruleId: String): TransactionRule?
     suspend fun insertRule(rule: TransactionRule)
 
@@ -25,12 +24,8 @@ interface RuleRepository {
     suspend fun deleteRule(ruleId: String)
     suspend fun deleteAllRules()
     suspend fun setRuleActive(ruleId: String, isActive: Boolean)
-    suspend fun updateRulePriority(ruleId: String, priority: Int)
 
-    suspend fun saveRuleApplication(application: RuleApplication)
     suspend fun saveRuleApplications(applications: List<RuleApplication>)
-    suspend fun getRuleApplicationsForTransaction(transactionId: String): List<RuleApplication>
-    fun getRuleApplicationsForRule(ruleId: String): Flow<List<RuleApplication>>
     suspend fun getRuleApplicationCount(ruleId: String): Int
     suspend fun deleteRuleApplicationsForTransaction(transactionId: String)
 }

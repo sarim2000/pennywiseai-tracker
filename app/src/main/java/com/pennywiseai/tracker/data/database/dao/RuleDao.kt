@@ -28,9 +28,6 @@ interface RuleDao {
     @Query("UPDATE transaction_rules SET is_active = :isActive WHERE id = :ruleId")
     suspend fun setRuleActive(ruleId: String, isActive: Boolean)
 
-    @Query("UPDATE transaction_rules SET priority = :priority WHERE id = :ruleId")
-    suspend fun updateRulePriority(ruleId: String, priority: Int)
-
     @Delete
     suspend fun deleteRule(rule: RuleEntity)
 

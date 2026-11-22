@@ -7,11 +7,6 @@ import kotlinx.coroutines.flow.Flow
 @Dao
 interface RuleApplicationDao {
 
-    @Query("SELECT * FROM rule_applications WHERE transaction_id = :transactionId ORDER BY applied_at DESC")
-    suspend fun getApplicationsByTransaction(transactionId: String): List<RuleApplicationEntity>
-
-    @Query("SELECT * FROM rule_applications WHERE rule_id = :ruleId ORDER BY applied_at DESC")
-    fun getApplicationsByRule(ruleId: String): Flow<List<RuleApplicationEntity>>
 
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertApplication(application: RuleApplicationEntity)
@@ -27,7 +22,7 @@ interface RuleApplicationDao {
 
     @Query("DELETE FROM rule_applications")
     suspend fun deleteAllApplications()
-    
+
     @Query("SELECT * FROM rule_applications ORDER BY applied_at DESC")
     fun getAllApplications(): Flow<List<RuleApplicationEntity>>
 }

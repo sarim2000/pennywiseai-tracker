@@ -374,14 +374,6 @@ class RuleEngine @Inject constructor() {
         return json.encodeToString(modifications)
     }
 
-    fun deserializeFieldModifications(modificationsJson: String): List<FieldModification> {
-        return try {
-            json.decodeFromString(modificationsJson)
-        } catch (e: Exception) {
-            emptyList()
-        }
-    }
-
     private companion object {
         val TIME_FIELDS = setOf(
             TransactionField.TRANSACTION_HOUR,

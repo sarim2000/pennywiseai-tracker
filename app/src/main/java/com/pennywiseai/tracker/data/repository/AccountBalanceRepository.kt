@@ -104,15 +104,6 @@ open class AccountBalanceRepository @Inject constructor(
         }
     }
 
-    /**
-     * Resolves an account when only the last-4 digits are known — used by the
-     * TRANSFER balance-update path where `from_account` / `to_account` only
-     * persist the last4. See AccountBalanceDao.getLatestBalanceByLast4.
-     */
-    suspend fun getLatestBalanceByLast4(accountLast4: String): AccountBalanceEntity? {
-        return accountBalanceDao.getLatestBalanceByLast4(accountLast4)
-    }
-
     fun getLatestBalanceFlow(bankName: String, accountLast4: String): Flow<AccountBalanceEntity?> {
         return accountBalanceDao.getLatestBalanceFlow(bankName, accountLast4)
     }
@@ -132,14 +123,6 @@ open class AccountBalanceRepository @Inject constructor(
         endDate: LocalDateTime
     ): Flow<List<AccountBalanceEntity>> {
         return accountBalanceDao.getBalanceHistory(bankName, accountLast4, startDate, endDate)
-    }
-
-    suspend fun updateBalance(balance: AccountBalanceEntity) {
-        accountBalanceDao.updateBalance(balance)
-    }
-
-    suspend fun deleteBalance(balance: AccountBalanceEntity) {
-        accountBalanceDao.deleteBalance(balance)
     }
 
     /**
@@ -282,10 +265,6 @@ open class AccountBalanceRepository @Inject constructor(
         return accountBalanceDao.updateStatementDay(bankName, accountLast4, statementDay)
     }
 
-    suspend fun deleteAllBalances() {
-        accountBalanceDao.deleteAllBalances()
-    }
-
     /** See [AccountBalanceDao.deleteRebuildableBalances]. */
     suspend fun deleteRebuildableBalances() {
         accountBalanceDao.deleteRebuildableBalances()
@@ -376,10 +355,6 @@ open class AccountBalanceRepository @Inject constructor(
     ) {
         if (threshold != null && balance <= threshold) return
         runCatching { userPreferencesRepository.claimLowBalanceAlert(bankName, accountLast4, isLow = false) }
-    }
-
-    suspend fun updateAccountCurrency(bankName: String, accountLast4: String, currency: String): Int {
-        return accountBalanceDao.updateAccountCurrency(bankName, accountLast4, currency)
     }
 
     /**

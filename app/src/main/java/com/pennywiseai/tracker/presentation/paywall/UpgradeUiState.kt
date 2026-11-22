@@ -7,8 +7,6 @@ import com.pennywiseai.tracker.ui.UiText
  * renders it. No business logic lives here.
  */
 data class UpgradeUiState(
-    /** Initial entitlement load in flight. */
-    val isLoading: Boolean = true,
     /** A Restore is in flight. */
     val isPurchasing: Boolean = false,
 /** Why the last Restore failed. Shown under the sheet; cleared when one starts. */

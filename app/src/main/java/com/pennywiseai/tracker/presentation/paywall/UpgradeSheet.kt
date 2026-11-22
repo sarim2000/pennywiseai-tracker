@@ -93,7 +93,6 @@ fun UpgradeSheet(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val context = androidx.compose.ui.platform.LocalContext.current
     val sheetState = rememberBottomSheetState(SheetValue.Hidden, setOf(SheetValue.Hidden, SheetValue.Expanded))
-    val scope = rememberCoroutineScope()
 
     // One-shot dismiss event from the ViewModel. Modeled as a Channel/Flow
     // rather than persistent state so a stale ViewModel (Hilt scopes it to

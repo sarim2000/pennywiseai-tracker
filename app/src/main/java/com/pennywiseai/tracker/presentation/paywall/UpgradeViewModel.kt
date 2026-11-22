@@ -150,25 +150,22 @@ class UpgradeViewModel @Inject constructor(
 
     private fun refresh() {
         viewModelScope.launch {
-            _state.update { it.copy(isLoading = true, errorMessage = null) }
+            _state.update { it.copy(errorMessage = null) }
             val result = purchaseLauncher.refresh()
             handleRefreshResult(result)
         }
     }
 
     private fun handleRefreshResult(result: PurchaseResult) {
-        when (result) {
-            is PurchaseResult.Success -> _state.update {
-                it.copy(isLoading = false, isPurchasing = false)
-            }
-            is PurchaseResult.ServiceUnavailable -> _state.update {
-                it.copy(
-                    isLoading = false,
-                    isPurchasing = false,
-                    errorMessage = UiText.Res(R.string.upgrade_error_play_unavailable),
-                )
-            }
-            else -> _state.update { it.copy(isLoading = false, isPurchasing = false) }
+        _state.update {
+            it.copy(
+                isPurchasing = false,
+                errorMessage = if (result is PurchaseResult.ServiceUnavailable) {
+                    UiText.Res(R.string.upgrade_error_play_unavailable)
+                } else {
+                    it.errorMessage
+                },
+            )
         }
     }
 }

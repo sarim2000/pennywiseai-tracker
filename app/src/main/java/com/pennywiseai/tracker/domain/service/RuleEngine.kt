@@ -11,6 +11,7 @@ import java.math.BigDecimal
 import java.time.LocalDateTime
 import java.util.Locale
 import java.util.UUID
+import java.util.concurrent.ConcurrentHashMap
 import javax.inject.Inject
 import javax.inject.Singleton
 
@@ -21,6 +22,13 @@ class RuleEngine @Inject constructor() {
         ignoreUnknownKeys = true
         isLenient = true
     }
+
+    /**
+     * Compiled REGEX_MATCHES patterns, one per distinct rule pattern: batch apply and
+     * SMS ingestion evaluate the same conditions for every transaction. A pattern that
+     * fails to compile throws from the factory and isn't cached.
+     */
+    private val regexCache = ConcurrentHashMap<String, Regex>()
 
     fun evaluateRules(
         transaction: TransactionEntity,
@@ -148,7 +156,8 @@ class RuleEngine @Inject constructor() {
                 .any { fieldValue.equals(it, ignoreCase = true) }
             ConditionOperator.NOT_IN -> !condition.value.split(",").map { it.trim() }
                 .any { fieldValue.equals(it, ignoreCase = true) }
-            ConditionOperator.REGEX_MATCHES -> fieldValue.matches(Regex(condition.value))
+            ConditionOperator.REGEX_MATCHES ->
+                fieldValue.matches(regexCache.getOrPut(condition.value) { Regex(condition.value) })
             ConditionOperator.IS_EMPTY -> fieldValue.isBlank()
             ConditionOperator.IS_NOT_EMPTY -> fieldValue.isNotBlank()
         }

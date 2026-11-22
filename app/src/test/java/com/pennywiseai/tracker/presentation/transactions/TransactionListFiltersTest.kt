@@ -4,9 +4,12 @@ import com.pennywiseai.tracker.data.database.entity.ProfileEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
+import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
+import com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending
 import com.pennywiseai.tracker.domain.model.TransactionTypeFilter
 import com.pennywiseai.tracker.domain.model.filterTrackedByProfile
 import com.pennywiseai.tracker.presentation.common.filterTransactionsByAccount
+import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.math.BigDecimal
@@ -140,6 +143,42 @@ class TransactionListFiltersTest {
         val shopping = CategorySplitShares(setOf("Shopping"), splitRows)
         assertEquals(0, BigDecimal("1800").compareTo(shopping.forTotals(lent)!!.amount))
         assertEquals(null, shopping.forTotals(splitTx.copy(excludedFromAnalytics = true)))
+    }
+
+    // ─── A blank category is Others, as a budget counts it ───────────────────
+
+    // ₹3,000 with no category, ₹49 under Others, and ₹500 split ₹200 with no category + ₹300 Food.
+    private val othersRows = listOf(
+        tx(1, "").copy(amount = BigDecimal("3000")),
+        tx(2, "Others").copy(amount = BigDecimal("49")),
+        tx(3, "Food").copy(amount = BigDecimal("500")),
+    )
+    private val othersSplits = listOf(
+        TransactionSplitEntity(transactionId = 3, category = "", amount = BigDecimal("200")),
+        TransactionSplitEntity(transactionId = 3, category = "Food", amount = BigDecimal("300")),
+    )
+
+    @Test
+    fun `a budget's Others line opens a list holding every row it counted`() {
+        val listed = filterByCategories(othersRows, setOf("Others"), othersSplits)
+        assertEquals(listOf(1L, 2L, 3L), ids(listed))
+        val shares = CategorySplitShares(setOf("Others"), othersSplits)
+        val listExpenses = calculateCurrencyGroupedTotals(listed.mapNotNull(shares::forTotals)).getTotalsForCurrency("INR").expenses
+        val budgetLine = runBlocking {
+            aggregateBudgetCategorySpending(
+                othersRows.map { tx -> TransactionWithSplits(tx, othersSplits.filter { it.transactionId == tx.id }) },
+                convertSplit = { _, amount -> amount },
+                convertIncome = { it.amount },
+            ).categoryAmounts.getValue("Others")
+        }
+        assertEquals(0, BigDecimal("3249").compareTo(budgetLine))
+        assertEquals(0, budgetLine.compareTo(listExpenses))
+    }
+
+    @Test
+    fun `a blank category is filterable as Others`() {
+        // Else an Others filter whose only rows have no category is auto-cleared to every row.
+        assertEquals(listOf("Others"), filterableCategories(listOf(tx(1, "")), listOf(split(1, "")), emptyMap()))
     }
 
     // ─── Ignored accounts and profile ────────────────────────────────────────

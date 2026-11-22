@@ -223,12 +223,13 @@ class BudgetWidget : GlanceAppWidget() {
         val description = when (mood) {
             MascotMood.Happy -> R.string.widget_budget_mood_on_track
             MascotMood.Thinking -> R.string.widget_budget_mood_fast
-            MascotMood.Worried -> R.string.widget_summary_over
+            // Worried and Calm say nothing: Worried is always beside the visible "Over" label.
             else -> null
         }
         Image(
             // Drawn white and tinted by the launcher, so it follows day/night even when this process hasn't.
-            provider = ImageProvider(renderOwl(context, mood, size)),
+            // One bitmap at the largest size; the smaller owl scales it down.
+            provider = ImageProvider(renderOwl(context, mood, Dimensions.Icon.hero)),
             contentDescription = description?.let(context::getString),
             colorFilter = ColorFilter.tint(GlanceTheme.colors.primary),
             modifier = GlanceModifier.size(size)

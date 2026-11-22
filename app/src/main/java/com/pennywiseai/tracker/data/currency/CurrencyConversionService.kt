@@ -255,22 +255,7 @@ class CurrencyConversionService @Inject constructor(
             currencies.forEach { fromCurrency ->
                 currencies.forEach { toCurrency ->
                     if (fromCurrency != toCurrency) {
-                        val rate = if (fromCurrency == apiBaseCurrency) {
-                            allRates[toCurrency]
-                        } else if (toCurrency == apiBaseCurrency) {
-                            allRates[fromCurrency]?.let { fromRate ->
-                                BigDecimal.ONE.divide(fromRate, MathContext(10))
-                            }
-                        } else {
-                            // Cross-currency conversion: fromCurrency -> USD -> toCurrency
-                            val fromToUsd = allRates[fromCurrency]
-                            val usdToTo = allRates[toCurrency]
-                            if (fromToUsd != null && usdToTo != null) {
-                                usdToTo.divide(fromToUsd, MathContext(10))
-                            } else {
-                                null
-                            }
-                        }
+                        val rate = rateViaUsd(allRates, fromCurrency, toCurrency)
 
                         if (rate != null) {
                             // Skip overwriting custom rates set by user
@@ -308,6 +293,22 @@ class CurrencyConversionService @Inject constructor(
      */
     private fun storedExpiryUnix(nextUpdateTimeUnix: Long): Long =
         maxOf(nextUpdateTimeUnix, (System.currentTimeMillis() + TimeConstants.MILLIS_PER_HOUR) / 1000)
+
+    /**
+     * The [from] → [to] rate from a USD-based [rates] table: direct when either
+     * side is USD, otherwise crossed through USD. Null when a side is missing.
+     */
+    private fun rateViaUsd(rates: Map<String, BigDecimal>, from: String, to: String): BigDecimal? =
+        if (from == "USD") {
+            rates[to]
+        } else if (to == "USD") {
+            rates[from]?.let { fromRate -> BigDecimal.ONE.divide(fromRate, MathContext(10)) }
+        } else {
+            // Cross-currency: from -> USD -> to
+            val fromToUsd = rates[from]
+            val usdToTo = rates[to]
+            if (fromToUsd != null && usdToTo != null) usdToTo.divide(fromToUsd, MathContext(10)) else null
+        }
 
     /**
      * Non-fetching lookup: the rate from the in-memory cache (if valid) or a fresh
@@ -370,22 +371,7 @@ class CurrencyConversionService @Inject constructor(
                 )
 
                 // Calculate the rate we need
-                val rate = if (fromCurrency == baseCurrency) {
-                    allRates[toCurrency]
-                } else if (toCurrency == baseCurrency) {
-                    allRates[fromCurrency]?.let { fromRate ->
-                        BigDecimal.ONE.divide(fromRate, MathContext(10))
-                    }
-                } else {
-                    // Cross-currency: fromCurrency -> USD -> toCurrency
-                    val fromToUsd = allRates[fromCurrency]
-                    val usdToTo = allRates[toCurrency]
-                    if (fromToUsd != null && usdToTo != null) {
-                        usdToTo.divide(fromToUsd, MathContext(10))
-                    } else {
-                        null
-                    }
-                }
+                val rate = rateViaUsd(allRates, fromCurrency, toCurrency)
 
                 if (rate != null) {
                     val entity = ExchangeRateEntity(

@@ -11,7 +11,6 @@ import com.pennywiseai.shared.data.util.currentTimeMillis
 import com.pennywiseai.shared.data.util.monthStartEpochMillis
 import com.pennywiseai.shared.data.util.monthStartEpochMillisIST
 import com.pennywiseai.shared.domain.money.CurrencyConverter
-import com.pennywiseai.shared.domain.money.MinorUnits
 import com.pennywiseai.shared.domain.money.MoneyTotals
 import com.pennywiseai.shared.domain.chat.ChatAssistant
 import com.pennywiseai.shared.domain.chat.ChatToolResult
@@ -105,7 +104,6 @@ data class SharedSubscriptionItem(
 data class SharedHomeSnapshot(
     val categories: List<String>,
     val recentTransactions: List<SharedRecentTransactionItem>,
-    val recentTransactionSummaries: List<String>,
     val transactionCount: Int,
     val subscriptionCount: Int,
     val budgetCount: Int,
@@ -132,8 +130,7 @@ data class SharedRecentTransactionItem(
     val occurredAtEpochMillis: Long,
     val note: String?,
     val bankName: String?,
-    val accountLast4: String?,
-    val summary: String
+    val accountLast4: String?
 )
 
 class PennyWiseSharedFacade {
@@ -1018,7 +1015,6 @@ class PennyWiseSharedFacade {
         return SharedHomeSnapshot(
             categories = categories,
             recentTransactions = recentTransactions,
-            recentTransactionSummaries = recentTransactions.map { it.summary },
             transactionCount = transactions.size,
             subscriptionCount = subscriptions.size,
             budgetCount = budgets.size,
@@ -1045,7 +1041,6 @@ class PennyWiseSharedFacade {
             SharedHomeSnapshot(
                 categories = listOf("Others"),
                 recentTransactions = emptyList(),
-                recentTransactionSummaries = emptyList(),
                 transactionCount = 0,
                 subscriptionCount = 0,
                 budgetCount = 0,
@@ -1069,8 +1064,7 @@ class PennyWiseSharedFacade {
             occurredAtEpochMillis = occurredAtEpochMillis,
             note = note,
             bankName = bankName,
-            accountLast4 = accountLast4,
-            summary = "$merchantName - $category - $currency ${MinorUnits.toPlain(amountMinor, currency)}"
+            accountLast4 = accountLast4
         )
 
     private fun com.pennywiseai.shared.data.local.entity.SharedAccountBalanceEntity.toAccountItem() =

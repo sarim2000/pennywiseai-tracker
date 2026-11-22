@@ -56,7 +56,6 @@
     <string name="txn_type_investment">Inversión</string>
     <!-- Transaction detail -->
     <string name="txn_detail_updated">Transacción actualizada</string>
-    <string name="txn_detail_title">Detalles de la transacción</string>
     <string name="txn_detail_title_edit">Editar transacción</string>
     <string name="txn_detail_back">Atrás</string>
     <string name="txn_detail_action_cancel">Cancelar</string>
@@ -68,7 +67,6 @@
     <string name="txn_detail_more_actions">Más acciones</string>
     <string name="txn_detail_menu_add_to_group">Agregar a un grupo</string>
     <string name="txn_detail_menu_duplicate">Duplicar</string>
-    <string name="txn_detail_menu_report_issue">Reportar un problema</string>
     <string name="txn_detail_delete_title">Eliminar transacción</string>
     <string name="txn_detail_delete_message">¿Seguro que quieres eliminar esta transacción? Esta acción no se puede deshacer.</string>
     <string name="txn_detail_unmark_loan_title">¿Dejar de marcar como préstamo?</string>
@@ -78,7 +76,6 @@
     <!-- %1$s = person name, %2$s = formatted amount -->
     <!-- %1$s = person name, %2$s = formatted amount -->
     <string name="txn_detail_unmark_loan">Desmarcar como préstamo</string>
-    <string name="txn_detail_mark_as_loan">Marcar como préstamo</string>
     <string name="txn_detail_loan_lent_to">Prestado a %1$s</string>
     <string name="txn_detail_loan_borrowed_from">Pedido a %1$s</string>
     <!-- A repayment row on a loan. %1$s = person name -->
@@ -90,14 +87,11 @@
     <string name="txn_detail_close">Cerrar</string>
     <string name="txn_detail_exclude_analytics_title">Excluir de los análisis</string>
     <string name="txn_detail_exclude_analytics_subtitle">Se mantiene en el historial y el saldo, pero no cuenta en las estadísticas de gastos</string>
-    <string name="txn_detail_label_date_time">Fecha y hora</string>
     <plurals name="txn_detail_split_categories">
         <item quantity="one">Dividida (%1$d categoría)</item>
         <item quantity="other">Dividida (%1$d categorías)</item>
     </plurals>
     <string name="txn_detail_label_category">Categoría</string>
-    <string name="txn_detail_label_bank">Banco</string>
-    <string name="txn_detail_label_description">Descripción</string>
     <plurals name="txn_detail_label_tags">
         <item quantity="one">Etiqueta</item>
         <item quantity="other">Etiquetas</item>
@@ -173,16 +167,12 @@
     <string name="txn_detail_group_create">Crear</string>
     <string name="txn_detail_group_create_new">Crear grupo nuevo</string>
     <!-- Transaction totals card -->
-    <string name="txn_totals_income">Ingresos</string>
-    <string name="txn_totals_expense">Gasto</string>
-    <string name="txn_totals_expenses">Gastos</string>
     <string name="txn_totals_credit">Crédito</string>
     <string name="txn_totals_transfer">Transferencia</string>
     <string name="txn_totals_invest">Inversión</string>
     <string name="txn_totals_net">Neto</string>
     <string name="txn_totals_select_currency">Seleccionar moneda</string>
     <!-- Transactions list -->
-    <string name="txn_list_title">Transacciones</string>
     <string name="txn_list_back">Atrás</string>
     <string name="txn_list_deleted">Transacción eliminada</string>
     <string name="txn_list_undo">Deshacer</string>
@@ -209,7 +199,6 @@
     <string name="txn_list_group_name">Nombre del grupo</string>
     <string name="txn_list_group_create">Crear</string>
     <string name="txn_list_group_create_new">Crear grupo nuevo</string>
-    <string name="txn_list_more_options">Más opciones</string>
     <string name="txn_list_clear_filters">Borrar filtros</string>
     <string name="txn_list_all_categories">Todas las categorías</string>
     <string name="txn_list_all_profiles">Todos los perfiles</string>
@@ -227,7 +216,6 @@
     </plurals>
     <string name="txn_list_search">Buscar</string>
     <string name="txn_list_search_in_category">Buscar en %1$s...</string>
-    <string name="txn_list_search_placeholder">Buscar transacciones...</string>
     <string name="txn_list_clear_search">Borrar búsqueda</string>
     <string name="txn_list_empty_no_results">No hay resultados para \"%1$s\"</string>
     <string name="txn_list_empty_period">No hay nada en: %1$s</string>
@@ -260,14 +248,12 @@
     <string name="add_field_notes">Notas (opcional)</string>
     <string name="add_field_reference">Número de referencia (opcional)</string>
     <string name="add_field_category">Categoría</string>
-    <string name="add_clear">Borrar</string>
     <string name="add_save">Guardar</string>
     <string name="add_ok">Aceptar</string>
     <string name="add_cancel">Cancelar</string>
     <string name="add_select_time">Seleccionar hora</string>
     <string name="add_txn_from_account">Cuenta de origen</string>
     <string name="add_txn_to_account">Cuenta de destino</string>
-    <string name="add_txn_select_account">Seleccionar cuenta</string>
     <string name="add_txn_no_account">Sin cuenta (entrada manual)</string>
     <string name="add_txn_no_account_hint">No afectará el saldo de ninguna cuenta</string>
     <string name="add_receipt">Recibo (opcional)</string>
@@ -299,7 +285,6 @@
     <string name="add_error_amount_required">El monto es obligatorio</string>
     <string name="add_error_amount_invalid">Monto no válido</string>
     <string name="add_error_amount_positive">El monto debe ser mayor que 0</string>
-    <string name="add_error_merchant_required">El comercio o la descripción es obligatorio</string>
     <string name="add_error_merchant_too_short">Demasiado corto</string>
     <string name="add_error_category_required">La categoría es obligatoria</string>
     <!-- Transaction groups -->
@@ -388,15 +373,10 @@
     <string name="quick_category_progress">%1$d de %2$d</string>
     <string name="quick_category_save_failed">No se pudo guardar. Inténtalo de nuevo.</string>
     <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
-    <string name="quick_add_title">Gasto en efectivo</string>
     <string name="quick_add_more_details">Más detalles</string>
     <string name="quick_add_where_hint">¿Dónde? (opcional)</string>
-    <!-- %1$s the cash account the spend comes out of -->
-    <string name="quick_add_from">Desde: %1$s</string>
     <!-- %1$s amount with currency, %2$s category -->
     <string name="quick_add_saved">Guardado %1$s · %2$s</string>
-    <!-- The sheet filled from the voice mic (Home, the cash widget) -->
-    <!-- Clears a day said out loud ("yesterday") back to today -->
     <!-- Amount sums: the operator row above the keyboard while an amount field has focus -->
     <!-- The sum is unfinished or doesn't make sense yet, e.g. "12+" or "1..2" -->
     <string name="date_range_title">Seleccionar rango de fechas</string>

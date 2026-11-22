@@ -65,7 +65,6 @@
     <string name="txn_type_investment">استثمار</string>
     <!-- Transaction detail -->
     <string name="txn_detail_updated">تم تحديث المعاملة بنجاح</string>
-    <string name="txn_detail_title">تفاصيل المعاملة</string>
     <string name="txn_detail_title_edit">تعديل المعاملة</string>
     <string name="txn_detail_back">الرجوع</string>
     <string name="txn_detail_action_cancel">إلغاء</string>
@@ -77,7 +76,6 @@
     <string name="txn_detail_more_actions">المزيد من الإجراءات</string>
     <string name="txn_detail_menu_add_to_group">إضافة إلى مجموعة</string>
     <string name="txn_detail_menu_duplicate">إنشاء نسخة</string>
-    <string name="txn_detail_menu_report_issue">الإبلاغ عن مشكلة</string>
     <string name="txn_detail_delete_title">حذف المعاملة</string>
     <string name="txn_detail_delete_message">هل تريد حذف هذه المعاملة؟ لا يمكن التراجع عن هذا الإجراء.</string>
     <string name="txn_detail_unmark_loan_title">إلغاء اعتبارها قرضًا؟</string>
@@ -87,7 +85,6 @@
     <!-- %1$s = person name, %2$s = formatted amount -->
     <!-- %1$s = person name, %2$s = formatted amount -->
     <string name="txn_detail_unmark_loan">إلغاء اعتبارها قرضًا</string>
-    <string name="txn_detail_mark_as_loan">اعتبارها قرضًا</string>
     <string name="txn_detail_loan_lent_to">أقرضت %1$s</string>
     <string name="txn_detail_loan_borrowed_from">اقترضت من %1$s</string>
     <!-- A repayment row on a loan. %1$s = person name -->
@@ -99,7 +96,6 @@
     <string name="txn_detail_close">إغلاق</string>
     <string name="txn_detail_exclude_analytics_title">استبعاد من التحليلات</string>
     <string name="txn_detail_exclude_analytics_subtitle">تبقى في السجل والرصيد، ولا تُحتسب في إحصاءات الإنفاق</string>
-    <string name="txn_detail_label_date_time">التاريخ والوقت</string>
     <plurals name="txn_detail_split_categories">
         <item quantity="zero">تقسيم (%1$d فئة)</item>
         <item quantity="one">تقسيم (%1$d فئة)</item>
@@ -109,8 +105,6 @@
         <item quantity="other">تقسيم (%1$d فئة)</item>
     </plurals>
     <string name="txn_detail_label_category">الفئة</string>
-    <string name="txn_detail_label_bank">البنك</string>
-    <string name="txn_detail_label_description">الوصف</string>
     <plurals name="txn_detail_label_tags">
         <item quantity="zero">العلامات</item>
         <item quantity="one">العلامة</item>
@@ -195,16 +189,12 @@
     <string name="txn_detail_group_create">إنشاء</string>
     <string name="txn_detail_group_create_new">إنشاء مجموعة جديدة</string>
     <!-- Transaction totals card -->
-    <string name="txn_totals_income">دخل</string>
-    <string name="txn_totals_expense">مصروف</string>
-    <string name="txn_totals_expenses">المصروفات</string>
     <string name="txn_totals_credit">ائتمان</string>
     <string name="txn_totals_transfer">تحويل</string>
     <string name="txn_totals_invest">استثمار</string>
     <string name="txn_totals_net">صافي</string>
     <string name="txn_totals_select_currency">اختر العملة</string>
     <!-- Transactions list -->
-    <string name="txn_list_title">المعاملات</string>
     <string name="txn_list_back">الرجوع</string>
     <string name="txn_list_deleted">تم حذف المعاملة</string>
     <string name="txn_list_undo">تراجع</string>
@@ -232,7 +222,6 @@
     <string name="txn_list_group_name">اسم المجموعة</string>
     <string name="txn_list_group_create">إنشاء</string>
     <string name="txn_list_group_create_new">إنشاء مجموعة جديدة</string>
-    <string name="txn_list_more_options">خيارات أكثر</string>
     <string name="txn_list_clear_filters">مسح الفلاتر</string>
     <string name="txn_list_all_categories">جميع الفئات</string>
     <string name="txn_list_all_profiles">جميع الملفات الشخصية</string>
@@ -265,7 +254,6 @@
     </plurals>
     <string name="txn_list_search">بحث</string>
     <string name="txn_list_search_in_category">ابحث في %1$s...</string>
-    <string name="txn_list_search_placeholder">البحث في المعاملات...</string>
     <string name="txn_list_clear_search">مسح البحث</string>
     <string name="txn_list_empty_no_results">لا توجد نتائج لـ \"%1$s\"</string>
     <string name="txn_list_empty_period">لا توجد معاملات في %1$s</string>
@@ -310,14 +298,12 @@
     <string name="add_field_notes">ملاحظات (اختياري)</string>
     <string name="add_field_reference">الرقم المرجعي (اختياري)</string>
     <string name="add_field_category">الفئة</string>
-    <string name="add_clear">مسح</string>
     <string name="add_save">حفظ</string>
     <string name="add_ok">موافق</string>
     <string name="add_cancel">إلغاء</string>
     <string name="add_select_time">اختر الوقت</string>
     <string name="add_txn_from_account">من الحساب</string>
     <string name="add_txn_to_account">إلى الحساب</string>
-    <string name="add_txn_select_account">اختر حسابًا</string>
     <string name="add_txn_no_account">بلا حساب (إدخال يدوي)</string>
     <string name="add_txn_no_account_hint">لن يؤثر على رصيد الحساب</string>
     <string name="add_receipt">الإيصال (اختياري)</string>
@@ -349,7 +335,6 @@
     <string name="add_error_amount_required">المبلغ مطلوب</string>
     <string name="add_error_amount_invalid">مبلغ غير صالح</string>
     <string name="add_error_amount_positive">يجب أن يكون المبلغ أكبر من 0</string>
-    <string name="add_error_merchant_required">التاجر/الوصف مطلوب</string>
     <string name="add_error_merchant_too_short">قصير جداً</string>
     <string name="add_error_category_required">الفئة مطلوبة</string>
     <!-- Transaction groups -->
@@ -447,19 +432,10 @@
     <string name="quick_category_progress">%1$d من %2$d</string>
     <string name="quick_category_save_failed">تعذّر الحفظ. حاول مرة أخرى.</string>
     <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
-    <string name="quick_add_title">مصروف نقدي</string>
     <string name="quick_add_more_details">تفاصيل أكثر</string>
     <string name="quick_add_where_hint">أين؟ (اختياري)</string>
-    <!-- %1$s the cash account the spend comes out of -->
-    <string name="quick_add_from">من: %1$s</string>
     <!-- %1$s amount with currency, %2$s category -->
     <string name="quick_add_saved">حُفظ %1$s · %2$s</string>
-    <!-- The sheet filled from the voice mic (Home, the cash widget) -->
-    <string name="quick_add_title_income">دخل نقدي</string>
-    <string name="quick_add_spent">مصروف</string>
-    <string name="quick_add_received">دخل</string>
-    <!-- Clears a day said out loud ("yesterday") back to today -->
-    <string name="quick_add_date_today">استخدم تاريخ اليوم</string>
     <string name="quick_add_voice_title">إضافة بالصوت</string>
     <string name="quick_add_voice_hint">قل مصروفًا نقديًا مثل «200 غداء»، أو اطرح سؤالًا.</string>
     <string name="quick_add_voice_unclear">لم أجد مبلغًا واحدًا. حاول مرة أخرى أو اكتبه.</string>

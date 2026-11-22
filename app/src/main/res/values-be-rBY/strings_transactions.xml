@@ -60,7 +60,6 @@
     <string name="txn_type_investment">Інвестыцыя</string>
     <!-- Transaction detail -->
     <string name="txn_detail_updated">Транзакцыя абноўлена</string>
-    <string name="txn_detail_title">Падрабязнасці транзакцыі</string>
     <string name="txn_detail_title_edit">Рэдагаваць транзакцыю</string>
     <string name="txn_detail_back">Назад</string>
     <string name="txn_detail_action_cancel">Скасаваць</string>
@@ -71,7 +70,6 @@
     <string name="txn_detail_more_actions">Іншыя дзеянні</string>
     <string name="txn_detail_menu_add_to_group">Дадаць у групу</string>
     <string name="txn_detail_menu_duplicate">Дубляваць</string>
-    <string name="txn_detail_menu_report_issue">Паведаміць пра праблему</string>
     <string name="txn_detail_delete_title">Выдаліць транзакцыю</string>
     <string name="txn_detail_delete_message">Сапраўды выдаліць гэтую транзакцыю? Гэта дзеянне нельга адрабіць.</string>
     <string name="txn_detail_unmark_loan_title">Зняць пазнаку пазыкі?</string>
@@ -81,7 +79,6 @@
     <!-- %1$s = person name, %2$s = formatted amount -->
     <!-- %1$s = person name, %2$s = formatted amount -->
     <string name="txn_detail_unmark_loan">Гэта не пазыка</string>
-    <string name="txn_detail_mark_as_loan">Пазначыць як пазыку</string>
     <string name="txn_detail_loan_lent_to">Дадзена ў доўг: %1$s</string>
     <string name="txn_detail_loan_borrowed_from">Узята ў доўг у %1$s</string>
     <!-- A repayment row on a loan. %1$s = person name -->
@@ -93,7 +90,6 @@
     <string name="txn_detail_close">Закрыць</string>
     <string name="txn_detail_exclude_analytics_title">Не ўлічваць у аналітыцы</string>
     <string name="txn_detail_exclude_analytics_subtitle">Застаецца ў гісторыі і балансе, але не ўваходзіць у статыстыку выдаткаў</string>
-    <string name="txn_detail_label_date_time">Дата і час</string>
     <plurals name="txn_detail_split_categories">
         <item quantity="one">Падзел (%1$d катэгорыя)</item>
         <item quantity="few">Падзел (%1$d катэгорыі)</item>
@@ -101,8 +97,6 @@
         <item quantity="other">Падзел (%1$d катэгорыі)</item>
     </plurals>
     <string name="txn_detail_label_category">Катэгорыя</string>
-    <string name="txn_detail_label_bank">Банк</string>
-    <string name="txn_detail_label_description">Апісанне</string>
     <plurals name="txn_detail_label_tags">
         <item quantity="one">Тэг</item>
         <item quantity="few">Тэгі</item>
@@ -183,16 +177,12 @@
     <string name="txn_detail_group_create">Стварыць</string>
     <string name="txn_detail_group_create_new">Стварыць новую групу</string>
     <!-- Transaction totals card -->
-    <string name="txn_totals_income">Даход</string>
-    <string name="txn_totals_expense">Выдатак</string>
-    <string name="txn_totals_expenses">Выдаткі</string>
     <string name="txn_totals_credit">Крэдыт</string>
     <string name="txn_totals_transfer">Перавод</string>
     <string name="txn_totals_invest">Інвест.</string>
     <string name="txn_totals_net">Вынік</string>
     <string name="txn_totals_select_currency">Выберыце валюту</string>
     <!-- Transactions list -->
-    <string name="txn_list_title">Транзакцыі</string>
     <string name="txn_list_back">Назад</string>
     <string name="txn_list_deleted">Транзакцыя выдалена</string>
     <string name="txn_list_undo">Адрабіць</string>
@@ -219,7 +209,6 @@
     <string name="txn_list_group_name">Назва групы</string>
     <string name="txn_list_group_create">Стварыць</string>
     <string name="txn_list_group_create_new">Стварыць новую групу</string>
-    <string name="txn_list_more_options">Іншыя параметры</string>
     <string name="txn_list_clear_filters">Скінуць фільтры</string>
     <string name="txn_list_all_categories">Усе катэгорыі</string>
     <string name="txn_list_all_profiles">Усе профілі</string>
@@ -239,7 +228,6 @@
     </plurals>
     <string name="txn_list_search">Пошук</string>
     <string name="txn_list_search_in_category">Пошук у %1$s...</string>
-    <string name="txn_list_search_placeholder">Пошук транзакцый...</string>
     <string name="txn_list_clear_search">Ачысціць пошук</string>
     <string name="txn_list_empty_no_results">Нічога не знойдзена па «%1$s»</string>
     <string name="txn_list_empty_period">Нічога за %1$s</string>
@@ -278,13 +266,11 @@
     <string name="add_field_notes">Нататкі (неабавязкова)</string>
     <string name="add_field_reference">Нумар аперацыі (неабавязкова)</string>
     <string name="add_field_category">Катэгорыя</string>
-    <string name="add_clear">Ачысціць</string>
     <string name="add_save">Захаваць</string>
     <string name="add_cancel">Скасаваць</string>
     <string name="add_select_time">Выберыце час</string>
     <string name="add_txn_from_account">З рахунку</string>
     <string name="add_txn_to_account">На рахунак</string>
-    <string name="add_txn_select_account">Выберыце рахунак</string>
     <string name="add_txn_no_account">Без рахунку (уручную)</string>
     <string name="add_txn_no_account_hint">Не паўплывае на баланс рахунку</string>
     <string name="add_receipt">Чэк (неабавязкова)</string>
@@ -316,7 +302,6 @@
     <string name="add_error_amount_required">Укажыце суму</string>
     <string name="add_error_amount_invalid">Няправільная сума</string>
     <string name="add_error_amount_positive">Сума павінна быць больш за 0</string>
-    <string name="add_error_merchant_required">Укажыце прадаўца або апісанне</string>
     <string name="add_error_merchant_too_short">Занадта коратка</string>
     <string name="add_error_category_required">Выберыце катэгорыю</string>
     <!-- Transaction groups -->
@@ -407,15 +392,10 @@
     <string name="quick_category_progress">%1$d з %2$d</string>
     <string name="quick_category_save_failed">Не ўдалося захаваць. Паспрабуйце яшчэ раз.</string>
     <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
-    <string name="quick_add_title">Выдатак наяўнымі</string>
     <string name="quick_add_more_details">Больш падрабязнасцей</string>
     <string name="quick_add_where_hint">Дзе? (неабавязкова)</string>
-    <!-- %1$s the cash account the spend comes out of -->
-    <string name="quick_add_from">З: %1$s</string>
     <!-- %1$s amount with currency, %2$s category -->
     <string name="quick_add_saved">Захавана %1$s · %2$s</string>
-    <!-- The sheet filled from the voice mic (Home, the cash widget) -->
-    <!-- Clears a day said out loud ("yesterday") back to today -->
     <!-- Amount sums: the operator row above the keyboard while an amount field has focus -->
     <!-- The sum is unfinished or doesn't make sense yet, e.g. "12+" or "1..2" -->
     <string name="date_range_title">Выберыце перыяд</string>

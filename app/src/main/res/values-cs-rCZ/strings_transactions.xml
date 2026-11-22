@@ -61,7 +61,6 @@
     <string name="txn_type_investment">Investice</string>
     <!-- Transaction detail -->
     <string name="txn_detail_updated">Transakce byla úspěšně aktualizována</string>
-    <string name="txn_detail_title">Podrobnosti transakce</string>
     <string name="txn_detail_title_edit">Upravit transakci</string>
     <string name="txn_detail_back">Zpět</string>
     <string name="txn_detail_action_cancel">Zrušit</string>
@@ -73,7 +72,6 @@
     <string name="txn_detail_more_actions">Další akce</string>
     <string name="txn_detail_menu_add_to_group">Přidat do skupiny</string>
     <string name="txn_detail_menu_duplicate">Duplikovat</string>
-    <string name="txn_detail_menu_report_issue">Nahlásit problém</string>
     <string name="txn_detail_delete_title">Odstranit transakci</string>
     <string name="txn_detail_delete_message">Opravdu chcete odstranit tuto transakci? Tuto akci nelze vrátit zpět.</string>
     <string name="txn_detail_unmark_loan_title">Zrušit označení jako půjčka?</string>
@@ -83,7 +81,6 @@
     <!-- %1$s = person name, %2$s = formatted amount -->
     <!-- %1$s = person name, %2$s = formatted amount -->
     <string name="txn_detail_unmark_loan">Zrušit označení jako půjčka</string>
-    <string name="txn_detail_mark_as_loan">Označit jako půjčku</string>
     <string name="txn_detail_loan_lent_to">Pronájem %1$s</string>
     <string name="txn_detail_loan_borrowed_from">Vypůjčeno z %1$s</string>
     <!-- A repayment row on a loan. %1$s = person name -->
@@ -95,7 +92,6 @@
     <string name="txn_detail_close">Zavřít</string>
     <string name="txn_detail_exclude_analytics_title">Vyloučit z analýzy</string>
     <string name="txn_detail_exclude_analytics_subtitle">Úskok v historii &amp; bilance, ignorován ve výdajových statistikách</string>
-    <string name="txn_detail_label_date_time">Datum &amp; čas</string>
     <plurals name="txn_detail_split_categories">
         <item quantity="one">Rozdělení (%1$d kategorie)</item>
         <item quantity="few">Rozdělení (%1$d kategorií)</item>
@@ -103,8 +99,6 @@
         <item quantity="other">Rozdělení (%1$d kategorií)</item>
     </plurals>
     <string name="txn_detail_label_category">Kategorie</string>
-    <string name="txn_detail_label_bank">Bankovní</string>
-    <string name="txn_detail_label_description">L 343, 22.12.2009, s. 1).</string>
     <plurals name="txn_detail_label_tags">
         <item quantity="one">Značka</item>
         <item quantity="few">Štítky</item>
@@ -185,16 +179,12 @@
     <string name="txn_detail_group_create">Vytvořit</string>
     <string name="txn_detail_group_create_new">Vytvořit novou skupinu</string>
     <!-- Transaction totals card -->
-    <string name="txn_totals_income">Výnosy</string>
-    <string name="txn_totals_expense">Výdaje</string>
-    <string name="txn_totals_expenses">Výdaje</string>
     <string name="txn_totals_credit">Kredit</string>
     <string name="txn_totals_transfer">Převod</string>
     <string name="txn_totals_invest">Investice</string>
     <string name="txn_totals_net">Čistá hodnota</string>
     <string name="txn_totals_select_currency">Vyberte měnu</string>
     <!-- Transactions list -->
-    <string name="txn_list_title">Časová osa</string>
     <string name="txn_list_back">Zpět</string>
     <string name="txn_list_deleted">Transakce odstraněna</string>
     <string name="txn_list_undo">Zpět</string>
@@ -221,7 +211,6 @@
     <string name="txn_list_group_name">Název skupiny</string>
     <string name="txn_list_group_create">Vytvořit</string>
     <string name="txn_list_group_create_new">Vytvořit novou skupinu</string>
-    <string name="txn_list_more_options">Další možnosti</string>
     <string name="txn_list_clear_filters">Vymazat filtry</string>
     <string name="txn_list_all_categories">Všechny kategorie</string>
     <string name="txn_list_all_profiles">Všechny profily</string>
@@ -241,7 +230,6 @@
     </plurals>
     <string name="txn_list_search">Hledat</string>
     <string name="txn_list_search_in_category">Hledat v %1$s...</string>
-    <string name="txn_list_search_placeholder">Hledat transakce...</string>
     <string name="txn_list_clear_search">Vymazat hledání</string>
     <string name="txn_list_empty_no_results">Žádné výsledky pro \"%1$s\"</string>
     <string name="txn_list_empty_period">Nic pro %1$s</string>
@@ -280,14 +268,12 @@
     <string name="add_field_notes">Poznámky (nepovinné)</string>
     <string name="add_field_reference">Referenční číslo (nepovinné)</string>
     <string name="add_field_category">Kategorie</string>
-    <string name="add_clear">Vyčistit</string>
     <string name="add_save">Uložit</string>
     <string name="add_ok">OK</string>
     <string name="add_cancel">Zrušit</string>
     <string name="add_select_time">Vyberte čas</string>
     <string name="add_txn_from_account">Z účtu</string>
     <string name="add_txn_to_account">Na účet</string>
-    <string name="add_txn_select_account">Vybrat účet</string>
     <string name="add_txn_no_account">Žádný účet (ruční přidání)</string>
     <string name="add_txn_no_account_hint">Neovlivní zůstatek účtu</string>
     <string name="add_receipt">Přijetí (nepovinné)</string>
@@ -319,7 +305,6 @@
     <string name="add_error_amount_required">Částka je povinná</string>
     <string name="add_error_amount_invalid">Neplatná částka</string>
     <string name="add_error_amount_positive">Částka musí být větší než 0</string>
-    <string name="add_error_merchant_required">Obchodník/Popis je povinný</string>
     <string name="add_error_merchant_too_short">Příliš krátké</string>
     <string name="add_error_category_required">Kategorie je povinná</string>
     <!-- Transaction groups -->
@@ -410,15 +395,10 @@
     <string name="quick_category_progress">%1$d z %2$d</string>
     <string name="quick_category_save_failed">Uložení se nezdařilo. Zkuste to znovu.</string>
     <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
-    <string name="quick_add_title">Platba hotově</string>
     <string name="quick_add_more_details">Další podrobnosti</string>
     <string name="quick_add_where_hint">Kde? (nepovinné)</string>
-    <!-- %1$s the cash account the spend comes out of -->
-    <string name="quick_add_from">Z: %1$s</string>
     <!-- %1$s amount with currency, %2$s category -->
     <string name="quick_add_saved">Uloženo %1$s · %2$s</string>
-    <!-- The sheet filled from the voice mic (Home, the cash widget) -->
-    <!-- Clears a day said out loud ("yesterday") back to today -->
     <!-- Amount sums: the operator row above the keyboard while an amount field has focus -->
     <!-- The sum is unfinished or doesn't make sense yet, e.g. "12+" or "1..2" -->
     <string name="date_range_title">Vybrat rozsah data</string>

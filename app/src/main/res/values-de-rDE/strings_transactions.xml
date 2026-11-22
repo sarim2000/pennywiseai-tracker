@@ -57,7 +57,6 @@
     <string name="txn_type_investment">Investition</string>
     <!-- Transaction detail -->
     <string name="txn_detail_updated">Transaktion erfolgreich aktualisiert</string>
-    <string name="txn_detail_title">Transaktionsdetails</string>
     <string name="txn_detail_title_edit">Transaktion bearbeiten</string>
     <string name="txn_detail_back">Zurück</string>
     <string name="txn_detail_action_cancel">Abbrechen</string>
@@ -69,7 +68,6 @@
     <string name="txn_detail_more_actions">Weitere Aktionen</string>
     <string name="txn_detail_menu_add_to_group">Zur Gruppe hinzufügen</string>
     <string name="txn_detail_menu_duplicate">Duplizieren</string>
-    <string name="txn_detail_menu_report_issue">Problem melden</string>
     <string name="txn_detail_delete_title">Transaktion löschen</string>
     <string name="txn_detail_delete_message">Sind Sie sicher, dass Sie diese Transaktion löschen möchten? Diese Aktion kann nicht rückgängig gemacht werden.</string>
     <string name="txn_detail_unmark_loan_title">Als Darlehen aufheben?</string>
@@ -79,7 +77,6 @@
     <!-- %1$s = person name, %2$s = formatted amount -->
     <!-- %1$s = person name, %2$s = formatted amount -->
     <string name="txn_detail_unmark_loan">Als Darlehen aufheben</string>
-    <string name="txn_detail_mark_as_loan">Als Darlehen markieren</string>
     <string name="txn_detail_loan_lent_to">Verspätet auf %1$s</string>
     <string name="txn_detail_loan_borrowed_from">Geliehen von %1$s</string>
     <!-- A repayment row on a loan. %1$s = person name -->
@@ -91,14 +88,11 @@
     <string name="txn_detail_close">Schließen</string>
     <string name="txn_detail_exclude_analytics_title">Von der Analyse ausschließen</string>
     <string name="txn_detail_exclude_analytics_subtitle">Kept im Verlauf &amp; -Guthaben, ignoriert in Ausgabestatistiken</string>
-    <string name="txn_detail_label_date_time">Datum &amp; Zeit</string>
     <plurals name="txn_detail_split_categories">
         <item quantity="one">Teilen (%1$d Kategorie)</item>
         <item quantity="other">Aufteilen (%1$d Kategorien)</item>
     </plurals>
     <string name="txn_detail_label_category">Kategorie</string>
-    <string name="txn_detail_label_bank">Bank</string>
-    <string name="txn_detail_label_description">Beschreibung</string>
     <plurals name="txn_detail_label_tags">
         <item quantity="one">Markierung</item>
         <item quantity="other">Tags</item>
@@ -175,16 +169,12 @@
     <string name="txn_detail_group_create">Anlegen</string>
     <string name="txn_detail_group_create_new">Neue Gruppe erstellen</string>
     <!-- Transaction totals card -->
-    <string name="txn_totals_income">Einkommen</string>
-    <string name="txn_totals_expense">Kosten</string>
-    <string name="txn_totals_expenses">Ausgaben</string>
     <string name="txn_totals_credit">Gutschrift</string>
     <string name="txn_totals_transfer">Überweisung</string>
     <string name="txn_totals_invest">Investition</string>
     <string name="txn_totals_net">Netz</string>
     <string name="txn_totals_select_currency">Währung auswählen</string>
     <!-- Transactions list -->
-    <string name="txn_list_title">Zeitleiste</string>
     <string name="txn_list_back">Zurück</string>
     <string name="txn_list_deleted">Transaktion gelöscht</string>
     <string name="txn_list_undo">Rückgängig</string>
@@ -211,7 +201,6 @@
     <string name="txn_list_group_name">Gruppenname</string>
     <string name="txn_list_group_create">Anlegen</string>
     <string name="txn_list_group_create_new">Neue Gruppe erstellen</string>
-    <string name="txn_list_more_options">Weitere Optionen</string>
     <string name="txn_list_clear_filters">Filter löschen</string>
     <string name="txn_list_all_categories">Alle Kategorien</string>
     <string name="txn_list_all_profiles">Alle Profile</string>
@@ -229,7 +218,6 @@
     </plurals>
     <string name="txn_list_search">Suchen</string>
     <string name="txn_list_search_in_category">Suche in %1$s...</string>
-    <string name="txn_list_search_placeholder">Transaktionen durchsuchen...</string>
     <string name="txn_list_clear_search">Suche löschen</string>
     <string name="txn_list_empty_no_results">Keine Ergebnisse für \"%1$s\"</string>
     <string name="txn_list_empty_period">Nichts für %1$s</string>
@@ -262,14 +250,12 @@
     <string name="add_field_notes">Notizen (optional)</string>
     <string name="add_field_reference">Referenznummer (optional)</string>
     <string name="add_field_category">Kategorie</string>
-    <string name="add_clear">Leeren</string>
     <string name="add_save">Speichern</string>
     <string name="add_ok">Ok</string>
     <string name="add_cancel">Abbrechen</string>
     <string name="add_select_time">Zeit auswählen</string>
     <string name="add_txn_from_account">Von Konto</string>
     <string name="add_txn_to_account">An Konto</string>
-    <string name="add_txn_select_account">Konto auswählen</string>
     <string name="add_txn_no_account">Kein Konto (Manuelle Eintragung)</string>
     <string name="add_txn_no_account_hint">Beeinflusst nicht den Kontostand</string>
     <string name="add_receipt">Quittung (optional)</string>
@@ -301,7 +287,6 @@
     <string name="add_error_amount_required">Betrag ist erforderlich</string>
     <string name="add_error_amount_invalid">Ungültiger Betrag</string>
     <string name="add_error_amount_positive">Betrag muss größer als 0 sein</string>
-    <string name="add_error_merchant_required">Händler/Beschreibung ist erforderlich</string>
     <string name="add_error_merchant_too_short">Zu kurz</string>
     <string name="add_error_category_required">Kategorie ist erforderlich</string>
     <!-- Transaction groups -->
@@ -390,15 +375,10 @@
     <string name="quick_category_progress">%1$d von %2$d</string>
     <string name="quick_category_save_failed">Speichern fehlgeschlagen. Bitte erneut versuchen.</string>
     <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
-    <string name="quick_add_title">Barausgabe</string>
     <string name="quick_add_more_details">Weitere Details</string>
     <string name="quick_add_where_hint">Wo? (optional)</string>
-    <!-- %1$s the cash account the spend comes out of -->
-    <string name="quick_add_from">Von: %1$s</string>
     <!-- %1$s amount with currency, %2$s category -->
     <string name="quick_add_saved">Gespeichert: %1$s · %2$s</string>
-    <!-- The sheet filled from the voice mic (Home, the cash widget) -->
-    <!-- Clears a day said out loud ("yesterday") back to today -->
     <!-- Amount sums: the operator row above the keyboard while an amount field has focus -->
     <!-- The sum is unfinished or doesn't make sense yet, e.g. "12+" or "1..2" -->
     <string name="date_range_title">Datumsbereich auswählen</string>

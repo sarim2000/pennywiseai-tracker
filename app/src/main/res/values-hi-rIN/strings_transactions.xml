@@ -56,7 +56,6 @@
     <string name="txn_type_investment">निवेश</string>
     <!-- Transaction detail -->
     <string name="txn_detail_updated">लेन-देन सफलतापूर्वक अपडेट किया गया</string>
-    <string name="txn_detail_title">लेन-देन विवरण</string>
     <string name="txn_detail_title_edit">लेन-देन संपादित करें</string>
     <string name="txn_detail_back">वापस</string>
     <string name="txn_detail_action_cancel">रद्द करें</string>
@@ -68,7 +67,6 @@
     <string name="txn_detail_more_actions">और विकल्प</string>
     <string name="txn_detail_menu_add_to_group">ग्रुप में जोड़ें</string>
     <string name="txn_detail_menu_duplicate">कॉपी बनाएँ</string>
-    <string name="txn_detail_menu_report_issue">समस्या बताएँ</string>
     <string name="txn_detail_delete_title">लेन-देन हटा दें</string>
     <string name="txn_detail_delete_message">क्या आप वाकई इस लेन-देन को हटाना चाहते हैं? इस क्रिया को पूर्ववत नहीं किया जा सकता।</string>
     <string name="txn_detail_unmark_loan_title">ऋण के रूप में चिह्न हटाएँ?</string>
@@ -78,7 +76,6 @@
     <!-- %1$s = person name, %2$s = formatted amount -->
     <!-- %1$s = person name, %2$s = formatted amount -->
     <string name="txn_detail_unmark_loan">ऋण के रूप में चिह्न हटाएँ</string>
-    <string name="txn_detail_mark_as_loan">ऋण के रूप में चिह्नित करें</string>
     <string name="txn_detail_loan_lent_to">%1$s को उधार दिया</string>
     <string name="txn_detail_loan_borrowed_from">%1$s से उधार लिया</string>
     <!-- A repayment row on a loan. %1$s = person name -->
@@ -90,14 +87,11 @@
     <string name="txn_detail_close">बंद करें</string>
     <string name="txn_detail_exclude_analytics_title">विश्लेषण से बाहर रखें</string>
     <string name="txn_detail_exclude_analytics_subtitle">हिस्ट्री और बाकी राशि में रहेगा, खर्च के आँकड़ों में नहीं गिना जाएगा</string>
-    <string name="txn_detail_label_date_time">तारीख और समय</string>
     <plurals name="txn_detail_split_categories">
         <item quantity="one">बँटवारा (%1$d श्रेणी)</item>
         <item quantity="other">बँटवारा (%1$d श्रेणियाँ)</item>
     </plurals>
     <string name="txn_detail_label_category">श्रेणी</string>
-    <string name="txn_detail_label_bank">बैंक</string>
-    <string name="txn_detail_label_description">विवरण</string>
     <plurals name="txn_detail_label_tags">
         <item quantity="one">टैग</item>
         <item quantity="other">टैग</item>
@@ -174,16 +168,12 @@
     <string name="txn_detail_group_create">बनाएँ</string>
     <string name="txn_detail_group_create_new">नया ग्रुप बनाएँ</string>
     <!-- Transaction totals card -->
-    <string name="txn_totals_income">आय</string>
-    <string name="txn_totals_expense">व्यय</string>
-    <string name="txn_totals_expenses">खर्च</string>
     <string name="txn_totals_credit">क्रेडिट</string>
     <string name="txn_totals_transfer">स्थानांतरण</string>
     <string name="txn_totals_invest">निवेश</string>
     <string name="txn_totals_net">शुद्ध</string>
     <string name="txn_totals_select_currency">मुद्रा चुनें</string>
     <!-- Transactions list -->
-    <string name="txn_list_title">टाइमलाइन</string>
     <string name="txn_list_back">वापस</string>
     <string name="txn_list_deleted">लेन-देन हटाया गया</string>
     <string name="txn_list_undo">पूर्ववत करें</string>
@@ -210,7 +200,6 @@
     <string name="txn_list_group_name">ग्रुप का नाम</string>
     <string name="txn_list_group_create">बनाएँ</string>
     <string name="txn_list_group_create_new">नया ग्रुप बनाएँ</string>
-    <string name="txn_list_more_options">अधिक विकल्प</string>
     <string name="txn_list_clear_filters">फ़िल्टर हटाएँ</string>
     <string name="txn_list_all_categories">सभी श्रेणियाँ</string>
     <string name="txn_list_all_profiles">सभी प्रोफ़ाइल</string>
@@ -228,7 +217,6 @@
     </plurals>
     <string name="txn_list_search">खोजें</string>
     <string name="txn_list_search_in_category">%1$s में खोजें...</string>
-    <string name="txn_list_search_placeholder">लेन-देन खोजें...</string>
     <string name="txn_list_clear_search">खोज साफ़ करें</string>
     <string name="txn_list_empty_no_results">\"%1$s\" के लिए कुछ नहीं मिला</string>
     <string name="txn_list_empty_period">%1$s में कुछ नहीं</string>
@@ -261,14 +249,12 @@
     <string name="add_field_notes">नोट्स (वैकल्पिक)</string>
     <string name="add_field_reference">रेफ़रेंस नंबर (वैकल्पिक)</string>
     <string name="add_field_category">श्रेणी</string>
-    <string name="add_clear">साफ करें</string>
     <string name="add_save">सहेजें</string>
     <string name="add_ok">ठीक है</string>
     <string name="add_cancel">रद्द करें</string>
     <string name="add_select_time">समय चुनें</string>
     <string name="add_txn_from_account">किस खाते से</string>
     <string name="add_txn_to_account">किस खाते में</string>
-    <string name="add_txn_select_account">खाता चुनें</string>
     <string name="add_txn_no_account">कोई खाता नहीं (खुद से एंट्री)</string>
     <string name="add_txn_no_account_hint">खाते की बाकी राशि पर असर नहीं पड़ेगा</string>
     <string name="add_receipt">रसीद (वैकल्पिक)</string>
@@ -300,7 +286,6 @@
     <string name="add_error_amount_required">राशि आवश्यक है</string>
     <string name="add_error_amount_invalid">अमान्य राशि</string>
     <string name="add_error_amount_positive">राशि 0 से अधिक होनी चाहिए</string>
-    <string name="add_error_merchant_required">व्यापारी/विवरण आवश्यक है</string>
     <string name="add_error_merchant_too_short">बहुत छोटा</string>
     <string name="add_error_category_required">श्रेणी आवश्यक है</string>
     <!-- Transaction groups -->
@@ -389,15 +374,10 @@
     <string name="quick_category_progress">%2$d में से %1$d</string>
     <string name="quick_category_save_failed">सेव नहीं हो सका। फिर से कोशिश करें।</string>
     <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
-    <string name="quick_add_title">कैश खर्च</string>
     <string name="quick_add_more_details">और जानकारी</string>
     <string name="quick_add_where_hint">कहाँ? (वैकल्पिक)</string>
-    <!-- %1$s the cash account the spend comes out of -->
-    <string name="quick_add_from">से: %1$s</string>
     <!-- %1$s amount with currency, %2$s category -->
     <string name="quick_add_saved">सेव हुआ %1$s · %2$s</string>
-    <!-- The sheet filled from the voice mic (Home, the cash widget) -->
-    <!-- Clears a day said out loud ("yesterday") back to today -->
     <!-- Amount sums: the operator row above the keyboard while an amount field has focus -->
     <!-- The sum is unfinished or doesn't make sense yet, e.g. "12+" or "1..2" -->
     <string name="date_range_title">तारीख सीमा चुनें</string>

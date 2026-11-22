@@ -54,7 +54,6 @@
     <string name="txn_type_investment">การลงทุน</string>
     <!-- Transaction detail -->
     <string name="txn_detail_updated">อัปเดตธุรกรรมสำเร็จแล้ว</string>
-    <string name="txn_detail_title">รายละเอียดธุรกรรม</string>
     <string name="txn_detail_title_edit">แก้ไขธุรกรรม</string>
     <string name="txn_detail_back">กลับ</string>
     <string name="txn_detail_action_cancel">ยกเลิก</string>
@@ -66,7 +65,6 @@
     <string name="txn_detail_more_actions">การทำงานเพิ่มเติม</string>
     <string name="txn_detail_menu_add_to_group">เพิ่มลงกลุ่ม</string>
     <string name="txn_detail_menu_duplicate">ทำซ้ำ</string>
-    <string name="txn_detail_menu_report_issue">รายงานปัญหา</string>
     <string name="txn_detail_delete_title">ลบรายการธุรกรรม</string>
     <string name="txn_detail_delete_message">คุณแน่ใจหรือว่าต้องการลบรายการธุรกรรมนี้? การกระทำนี้ไม่สามารถย้อนกลับได้</string>
     <string name="txn_detail_unmark_loan_title">ยกเลิกการทำเครื่องหมายเป็นเงินกู้?</string>
@@ -76,7 +74,6 @@
     <!-- %1$s = person name, %2$s = formatted amount -->
     <!-- %1$s = person name, %2$s = formatted amount -->
     <string name="txn_detail_unmark_loan">ยกเลิกการทำเครื่องหมายเป็นเงินกู้</string>
-    <string name="txn_detail_mark_as_loan">ทำเครื่องหมายเป็นเงินกู้</string>
     <string name="txn_detail_loan_lent_to">ให้ %1$s ยืม</string>
     <string name="txn_detail_loan_borrowed_from">ยืมจาก %1$s</string>
     <!-- A repayment row on a loan. %1$s = person name -->
@@ -88,13 +85,10 @@
     <string name="txn_detail_close">ปิด</string>
     <string name="txn_detail_exclude_analytics_title">ไม่รวมในการวิเคราะห์</string>
     <string name="txn_detail_exclude_analytics_subtitle">ยังอยู่ในประวัติและยอดคงเหลือ แต่ไม่นับในสถิติการใช้จ่าย</string>
-    <string name="txn_detail_label_date_time">วันที่และเวลา</string>
     <plurals name="txn_detail_split_categories">
         <item quantity="other">แบ่ง (%1$d หมวดหมู่)</item>
     </plurals>
     <string name="txn_detail_label_category">หมวดหมู่</string>
-    <string name="txn_detail_label_bank">ธนาคาร</string>
-    <string name="txn_detail_label_description">คำอธิบาย</string>
     <plurals name="txn_detail_label_tags">
         <item quantity="other">แท็ก</item>
     </plurals>
@@ -169,16 +163,12 @@
     <string name="txn_detail_group_create">สร้าง</string>
     <string name="txn_detail_group_create_new">สร้างกลุ่มใหม่</string>
     <!-- Transaction totals card -->
-    <string name="txn_totals_income">รายได้</string>
-    <string name="txn_totals_expense">ค่าใช้จ่าย</string>
-    <string name="txn_totals_expenses">ค่าใช้จ่าย</string>
     <string name="txn_totals_credit">เครดิต</string>
     <string name="txn_totals_transfer">โอน</string>
     <string name="txn_totals_invest">ลงทุน</string>
     <string name="txn_totals_net">สุทธิ</string>
     <string name="txn_totals_select_currency">เลือกสกุลเงิน</string>
     <!-- Transactions list -->
-    <string name="txn_list_title">ไทม์ไลน์</string>
     <string name="txn_list_back">กลับ</string>
     <string name="txn_list_deleted">ธุรกรรมถูกลบ</string>
     <string name="txn_list_undo">เลิกทำ</string>
@@ -205,7 +195,6 @@
     <string name="txn_list_group_name">ชื่อกลุ่ม</string>
     <string name="txn_list_group_create">สร้าง</string>
     <string name="txn_list_group_create_new">สร้างกลุ่มใหม่</string>
-    <string name="txn_list_more_options">ตัวเลือกเพิ่มเติม</string>
     <string name="txn_list_clear_filters">ล้างตัวกรอง</string>
     <string name="txn_list_all_categories">ทุกหมวดหมู่</string>
     <string name="txn_list_all_profiles">ทุกโปรไฟล์</string>
@@ -222,7 +211,6 @@
     </plurals>
     <string name="txn_list_search">ค้นหา</string>
     <string name="txn_list_search_in_category">ค้นหาใน %1$s...</string>
-    <string name="txn_list_search_placeholder">ค้นหาธุรกรรม...</string>
     <string name="txn_list_clear_search">ล้างการค้นหา</string>
     <string name="txn_list_empty_no_results">ไม่พบผลลัพธ์สำหรับ \"%1$s\"</string>
     <string name="txn_list_empty_period">ไม่มีรายการใน %1$s</string>
@@ -252,14 +240,12 @@
     <string name="add_field_notes">หมายเหตุ (ไม่บังคับ)</string>
     <string name="add_field_reference">เลขอ้างอิง (ไม่บังคับ)</string>
     <string name="add_field_category">หมวดหมู่</string>
-    <string name="add_clear">ล้าง</string>
     <string name="add_save">บันทึก</string>
     <string name="add_ok">ตกลง</string>
     <string name="add_cancel">ยกเลิก</string>
     <string name="add_select_time">เลือกเวลา</string>
     <string name="add_txn_from_account">จากบัญชี</string>
     <string name="add_txn_to_account">ไปยังบัญชี</string>
-    <string name="add_txn_select_account">เลือกบัญชี</string>
     <string name="add_txn_no_account">ไม่ระบุบัญชี (บันทึกเอง)</string>
     <string name="add_txn_no_account_hint">ไม่มีผลกับยอดคงเหลือของบัญชี</string>
     <string name="add_receipt">ใบเสร็จ (ไม่บังคับ)</string>
@@ -291,7 +277,6 @@
     <string name="add_error_amount_required">จำเป็นต้องระบุจำนวน</string>
     <string name="add_error_amount_invalid">จำนวนไม่ถูกต้อง</string>
     <string name="add_error_amount_positive">จำนวนต้องมากกว่า 0</string>
-    <string name="add_error_merchant_required">จำเป็นต้องระบุร้านค้าหรือคำอธิบาย</string>
     <string name="add_error_merchant_too_short">สั้นเกินไป</string>
     <string name="add_error_category_required">จำเป็นต้องระบุหมวดหมู่</string>
     <!-- Transaction groups -->
@@ -379,15 +364,10 @@
     <string name="quick_category_progress">%1$d จาก %2$d</string>
     <string name="quick_category_save_failed">บันทึกไม่สำเร็จ ลองอีกครั้ง</string>
     <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
-    <string name="quick_add_title">จ่ายเงินสด</string>
     <string name="quick_add_more_details">รายละเอียดเพิ่มเติม</string>
     <string name="quick_add_where_hint">ที่ไหน? (ไม่บังคับ)</string>
-    <!-- %1$s the cash account the spend comes out of -->
-    <string name="quick_add_from">จาก: %1$s</string>
     <!-- %1$s amount with currency, %2$s category -->
     <string name="quick_add_saved">บันทึก %1$s · %2$s แล้ว</string>
-    <!-- The sheet filled from the voice mic (Home, the cash widget) -->
-    <!-- Clears a day said out loud ("yesterday") back to today -->
     <!-- Amount sums: the operator row above the keyboard while an amount field has focus -->
     <!-- The sum is unfinished or doesn't make sense yet, e.g. "12+" or "1..2" -->
     <string name="date_range_title">เลือกช่วงวันที่</string>

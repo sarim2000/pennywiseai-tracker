@@ -9688,17 +9688,6 @@
     </issue>
 
     <issue
-        id="UnusedResources"
-        message="The resource `R.string.txn_totals_expense` appears to be unused"
-        errorLine1="    &lt;string name=&quot;txn_totals_expense&quot;>Expense&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings_transactions.xml"
-            line="177"
-            column="13"/>
-    </issue>
-
-    <issue
         id="UsableSpace"
         message="Consider also using `StorageManager#getAllocatableBytes` and `allocateBytes` which will consider clearable cached data"
         errorLine1="        return dir.usableSpace >= Constants.ModelDownload.REQUIRED_SPACE_BYTES - part.length()"
@@ -12814,33 +12803,11 @@
     <issue
         id="TypographyEllipsis"
         message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;txn_list_search_placeholder&quot;>ค้นหาธุรกรรม...&lt;/string>"
-        errorLine2="                                               ~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-th-rTH/strings_transactions.xml"
-            line="220"
-            column="48"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
         errorLine1="    &lt;string name=&quot;txn_list_search_in_category&quot;>Buscar en %1$s...&lt;/string>"
         errorLine2="                                               ~~~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-es/strings_transactions.xml"
             line="224"
-            column="48"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;txn_list_search_placeholder&quot;>Buscar transacciones...&lt;/string>"
-        errorLine2="                                               ~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-es/strings_transactions.xml"
-            line="225"
             column="48"/>
     </issue>
 
@@ -12902,39 +12869,6 @@
     <issue
         id="TypographyEllipsis"
         message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;txn_list_search_placeholder&quot;>Rechercher des transactions...&lt;/string>"
-        errorLine2="                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-fr-rFR/strings_transactions.xml"
-            line="226"
-            column="48"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;txn_list_search_placeholder&quot;>लेन-देन खोजें...&lt;/string>"
-        errorLine2="                                               ~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-hi-rIN/strings_transactions.xml"
-            line="226"
-            column="48"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;txn_list_search_placeholder&quot;>लेनदेन खोज्नुहोस्...&lt;/string>"
-        errorLine2="                                               ~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-ne-rNP/strings_transactions.xml"
-            line="226"
-            column="48"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
         errorLine1="    &lt;string name=&quot;txn_list_search_in_category&quot;>Buscar em %1$s...&lt;/string>"
         errorLine2="                                               ~~~~~~~~~~~~~~~~~">
         <location
@@ -12951,50 +12885,6 @@
         <location
             file="src/main/res/values-pt-rPT/strings_transactions.xml"
             line="226"
-            column="48"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;txn_list_search_placeholder&quot;>Tafuta miamala...&lt;/string>"
-        errorLine2="                                               ~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-sw-rKE/strings_transactions.xml"
-            line="226"
-            column="48"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;txn_list_search_placeholder&quot;>Transaktionen durchsuchen...&lt;/string>"
-        errorLine2="                                               ~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-de-rDE/strings_transactions.xml"
-            line="227"
-            column="48"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;txn_list_search_placeholder&quot;>Pesquisar transações...&lt;/string>"
-        errorLine2="                                               ~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-pt-rBR/strings_transactions.xml"
-            line="227"
-            column="48"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;txn_list_search_placeholder&quot;>Pesquisar transações...&lt;/string>"
-        errorLine2="                                               ~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-pt-rPT/strings_transactions.xml"
-            line="227"
             column="48"/>
     </issue>
 
@@ -13012,33 +12902,11 @@
     <issue
         id="TypographyEllipsis"
         message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;txn_list_search_placeholder&quot;>Search transactions...&lt;/string>"
-        errorLine2="                                               ~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings_transactions.xml"
-            line="233"
-            column="48"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
         errorLine1="    &lt;string name=&quot;txn_list_search_in_category&quot;>Пошук у %1$s...&lt;/string>"
         errorLine2="                                               ~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-be-rBY/strings_transactions.xml"
             line="236"
-            column="48"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;txn_list_search_placeholder&quot;>Пошук транзакцый...&lt;/string>"
-        errorLine2="                                               ~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-be-rBY/strings_transactions.xml"
-            line="237"
             column="48"/>
     </issue>
 
@@ -13067,44 +12935,11 @@
     <issue
         id="TypographyEllipsis"
         message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;txn_list_search_placeholder&quot;>Hledat transakce...&lt;/string>"
-        errorLine2="                                               ~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-cs-rCZ/strings_transactions.xml"
-            line="239"
-            column="48"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;txn_list_search_placeholder&quot;>Поиск транзакций...&lt;/string>"
-        errorLine2="                                               ~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-ru-rRU/strings_transactions.xml"
-            line="239"
-            column="48"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
         errorLine1="    &lt;string name=&quot;txn_list_search_in_category&quot;>ابحث في %1$s...&lt;/string>"
         errorLine2="                                               ~~~~~~~~~~~~~~~">
         <location
             file="src/main/res/values-ar-rSA/strings_transactions.xml"
             line="250"
-            column="48"/>
-    </issue>
-
-    <issue
-        id="TypographyEllipsis"
-        message="Replace &quot;...&quot; with ellipsis character (…, &amp;#8230;) ?"
-        errorLine1="    &lt;string name=&quot;txn_list_search_placeholder&quot;>البحث في المعاملات...&lt;/string>"
-        errorLine2="                                               ~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values-ar-rSA/strings_transactions.xml"
-            line="251"
             column="48"/>
     </issue>
 

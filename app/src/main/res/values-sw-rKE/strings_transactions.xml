@@ -56,7 +56,6 @@
     <string name="txn_type_investment">Uwekezaji</string>
     <!-- Transaction detail -->
     <string name="txn_detail_updated">Muamala umesasishwa</string>
-    <string name="txn_detail_title">Maelezo ya Muamala</string>
     <string name="txn_detail_title_edit">Hariri Muamala</string>
     <string name="txn_detail_back">Rudi</string>
     <string name="txn_detail_action_cancel">Ghairi</string>
@@ -68,7 +67,6 @@
     <string name="txn_detail_more_actions">Vitendo zaidi</string>
     <string name="txn_detail_menu_add_to_group">Ongeza kwenye kikundi</string>
     <string name="txn_detail_menu_duplicate">Nakili</string>
-    <string name="txn_detail_menu_report_issue">Ripoti tatizo</string>
     <string name="txn_detail_delete_title">Futa Muamala</string>
     <string name="txn_detail_delete_message">Una uhakika unataka kufuta muamala huu? Hatua hii haiwezi kutenduliwa.</string>
     <string name="txn_detail_unmark_loan_title">Ondoa alama ya mkopo?</string>
@@ -78,7 +76,6 @@
     <!-- %1$s = person name, %2$s = formatted amount -->
     <!-- %1$s = person name, %2$s = formatted amount -->
     <string name="txn_detail_unmark_loan">Ondoa alama ya mkopo</string>
-    <string name="txn_detail_mark_as_loan">Weka alama kama mkopo</string>
     <string name="txn_detail_loan_lent_to">Umemkopesha %1$s</string>
     <string name="txn_detail_loan_borrowed_from">Umekopa kwa %1$s</string>
     <!-- A repayment row on a loan. %1$s = person name -->
@@ -90,14 +87,11 @@
     <string name="txn_detail_close">Funga</string>
     <string name="txn_detail_exclude_analytics_title">Usijumuishe kwenye takwimu</string>
     <string name="txn_detail_exclude_analytics_subtitle">Inabaki kwenye historia &amp; salio, haihesabiwi kwenye takwimu za matumizi</string>
-    <string name="txn_detail_label_date_time">Tarehe &amp; Saa</string>
     <plurals name="txn_detail_split_categories">
         <item quantity="one">Imegawanywa (kategoria %1$d)</item>
         <item quantity="other">Imegawanywa (kategoria %1$d)</item>
     </plurals>
     <string name="txn_detail_label_category">Kategoria</string>
-    <string name="txn_detail_label_bank">Benki</string>
-    <string name="txn_detail_label_description">Maelezo</string>
     <plurals name="txn_detail_label_tags">
         <item quantity="one">Lebo</item>
         <item quantity="other">Lebo</item>
@@ -174,16 +168,12 @@
     <string name="txn_detail_group_create">Unda</string>
     <string name="txn_detail_group_create_new">Unda kikundi kipya</string>
     <!-- Transaction totals card -->
-    <string name="txn_totals_income">Mapato</string>
-    <string name="txn_totals_expense">Matumizi</string>
-    <string name="txn_totals_expenses">Matumizi</string>
     <string name="txn_totals_credit">Mkopo</string>
     <string name="txn_totals_transfer">Uhamisho</string>
     <string name="txn_totals_invest">Uwekezaji</string>
     <string name="txn_totals_net">Halisi</string>
     <string name="txn_totals_select_currency">Chagua sarafu</string>
     <!-- Transactions list -->
-    <string name="txn_list_title">Miamala</string>
     <string name="txn_list_back">Rudi</string>
     <string name="txn_list_deleted">Muamala umefutwa</string>
     <string name="txn_list_undo">Tendua</string>
@@ -210,7 +200,6 @@
     <string name="txn_list_group_name">Jina la kikundi</string>
     <string name="txn_list_group_create">Unda</string>
     <string name="txn_list_group_create_new">Unda kikundi kipya</string>
-    <string name="txn_list_more_options">Chaguo zaidi</string>
     <string name="txn_list_clear_filters">Futa vichujio</string>
     <string name="txn_list_all_categories">Kategoria zote</string>
     <string name="txn_list_all_profiles">Wasifu wote</string>
@@ -228,7 +217,6 @@
     </plurals>
     <string name="txn_list_search">Tafuta</string>
     <string name="txn_list_search_in_category">Tafuta ndani ya %1$s...</string>
-    <string name="txn_list_search_placeholder">Tafuta miamala...</string>
     <string name="txn_list_clear_search">Futa utafutaji</string>
     <string name="txn_list_empty_no_results">Hakuna matokeo ya \"%1$s\"</string>
     <string name="txn_list_empty_period">Hakuna kitu kwa %1$s</string>
@@ -261,14 +249,12 @@
     <string name="add_field_notes">Maelezo (Si lazima)</string>
     <string name="add_field_reference">Namba ya kumbukumbu (Si lazima)</string>
     <string name="add_field_category">Kategoria</string>
-    <string name="add_clear">Futa</string>
     <string name="add_save">Hifadhi</string>
     <string name="add_ok">Sawa</string>
     <string name="add_cancel">Ghairi</string>
     <string name="add_select_time">Chagua Saa</string>
     <string name="add_txn_from_account">Kutoka akaunti</string>
     <string name="add_txn_to_account">Kwenda akaunti</string>
-    <string name="add_txn_select_account">Chagua Akaunti</string>
     <string name="add_txn_no_account">Hakuna akaunti (Kuweka mwenyewe)</string>
     <string name="add_txn_no_account_hint">Haitaathiri salio la akaunti</string>
     <string name="add_receipt">Risiti (Si lazima)</string>
@@ -300,7 +286,6 @@
     <string name="add_error_amount_required">Kiasi kinahitajika</string>
     <string name="add_error_amount_invalid">Kiasi si sahihi</string>
     <string name="add_error_amount_positive">Kiasi lazima kiwe zaidi ya 0</string>
-    <string name="add_error_merchant_required">Muuzaji/Maelezo yanahitajika</string>
     <string name="add_error_merchant_too_short">Fupi mno</string>
     <string name="add_error_category_required">Kategoria inahitajika</string>
     <!-- Transaction groups -->
@@ -389,15 +374,10 @@
     <string name="quick_category_progress">%1$d kati ya %2$d</string>
     <string name="quick_category_save_failed">Imeshindwa kuhifadhi. Jaribu tena.</string>
     <!-- Quick cash add sheet (the widgets' + and the evening recap) -->
-    <string name="quick_add_title">Matumizi ya pesa taslimu</string>
     <string name="quick_add_more_details">Maelezo zaidi</string>
     <string name="quick_add_where_hint">Wapi? (si lazima)</string>
-    <!-- %1$s the cash account the spend comes out of -->
-    <string name="quick_add_from">Kutoka: %1$s</string>
     <!-- %1$s amount with currency, %2$s category -->
     <string name="quick_add_saved">Imehifadhiwa %1$s · %2$s</string>
-    <!-- The sheet filled from the voice mic (Home, the cash widget) -->
-    <!-- Clears a day said out loud ("yesterday") back to today -->
     <!-- Amount sums: the operator row above the keyboard while an amount field has focus -->
     <!-- The sum is unfinished or doesn't make sense yet, e.g. "12+" or "1..2" -->
     <string name="date_range_title">Chagua Kipindi</string>

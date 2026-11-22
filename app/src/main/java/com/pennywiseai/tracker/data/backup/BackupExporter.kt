@@ -126,10 +126,9 @@ class BackupExporter @Inject constructor(
 
         // Calculate statistics
         val dateRange = if (transactions.isNotEmpty()) {
-            val sorted = transactions.sortedBy { it.dateTime }
             DateRange(
-                earliest = sorted.first().dateTime.toString(),
-                latest = sorted.last().dateTime.toString()
+                earliest = transactions.minOf { it.dateTime }.toString(),
+                latest = transactions.maxOf { it.dateTime }.toString()
             )
         } else null
 

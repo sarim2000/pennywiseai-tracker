@@ -284,12 +284,7 @@ class SettingsViewModel @Inject constructor(
                         _downloadedMB.value = _totalMB.value
                     }
                     // Cancelled elsewhere (e.g. from Chat) while this screen was alive.
-                    m == ModelState.NOT_DOWNLOADED && _downloadState.value == DownloadState.DOWNLOADING -> {
-                        _downloadState.value = DownloadState.NOT_DOWNLOADED
-                        _downloadProgress.value = 0
-                        _downloadedMB.value = 0
-                        _totalMB.value = 0
-                    }
+                    m == ModelState.NOT_DOWNLOADED && _downloadState.value == DownloadState.DOWNLOADING -> resetDownload()
                 }
             }
         }
@@ -316,7 +311,7 @@ class SettingsViewModel @Inject constructor(
         // a deleted (hash-invalid) model shows NOT_DOWNLOADED rather than a stale COMPLETED.
         if (modelRepository.isModelDownloaded()) {
             _downloadState.value = DownloadState.COMPLETED
-            _totalMB.value = modelFile.length() / (1024 * 1024)
+            _totalMB.value = modelFile.length() / BYTES_PER_MB
             _downloadedMB.value = _totalMB.value
             _downloadProgress.value = 100
         } else {
@@ -329,6 +324,10 @@ class SettingsViewModel @Inject constructor(
 
     fun cancelDownload() {
         modelDownloader.cancel()
+        resetDownload()
+    }
+
+    private fun resetDownload() {
         _downloadState.value = DownloadState.NOT_DOWNLOADED
         _downloadProgress.value = 0
         _downloadedMB.value = 0
@@ -340,10 +339,7 @@ class SettingsViewModel @Inject constructor(
             val modelFile = File(context.getExternalFilesDir(Environment.DIRECTORY_DOWNLOADS), Constants.ModelDownload.MODEL_FILE_NAME)
             if (modelFile.exists()) {
                 modelFile.delete()
-                _downloadState.value = DownloadState.NOT_DOWNLOADED
-                _downloadProgress.value = 0
-                _downloadedMB.value = 0
-                _totalMB.value = 0
+                resetDownload()
                 // Clear any saved download ID
                 userPreferencesRepository.clearActiveDownloadId()
                 // Update model repository state

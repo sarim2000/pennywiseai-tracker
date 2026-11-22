@@ -195,11 +195,7 @@ class RecentTransactionsWidgetUpdateWorker @AssistedInject constructor(
                 .map { tx ->
                     // If a foreign txn has no rate, show it in its native currency
                     // rather than mislabeling a face value as targetCurrency (#670).
-                    val converted = if (!tx.currency.equals(targetCurrency, ignoreCase = true)) {
-                        currencyConversionService.convertAmountOrNull(tx.amount, tx.currency, targetCurrency)
-                    } else {
-                        tx.amount
-                    }
+                    val converted = inTarget(tx)
                     val amount = converted ?: tx.amount
                     val itemCurrency = if (converted != null) targetCurrency else tx.currency
                     val title = tx.merchantName.takeIf { it.isNotBlank() }

@@ -164,7 +164,8 @@ internal fun Modifier.sweepIn(): Modifier {
     var played by rememberSaveable { mutableStateOf(!animate) }
     val sweep = remember { Animatable(if (played) 1f else 0f) }
     val wedge = remember { Path() }
-    val spec = MaterialTheme.motionScheme.defaultEffectsSpec<Float>()
+    // Slow: the sweep plays under the list->chart fade, and a faster one is over before it reads.
+    val spec = MaterialTheme.motionScheme.slowEffectsSpec<Float>()
     LaunchedEffect(Unit) {
         sweep.animateTo(1f, spec)
         played = true

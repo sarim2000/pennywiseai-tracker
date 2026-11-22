@@ -95,7 +95,10 @@ class BackupMomentsTest {
         )
     }
 
-    /** saveBackupToFile copies on Dispatchers.IO, which the test Main dispatcher doesn't run: wait for its message. */
+    /**
+     * saveBackupToFile copies on Dispatchers.IO, which the test Main dispatcher doesn't run:
+     * wait for its message, which it sets after announcing, and after failing.
+     */
     private fun awaitSaveResult() = runBlocking {
         withTimeout(5_000) { viewModel.importExportMessage.first { it != null } }
     }

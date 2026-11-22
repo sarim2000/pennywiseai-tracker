@@ -620,9 +620,10 @@ class SettingsViewModel @Inject constructor(
                         inputStream.copyTo(out)
                     }
                 }
+                // Announced before the message, so whoever sees "Backup saved" has the moment too.
+                mascotMoments.announce(MascotMoment.BackupSaved)
                 _importExportMessage.value = UiText.Res(R.string.settings_backup_saved)
                 _exportedBackupFile.value = null
-                mascotMoments.announce(MascotMoment.BackupSaved)
             } catch (e: Exception) {
                 // Drop the empty or half-written file so it isn't mistaken for a backup
                 // later. A file the user chose to replace keeps its old content if we never

@@ -28,7 +28,6 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.compositeOver
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.pluralStringResource
@@ -726,8 +725,7 @@ private fun CategoryDropdownChip(text: String, color: Color) {
     Surface(
         shape = CircleShape,
         color = fill,
-        // The wash lowers the colour's contrast with itself: check it over the row (GroupedRow's fill).
-        contentColor = color.readableOn(listOf(fill.compositeOver(MaterialTheme.colorScheme.surfaceContainerLow))),
+        contentColor = MaterialTheme.colorScheme.inkOnWash(color, Dimensions.Alpha.categoryTint),
         modifier = Modifier.heightIn(min = Dimensions.Component.chipHeight)
     ) {
         Row(

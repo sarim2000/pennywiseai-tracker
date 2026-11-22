@@ -19,7 +19,7 @@
     <string name="goals_archived">Kwenye kumbukumbu</string>
     <string name="goals_due_on">Mwisho %1$s</string>
     <string name="goals_ring_description">%1$d%% imewekwa akiba</string>
-    <!-- Goal card in the Plan tab. %1$s = target amount, %2$s = due date -->
+    <!-- Goal card in the Plan tab -->
     <!-- %1$s = amount -->
     <plurals name="goals_months_left">
         <item quantity="one">Umebaki mwezi %d</item>
@@ -49,9 +49,6 @@
     <string name="goal_action_ok">Sawa</string>
     <string name="goal_action_cancel">Ghairi</string>
     <!-- Detail -->
-    <string name="goal_detail_left">Kilichobaki</string>
-    <string name="goal_detail_per_month">Kwa mwezi</string>
-    <string name="goal_detail_over">Zaidi kwa %1$s</string>
     <string name="goal_detail_history">Pesa zilizoingia na kutoka</string>
     <string name="goal_detail_history_empty">Bado hujaongeza chochote. Tumia Ongeza pesa unapoweka kando.</string>
     <string name="goal_add_money">Ongeza pesa</string>

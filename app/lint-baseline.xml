@@ -8605,61 +8605,6 @@
 
     <issue
         id="MissingTranslation"
-        message="&quot;home_subscriptions_next_due&quot; is not translated in &quot;cs&quot; (Czech), &quot;ar&quot; (Arabic), &quot;de&quot; (German), &quot;hi&quot; (Hindi), &quot;be&quot; (Belarusian), &quot;ru&quot; (Russian), &quot;pt&quot; (Portuguese), &quot;sw&quot; (Swahili), &quot;th&quot; (Thai), &quot;ne&quot; (Nepali), &quot;fr&quot; (French), &quot;es&quot; (Spanish)"
-        errorLine1="    &lt;string name=&quot;home_subscriptions_next_due&quot;>Next: %1$s · %2$s&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings_subscription_totals.xml"
-            line="5"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="MissingTranslation"
-        message="&quot;home_subscriptions_due_today&quot; is not translated in &quot;cs&quot; (Czech), &quot;ar&quot; (Arabic), &quot;de&quot; (German), &quot;hi&quot; (Hindi), &quot;be&quot; (Belarusian), &quot;ru&quot; (Russian), &quot;pt&quot; (Portuguese), &quot;sw&quot; (Swahili), &quot;th&quot; (Thai), &quot;ne&quot; (Nepali), &quot;fr&quot; (French), &quot;es&quot; (Spanish)"
-        errorLine1="    &lt;string name=&quot;home_subscriptions_due_today&quot;>today&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings_subscription_totals.xml"
-            line="6"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="MissingTranslation"
-        message="&quot;home_subscriptions_due_tomorrow&quot; is not translated in &quot;cs&quot; (Czech), &quot;ar&quot; (Arabic), &quot;de&quot; (German), &quot;hi&quot; (Hindi), &quot;be&quot; (Belarusian), &quot;ru&quot; (Russian), &quot;pt&quot; (Portuguese), &quot;sw&quot; (Swahili), &quot;th&quot; (Thai), &quot;ne&quot; (Nepali), &quot;fr&quot; (French), &quot;es&quot; (Spanish)"
-        errorLine1="    &lt;string name=&quot;home_subscriptions_due_tomorrow&quot;>tomorrow&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings_subscription_totals.xml"
-            line="7"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="MissingTranslation"
-        message="&quot;home_subscriptions_due_overdue&quot; is not translated in &quot;cs&quot; (Czech), &quot;ar&quot; (Arabic), &quot;de&quot; (German), &quot;hi&quot; (Hindi), &quot;be&quot; (Belarusian), &quot;ru&quot; (Russian), &quot;pt&quot; (Portuguese), &quot;sw&quot; (Swahili), &quot;th&quot; (Thai), &quot;ne&quot; (Nepali), &quot;fr&quot; (French), &quot;es&quot; (Spanish)"
-        errorLine1="    &lt;string name=&quot;home_subscriptions_due_overdue&quot;>overdue&lt;/string>"
-        errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings_subscription_totals.xml"
-            line="8"
-            column="13"/>
-    </issue>
-
-    <issue
-        id="MissingTranslation"
-        message="&quot;home_subscriptions_due_in_days&quot; is not translated in &quot;cs&quot; (Czech), &quot;ar&quot; (Arabic), &quot;de&quot; (German), &quot;hi&quot; (Hindi), &quot;be&quot; (Belarusian), &quot;ru&quot; (Russian), &quot;pt&quot; (Portuguese), &quot;sw&quot; (Swahili), &quot;th&quot; (Thai), &quot;ne&quot; (Nepali), &quot;fr&quot; (French), &quot;es&quot; (Spanish)"
-        errorLine1="    &lt;plurals name=&quot;home_subscriptions_due_in_days&quot;>"
-        errorLine2="             ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">
-        <location
-            file="src/main/res/values/strings_subscription_totals.xml"
-            line="9"
-            column="14"/>
-    </issue>
-
-    <issue
-        id="MissingTranslation"
         message="&quot;txn_export_date_range_value&quot; is not translated in &quot;hi&quot; (Hindi), &quot;be&quot; (Belarusian), &quot;sw&quot; (Swahili), &quot;th&quot; (Thai), &quot;ne&quot; (Nepali), &quot;fr&quot; (French), &quot;es&quot; (Spanish)"
         errorLine1="    &lt;string name=&quot;txn_export_date_range_value&quot;>%1$s - %2$s&lt;/string>"
         errorLine2="            ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~">

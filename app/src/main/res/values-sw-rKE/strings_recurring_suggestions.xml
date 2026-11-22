@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Subscriptions screen: "Suggested" section listing payments that repeat in the user's history but aren't tracked yet -->
-    <string name="subscriptions_suggested_section">Mapendekezo</string>
-    <string name="subscriptions_suggested_hint">Malipo yanayojirudia katika historia yako. Hayahesabiwi hadi uyafuatilie.</string>
     <!-- %1$d: total number of suggestions -->
     <string name="subscriptions_suggested_show_all">Onyesha yote (%1$d)</string>
     <string name="subscriptions_suggested_show_less">Onyesha machache</string>
@@ -12,7 +10,6 @@
         <item quantity="other">Malipo %1$d</item>
     </plurals>
     <!-- Amount range of a bill whose amount changes. %1$s lowest amount, %2$s highest amount, both with currency -->
-    <string name="subscription_suggestion_varies">Kiasi hubadilika</string>
     <string name="subscription_suggestion_review">Kagua</string>
     <string name="subscription_suggestion_not_recurring">Hayajirudii</string>
     <!-- Review sheet. %1$s billing cycle (e.g. "Monthly"), %2$s category -->

@@ -150,10 +150,7 @@
     <string name="manage_accounts_hidden_badge">Ignored</string>
     <string name="manage_accounts_business_badge">Business</string>
     <string name="manage_accounts_outstanding">Outstanding</string>
-    <string name="manage_accounts_available">Available</string>
     <string name="manage_accounts_credit_limit">Credit Limit</string>
-    <!-- %1$d = utilization percentage -->
-    <string name="manage_accounts_utilization_used">(%1$d%% used)</string>
     <!-- %1$d = utilization percentage, %2$s = formatted credit limit -->
     <string name="manage_accounts_limit_used">%1$d%% of %2$s limit used</string>
     <!-- %1$s = formatted available credit -->
@@ -185,7 +182,6 @@
     <string name="manage_accounts_decrease">Decrease</string>
     <string name="manage_accounts_increase">Increase</string>
     <string name="manage_accounts_low_balance">Low balance</string>
-    <string name="manage_accounts_balance">Balance</string>
     <string name="manage_accounts_linked_cards">Linked Cards</string>
     <string name="manage_accounts_card_inactive">(Inactive)</string>
     <!-- %1$s = short date -->
@@ -271,8 +267,6 @@
     <string name="loan_detail_record_payment">Record Payment</string>
     <!-- %1$s = formatted original loan amount -->
     <string name="loan_detail_remaining_of">remaining of %1$s</string>
-    <!-- %1$d = percentage repaid -->
-    <string name="loan_detail_percent_repaid">%1$d%% repaid</string>
     <string name="loan_detail_history">History</string>
     <string name="loan_detail_settle_title">Settle Loan</string>
     <string name="loan_detail_settle_message">Mark this loan as settled? Any remaining balance will be forgiven.</string>

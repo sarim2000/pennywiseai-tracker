@@ -1,8 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Subscriptions screen: "Suggested" section listing payments that repeat in the user's history but aren't tracked yet -->
-    <string name="subscriptions_suggested_section">Navrhované</string>
-    <string name="subscriptions_suggested_hint">Platby, které se ve vaší historii opakují. Nezapočítávají se, dokud je nezačnete sledovat.</string>
     <!-- %1$d: total number of suggestions -->
     <string name="subscriptions_suggested_show_all">Zobrazit vše (%1$d)</string>
     <string name="subscriptions_suggested_show_less">Zobrazit méně</string>
@@ -14,7 +12,6 @@
         <item quantity="other">%1$d plateb</item>
     </plurals>
     <!-- Amount range of a bill whose amount changes. %1$s lowest amount, %2$s highest amount, both with currency -->
-    <string name="subscription_suggestion_varies">Částka se mění</string>
     <string name="subscription_suggestion_review">Zkontrolovat</string>
     <string name="subscription_suggestion_not_recurring">Neopakuje se</string>
     <!-- Review sheet. %1$s billing cycle (e.g. "Monthly"), %2$s category -->

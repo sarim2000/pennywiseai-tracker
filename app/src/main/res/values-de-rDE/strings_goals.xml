@@ -19,7 +19,7 @@
     <string name="goals_archived">Archiviert</string>
     <string name="goals_due_on">Fällig am %1$s</string>
     <string name="goals_ring_description">%1$d%% gespart</string>
-    <!-- Goal card in the Plan tab. %1$s = target amount, %2$s = due date -->
+    <!-- Goal card in the Plan tab -->
     <!-- %1$s = amount -->
     <plurals name="goals_months_left">
         <item quantity="one">Noch %d Monat</item>
@@ -47,9 +47,6 @@
     <string name="goal_edit_save">Speichern</string>
     <string name="goal_action_cancel">Abbrechen</string>
     <!-- Detail -->
-    <string name="goal_detail_left">Übrig</string>
-    <string name="goal_detail_per_month">Pro Monat</string>
-    <string name="goal_detail_over">%1$s darüber</string>
     <string name="goal_detail_history">Ein- und Auszahlungen</string>
     <string name="goal_detail_history_empty">Noch nichts eingezahlt. Nutzen Sie „Geld hinzufügen“, wenn Sie etwas zurücklegen.</string>
     <string name="goal_add_money">Geld hinzufügen</string>

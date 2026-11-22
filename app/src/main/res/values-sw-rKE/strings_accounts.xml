@@ -143,10 +143,7 @@
     <string name="manage_accounts_hidden_badge">Imepuuzwa</string>
     <string name="manage_accounts_business_badge">Biashara</string>
     <string name="manage_accounts_outstanding">Deni</string>
-    <string name="manage_accounts_available">Inapatikana</string>
     <string name="manage_accounts_credit_limit">Kikomo cha Mkopo</string>
-    <!-- %1$d = utilization percentage -->
-    <string name="manage_accounts_utilization_used">(%1$d%% imetumika)</string>
     <!-- %1$d = utilization percentage, %2$s = formatted credit limit -->
     <!-- %1$s = formatted available credit -->
     <!-- Summary cards at the top of Manage Accounts -->
@@ -174,7 +171,6 @@
     <string name="manage_accounts_decrease">Punguza</string>
     <string name="manage_accounts_increase">Ongeza</string>
     <string name="manage_accounts_low_balance">Salio la chini</string>
-    <string name="manage_accounts_balance">Salio</string>
     <string name="manage_accounts_linked_cards">Kadi Zilizounganishwa</string>
     <string name="manage_accounts_card_inactive">(Haitumiki)</string>
     <!-- %1$s = short date -->
@@ -256,8 +252,6 @@
     <string name="loan_detail_record_payment">Rekodi Malipo</string>
     <!-- %1$s = formatted original loan amount -->
     <string name="loan_detail_remaining_of">kimebaki kati ya %1$s</string>
-    <!-- %1$d = percentage repaid -->
-    <string name="loan_detail_percent_repaid">%1$d%% imerejeshwa</string>
     <string name="loan_detail_history">Historia</string>
     <string name="loan_detail_settle_title">Maliza Mkopo</string>
     <string name="loan_detail_settle_message">Uweke mkopo huu kuwa umelipwa? Salio lolote lililobaki litasamehewa.</string>

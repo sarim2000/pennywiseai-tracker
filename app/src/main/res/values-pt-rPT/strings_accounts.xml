@@ -144,10 +144,7 @@
     <string name="manage_accounts_hidden_badge">Ignorada</string>
     <string name="manage_accounts_business_badge">Empresas</string>
     <string name="manage_accounts_outstanding">Pendentes</string>
-    <string name="manage_accounts_available">Disponível</string>
     <string name="manage_accounts_credit_limit">Limite de Crédito</string>
-    <!-- %1$d = utilization percentage -->
-    <string name="manage_accounts_utilization_used">(%1$d%% utilizado)</string>
     <!-- %1$d = utilization percentage, %2$s = formatted credit limit -->
     <!-- %1$s = formatted available credit -->
     <!-- Summary cards at the top of Manage Accounts -->
@@ -175,7 +172,6 @@
     <string name="manage_accounts_decrease">Diminuir</string>
     <string name="manage_accounts_increase">Aumentar</string>
     <string name="manage_accounts_low_balance">Saldo baixo</string>
-    <string name="manage_accounts_balance">Saldo</string>
     <string name="manage_accounts_linked_cards">Cards vinculados</string>
     <string name="manage_accounts_card_inactive">(Inativo)</string>
     <!-- %1$s = short date -->
@@ -259,8 +255,6 @@
     <string name="loan_detail_record_payment">Registrar Pagamento</string>
     <!-- %1$s = formatted original loan amount -->
     <string name="loan_detail_remaining_of">restante de %1$s</string>
-    <!-- %1$d = percentage repaid -->
-    <string name="loan_detail_percent_repaid">%1$d%% reembolsado</string>
     <string name="loan_detail_history">Histórico</string>
     <string name="loan_detail_settle_title">Liquidar empréstimo</string>
     <string name="loan_detail_settle_message">Marcar este empréstimo como liquidado? Qualquer saldo remanescente será perdoado.</string>

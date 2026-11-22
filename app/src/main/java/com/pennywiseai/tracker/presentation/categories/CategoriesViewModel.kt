@@ -24,10 +24,6 @@ class CategoriesViewModel @Inject constructor(
     @ApplicationScope private val applicationScope: CoroutineScope
 ) : ViewModel() {
 
-    // UI State
-    private val _uiState = MutableStateFlow(CategoriesUiState())
-    val uiState: StateFlow<CategoriesUiState> = _uiState.asStateFlow()
-
     // Categories list
     val categories: StateFlow<List<CategoryEntity>> = categoryRepository.getAllCategories()
         .stateIn(
@@ -192,8 +188,3 @@ class CategoriesViewModel @Inject constructor(
         _snackbarMessage.value = null
     }
 }
-
-data class CategoriesUiState(
-    val isLoading: Boolean = false,
-    val errorMessage: String? = null
-)

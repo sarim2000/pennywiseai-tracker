@@ -1,5 +1,10 @@
 package com.pennywiseai.tracker.widget
 
+import com.pennywiseai.tracker.data.database.entity.BudgetEntity
+import com.pennywiseai.tracker.data.database.entity.BudgetGroupType
+import com.pennywiseai.tracker.data.database.entity.BudgetPeriodType
+import com.pennywiseai.tracker.data.database.entity.BudgetWithCategories
+import com.pennywiseai.tracker.data.repository.BudgetGroupSpending
 import com.pennywiseai.tracker.ui.components.mascot.MascotMood
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNull
@@ -9,178 +14,95 @@ import java.time.LocalDate
 
 class BudgetWidgetMoodTest {
 
-    /** A 3,000 limit over 30 days, 10 days in: an even spend is 1,000, a day's budget 100. */
-    private fun mood(spent: Int, limit: Int = 3000, daysElapsed: Int = 10, windowDays: Int = 30) = budgetMood(
+    private fun mood(spent: String, limit: String = "3000", overPace: Boolean? = false) = budgetMood(
         BudgetWidgetData(
             totalSpent = BigDecimal(spent),
             totalLimit = BigDecimal(limit),
-            remaining = BigDecimal(limit - spent),
-            daysElapsed = daysElapsed,
-            windowDays = windowDays
+            remaining = BigDecimal(limit) - BigDecimal(spent),
+            overPace = overPace
         )
     )
 
     @Test
-    fun `at or under an even spend is happy`() {
-        assertEquals(MascotMood.Happy, mood(spent = 400))
-        assertEquals(MascotMood.Happy, mood(spent = 1000))
-        // Less than a whole day's budget past the line is still on pace.
-        assertEquals(MascotMood.Happy, mood(spent = 1099))
-    }
-
-    @Test
-    fun `a day's budget past an even spend is thinking`() {
-        assertEquals(MascotMood.Thinking, mood(spent = 1100))
-        assertEquals(MascotMood.Thinking, mood(spent = 3000))
+    fun `the stored pace picks happy or thinking`() {
+        assertEquals(MascotMood.Happy, mood("1000", overPace = false))
+        assertEquals(MascotMood.Thinking, mood("1000", overPace = true))
     }
 
     @Test
     fun `over the limit as the figure shows it is worried`() {
-        assertEquals(MascotMood.Worried, mood(spent = 3001))
+        assertEquals(MascotMood.Worried, mood("3001"))
         // 0.3 over reads "Left · 0" on the widget, so the owl doesn't worry yet.
-        val barelyOver = BudgetWidgetData(
-            totalSpent = BigDecimal("3000.3"),
-            totalLimit = BigDecimal(3000),
-            remaining = BigDecimal("-0.3"),
-            daysElapsed = 10,
-            windowDays = 30
-        )
-        assertEquals(MascotMood.Thinking, budgetMood(barelyOver))
+        assertEquals(MascotMood.Thinking, mood("3000.3", overPace = true))
     }
 
     @Test
-    fun `no budget or no window is calm`() {
-        assertEquals(MascotMood.Calm, budgetMood(BudgetWidgetData()))
-        // A snapshot from before the widget stored its window.
-        assertEquals(MascotMood.Calm, mood(spent = 400, daysElapsed = 0, windowDays = 0))
-    }
-
-    @Test
-    fun `over budget with no stored window is calm`() {
-        // Written before the widget stored its window: remaining can already be over.
-        val stale = BudgetWidgetData(
-            totalSpent = BigDecimal(3001),
-            totalLimit = BigDecimal(3000),
-            remaining = BigDecimal("-1")
-        )
-        assertEquals(MascotMood.Calm, budgetMood(stale))
+    fun `an over-budget snapshot without a pace is still worried`() {
+        assertEquals(MascotMood.Worried, mood("3001", overPace = null))
     }
 
     @Test
     fun `over a limit rollover carried to zero is worried`() {
-        val carriedToZero = BudgetWidgetData(
-            totalSpent = BigDecimal(100),
-            totalLimit = BigDecimal.ZERO,
-            hasLimit = true,
-            remaining = BigDecimal("-100"),
-            daysElapsed = 10,
-            windowDays = 30
-        )
+        val carriedToZero = BudgetWidgetData(totalSpent = BigDecimal(100), hasLimit = true, remaining = BigDecimal(-100))
         assertEquals(MascotMood.Worried, budgetMood(carriedToZero))
     }
 
     @Test
-    fun `a weekly limit on day 2 of 7 is thinking`() {
-        val (pace, mood) = paced(
-            "2026-11-17",
-            slice(spent = 300, limit = 700, start = "2026-11-16", end = "2026-11-22", daysElapsed = 2, windowDays = 7)
-        )
-        assertEquals(2, pace.daysElapsed)
-        assertEquals(7, pace.windowDays)
-        assertNull(pace.foldedDaysOver)
-        assertEquals(MascotMood.Thinking, mood)
+    fun `no budget or no running limit is calm`() {
+        assertEquals(MascotMood.Calm, budgetMood(BudgetWidgetData()))
+        assertEquals(MascotMood.Calm, mood("400", overPace = null))
     }
 
     @Test
-    fun `a budget that starts on the 25th keeps that cycle`() {
-        val pace = widgetLimitPace(
-            LocalDate.parse("2026-11-26"),
-            listOf(slice(spent = 100, limit = 3000, start = "2026-11-25", end = "2026-12-24", daysElapsed = 2, windowDays = 30))
-        )
-        assertEquals(2, pace.daysElapsed)
-        assertEquals(30, pace.windowDays)
-        assertNull(pace.foldedDaysOver)
+    fun `a weekly limit is paced on its week, not the month`() {
+        // Day 2 of 7 with 3 days' budget spent. Over the calendar month it would look fine.
+        val weekly = limit(spent = 300, budget = 700, start = "2026-11-16", end = "2026-11-22")
+        assertEquals(true, widgetOverPace(LocalDate.parse("2026-11-17"), listOf(weekly)))
+        assertEquals(false, widgetOverPace(LocalDate.parse("2026-11-20"), listOf(weekly)))
     }
 
     @Test
-    fun `today outside the only window is calm`() {
-        val (pace, mood) = paced(
-            "2026-11-23",
-            slice(spent = 800, limit = 700, start = "2026-11-16", end = "2026-11-22", daysElapsed = 7, windowDays = 7)
-        )
-        assertEquals(0, pace.daysElapsed)
-        assertEquals(0, pace.windowDays)
-        assertNull(pace.foldedDaysOver)
-        assertEquals(MascotMood.Calm, mood)
+    fun `a cycle starting on the 25th is paced from the 25th`() {
+        // Day 3 of 30: an even spend is 300, a day's budget 100.
+        val today = LocalDate.parse("2026-11-27")
+        val cycle = { spent: Int -> limit(spent = spent, budget = 3000, start = "2026-11-25", end = "2026-12-24") }
+        assertEquals(true, widgetOverPace(today, listOf(cycle(400))))
+        assertEquals(false, widgetOverPace(today, listOf(cycle(399))))
     }
 
     @Test
-    fun `mixed windows under an even spend are happy`() {
-        val (pace, mood) = paced(
-            "2026-11-17",
-            slice(spent = 300, limit = 700, start = "2026-11-16", end = "2026-11-22", daysElapsed = 2, windowDays = 7),
-            slice(spent = 100, limit = 3000, start = "2026-11-01", end = "2026-11-30", daysElapsed = 10, windowDays = 30)
-        )
-        assertEquals(-4, pace.foldedDaysOver)
-        assertEquals(MascotMood.Happy, mood)
+    fun `one budget over pace isn't hidden by another under it`() {
+        val weeklyOver = limit(spent = 600, budget = 700, start = "2026-11-16", end = "2026-11-22")
+        val monthlyUnder = limit(spent = 0, budget = 30000, start = "2026-11-01", end = "2026-11-30")
+        assertEquals(true, widgetOverPace(LocalDate.parse("2026-11-17"), listOf(weeklyOver, monthlyUnder)))
     }
 
     @Test
-    fun `mixed windows past an even spend are thinking`() {
-        val (pace, mood) = paced(
-            "2026-11-17",
-            slice(spent = 600, limit = 700, start = "2026-11-16", end = "2026-11-22", daysElapsed = 2, windowDays = 7),
-            slice(spent = 2000, limit = 3000, start = "2026-11-01", end = "2026-11-30", daysElapsed = 10, windowDays = 30)
-        )
-        assertEquals(7, pace.foldedDaysOver)
-        assertEquals(MascotMood.Thinking, mood)
+    fun `only limits running today count`() {
+        val today = LocalDate.parse("2026-11-23")
+        val ended = limit(spent = 800, budget = 700, start = "2026-11-16", end = "2026-11-22")
+        val future = limit(spent = 0, budget = 700, start = "2026-11-25", end = "2026-11-30")
+        val savings = limit(spent = 900, budget = 100, start = "2026-11-01", end = "2026-11-30", type = BudgetGroupType.TARGET)
+        assertNull(widgetOverPace(today, listOf(ended, future, savings)))
     }
 
-    @Test
-    fun `a folded pace is not the page total`() {
-        // 1,000 of 3,000 on day 10 of 30 is an even spend. The fold still says two days over.
-        val onPaceForThePage = BudgetWidgetData(
-            totalSpent = BigDecimal(1000),
-            totalLimit = BigDecimal(3000),
-            remaining = BigDecimal(2000),
-            daysElapsed = 10,
-            windowDays = 30,
-            foldedDaysOver = 2
-        )
-        assertEquals(MascotMood.Thinking, budgetMood(onPaceForThePage))
-    }
-
-    private fun slice(
+    private fun limit(
         spent: Int,
-        limit: Int,
+        budget: Int,
         start: String,
         end: String,
-        daysElapsed: Int,
-        windowDays: Int
-    ) = WidgetLimitWindow(
-        spent = BigDecimal(spent),
-        limit = BigDecimal(limit),
-        windowStart = LocalDate.parse(start),
-        windowEnd = LocalDate.parse(end),
-        daysElapsed = daysElapsed,
-        windowDays = windowDays
-    )
-
-    /** The page total is the sum of the slices. The pace is not given a page window. */
-    private fun paced(today: String, vararg slices: WidgetLimitWindow): Pair<WidgetLimitPace, MascotMood> {
-        val pace = widgetLimitPace(LocalDate.parse(today), slices.toList())
-        val spent = slices.fold(BigDecimal.ZERO) { acc, slice -> acc + slice.spent }
-        val limit = slices.fold(BigDecimal.ZERO) { acc, slice -> acc + slice.limit }
-        val mood = budgetMood(
-            BudgetWidgetData(
-                totalSpent = spent,
-                totalLimit = limit,
-                remaining = limit - spent,
-                daysElapsed = pace.daysElapsed,
-                windowDays = pace.windowDays,
-                foldedDaysOver = pace.foldedDaysOver
-            )
+        type: BudgetGroupType = BudgetGroupType.LIMIT
+    ): BudgetGroupSpending {
+        val from = LocalDate.parse(start)
+        val to = LocalDate.parse(end)
+        val entity = BudgetEntity(
+            id = 1, name = "Budget", limitAmount = BigDecimal(budget), periodType = BudgetPeriodType.MONTHLY,
+            startDate = from, endDate = to, currency = "INR", groupType = type
         )
-        return pace to mood
+        return BudgetGroupSpending(
+            BudgetWithCategories(entity, emptyList()), emptyList(), BigDecimal(budget), BigDecimal(spent),
+            BigDecimal(budget - spent), 0f, BigDecimal.ZERO, 0, 0,
+            windowStart = from, windowEnd = to, windowDays = (to.toEpochDay() - from.toEpochDay() + 1).toInt()
+        )
     }
 }

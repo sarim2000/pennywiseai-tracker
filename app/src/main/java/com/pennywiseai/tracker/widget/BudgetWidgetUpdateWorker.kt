@@ -23,11 +23,14 @@ import com.pennywiseai.tracker.data.repository.aggregateBudgetCategorySpending
 import com.pennywiseai.tracker.data.repository.budgetPercentUsed
 import com.pennywiseai.tracker.data.repository.budgetSpend
 import com.pennywiseai.tracker.domain.model.BudgetCycle
+import com.pennywiseai.tracker.domain.spending.budgetPace
 import dagger.assisted.Assisted
 import dagger.assisted.AssistedInject
 import kotlinx.coroutines.flow.first
 import java.math.BigDecimal
 import java.math.RoundingMode
+import java.time.LocalDate
+import java.time.temporal.ChronoUnit
 import java.util.concurrent.TimeUnit
 
 @HiltWorker
@@ -140,6 +143,7 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
 
                 val groupSpendingList = raw.budgetsWithCategories.map { group ->
                     val isTrackingAll = group.categories.isEmpty()
+                    val window = raw.currentWindows[group.budget.id]
                     // A rollover budget counts its own window, as on Budgets: its spending
                     // and its Extra budget, so the carry isn't set against a month of a
                     // weekly budget's figures.
@@ -194,6 +198,10 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                         raw.daysRemaining,
                         raw.daysElapsed,
                         isTrackingAllExpenses = isTrackingAll,
+                        // The budget's own period, for the owl's pace: not the page's window.
+                        windowStart = window?.start ?: today,
+                        windowEnd = window?.end ?: today,
+                        windowDays = window?.days ?: 0,
                         carry = carry.amount.amount,
                         carryGap = carry.gap
                     )
@@ -265,9 +273,7 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                     savingsRate = savingsRate,
                     savingsDelta = savingsDelta,
                     currency = currency,
-                    daysElapsed = raw.daysElapsed,
-                    // Both counts take in today.
-                    windowDays = raw.daysElapsed + raw.daysRemaining - 1
+                    overPace = widgetOverPace(today, groupSpendingList)
                 )
             } else {
                 val spending = budgetGroupRepository.getGroupSpending(
@@ -283,25 +289,6 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
 
                 val limitRemaining = spending.totalLimitBudget - spending.totalLimitSpent
                 val usage = widgetLimitUsage(spending.totalLimitBudget, spending.totalLimitSpent, spending.groups)
-                // Each limit's own window, not pageWindow: that union also holds every
-                // other slice that meets the month, so it does not match this spend.
-                val pace = widgetLimitPace(
-                    today,
-                    spending.groups.mapNotNull { group ->
-                        if (group.group.budget.groupType != BudgetGroupType.LIMIT || group.windowDays < 1) {
-                            null
-                        } else {
-                            WidgetLimitWindow(
-                                spent = group.totalActual,
-                                limit = group.totalBudget,
-                                windowStart = group.windowStart,
-                                windowEnd = group.windowEnd,
-                                daysElapsed = group.daysElapsed,
-                                windowDays = group.windowDays
-                            )
-                        }
-                    }
-                )
 
                 BudgetWidgetData(
                     totalSpent = spending.totalLimitSpent,
@@ -315,9 +302,7 @@ class BudgetWidgetUpdateWorker @AssistedInject constructor(
                     savingsRate = spending.savingsRate,
                     savingsDelta = savingsDelta,
                     currency = currency,
-                    daysElapsed = pace.daysElapsed,
-                    windowDays = pace.windowDays,
-                    foldedDaysOver = pace.foldedDaysOver
+                    overPace = widgetOverPace(today, spending.groups)
                 )
             }
 
@@ -345,4 +330,17 @@ internal fun widgetLimitUsage(budget: BigDecimal, spent: BigDecimal, groups: Lis
     val carry = groups.filter { it.group.budget.groupType == BudgetGroupType.LIMIT }
         .fold(BigDecimal.ZERO) { acc, g -> acc + g.carry }
     return WidgetLimitUsage(budgetPercentUsed(spent, budget, carry), (budget - carry).signum() > 0)
+}
+
+/**
+ * Whether any limit running [today] is a day's budget past an even spend over its own
+ * window, as its Budgets card paces it. One budget over pace isn't hidden by another
+ * under it. Null when no limit is running.
+ */
+internal fun widgetOverPace(today: LocalDate, groups: List<BudgetGroupSpending>): Boolean? {
+    val paces = groups.mapNotNull { g ->
+        if (g.group.budget.groupType != BudgetGroupType.LIMIT || today !in g.windowStart..g.windowEnd) return@mapNotNull null
+        budgetPace(g.totalActual, g.totalBudget, ChronoUnit.DAYS.between(g.windowStart, today).toInt() + 1, g.windowDays)
+    }
+    return if (paces.isEmpty()) null else paces.any { it.daysOver > 0 }
 }

@@ -254,6 +254,19 @@ internal fun budgetMeta(data: BudgetWidgetData): String {
     return limit + " · " + context.getString(R.string.widget_budget_per_day, totalText(data.dailyAllowance, data.currency))
 }
 
+/**
+ * The owl's read of the budget: over the limit (as the figure says it) is Worried, a
+ * running limit more than a day's budget past an even spend Thinking, otherwise Happy.
+ * Calm with no budget or no running limit.
+ */
+internal fun budgetMood(data: BudgetWidgetData): MascotMood = when {
+    !data.hasLimit -> MascotMood.Calm
+    wholeUnits(data.remaining) < BigDecimal.ZERO -> MascotMood.Worried
+    data.overPace == true -> MascotMood.Thinking
+    data.overPace == false -> MascotMood.Happy
+    else -> MascotMood.Calm
+}
+
 /** The in-app owl in [mood] on a transparent bitmap, in white. */
 private fun renderOwl(context: Context, mood: MascotMood, size: Dp): Bitmap {
     val px = (size.value * context.resources.displayMetrics.density).roundToInt().coerceAtLeast(1)

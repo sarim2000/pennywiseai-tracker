@@ -68,6 +68,11 @@ abstract class BankParser {
             // "Limit: Rs.111,111.89" (generic, but only for credit card messages)
             Regex("""(?:^|\s)Limit:?\s*$LIMIT_CURRENCY\s*([0-9,]+(?:\.\d{1,2})?)""", RegexOption.IGNORE_CASE)
         )
+
+        /** Words that are never a merchant name; "BLOCK …" instructions are caught by prefix. */
+        private val MERCHANT_STOP_WORDS = setOf(
+            "USING", "VIA", "THROUGH", "BY", "WITH", "FOR", "TO", "FROM", "AT", "THE", "BLOCK"
+        )
     }
 
     /**
@@ -623,14 +628,8 @@ abstract class BankParser {
      * Validates if the extracted merchant name is valid.
      */
     protected open fun isValidMerchantName(name: String): Boolean {
-        val commonWords =
-            setOf(
-                "USING", "VIA", "THROUGH", "BY", "WITH", "FOR", "TO", "FROM", "AT", "THE",
-                "BLOCK", "BLOCK UPI", "UPIBLOCK", "BLOCK ACT", "BLOCK CARD", "BLOCK A/C", "BLOCK ACCOUNT"
-            )
-
         val upper = name.uppercase().trim()
-        val isBlockInstruction = upper in commonWords ||
+        val isBlockInstruction = upper in MERCHANT_STOP_WORDS ||
             upper.startsWith("BLOCK UPI") ||
             upper.startsWith("BLOCK CARD") ||
             upper.startsWith("BLOCK ACT") ||
@@ -642,7 +641,6 @@ abstract class BankParser {
         return name.length >= Constants.Parsing.MIN_MERCHANT_NAME_LENGTH &&
             name.any { it.isLetter() } &&
             !isBlockInstruction &&
-            !name.all { it.isDigit() } &&
             !name.contains("@") // Not a UPI ID
     }
 }

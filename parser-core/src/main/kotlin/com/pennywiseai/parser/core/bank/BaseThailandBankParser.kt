@@ -191,7 +191,6 @@ abstract class BaseThailandBankParser : BankParser() {
         return name.length >= 2 &&
             name.any { it.isLetter() } &&
             name.uppercase() !in commonWords &&
-            !name.all { it.isDigit() } &&
             !name.contains("@")
     }
 }

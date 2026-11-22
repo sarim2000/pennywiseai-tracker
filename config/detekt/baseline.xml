@@ -2431,7 +2431,6 @@
     <ID>ReturnCount:ZenithBankParser.kt$ZenithBankParser$override fun extractMerchant(message: String, sender: String): String?</ID>
     <ID>SpreadOperator:DatabaseModule.kt$DatabaseModule$(*PennyWiseMigrations.ALL_MIGRATIONS)</ID>
     <ID>SpreadOperator:LatinDigits.kt$(*Array(locales.size()) { locales[it].withLatinDigits() })</ID>
-    <ID>SpreadOperator:PennyWiseDatabase.kt$PennyWiseDatabase.Companion$(*PennyWiseMigrations.ALL_MIGRATIONS)</ID>
     <ID>SpreadOperator:UiText.kt$UiText$(id, *args.resolved())</ID>
     <ID>SpreadOperator:UiText.kt$UiText$(id, count, *args.resolved())</ID>
     <ID>SwallowedException:AiTools.kt$AiTools$e: IllegalArgumentException</ID>

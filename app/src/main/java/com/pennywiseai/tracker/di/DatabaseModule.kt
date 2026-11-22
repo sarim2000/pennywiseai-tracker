@@ -65,10 +65,11 @@ object DatabaseModule {
             PennyWiseDatabase::class.java,
             PennyWiseDatabase.DATABASE_NAME
         )
-            // Single source of truth lives in PennyWiseMigrations.ALL_MIGRATIONS
-            // so the BroadcastReceiver fallback builder stays in sync.
+            // Single source of truth lives in PennyWiseMigrations.ALL_MIGRATIONS.
             .addMigrations(*PennyWiseMigrations.ALL_MIGRATIONS)
-            // System SQLite, same engine Room 2 used: see PennyWiseDatabase.getInstance.
+            // System SQLite, the engine Room 2 used on this file. Keeps
+            // migrations on the phone's own SQLite (docs/database-migrations.md)
+            // rather than switching existing users' databases to a bundled build.
             .setDriver(AndroidSQLiteDriver())
 
             // Enable auto-migrations
@@ -78,9 +79,6 @@ object DatabaseModule {
             .addCallback(DatabaseCallback())
 
             .build()
-
-        // Set the singleton instance so BroadcastReceivers can access it
-        PennyWiseDatabase.setInstance(database)
 
         return database
     }

@@ -14,7 +14,7 @@ val ALL_MIGRATIONS: Array<Migration> = arrayOf(
 )
 ```
 
-Two builders consume that array: the Hilt provider in `di/DatabaseModule.kt`, and the `getInstance(context)` fallback builder kept for non-Hilt callers. Register a migration once and both paths get it. The rule exists because of a real crash: the Hilt builder once carried its own list, missed `MIGRATION_47_48`, and v47 installs crashed on boot after updating to v48. Never pass a hand-picked list to `.addMigrations()` anywhere else.
+The Hilt provider in `di/DatabaseModule.kt` builds the app's database from that array, so registering a migration there is enough. The rule exists because of a real crash: the Hilt builder once carried its own list, missed `MIGRATION_47_48`, and v47 installs crashed on boot after updating to v48. Never pass a hand-picked list to `.addMigrations()` anywhere else.
 
 ## How a version bump ships here
 

@@ -31,6 +31,14 @@ object LandingViews {
                         "expense tracker with on-device AI. Free, open source, $bankCount banks in $countryCount countries.",
                     "/",
                 )
+                // The app's "report this SMS" link opens /#message=…&sender=… (SmsReportUrlBuilder),
+                // and released versions keep doing so. The hash never reaches the server, so hand
+                // those visits to the parser here, before anything paints.
+                script {
+                    unsafe {
+                        +"if(/(^[#?]|&)(message|sender)=/.test(location.hash)||/(^[#?]|&)(message|sender)=/.test(location.search))location.replace('/tools/parse'+location.search+location.hash);"
+                    }
+                }
                 style { unsafe { +commonStyles; +landingStyles } }
                 script(type = "application/ld+json") { unsafe { +jsonLd() } }
             }

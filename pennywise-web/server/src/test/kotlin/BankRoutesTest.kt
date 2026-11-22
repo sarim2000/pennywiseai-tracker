@@ -29,6 +29,7 @@ class BankRoutesTest {
             com.example.ui.SharedComponents.RELEASES_URL).forEach {
             assertTrue(body.contains(it), "landing page should link to $it")
         }
+        assertTrue(body.contains("location.replace('/tools/parse'"), "the app's /#message= report links must still reach the parser")
         assertTrue(body.contains("${SupportedBanks.catalogue.totalBanks} banks"), "landing should quote the live bank count")
         SupportedBanks.countries.forEach {
             assertTrue(body.contains("/banks/country/${SupportedBanks.countrySlug(it.country)}"), "landing is missing ${it.country}")

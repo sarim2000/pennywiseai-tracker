@@ -390,7 +390,7 @@ object GuideViews {
             +"Check your bank is on the "
             a(href = "/banks") { +"supported banks" }
             +" list and SMS permission is on. Paste one message into the "
-            a(href = "/") { +"SMS parser" }
+            a(href = "/tools/parse") { +"SMS parser" }
             +" to see if it's read. If not, report it from "
             path("Settings → Unrecognized SMS")
             +" or open a "

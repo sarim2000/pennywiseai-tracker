@@ -658,7 +658,6 @@ class HomeViewModel @Inject constructor(
                 // mode, or no rate yet) is left out and flagged, never added raw (₹ + $ ≠ anything).
                 val totals = balanceTotals(regularAccounts, creditCards, selectedCurrency)
                 val totalBalanceInSelectedCurrency = totals.balance
-                val totalAvailableCreditInSelectedCurrency = totals.availableCredit
                 val hasApproximateBalance = totals.hasOtherCurrencies
 
                 // Update available currencies to include account currencies
@@ -680,7 +679,6 @@ class HomeViewModel @Inject constructor(
                     accountBalances = regularAccounts,  // Pre-converted in unified mode
                     creditCards = creditCards,           // Pre-converted in unified mode
                     totalBalance = totalBalanceInSelectedCurrency,
-                    totalAvailableCredit = totalAvailableCreditInSelectedCurrency,
                     availableCurrencies = updatedAvailableCurrencies,
                     isBalanceReady = true,
                     isApproximateBalance = hasApproximateBalance
@@ -831,7 +829,6 @@ class HomeViewModel @Inject constructor(
                     )
                     _uiState.value = _uiState.value.copy(
                         spendingHistory = trend.thisCycle,
-                        balanceHistory = trend.thisCycle,
                         lastMonthSpendingHistory = trend.lastCycleSamePoint
                     )
                 }
@@ -1071,14 +1068,12 @@ class HomeViewModel @Inject constructor(
             // mode, or no rate yet) is left out and flagged, never added raw (₹ + $ ≠ anything).
             val totals = balanceTotals(regularAccounts, creditCards, selectedCurrency)
             val totalBalance = totals.balance
-            val totalAvailableCredit = totals.availableCredit
             val hasApproximateBalance = totals.hasOtherCurrencies
 
             _uiState.value = _uiState.value.copy(
                 accountBalances = regularAccounts,
                 creditCards = creditCards,
                 totalBalance = totalBalance,
-                totalAvailableCredit = totalAvailableCredit,
                 isBalanceReady = true,
                 isApproximateBalance = hasApproximateBalance
             )
@@ -1252,14 +1247,12 @@ class HomeViewModel @Inject constructor(
             // mode, or no rate yet) is left out and flagged, never added raw (₹ + $ ≠ anything).
             val totals = balanceTotals(regularAccounts, creditCards, selectedCurrency)
             val totalBalanceInSelectedCurrency = totals.balance
-            val totalAvailableCreditInSelectedCurrency = totals.availableCredit
             val hasApproximateBalance = totals.hasOtherCurrencies
 
             _uiState.value = _uiState.value.copy(
                 accountBalances = regularAccounts,
                 creditCards = creditCards,
                 totalBalance = totalBalanceInSelectedCurrency,
-                totalAvailableCredit = totalAvailableCreditInSelectedCurrency,
                 isBalanceReady = true,
                 isApproximateBalance = hasApproximateBalance
             )
@@ -1609,12 +1602,9 @@ data class HomeUiState(
     val accountBalances: List<AccountBalanceEntity> = emptyList(),
     val creditCards: List<AccountBalanceEntity> = emptyList(),
     val totalBalance: BigDecimal = BigDecimal.ZERO,
-    val totalAvailableCredit: BigDecimal = BigDecimal.ZERO,
     val selectedCurrency: String = "INR",
     val availableCurrencies: List<String> = emptyList(),
-    val recentTransactionConvertedAmounts: Map<Long, BigDecimal> = emptyMap(),
     val spendingHistory: List<BigDecimal> = emptyList(),
-    val balanceHistory: List<BigDecimal> = emptyList(),
     val isLoading: Boolean = true,
     val isScanning: Boolean = false,
     /** New transactions the user's just-finished scan saved, shown briefly on the Sync button. */
@@ -1660,8 +1650,7 @@ internal fun BudgetOverallSummary.safeToSpendCap(today: LocalDate): Money? =
 
 internal data class BalanceTotals(
     val balance: BigDecimal,
-    val availableCredit: BigDecimal,
-    /** Some account or card is in another currency and was left out of both totals. */
+    /** Some account or card is in another currency and was left out of the total. */
     val hasOtherCurrencies: Boolean,
 )
 
@@ -1671,11 +1660,10 @@ internal fun balanceTotals(
     currency: String,
 ): BalanceTotals {
     val (sameAccounts, otherAccounts) = accounts.partition { it.currency == currency }
-    val (sameCards, otherCards) = creditCards.partition { it.currency == currency }
+    val hasOtherCards = creditCards.any { it.currency != currency }
     return BalanceTotals(
         balance = sameAccounts.fold(BigDecimal.ZERO) { a, acc -> a + acc.balance },
-        availableCredit = sameCards.fold(BigDecimal.ZERO) { a, c -> a + (c.creditLimit ?: BigDecimal.ZERO) - c.balance },
-        hasOtherCurrencies = otherAccounts.isNotEmpty() || otherCards.isNotEmpty(),
+        hasOtherCurrencies = otherAccounts.isNotEmpty() || hasOtherCards,
     )
 }
 

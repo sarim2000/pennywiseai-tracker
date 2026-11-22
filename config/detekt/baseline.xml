@@ -1818,7 +1818,6 @@
     <ID>NewLineAtEndOfFile:UnrecognizedSmsEntity.kt$com.pennywiseai.tracker.data.database.entity.UnrecognizedSmsEntity.kt</ID>
     <ID>NewLineAtEndOfFile:UnrecognizedSmsRepository.kt$com.pennywiseai.tracker.data.repository.UnrecognizedSmsRepository.kt</ID>
     <ID>NewLineAtEndOfFile:UtkarshBankParser.kt$com.pennywiseai.parser.core.bank.UtkarshBankParser.kt</ID>
-    <ID>NewLineAtEndOfFile:WorkManagerInitializer.kt$com.pennywiseai.tracker.initializer.WorkManagerInitializer.kt</ID>
     <ID>NewLineAtEndOfFile:YesBankParser.kt$com.pennywiseai.parser.core.bank.YesBankParser.kt</ID>
     <ID>NewLineAtEndOfFile:ZemenBankParser.kt$com.pennywiseai.parser.core.bank.ZemenBankParser.kt</ID>
     <ID>PrintStackTrace:DeviceEncryption.kt$DeviceEncryption$e</ID>

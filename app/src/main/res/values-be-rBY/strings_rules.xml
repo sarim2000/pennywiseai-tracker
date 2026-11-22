@@ -326,6 +326,7 @@
     <string name="rules_reset">Скінуць</string>
     <string name="rules_auto_categorization_title">Аўтаматычныя катэгорыі</string>
     <string name="rules_auto_categorization_body">Уключыце правілы, каб транзакцыі аўтаматычна раскладваліся па катэгорыях паводле шаблонаў</string>
+    <!-- Tags in front of a rule's two lines: when it matches, then what it does -->
     <string name="rules_group_daily">Штодзённыя выдаткі</string>
     <string name="rules_group_income">Даход і кэшбэк</string>
     <string name="rules_group_recurring">Паўтаральныя плацяжы</string>

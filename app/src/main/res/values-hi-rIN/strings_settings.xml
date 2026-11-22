@@ -244,6 +244,7 @@
     <string name="settings_report_issue_subtitle">GitHub पर बग रिपोर्ट भेजें</string>
     <!-- %1$s = app version, e.g. 2.18.0 -->
     <!-- Settings hub: section headers -->
+    <!-- Settings hub: the profile block and shortcut tiles -->
     <!-- Settings hub: what each page holds. Keep to one line. -->
     <!-- Settings pages: the short explanation at the top of each page -->
     <!-- Settings pages: groups and rows -->

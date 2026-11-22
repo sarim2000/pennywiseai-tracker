@@ -97,35 +97,18 @@ class ManageAccountsViewModel @Inject constructor(
     private var baseCurrency: String = "INR"
 
     init {
-        // Once, not in loadAccounts(): that runs again after edits and would stack collectors.
+        // Room flows: each collector re-emits after every write, so edits never reload them.
         viewModelScope.launch {
             accountBalanceRepository.getUnanchoredAccounts()
                 .collect { keys -> _uiState.update { it.copy(unanchoredAccounts = keys) } }
         }
-        loadAccounts()
-        loadHiddenAccounts()
-        loadCards()
-        viewModelScope.launch {
-            baseCurrency = userPreferencesRepository.baseCurrency.first()
-            // Seed the (still-empty) add form with the base currency.
-            _formState.update { if (it.bankName.isBlank()) it.copy(currency = baseCurrency) else it }
-        }
-    }
-
-    fun updateCurrency(currency: String) {
-        _formState.update { it.copy(currency = currency) }
-    }
-
-    private fun loadAccounts() {
         viewModelScope.launch {
             accountBalanceRepository.getAllLatestBalances()
                 .collect { accounts ->
                     _uiState.update { it.copy(accounts = accounts) }
                 }
         }
-    }
-
-    private fun loadCards() {
+        loadHiddenAccounts()
         viewModelScope.launch {
             cardRepository.getAllCards().collect { allCards ->
                 // Group cards by linked account
@@ -152,6 +135,15 @@ class ManageAccountsViewModel @Inject constructor(
                 }
             }
         }
+        viewModelScope.launch {
+            baseCurrency = userPreferencesRepository.baseCurrency.first()
+            // Seed the (still-empty) add form with the base currency.
+            _formState.update { if (it.bankName.isBlank()) it.copy(currency = baseCurrency) else it }
+        }
+    }
+
+    fun updateCurrency(currency: String) {
+        _formState.update { it.copy(currency = currency) }
     }
 
     private fun loadHiddenAccounts() {
@@ -340,9 +332,8 @@ class ManageAccountsViewModel @Inject constructor(
             val count = accountBalanceRepository.getBalanceCountForAccount(bankName, accountLast4)
             if (count > 1) {
                 accountBalanceRepository.deleteBalanceById(id)
-                // Reload history and accounts
+                // Reload history
                 loadBalanceHistory(bankName, accountLast4)
-                loadAccounts()
             }
         }
     }
@@ -350,9 +341,8 @@ class ManageAccountsViewModel @Inject constructor(
     fun updateBalanceRecord(id: Long, newBalance: BigDecimal, bankName: String, accountLast4: String) {
         viewModelScope.launch {
             accountBalanceRepository.updateBalanceById(id, newBalance)
-            // Reload history and accounts
+            // Reload history
             loadBalanceHistory(bankName, accountLast4)
-            loadAccounts()
         }
     }
 
@@ -401,9 +391,6 @@ class ManageAccountsViewModel @Inject constructor(
                 // Clear message after delay
                 delay(3000)
                 _uiState.update { it.copy(successMessage = null) }
-
-                loadCards() // Reload cards to update UI
-                loadAccounts() // Reload accounts to show new balance
             } catch (e: Exception) {
                 android.util.Log.e("ManageAccountsViewModel", "Failed to link card", e)
                 _uiState.update {
@@ -416,7 +403,6 @@ class ManageAccountsViewModel @Inject constructor(
     fun unlinkCard(cardId: Long) {
         viewModelScope.launch {
             cardRepository.unlinkCard(cardId)
-            loadCards() // Reload cards to update UI
         }
     }
 
@@ -430,8 +416,6 @@ class ManageAccountsViewModel @Inject constructor(
                 // Clear message after delay
                 delay(2000)
                 _uiState.update { it.copy(successMessage = null) }
-
-                loadCards() // Reload cards to update UI
             } catch (e: Exception) {
                 android.util.Log.e("ManageAccountsViewModel", "Failed to delete card", e)
                 _uiState.update {
@@ -444,7 +428,6 @@ class ManageAccountsViewModel @Inject constructor(
     fun setCardActive(cardId: Long, isActive: Boolean) {
         viewModelScope.launch {
             cardRepository.setCardActive(cardId, isActive)
-            loadCards() // Reload cards to update UI
         }
     }
 
@@ -488,7 +471,6 @@ class ManageAccountsViewModel @Inject constructor(
                 _uiState.update { it.copy(successMessage = UiText.Res(R.string.manage_accounts_msg_card_updated)) }
                 delay(2000)
                 _uiState.update { it.copy(successMessage = null) }
-                loadCards()
             } catch (e: Exception) {
                 android.util.Log.e("ManageAccountsViewModel", "Failed to update card", e)
                 _uiState.update {
@@ -530,8 +512,6 @@ class ManageAccountsViewModel @Inject constructor(
                 // Clear message after delay
                 delay(3000)
                 _uiState.update { it.copy(successMessage = null) }
-
-                loadCards() // Reload cards to update UI
             } catch (e: Exception) {
                 _uiState.update {
                     it.copy(errorMessage = UiText.Res(R.string.manage_accounts_msg_delete_account_failed, listOf("${e.message}")))
@@ -664,7 +644,6 @@ class ManageAccountsViewModel @Inject constructor(
                         showSupportNudge = it.showSupportNudge || nudge
                     )
                 }
-                loadCards()
                 delay(3000)
                 _uiState.update { it.copy(successMessage = null) }
             } catch (e: Exception) {

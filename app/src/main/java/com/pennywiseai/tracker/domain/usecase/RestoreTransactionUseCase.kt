@@ -1,8 +1,8 @@
 package com.pennywiseai.tracker.domain.usecase
 
-import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.database.PennyWiseDatabase
 import com.pennywiseai.tracker.data.database.entity.TransactionEntity
+import com.pennywiseai.tracker.data.database.withTransaction
 import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import javax.inject.Inject
@@ -33,20 +33,6 @@ open class RestoreTransactionUseCase @Inject constructor(
             if (!current.isDeleted) return@runInTransaction
             transactionRepository.undoDeleteTransaction(current)
             accountBalanceRepository.applyRestoreBalanceShift(current)
-        }
-    }
-
-    /**
-     * Looks up the transaction by [transactionId], then restores it if found.
-     * @return true if the transaction existed and was restored, false if missing or not deleted.
-     */
-    suspend operator fun invoke(transactionId: Long): Boolean {
-        return runInTransaction {
-            val transaction = transactionRepository.getTransactionById(transactionId) ?: return@runInTransaction false
-            if (!transaction.isDeleted) return@runInTransaction false
-            transactionRepository.undoDeleteTransaction(transaction)
-            accountBalanceRepository.applyRestoreBalanceShift(transaction)
-            true
         }
     }
 

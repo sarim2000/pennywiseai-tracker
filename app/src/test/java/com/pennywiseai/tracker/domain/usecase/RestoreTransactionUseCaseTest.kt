@@ -8,8 +8,6 @@ import com.pennywiseai.tracker.data.repository.AccountBalanceRepository
 import com.pennywiseai.tracker.data.repository.TransactionRepository
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
-import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import java.lang.reflect.Proxy
@@ -165,36 +163,6 @@ class RestoreTransactionUseCaseTest {
         restoreTransactionUseCase(sampleTxn.copy(isDeleted = false))
         assertEquals(1, restoredRepoTransactions.size)
         assertEquals(1, balanceShiftTransactions.size)
-    }
-
-    @Test
-    fun `invoke with transactionId restores transaction and applies balance shift`() = runBlocking {
-        val result = restoreTransactionUseCase(2001L)
-        assertTrue(result)
-        assertEquals(1, restoredRepoTransactions.size)
-        assertEquals(1, balanceShiftTransactions.size)
-    }
-
-    @Test
-    fun `invoke with repeated transactionId returns false on second call without double shifting balance`() = runBlocking {
-        val firstResult = restoreTransactionUseCase(2001L)
-        assertTrue(firstResult)
-        assertEquals(1, restoredRepoTransactions.size)
-        assertEquals(1, balanceShiftTransactions.size)
-
-        // Second call on now-active transaction
-        val secondResult = restoreTransactionUseCase(2001L)
-        assertFalse(secondResult)
-        assertEquals(1, restoredRepoTransactions.size)
-        assertEquals(1, balanceShiftTransactions.size)
-    }
-
-    @Test
-    fun `invoke with missing transactionId returns false`() = runBlocking {
-        val result = restoreTransactionUseCase(9999L)
-        assertFalse(result)
-        assertEquals(0, restoredRepoTransactions.size)
-        assertEquals(0, balanceShiftTransactions.size)
     }
 
     @Test

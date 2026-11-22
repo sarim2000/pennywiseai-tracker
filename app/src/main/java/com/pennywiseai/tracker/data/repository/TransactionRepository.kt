@@ -7,25 +7,17 @@ import com.pennywiseai.tracker.data.database.entity.TransactionSplitEntity
 import com.pennywiseai.tracker.data.database.entity.TransactionType
 import com.pennywiseai.tracker.data.database.entity.TransactionWithSplits
 import com.pennywiseai.tracker.data.database.entity.currentNameFor
-import com.pennywiseai.tracker.data.ledger.forTotals
 import com.pennywiseai.tracker.data.manager.TransactionDeduplication
 import com.pennywiseai.tracker.data.notification.BankNotificationConfig
 import com.pennywiseai.tracker.data.preferences.BudgetPreferences
-import com.pennywiseai.tracker.data.statement.StatementTransactionEnricher
-import com.pennywiseai.tracker.domain.model.BudgetCycle
 import kotlinx.coroutines.NonCancellable
 import kotlinx.coroutines.flow.Flow
-import kotlinx.coroutines.flow.flatMapLatest
-import kotlinx.coroutines.flow.map
 import kotlinx.coroutines.withContext
 import java.math.BigDecimal
 import java.time.LocalDate
 import java.time.LocalDateTime
-import java.time.LocalTime
-import java.time.YearMonth
 import javax.inject.Inject
 import javax.inject.Singleton
-import kotlin.math.min
 
 @Singleton
 open class TransactionRepository @Inject constructor(
@@ -65,28 +57,6 @@ open class TransactionRepository @Inject constructor(
             endDate.atTime(23, 59, 59)
         )
 
-    /**
-     * Gets transactions filtered at the database level for better performance.
-     * Combines date range, currency, and transaction type filters to reduce memory usage.
-     *
-     * @param startDate Start of the date range (inclusive)
-     * @param endDate End of the date range (inclusive)
-     * @param currency Currency code to filter by (e.g., "INR", "USD")
-     * @param transactionType Optional transaction type filter (null means all types)
-     * @return Flow of filtered transactions
-     */
-    fun getTransactionsFiltered(
-        startDate: LocalDate,
-        endDate: LocalDate,
-        currency: String,
-        transactionType: TransactionType? = null
-    ): Flow<List<TransactionEntity>> =
-        transactionDao.getTransactionsFiltered(
-            startDate.atStartOfDay(),
-            endDate.atTime(23, 59, 59),
-            currency,
-            transactionType
-        )
 
     fun getAllCurrencies(): Flow<List<String>> =
         transactionDao.getAllCurrencies()
@@ -294,14 +264,6 @@ open class TransactionRepository @Inject constructor(
 
     suspend fun getOldestTransactionDateTime(): LocalDateTime? = transactionDao.getOldestTransactionDateTime()
 
-    suspend fun findStatementMergeCandidate(transaction: TransactionEntity): TransactionEntity? {
-        val reference = transaction.reference?.takeIf { it.isNotBlank() } ?: return null
-        return transactionDao.getTransactionsByReference(reference)
-            .firstOrNull { candidate ->
-                StatementTransactionEnricher.isStatementMatch(candidate, transaction)
-            }
-    }
-
     suspend fun findPotentialDuplicates(transaction: TransactionEntity): List<TransactionEntity> {
         if (!TransactionDeduplication.hasUpiReference(transaction)) return emptyList()
 
@@ -408,96 +370,6 @@ open class TransactionRepository @Inject constructor(
         val income: BigDecimal,
         val expenses: BigDecimal
     )
-
-    fun getCurrentMonthBreakdown(): Flow<MonthlyBreakdown> {
-        return getTransactionsForCurrentMonth()
-            .map { transactions ->
-                transactions.toMonthlyBreakdown()
-            }
-    }
-
-    fun getCurrentMonthTotal(): Flow<BigDecimal> {
-        return getCurrentMonthBreakdown().map { it.total }
-    }
-
-    fun getLastMonthBreakdown(): Flow<MonthlyBreakdown> {
-        return getTransactionsForComparableLastMonth()
-            .map { transactions ->
-                transactions.toMonthlyBreakdown()
-            }
-    }
-
-    fun getLastMonthTotal(): Flow<BigDecimal> {
-        return getLastMonthBreakdown().map { it.total }
-    }
-
-    // Currency-grouped breakdown methods
-    fun getCurrentMonthBreakdownByCurrency(): Flow<Map<String, MonthlyBreakdown>> {
-        return getTransactionsForCurrentMonth()
-            .map { transactions ->
-                transactions.toMonthlyBreakdownByCurrency()
-            }
-    }
-
-    fun getLastMonthBreakdownByCurrency(): Flow<Map<String, MonthlyBreakdown>> {
-        return getTransactionsForComparableLastMonth()
-            .map { transactions ->
-                transactions.toMonthlyBreakdownByCurrency()
-            }
-    }
-
-    private fun getTransactionsForCurrentMonth(): Flow<List<TransactionEntity>> {
-        val now = LocalDate.now()
-        return userPreferencesRepository.budgetCycleStartDay.flatMapLatest { startDay ->
-            val (cycleStart, cycleEnd) = BudgetCycle.currentCycle(now, startDay)
-            val startDate = cycleStart.atStartOfDay()
-            val endDate = cycleEnd.atTime(LocalTime.MAX)
-            transactionDao.getTransactionsBetweenDates(startDate, endDate)
-                // Monthly spending summary ignores analytics-excluded and loan-linked transactions (#451, #800).
-                .map { txns -> txns.forTotals() }
-        }
-    }
-
-    private fun getTransactionsForComparableLastMonth(): Flow<List<TransactionEntity>> {
-        val now = LocalDate.now()
-        return userPreferencesRepository.budgetCycleStartDay.flatMapLatest { startDay ->
-            val current = BudgetCycle.currentCycle(now, startDay)
-            val (prevStart, prevEnd) = BudgetCycle.previousCycle(current, startDay)
-            val startDate = prevStart.atStartOfDay()
-            val endDate = prevEnd.atTime(LocalTime.MAX)
-            transactionDao.getTransactionsBetweenDates(startDate, endDate)
-                // Monthly spending summary ignores analytics-excluded and loan-linked transactions (#451, #800).
-                .map { txns -> txns.forTotals() }
-        }
-    }
-
-    private fun List<TransactionEntity>.toMonthlyBreakdown(): MonthlyBreakdown {
-        val income = sumTransactionType(TransactionType.INCOME)
-        val expenses = sumTransactionType(TransactionType.EXPENSE)
-        return MonthlyBreakdown(
-            total = income - expenses,
-            income = income,
-            expenses = expenses
-        )
-    }
-
-    private fun List<TransactionEntity>.toMonthlyBreakdownByCurrency(): Map<String, MonthlyBreakdown> {
-        return forTotals()
-            .groupBy { it.currency }
-            .mapValues { (_, transactions) -> transactions.toMonthlyBreakdown() }
-    }
-
-    private fun List<TransactionEntity>.sumTransactionType(type: TransactionType): BigDecimal {
-        return forTotals().filter { it.transactionType == type }
-            .fold(BigDecimal.ZERO) { acc, transaction -> acc + transaction.amount }
-    }
-
-    fun getRecentTransactions(limit: Int = 5): Flow<List<TransactionEntity>> {
-        return transactionDao.getAllTransactions()
-            .map { transactions ->
-                transactions.take(limit)
-            }
-    }
 
     fun getTransactionsByAccount(bankName: String, accountLast4: String): Flow<List<TransactionEntity>> {
         return transactionDao.getTransactionsByAccount(bankName, accountLast4)

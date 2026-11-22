@@ -49,13 +49,9 @@ import com.pennywiseai.tracker.ui.components.cards.GroupedRow
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.SectionHeaderV2
 import com.pennywiseai.tracker.ui.components.progressLabel
-import com.pennywiseai.tracker.ui.components.readableProgressColors
 import com.pennywiseai.tracker.ui.components.tierLabel
 import com.pennywiseai.tracker.ui.theme.Dimensions
-import com.pennywiseai.tracker.ui.theme.GRAPHIC_CONTRAST
 import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.ui.theme.neutralSurfaces
-import com.pennywiseai.tracker.ui.theme.readableOn
 import com.pennywiseai.tracker.utils.AppDates
 
 /**
@@ -76,6 +72,7 @@ fun AchievementsScreen(
     val locked = list.orEmpty().filterNot { it.earned }
 
     PennyWiseScaffold(
+        revealAmountsAction = false, // shows no amounts
         title = stringResource(R.string.achievements_title),
         navigationIcon = {
             IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
@@ -167,12 +164,9 @@ private fun Summary(all: List<Achievement>) {
                 textAlign = TextAlign.Center,
                 modifier = Modifier.fillMaxWidth(),
             )
-            val progressColors = readableProgressColors(containerColor = MaterialTheme.colorScheme.surfaceContainerLow)
             LinearProgressIndicator(
                 progress = { if (all.isEmpty()) 0f else earned.toFloat() / all.size },
                 modifier = Modifier.fillMaxWidth(),
-                color = progressColors.indicator,
-                trackColor = progressColors.track,
             )
             Text(
                 text = stringResource(R.string.achievements_summary_hint),
@@ -224,8 +218,7 @@ private fun AchievementRow(a: Achievement, position: ListItemPosition, onShare: 
                             .weight(1f)
                             .height(Spacing.xs)
                             .clip(CircleShape),
-                        // The badge hue nudged to 3:1 on its track and card (neutralSurfaces has both).
-                        color = badgeArt(a.id).hue.readableOn(MaterialTheme.colorScheme.neutralSurfaces, GRAPHIC_CONTRAST),
+                        color = badgeArt(a.id).hue,
                         trackColor = MaterialTheme.colorScheme.surfaceContainerHighest,
                         drawStopIndicator = {},
                     )

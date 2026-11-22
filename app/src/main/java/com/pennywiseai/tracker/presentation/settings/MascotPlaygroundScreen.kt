@@ -157,6 +157,7 @@ fun MascotPlaygroundScreen(
     if (slider != null) lastSlider[0] = slider
 
     PennyWiseScaffold(
+        revealAmountsAction = false, // shows no amounts
         title = stringResource(R.string.mascot_playground_title),
         navigationIcon = {
             IconButton(onClick = onNavigateBack, shapes = IconButtonDefaults.shapes()) {
@@ -181,7 +182,7 @@ fun MascotPlaygroundScreen(
                             .background(MaterialTheme.colorScheme.primaryContainer, CircleShape)
                             .padding(horizontal = Spacing.md + Spacing.xs, vertical = Spacing.xs)
                     ) {
-                        Mascot(size = Dimensions.Icon.medium, shape = shape, mood = mood, value = shown, tint = MaterialTheme.colorScheme.onPrimaryContainer)
+                        Mascot(size = Dimensions.Icon.medium, shape = shape, mood = mood, value = shown)
                     }
                 }
                 Text(

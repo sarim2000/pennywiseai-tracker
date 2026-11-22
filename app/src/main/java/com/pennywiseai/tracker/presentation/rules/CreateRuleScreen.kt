@@ -225,6 +225,7 @@ fun CreateRuleScreen(
         containerColor = Color.Transparent,
         topBar = {
             CustomTitleTopAppBar(
+                revealAmountsAction = false, // shows no amounts
                 scrollBehaviorSmall = scrollBehaviorSmall,
                 scrollBehaviorLarge = scrollBehaviorLarge,
                 title = stringResource(if (isEditing) R.string.rules_edit_title else R.string.rules_create_title),

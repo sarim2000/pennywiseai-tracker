@@ -38,6 +38,11 @@ class LoanPaidOffRepositoryTest {
     )
     private val rows = mutableMapOf<Long, TransactionEntity>()
 
+    /** How deep in database transactions the repository is, and the loan reads and writes it made outside one. */
+    private var transactions = 0
+    private val outside = mutableListOf<String>()
+    private fun seen(call: String) { if (transactions == 0) outside += call }
+
     private fun row(id: Long, amount: String, type: TransactionType, loanId: Long? = null) = TransactionEntity(
         id = id, amount = BigDecimal(amount), merchantName = "Pal", category = "Others",
         transactionType = type, dateTime = LocalDateTime.of(2026, 11, 1, 12, 0),
@@ -47,10 +52,13 @@ class LoanPaidOffRepositoryTest {
     @Before
     fun setUp() {
         mockkStatic("com.pennywiseai.tracker.data.database.RoomCompatKt")
-        coEvery { database.withTransaction(any<suspend () -> Any?>()) } coAnswers { secondArg<suspend () -> Any?>().invoke() }
+        coEvery { database.withTransaction(any<suspend () -> Any?>()) } coAnswers {
+            transactions++
+            try { secondArg<suspend () -> Any?>().invoke() } finally { transactions-- }
+        }
         row(1, "130", TransactionType.EXPENSE, loanId = 2)
-        coEvery { loanDao.getLoanById(2) } answers { loan }
-        coEvery { loanDao.updateLoan(any()) } answers { loan = firstArg() }
+        coEvery { loanDao.getLoanById(2) } answers { seen("getLoanById"); loan }
+        coEvery { loanDao.updateLoan(any()) } answers { seen("updateLoan"); loan = firstArg() }
         coEvery { loanDao.getLinkedTransactions(2) } answers { rows.values.filter { it.loanId == 2L } }
         coEvery { loanDao.linkTransaction(any(), 2) } answers { rows[firstArg()] = rows.getValue(firstArg()).copy(loanId = 2) }
         coEvery { transactionDao.getTransactionById(any()) } answers { rows[firstArg()] }
@@ -93,6 +101,14 @@ class LoanPaidOffRepositoryTest {
         assertFalse(repay(9, "50"))
         loan = loan.copy(remainingAmount = BigDecimal("80"), status = LoanStatus.ACTIVE)
         assertFalse(runBlocking { repo.recordManualRepayment(2, BigDecimal("30"), "Pal", "INR") }!!.paidOff)
+    }
+
+    @Test
+    fun `a repayment reads, writes and recalculates in one transaction`() {
+        // So a principal edit, which doesn't take the repayment lock, can't land between them.
+        assertFalse(repay(9, "50"))
+        assertTrue(runBlocking { repo.recordManualRepayment(2, BigDecimal("80"), "Pal", "INR") }!!.paidOff)
+        assertEquals(emptyList<String>(), outside)
     }
 
     @Test

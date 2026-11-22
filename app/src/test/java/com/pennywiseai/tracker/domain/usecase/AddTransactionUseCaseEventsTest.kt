@@ -54,17 +54,22 @@ class AddTransactionUseCaseEventsTest {
         coEvery { balances.insertTransferWithBalance(any(), any(), any(), any(), any()) } returns id
     }
 
-    /** What [add] and [transfer] save: the use case's own default currency. */
-    private val ten = Money(BigDecimal.TEN, "INR")
+    /** What [add] saves, and [transfer] in another currency: neither is the default INR, so each must be forwarded. */
+    private val ten = Money(BigDecimal.TEN, "EUR")
+    private val tenDollars = Money(BigDecimal.TEN, "USD")
 
     private fun add(type: TransactionType) = runBlocking {
-        useCase.execute(amount = BigDecimal.TEN, merchant = "Shop", category = "Food", type = type, date = LocalDateTime.now())
+        useCase.execute(
+            amount = BigDecimal.TEN, merchant = "Shop", category = "Food", type = type,
+            date = LocalDateTime.now(), currency = ten.currency,
+        )
     }
 
     private fun transfer() = runBlocking {
         useCase.executeTransfer(
             amount = BigDecimal.TEN,
             date = LocalDateTime.now(),
+            currency = tenDollars.currency,
             fromBankName = "Bank A",
             fromLast4 = "1111",
             toBankName = "Bank B",
@@ -83,7 +88,7 @@ class AddTransactionUseCaseEventsTest {
     fun `a manual transfer announces one transfer`() {
         insertReturns(7)
         assertEquals(7L, transfer())
-        assertEquals(listOf(TransactionEvent(TransactionType.TRANSFER, 1, TransactionOrigin.MANUAL, ten)), heard)
+        assertEquals(listOf(TransactionEvent(TransactionType.TRANSFER, 1, TransactionOrigin.MANUAL, tenDollars)), heard)
     }
 
     @Test

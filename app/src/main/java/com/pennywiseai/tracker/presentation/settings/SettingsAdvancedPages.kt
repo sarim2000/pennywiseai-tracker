@@ -31,7 +31,6 @@ import com.pennywiseai.tracker.ui.components.cards.GroupedColumn
 import com.pennywiseai.tracker.ui.components.cards.IconTile
 import com.pennywiseai.tracker.ui.components.cards.ListItemPosition
 import com.pennywiseai.tracker.ui.components.cards.RowLabels
-import com.pennywiseai.tracker.ui.components.readableProgressColors
 import com.pennywiseai.tracker.ui.theme.Dimensions
 import com.pennywiseai.tracker.ui.theme.Spacing
 
@@ -156,8 +155,7 @@ private fun AiChatSettingsItem(
                     Button(
                         onClick = onDownload,
                         colors = ButtonDefaults.buttonColors(
-                            containerColor = MaterialTheme.colorScheme.error,
-                            contentColor = MaterialTheme.colorScheme.onError
+                            containerColor = MaterialTheme.colorScheme.error
                         ),
                         shapes = ButtonDefaults.shapes()
                     ) {
@@ -187,12 +185,9 @@ private fun AiChatSettingsItem(
                 modifier = Modifier.fillMaxWidth(),
                 verticalArrangement = Arrangement.spacedBy(Spacing.sm)
             ) {
-                val progressColors = readableProgressColors()
                 LinearWavyProgressIndicator(
                     progress = { downloadProgress / 100f },
-                    modifier = Modifier.fillMaxWidth(),
-                    color = progressColors.indicator,
-                    trackColor = progressColors.track
+                    modifier = Modifier.fillMaxWidth()
                 )
                 Text(
                     text = stringResource(R.string.settings_ai_download_progress, downloadedMB, totalMB),
@@ -203,8 +198,7 @@ private fun AiChatSettingsItem(
                     onClick = onCancel,
                     modifier = Modifier.fillMaxWidth(),
                     colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.error,
-                        contentColor = MaterialTheme.colorScheme.onError
+                        containerColor = MaterialTheme.colorScheme.error
                     ),
                     shapes = ButtonDefaults.shapes()
                 ) {

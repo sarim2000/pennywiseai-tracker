@@ -38,6 +38,39 @@ T&C. Ignore if paid""",
 
             // Actual transaction examples that SHOULD parse
             ParserTestCase(
+                name = "Credit card spend - merchant containing On",
+                message = "Spent Rs.572.25 On HDFC Bank Card 0000 At ..GAME ON On 2026-11-22:08:26:20.Not You? To Block+Reissue Call 0000000000/SMS BLOCK CC 0000 to 0000000000",
+                sender = "AD-HDFCBK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("572.25"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.CREDIT,
+                    merchant = "GAME ON"
+                )
+            ),
+            ParserTestCase(
+                name = "Credit card spend - dot-padded merchant",
+                message = "Spent Rs.572.25 On HDFC Bank Card 0000 At ..SAMPLE CAFE HOUSE On 2026-11-22:08:26:20.Not You? To Block+Reissue Call 0000000000/SMS BLOCK CC 0000 to 0000000000",
+                sender = "AD-HDFCBK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("572.25"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.CREDIT,
+                    merchant = "SAMPLE CAFE HOUSE"
+                )
+            ),
+            ParserTestCase(
+                name = "Credit card spend - truncated merchant ending in underscore",
+                message = "Spent Rs.572.25 On HDFC Bank Card 0000 At ..SAMPLE CAFE HOU_ On 2026-11-22:08:26:20.Not You? To Block+Reissue Call 0000000000/SMS BLOCK CC 0000 to 0000000000",
+                sender = "AD-HDFCBK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("572.25"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.CREDIT,
+                    merchant = "SAMPLE CAFE HOU"
+                )
+            ),
+            ParserTestCase(
                 name = "UPI Debit Transaction",
                 message = "Rs.500.00 debited from A/c XX1234 on 20-Oct-25 to merchant@upi (UPI Ref No 123456789012)",
                 sender = "CP-HDFCBK-S",
@@ -145,6 +178,5 @@ T&C. Ignore if paid""",
         )
 
         return ParserTestUtils.runTestSuite(parser, testCases, handleCases, "HDFC Bank Parser Tests")
-
     }
 }

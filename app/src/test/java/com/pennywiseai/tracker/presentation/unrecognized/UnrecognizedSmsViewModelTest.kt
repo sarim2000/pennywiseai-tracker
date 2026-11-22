@@ -7,6 +7,7 @@ import com.pennywiseai.tracker.data.events.MascotMoments
 import com.pennywiseai.tracker.data.manager.TaughtMessageBooker
 import com.pennywiseai.tracker.data.preferences.TaughtTemplatesStore
 import io.mockk.coEvery
+import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
@@ -41,8 +42,10 @@ class UnrecognizedSmsViewModelTest {
         receivedAt = LocalDateTime.of(2026, 1, 2, 10, 0),
     )
 
+    private val booker = mockk<TaughtMessageBooker>(relaxed = true)
+
     private fun moments(outcome: TaughtMessageBooker.Outcome, teach: UnrecognizedSmsViewModel.() -> Unit): List<MascotMoment> {
-        val booker = mockk<TaughtMessageBooker>(relaxed = true) {
+        booker.apply {
             coEvery { bookMessage(any(), any(), any()) } returns outcome
             coEvery { bookWaiting(any()) } returns outcome
         }
@@ -88,5 +91,7 @@ class UnrecognizedSmsViewModelTest {
     @Test
     fun `adding a message a taught template already reads is a plain save, not a lesson`() {
         assertEquals(emptyList<MascotMoment>(), moments(TaughtMessageBooker.Outcome.SAVED) { addTaught(message) })
+        // Silent because it's a save, not because nothing was booked.
+        coVerify(exactly = 1) { booker.bookWaiting(message.id) }
     }
 }

@@ -197,7 +197,7 @@ fun GoalDetailScreen(
             confirmButton = {
                 Button(
                     onClick = { showDelete = false; viewModel.delete() },
-                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error, contentColor = MaterialTheme.colorScheme.onError),
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error),
                     shapes = ButtonDefaults.shapes(),
                 ) { Text(stringResource(R.string.goal_menu_delete)) }
             },

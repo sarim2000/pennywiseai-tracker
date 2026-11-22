@@ -36,7 +36,6 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
-import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.res.stringResource
@@ -51,14 +50,9 @@ import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import com.pennywiseai.tracker.R
 import com.pennywiseai.tracker.ui.components.BalancePoint
-import com.pennywiseai.tracker.ui.components.palestMark
 import com.pennywiseai.tracker.ui.theme.Dimensions
-import com.pennywiseai.tracker.ui.theme.GRAPHIC_CONTRAST
 import com.pennywiseai.tracker.ui.theme.PennyWiseText
 import com.pennywiseai.tracker.ui.theme.Spacing
-import com.pennywiseai.tracker.ui.theme.contrastRatio
-import com.pennywiseai.tracker.ui.theme.neutralSurfaces
-import com.pennywiseai.tracker.ui.theme.readableOn
 import com.pennywiseai.tracker.utils.AppDates
 import com.pennywiseai.tracker.utils.CurrencyFormatter
 import java.math.BigDecimal
@@ -106,10 +100,11 @@ private fun BarChartCanvas(frame: BarFrame, growIn: Boolean, height: Int) {
     val textMeasurer = rememberTextMeasurer()
 
     // Tonal bars with the latest one solid, as in the Insights hero chart.
-    val (barColor, latestBarColor) = rememberTonalBarColors(themeColors.neutralSurfaces)
+    val barColor = themeColors.primaryContainer
+    val latestBarColor = themeColors.primary
     val gridColor = themeColors.onSurface.copy(alpha = 0.1f)
-    val labelColor = themeColors.onSurfaceVariant
-    val valueLabelColor = themeColors.onSurfaceVariant
+    val labelColor = themeColors.onSurface.copy(alpha = 0.7f)
+    val valueLabelColor = themeColors.onSurface.copy(alpha = 0.7f)
     val indicatorColor = themeColors.onSurfaceVariant
 
     val chartLabel = PennyWiseText.chartLabel
@@ -284,8 +279,6 @@ fun PeriodBarChart(
         // Grow in once on first paint; later data changes retarget from where they stand.
         var grown by remember { mutableStateOf(false) }
         LaunchedEffect(Unit) { grown = true }
-        // The Insights summary card is surfaceContainerLow.
-        val barColors = rememberTonalBarColors(listOf(MaterialTheme.colorScheme.surfaceContainerLow))
         BoxWithConstraints(modifier.fillMaxWidth()) {
             val scale = LocalDensity.current.fontScale
             val minBarWidth = Dimensions.Icon.avatar * scale
@@ -308,8 +301,7 @@ fun PeriodBarChart(
                             bar = bar,
                             fraction = if (grown) (bar.amount.toDouble() / max).toFloat().coerceIn(0f, 1f) else 0f,
                             selected = index == bars.lastIndex,
-                            currency = currency,
-                            barColors = barColors
+                            currency = currency
                         )
                     }
                 }
@@ -319,14 +311,7 @@ fun PeriodBarChart(
 }
 
 @Composable
-private fun RowScope.PeriodBarColumn(
-    bar: PeriodBar,
-    fraction: Float,
-    selected: Boolean,
-    currency: String,
-    barColors: Pair<Color, Color>
-) {
-    val (barColor, latestBarColor) = barColors
+private fun RowScope.PeriodBarColumn(bar: PeriodBar, fraction: Float, selected: Boolean, currency: String) {
     val colors = MaterialTheme.colorScheme
     val shown by animateFloatAsState(
         targetValue = fraction,
@@ -383,8 +368,8 @@ private fun RowScope.PeriodBarColumn(
                     .background(
                         when {
                             !bar.hasData || bar.amount.signum() <= 0 -> colors.surfaceContainerHighest
-                            selected -> latestBarColor
-                            else -> barColor
+                            selected -> colors.primary
+                            else -> colors.primaryContainer
                         }
                     )
             )
@@ -397,32 +382,6 @@ private fun RowScope.PeriodBarColumn(
             maxLines = 1,
             overflow = TextOverflow.Ellipsis
         )
-    }
-}
-
-/** How far apart (as a contrast ratio) the latest bar and the older ones must stay. */
-private const val DISTINCT_BARS = 1.5f
-
-/**
- * The older bars' colour and the latest bar's, for bars on [cards]. Older bars keep
- * primaryContainer's tone, nudged to 3:1 (it was 1.2:1 on the default light card). Where a
- * palette makes primaryContainer about as strong as primary (Rosé Pine dark, Tako…), they
- * take the palest mix of primary that still shows, so the latest bar still stands out
- * ([DISTINCT_BARS] apart).
- */
-@Composable
-private fun rememberTonalBarColors(cards: List<Color>): Pair<Color, Color> {
-    val scheme = MaterialTheme.colorScheme
-    val primary = scheme.primary
-    val container = scheme.primaryContainer
-    return remember(primary, container, cards) {
-        val latest = primary.readableOn(cards, GRAPHIC_CONTRAST)
-        val older = container.readableOn(cards, GRAPHIC_CONTRAST)
-        if (contrastRatio(older, latest) >= DISTINCT_BARS) return@remember older to latest
-        val paler = latest.palestMark(cards.first(), cards)
-        // The palest mark stops at 3:1 on the hardest surface, which can leave it a hair under
-        // the gap; the latest bar then moves further from it (and from the cards with it).
-        paler to latest.readableOn(listOf(paler), DISTINCT_BARS)
     }
 }
 

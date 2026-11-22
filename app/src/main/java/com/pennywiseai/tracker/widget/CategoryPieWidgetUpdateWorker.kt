@@ -186,11 +186,12 @@ class CategoryPieWidgetUpdateWorker @AssistedInject constructor(
                 if (total.signum() == 0) 0f
                 else (amount.toFloat() / total.toFloat()) * 100f
 
+            val ctx = applicationContext.inAppLanguage()
             val slices = buildList {
                 top.forEach { (name, amount) ->
                     add(
                         CategoryPieSlice(
-                            name = CategoryMapping.label(applicationContext.inAppLanguage(), name, categories),
+                            name = CategoryMapping.label(ctx, name, categories),
                             colorArgb = CategoryMapping.colorFor(name, colorOverrides[name])
                                 .toArgb().toLong(),
                             percent = percentOf(amount)
@@ -200,7 +201,7 @@ class CategoryPieWidgetUpdateWorker @AssistedInject constructor(
                 if (otherTotal.signum() > 0) {
                     add(
                         CategoryPieSlice(
-                            name = applicationContext.inAppLanguage().getString(R.string.widget_pie_other),
+                            name = ctx.getString(R.string.widget_pie_other),
                             colorArgb = 0xFF9E9E9EL,
                             percent = percentOf(otherTotal)
                         )

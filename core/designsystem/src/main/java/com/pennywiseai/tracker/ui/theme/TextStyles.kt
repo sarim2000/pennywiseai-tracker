@@ -130,11 +130,6 @@ object PennyWiseText {
         @Composable @ReadOnlyComposable
         get() = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 1.sp)
 
-    /** All-caps-ish label above a value in a detail sheet. */
-    val fieldLabel: TextStyle
-        @Composable @ReadOnlyComposable
-        get() = MaterialTheme.typography.labelMedium
-
     /**
      * Axis ticks, value labels and legends drawn *inside* a chart.
      *

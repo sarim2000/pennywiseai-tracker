@@ -48,7 +48,6 @@ Prefer these — they name the *role*, so the rhythm can be retuned in one place
 | `headerToContent` | 8dp | Section header → the content it labels |
 | `listGap` | 8dp | Between sibling rows in a plain list |
 | `groupedListGap` | 2dp | Between rows of a connected/grouped block |
-| `nestedContent` | 12dp | Content nested inside an already-padded card |
 | `scrollBottomPadding` | 24dp | Bottom breathing room in a scrolling list |
 
 ### The rhythm that matters
@@ -236,7 +235,7 @@ the jobs the plain roles don't cover:
   so a long amount shrinks to fit instead of wrapping mid-number or clipping
   into a smaller, wrong-looking figure.
 - **Rows:** `rowTitle`, `rowSubtitle`, `metadata`.
-- **Structure:** `sectionHeader`, `fieldLabel`.
+- **Structure:** `sectionHeader`.
 - **Charts:** `chartLabel` — one style for every axis tick, value label and
   legend, since Canvas text takes a `TextStyle` rather than a Material role and
   each chart used to declare its own literal.

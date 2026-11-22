@@ -38,6 +38,17 @@ T&C. Ignore if paid""",
 
             // Actual transaction examples that SHOULD parse
             ParserTestCase(
+                name = "Credit card spend - merchant containing On",
+                message = "Spent Rs.572.25 On HDFC Bank Card 0000 At ..GAME ON On 2026-11-22:08:26:20.Not You? To Block+Reissue Call 18002586161/SMS BLOCK CC 0000 to 7308080808",
+                sender = "AD-HDFCBK-S",
+                expected = ExpectedTransaction(
+                    amount = BigDecimal("572.25"),
+                    currency = "INR",
+                    type = com.pennywiseai.parser.core.TransactionType.CREDIT,
+                    merchant = "GAME ON"
+                )
+            ),
+            ParserTestCase(
                 name = "Credit card spend - dot-padded merchant",
                 message = "Spent Rs.572.25 On HDFC Bank Card 0000 At ..SAMPLE CAFE HOUSE On 2026-11-22:08:26:20.Not You? To Block+Reissue Call 18002586161/SMS BLOCK CC 0000 to 7308080808",
                 sender = "AD-HDFCBK-S",

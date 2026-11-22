@@ -65,9 +65,15 @@ class HDFCBankParser : BaseIndianBankParser() {
             message.contains(" At ", ignoreCase = true) &&
             message.contains(" On ", ignoreCase = true)
         ) {
-            // Extract merchant between "At" and the next "On" using string operations for reliability
+            // Merchant runs from "At" to the "On" before the date, so a name like
+            // "GAME ON" survives; fall back to the next plain " On ".
             val atIndex = message.indexOf(" At ", ignoreCase = true)
-            val onIndex = if (atIndex == -1) -1 else message.indexOf(" On ", atIndex + 4, ignoreCase = true)
+            val onIndex = if (atIndex == -1) {
+                -1
+            } else {
+                Regex("""\s+On\s+\d""", RegexOption.IGNORE_CASE).find(message, atIndex + 4)?.range?.first
+                    ?: message.indexOf(" On ", atIndex + 4, ignoreCase = true)
+            }
             if (atIndex != -1 && onIndex != -1) {
                 val merchant = message.substring(atIndex + 4, onIndex).trim().trim('.', '_').trim()
                 if (merchant.isNotEmpty()) {

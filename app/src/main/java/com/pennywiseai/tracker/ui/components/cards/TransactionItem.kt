@@ -188,6 +188,7 @@ fun TransactionItem(
         },
         onLongClick = onLongClick,
         containerColor = containerColor,
+        contentColor = rowInk,
         modifier = modifier,
         leadingContent = {
             val iconModifier = if (sharedTransitionScope != null && animatedVisibilityScope != null) {

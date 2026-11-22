@@ -99,6 +99,8 @@ fun ListItemCardV2(
     contentPadding: Dp = Dimensions.Padding.cardCompact,
     /** Overrides the card's container colour when set (e.g. for selected state). */
     containerColor: Color? = null,
+    /** Ink for the title and the press/focus layer. Defaults to [contentColorFor] of the fill. */
+    contentColor: Color? = null,
     onClick: (() -> Unit)? = null,
     onLongClick: (() -> Unit)? = null,
 ) {
@@ -173,8 +175,11 @@ fun ListItemCardV2(
         onLongClick = onLongClick,
         shapes = ListItemDefaults.shapes(shape = shape),
         modifier = modifier.fillMaxWidth(),
-        colors = (containerColor ?: MaterialTheme.colorScheme.surfaceContainerLow).let {
-            ListItemDefaults.segmentedColors(containerColor = it, contentColor = contentColorFor(it))
+        colors = (containerColor ?: MaterialTheme.colorScheme.surfaceContainerLow).let { fill ->
+            ListItemDefaults.segmentedColors(
+                containerColor = fill,
+                contentColor = contentColor ?: contentColorFor(fill),
+            )
         },
         contentPadding = PaddingValues(contentPadding),
         content = row

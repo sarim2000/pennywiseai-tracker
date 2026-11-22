@@ -368,37 +368,7 @@ class ADCBParser : FABParser() {
         val lowerMessage = message.lowercase()
 
         // Skip non-transaction messages specific to ADCB
-        val adcbNonTransactionKeywords = listOf(
-            // Failed transactions - these have amounts but shouldn't be parsed as successful transactions
-            "could not be completed",
-            "insufficient funds",
-            "transaction.*could not be completed",
-
-            // OTP and security messages
-            "do not share your otp",
-            "otp for transaction",
-            "activation key",
-            "do not share with anyone",
-
-            // Card management
-            "has been de-activated",
-            "has been activated",
-            "congratulations on the first usage",
-            "digital card assigned to",
-
-            // General alerts and confirmations
-            "pin change/setup was successful",
-            "request for pin change/setup",
-            "we have updated your emirates id",
-            "confirmation recd. from",
-            "sr no.",
-            "for clarifications please call",
-            "for assistance please call"
-        )
-
-        if (adcbNonTransactionKeywords.any { keyword ->
-                lowerMessage.contains(Regex(keyword, RegexOption.IGNORE_CASE))
-            }) {
+        if (ADCB_NON_TRANSACTION_KEYWORDS.any { it.containsMatchIn(lowerMessage) }) {
             return false
         }
 
@@ -525,5 +495,35 @@ class ADCBParser : FABParser() {
 
         // Default to AED for ADCB (UAE Dirham) only if no other currency found
         return "AED"
+    }
+
+    private companion object {
+        val ADCB_NON_TRANSACTION_KEYWORDS = listOf(
+            // Failed transactions - these have amounts but shouldn't be parsed as successful transactions
+            "could not be completed",
+            "insufficient funds",
+            "transaction.*could not be completed",
+
+            // OTP and security messages
+            "do not share your otp",
+            "otp for transaction",
+            "activation key",
+            "do not share with anyone",
+
+            // Card management
+            "has been de-activated",
+            "has been activated",
+            "congratulations on the first usage",
+            "digital card assigned to",
+
+            // General alerts and confirmations
+            "pin change/setup was successful",
+            "request for pin change/setup",
+            "we have updated your emirates id",
+            "confirmation recd. from",
+            "sr no.",
+            "for clarifications please call",
+            "for assistance please call"
+        ).map { Regex(it, RegexOption.IGNORE_CASE) }
     }
 }

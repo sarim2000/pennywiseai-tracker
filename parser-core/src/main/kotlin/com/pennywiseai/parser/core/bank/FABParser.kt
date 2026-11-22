@@ -407,37 +407,7 @@ open class FABParser : UAEBankParser() {
         val lowerMessage = message.lowercase()
 
         // Skip administrative and non-transaction messages
-        val nonTransactionKeywords = listOf(
-            "declined due to insufficient balance",
-            "transaction has been declined",
-            "address update request",
-            "statement request",
-            "stamped statement",
-            "cannot process your",
-            "amazing rate",
-            "request has been logged",
-            "reference number",
-            "beneficiary creation/modification request",
-            "funds transfer request is under process",
-            "has been resolved",
-            "funds transfer request has failed",
-            "card has been successfully activated",
-            "temporarily blocked",
-            "never share credit/debit card",
-            "debit card.*replacement request",  // Card replacement requests
-            "card will be ready for dispatch",  // Card delivery notifications
-            "replacement request has been registered",  // Card replacement confirmations
-            "otp",
-            "activation",
-            "thank you for activating",
-            "do not disclose your otp",
-            "atyourservice@bankfab.com",
-            "has been blocked on"  // Email-only messages
-        )
-
-        if (nonTransactionKeywords.any { keyword ->
-                lowerMessage.contains(Regex(keyword, RegexOption.IGNORE_CASE))
-            }) {
+        if (NON_TRANSACTION_KEYWORDS.any { it.containsMatchIn(lowerMessage) }) {
             return false
         }
 
@@ -495,5 +465,35 @@ open class FABParser : UAEBankParser() {
         }
 
         return super.isTransactionMessage(message)
+    }
+
+    private companion object {
+        val NON_TRANSACTION_KEYWORDS = listOf(
+            "declined due to insufficient balance",
+            "transaction has been declined",
+            "address update request",
+            "statement request",
+            "stamped statement",
+            "cannot process your",
+            "amazing rate",
+            "request has been logged",
+            "reference number",
+            "beneficiary creation/modification request",
+            "funds transfer request is under process",
+            "has been resolved",
+            "funds transfer request has failed",
+            "card has been successfully activated",
+            "temporarily blocked",
+            "never share credit/debit card",
+            "debit card.*replacement request",  // Card replacement requests
+            "card will be ready for dispatch",  // Card delivery notifications
+            "replacement request has been registered",  // Card replacement confirmations
+            "otp",
+            "activation",
+            "thank you for activating",
+            "do not disclose your otp",
+            "atyourservice@bankfab.com",
+            "has been blocked on"  // Email-only messages
+        ).map { Regex(it, RegexOption.IGNORE_CASE) }
     }
 }
